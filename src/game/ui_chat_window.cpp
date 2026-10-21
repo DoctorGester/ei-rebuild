@@ -98,8 +98,8 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1)
+    auto* memory = gamecrt::operator_new_as<CUiSurface>();
+    AddSurface(memory ? memory->Construct(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1)
                       : nullptr);
     portraits_ = 0;
     mfc::CString text;

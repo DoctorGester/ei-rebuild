@@ -50,7 +50,7 @@ void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
 
 bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     GivenItems items;    // [0x18]
-    ObjectList second;   // [0x5C]
+    GivenItems second;   // [0x5C]
     ObjectList third;    // [0x40]
     InitList(items, mfc::impl::ItemListClass::Vtable());
     InitList(second, mfc::impl::ItemListClass::Vtable());

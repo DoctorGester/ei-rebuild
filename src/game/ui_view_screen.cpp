@@ -72,9 +72,9 @@ void CViewScreen::Build() {
         inert->owner_ = interface_;
     }
     AddInput(inert);
-    void* memory = gamecrt::operator_new(sizeof(UnitPickInput));
-    AddInput(memory ? static_cast<UnitPickInput*>(memory)->Construct(interface_) : nullptr);
-    memory = gamecrt::operator_new(0x2C);
+    auto* pick = gamecrt::operator_new_as<UnitPickInput>();
+    AddInput(pick ? pick->Construct(interface_) : nullptr);
+    void* memory = gamecrt::operator_new(0x2C);
     AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     CCamera* camera = TheCamera();

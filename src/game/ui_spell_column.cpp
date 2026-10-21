@@ -37,8 +37,8 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
-const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return static_cast<CSpell*>(spell)->GetPrototype();
+const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
+    return spell->GetPrototype();
 }
 
 
@@ -76,7 +76,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
-        std::uint8_t* data = Get<std::uint8_t*>(spell, 0x44);
+        CSpell* data = spell->spell_;   // the spell item's spell
         if (data) {
             const mfc::CStringArray& labels = labels_;
             mfc::CString line;

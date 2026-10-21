@@ -28,8 +28,8 @@
 
 namespace {
 
-// MFC CPtrList (mfc::CTypedPtrList layout).
-using PtrList = mfc::CTypedPtrList<void>;
+// The MFC CPtrLists of items the loot goes on.
+using PtrList = mfc::CTypedPtrList<CItem>;
 using PtrListNode = PtrList::Node;
 
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
@@ -37,8 +37,8 @@ using PtrListNode = PtrList::Node;
 
 
 // An object referenced once more and appended to `list`.
-void Append(PtrList* list, void* object) {
-    ++static_cast<CEngineObject*>(object)->refCount_;
+void Append(PtrList* list, CItem* object) {
+    ++object->refCount_;
     PtrListNode* node = list->NewNode(list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
@@ -46,7 +46,7 @@ void Append(PtrList* list, void* object) {
     list->tail = node;
 }
 // The node appended without a new reference (the prototype items on the second list).
-void AppendShared(PtrList* list, void* object) {
+void AppendShared(PtrList* list, CItem* object) {
     PtrListNode* node = list->NewNode(list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
@@ -73,10 +73,8 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* cunit, void* dropList, void* itemList,
+int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* cunit, PtrList* drops, PtrList* items,
                                  void* /*unused*/, int* gold) {
-    auto* drops = static_cast<PtrList*>(dropList);
-    auto* items = static_cast<PtrList*>(itemList);
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = world->ItemFactory();
@@ -89,7 +87,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* 
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
         if (bytes() & ~std::intptr_t{3}) {
             for (std::uint32_t i = 0; i < count(); ++i) {
-                void* item = ItemManagerCreateItemOriginal(manager, nullptr, names()[i]);
+                CItem* item = ItemManagerCreateItemOriginal(manager, nullptr, names()[i]);
                 if (!item) continue;
                 Append(drops, item);
                 AppendShared(items, item);
@@ -101,22 +99,22 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* 
         if (*gold < 0) *gold = 0;
     }
     for (int slot = 0; slot < 4; ++slot) {
-        if (void* item = cunit->GetQuickItem(slot)) Append(drops, item);
+        if (CItem* item = cunit->GetQuickItem(slot)) Append(drops, item);
         cunit->RemoveQuickItem(slot);
     }
     for (int i = 0; i < cunit->carriedCount; ++i) {
-        if (void* item = cunit->carried[i]) Append(drops, item);
+        if (CItem* item = cunit->carried[i]) Append(drops, item);
     }
     while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
-            void* armour = cunit->WornItem(slot);
+            CItem* armour = cunit->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
-            cunit->UnequipArmour(reinterpret_cast<CItemArmor*>(armour)->GetType());
+            cunit->UnequipArmour(static_cast<CItemArmor*>(armour)->GetType());   // a worn item is armour
         }
         for (int slot = 0; slot < 4; ++slot) {
-            void* weapon = cunit->GetWeapon(slot);
+            CItemWeapon* weapon = cunit->GetWeapon(slot);
             if (!weapon) continue;
             Append(drops, weapon);
             cunit->RemoveWeapon(slot);

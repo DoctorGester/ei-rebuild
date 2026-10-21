@@ -157,8 +157,8 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.
 // `refValueBase`: the record is built through the reference value constructor (00419720) and the
 // vtable stored after it, instead of 0058FBB0.
-CItem* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
-    auto* item = static_cast<CItem*>(world->DuplicateItem(itemRecord));
+CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
+    CItem* item = world->DuplicateItem(itemRecord);
     auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
     memory->refs = 0;   // written before the null test
     ItemSourceRef* record = nullptr;

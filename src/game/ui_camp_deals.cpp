@@ -65,8 +65,8 @@ bool MadeByConstructor(const CItem* item) {
 }
 
 // The stock lists of a class template: everything (+0x11C) and spells and modifiers (+0x1D4).
-void* AllowedList(ClassTemplate* t) { return &t->allowed; }
-void* MagicList(ClassTemplate* t) { return &t->magic; }
+ItemStock* AllowedList(ClassTemplate* t) { return &t->allowed; }
+ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
 void ReturnToStrip(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
@@ -206,19 +206,19 @@ namespace {
 // The spell constructor's third list: each item repaired, its spell's (container), spell's or
 // modifier's record added to the template's spell stock.
 void StockSpells(CCampPages* camp, CParty* list) {
-    void* stock = MagicList(camp->constructor_);
+    ItemStock* stock = MagicList(camp->constructor_);
     for (int i = 0; i < ItemCount(list); ++i) {
         CItem* item = ItemAt(list, i);
         item->Repair();
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             const char* name = item->spell_->GetPrototype()->code;
-            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name)));
+            stock->AddSpell(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name)));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            static_cast<ItemStock*>(stock)->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
+            stock->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
         } else if (UiItemKinds::IsModifier(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            static_cast<ItemStock*>(stock)->AddModifier(itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
+            stock->AddModifier(itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
         }
     }
 }
@@ -227,7 +227,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
 // items that can be taken apart and blueprint parts add their record to the template's stock;
 // loot priced by itself (kind 0) leaves the list.
 void StockItems(CCampPages* camp, CParty* list) {
-    void* stock = AllowedList(camp->constructor_);
+    ItemStock* stock = AllowedList(camp->constructor_);
     for (int i = ItemCount(list) - 1; i >= 0; --i) {
         CItem* item = ItemAt(list, i);
         item->Repair();
@@ -246,11 +246,11 @@ void StockItems(CCampPages* camp, CParty* list) {
             list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
-            static_cast<ItemStock*>(stock)->AddWeapon(itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
+            stock->AddWeapon(itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
         else if (kind == static_cast<int>(kRecordArmor))
-            static_cast<ItemStock*>(stock)->AddArmor(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
+            stock->AddArmor(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
         else if (kind == static_cast<int>(kRecordQuickItem))
-            static_cast<ItemStock*>(stock)->AddQuickItem(itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
+            stock->AddQuickItem(itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
     }
 }
 

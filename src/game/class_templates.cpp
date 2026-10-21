@@ -60,11 +60,11 @@ stlp::NameMap& FourthKindMap() { return itemdb::TheItemDatabase().materials.name
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
-void AddArmor(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddArmor(static_cast<char*>(record)); }
-void AddWeapon(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddWeapon(static_cast<char*>(record)); }
-void AddQuickItem(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddQuickItem(static_cast<char*>(record)); }
-void AddSpell(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddSpell(static_cast<char*>(record)); }
-void AddModifier(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddModifier(static_cast<char*>(record)); }
+void AddArmor(ItemStock* list, void*, void* record) { list->AddArmor(static_cast<char*>(record)); }
+void AddWeapon(ItemStock* list, void*, void* record) { list->AddWeapon(static_cast<char*>(record)); }
+void AddQuickItem(ItemStock* list, void*, void* record) { list->AddQuickItem(static_cast<char*>(record)); }
+void AddSpell(ItemStock* list, void*, void* record) { list->AddSpell(static_cast<char*>(record)); }
+void AddModifier(ItemStock* list, void*, void* record) { list->AddModifier(static_cast<char*>(record)); }
 
 // The bit of the template's class (+0x08) in a record's class mask (SHL by CL: modulo 32).
 bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
@@ -75,8 +75,8 @@ bool Allowed(const ClassTemplate* t, const void* itemRecord) {
     return Allowed(t, static_cast<const itemdb::ItemRecordHead*>(itemRecord)->classMask);
 }
 
-void* AllList(ClassTemplate* t) { return &t->allowed; }
-void* MagicList(ClassTemplate* t) { return &t->magic; }
+ItemStock* AllList(ClassTemplate* t) { return &t->allowed; }
+ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 } // namespace
 

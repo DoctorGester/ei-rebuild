@@ -157,7 +157,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
                 CItem* item = node->data;
                 ObjectList one;
                 InitList(one);
-                auto* fresh = static_cast<CItem*>(DuplicateItem(item));
+                CItem* fresh = DuplicateItem(item);
                 fresh->count_ = item->count_;
                 AddTail(one, fresh);
                 player->GiveItems(&one, 0);
@@ -251,15 +251,14 @@ void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* obje
 
 } // namespace
 
-CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
+CItem* CWorldServer::CopyItem(CItem* source) {
     // The original also builds and frees two empty CPtrLists (vtable 0073B8D4) here, unused.
-    auto* source = static_cast<CItem*>(item);
     std::uint32_t packed = source->prototypeId_;
     int type = source->type_;
     CEngineObject* factory = ItemFactory();
-    CEngineObject* copy = (CEngineObject*)static_cast<CItemManager*>(factory)->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
-    source->CopyTo(static_cast<CItem*>(copy), SpellManager());
-    std::memcpy(&static_cast<CItem*>(copy)->charge_, &source->charge_, 4);
+    CItem* copy = static_cast<CItemManager*>(factory)->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
+    source->CopyTo(copy, SpellManager());
+    std::memcpy(&copy->charge_, &source->charge_, 4);
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;
     float maximum = source->chargeMax_;
@@ -299,8 +298,8 @@ void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
         if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
             CParty* party = unit->player->Party();
             if (party->Find(unit->id_)) {
-                CEngineObject* source = party->ItemManager()->FindObject(link->itemId);
-                if (source) --static_cast<CItem*>(source)->count_;
+                CItem* source = FindItem(party->ItemManager(), link->itemId);
+                if (source) --source->count_;
             }
         }
     }

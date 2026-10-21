@@ -66,8 +66,8 @@ class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 // hoover_loot.cpp. 00461CB0 (RET 0x18; ECX the world's hoover, not read): the loot of the dead
 // `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
-int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, CUnit* unit, void* dropList, void* itemList,
-                                 void* unused, int* gold);
+int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
+                                 mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
 class CWorldServer;
 
 namespace world {
@@ -195,7 +195,7 @@ public:
     virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
-    virtual CEngineObject* DuplicateItem(CEngineObject* item);
+    virtual CItem* DuplicateItem(CItem* item);
     virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.
@@ -720,7 +720,7 @@ public:
     // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
-    CEngineObject* CopyItem(CEngineObject* item);
+    CItem* CopyItem(CItem* item);
     // 00594F30 (RET 4). Puts `item` (an item whose state changed) on counted_, once; null is
     // ignored.
     void AddCounted(CEngineObject* item);
