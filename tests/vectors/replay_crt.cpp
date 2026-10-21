@@ -37,37 +37,6 @@ void __cdecl operator_delete(void* p) { ::operator delete(p); }
 void* __cdecl malloc(std::size_t size) { return std::malloc(size); }
 void __cdecl free(void* p) { std::free(p); }
 
-int __cdecl isdigit(int c) { return Classify(g_ctype.digit, g_negative ? g_negative->digit : nullptr, c, 4, "isdigit"); }
-int __cdecl isspace(int c) { return Classify(g_ctype.space, g_negative ? g_negative->space : nullptr, c, 8, "isspace"); }
-int __cdecl tolower(int c) {
-    if (c >= 0 && c < 256) return g_ctype.lower[c];
-    std::fprintf(stderr, "ei_vectors: gamecrt::tolower(%d) was not recorded\n", c);
-    std::abort();
-}
-
-char* __cdecl strncpy(char* dst, const char* src, std::size_t n) {
-    char* d = dst;
-    while (n && (*d++ = *src++) != 0) --n;
-    if (n)
-        while (--n) *d++ = 0;
-    return dst;
-}
-
-int __cdecl strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
-
-// _strnicmp: both of its branches (the "C" locale's ASCII fold and the locale's _tolower_lk) fold each
-// byte as tolower does.
-int __cdecl strnicmp(const char* a, const char* b, std::size_t n) {
-    if (n == 0) return 0;
-    const int* fold = CaseFoldTable();
-    int f, l;
-    do {
-        f = fold[static_cast<unsigned char>(*a++)];
-        l = fold[static_cast<unsigned char>(*b++)];
-    } while (--n && f && f == l);
-    return f - l;
-}
-
 const int* CaseFoldTable() { return g_fold; }
 
 void SetReplayCtype(const ReplayCtype& ctype) {
@@ -76,6 +45,43 @@ void SetReplayCtype(const ReplayCtype& ctype) {
 }
 
 } // namespace gamecrt
+
+// The character and string functions gamecrt:: and crt_format.cpp (_forcdecpt's tolower) call: crt.cpp's
+// ports are not linked here (they read the game CRT's data).
+namespace libcrt {
+
+int __cdecl Isdigit(int c) { return Classify(g_ctype.digit, g_negative ? g_negative->digit : nullptr, c, 4, "isdigit"); }
+int __cdecl Isspace(int c) { return Classify(g_ctype.space, g_negative ? g_negative->space : nullptr, c, 8, "isspace"); }
+int __cdecl Tolower(int c) {
+    if (c >= 0 && c < 256) return g_ctype.lower[c];
+    std::fprintf(stderr, "ei_vectors: gamecrt::tolower(%d) was not recorded\n", c);
+    std::abort();
+}
+
+char* __cdecl Strncpy(char* dst, const char* src, std::size_t n) {
+    char* d = dst;
+    while (n && (*d++ = *src++) != 0) --n;
+    if (n)
+        while (--n) *d++ = 0;
+    return dst;
+}
+
+int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
+
+// _strnicmp: both of its branches (the "C" locale's ASCII fold and the locale's _tolower_lk) fold each
+// byte as tolower does.
+int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
+    if (n == 0) return 0;
+    const int* fold = gamecrt::CaseFoldTable();
+    int f, l;
+    do {
+        f = fold[static_cast<unsigned char>(*a++)];
+        l = fold[static_cast<unsigned char>(*b++)];
+    } while (--n && f && f == l);
+    return f - l;
+}
+
+} // namespace libcrt
 
 namespace ei::vectors::crt {
 

@@ -10,6 +10,7 @@
 // time.
 #include "terrain.h"
 #include "address_order.h"
+#include "at_exit_functions.h"
 #include "terrain_sector.h"
 #include "random.h"
 #include "spell.h"
@@ -215,10 +216,10 @@ int __cdecl CompareSectors(const void* a, const void* b) {
     return CompareSlots(*static_cast<const SectorData* const*>(a), *static_cast<const SectorData* const*>(b));
 }
 
-// SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed by 006C9270 at exit).
+// SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270, the
+// generated ei::static_init::Exit006C9270).
 lib::AlignedArray<SectorData*>& SortedSectors() { return *reinterpret_cast<lib::AlignedArray<SectorData*>*>(0x007C8938); }
 std::uint8_t& SortedSectorsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C8948); }
-__declspec(naked) void __cdecl FreeSortedSectors() EI_ORIGINAL(0x006C9270)
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).
@@ -255,7 +256,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     if ((terrain::SortedSectorsGuard() & 1) == 0) {
         terrain::SortedSectorsGuard() |= 1;
         sorted = {nullptr, 0, 0, 0};
-        GameAtExit(terrain::FreeSortedSectors);
+        GameAtExit(ei::static_init::Exit006C9270);
     }
     if (!sorted.data) {
         sorted.data = sorted.Allocate(0);

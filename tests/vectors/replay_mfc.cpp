@@ -225,21 +225,6 @@ CString __stdcall operator+(const CString& a, const CString& b) {
     return s;
 }
 
-CPlex* __stdcall PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
-    auto* block = static_cast<CPlex*>(gamecrt::operator_new(sizeof(CPlex) + count * elementSize));
-    block->next = head;
-    head = block;
-    return block;
-}
-
-void __fastcall PlexFreeDataChain(CPlex* head) {
-    while (head) {
-        CPlex* next = head->next;
-        gamecrt::operator_delete(head);
-        head = next;
-    }
-}
-
 } // namespace mfc
 
 // The empty string of the library's CString (mfc_string.h) is this one.

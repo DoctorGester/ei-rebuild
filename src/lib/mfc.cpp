@@ -176,9 +176,6 @@ void CArchive::WriteCount(unsigned long count) { Impl(this)->WriteCount(count); 
 void CArchive::Flush() { Impl(this)->Flush(); }                                                   // 007089D1
 
 #ifndef EI_VECTORS_REPLAY
-__declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
-__declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)
-
 CString __stdcall operator+(const CString& a, const char* b) {         // 00700C05
     CString result(CString::kUnset);
     Place(result, *Impl(&a) + b);

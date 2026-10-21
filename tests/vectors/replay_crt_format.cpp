@@ -89,8 +89,3 @@ bool CheckAtof(Reader& r, char* detail, std::size_t detailSize) {
 EI_VECTOR_CHECK_BYTES("atof", CheckAtof);
 
 } // namespace
-
-// crt.cpp's ports are not linked here (they read the game CRT's data): _forcdecpt's tolower (of the
-// first character of a formatted number) answers as the game CRT's, from the "@GameCrtCtype" fixture
-// (replay_crt.cpp).
-int __cdecl libcrt::Tolower(int c) { return gamecrt::tolower(c); }

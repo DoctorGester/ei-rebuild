@@ -25,20 +25,14 @@ __declspec(naked) void __cdecl free(void*) EI_ORIGINAL(0x006EA8AD)
 
 __declspec(naked) int __cdecl rand() EI_ORIGINAL(0x006E77F7)
 void __cdecl srand(unsigned seed) { libcrt::Srand(seed); }
-#ifndef EI_VECTORS_REPLAY
-__declspec(naked) int __cdecl tolower(int) EI_ORIGINAL(0x006EBA53)
-#endif
-#ifndef EI_VECTORS_REPLAY
-__declspec(naked) int __cdecl strnicmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FA1A0)
-#endif
-#ifndef EI_VECTORS_REPLAY
-__declspec(naked) char* __cdecl strncpy(char*, const char*, std::size_t) EI_ORIGINAL(0x006E7E80)
-__declspec(naked) int __cdecl strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
-#endif
-#ifndef EI_VECTORS_REPLAY
-__declspec(naked) int __cdecl isdigit(int) EI_ORIGINAL(0x006E9379)
-__declspec(naked) int __cdecl isspace(int) EI_ORIGINAL(0x006E93CE)
-#endif
+// The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
+// own answers through record_crt.cpp's forwarders).
+int __cdecl tolower(int c) { return libcrt::Tolower(c); }
+int __cdecl strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
+char* __cdecl strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
+int __cdecl strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
+int __cdecl isdigit(int c) { return libcrt::Isdigit(c); }
+int __cdecl isspace(int c) { return libcrt::Isspace(c); }
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
 
@@ -75,7 +69,9 @@ const int* CaseFoldTable() {
 
 double __cdecl acos(double c) { return libcrt::CiAcos(c); }
 
-__declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
+#ifndef EI_VECTORS_REPLAY
+int __cdecl write(int fd, const void* buffer, unsigned count) { return libcrt::Write(fd, buffer, count); }
+#endif
 
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
     return libcrt::Fwrite(from, size, count, file);
