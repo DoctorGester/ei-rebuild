@@ -14,8 +14,10 @@
 #include "core_transform.h"
 #include "engine_object.h"
 #include "material.h"
+#include "unit.h"   // CUnit, the fake unit's base
 
 #include "../lib/containers.h"
+#include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/vecmath.h"
 #include "game_data.h"
@@ -324,10 +326,14 @@ struct SceneSkin {
     // (CAnimationNode::AttachMeshes).
     int BindMeshes(const lib::AlignedArray<void*>* parts);
     // scene_skin_lifetime.cpp (A-U12).
-    // 00508700. The constructor: empty arrays and names, no root, the clock -1. Returns this.
-    SceneSkin* Construct();
+    // 00508700. The constructor: empty arrays and names, no root, the clock -1.
+    SceneSkin();
     // 005087B0. The destructor: the root bone destroyed and deleted (the bone list emptied), the
-    // names emptied and destroyed, the arrays' blocks freed.
+    // names emptied and destroyed, the arrays' blocks freed (the name, a member, after them).
+    ~SceneSkin();
+    // The registrations (C20 retires them): 00508700 constructs in place (returns this), 005087B0
+    // the destructor.
+    SceneSkin* Construct();
     void Destruct();
     // 00508870. The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
     // name "none", no names, +0x4C 0. Returns 1.
@@ -373,20 +379,47 @@ inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %
 // The helpers (+0x56C) are materials (material.h).
 using HelperArray = mfc::CArray<CMaterial, mfc::RawElements<CMaterial>>;
 
-// The fake unit (CFakeUnit, vtable 0073BFE8) as LoadFakeUnitScene fills it: a CObject3D
-// (map_object_figures.h) up to +0x4E0, then the skin and the scene's arrays.
-struct FakeUnitScene {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BFE8);
+// The fake unit (CFakeUnit, GetClassName "CFakeUnit", 0x580 bytes; fake_unit.cpp): a unit (unit.h)
+// with the skin and the scene's arrays, which LoadFakeUnitScene fills. A real virtual class: the
+// compiler makes its vtable (C19; game.exe's 0073BFE8 is retired). No scenario makes one (class
+// 0x39 in the map object factory): only the builds check it.
+class FakeUnitScene : public CUnit {
+public:
+    // 004466D0's work: the unit, the skin (a member), four empty arrays (game.exe's CArray vtables).
+    FakeUnitScene();
+    // 00446910's work: the parts let go (the skin cleared, the unit's Destroy), the figures emptied,
+    // the four arrays destroyed (each element through its slot 0); then the skin (a member) and the
+    // unit's destructor.
+    ~FakeUnitScene() override;
+    // The deleting destructor (slot 0, 004468F0) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The slots of game.exe's 0073BFE8 that differ from CUnit's (fake_unit.cpp).
+    int Create() override;                  // 2: 00446AF0 the skin created and owned, then CreateUnit
+    void Destroy() override;                // 3: 00446B20 the parts let go, the figures destroyed
+    const char* GetClassName() override;    // 11: 004468D0 "CFakeUnit"
+    int GetClassId() override;              // 12: 004468E0 (0x50)
+    // 62 (RET 8): 00446BA0. Loads the scene (LoadFakeUnitScene); on success each figure gets a new
+    // object of class 0x45 from the world's side-specific manager. Returns the loader's 0, or 1.
+    virtual int LoadScene(const char* file, const char* regFile);
+
+    // The registrations (C20 retires them): 004468F0, the destructor, then operator delete with
+    // flags bit 0 (returns this).
     void* DeleteScalar(unsigned flags);
-    std::uint8_t object3D_[0x4E0];      // the CObject3D part: Object3D()
+
+    std::uint8_t unused_4DC[4];         // +0x4DC the skin's alignment (its clock is a double in the original)
     SceneSkin skin;                     // +0x4E0 (0x50 bytes)
     VtArray figures;                    // +0x530 CFigureMesh records (0x220, constructed by 00453240)
     VtArray meshes;                     // +0x544 SceneMesh records
     VtArray boneLinks;                  // +0x558 per figure a CArray of NodeFrame records (0x14 each)
     VtArray helpers;                    // +0x56C CMaterial records (HelperArray)
 
-    CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
+private:
+    // The parts let go (the start of both the destructor and Destroy): the skin emptied and
+    // unowned, the unit's Destroy (0052E590).
+    void ReleaseParts();
 };
+static_assert(sizeof(FakeUnitScene) == 0x580);
 static_assert(offsetof(FakeUnitScene, skin) == 0x4E0);
 static_assert(offsetof(FakeUnitScene, figures) == 0x530);
 static_assert(offsetof(FakeUnitScene, helpers) == 0x56C);

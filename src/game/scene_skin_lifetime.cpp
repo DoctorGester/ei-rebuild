@@ -26,9 +26,8 @@ bool DropRoot(SceneSkin* skin) {
 }
 } // namespace
 
-SceneSkin* SceneSkin::Construct() {
+SceneSkin::SceneSkin() {
     bones = {};
-    new (&name) mfc::CString();
     names.Construct();
     spareArray = {};
     clock[0] = 0;
@@ -44,19 +43,21 @@ SceneSkin* SceneSkin::Construct() {
     }
     spareArray.capacity = 0;
     spareArray.size = 0;
-    return this;
 }
+
+SceneSkin* SceneSkin::Construct() { return new (this) SceneSkin(); }
 EI_REPLACE_METHOD(0x00508700, SceneSkin::Construct);
 
-void SceneSkin::Destruct() {
+SceneSkin::~SceneSkin() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
     names.SetSize(0, -1);
     if (spareArray.data) lib::FreeAligned32(spareArray.data);
     names.Destruct();
-    name.~CString();
     if (bones.data) lib::FreeAligned32(bones.data);
 }
+
+void SceneSkin::Destruct() { this->~SceneSkin(); }
 EI_REPLACE_METHOD(0x005087B0, SceneSkin::Destruct);
 
 int SceneSkin::Create() {

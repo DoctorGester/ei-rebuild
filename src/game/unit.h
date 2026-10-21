@@ -265,8 +265,8 @@ static_assert(offsetof(CUnitController, unit_) == 0x1C);
 // the rest up to +0x238): the prototype name is CObject3D::name (+0xA4), the figure's build its
 // scale.y (+0xC8), the packed vitals (hit points, mana) CMapObject::packedVitals (+0x17C). A real
 // virtual class: the compiler makes its vtable (C19; game.exe's 0073EA8C and its tail 0073EAA0 are
-// retired). CFakeUnit (0073BFE8, fake_unit.cpp, still game.exe's table) shares the slot bodies: they
-// stay registered at their addresses.
+// retired). CFakeUnit (scene::FakeUnitScene, scene_loader.h) derives from it; game.exe's fake unit
+// table shared these slot bodies, which stay registered at their addresses (C20).
 class CUnit : public CMapObject {
 public:
     // 0052E110 as C++: the map object, the script name (a member), the motion and the carried
