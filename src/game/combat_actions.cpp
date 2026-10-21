@@ -132,13 +132,13 @@ void CUnitServer::FinishAction(int location, char) {
     switch (action.kind) {
     case 3: {
         DeliverAttack(action.target, &pendingHit);
-        CEngineObject* target = action.target;
-        if (!target || target->GetClassId() != kClassUnit) return;
+        CUnit* target = UnitOrNull(action.target);
+        if (!target) return;
         if (location >= 6) return;
         // The kind of the target's body slot `location`: 3 means it can still be aimed at
         // (OrderAttack aims at "all" otherwise); when it is no longer 3 the order aimed at it now
         // aims at "all" (6).
-        if (static_cast<CUnit*>(target)->ServerController()->stats.slots[location].kind == 3) return;
+        if (target->ServerController()->stats.slots[location].kind == 3) return;
         if (location != static_cast<int>(action.source)) return;
         action.source = 6;
         return;
@@ -178,7 +178,7 @@ void CUnitServer::FinishAction(int location, char) {
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 
-void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
+void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     CWorldServer* world = ServerWorld();
     auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
@@ -195,7 +195,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         std::memcpy(&arrow->hit_, hit, sizeof(DamageInfo));
         world->AddTimedObject(missile);
     } else {
-        ObjectSlots(target)->ReceiveHit(hit, unit, unit);
+        target->ReceiveHit(hit, unit, unit);
     }
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
@@ -205,7 +205,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
 }
 EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
 
-void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
+void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     ManagerContext();
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
@@ -216,7 +216,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     UseItemCharge(weapon, cost);
     CUnit* self = unit;
     Vector3 point;
-    const Vector3* at = ObjectSlots(target)->AimPoint(&point);
+    const Vector3* at = target->AimPoint(&point);
     TheServerWorld()->CastSpell(spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
@@ -420,7 +420,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 }
 EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 
-void CUnitServer::UseSkill(CEngineObject* target) {
+void CUnitServer::UseSkill(CMapObject* target) {
     CWorldServer* world = ServerWorld();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
@@ -432,7 +432,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     }
     std::uint32_t skill = action.source;
     if (skill != 1 && skill != 0) return;
-    CUnit* other = target->GetClassId() == kClassUnit ? static_cast<CUnit*>(target) : nullptr;
+    CUnit* other = UnitOrNull(target);
     float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
     if (other) theirs = static_cast<float>(other->ServerController()->stats.AttributeWithItems(0, other));
@@ -474,7 +474,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         }
         record.extra += x87::fistp(mine);
         // Slot 41 (declared with two ints) takes the use record and the unit.
-        if (ObjectSlots(target)->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
+        if (target->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
         if (!unit->player) return;
         message = kMessageScienceFailed;
         break;

@@ -21,7 +21,7 @@ struct UnitAction {
     int kind;                   // +0x00 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
     std::uint32_t source;       // +0x04 spell slot, or quick item slot | 0x80000000; 0x18A95 for a
                                 //       skill used on a target (kind 6)
-    CEngineObject* target;      // +0x08 (referenced)
+    CMapObject* target;         // +0x08 (referenced)
     Vector3 point;              // +0x0C target point
     std::uint8_t flag18;        // +0x18
     std::uint8_t unused_19[3];
@@ -42,7 +42,7 @@ struct UnitAction {
     void ClearOrder() { reinterpret_cast<AIOrder*>(this)->Clear(); }
     // The inlined counted-reference assignment of the target (the order setters): the old one
     // released, the new one referenced; nothing when it is the same.
-    void Retarget(CEngineObject* object) {
+    void Retarget(CMapObject* object) {
         if (object == target) return;
         if (target) target->Release();
         target = nullptr;
@@ -363,7 +363,7 @@ public:
     // 0054F580. Builds the hit of an attack on `target` into pendingHit: a backstab when the unit
     // is behind the target (00530A60), unless the target's controller has noBackstab or the
     // weapon is ranged. Returns 1.
-    BOOL PrepareAttack(CEngineObject* target, int location, char calledShot);
+    BOOL PrepareAttack(CMapObject* target, int location, char calledShot);
     // 00553F40. Virtual slot 20: the unit is hit by `hit` from `attacker` (may be null) on behalf
     // of `source` (whose player gets the experience for a kill; may be null). Resolves the hit if
     // that has not been done, logs it ("Unit 12 was attacked by 34 skill=... damage=... destHL=Body"),
@@ -409,10 +409,10 @@ public:
     // 0054F450. Delivers `hit` to `target`: a missile (world object 0x5B carrying the hit) for a
     // bow or crossbow, else the target's hit slot (CUnit slot 31 -> TakeHit) directly; then the
     // weapon's spell, and noise when the hit was not a backstab.
-    void DeliverAttack(CEngineObject* target, DamageInfo* hit);
+    void DeliverAttack(CMapObject* target, DamageInfo* hit);
     // 0054F850. Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers
     // the cost.
-    void TriggerWeaponSpell(CEngineObject* target);
+    void TriggerWeaponSpell(CMapObject* target);
     // 0054F8E0. Casts the spells of the armour pieces that trigger on being hit (`onHit`; spell
     // prototype 0x18 triggers when not hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
@@ -439,7 +439,7 @@ public:
     // 0054F000. Applies the skill of the current order to `target`: kind 6 with source 0x18A95
     // (a talk / trade order: 005942D0 and 005935C0), else science (0) and stealing (1), logged
     // "Unit12 is using skill science his_skill = ... target_skill = ...".
-    void UseSkill(CEngineObject* target);
+    void UseSkill(CMapObject* target);
     // 00555180. Drops the queued order (+0x1B4) unless it is of kind 7 or 8 or there is no current
     // order; the queued order ends up of kind 0 (sic).
     void Idle();
@@ -464,13 +464,13 @@ public:
     // 00554B30. Kind 3 (attack) on `target` (not null, not the unit itself) at body part
     // `location` (6, all, unless the target's part kind is 3); +0x20 = `calledShot`. Dropped when
     // the target is out of reach (message 0x0C to the party) or the planner (0054E600) refuses.
-    void OrderAttack(CEngineObject* target, int location, int calledShot, int planArg);
+    void OrderAttack(CMapObject* target, int location, int calledShot, int planArg);
     // 00554D00. Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once.
     // A party unit needs the spell's skill (+0x50) for a spell of its own; message 0x13 if not,
     // or while flags_ has 0x10000000.
     void OrderCastAt(std::uint32_t source, const float* point, int run);
     // 00554F50. Kind 5 (cast at `target`), as OrderCastAt.
-    void OrderCast(std::uint32_t source, CEngineObject* target, int run);
+    void OrderCast(std::uint32_t source, CMapObject* target, int run);
     // 00555200. Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
 
@@ -491,15 +491,15 @@ public:
     // a hero), use (0, +0x1C = `spot`; any object) and searching a body (0x18A95; a dead object
     // other than the unit). +0x20 = `run`; dropped when the planner (0054E600, shouting 6 / 5 /
     // 5 / 4) refuses.
-    void OrderSteal(CEngineObject* target, int run);
-    void OrderTame(CEngineObject* target, int run);
-    void OrderUse(CEngineObject* target, int spot, int run);
-    void OrderSearchBody(CEngineObject* target, int run);
+    void OrderSteal(CMapObject* target, int run);
+    void OrderTame(CMapObject* target, int run);
+    void OrderUse(CMapObject* target, int spot, int run);
+    void OrderSearchBody(CMapObject* target, int run);
     // 0054C760 (RET 4). Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the
     // world does not share it with this unit's id (005949D0); else when a living unit of the
     // brain's nearby list (+0xF4) is searching it (kind 6, source 0x18A95) in state 5 or with
     // +0x18E set. Callers test AL.
-    bool TargetBusy(CEngineObject* target);
+    bool TargetBusy(CMapObject* target);
     // 00555700. Plays the unit's animation `name` (from its figure's animation database) as the
     // queued order: kind 8 for keys with bit 31, else 7; +0x1C = the entry's index dword.
     void PlayAnimation(const char* name);
@@ -598,7 +598,7 @@ public:
     void BuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
     // 0054F970. The steps of an attack on `target`: the hit location (plan +0x2C) and the height of
     // the blow from both units' heights and the distance. Draws random numbers. Returns 1.
-    bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
+    bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CMapObject* target);
 
     // combat_tick.cpp: the per-tick order machine.
     // 0054B390. Every tick: takes over the queued order, else follows the path and continues the

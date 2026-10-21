@@ -295,8 +295,8 @@ CUnit* AIBrain::PlayerModeLeader() {
 }
 EI_REWRITTEN(0x005D5EE0, AIBrain::PlayerModeLeader);
 
-CEngineObject* AIBrain::LeaderOrFollowed() {
-    CEngineObject* leader = nullptr;
+CMapObject* AIBrain::LeaderOrFollowed() {
+    CMapObject* leader = nullptr;
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
@@ -310,7 +310,7 @@ CEngineObject* AIBrain::LeaderOrFollowed() {
 }
 EI_REWRITTEN(0x005D5E90, AIBrain::LeaderOrFollowed);
 
-CEngineObject* AIBrain::AggressionEnemy() {
+CMapObject* AIBrain::AggressionEnemy() {
     for (auto* node = modes.head; node;) {
         AIMode* mode = node->data;
         node = node->next;
@@ -447,7 +447,7 @@ void AIBrain::UpdateAttack() {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) memory.Notice(&static_cast<CMapObject*>(target.object)->position, 1000, -2);
+        if (IsGone(target) == 0) memory.Notice(&target->position, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -466,7 +466,7 @@ void AIBrain::StopAction() {
 }
 EI_REWRITTEN(0x005D7790, AIBrain::StopAction);
 
-void AIBrain::AttackTarget(CEngineObject* object) {
+void AIBrain::AttackTarget(CMapObject* object) {
     action = kActionAttack;
     target.Assign(object);
     int flags = 0x1C;
@@ -488,7 +488,7 @@ void AIBrain::AttackTarget(CEngineObject* object) {
 }
 EI_REWRITTEN(0x005D7B50, AIBrain::AttackTarget);
 
-void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
+void AIBrain::AttackWith(CMapObject* object, int how, int unknown) {
     if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, object) == 0) return;
     action = kActionAttack;
     target.Assign(object);
@@ -496,7 +496,7 @@ void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
 }
 EI_REWRITTEN(0x005D7C60, AIBrain::AttackWith);
 
-void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
+void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
     if (!object) return;
     action = kActionUse;
     target.Reset();
@@ -538,7 +538,7 @@ void AIBrain::CastAt(int spell, const Vector3* point, int run) {
 }
 EI_REWRITTEN(0x005D7DA0, AIBrain::CastAt);
 
-void AIBrain::Follow(CEngineObject* object) {
+void AIBrain::Follow(CMapObject* object) {
     action = kActionFollow;
     target.Assign(object);
 }
@@ -548,7 +548,7 @@ namespace {
 const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
 } // namespace
 
-void AIBrain::SetSeen(CEngineObject* object) {
+void AIBrain::SetSeen(CMapObject* object) {
     seen.Assign(object);
     if (object) {
         bool allied = false;

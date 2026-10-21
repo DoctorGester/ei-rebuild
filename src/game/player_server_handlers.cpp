@@ -172,7 +172,7 @@ Vector3* AIPath::TargetPoint(Vector3* out) const {
     return out;
 }
 
-void AIOrder::MakeUse(CEngineObject* target, int use) {
+void AIOrder::MakeUse(CMapObject* target, int use) {
     Clear();
     kind = kOrderUse;
     if (target != object) {
@@ -191,7 +191,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
         out->z = point.z;
         return out;
     }
-    static_cast<CMapObjectVirtuals*>(object.object)->AimPoint(out);
+    object->AimPoint(out);
     return out;
 }
 
@@ -211,7 +211,8 @@ int CPlayerServer::OnUseOrder() {
     in.Read(&kind, 4);
     in.Read(&value, 4);
     in.Read(&objectId, 4);
-    CEngineObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId));
+    // A map object (the use order's target), or null.
+    CMapObject* object = ObjectSlots(TheServerWorld()->FindObject(static_cast<unsigned>(objectId)));
 
     CUnit* chosen = nullptr;
     if (units.size >= 2) {
@@ -538,7 +539,7 @@ int CPlayerServer::OnAttack() {
     in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
-    if (CEngineObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
+    if (CMapObject* object = ObjectSlots(TheServerWorld()->FindObject(static_cast<unsigned>(objectId)))) {
         for (int i = 0; i < units.size; ++i) {
             AIBrain* brain = units[i]->ServerController()->Brain();
             if (AIMode* mode = brain->FindPlayerMode())

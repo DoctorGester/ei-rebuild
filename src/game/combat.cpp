@@ -339,7 +339,7 @@ EI_REPLACE_METHOD(0x0054B520, CUnitServer::GetMovePoint);
 float CUnitServer::ActionDistance(const UnitAction* order) {
     if (order->flag18) return kPointTwo;
     int kind = order->kind;
-    CEngineObject* target = order->target;
+    CMapObject* target = order->target;
     if (kind >= 4 && kind <= 5) {
         if (!unit->player && Combat().naturalWeapon == kNoNaturalWeapon) return Combat().reach;
         std::uint32_t source = order->source;
@@ -581,11 +581,9 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
 }
 EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 
-BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
+BOOL CUnitServer::PrepareAttack(CMapObject* target, int location, char calledShot) {
     int backstab = unit->IsBehind(target) & 0xFF;
-    if (target->GetClassId() == kClassUnit &&
-        static_cast<CUnit*>(target)->ServerController()->NoBackstab())
-        backstab = 0;
+    if (CUnit* victim = UnitOrNull(target); victim && victim->ServerController()->NoBackstab()) backstab = 0;
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow))
         return BuildAttackHit(&pendingHit, 0, location, calledShot);

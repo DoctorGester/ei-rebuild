@@ -323,7 +323,7 @@ void FearMode::Execute(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
 
 void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
-    CEngineObject* object = choice->object;
+    CUnit* object = choice->object;
     if (!object) return;
     AITargetChoice now{-1, nullptr};
     CurrentAttack(brain, &now);

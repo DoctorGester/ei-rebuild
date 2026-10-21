@@ -227,7 +227,7 @@ void CUnitServer::TakeQueuedOrder() {
     action.kind = action2.kind;
     action.source = action2.source;
     // 0052A8F0: the counted reference assigned.
-    CEngineObject* target = action2.target;
+    CMapObject* target = action2.target;
     if (target != action.target) {
         if (action.target) action.target->Release();
         action.target = nullptr;
@@ -513,7 +513,7 @@ void CUnitServer::UpdateOrders() {
 EI_REWRITTEN(0x0054B390, CUnitServer::UpdateOrders);
 
 void CUnitServer::ContinueAction() {
-    CEngineObject* target = action.target;
+    CMapObject* target = action.target;
     bool seen = true;
     CPlayer* player = unit->player;
     if (player && IsUnit(target) && !Brain()->memory.IsEnemy(unit, target))
@@ -683,13 +683,12 @@ void CUnitServer::ExecuteOrder() {
             bool fresh = true;
             if (CUnit* other = UnitOrNull(action.target)) {
                 auto* theirs = other->ServerController();
-                if (reinterpret_cast<CEngineObject*>(theirs->action.target) == unit) fresh = false;
+                if (theirs->action.target == unit) fresh = false;
             }
             bool missed = false;
-            if (action.kind == kOrderAttack && action.target->GetClassId() == kClassUnit) {
+            if (CUnit* victim = action.kind == kOrderAttack ? UnitOrNull(action.target) : nullptr) {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
-                auto* victim = static_cast<CUnit*>(action.target);
                 auto* defender = victim->ServerController();
                 ManagerContext();
                 int backstab = unit->IsBehind(victim) & 0xFF;
@@ -720,7 +719,7 @@ double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 void CUnitServer::ApproachTarget() {
     int now = WorldTick(this);
     unit->altPassCosts = 1;
-    CEngineObject* target = action.target;
+    CMapObject* target = action.target;
 
     if (action.flag18 || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.

@@ -243,7 +243,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                       isAction(other->action.kind) && other->action.target == c->action.target &&
                       blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
     if (sameAttack) {
-        auto* target = static_cast<CMapObject*>(c->action.target);
+        CMapObject* target = c->action.target;
         sameAttack = FartherThan(&target->position.x, &self->position.x, &worlddata::QueueWaitLimitRef());
     }
     if (sameAttack) {

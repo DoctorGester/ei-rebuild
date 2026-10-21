@@ -188,6 +188,8 @@ UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->position; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
+// An object argument the command takes as a map object (a unit's leader or target).
+CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
 
 // The unit's server half when argument 0 is a unit that has one, else null.
@@ -865,13 +867,13 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x3B: {   // Follow(unit, leader)
             void* state = UnitStateArg(cmd);
-            if (state) BrainOf(state)->Follow(Arg(cmd, 1));
+            if (state) BrainOf(state)->Follow(MapObjectArg(cmd, 1));
             break;
         }
         case 0x3C: {   // Attack(unit, target)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            CEngineObject* target = Arg(cmd, 1);
+            CMapObject* target = MapObjectArg(cmd, 1);
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
@@ -969,7 +971,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCA: {   // UMFollow(unit, leader)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            CEngineObject* leader = Arg(cmd, 1);
+            CMapObject* leader = MapObjectArg(cmd, 1);
             auto* mode = NewMode<FollowMode>(0x0C);
             BrainOf(state)->AddMode(mode ? mode->ScriptFollowModeConstruct(leader) : nullptr);
             break;

@@ -56,7 +56,6 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
-void AimPointInto(CEngineObject* object, Vector3* out) { Slots(object)->AimPoint(out); }
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -173,7 +172,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     float size = static_cast<float>(Slots(unit)->Radius());
-    Slots(order->target)->UseSpots(&spots, size);
+    order->target->UseSpots(&spots, size);
     bool result = true;
     if (spots.size > 0) {
         LocalPath path;
@@ -225,7 +224,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     double distance = ActionDistance(order);
     float reachSq = static_cast<float>(distance * distance);
     if (!order->target) std::memcpy(&aim, &order->point, sizeof(aim));
-    else AimPointInto(order->target, &aim);
+    else order->target->AimPoint(&aim);
     float t = 0.0f;
     for (;;) {
         float time = static_cast<float>(pathOrder->startTime) + t;
@@ -280,7 +279,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     LocalMotionOrder route;
     Vector3 point;
     if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
-    else AimPointInto(order->target, &point);
+    else order->target->AimPoint(&point);
     bool ok;
     if (!FindUseSpot(order, route.bytes())) {
         PathMessage(unit, route.bytes(), &point.x, 3, 1, kFar);
@@ -325,7 +324,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         };
         if (order->flag18 == 0) {
             LocalPath path;
-            CEngineObject* target = order->target;
+            CMapObject* target = order->target;
             bool savedFlag = false;
             if (target) {
                 savedFlag = PathFlag();

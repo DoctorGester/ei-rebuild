@@ -730,7 +730,8 @@ EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 
 namespace {
 // 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
-void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
+template <typename T>
+void __fastcall ReferenceRelease(T** a0) { CountedRefResetOriginal((void*)a0); }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -801,7 +802,7 @@ EI_REWRITTEN(0x00554450, CUnitServer::ResyncWithUnit);
 // --- Reset ---------------------------------------------------------------------------------------
 
 void CUnitServer::ResetController() {
-    auto releaseRef = [](CEngineObject*& ref) {   // 0052B030
+    auto releaseRef = [](CMapObject*& ref) {   // 0052B030
         if (ref) ref->Release();
         ref = nullptr;
     };

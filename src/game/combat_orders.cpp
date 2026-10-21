@@ -64,7 +64,7 @@ void ReleaseTarget(UnitAction* order) {
     order->target = nullptr;
 }
 
-void SetTarget(UnitAction* order, CEngineObject* target) {
+void SetTarget(UnitAction* order, CMapObject* target) {
     if (target == order->target) return;
     ReleaseTarget(order);
     if (target) ++target->refCount_;
@@ -99,7 +99,7 @@ void CUnitServer::FinishCast() {
         std::memcpy(&at, &action.point, sizeof(at));
     } else {
         Vector3 point;
-        std::memcpy(&at, ObjectSlots(action.target)->AimPoint(&point), sizeof(at));
+        std::memcpy(&at, action.target->AimPoint(&point), sizeof(at));
     }
     if (carrier) {
         float cost = std::bit_cast<float>(spell->manaCost_);
@@ -163,7 +163,7 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, float range) 
 }
 EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
 
-void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledShot, int planArg) {
+void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
     CUnit* victim = UnitOrNull(target);
     if (victim && location < 6) {
@@ -263,9 +263,9 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
 }
 EI_REWRITTEN(0x00554D00, CUnitServer::OrderCastAt);
 
-void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run) {
+void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     Vector3 aim;
-    ObjectSlots(target)->AimPoint(&aim);    // result unused (sic)
+    target->AimPoint(&aim);    // result unused (sic)
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == kCategoryScroll) {
