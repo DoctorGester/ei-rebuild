@@ -24,6 +24,7 @@
 
 class CItem;
 class CItemInfoPanel;
+struct UnitStats;
 namespace console {
 class CStringArray;
 }
@@ -219,7 +220,7 @@ struct ItemHoverInfo {
     int index;               // +0x04 the attribute, skill, school or perks learned
     int part;                // +0x08 body part (kind 4)
     CItem* weapon;           // +0x0C kind 5
-    std::uint8_t* stats;     // +0x10 the hero's statistics (UnitStats, hero record + 0x20)
+    UnitStats* stats;        // +0x10 the hero's statistics (hero record + 0x20)
     mfc::CString text;       // +0x14 the text key
 };
 static_assert(sizeof(ItemHoverInfo) == 0x18);

@@ -1083,6 +1083,9 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTyped
 // 00525720 (__stdcall; ECX is not read). Text-key units: the armour pieces covering hit location
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
+// unit_vision.cpp. 00526860 (__stdcall, RET 4; ECX is not read). The skill bonus byte of the weapon
+// prototype `itemId >> 16`, as a float in ST0.
+double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // unit_vitals.cpp. Scales by the unit's strengthen / weaken effects (types 0x1D / 0x1E):
 // (1 + strengthen * k) / (1 + weaken * k), 1 without a unit. __stdcall (some callers set ECX to

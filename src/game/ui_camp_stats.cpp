@@ -52,7 +52,7 @@ constexpr int kTipNextHero = 0x4F4D;
 
 const mfc::CString& AsCString(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
 
-std::uint8_t* HeroStats(CUiWindow* owner) { return ShownHero(owner)->stats; }
+UnitStats* HeroStats(CUiWindow* owner) { return reinterpret_cast<UnitStats*>(ShownHero(owner)->stats); }
 
 } // namespace
 
@@ -103,7 +103,7 @@ EI_REPLACE_METHOD(0x00625690, CTradePanel::HoverInfo);
 void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     PartyUnitRecord* hero = ShownHero(owner_);
     info->kind = kNone;
-    info->stats = hero->stats;
+    info->stats = reinterpret_cast<UnitStats*>(hero->stats);
     int row = RegionAt(x, y);
     if (((page_ == 1 || page_ == 11) && row >= 2) || (page_ == 10 && row >= 2 && row < 5)) {
         info->kind = kAttribute;

@@ -571,8 +571,9 @@ S on pixels); `CItemScreen::CreateBase`, `CItemIconWindow::Build`, `TrimItemMode
 Facts: the camp creates the description panel (+0x164 at 600, 100) and the help panel (+0x1DC at 0, 100); the owner (+0x14C) is the
 item screen and +0x150 an item list holding a copy of the described item (00661DB0). `DescribeItem` dispatch: kind 0x3007 with +0x4C
 1 material, 2 with +0x50 0-2 blueprint, 3 spell record, 4 modifier record; quick item category 8 -> 005EF300; a carried spell (+0x44)
-while Ctrl is down, or a spell container (0x3008) -> 005EF5D0. Values computed by original functions are truncated straight off the
-FPU stack (inline asm, the game's `_ftol`). The item screens keep model (+0x170) and figure texture (+0x180) caches (STLport
+while Ctrl is down, or a spell container (0x3008) -> 005EF5D0. The statistics (UnitStats methods, WeaponStat84 / 88,
+WeaponPrototypeSkillBonus) are called by name and truncated with the game's `_ftol` as they come back in ST0 (unrounded: those
+rewrites return double). The item screens keep model (+0x170) and figure texture (+0x180) caches (STLport
 map<string, {object, last use}>, limit 30, or 20 with 00784754); each item has a turning state (vtable 007403F8, 0x18 bytes, at the
 item's +0x1C) whose glow and angle wrap keep unrounded x87 values (inline asm). The sprite builders use the original's FPU sequence
 for circle points and call the out-of-line array copies. `00700EFE` is `CString::MakeLower`. In the switch-over the surface
