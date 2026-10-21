@@ -703,7 +703,11 @@ namespace {
 
 // A byte by its _pctype entry (_isctype's answer too, under a multibyte code page); a double-byte
 // character (lead byte high) by GetStringTypeW in the multibyte code page, when it has one.
+// EI_UTF8 (text_case.h): a byte past ASCII is part of a UTF-8 sequence and has no class.
 int IsMultibyteClass(unsigned c, WORD mask) {
+    if constexpr (EI_UTF8 != 0) {
+        if (c >= 0x80) return 0;
+    }
     if (c < 0x100) return CtypeTable()[c] & mask & 0xFF;
     if (!IsMbCodePage()) return 0;
     const char bytes[2] = {static_cast<char>(c >> 8), static_cast<char>(c)};

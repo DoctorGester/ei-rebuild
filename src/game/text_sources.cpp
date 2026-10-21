@@ -201,9 +201,13 @@ EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
-    // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c).
-    libcrt::Setlocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
-    libcrt::Setmbcp(kMbcpLocale);
+    // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c). With
+    // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
+    // the option is not used and LC_CTYPE stays "C".
+    if constexpr (!text::kUtf8) {
+        libcrt::Setlocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
+        libcrt::Setmbcp(kMbcpLocale);
+    }
     return 1;
 }
 EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);
