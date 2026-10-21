@@ -343,13 +343,15 @@ def no_original(scenario):
 
 
 def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, fresh=False,
-        held=1):
+        held=1, slots=None):
     """One game of a scenario on an install (a pair's two games for a scenario with a "peer" line, the peer's in
     the run folder's peer\\): the image on standalone / standalone-rebirth, the original code
     (game.exe, ei_launch --no-hooks) on vanilla / rebirth. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
     take_slot False: the caller already holds held machine slots for it (tools/work_sched.py); a pair whose caller
-    holds one has ei_launch take the second.
+    holds one has ei_launch take the second. slots (with take_slot False): those slots as an object with release()
+    (called once the game has ended, or when the reference cache has the run: the frame packing and the reference
+    copy run without them, SV10h) and acquire() (before the game starts: waits until they are held again).
     clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
     ',randtrace').
     game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
@@ -362,12 +364,13 @@ def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, cloc
     environ = os.environ if game_env is None else game_env
     key = reference_key(name, install, root, clock, environ) if not our_code(install) else None
     if key and not fresh:
-        cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder))
+        cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder),
+                                      found=slots.release if slots else None)
         if cached:
             return cached
     result, seconds, failures, counts, notes = run_once(name, install, folder, root, build, take_slot, clock, game_env,
-                                                        held)
-    frame_store.pack_folder(os.path.join(build, 'runs', folder))      # WB11: 4K frames stored compressed
+                                                        held, slots)
+    frame_store.pack_run(os.path.join(build, 'runs', folder))         # WB11: 4K frames stored compressed
     if key and result == 'PASS':
         store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
     return result, seconds, failures, counts, notes
@@ -415,7 +418,7 @@ def crash_stack_note(out, build, cmd, root=ROOT):
         return f'stack: not resolved ({type(e).__name__}: {e})'
 
 
-def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1):
+def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1, slots=None):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     if install not in STANDALONE_INSTALLS + ORIGINAL_INSTALLS:
@@ -465,6 +468,8 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if games > 1 and (take_slot or held >= games):
         env = dict(os.environ if env is None else env, EI_PAIR_SLOT_HELD='1')   # ei_launch takes no slot itself
     with machine_slot(alone=runs_alone(scenario, install), count=games) if take_slot else contextlib.nullcontext():
+        if slots:
+            slots.acquire()
         start = time.time()
         # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
         # takes the game down with it).
@@ -473,6 +478,9 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
                                   timeout=scenario_limit(scenario) + LIMIT_MARGIN_S + 90)
         except subprocess.TimeoutExpired as e:
             proc = subprocess.CompletedProcess(cmd, TIMEOUT_EXIT, '', f'ei_launch did not end in time; terminating it ({e})')
+        finally:
+            if slots:
+                slots.release()       # the game has ended: the rest of the run needs no slot
         seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
@@ -600,8 +608,9 @@ def reference_key(name, install, root, clock, environ):
     return f'{rev[:10]}-{h.hexdigest()[:12]}'
 
 
-def reference_from_cache(name, install, key, out):
-    """run()'s results of a cached run, its files copied into the run folder out; None when not cached."""
+def reference_from_cache(name, install, key, out, found=None):
+    """run()'s results of a cached run, its files copied into the run folder out; None when not cached. found: called
+    once the cache has the run, before the copy."""
     base = reference_dir()
     if not base:
         return None
@@ -609,6 +618,8 @@ def reference_from_cache(name, install, key, out):
     try:
         with open(os.path.join(entry, 'cached.json')) as f:
             info = json.load(f)
+        if found:
+            found()
         start = time.time()
         shutil.rmtree(out, ignore_errors=True)
         shutil.copytree(entry, out, ignore=shutil.ignore_patterns('cached.json'))
