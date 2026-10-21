@@ -6,6 +6,7 @@
 // the rewritten code uses; the objects are created by original code (sizes asserted where known).
 
 #include "object_tables.h"
+#include "options.h"
 #include "ui.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
@@ -45,7 +46,7 @@ void LoadPersonTexts(PersonTextMap* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen
 // starts a selection box (an interface option; 0 or less: never).
-inline int BoxSelectThreshold() { return ei::GameData<const int>(0x0079BDB0); }
+inline int BoxSelectThreshold() { return options::TheOptions()->cameraFrameSelectionArea_; }
 
 struct ItemHoverInfo;
 struct ClassTemplate;

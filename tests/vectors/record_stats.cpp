@@ -411,7 +411,7 @@ void __fastcall ProtectionBlockRecord(UnitParams* self, void*, const UnitVitalsP
     std::memcpy(v.vitals, vitals->protection, sizeof(v.vitals));
     v.keyed = keyed;
     if (!keyed) {
-        v.difficulty = GameDifficulty();
+        v.difficulty = ei::OriginalGameData<options::GameOptions>(0x0079BC70).difficulty_;   // game.exe's own: the recording runs the original
         if (v.difficulty < 0 || v.difficulty >= 3) recordable = false;
         else v.factor = GameLogicSettings().absorption[v.difficulty];
     }

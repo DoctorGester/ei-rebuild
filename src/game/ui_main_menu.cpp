@@ -2,6 +2,7 @@
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "app_helpers.h"
+#include "options.h"
 #include "sound.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -37,7 +38,7 @@ namespace {
 
 // The width of the fade at the map's edges (read by 006CB020 / 006CB118; 00578D60 / 00578D70 get
 // and set it). The menu shows its world with 6.
-float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 // The main menu's six rectangles of menus.reg (loaded by 005ACE80).
 const RECT* MenuRects() { return ei::GamePointer<const RECT>(0x007C8048); }
 // Interface options (bit 0: the menu's lightning).

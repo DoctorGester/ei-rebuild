@@ -315,7 +315,7 @@ BOOL CBattleScreen::Draw(void* target) {
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    InputMouseMove(0, ei::GameData<int>(0x007C7C50), ei::GameData<int>(0x007C7C54));
+    InputMouseMove(0, MouseScreenX(), MouseScreenY());
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     UiRenderer* renderer = interface_->renderer_;
     DWORD flags = kClearTarget;

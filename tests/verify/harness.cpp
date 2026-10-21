@@ -417,6 +417,7 @@
 #include "../../src/game/device.h"   // IDirectDraw7
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
+#include "harness_objects.h"
 #include "../../src/game/item.h"
 #include "../../src/game/options.h"
 #include "../../src/game/party_manager.h"
@@ -662,14 +663,6 @@ int __fastcall ConsoleSync(void* self, void*) {
 }
 decltype(&::PeekMessageA) g_peekMessage;
 
-// 007AFE20: the game's pending state change, carried out by the main loop (0057C700) and then
-// reset to 0. +0 kind (2 = load the save in slot <argument>, 3 = new game, 4 = go to zone <argument>, 6 = start
-// a multiplayer server on map <argument>), +4 the argument.
-struct GameRequest {
-    int kind;
-    mfc::CString argument;
-};
-GameRequest& g_request = ei::GameData<GameRequest>(0x007AFE20);
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
 // and the code addresses found on the stack (game.exe addresses as is, ours as ei_hook+offset).
@@ -1159,11 +1152,6 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
     plain.lfQuality = NONANTIALIASED_QUALITY;
     return g_createFontIndirect(&plain);
 }
-
-// The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
-// off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
-// clears it every frame, since the options are reloaded when a game starts.
-int& g_showTutorial = ei::GameData<int>(0x0079BE78);
 
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
@@ -1678,7 +1666,7 @@ std::string CursorCheck(const std::string& argument) {
         "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
         count, info.lastTo.left, info.lastTo.top, info.lastTo.right, info.lastTo.bottom, info.checks, info.mismatches, info.calls,
         info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
-    const CCursor* game = TheCursor();
+    const CCursor* game = HarnessCursor();
     Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", game->mode_, game->thread_ ? "running" : "none",
         game->imageShown_);
     char what[240];
@@ -1699,7 +1687,7 @@ std::string CursorCheck(const std::string& argument) {
     if (!render::ReadCursorPresent(&width, &height, &bgr) || !capture::WriteFrame(name, width, height, bgr, &path))
         return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
     g_capturedFrames.push_back(path + " (the cursor thread's last present)");
-    const CursorImage* image = TheCursor()->image_;
+    const CursorImage* image = HarnessCursor()->image_;
     if (!image) return "cursorcheck: the cursor has no image";
     int fx = g_mouseX, fy = g_mouseY;
     render::WindowToFrame(&fx, &fy);
@@ -1821,7 +1809,7 @@ void PostWheel(int x, int y, int delta) {
 // layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
 // scaling (005F7D20, patched by Rebirth) and then to the window's client size.
 void PostRegionMouse(const std::string& verb, int index) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* window = ui->GetActiveWindow();
     if (!window || index < 0 || index >= window->regions_.size || !window->regions_.data[index]) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
@@ -2084,7 +2072,7 @@ std::string LookAt(const std::string& argument) {
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
 std::string HudState(const std::string& argument) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!screen) return "hudstate: no window on top";
     auto at = [](const void* base, int offset) {
@@ -2164,7 +2152,7 @@ std::string CampPutOn(const std::string& argument) {
     unsigned type = 0;
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
     if (!camp || *reinterpret_cast<void**>(camp) != ei::GamePointer<void>(0x0074091C))
         return "campputon: the camp is not on top";
@@ -2235,9 +2223,9 @@ bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
 
 // Whether the awaited window is on top and takes input (see the step's description).
 bool WindowReady(std::uintptr_t (&vtables)[2]) {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
-    if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
+    if (!top || ui->queuedWindow_ || HarnessFlow()->state_ != 0) return false;
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
     if (vtable != vtables[0] && vtable != vtables[1]) return false;
     if (vtable == ei::GameAddress(CSaveLoadWindow::kVtableAddress) || vtable == ei::GameAddress(CSaveLoadWindow::kInputVtableAddress))
@@ -2249,7 +2237,7 @@ bool WindowReady(std::uintptr_t (&vtables)[2]) {
 
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
-    auto* ui = TheInterface();
+    auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
     std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
     const char* name = "?";
@@ -2257,7 +2245,7 @@ std::string DescribeTopWindow() {
         if (vtable == ei::GameAddress(w.vtables[0]) || vtable == ei::GameAddress(w.vtables[1])) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, g_request.kind,
+                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
                   ei::GameData<int>(kCampaignMode));
     return text;
 }
@@ -2667,7 +2655,9 @@ std::string WindowSizeStep(const std::string& argument);
 
 void RunSteps() {
     SetUnhandledExceptionFilter(&HarnessUnhandled);
-    g_showTutorial = 0;
+    // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
+    // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
+    HarnessOptions()->showTutorial_ = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
@@ -2754,7 +2744,7 @@ void RunSteps() {
         // the zone loads): no request pending, not the main menu, the server world holds the zone
         // and the local player is back in the world (state 1; LeaveToZone left it at 3).
         bool ready = false;
-        if (g_inputLoop && g_request.kind == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
+        if (g_inputLoop && HarnessFlow()->state_ == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
             _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
             void* connection = LocalConnection();
             ready = connection && ConnectionState(connection) == 1;
@@ -2766,7 +2756,7 @@ void RunSteps() {
         } else if (g_waitZoneDeadline.Passed()) {
             char what[500];
             std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)%s",
-                          g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, ei::GameData<int>(kCampaignMode),
+                          g_waitZoneName.c_str(), ServerZoneName(), HarnessFlow()->state_, ei::GameData<int>(kCampaignMode),
                           DescribeLocalPlayer().c_str(), g_waitZoneDeadline.Why().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -2854,7 +2844,7 @@ void RunSteps() {
         if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
         else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
-            const CScreenFade* fade = TheInterface()->fade_;
+            const CScreenFade* fade = HarnessInterface()->fade_;
             Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
                 Now() - g_waitWindowDeadline.start, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
             g_waitingWindow = false;
@@ -3044,10 +3034,10 @@ void RunSteps() {
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
             ei::GameData<unsigned char>(0x00784750) = 0;
-            g_request.kind = 3;
+            HarnessFlow()->state_ = 3;
         } else if (s.verb == "load") {
-            g_request.argument = s.argument.c_str();
-            g_request.kind = 2;
+            HarnessFlow()->requestTarget_ = s.argument.c_str();
+            HarnessFlow()->state_ = 2;
         } else if (s.verb == "hold" || s.verb == "release") {
             std::string bad;
             unsigned mods = ParseModifiers(s.argument, &bad);
@@ -3129,7 +3119,7 @@ void RunSteps() {
         } else if (s.verb == "chat") {
             // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
             // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
-            auto* ui = TheInterface();
+            auto* ui = HarnessInterface();
             if (!ui->root_) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
@@ -3169,9 +3159,9 @@ void RunSteps() {
             std::string error = SameFileStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
-            options::TheOptions()->masterServerName_ = s.argument.c_str();
+            HarnessOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "waterwaves") {
-            if (s.argument == "0" || s.argument == "1") options::TheOptions()->enableWaterWaves_ = s.argument == "1";
+            if (s.argument == "0" || s.argument == "1") HarnessOptions()->enableWaterWaves_ = s.argument == "1";
             else g_failures.push_back("waterwaves needs 0 or 1");
         } else if (s.verb == "fakemaster") {
             int port = 0;
@@ -4151,7 +4141,7 @@ bool IsWinMainLoop(const void* returnAddress) {
 unsigned g_closeAllHeldFrom = kNotReady;
 bool HoldMessagesForCloseAll(const void* returnAddress) {
     if (!clock::Virtual() || !IsWinMainLoop(returnAddress) ||
-        !TheInterface()->closeAll_) {
+        !HarnessInterface()->closeAll_) {
         g_closeAllHeldFrom = kNotReady;
         return false;
     }

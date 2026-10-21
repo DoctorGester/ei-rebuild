@@ -1,6 +1,7 @@
 // Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
 // escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
 #include "spell.h"
+#include "options.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
@@ -52,7 +53,7 @@ __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 
 void* MultiplayerClient() { return ei::GameData<void*>(0x0079B5D8); }
 // 0079BE84: the camp's tab keys are active.
-bool TabKeysEnabled() { return ei::GameData<const int>(0x0079BE84) != 0; }
+bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 
 // Virtual slot `slot` of an object with its vtable at +0.
 template <typename Fn>

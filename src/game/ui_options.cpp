@@ -70,38 +70,38 @@ float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above th
 float QuarterTurn() { return ei::GameData<const float>(0x007C8210); }
 
 // The game's option globals the window loads (00652200) and stores (006524A0), by setting.
-int& OptVolume0() { return ei::GameData<int>(0x0079BCC8); }       // setting 0 (the sound system's volume A)
-int& OptVolume1() { return ei::GameData<int>(0x0079BCC4); }       // setting 1
-int& OptVolume2() { return ei::GameData<int>(0x0079BCCC); }       // setting 2
-float& OptSpeedA() { return ei::GameData<float>(0x0079BDC0); }    // setting 3 (three more copies on store)
-float& OptSpeedA2() { return ei::GameData<float>(0x0079BDD8); }
-float& OptSpeedA3() { return ei::GameData<float>(0x0079BDE4); }
-float& OptSpeedA4() { return ei::GameData<float>(0x0079BDCC); }
-float& OptSpeedB() { return ei::GameData<float>(0x0079BDBC); }    // setting 4 (three more copies on store)
-float& OptSpeedB2() { return ei::GameData<float>(0x0079BDD4); }
-float& OptSpeedB3() { return ei::GameData<float>(0x0079BDE0); }
-float& OptSpeedB4() { return ei::GameData<float>(0x0079BDC8); }
-int& Opt5() { return ei::GameData<int>(0x0079BDAC); }             // setting 5
-int& Opt6Tenths() { return ei::GameData<int>(0x0079BDB0); }       // setting 6 * 10
+int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
+int& OptVolume1() { return options::TheOptions()->audioStreaming_; }       // setting 1
+int& OptVolume2() { return options::TheOptions()->audioSpeech_; }       // setting 2
+float& OptSpeedA() { return options::TheOptions()->cameraScroll_.powerKeyboard; }    // setting 3 (three more copies on store)
+float& OptSpeedA2() { return options::TheOptions()->cameraPitch_.powerKeyboard; }
+float& OptSpeedA3() { return options::TheOptions()->cameraZoom_.powerKeyboard; }
+float& OptSpeedA4() { return options::TheOptions()->cameraRotate_.powerKeyboard; }
+float& OptSpeedB() { return options::TheOptions()->cameraScroll_.powerMouse; }    // setting 4 (three more copies on store)
+float& OptSpeedB2() { return options::TheOptions()->cameraPitch_.powerMouse; }
+float& OptSpeedB3() { return options::TheOptions()->cameraZoom_.powerMouse; }
+float& OptSpeedB4() { return options::TheOptions()->cameraRotate_.powerMouse; }
+int& Opt5() { return options::TheOptions()->cameraBorderScrollArea_; }             // setting 5
+int& Opt6Tenths() { return options::TheOptions()->cameraFrameSelectionArea_; }       // setting 6 * 10
 // Settings 7-9, the shadow switches (map_object_shadow.cpp): units, other objects, class 0x52.
-int& OptShadowUnits() { return ei::GameData<int>(0x0079BD14); }
-int& OptShadowBuildings() { return ei::GameData<int>(0x0079BD18); }
-int& OptShadowFlora() { return ei::GameData<int>(0x0079BD1C); }
-int& Opt10() { return ei::GameData<int>(0x0079BD50); }
-int& Opt11() { return ei::GameData<int>(0x0079BD4C); }
-int& Opt12() { return ei::GameData<int>(0x0079BE64); }
-int& Opt13() { return ei::GameData<int>(0x0079BE70); }
-float& OptGamma14() { return ei::GameData<float>(0x0079BCFC); }   // settings 14-16 (setting * 0.02 - 1)
-float& OptGamma15() { return ei::GameData<float>(0x0079BD00); }
-float& OptGamma16() { return ei::GameData<float>(0x0079BD04); }
-int& Opt17() { return ei::GameData<int>(0x0079BE74); }
+int& OptShadowUnits() { return options::TheOptions()->unitShadow_; }
+int& OptShadowBuildings() { return options::TheOptions()->buildingShadow_; }
+int& OptShadowFlora() { return options::TheOptions()->floraShadow_; }
+int& Opt10() { return options::TheOptions()->enableBloodprints_; }
+int& Opt11() { return options::TheOptions()->enableFootprints_; }
+int& Opt12() { return options::TheOptions()->selectionType_; }
+int& Opt13() { return options::TheOptions()->drawPath_; }
+float& OptGamma14() { return options::TheOptions()->brightness_; }   // settings 14-16 (setting * 0.02 - 1)
+float& OptGamma15() { return options::TheOptions()->contrast_; }
+float& OptGamma16() { return options::TheOptions()->gamma_; }
+int& Opt17() { return options::TheOptions()->drawFlyingHp_; }
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store at 00652663).
-int& OptHelp18() { return ei::GameData<int>(0x0079BE78); }
-int& Opt19() { return ei::GameData<int>(0x0079BE7C); }
-float& Opt20() { return ei::GameData<float>(0x0079BE80); }        // setting 20
-int& Opt21() { return ei::GameData<int>(0x0079BE84); }
-float& OptSign22() { return ei::GameData<float>(0x0079BD64); }    // setting 22 (-1 for 1, else +1)
-float& OptSign23() { return ei::GameData<float>(0x0079BD68); }    // setting 23 (likewise)
+int& OptHelp18() { return options::TheOptions()->showTutorial_; }
+int& Opt19() { return options::TheOptions()->autosave_; }
+float& Opt20() { return options::TheOptions()->toolTipTime_; }        // setting 20
+int& Opt21() { return options::TheOptions()->switchFilters_; }
+float& OptSign22() { return options::TheOptions()->cameraFlipX_; }    // setting 22 (-1 for 1, else +1)
+float& OptSign23() { return options::TheOptions()->cameraFlipY_; }    // setting 23 (likewise)
 // The settings of the options window (the exe's table of 26), by the window's rows.
 constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {0, "volume_sfx", 0, 100, 1, 0},
@@ -133,7 +133,7 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
 };
 
 int& Opt24() { return options::TheOptions()->reverseStereo_; }
-int& OptDifficultyCopy() { return ei::GameData<int>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
+int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } // setting 25 (with GameDifficulty 0079BEC0)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 

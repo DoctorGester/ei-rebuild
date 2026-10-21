@@ -4,6 +4,7 @@
 // armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
 // docs/notes/units.md.
 #include "combat.h"
+#include "options.h"
 #include "unit.h"
 
 #include "object_tables.h"
@@ -209,7 +210,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (copy.amount == kZero) return 0;
     float difficulty = unit->player ? kOne
-                                    : GameLogicSettings().absorption[ei::GameData<const int>(0x0079BEC0)];
+                                    : GameLogicSettings().absorption[options::TheOptions()->difficulty_];
     float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -
