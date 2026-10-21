@@ -17,16 +17,15 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The layout: half a texel (0073CC90, 1 / 512) and a texel (0073EEB8, 1 / 256) of the 256-wide
 // interface textures; 1 / 800 (00740164) and 1 / 400 (0074015C) of the layout's width; the view's
 // half width at depth 1 (00740158, 0.48157); 0.75 (0073C524), the layout's height over its width.
-float Texel() { return GameFloat(0x0073EEB8); }
-float HalfTexel() { return GameFloat(0x0073CC90); }
-float One() { return GameFloat(0x0073B84C); }
-float Half() { return GameFloat(0x0073B86C); }
-float ViewHalfWidth() { return GameFloat(0x00740158); }
+float Texel() { return 0.00390625f /*0073EEB8*/; }
+float HalfTexel() { return 0.001953125f /*0073CC90*/; }
+float One() { return 1.0f /*0073B84C*/; }
+float Half() { return 0.5f /*0073B86C*/; }
+float ViewHalfWidth() { return 0.48157462f /*00740158*/; }
 
 constexpr std::uint32_t kOneBits = 0x3F800000;
 // The two triangles of a quad whose corners are numbered down the left side, then down the right.
@@ -99,7 +98,7 @@ void SetFlatPackets(CUiMesh* sprite, int count) {
 
 // The three scales of a sprite drawn at `depth` in units of `scale`.
 void SetLayoutScale(CUiMesh* sprite, float depth, float scale) {
-    float size = ViewHalfWidth() * depth * scale * GameFloat(0x0074015C);
+    float size = ViewHalfWidth() * depth * scale * 0.0025f /*0074015C*/;
     sprite->ScaleX() = size;
     sprite->ScaleY() = size;
     sprite->ScaleZ() = size;
@@ -139,11 +138,11 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     quad.x[3] = halfWidth;
     quad.y[3] = halfHeight;
     // The centre in front of the interface camera, as Place puts a layout point.
-    float y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    float y = ((top + bottom) * 0.00125f /*00740164*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
     // WideScreen (005E75D1, addon's 100231E1): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
-    float x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
+    float x = (sumX * 0.00125f /*00740164*/ - One()) * ViewHalfWidth() * depth;
     Vector3 centre;
     localPosition_ = *centre.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
@@ -198,8 +197,8 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     // The top left corner in front of the interface camera.
     // WideScreen (005E7C8D, addon's 100231CA): the left edge moved.
     const float gridLeft = widescreen::Active() ? MovedX(left) : left;
-    localPosition_.x = (gridLeft * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
-    localPosition_.y = (top * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    localPosition_.x = (gridLeft * 0.0025f /*0074015C*/ - One()) * ViewHalfWidth() * depth;
+    localPosition_.y = (top * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
     localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
@@ -250,8 +249,8 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     // WideScreen (005E835E, addon's 100231FA): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
-    localPosition_.x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
-    localPosition_.y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    localPosition_.x = (sumX * 0.00125f /*00740164*/ - One()) * ViewHalfWidth() * depth;
+    localPosition_.y = ((top + bottom) * 0.00125f /*00740164*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
     localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
@@ -288,10 +287,10 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     points.y[2] = (y2 - y0) / scale;
     points.x[3] = 0.0f;
     points.y[3] = 0.0f;
-    float y = (y0 * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    float y = (y0 * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * ViewHalfWidth() * depth;
     // WideScreen (005E9E77, addon's 100231B3): the first point moved.
     const float firstX = widescreen::Active() ? MovedX(x0) : x0;
-    float x = (firstX * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
+    float x = (firstX * 0.0025f /*0074015C*/ - One()) * ViewHalfWidth() * depth;
     Vector3 first;
     localPosition_ = *first.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);

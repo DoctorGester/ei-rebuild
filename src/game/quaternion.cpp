@@ -24,13 +24,11 @@ double StoreDouble(double v) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
-#define EI_HALF_F GameFloat(0x0073B86C)        // 0.5f
-#define EI_ONE_F GameFloat(0x0073B84C)         // 1.0f
-#define EI_ZERO_D GameDouble(0x0073C340)       // 0.0
-#define EI_ONE_D GameDouble(0x0073BAC8)        // 1.0
-#define EI_SLERP_LINEAR GameDouble(0x0073D078) // 1e-4: below this 1 - cos interpolates linearly
+#define EI_HALF_F 0.5f /*0073B86C*/        // 0.5f
+#define EI_ONE_F 1.0f /*0073B84C*/         // 1.0f
+#define EI_ZERO_D 0.0 /*0073C340*/       // 0.0
+#define EI_ONE_D 1.0 /*0073BAC8*/        // 1.0
+#define EI_SLERP_LINEAR 0.0001 /*0073D078*/ // 1e-4: below this 1 - cos interpolates linearly
 
 // FCOM: "a < b or unordered" (C0), as `TEST AH,1` reads it.
 bool LessOrUnordered(double a, double b) { return !(a >= b); }

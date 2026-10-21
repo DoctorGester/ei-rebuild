@@ -61,12 +61,12 @@ constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0073CCF4
 constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
 
 // pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
-float Pi() { return ei::GameData<const volatile float>(0x007440D8); }
+float Pi() { return 3.1415927f /*007440D8*/; }
 float HalfPi() { return ei::GameData<const volatile float>(0x007C8808); }
 // The fade step every fade request uses (007440E4, 1/96), copied as a dword.
-std::uint32_t FadeStepBits() { return ei::GameData<const volatile std::uint32_t>(0x007440E4); }
+std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
-float StopFadeStep() { return ei::GameData<const volatile float>(0x007440E8); }
+float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 

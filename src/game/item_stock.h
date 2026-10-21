@@ -88,8 +88,8 @@ inline RecordNameMap& SpellsByName() { return ei::GameData<RecordNameMap>(0x007C
 inline RecordNameMap& ModifiersByName() { return ei::GameData<RecordNameMap>(0x007C853C); }
 // The material draw's factors of the prototype's price (read from the exe as the original does):
 // 00743D78 (a seventh) and 0073BAD4 (0.2).
-inline float SeventhFactor() { return ei::GameData<const float>(0x00743D78); }
-inline float FifthFactor() { return ei::GameData<const float>(0x0073BAD4); }
+inline float SeventhFactor() { return 0.14285715f /*00743D78*/; }
+inline float FifthFactor() { return 0.2f /*0073BAD4*/; }
 } // namespace stock
 
 struct ItemStock {

@@ -42,7 +42,6 @@ namespace {
 
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 template <typename T>
 T Get(const void* p, int offset) {
@@ -59,13 +58,13 @@ void CopyDword(void* p, int offset, std::uintptr_t source) {
 }
 
 // The game's _ftol of a float times the float at `scale`, the product unrounded.
-int ScaledFtol(float value, std::uintptr_t scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * GameFloat(scale))); }
+int ScaledFtol(float value, float scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * scale)); }
 
 // A colour 0xFFrrggbb from three floats in 0..1 (each times 255, truncated).
 std::uint32_t PackColour(const float* rgb) {
-    std::uint32_t r = static_cast<std::uint32_t>(ScaledFtol(rgb[0], 0x0073C370));
-    std::uint32_t g = static_cast<std::uint32_t>(ScaledFtol(rgb[1], 0x0073C370));
-    std::uint32_t b = static_cast<std::uint32_t>(ScaledFtol(rgb[2], 0x0073C370));
+    std::uint32_t r = static_cast<std::uint32_t>(ScaledFtol(rgb[0], 255.0f /*0073C370*/));
+    std::uint32_t g = static_cast<std::uint32_t>(ScaledFtol(rgb[1], 255.0f /*0073C370*/));
+    std::uint32_t b = static_cast<std::uint32_t>(ScaledFtol(rgb[2], 255.0f /*0073C370*/));
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
@@ -110,7 +109,7 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 (FILD of the
 // unsigned word; FMUL float; FMUL double; FSTP float).
 float RandomPhase(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * GameFloat(0x007C7D20) * GameDouble(0x0073C468));
+    return static_cast<float>(x87::FromUnsigned(random) * GameFloat(0x007C7D20) * 2.3283064370807974e-10 /*0073C468*/);
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
@@ -120,12 +119,12 @@ float RandomPhase(std::uint32_t random) {
 const float* SchoolGlow(int school) { return ei::GamePointer<const float>(0x00740358) + school * 4; }
 
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
-    const double advanced = static_cast<double>(dt) * GameDouble(0x007403F0) + turn->glow;
-    const double pi = GameDouble(0x007402B8);
+    const double advanced = static_cast<double>(dt) * 5.0 /*007403F0*/ + turn->glow;
+    const double pi = 3.141592653589793 /*007402B8*/;
     const double phase = libcrt::CiFmod(advanced, pi + pi);
     turn->glow = static_cast<float>(phase);
-    const double strength = (x87::fsin(phase) + GameDouble(0x0073BAC8)) * GameDouble(0x007403E8);
-    const auto channel = [&](int i) { return gamecrt::Ftol(strength * colour[i] * GameFloat(0x0073C370)); };
+    const double strength = (x87::fsin(phase) + 1.0 /*0073BAC8*/) * 0.15000000596046448 /*007403E8*/;
+    const auto channel = [&](int i) { return gamecrt::Ftol(strength * colour[i] * 255.0f /*0073C370*/); };
     const std::uint32_t r = channel(0);
     const std::uint32_t g = channel(1);
     const std::uint32_t b = channel(2);
@@ -137,15 +136,15 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 // dt * speed and wraps at 2 pi (compared unrounded, stored as float).
 void Turn(ItemTurn* turn, float dt, bool hovered) {
     if (hovered) {
-        turn->speed = static_cast<float>(D(GameFloat(0x007402F4)) * D(dt) + D(turn->speed));
-    } else if (!(turn->speed >= GameFloat(0x007402F0))) {   // FCOMP; TEST AH,1: below or unordered
+        turn->speed = static_cast<float>(D(8.0f /*007402F4*/) * D(dt) + D(turn->speed));
+    } else if (!(turn->speed >= 0.1f /*007402F0*/)) {   // FCOMP; TEST AH,1: below or unordered
         turn->angle = 0.0f;
         turn->speed = 0.0f;
     } else {
-        double pi = D(GameFloat(0x007402C0));
-        turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(GameFloat(0x0073BAA0)));
+        double pi = D(3.1415927f /*007402C0*/);
+        turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(4.0f /*0073BAA0*/));
     }
-    if (turn->speed > GameFloat(0x007402EC)) std::memcpy(&turn->speed, ei::GamePointer<const void>(0x007402EC), 4);
+    if (turn->speed > 5.0f /*007402EC*/) std::memcpy(&turn->speed, ei::GamePointer<const void>(0x007402EC), 4);
     // The angle is stored (FST) and compared unrounded with 2 pi (FCOMP; TEST AH,0x41: wraps while
     // above, not when equal or unordered).
     double angle = static_cast<double>(dt) * turn->speed + turn->angle;
@@ -232,7 +231,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 
     Set(model, 0x280, texture);
     AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(static_cast<float>(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) * D(GameFloat(0x00740408))));
+    AsSprite(model)->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) * D(0.0009375f /*00740408*/)));
     Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
 
     std::uint8_t* itemBytes = reinterpret_cast<std::uint8_t*>(item);
@@ -262,12 +261,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                                                                         : Get<std::uint32_t>(model, 0x1A8);
         float extent;
         std::memcpy(&extent, &bits, sizeof(extent));
-        double half = D(GameFloat(0x0073B86C));
+        double half = D(0.5f /*0073B86C*/);
         float y = static_cast<float>(D(Get<float>(model, 0x190)) * D(cell->size) * half + D(cell->y));
         float x = static_cast<float>(D(cell->x) - D(Get<float>(model, 0x18C)) * D(cell->size) * half);
         AsSprite(model)->Place(x, y, cell->depth);
-        AsSprite(model)->SetScale(static_cast<float>(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) *
-                                        D(GameFloat(0x00740164)) / D(extent)));
+        AsSprite(model)->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) *
+                                        D(0.00125f /*00740164*/) / D(extent)));
     } else {
         SetShade(model, 0x3F800000);
         float dt = static_cast<float>(reinterpret_cast<CUiContainer*>(this)->FrameTime());
@@ -305,9 +304,9 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         }
 
         // The frame behind the item (texture 2 of the screen), drawn once and removed.
-        float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));
+        float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
         CUiMesh* frame = AddSprite(0);
-        double half = D(GameFloat(0x007403E0));
+        double half = D(35.0f /*007403E0*/);
         AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                       static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         Set(frame, 0x280, objects_.data[2]);
@@ -328,15 +327,15 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         AsSprite(model)->GetPlacement(&px, &py, &pz);
         float scale = AsSprite(model)->GetScaleX();
         CUiMesh* mark = AddSprite(0);
-        AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
+        AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                                      0x20, 0x20);
         Set(mark, 0x280, objects_.data[1]);
         AsSprite(mark)->SetScale(scale);
         SetShade(reinterpret_cast<std::uint8_t*>(mark), cell->mode == 9 ? 0x3F000000 : 0x3F800000);
-        float step = static_cast<float>(D(scale) * D(GameFloat(0x007403DC)));
+        float step = static_cast<float>(D(scale) * D(550.0f /*007403DC*/));
         for (int i = 0; i < reinterpret_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
             int code = static_cast<signed char>(Get<std::uint8_t>(spell, 0x54 + i)) - 1;
-            double cellSize = D(GameFloat(0x0073C520));
+            double cellSize = D(0.125f /*0073C520*/);
             Set(mark, 0xCC, static_cast<float>(static_cast<double>(code & 7) * cellSize));
             Set(mark, 0xD0, static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize));
             double d = D(step) / D(pz);
@@ -349,12 +348,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                 dx = static_cast<float>(d);
             double dy;
             if (i == 2 || i == 6)
-                dy = D(GameFloat(0x0073B858));
+                dy = D(0.0f /*0073B858*/);
             else if (i == 0 || i == 1 || i == 7)
                 dy = -d;
             else
                 dy = d;
-            float depth = static_cast<float>(D(pz) * D(GameFloat(0x0073CD70)));
+            float depth = static_cast<float>(D(pz) * D(0.9f /*0073CD70*/));
             AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
             AsSprite(mark)->Draw(PassRenderer(pass));
         }
@@ -364,10 +363,10 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     // Items the strip's mode cannot take get a dark square in front.
     using CanEquipFn = bool(__thiscall*)(CItemScreen*, CItem*, int);
     if (cell->mode != 9 && !reinterpret_cast<CanEquipFn>(vtable_[43])(this, item, cell->mode)) {
-        float depth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073CF50)));
-        if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073CCA8)));
+        float depth = static_cast<float>(D(cell->depth) * D(1.25f /*0073CF50*/));
+        if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
         CUiMesh* shade = AddSprite(0);
-        double half = D(GameFloat(0x007403E0));
+        double half = D(35.0f /*007403E0*/);
         AsSprite(shade)->SetRectangle(depth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                       static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0, 0, 0x100, 0x100);
         Set<std::uint32_t>(shade, 0x280, 0);
@@ -385,11 +384,11 @@ BOOL CItemInfoPanel::Draw(int pass) {
     if (itemCount_ && items_[0]) {
         ItemCell cell;
         cell.item = items_[0];
-        cell.x = static_cast<float>(static_cast<double>(x_) + D(GameFloat(0x0073BAB0)));   // + 100
+        cell.x = static_cast<float>(static_cast<double>(x_) + D(100.0f /*0073BAB0*/));   // + 100
         cell.depth = 3.0f;
         cell.size = 120.0f;
         cell.mode = 9;
-        cell.y = static_cast<float>(static_cast<double>(y_) + D(GameFloat(0x0073CF58)));   // + 200
+        cell.y = static_cast<float>(static_cast<double>(y_) + D(200.0f /*0073CF58*/));   // + 200
         reinterpret_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // through its address, so the wrapper sees the call
     }
     return 1;
@@ -444,7 +443,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
 
     Set(model, 0x280, texture);
     AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(GameFloat(0x007402C4)) * D(GameFloat(0x00740408))));
+    AsSprite(model)->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(0.48157462f /*007402C4*/) * D(0.0009375f /*00740408*/)));
     Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
     Set(model, 0x224, 1.0f);
     Set(model, 0x228, 1.0f);
@@ -453,14 +452,14 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    tilt.SetAxisAngle(axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    tilt.SetAxisAngle(axis, static_cast<float>((D(cell->y) - D(300.0f /*0073FA98*/)) * D(0.001f /*0074040C*/)));
     Quaternion orientation;
     SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
     // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
-    float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));
+    float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
     CUiMesh* frame = AddSprite(0);
-    double half = D(GameFloat(0x007403E0));
+    double half = D(35.0f /*007403E0*/);
     AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                   static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     Set(frame, 0x280, objects_.data[2]);

@@ -52,8 +52,8 @@ CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D
 float MoneyPenalty() { return ei::GameData<const volatile float>(0x007C5490); }
 float ExperiencePenalty() { return ei::GameData<const volatile float>(0x007C5494); }
 // The AI map's cell size factors (0074326C, 0073B86C): a half-cell coordinate times both is world units.
-float CellScaleA() { return ei::GameData<const volatile float>(0x0074326C); }
-float CellScaleB() { return ei::GameData<const volatile float>(0x0073B86C); }
+float CellScaleA() { return 1.0f /*0074326C*/; }
+float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
 // 00671200 are the template's members).
 constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);

@@ -41,17 +41,17 @@ namespace {
 
 // The layouts' x coordinates and the slide's time are read where the original reads them.
 float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
-float MapCentreX() { return GameFloat(0x00742AAC); }      // 700
-float MapButtonsX() { return GameFloat(0x00742AA8); }     // 790
-float MapFrameX() { return GameFloat(0x00742AA4); }       // 710
-float MapNeedleX() { return GameFloat(0x00742AA0); }      // 694
-float UnitBackX() { return GameFloat(0x0073BAB0); }       // 100
-float UnitEdgeX() { return GameFloat(0x0073BAAC); }       // 10
-float UnitMiddleX() { return GameFloat(0x00742AE0); }     // 90
-float UnitMoreX() { return GameFloat(0x00742ADC); }       // 172
-float UnitPartDown() { return GameFloat(0x00742AD8); }    // 17.5
-float UnitEffectX() { return GameFloat(0x0073D72C); }     // 40
-float SlideTime() { return GameFloat(0x00742428); }       // 0.3 seconds for the whole way
+float MapCentreX() { return 700.0f /*00742AAC*/; }      // 700
+float MapButtonsX() { return 790.0f /*00742AA8*/; }     // 790
+float MapFrameX() { return 710.0f /*00742AA4*/; }       // 710
+float MapNeedleX() { return 694.0f /*00742AA0*/; }      // 694
+float UnitBackX() { return 100.0f /*0073BAB0*/; }       // 100
+float UnitEdgeX() { return 10.0f /*0073BAAC*/; }       // 10
+float UnitMiddleX() { return 90.0f /*00742AE0*/; }     // 90
+float UnitMoreX() { return 172.0f /*00742ADC*/; }       // 172
+float UnitPartDown() { return 17.5f /*00742AD8*/; }    // 17.5
+float UnitEffectX() { return 40.0f /*0073D72C*/; }     // 40
+float SlideTime() { return 0.3f /*00742428*/; }       // 0.3 seconds for the whole way
 float SlingTurn() { return GameFloat(0x007C8144); }       // the sling buttons' turn (a global angle)
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
 const int* PartX() { return ei::GamePointer<const int>(0x00742434); }
@@ -241,7 +241,7 @@ constexpr const char* kArrowSprite = "in25arrow";
 constexpr const char* kInfoTextFormat = "infounit_%d";
 constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
 // The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
-float StripScale() { return static_cast<float>(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
+float StripScale() { return static_cast<float>(100.0f /*0073BAB0*/ / 0.48157462f /*007423FC*/); }
 constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
 constexpr int kWideUnitRight = 52;
@@ -363,20 +363,19 @@ EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
 namespace {
-double GameDouble(std::uintptr_t address) { return ei::GameData<const double>(address); }
 constexpr const char* kDefaultPicture = "battle00";
-float ZoneUnit() { return GameFloat(0x0073CA90); }            // 32: world units per unit of a zone's size
-float MapSide() { return GameFloat(0x0073CDB8); }             // 2: the map's side in map units
-float ZoomRange() { return GameFloat(0x0074134C); }           // 0.05: the largest zoom per world unit
-float Pi() { return GameFloat(0x007423F8); }
-float OutlineStep() { return GameFloat(0x0073C520); }         // 0.125: sixteen points round the map
-double OutlineRadius() { return GameDouble(0x00742A98); }     // 65
-double OutlineCentreX() { return GameDouble(0x00742A88); }    // 700
-double OutlineCentreY() { return GameDouble(0x00742A90); }    // 80
-float DepthUnit() { return GameFloat(0x007423FC); }           // 0.48157: the layout's half height at depth 1
-float BoundsScale() { return GameFloat(0x00742A80); }         // 0.045
-float MarkersScale() { return GameFloat(0x00742A7C); }        // 0.03
-float SlingQuarter() { return GameFloat(0x0073CDC8); }        // -0.5: the sling starts a quarter turn back
+float ZoneUnit() { return 32.0f /*0073CA90*/; }            // 32: world units per unit of a zone's size
+float MapSide() { return 2.0f /*0073CDB8*/; }             // 2: the map's side in map units
+float ZoomRange() { return 0.05f /*0074134C*/; }           // 0.05: the largest zoom per world unit
+float Pi() { return 3.1415927f /*007423F8*/; }
+float OutlineStep() { return 0.125f /*0073C520*/; }         // 0.125: sixteen points round the map
+double OutlineRadius() { return 65.0 /*00742A98*/; }     // 65
+double OutlineCentreX() { return 700.0 /*00742A88*/; }    // 700
+double OutlineCentreY() { return 80.0 /*00742A90*/; }    // 80
+float DepthUnit() { return 0.48157462f /*007423FC*/; }           // 0.48157: the layout's half height at depth 1
+float BoundsScale() { return 0.045f /*00742A80*/; }         // 0.045
+float MarkersScale() { return 0.03f /*00742A7C*/; }        // 0.03
+float SlingQuarter() { return (-0.5f /*0073CDC8*/); }        // -0.5: the sling starts a quarter turn back
 constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;

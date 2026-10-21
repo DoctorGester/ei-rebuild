@@ -49,7 +49,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
     stlp::string s(text, text + std::strlen(text));
-    const std::size_t npos = ei::GameData<const std::size_t>(0x0073BDE8);
+    const std::size_t npos = 0xFFFFFFFFu /*0073BDE8*/;
     int number = defaultPort;
     std::size_t colon = npos;
     if (s.size() != 0) {

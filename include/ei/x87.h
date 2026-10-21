@@ -2,10 +2,13 @@
 
 // x87 transcendental instructions, exactly as the original code used them.
 //
-// The modern CRT's sin/cos/sqrt use SSE2 code paths and do not round the same way as FSIN/FCOS/
-// FSQRT, so game maths must go through these. Arguments arrive as double (exact for the float and
-// 0.5-scaled values the game passes) and the result is returned in ST0 without being rounded.
+// The modern CRT's sin/cos/exp use SSE2 code paths and do not round the same way as FSIN/FCOS/
+// the inlined exp, so game maths goes through these. Arguments arrive as double (exact for the float
+// and 0.5-scaled values the game passes) and the result is returned in ST0 without being rounded.
+// fsqrt is plain C++: on this x87 target the CRT's sqrt is FSQRT (docs/notes/cleanup-tooling.md, "SSE2 build").
+// fistp stays an instruction: the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -74,11 +77,10 @@ __declspec(naked) inline double __cdecl fcos(double) {
     __asm ret
 }
 
-__declspec(naked) inline double __cdecl fsqrt(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fsqrt
-    __asm ret
-}
+// FSQRT. On /arch:IA32 std::sqrt is the CRT's _CIsqrt, an FSQRT rounded at the precision control (24 bits on the
+// main thread, 53 elsewhere) like the instruction; checked by the goldens (C16). Under /arch:SSE2 it would be SQRTSD
+// (53 bits), which differs on the main thread wherever the result is used before it is stored to a float.
+inline double fsqrt(double value) { return std::sqrt(value); }
 
 // e^x the way VC6 inlines exp: 2^(x log2 e) through FRNDINT / F2XM1 / FSCALE, unrounded in ST0.
 __declspec(naked) inline double __cdecl fexp(double) {

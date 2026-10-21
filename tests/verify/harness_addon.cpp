@@ -4,6 +4,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "../../src/game/game_data.h"
 #include "ei/rebirth.h"
 
 #include <windows.h>
@@ -86,7 +87,7 @@ bool Undo(const Site& site, const unsigned char* disk) {
         if (!import || site.size != 4) return false;
         std::memcpy(bytes, &import, 4);
     }
-    auto* target = reinterpret_cast<unsigned char*>(site.address);
+    auto* target = ei::GamePointer<unsigned char>(site.address);
     DWORD old;
     if (!VirtualProtect(target, site.size, PAGE_EXECUTE_READWRITE, &old)) return false;
     std::memcpy(target, bytes, site.size);
@@ -154,7 +155,7 @@ void AtWinMain() {
                                       reinterpret_cast<LPCSTR>(static_cast<std::uintptr_t>(value)), &owner) &&
                    owner == GetModuleHandleA("addon.dll");
         } else {
-            live = std::memcmp(reinterpret_cast<const void*>(site.address), original, site.size) != 0;
+            live = std::memcmp(ei::GamePointer<const void>(site.address), original, site.size) != 0;
         }
         if (!live) continue;
         ++liveSites[p];

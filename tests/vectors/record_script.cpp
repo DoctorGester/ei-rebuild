@@ -49,12 +49,12 @@ void ei::vectors::script::OfferFixtures() {
     w.Put(static_cast<std::uint32_t>(std::size(kStringPointers)));
     for (std::uintptr_t at : kStringPointers) {
         w.Put(static_cast<std::uint32_t>(at));
-        w.PutString(*reinterpret_cast<const char* const*>(at));
+        w.PutString(ei::GameData<const char* const>(at));
     }
     w.Put(static_cast<std::uint32_t>(std::size(kTexts)));
     for (std::uintptr_t at : kTexts) {
         w.Put(static_cast<std::uint32_t>(at));
-        w.PutString(reinterpret_cast<const char*>(at));
+        w.PutString(ei::GamePointer<const char>(at));
     }
     g_keywords.OfferBytes(w, ControlWord());
 }

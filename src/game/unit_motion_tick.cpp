@@ -61,10 +61,10 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3
 
 // The exe's constants: 0073EEE4 the cell size, 0073B86C 0.5, 0073B84C 1.0, 0073F088 the stamina
 // drain step (double).
-float CellSize() { return ei::GameData<const float>(0x0073EEE4); }
-float Half() { return ei::GameData<const float>(0x0073B86C); }
-float One() { return ei::GameData<const float>(0x0073B84C); }
-double DrainStep() { return ei::GameData<const double>(0x0073F088); }
+float CellSize() { return 1.0f /*0073EEE4*/; }
+float Half() { return 0.5f /*0073B86C*/; }
+float One() { return 1.0f /*0073B84C*/; }
+double DrainStep() { return 0.006666666666666666 /*0073F088*/; }
 
 // World units to half-cells: (x, y) *= 1 / (cellSize * 0.5), the factor unrounded.
 void ToHalfCells(float* xy) {

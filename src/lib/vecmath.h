@@ -22,7 +22,7 @@
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
 // not the original's (code there stays written out, docs/notes/vector-math.md). Square roots use
-// FSQRT (x87::fsqrt): under precise semantics std::sqrt would call the modern CRT.
+// x87::fsqrt (std::sqrt, which is FSQRT at the precision control on this x87 target).
 //
 // Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as `double`, like FPATAN and
 // the game's CRT; where the original stores the result to a float, round it with static_cast<float>

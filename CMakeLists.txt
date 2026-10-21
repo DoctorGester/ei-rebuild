@@ -83,6 +83,19 @@ add_library(ei_hook SHARED
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
+# game.exe's .data bytes for the image's own copy of the section (src/standalone/image_data.cpp, S18d), written
+# from game.exe at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes).
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(EI_GAME_EXE "F:/games/Evil Islands (Rebirth)/starter/Engine/game.exe" CACHE FILEPATH "game.exe 1.06, the source of the image's data")
+set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
+add_custom_command(OUTPUT ${EI_IMAGE_DATA}
+    COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}
+    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${EI_GAME_EXE}
+    COMMENT "Writing game.exe's .data bytes"
+    VERBATIM)
+target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
+set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
+                            OBJECT_DEPENDS ${EI_IMAGE_DATA})
 if(EI_HARNESS)
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
     # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).

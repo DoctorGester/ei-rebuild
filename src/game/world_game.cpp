@@ -297,7 +297,6 @@ constexpr float kCatchUpRadius = 70.0f;
 constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 CWorldServer* World() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
 const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x007AF458); }
@@ -364,14 +363,14 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
             mfc::CString variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime)));
+        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
         const MapExit* exit = zoneRecord->exits.data + entrance;
         Vector3 point;
-        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * GameFloat(kHalf));
-        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
+        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f /*0073B86C*/);
+        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
             World()->WakeUnitsAround(&point, kCatchUpRadius);
@@ -1425,7 +1424,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * GameFloat(kMinuteHours) + static_cast<float>(hour));
+        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.
@@ -2101,10 +2100,10 @@ namespace {
 
 constexpr const char* kQuestFilePattern = "*.mq";
 // The map names of the three allods, each list ended by an empty name.
-constexpr std::uintptr_t kGipatMaps = std::uintptr_t(0x00790270);       // zone2 .. zone9
-constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone12, zone13
-constexpr std::uintptr_t kSuslangerMaps = std::uintptr_t(0x007902C0);   // zone17, zone18
-const char* const* NameList(std::uintptr_t address) { return reinterpret_cast<const char* const*>(address); }
+constexpr std::uintptr_t kGipatMaps = ei::DataId(0x00790270);       // zone2 .. zone9
+constexpr std::uintptr_t kIngosMaps = ei::DataId(0x00790298);       // zone12, zone13
+constexpr std::uintptr_t kSuslangerMaps = ei::DataId(0x007902C0);   // zone17, zone18
+const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<const char* const>(address); }
 
 // 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
 void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {

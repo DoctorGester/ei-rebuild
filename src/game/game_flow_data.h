@@ -33,8 +33,6 @@ constexpr const char* kLeftPrefix = "zt.";      // the time the zone was left
 constexpr const char* kGTime = "gtime";
 constexpr const char* kMapExtension = ".mpr";
 constexpr const char* kMobExtension = ".mob";
-constexpr std::uintptr_t kTicksPerTime = std::uintptr_t(0x0073BAB0);    // world ticks per unit of "gtime"
-constexpr std::uintptr_t kHalf = std::uintptr_t(0x0073B86C);            // 0.5f
 
 // ---- StartNetworkZone --------------------------------------------------------------------------
 constexpr const char* kNetworkExitTarget = "MPGame1";   // where every exit leads
@@ -67,7 +65,6 @@ constexpr const char* kEndOfGame = "endofgame";
 constexpr const char* kZoneNotFound = "Zone %s not found";
 constexpr const char* kMenuMap = "ZoneMainMenuNew.mpr";
 constexpr const char* kMenuMob = "ZoneMainMenuNew.mob";
-constexpr std::uintptr_t kMinuteHours = std::uintptr_t(0x0073F8A0);     // 1/60 (float)
 
 // ---- New game, requests, LoadGame ---------------------------------------------------------------
 constexpr const char* kExecAutoexec = "exec autoexec.cfg";

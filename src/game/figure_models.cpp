@@ -111,7 +111,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     const auto* last = ei::GamePointer<const std::uint32_t>(0x0073B984);
     std::uint32_t hint = 100;
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
-    std::uint32_t n = prime == last ? ei::GameData<const std::uint32_t>(0x0073B980) : *prime;
+    std::uint32_t n = prime == last ? 0xFFFFFFFBu /*0073B980*/ : *prime;
     buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
     buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);   // 005ADAD0
     *count = 0;

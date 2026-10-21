@@ -64,7 +64,6 @@ float Bits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Bits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -150,10 +149,10 @@ public:
     // The layout point (centreX, centreY) at `depth` in camera space, stored as floats.
     Vector3 Centre() const {
         float depth = map_->depth_;
-        float x = static_cast<float>((D(map_->centreX_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) *
-                        D(GameFloat(0x0074209C)) * D(depth));
-        float y = static_cast<float>((D(map_->centreY_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073C524))) *
-                        D(GameFloat(0x0074209C)) * D(depth));
+        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f /*0074015C*/) - D(1.0f /*0073B84C*/)) *
+                        D(0.48157462f /*0074209C*/) * D(depth));
+        float y = static_cast<float>((D(map_->centreY_) * D(0.0025f /*0074015C*/) - D(0.75f /*0073C524*/)) *
+                        D(0.48157462f /*0074209C*/) * D(depth));
         return Vector3{x, y, depth};
     }
     // A point of the map model (`local`) in camera space: the centre plus the turned point.
@@ -228,10 +227,10 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
     sprite->GetPlacement(&x, &y, &depth);
-    int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
-    int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
-    int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
-    int left = static_cast<int>(gamecrt::Ftol(D(x) - D(GameFloat(0x0073CCF8))));
+    int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
+    int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
+    int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
+    int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
     map->AddRegion()->CallSetRect(left, top, right, bottom);
 }
 
@@ -278,14 +277,14 @@ void CGlobalMap::Create() {
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
-        q.SetAxisAngle(axis, static_cast<float>(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));   // pi * 0.8
+        q.SetAxisAngle(axis, static_cast<float>(D(3.1415927f /*00742098*/) * D(0.8f /*0073CCA8*/)));   // pi * 0.8
         std::memcpy(&turn_, &q, 16);
     }
     MapBuilder builder(this);
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(GameFloat(0x0073CDB8)))};
+        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f /*0073CDB8*/))};
         builder.Marker(allod->arrow, above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
         builder.Marker(allod->ball, at, Bits(0x3F4CCCCD));   // 0.8
@@ -365,7 +364,7 @@ void CGlobalMap::Create() {
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
-                    sprite->SetScale(GameFloat(0x007420D0));
+                    sprite->SetScale(0.3f /*007420D0*/);
                     builder.Turn(sprite);
                     SetWhite(sprite);
                     float x, y, depth;
@@ -386,7 +385,7 @@ void CGlobalMap::Create() {
             if (way->kind != 2) continue;
             // FCOMP / TEST AH,0x40: equal to 2, or unordered.
             double state = D(LocalPlayerVariable(variable));
-            double two = D(GameFloat(0x0073CDB8));
+            double two = D(2.0f /*0073CDB8*/);
             if (state < two || state > two) continue;
             if (!NonEmpty(way->figure)) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
@@ -410,7 +409,7 @@ void CGlobalMap::Create() {
             Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
-            sprite->SetScale(GameFloat(0x007420D0));
+            sprite->SetScale(0.3f /*007420D0*/);
             builder.Turn(sprite);
             SetWhite(sprite);
             AddMarkerRegion(this, sprite);
@@ -470,7 +469,7 @@ void CGlobalMap::Create() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(GameFloat(0x0073F090))));   // gtime * 60
+    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));   // gtime * 60
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -608,8 +607,8 @@ void CGlobalMap::Update() {
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
         // Turn the model about z.
-        float turned = static_cast<float>(FrameTime(this) * static_cast<double>(turning_) * D(GameFloat(0x00742098)) *
-                                 D(GameFloat(0x0073C3B0)) +
+        float turned = static_cast<float>(FrameTime(this) * static_cast<double>(turning_) * D(3.1415927f /*00742098*/) *
+                                 D(0.25f /*0073C3B0*/) +
                              D(angle_));
         angle_ = turned;
         angle_ = FmodStored(turned, ei::GamePointer<const float>(0x007C8020));
@@ -618,10 +617,10 @@ void CGlobalMap::Update() {
         Quaternion spin;
         spin.SetAngleAxis(angle_, up);
         Quaternion tilt;
-        tilt.SetAxisAngle(side, static_cast<float>(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));
+        tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f /*00742098*/) * D(0.8f /*0073CCA8*/)));
         Quaternion turn = TurnProduct(spin, tilt);
         std::memcpy(&turn_, &turn, 16);
-        if (!(D(turn_.w) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
+        if (!(D(turn_.w) >= D(0.0f /*0073B858*/))) {   // FCOMP; TEST AH,1: below 0 or unordered
             turn_.w = -turn_.w;
             turn_.x = -turn_.x;
             turn_.y = -turn_.y;
@@ -649,10 +648,10 @@ void CGlobalMap::Update() {
             builder.Turn(sprite);
             float x, y, depth;
             sprite->GetPlacement(&x, &y, &depth);
-            int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
-            int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
-            int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
-            int left = static_cast<int>(gamecrt::Ftol(D(x) - D(GameFloat(0x0073CCF8))));
+            int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(10.0f /*0073BAAC*/)));
+            int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
+            int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
+            int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
             regions_.data[3 + i]->CallSetRect(left, top, right, bottom);
         }
     }
@@ -660,13 +659,13 @@ void CGlobalMap::Update() {
     // The current zone's arrow bobs over it.
     double time = FrameTime(this) + D(bobTime_);
     bobTime_ = static_cast<float>(time);
-    double bob = D(GameFloat(0x0073B86C)) - x87::fcos(time * D(GameFloat(0x0073BF34))) * D(GameFloat(0x0073BAD4));
+    double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]), builder.ModelPoint(above));
     // The layers' texture frames run at their own rates.
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, 0.033333335f /*007420E0*/);
 
     if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;

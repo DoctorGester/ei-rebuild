@@ -161,7 +161,6 @@ EI_REPLACE_METHOD(0x005CAFA0, AIEventTable::Save);
 
 namespace {
 
-constexpr std::uintptr_t kMinusCellScale = std::uintptr_t(0x0073FEB0);       // -0.125
 constexpr const char* kAiInfoArchive = "aiinfo.res";
 constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
 constexpr const char* kNormalFile = "normal.dat";
@@ -176,7 +175,7 @@ constexpr std::size_t kNormalTableSize = 0x1000;
 int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
-    const float scale = ei::GameData<const float>(kMinusCellScale);
+    const float scale = (-0.125f /*0073FEB0*/);
     const int newWidth = 1 - static_cast<int>(gamecrt::Ftol(sizeX * scale));
     const int newHeight = 1 - static_cast<int>(gamecrt::Ftol(sizeY * scale));
     if (width != newWidth || height != newHeight) {

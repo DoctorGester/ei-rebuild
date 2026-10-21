@@ -2,11 +2,12 @@
 //
 // The host is linked below game.exe's image base and holds game.exe's address range (0x400000 up to
 // its SizeOfImage) inside its own image, as a zero-filled array. There it lays out game.exe's headers
-// and data sections from the file on disk (nothing from the code section runs: it is filled with
-// INT3) and resolves game.exe's imports into its import address table. Then it loads ei_hook.dll and
-// hands over: the DLL writes a jump at each rewritten function's address (InstallHooks) and runs
-// WinMain. Forwarders, function pointers in the data and vtable slots reach our code through those
-// jumps; an INT3 hit names an address that has no rewrite yet.
+// and its .rdata and .rsrc from the file on disk (nothing from the code section runs: it is filled with
+// INT3; .data stays zero: ei_hook.dll keeps the section in its own storage, with bytes from the build,
+// src/standalone/image_data.cpp) and resolves game.exe's imports into its import address table. Then it
+// loads ei_hook.dll and hands over: the DLL writes a jump at each rewritten function's address
+// (InstallHooks) and runs WinMain. Forwarders, function pointers in the data and vtable slots reach our
+// code through those jumps; an INT3 hit names an address that has no rewrite yet.
 //
 // usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
@@ -25,6 +26,7 @@ namespace {
 
 constexpr std::uintptr_t kImageBase = 0x00400000;   // game.exe has no relocations
 constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;    // game.exe 1.06 (Russian), 2001-03-26
+constexpr DWORD kDataRva = 0x00383000;             // game.exe's .data (00783000): ei_hook.dll's (S18d)
 // game.exe's SizeOfImage is 0x3D7000. The host's base (/BASE:0x200000) leaves room below 0x400000
 // for its own code and data; the array then covers the whole range wherever the linker puts it.
 constexpr std::size_t kReserve = 0x00640000;
@@ -122,7 +124,7 @@ int ResolveImports(const IMAGE_NT_HEADERS32* nt, const std::string& exeFolder) {
     return missing;
 }
 
-// Lays out game.exe at its base: headers and data sections as in the file, the code section INT3.
+// Lays out game.exe at its base: headers, .rdata and .rsrc as in the file, the code section INT3, .data zero.
 bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32*& nt) {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
     if (file.size() < 0x1000 || dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
@@ -153,6 +155,7 @@ bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32
             std::memset(to, 0xCC, sec[i].Misc.VirtualSize);
             continue;
         }
+        if (sec[i].VirtualAddress == kDataRva) continue;
         const DWORD n = (std::min)(sec[i].SizeOfRawData, sec[i].Misc.VirtualSize);
         if (sec[i].PointerToRawData + n > file.size()) return false;
         std::memcpy(to, file.data() + sec[i].PointerToRawData, n);

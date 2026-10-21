@@ -21,7 +21,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // The history / acknowledged lists and the freed-id queue (library_net_lists.h).
 using Packets = stlp::list<SentPacket>;
@@ -65,7 +64,7 @@ bool Connection::Tick(double dt) {
     std::memcpy(&bits, &spread, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&spread, &bits, 4);
-    float loss = static_cast<float>(x87::fsqrt(spread) * D(GameFloat(0x0073BAA4)) + D(roundTrip_));
+    float loss = static_cast<float>(x87::fsqrt(spread) * D(3.0f /*0073BAA4*/) + D(roundTrip_));
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
@@ -142,8 +141,8 @@ EI_REPLACE_METHOD(0x00433BD0, Connection::Tick);
 namespace net {
 
 namespace {
-float RttKeep() { return GameFloat(0x0073BF30); }   // the share of the old average kept per sample
-float One() { return GameFloat(0x0073B84C); }       // 1.0f
+float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
+float One() { return 1.0f /*0073B84C*/; }       // 1.0f
 } // namespace
 
 void Connection::Delivered(SentPacket* packet) {

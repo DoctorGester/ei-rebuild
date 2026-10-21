@@ -24,24 +24,22 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // Ticks left before the weather may change again (0x7C2DFC).
 int& WeatherDelay() { return ei::GameData<int>(0x007C2DFC); }
 
 // Constants read from the exe (rule 9).
-double MapScale() { return GameDouble(0x0073FA40); }        // 2^-23: a random word to map coordinates
-double OffsetScale() { return GameDouble(0x0073FA38); }     // a random word to 0..140
-float OffsetCentre() { return GameFloat(0x0073FA34); }      // 70
-float MinDistance2() { return GameFloat(0x0073FA30); }      // 900
-double BoltScale() { return GameDouble(0x0073FA28); }
-double BoltSpread() { return GameDouble(0x0073FA20); }
-float Two() { return GameFloat(0x0073CDB8); }               // 2
-float Five() { return GameFloat(0x0073BF34); }              // 5
-float BoltHeight() { return GameFloat(0x0073D72C); }        // 40
-float One() { return GameFloat(0x0073B84C); }               // 1
+double MapScale() { return 1.1920928957853683e-7 /*0073FA40*/; }        // 2^-23: a random word to map coordinates
+double OffsetScale() { return 3.259629011913116e-8 /*0073FA38*/; }     // a random word to 0..140
+float OffsetCentre() { return 70.0f /*0073FA34*/; }      // 70
+float MinDistance2() { return 900.0f /*0073FA30*/; }      // 900
+double BoltScale() { return 1.1827796700370451e-7 /*0073FA28*/; }
+double BoltSpread() { return 9.31322574832319e-10 /*0073FA20*/; }
+float Two() { return 2.0f /*0073CDB8*/; }               // 2
+float Five() { return 5.0f /*0073BF34*/; }              // 5
+float BoltHeight() { return 40.0f /*0073D72C*/; }        // 40
+float One() { return 1.0f /*0073B84C*/; }               // 1
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
@@ -166,7 +164,7 @@ CScript& ScriptQueue() { return ei::GameData<CScript>(0x007C29CC); }   // a comm
 // 004D23A0 (RET 8). Adds a script line to a command queue.
 int __fastcall QueueAddLine(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
-float Half() { return GameFloat(0x0073B86C); }   // 0.5
+float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 
 } // namespace
 

@@ -72,8 +72,6 @@ T& Global(std::uintptr_t address) {
     return ei::GameData<T>(address);
 }
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
-float ExeFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double ExeDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 // A step of a float expression kept apart from the next: the value passes through a double, which
 // holds any result at the precisions the game runs at (53 bits before Direct3D starts, 24 after).
 double Step(double value) {
@@ -356,7 +354,7 @@ bool CheckDrives(const console::CStringArray& messages) {
     mfc::CString discFolder(DiscFolder());
     mfc::CString dataFolder(DataFolder());
     double freeBytes;
-    if (FreeDiskSpace(dataFolder, &freeBytes) && !(freeBytes == ExeDouble(0x0073C340)) && freeBytes < ExeDouble(0x0073C358)) {
+    if (FreeDiskSpace(dataFolder, &freeBytes) && !(freeBytes == 0.0 /*0073C340*/) && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
     if (GameMbscmp(dataFolder, discFolder) != 0) {
@@ -486,7 +484,7 @@ constexpr int kLongestPassTicks = 5;
 // camera's time (0073C348: 1 / 55).
 std::uint32_t TickLength() { return Global<std::uint32_t>(0x0078FF34); }
 float CameraSeconds(std::uint32_t milliseconds) {
-    return static_cast<float>(x87::FromUnsigned(milliseconds) * ExeFloat(0x0073C348));
+    return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }
 
 // Some calls of the loop go through the target of the original's CALL at the same point (the
@@ -586,12 +584,12 @@ bool RunWorlds() {
 // in the original's order of operations. Kept within 0.1 .. 10.
 float SpeedForBalance(double balance, float rounded) {
     double speed;
-    if (balance < ExeFloat(0x0073B858)) {
-        speed = x87::fexp(Step(rounded * ExeFloat(0x0073B850)));
-    } else if (!(rounded > ExeFloat(0x0073B84C))) {
-        speed = ExeFloat(0x0073B84C);
+    if (balance < 0.0f /*0073B858*/) {
+        speed = x87::fexp(Step(rounded * 0.1f /*0073B850*/));
+    } else if (!(rounded > 1.0f /*0073B84C*/)) {
+        speed = 1.0f /*0073B84C*/;
     } else {
-        speed = Step(Step(x87::fsqrt(rounded) * ExeFloat(0x0073B850)) + ExeFloat(0x0073B84C)) - ExeFloat(0x0073B850);
+        speed = Step(Step(x87::fsqrt(rounded) * 0.1f /*0073B850*/) + 1.0f /*0073B84C*/) - 0.1f /*0073B850*/;
     }
     float result = static_cast<float>(speed);
     if (!(result >= kSlowest)) result = kSlowest;
@@ -628,7 +626,7 @@ bool RunPass() {
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (RecordingFrames()) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(ExeFloat(0x0073C34C) / static_cast<double>(options::TheOptions()->movieCapturingFps_));
+        const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
         elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
     }
     ServerBacklog() += elapsed;
@@ -741,7 +739,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // The field of view: pi * 2 / 7 (51.4 degrees).
     Camera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
-                   std::bit_cast<std::uint32_t>(static_cast<float>(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8))));
+                   std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
     Client()->SetCamera(Camera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();

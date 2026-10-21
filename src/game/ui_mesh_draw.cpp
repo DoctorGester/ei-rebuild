@@ -43,13 +43,12 @@ void Pop(MatrixStack& stack) {
 
 // Place's layout scale (00740158, 0.48157), the half width / height (00740160, 400; 0073FA98, 300)
 // and 1 (0073B84C), read from the exe.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
-    *x = (localPosition_.x / localPosition_.z / GameFloat(0x00740158) + GameFloat(0x0073B84C)) * GameFloat(0x00740160);
-    *y = localPosition_.y / localPosition_.z / GameFloat(0x00740158) * GameFloat(0x00740160) + GameFloat(0x0073FA98);
+    *x = (localPosition_.x / localPosition_.z / 0.48157462f /*00740158*/ + 1.0f /*0073B84C*/) * 400.0f /*00740160*/;
+    *y = localPosition_.y / localPosition_.z / 0.48157462f /*00740158*/ * 400.0f /*00740160*/ + 300.0f /*0073FA98*/;
     std::memcpy(depth, &localPosition_.z, sizeof(float));
 }
 EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
@@ -59,8 +58,8 @@ EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
 // panel builders, ui_widescreen.h).
 void CUiMesh::PlaceBody(float x, float y, float depth) {
     if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
-    float placedX = (x * GameFloat(0x0074015C) - GameFloat(0x0073B84C)) * GameFloat(0x00740158) * depth;
-    float placedY = (y * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * GameFloat(0x00740158) * depth;
+    float placedX = (x * 0.0025f /*0074015C*/ - 1.0f /*0073B84C*/) * 0.48157462f /*00740158*/ * depth;
+    float placedY = (y * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * 0.48157462f /*00740158*/ * depth;
     localPosition_.x = placedX;
     localPosition_.y = placedY;
     std::memcpy(&localPosition_.z, &depth, sizeof(float));

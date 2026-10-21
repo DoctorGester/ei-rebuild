@@ -229,15 +229,15 @@ EI_REPLACE_METHOD(0x00436C60, GameBuffer::BufferWrite);
 namespace net {
 
 // The send rates of a local and of a remote address (two cells of the game's data).
-constexpr std::uintptr_t kLocalRate = std::uintptr_t(0x00783E38);
-constexpr std::uintptr_t kRemoteRate = std::uintptr_t(0x00783E34);
+constexpr std::uintptr_t kLocalRate = ei::DataId(0x00783E38);
+constexpr std::uintptr_t kRemoteRate = ei::DataId(0x00783E34);
 
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
 EI_REPLACE_METHOD(0x00436F60, SessionBase::Send);
 
 std::uint32_t SessionBase::RateFor(const NetAddress* address) {
     bool local = socket_.IsLocal(address);
-    return *reinterpret_cast<const std::uint32_t*>(local ? kLocalRate : kRemoteRate);
+    return ei::GameData<const std::uint32_t>(local ? kLocalRate : kRemoteRate);
 }
 EI_REPLACE_METHOD(0x00436F80, SessionBase::RateFor);
 
@@ -336,7 +336,6 @@ namespace net {
 namespace {
 // 00439E30: the clients list's insert(pos, value) (list<RefPtr>'s with SharedRef); 00425040:
 // another STLport string destructor.
-float GameFloatAt(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 } // namespace
 
 // The send interval is the constant at 0073BF48 over the rate clamped to [500, 50000].
@@ -356,7 +355,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     added->address_ = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;
-    added->sendInterval_ = static_cast<float>(static_cast<double>(GameFloatAt(0x0073BF48)) / static_cast<double>(rate));
+    added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f /*0073BF48*/) / static_cast<double>(rate));
 }
 EI_REPLACE_METHOD(0x00436DD0, SessionBase::AddClient);
 

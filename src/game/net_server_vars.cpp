@@ -17,7 +17,6 @@ namespace net {
 namespace {
 
 std::uint32_t& VariableCounter() { return ei::GameData<std::uint32_t>(0x0079B608); }
-float GameFloat(std::uintptr_t a) { return ei::GameData<const volatile float>(a); }
 // FCOMP then TEST AH,0x40 (C3): equal, or unordered.
 bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 
@@ -71,7 +70,7 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
 // 00419730: sets the variable; a zero (or NaN) value removes it instead. A set bumps the version
 // and takes the next serial.
 void ServerSession::SetVariable(const stlp::string* name, float value) {
-    if (!EqualOrUnordered(value, GameFloat(0x0073B858))) {
+    if (!EqualOrUnordered(value, 0.0f /*0073B858*/)) {
         RefNode* found;
         FindOrAddVariable(&found, name);
         VariableMessage* variable = VariableAt(found);
@@ -104,7 +103,7 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     VariableAt(found)->serial_ = VariableCounter();
     ++VariableCounter();
     ++VariableAt(found)->version_;
-    if (EqualOrUnordered(VariableAt(found)->value_, GameFloat(0x0073B858))) {
+    if (EqualOrUnordered(VariableAt(found)->value_, 0.0f /*0073B858*/)) {
         RefNode* node = FindNode(variables_, name);
         if (node != variables_.End()) variables_.Erase(node);
     }
@@ -120,7 +119,7 @@ void ServerSession::RemoveVariable(const stlp::string* name) {
 double ServerSession::GetVariable(const stlp::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) return VariableAt(node)->value_;
-    return GameFloat(0x0073B858);
+    return 0.0f /*0073B858*/;
 }
 
 EI_REPLACE_METHOD(0x00419570, ServerSession::FindVariable);

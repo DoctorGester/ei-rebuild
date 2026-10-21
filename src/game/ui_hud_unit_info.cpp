@@ -73,7 +73,7 @@ constexpr int kCombatInfoSlot = 50;
 // unit outside the group, else from 0052FA20.
 double ShownSpeed(void* unit, int outsideGroup) {
     const double speed = outsideGroup ? static_cast<CUnit*>(unit)->MoveSpeedFor(3) : static_cast<CUnit*>(unit)->MoveSpeed2();
-    return static_cast<double>(ei::GameData<const float>(0x00742408)) * speed * ei::GameData<const float>(0x00742AEC);
+    return static_cast<double>(1.0f /*00742408*/) * speed * 7.5f /*00742AEC*/;
 }
 
 struct Panel {

@@ -44,7 +44,6 @@ namespace {
 using console::CStringArray;
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 template <typename T>
 T Read(const void* p, int offset) {
@@ -83,26 +82,26 @@ int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 // _ftol of such a value (optionally with one stack argument and a multiplication by the float at
 // `scale`), the value kept unrounded.
 int StatFtol(std::uintptr_t fn, const void* self) { return Ftol(Stat(fn, self)); }
-int StatFtolScaled(std::uintptr_t fn, const void* self, std::uintptr_t scale) { return Ftol(Stat(fn, self) * GameFloat(scale)); }
+int StatFtolScaled(std::uintptr_t fn, const void* self, float scale) { return Ftol(Stat(fn, self) * scale); }
 int StatFtolArg(std::uintptr_t fn, const void* self, int arg) { return Ftol(StatArg(fn, self, arg)); }
-int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, std::uintptr_t scale) {
-    return Ftol(StatArg(fn, self, arg) * GameFloat(scale));
+int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, float scale) {
+    return Ftol(StatArg(fn, self, arg) * scale);
 }
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the base is the double at `base`, the exponent a
 // float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all unrounded.
-int PowFtol(std::uintptr_t base, float exponent, std::uintptr_t subtrahend, std::uintptr_t scale) {
-    const double power = libcrt::CiPow(ei::GameData<const double>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
-    return Ftol(power * GameFloat(scale));
+int PowFtol(double base, float exponent, float subtrahend, float scale) {
+    const double power = libcrt::CiPow(base, static_cast<double>(exponent) - subtrahend);
+    return Ftol(power * scale);
 }
 // _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, unrounded.
 int SumFtol(float a, float b) { return Ftol(static_cast<double>(b) + a); }
-int SumFtolScaled(float a, float b, std::uintptr_t scale) { return Ftol((static_cast<double>(b) + a) * GameFloat(scale)); }
-int ScaledFtol(float a, std::uintptr_t scale) { return Ftol(static_cast<double>(a) * GameFloat(scale)); }
+int SumFtolScaled(float a, float b, float scale) { return Ftol((static_cast<double>(b) + a) * scale); }
+int ScaledFtol(float a, float scale) { return Ftol(static_cast<double>(a) * scale); }
 // _ftol(a - the float at `subtrahend`) (FLD a; FSUB).
-int DifferenceFtol(float a, std::uintptr_t subtrahend) { return Ftol(static_cast<double>(a) - GameFloat(subtrahend)); }
+int DifferenceFtol(float a, float subtrahend) { return Ftol(static_cast<double>(a) - subtrahend); }
 // value * factor * the float at `scale`, stored as float (FLD; FMUL; FMUL; FSTP).
-float ArmourValue(const void* value, const void* factor, std::uintptr_t scale) {
-    return static_cast<float>(static_cast<double>(*static_cast<const float*>(value)) * *static_cast<const float*>(factor) * GameFloat(scale));
+float ArmourValue(const void* value, const void* factor, float scale) {
+    return static_cast<float>(static_cast<double>(*static_cast<const float*>(value)) * *static_cast<const float*>(factor) * scale);
 }
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
@@ -324,7 +323,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
         w.line.Format("%s %s", static_cast<const char*>(w.T(12)), static_cast<const char*>(w.T(21)));
     else
         w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(12)),
-                      x87::FromUnsigned(ticks) * D(GameFloat(0x00740544)), static_cast<const char*>(w.T(27)));
+                      x87::FromUnsigned(ticks) * D(0.06666667f /*00740544*/), static_cast<const char*>(w.T(27)));
     w.Text(w.line);
     w.Down();
 }
@@ -584,8 +583,8 @@ void CItemInfoPanel::DescribeBlueprint() {
             w.line.Format("damage_%d", first);
             texts->GetString(w.line, &text);
         }
-        int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 0x0073BAAC);
-        int low = ScaledFtol(weapon->damage, 0x0073BAAC);
+        int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f /*0073BAAC*/);
+        int low = ScaledFtol(weapon->damage, 10.0f /*0073BAAC*/);
         w.line.Format("%s %d-%d %s", static_cast<const char*>(w.T(15)), low, high,
                       static_cast<const char*>(text));   // "%s %d-%d %s"
         w.Text(w.line);
@@ -600,7 +599,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     } else if (sort == 1) {
         // Armour: the seven values scaled by +0x6C (a float here) and 10, stored as floats.
         float values[7];
-        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 0x0073BAAC);
+        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 10.0f /*0073BAAC*/);
         w.DamageLines(values, 4);
     }
     w.Down();
@@ -741,7 +740,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     } else {
         // The area: pi * r * r in that order (FLD r; FLD pi; FMUL ST1; FMUL ST1).
         double radius = D(Read<float>(spell, 0x28));
-        double area = D(GameFloat(0x007402C0)) * radius * radius;
+        double area = D(3.1415927f /*007402C0*/) * radius * radius;
         w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(11)), area, static_cast<const char*>(w.T(26)));
     }
     w.Text(w.line);
@@ -795,19 +794,19 @@ void AttributeLines(Writer& w, const std::uint8_t* stats, int index) {
     };
     switch (index) {
     case 0:
-        line("%s %d%%", 0, StatFtolScaled(0x00523CB0, stats, 0x0073BAB0));   // * 100
+        line("%s %d%%", 0, StatFtolScaled(0x00523CB0, stats, 100.0f /*0073BAB0*/));   // * 100
         line("%s %d", 1, StatFtol(0x00524280, stats));
         w.Down();
         break;
     case 1:
-        line("%s %d%%", 2, StatFtolScaled(0x00523CC0, stats, 0x0073BAB0));
+        line("%s %d%%", 2, StatFtolScaled(0x00523CC0, stats, 100.0f /*0073BAB0*/));
         line("%s %d", 3, StatFtol(0x00524320, stats));
         w.Down();
         break;
     case 2:
         // 1.04 ^ (intelligence - 25) * 100.
-        line("%s %d%%", 4, PowFtol(0x0073E128, Read<float>(stats, 0x20), 0x0073E124, 0x0073BAB0));
-        line("%s %d%%", 24, StatFtolScaled(0x00523CD0, stats, 0x0073BAB0));
+        line("%s %d%%", 4, PowFtol(1.04 /*0073E128*/, Read<float>(stats, 0x20), 25.0f /*0073E124*/, 100.0f /*0073BAB0*/));
+        line("%s %d%%", 24, StatFtolScaled(0x00523CD0, stats, 100.0f /*0073BAB0*/));
         w.Down();
         break;
     default:
@@ -895,7 +894,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
         w.line.Format("%d", value);
         w.Value(w.line);
     };
-    int base = DifferenceFtol(Read<float>(stats, 0x18), 0x0073E124);   // dexterity - 25
+    int base = DifferenceFtol(Read<float>(stats, 0x18), 25.0f /*0073E124*/);   // dexterity - 25
     part(29, base);
     int sum = base;
     w.Down();
@@ -967,7 +966,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
                               StatFtolArg(0x00527050, stats, index));
             else if (index == 2)
                 w.line.Format("%s %d%%", static_cast<const char*>(w.Skill(7)),
-                              StatFtolScaled(0x00525CD0, stats, 0x0073BAB0));
+                              StatFtolScaled(0x00525CD0, stats, 100.0f /*0073BAB0*/));
             else
                 drawn = false;
             if (drawn) {

@@ -29,7 +29,6 @@ int AreaList(int level) {
 
 // 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
@@ -102,13 +101,13 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
     ObjectList objects{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    double halfW = static_cast<double>(ox1 - ox0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
-    double halfH = static_cast<double>(oy1 - oy0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
-    float scale = static_cast<float>(static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
+    double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
+    double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
+    float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
     float radius = static_cast<float>(x87::fsqrt(halfW * halfW + halfH * halfH) * scale);
     Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
-    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * GameFloat(0x0073B86C));
-    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * GameFloat(0x0073B86C));
+    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * 0.5f /*0073B86C*/);
+    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f /*0073B86C*/);
     centre.x = cx;
     centre.y = cy;
     CSectorMap* sectors = &sectorMap;

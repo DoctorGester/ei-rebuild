@@ -571,7 +571,7 @@ namespace {
 // 2.5^(delta / 1200): _CIpow (006E81A0) of the double at 00742AD0 and delta * 0.00083333335f,
 // left unrounded.
 double WheelZoomFactor(int delta) {
-    return libcrt::CiPow(ei::GameData<const double>(0x00742AD0), static_cast<double>(delta) * ei::GameData<const float>(0x00742AC8));
+    return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);
 }
 } // namespace
 

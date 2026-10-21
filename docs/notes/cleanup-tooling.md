@@ -163,3 +163,50 @@ for every `static_cast<float>`. Left: the
 register / stack shims `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick, reads
 the caller's frame), which go with the call-site work (C12b). `include/ei/x87.h` and `src/hook` (the hook framework) and
 `src/lib/crt_x87.cpp` (the CRT's register entries) keep theirs by design.
+
+## SSE2 build (C16 experiment)
+
+What an `/arch:SSE2` image costs against the goldens, and which `x87::` helpers convert for free (2026-10-21). The build switches
+are on branch `c16-sse2-experiment` (not merged): CMake `EI_ARCH=SSE2` and `EI_X87_PLAIN=<bits>` (helper families as plain C++, bits
+in its `include/ei/x87.h`). A verify build outside `build\<cfg>` runs with `EI_BUILD_DIR=<dir>` and
+`EI_HARNESS_SETTINGS=<checkout>\config\harness` (the harness looks for `..\..\config\harness` from the DLL).
+
+**`/arch:SSE2`, helpers kept or all plain: 110 of 110 goldens differ**, all from the first record (world update 20, the menu's
+scene: place / AI hashes of its walkers); every run still passes its scenario, and the console differs only in printed distances
+(`1.440063m` / `1.440066m`). ei_vectors: 3 of 69 functions fail: `IsaacRandom::Range` (118 of 256 records, 1-2 float ulps),
+`UnitParams::ProtectionBlock`, `UnitStats::Reduce` (10 of 256; two are NaN payloads: x87 keeps the operand's NaN, SSE gives the
+default `-nan(ind)`). The cause is not the helpers but the doubles:
+- A `double` local or expression stands for the x87 register (C12): at the main thread's 24-bit precision every operation rounds to
+  a float significand, under SSE2 to 53 bits. Example: saves' `stats.sideCone` -4.37113883e-08 becomes 6.12303177e-17, because
+  `RightAngleCosine`'s `g_pi * g_perDegree` is a 24-bit product at PC24 (cos of float 90 degrees) and an exact one in SSE2;
+  `world timeSpeed` 59.9999962 becomes 60.0. About 1270 double locals, 1040 `static_cast<double>` and 3370 `D()` promotions
+  (27 files) are such registers.
+- Also: x87 intermediates have a 15-bit exponent; NaN payloads propagate differently; terrain lighting's chop rounding
+  (`libcrt::Controlfp(0x300, 0x300)`) sets the x87 control word only, so SSE arithmetic there would round to nearest (an SSE2 build
+  has to set MXCSR too; `crt.cpp`'s Controlfp, not `crt_x87.cpp`).
+
+**Helper families, one at a time on `/arch:IA32`** (everything else as today; 110 goldens, ei_vectors 0 in every row):
+
+| Family (sites) | Plain C++ | Goldens | Why |
+|---|---|---|---|
+| `fistp` (197) | `std::lrint` | same | the CRT's lrint is a FISTP that follows the x87 rounding control (chop too), under SSE2 as well; but NaN and out-of-range give 0 where FISTP gives 0x80000000: kept as the instruction: lrint also reads the FP environment per call (SV10j's helper replaces both) |
+| `fsqrt` (149) | `std::sqrt` | same | on IA32 `_CIsqrt` is FSQRT at the precision control (converted, C16); under SSE2 it is SQRTSD, 53 bits |
+| `fsin` / `fcos` (159) | `std::sin` / `cos` | same | the CRT's 53-bit results against FSIN / FCOS's 64; equal after the float store over 800k float arguments; not bit-exact in principle (converted, C16, separate commit) |
+| `fpatan` (27) | `std::atan2` | same | as fsin (converted, separate commit) |
+| `flog` / `flog10` (16) | `std::log` / `log10` | same | FYL2X ignores the precision control (converted, separate commit) |
+| `fexp` (7) | `std::exp` | **97 differ** | VC6's inline exp rounds its FMUL / FSUB / FADD at PC24 (about 24 bits accurate): 64% of float arguments give another float, up to 3.6e-7 relative. One site does it all: `unit_client_path`'s heading weight `x87::fexp(rate * kDecay)` (checked alone: the same 43 records as the whole family); cunit702's `rot.w` 0.112546213 / 0.112546332 at world update 45 in gz1g, then its place |
+| `FromUnsigned` (85) | `static_cast<double>` | not run | rejected by check_x87 on IA32 (the FADD 2^32 rounds at PC24); exact under SSE2 (check_x87 would need an SSE2 mode: SSE2 code also loads 2^32) |
+| `CopyFloat` / `LoadStoreBits` (57) | the bits as they are | same | no signalling NaN is copied in the suite |
+| `IsNaN` / `CompareStatus` (116) | `IsNaN` false (the plain comparison) | same | no NaN reaches those sites in the suite: the NaN audit (cleanup plan) can write plain comparisons, a behaviour change only for NaN |
+
+**Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
+menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in
+the game scenes, within noise in the menus (the SSE2 fight's state has diverged).
+
+**Oracle.** Bit-exact SSE emulation of the x87 is not a helper job: it means writing every main-thread double expression as float
+steps (and fexp as VC6's sequence in float steps), plus the exponent range, NaN payloads and MXCSR chop, with double rounding left as
+a rare residue that no proof covers. Recommended: convert the free families now (done for all but fexp; call-site renames and the
+NaN / copy items are tickets), keep the x87 build as the oracle until the switch, and at the switch re-record the goldens from the
+SSE2 image after checking it at the behaviour level against the x87 image (same scenario results and console events, digests within
+tolerances, saves field by field with float tolerances). Multiplayer against original clients is the one place a bit-level difference
+could matter (the delta-coded network floats): check it before the switch.

@@ -23,7 +23,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 
 // Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a
@@ -80,12 +79,12 @@ void CItemIconWindow::Build() {
     // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
     for (int x = 0; x < 800; x += 200) {
         float left = static_cast<float>(x);
-        sprite()->Cells(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(GameFloat(0x0074054C))), 500.0f, 0xFE, 0x4C, 0xE9,
+        sprite()->Cells(7.9f, 100.0f, left, 100.0f, static_cast<float>(D(left) + D(21.0f /*0074054C*/)), 500.0f, 0xFE, 0x4C, 0xE9,
                         0xB0, 1, 4);
         float right = static_cast<float>(x + 200);
-        sprite()->Cells(7.9f, 100.0f, static_cast<float>(D(left) + D(GameFloat(0x00740548))), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
+        sprite()->Cells(7.9f, 100.0f, static_cast<float>(D(left) + D(179.0f /*00740548*/)), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
                         0xB0, 1, 4);
-        float middle = static_cast<float>(D(left) + D(GameFloat(0x0073BAB0)));   // + 100
+        float middle = static_cast<float>(D(left) + D(100.0f /*0073BAB0*/));   // + 100
         sprite()->Rectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
         sprite()->Rectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
         float half = static_cast<float>(x + 100);

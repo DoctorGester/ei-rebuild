@@ -61,7 +61,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     xAxis.x = static_cast<float>((D(q.w) * q.w - (LengthSquared2DUnrounded<double>(q.y, q.z) + xx)) + (xx + xx));
     xAxis.y = static_cast<float>(e1 + e1);
     xAxis.z = static_cast<float>(e2 + e2);
-    float angle = static_cast<float>(-((CAM_PI * CAM_PER_180) * CAM_NINETY + D(elevation)));
+    float angle = static_cast<float>(-(CAM_RIGHT_ANGLE + D(elevation)));
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
     Quaternion& t = localRotation_;
@@ -101,7 +101,7 @@ void CCamera::AlignToTarget() {
     std::memcpy(&bits, &magnitude, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&magnitude, &bits, 4);
-    if (CAM_PI * CAM_PER_180 > D(magnitude)) return;
+    if (CAM_DEGREE > D(magnitude)) return;
     float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
     float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);
     float cz = static_cast<float>(D(hy) * xAxis.x - D(xAxis.y) * hx);
