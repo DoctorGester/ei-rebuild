@@ -5,6 +5,7 @@ vtable,slots,class,file,note
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
+0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
@@ -12,6 +13,7 @@ vtable,slots,class,file,note
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
+0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
@@ -27,6 +29,8 @@ vtable,slots,class,file,note
 0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
 0073E954,14,CTorchObjectClientSpec,src/game/torch_client_spec.h,
 0073E98C,5,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
+0073EA8C,5,CUnit,src/game/unit.h,
+0073EAA0,57,CUnit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,

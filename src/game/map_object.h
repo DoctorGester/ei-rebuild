@@ -378,6 +378,9 @@ static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
 // (fields 0-3; the reader's result says whether every field's snapshot was consumed).
 void __fastcall MapObjectWriteNetState(std::uint8_t* object);
 std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first);
+// 0052EC70 / 0052EF90 (CUnit's slots 50 / 49): the unit's (the map object's fields, then its own).
+void __fastcall UnitWriteNetState(std::uint8_t* object);
+std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first);
 
 // The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
 // hand it to the light calls (add, remove, aim, IsLit) as their `this`.

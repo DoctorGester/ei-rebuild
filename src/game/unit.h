@@ -13,10 +13,13 @@
 #include "maths.h"
 #include "object_tables.h"
 
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CItem;   // item.h
 class CParty;   // party.h
@@ -260,11 +263,23 @@ static_assert(offsetof(CUnitController, unit_) == 0x1C);
 
 // CUnit derives from the map object (map_object.h; CObject3D holds the first 0x170 bytes, CMapObject
 // the rest up to +0x238): the prototype name is CObject3D::name (+0xA4), the figure's build its
-// scale.y (+0xC8), the packed vitals (hit points, mana) CMapObject::packedVitals (+0x17C). The game
-// builds units (constructor 0052E110 stores the vtable): novtable. Slots 13-61 are CMapObject's; the
-// unit's own slots 62-76 are not declared (CFakeUnit, 0073BFE8, shares the rewritten ones).
-class __declspec(novtable) CUnit : public CMapObject {
+// scale.y (+0xC8), the packed vitals (hit points, mana) CMapObject::packedVitals (+0x17C). A real
+// virtual class: the compiler makes its vtable (C19; game.exe's 0073EA8C and its tail 0073EAA0 are
+// retired). CFakeUnit (scene::FakeUnitScene, scene_loader.h) derives from it; game.exe's fake unit
+// table shared these slot bodies, which stay registered at their addresses (C20).
+class CUnit : public CMapObject {
 public:
+    // 0052E110 as C++: the map object, the script name (a member), the motion and the carried
+    // array (their game.exe vtables), no controller or player, then Reset. The factory constructs
+    // in place (Construct); so does the fake unit's constructor (004466D0, through 0052E110).
+    CUnit();
+    // 0052E310's work without the vtables: the release (slot 5's body, called directly), the map
+    // object's Destroy (0050E840), Reset, the carried and motion arrays freed; then the script name
+    // (a member) and the map object's destructor.
+    ~CUnit() override;
+    // The deleting destructor (slot 0, 0052E2A0) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
     // Body of the slot at 00446830 (registered by member pointer).
     const mfc::CString* SetScriptNameImpl(const char* newName);
     // Body of the slot at 00446850 (registered by member pointer).
@@ -272,11 +287,38 @@ public:
     // Body of the slot at 004467F0 (registered by member pointer).
     int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
     CItem* CarriedItem(int index) const;
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
 
     // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
     // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).
+    // Every slot game.exe's 0073EA8C changes is declared (C19); the slots whose bodies are
+    // registered by address under other names call them (unit_update.cpp).
+    int Create() override;                   // 2: 0052E400 CreateUnit
+    void Destroy() override;                 // 3: 0052E590 DestroyUnit
+    void ClearState() override;              // 5: 0052E740 ReleaseUnit
+    int RunTick() override;                  // 6: 0052F7D0 Tick
+    const char* GetName() override;          // 7: 00446820 the script name
+    void Load(void* stream) override;        // 9: 00531A80 LoadUnit
+    void Save(void* stream) override;        // 10: 005321C0 SaveUnit
+    const char* GetClassName() override;     // 11: 0052E280 "CUnit"
+    int GetClassId() override;               // 12: 0052E290 (0x50)
+    bool IsSynchronised() override;          // 29: 004467E0 (true)
+    // 31: 004467F0 TakeHitImpl (the controller's TakeHit).
+    void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) override;
+    Vector3* EyePoint(Vector3* out) override;              // 48: 005303A0 StandPoint
+    std::uint32_t ReadNetState(int first) override;        // 49: 0052EF90 (net_state.cpp)
+    void WriteNetState() override;                         // 50: 0052EC70 (net_state.cpp)
+    Vector3* PositionAt(Vector3* out, int time) override;  // 52: 0052FCC0 PositionAtImpl
+    Vector3* AimPoint(Vector3* out) override;              // 53: 0052FDF0 AimPointImpl
+    int IsLargeUnit() override;              // 54: 00446890 obstacle
+    int IsDead() override;                   // 55: 00446880 dead
+    // 56: 00446850 ObjectDeletedImpl (the controller's slot 42). Nothing reads the result (0).
+    int ForgetObject(CEngineObject* object) override;
+    void UpdateMoveFactors() override;       // 57: 00446870 the controller's slot 53
+    void RefreshWounds() override;           // 58: 00446810 the controller's slot 31
+    double MoveSpeed() override;             // 59: 004468B0 the forward speed (GetMoveSpeeds)
+    float Radius() override;                 // 60: 004468A0 unitRadius
+    void SetScriptName(const char* newName) override;   // 61: 00446830 SetScriptNameImpl
 
     // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
@@ -479,17 +521,11 @@ public:
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
-    // map_object_lifetime.cpp.
-    // 0052E110. The constructor: the map object (0050E2D0), the name, the AI memory sub-object
-    // at +0x27C (005C6270), the carried array (vtable 0073EB84), then the vtable 0073EA8C and
-    // Reset. Returns this.
+    // map_object_lifetime.cpp. The registrations of the constructor and destructors (C20 retires
+    // them): 0052E110 constructs in place (returns this), 0052E310 the destructor, 0052E2A0 (slot
+    // 0) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
     CUnit* Construct();
-    // 0052E310. The destructor body: release (the vtable's slot 5 function, called directly),
-    // the map object's Destroy (0050E840), Reset, the arrays and the name freed, then the map
-    // object's destructor body.
     void DestructBody();
-    // 0052E2A0. Virtual slot 0, the scalar deleting destructor: DestructBody, then the memory
-    // freed when bit 0 of `flags` is set. Returns this.
     CUnit* DeletingDestructor(std::uint32_t flags);
     // 0052E5B0. Back to a blank unit: no name, prototypes, controller (released), relations,
     // player, side, items (the slots cleared without releasing) or carried array; standard

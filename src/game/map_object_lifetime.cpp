@@ -282,9 +282,7 @@ EI_REPLACE_METHOD(0x00529B50, CMapObject::DestructBody);
 
 // --- CUnit ------------------------------------------------------------------------------------
 
-CUnit* CUnit::Construct() {
-    CMapObject::Construct();
-    ConstructString(&scriptName);
+CUnit::CUnit() {
     // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
     m->points.data = nullptr;
@@ -311,12 +309,12 @@ CUnit* CUnit::Construct() {
     carriedGrowBy = 0;
     carriedCapacity = 0;
     carriedCount = 0;
-    SetVtable(this, CUnit::kVtableAddress);
     controller = nullptr;
     player = nullptr;
     Reset();
-    return this;
 }
+
+CUnit* CUnit::Construct() { return new (this) CUnit(); }
 EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
 
 void CUnit::Reset() {
@@ -364,12 +362,10 @@ void CUnit::Reset() {
 }
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
 
-void CUnit::DestructBody() {
-    SetVtable(this, CUnit::kVtableAddress);
-    // The vtable's slot 5 (0052E740, the release from the player), called through the vtable's
-    // memory as the original does.
-    using Slot = void(__fastcall*)(CUnit*);
-    ei::GamePointer<const Slot>(CUnit::kVtableAddress)[5](this);
+CUnit::~CUnit() {
+    // The vtable's slot 5 (0052E740, the release from the player), called directly as the original
+    // does (through the vtable's memory, not the object's).
+    ReleaseUnit();
     DestroyMapObject();
     Reset();
     carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
@@ -378,13 +374,13 @@ void CUnit::DestructBody() {
     DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
     DestroyArray(m->waypoints, kMotionWaypointsEndVtable);
     DestroyArray(m->points, kMotionPointsEndVtable);
-    DestroyString(&scriptName);
-    CMapObject::DestructBody();
 }
+
+void CUnit::DestructBody() { this->CUnit::~CUnit(); }
 EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
 
 CUnit* CUnit::DeletingDestructor(std::uint32_t flags) {
-    UnitDestructBody(this);
+    this->CUnit::~CUnit();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

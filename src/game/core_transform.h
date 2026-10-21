@@ -10,6 +10,7 @@
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
 // placed objects (abstract: slots 11 and 12 are pure). Name provisional; vtable 0073BA38, 18 slots.
 // Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
+// Slots 13-17 are defined (core_transform.cpp), for a derived class whose vtable is the compiler's (C19).
 class CTransformObject : public CEngineObject {
 public:
     CTransformObject* DeleteScalar(unsigned flags);

@@ -7,15 +7,12 @@
 
 #include "ei/hook.h"
 
-namespace {
-constexpr const char* kUnitClassName = "CUnit";
-constexpr int kUnitClassId = 0x50;
-} // namespace
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-// 0052E280 / 0052E290 (slots 11 / 12 of the unit's vtable 0073EA8C).
-const char* __fastcall UnitClassName(CUnit*) { return kUnitClassName; }
+// 0052E280 / 0052E290 (slots 11 / 12 of the unit's vtable 0073EA8C; unit_update.cpp).
+const char* __fastcall UnitClassName(CUnit* self) { return self->CUnit::GetClassName(); }
 EI_REPLACE(0x0052E280, UnitClassName);
-int __fastcall UnitClassId(CUnit*) { return kUnitClassId; }
+int __fastcall UnitClassId(CUnit* self) { return self->CUnit::GetClassId(); }
 EI_REPLACE(0x0052E290, UnitClassId);
 
 // 0052E230: the constructor of the motion's segment part (+0x50; nothing to construct). Returns

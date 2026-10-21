@@ -94,6 +94,15 @@ EI_REPLACE_METHOD(0x0040CC30, CTransformObject::UpdateWorldImpl);
 EI_REPLACE_METHOD(0x00401510, CTransformObject::SaveTransformImpl);
 EI_REPLACE_METHOD(0x00401540, CTransformObject::LoadTransformImpl);
 
+// The virtual slots 13-17 for a class whose vtable is the compiler's (C19: CSkyObject): the bodies above.
+CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) { return CopyTransformImpl(other); }
+void CTransformObject::CombineRotation(const Quaternion& parent) { CombineRotationImpl(parent); }
+void CTransformObject::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
+    UpdateWorldImpl(parentRotation, parentPosition);
+}
+void CTransformObject::SaveTransform(void* file) { SaveTransformImpl(file); }
+void CTransformObject::LoadTransform(void* file) { LoadTransformImpl(file); }
+
 void CCamera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation_;
     const Vector3& pos = localPosition_;

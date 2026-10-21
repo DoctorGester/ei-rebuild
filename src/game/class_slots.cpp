@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 const char* const kHooverName = "CHoover";
@@ -97,15 +99,17 @@ EI_REPLACE(0x004689D0, LightningManagerCreateHook);
 // ---- CFakeUnit (vtable 0073BFE8) ------------------------------------------------------------------
 
 // 00446AF0, slot 2 (Create): the skin created and given the unit, then the unit's own Create.
-int __fastcall FakeUnitCreate(scene::FakeUnitScene* self) {
-    self->skin.Create();
-    self->skin.SetOwner(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(self)));
-    return reinterpret_cast<CUnit*>(self)->CreateUnit();
+int scene::FakeUnitScene::Create() {
+    skin.Create();
+    skin.SetOwner(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this)));
+    return CreateUnit();
 }
+int __fastcall FakeUnitCreate(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::Create(); }
 EI_REPLACE(0x00446AF0, FakeUnitCreate);
 
 // 004468D0, slot 11.
-const char* __fastcall FakeUnitGetClassName(const CUnit*) { return kFakeUnitName; }
+const char* scene::FakeUnitScene::GetClassName() { return kFakeUnitName; }
+const char* __fastcall FakeUnitGetClassName(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::GetClassName(); }
 EI_REPLACE(0x004468D0, FakeUnitGetClassName);
 
 // ---- CUnit slots shared with the fake unit (vtables 0073EA8C and 0073BFE8) ------------------------

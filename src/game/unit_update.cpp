@@ -15,7 +15,11 @@
 
 #include <cstring>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
+constexpr const char* kUnitClassName = "CUnit";
+constexpr int kUnitClassId = 0x50;
 constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // CUnit::movementKind
@@ -150,3 +154,55 @@ int CUnit::Level() {
     return static_cast<int>(prototype->level);
 }
 EI_REPLACE_METHOD(0x00532D40, CUnit::Level);
+
+// --- The virtual slots (vtable 0073EA8C) for the compiler's table (C19) ---------------------------
+
+int CUnit::Create() { return CreateUnit(); }
+void CUnit::Destroy() { DestroyUnit(); }
+void CUnit::ClearState() { ReleaseUnit(); }
+int CUnit::RunTick() { return Tick(); }
+const char* CUnit::GetName() { return scriptName; }
+void CUnit::Load(void* stream) { LoadUnit(static_cast<CStream*>(stream)); }
+void CUnit::Save(void* stream) { SaveUnit(static_cast<CStream*>(stream)); }
+const char* CUnit::GetClassName() { return kUnitClassName; }
+int CUnit::GetClassId() { return kUnitClassId; }
+bool CUnit::AcceptsAnimation(const void* entry) { return AcceptsAnimationImpl(entry); }
+std::uintptr_t CUnit::AttachObject(CEngineObject* object) { return AttachObjectImpl(object); }
+void CUnit::AdvanceTime(float time) { AdvanceTimeImpl(time); }
+bool CUnit::IsSynchronised() { return true; }
+void CUnit::ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) { TakeHitImpl(hit, attacker, caster); }
+std::uintptr_t CUnit::ScaleEffectChanged(int value) { return ScaleEffectChangedImpl(value); }
+void CUnit::TakePrototype(const char* prototype) { TakePrototypeImpl(prototype); }
+std::uintptr_t CUnit::SetStats(const UnitStats* stats) { return SetStatsImpl(stats); }
+std::uint32_t CUnit::SetStunned(int on) { return SetStunnedImpl(on); }
+Vector3* CUnit::EyePoint(Vector3* out) {
+    StandPoint(&out->x);
+    return out;
+}
+std::uint32_t CUnit::ReadNetState(int first) { return UnitReadNetState(reinterpret_cast<std::uint8_t*>(this), nullptr, first); }
+void CUnit::WriteNetState() { UnitWriteNetState(reinterpret_cast<std::uint8_t*>(this)); }
+void CUnit::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
+Vector3* CUnit::PositionAt(Vector3* out, int time) {
+    PositionAtImpl(&out->x, time);
+    return out;
+}
+Vector3* CUnit::AimPoint(Vector3* out) {
+    AimPointImpl(&out->x);
+    return out;
+}
+int CUnit::IsLargeUnit() { return static_cast<int>(obstacle); }
+int CUnit::IsDead() { return dead; }
+int CUnit::ForgetObject(CEngineObject* object) {
+    ObjectDeletedImpl(object);
+    return 0;
+}
+void CUnit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
+void CUnit::RefreshWounds() { Controller()->RefreshWounds(); }
+double CUnit::MoveSpeed() {
+    float forward;
+    float backward;
+    GetMoveSpeeds(&forward, &backward);
+    return forward;
+}
+float CUnit::Radius() { return unitRadius; }
+void CUnit::SetScriptName(const char* newName) { SetScriptNameImpl(newName); }

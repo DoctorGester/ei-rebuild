@@ -121,12 +121,12 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     meshType_ = other->meshType_;
 }
 
-void CFigureMesh::SetPose(const float* q, const float* offset) {
+void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     // Slot 14 stores the quaternion as the world rotation (+0x44).
-    FigureSlots(this)->CombineRotation(*reinterpret_cast<const Quaternion*>(q));
-    // The position (+0x1C) rotated by the quaternion q = (w, x, y, z):
+    FigureSlots(this)->CombineRotation(rotation);
+    // The position (+0x1C) rotated by the quaternion (w, v):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
-    Vector3 v{q[1], q[2], q[3]};
+    Vector3 v{rotation.x, rotation.y, rotation.z};
     auto* p = &localPosition_;
     double dot = DotUnrounded<Sum3::ZYX, double>(v, *p);
     double twice = dot + dot;
@@ -135,7 +135,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     float x = static_cast<float>(twice * v.x);
     Vector3 along;
     VectorMake(&along, nullptr, x, y, z);
-    float w = q[0];
+    float w = rotation.w;
     Vector3 cross, turned, scaled, sum, rotated;
     CrossProduct(&cross, v, *p);
     ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
@@ -145,9 +145,9 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     VectorAdd(&sum, &scaled, &turned);
     VectorAdd(&rotated, &sum, &along);
     float* moved = &worldPosition_.x;
-    float mx = static_cast<float>(static_cast<double>(rotated.x) + offset[0]);
-    float my = static_cast<float>(static_cast<double>(rotated.y) + offset[1]);
-    float mz = static_cast<float>(static_cast<double>(rotated.z) + offset[2]);
+    float mx = static_cast<float>(static_cast<double>(rotated.x) + offset.x);
+    float my = static_cast<float>(static_cast<double>(rotated.y) + offset.y);
+    float mz = static_cast<float>(static_cast<double>(rotated.z) + offset.z);
     moved[0] = mx;
     moved[1] = my;
     moved[2] = mz;

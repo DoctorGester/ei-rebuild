@@ -612,11 +612,32 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     check wants the csv's class to be one the file declares (`PlainMapObject`, the instance in the note).
   - **Left in game.exe's tables**: the bases' own 0073B870 (CBaseManager) and 00743338 (CResourceManager), stored only
     by the registered bodies ConstructBase / DestructBody / Construct / Destruct, which no code of ours calls any more
-    (they go with their registrations, C20); CSkyObject (0073D5B8; its slots 15-23 are the figure mesh's, whose
-    signatures 22 / 23 and CFigure's 15-17 overrides are not declared yet, and its constructor runs CFigure's body
-    with 0073C224); CUnit (0073EA8C + its tail 0073EAA0: 42 overrides of CMapObject's slots to declare, a 0x4DC-byte
-    constructor 0052E110 with members holding the 3-slot tables 0073EB84 / 90 / 9C / A8 / B4, and CFakeUnit 0073BFE8
-    reusing its slot bodies).
+    (they go with their registrations, C20). CSkyObject and CUnit: batch 5.
+- **Batch 5's families**: CSkyObject (0073D5B8), CUnit (0073EA8C + its tail 0073EAA0) and CFakeUnit (0073BFE8): 4
+  rows, 7,004 -> 6,855 code cells. Next: the figure classes 0x41-0x43 (CFigureMesh's slots 18-23 as its own
+  virtuals, CFigureObjectVirtuals gone; the scene loader's figure records 00453240, CUiMesh, the fake figure
+  0073C274), the containers by template (the unit's member tables 0073EB84 / 90 / 9C / A8 / B4 with them),
+  network messages, interface (needs the harness id).
+  - **CSkyObject** derives from CFigureMesh (the mesh's layout plus the haze array; game.exe's 0x44 table is the
+    0x42 mesh's 0073C1C4 but for slots 0, 11 and 12). CFigureMesh got a protected constructor and destructor sharing
+    ConstructBase's and DestructBase's work (`SetUpFigure` / `TearDownFigure`); the classes 0x41-0x43 are still built
+    by those bodies with game.exe's tables (0073C224, 0073C1C4, 0073FC48, 0073FBF0). CTransformObject's slots 13-17
+    are defined (core_transform.cpp) for the compiled tables. The sky declares the figure's 15-17 (SetPose in
+    UpdateWorld's place, SaveToFile / LoadFromFile in SaveTransform's / LoadTransform's) and the mesh's 18-23 under
+    the names of CFigureMesh's non-virtual bodies, which they hide (each calls `CFigureMesh::...`); SetPose takes
+    the quaternion and offset by reference. CFigureObjectVirtuals (FigureSlots) still reaches 18-21 of the others.
+  - **CUnit**: every slot the unit changes is declared, the bodies registered at their addresses under other names
+    (CreateUnit, Tick, LoadUnit, StandPoint, the net-state functions, ...) are called by the slots; slot 56's result
+    (ObjectDeletedImpl has none) is 0, which nothing reads. The C++ constructor and destructor are 0052E110's and
+    0052E310's work; the destructor calls slot 5's body (ReleaseUnit) directly, as the original calls it through the
+    table's memory (that call is why find_vtables split the tail 0073EAA0 off). The members keep game.exe's 3-slot
+    CArray tables (carried 0073EB84, the motion's 0073EB90 / 0073EB9C and their bases 0073EBA8 / 0073EBB4): they are
+    mfc_slots' ArrayHeader instantiations, stored by library bodies elsewhere too, and go with the containers.
+  - **CFakeUnit** (0073BFE8; scene::FakeUnitScene, scene_loader.h) is a CUnit with the skin and the scene's arrays
+    (4 bytes at +0x4DC: the skin is 8-aligned in the original), overriding 2, 3, 11, 12 and adding slot 62
+    (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
+    after the bone block now, a free order only). No scenario makes a fake unit (class 0x39; coverage: dead), so
+    only the builds check it. CUnit's slot bodies stay registered at their addresses until C20.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
