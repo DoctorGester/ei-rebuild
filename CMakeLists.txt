@@ -8,6 +8,12 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# No incremental linking in the two builds: an incremental relink of ei_hook.dll twice left out new code
+# from ei_render.lib while reporting success (R16c2), so a run could test stale code.
+foreach(kind EXE SHARED MODULE)
+    string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "" flags "${CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO}")
+    set(CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO "${flags} /INCREMENTAL:NO")
+endforeach()
 
 # Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe with ei_hook.dll's
 # code); `verify` is the harness build, the same image and code plus the harness (tests/verify: scenario runs
