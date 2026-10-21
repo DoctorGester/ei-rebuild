@@ -125,8 +125,8 @@ void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_
 // CFigureMesh::DrawOffset.
 
 // 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
-void AssignTexture(CEngineObject** slot, CEngineObject* value) {
-    CEngineObject* old = *slot;
+void AssignTexture(CTexture** slot, CTexture* value) {
+    CTexture* old = *slot;
     *slot = value;
     if (value) ++value->refCount_;
     if (old) old->Release();
@@ -247,9 +247,9 @@ int KeyedParts(const CObject3D* object) {
 // in *failure) when the render surface cannot be locked.
 bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     // Rasterise into the render surface.
-    void* surface = self->WorldContext()->TextureManager()->ShadowRenderSurface();
+    CTexture* surface = self->WorldContext()->TextureManager()->ShadowRenderSurface();
     SurfacePixels description;
-    if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
+    if (!surface->LockPixels(&description)) {
         *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
         return false;
     }
@@ -283,12 +283,12 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
         converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
     }
     std::memcpy(description.bits, pixels.data(), pixels.size());
-    static_cast<CTexture*>(surface)->UnlockPixels();
+    surface->UnlockPixels();
 
     // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
     // new renderer's memory, texture_shadow.cpp).
-    auto* shadowTexture = static_cast<CTexture*>(self->texture);
-    shadowTexture->LoadPixelsFrom(TheRenderDevice(), static_cast<const CTexture*>(surface));
+    CTexture* shadowTexture = self->texture;
+    shadowTexture->LoadPixelsFrom(TheRenderDevice(), surface);
     // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
     // texture in its memory is read from there instead).
     render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
@@ -522,7 +522,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
         gamecrt::sprintf(name, "SR%d", object->id_);
-        *static_cast<CTexture*>(texture)->Name() = name;
+        *texture->Name() = name;
         flags_ |= kFlagRefresh;
     }
     // R16e1: with the shadow map the texture and the decal's draw are left out (nothing reads them).
