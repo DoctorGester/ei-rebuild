@@ -23,8 +23,8 @@ constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
 constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
 constexpr std::uint32_t kCapsStencil = 0x4000;
 
-const char* NumberFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }   // "%d"
-const char* CostFormat() { return reinterpret_cast<const char*>(0x00793F1C); }     // "%s %d (%d)"
+const char* NumberFormat() { return "%d"; }
+const char* CostFormat() { return "%s %d (%d)"; }
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws

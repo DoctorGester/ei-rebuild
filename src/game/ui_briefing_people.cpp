@@ -36,8 +36,8 @@ void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the serve
 // The loot table (007C8758): its records, then their name index.
 stlp::RecordsByName* LootTable() { return reinterpret_cast<stlp::RecordsByName*>(0x007C8758); }
 float TurnedOver() { return *reinterpret_cast<const float*>(0x007410D0); }   // pi
-const char* ItemFigureFormat() { return reinterpret_cast<const char*>(0x007934DC); }   // "initqu%ditem"
-const char* ItemImageFormat() { return reinterpret_cast<const char*>(0x007934D0); }    // "quitem%04d"
+const char* ItemFigureFormat() { return "initqu%ditem"; }
+const char* ItemImageFormat() { return "quitem%04d"; }
 const int* SlotXs() { return reinterpret_cast<const int*>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725
 const int* SlotYs() { return reinterpret_cast<const int*>(0x00741138); }   // 300 x5, 500, 500
 using ActionDoneFn = void(__fastcall*)(CUnit*);

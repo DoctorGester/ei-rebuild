@@ -150,7 +150,7 @@ void CBattleScreen::Create() {
 
     CreateTexture(0x100, 0x100, 0x20);
     CreateTexture(0x100, 0x100, 0x20);
-    LoadTexture(reinterpret_cast<const char*>(0x007942DC), 3, 0);   // "battle00"
+    LoadTexture("battle00", 3, 0);
 
     // Panels built by their own constructors.
     void* memory = gamecrt::operator_new(0x16C);

@@ -361,13 +361,13 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
 
 // 007843AC: "ResolveNodesAMF. ..." (a first rotation key not at frame 0); 007843F0: "Can't find
 // top-level object in hierarchy" (BuildSkeleton's fatal errors).
-inline const char* FirstKeyNotAtZeroText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007843AC)); }
-inline const char* NoRootNodeText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007843F0)); }
+inline const char* FirstKeyNotAtZeroText() { return "ResolveNodesAMF.\n This version requires start from position 0 !\n"; }
+inline const char* NoRootNodeText() { return "Can't find top-level object in hierarchy\n"; }
 
 // 0079B9B0: the exe's zero vector (the scene code copies it).
 inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x0079B9B0)); }
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
-inline const char* NonNullPivotText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078441C)); }
+inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
 // The helpers (+0x56C) are materials (material.h).
 using HelperArray = mfc::CArray<CMaterial, mfc::RawElements<CMaterial>>;
@@ -444,16 +444,16 @@ inline void* NodeArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0
 inline void* TextureNameArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C144)); }   // {id, CString}
 inline void* TextureLinkArrayVtable() { return reinterpret_cast<void*>(std::uintptr_t(0x0073C150)); }   // {id, value}
 
-inline const char* CantOpenText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784394)); }   // "Can't open file %s.\n"
+inline const char* CantOpenText() { return "Can't open file %s.\n"; }
 // "Scene \"%s\" have more then one top-level object!..."
-inline const char* ManyTopsText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784344)); }
-inline const char* NewLineText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784340)); }    // "\n"
-inline const char* SceneExtText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784338)); }   // ".amf"
-inline const char* ScenesDirText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784330)); }  // "scenes\\"
-inline const char* IniDirText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784328)); }     // "Ini's\\"
-inline const char* RegExtText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784320)); }     // ".reg"
-inline const char* ModelNameText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00784304)); }  // "Model File Name = \"%s\".\n"
-inline const char* BmpExtText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007842FC)); }     // ".bmp"
+inline const char* ManyTopsText() { return "Scene \"%s\" have more then one top-level object!\nCheck links!\n TopLevelObjects:\n"; }
+inline const char* NewLineText() { return "\n"; }
+inline const char* SceneExtText() { return ".amf"; }
+inline const char* ScenesDirText() { return "scenes\\"; }
+inline const char* IniDirText() { return "Ini's\\"; }
+inline const char* RegExtText() { return ".reg"; }
+inline const char* ModelNameText() { return "Model File Name = \"%s\".\n"; }
+inline const char* BmpExtText() { return ".bmp"; }
 } // namespace scenedata
 
 } // namespace scene

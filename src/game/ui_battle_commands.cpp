@@ -292,19 +292,19 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         mfc::CString text;
         mfc::CString line;
         UnitNameLine(this, nullptr, unit, &line);
-        line += reinterpret_cast<const char*>(0x00794314);   // ":\n"
+        line += ":\n";
         CTextManager* texts = TextTable(kTextGlue);
         const char* name = phrase->name.data();
         BOOL found;
         {
-            mfc::CString say(reinterpret_cast<const char*>(0x0079430C));   // "say "
+            mfc::CString say("say ");
             mfc::CString key = say + name;
             found = texts->Open(key);
         }
         if (found) {
             texts->ReadToHash(&text, 1);
-            text.TrimRight(reinterpret_cast<const char*>(0x0078DD00));   // "\r\n"
-            text += reinterpret_cast<const char*>(0x00784340);           // "\n"
+            text.TrimRight("\r\n");
+            text += "\n";
             // Both go to the top panel's text and, unless its +0x160, the message log.
             auto post = [this](const char* part) {
                 CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);

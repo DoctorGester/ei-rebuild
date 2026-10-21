@@ -108,7 +108,7 @@ LRESULT OnActivate(WPARAM wParam) {
 LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
     unsigned command = wParam & 0xFFF0;
     if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
-        Console()->PutText(reinterpret_cast<const char*>(0x007849E8))->PutChar('\n')->Apply(libcrt::FlushManipulator);   // "switch task"
+        Console()->PutText("switch task")->PutChar('\n')->Apply(libcrt::FlushManipulator);
     } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
         return 0;
     }
@@ -121,7 +121,7 @@ UINT AutoPlayMessage() {
     auto& guard = Global<std::uint8_t>(0x0079BA04);
     if (!(guard & 1)) {
         guard |= 1;
-        Global<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA(reinterpret_cast<const char*>(0x007847B8));
+        Global<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
     }
     return Global<UINT>(0x0079BA00);
 }
@@ -261,7 +261,7 @@ int __cdecl StartFirstMap() {
     }
     void* world = reinterpret_cast<void*>(0x007AFF60);
     if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
-        return game::FatalError(reinterpret_cast<const char*>(0x007847E4), static_cast<const char*>(map));   // "Can't load map '%s'"
+        return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
     static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = reinterpret_cast<void*>(0x007AF5B8);
     static_cast<CWorldClient*>(client)->SetPlayer(Global<std::uint8_t*>(0x007AFFBC));
@@ -272,21 +272,21 @@ int __cdecl StartFirstMap() {
     BOOL loaded;
     {
         mfc::CString root(Global<mfc::CString>(0x007AF460));
-        mfc::CString dir = root + reinterpret_cast<const char*>(0x007847D8);   // "Scripts\"
+        mfc::CString dir = root + "Scripts\\";
         mfc::CString path = dir + cmdScript;
         loaded = static_cast<CScript*>(script)->LoadFile(path);
     }
     if (loaded) return 1;
     ScriptErrorInfo error;   // GetError constructs the text over the empty one
     static_cast<CScript*>(script)->GetError(&error);
-    return game::FatalError(reinterpret_cast<const char*>(0x007847CC), static_cast<const char*>(error.text), error.line);   // "%s, line %i"
+    return game::FatalError("%s, line %i", static_cast<const char*>(error.text), error.line);
 }
 EI_REPLACE(0x00456140, StartFirstMap);
 
 // ---- FatalError (00480080) ---------------------------------------------------------------------
 
 namespace {
-const char* FlipFailedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078476C)); }   // "Can't flip to GDI surface.\n"
+const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
 const char* WindowTitle() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079BB24)); }      // the game window's title (a buffer)
 } // namespace
 
@@ -335,7 +335,7 @@ EI_REPLACE(0x00480080, FatalError);
 // ---- FatalErrorCode (004800E0) -----------------------------------------------------------------
 
 namespace {
-const char* CodeReportFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x00787EE4)); }   // "%s (0x%.8X) %s"
+const char* CodeReportFormat() { return "%s (0x%.8X) %s"; }
 } // namespace
 
 int FatalErrorCodeV(long result, const char* format, va_list args) {
@@ -361,7 +361,7 @@ EI_REPLACE(0x004800E0, FatalErrorCode);
 // ---- The operator new handler (00455A30) -------------------------------------------------------
 
 namespace {
-const char* MemoryDepletedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078475C)); }   // "Memory depleted"
+const char* MemoryDepletedText() { return "Memory depleted"; }
 } // namespace
 
 // 00455A30 (A-E2). The body is the message box 004560D0's, inlined.

@@ -150,7 +150,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         TextureParts* set = partSets[k];
         if (!set) continue;
         if (!context->SetTexture(0, set->texture)) {
-            int result = game::FatalError(reinterpret_cast<const char*>(0x0078F518));
+            int result = game::FatalError("CObject3DClientSpecific::Draw.\n SetTexture failed.\n");
             Finish(lights, list);
             return result;
         }
@@ -174,7 +174,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
                 int drawn = context->DrawFigureLit(part, &list, current->groups[g]->material, static_cast<int>(lit),
                                                    dirty ? &partRect : nullptr, nullptr, nullptr);
                 if (!drawn) {
-                    int result = game::FatalError(reinterpret_cast<const char*>(0x0078F4E0));
+                    int result = game::FatalError("CObject3DClientSpecific::Draw.\n CFigure::Draw failed.\n");
                     Finish(lights, list);
                     return result;
                 }

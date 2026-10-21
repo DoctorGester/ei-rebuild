@@ -13,11 +13,11 @@ namespace figure {
 
 // 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
 // 004547A0: a slot that answers 1.
-const char* __fastcall FigureClassName(void*) { return reinterpret_cast<const char*>(0x00784714); }
+const char* __fastcall FigureClassName(void*) { return "CFigure"; }
 EI_REPLACE(0x00453450, FigureClassName);
 int __fastcall FigureClassId(void*) { return 0x44; }
 EI_REPLACE(0x00453460, FigureClassId);
-const char* __fastcall FakeFigureClassName(void*) { return reinterpret_cast<const char*>(0x0078471C); }
+const char* __fastcall FakeFigureClassName(void*) { return "CFakeFigure"; }
 EI_REPLACE(0x004547F0, FakeFigureClassName);
 int __fastcall FakeFigureClassId(void*) { return 0x47; }
 EI_REPLACE(0x00454800, FakeFigureClassId);

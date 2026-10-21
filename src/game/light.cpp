@@ -23,9 +23,9 @@ constexpr std::uint32_t kFlagChanged = 0x08;
 constexpr std::uint32_t kFlagCreatedLight = 0x80;   // cleared by the manager's CreateObject
 constexpr std::uint32_t kFlagDestroyed = 0x20;      // cleared by slot 3
 
-constexpr std::uintptr_t kLightClassName = std::uintptr_t(0x00795A00);          // "CLight"
-constexpr std::uintptr_t kLightManagerClassName = std::uintptr_t(0x00795A08);   // "CLightManager"
-constexpr std::uintptr_t kUnknownLightType = std::uintptr_t(0x00795A18);        // "... unknown type %d.\n"
+constexpr const char* kLightClassName = "CLight";
+constexpr const char* kLightManagerClassName = "CLightManager";
+constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 
 } // namespace
 
@@ -134,7 +134,7 @@ EI_REPLACE_METHOD(0x0068D5A0, CLight::AddPoint);
 
 int __fastcall LightCreate(CLight*) { return 1; }
 void __fastcall LightDestroy(CLight* light) { light->flags_ &= ~kFlagDestroyed; }
-const char* __fastcall LightClassName(CLight*) { return reinterpret_cast<const char*>(kLightClassName); }
+const char* __fastcall LightClassName(CLight*) { return kLightClassName; }
 int __fastcall LightClassId(CLight*) { return 10; }
 EI_REPLACE(0x0068CFF0, LightCreate);
 EI_REPLACE(0x0068D000, LightDestroy);
@@ -177,7 +177,7 @@ EI_REPLACE_METHOD(0x0068D970, CLightFactory::DeletingDestruct);
 
 CEngineObject* CLightFactory::NewObjectImpl(int type) {
     if (type != kLightDefault && type != kLightPoint) {
-        game::DebugLog(reinterpret_cast<const char*>(kUnknownLightType), type);
+        game::DebugLog(kUnknownLightType, type);
         return nullptr;
     }
     // Allocated zeroed (SV7b6a): the constructor leaves the transform's positions, and nothing sets a
@@ -202,7 +202,7 @@ EI_REPLACE_METHOD(0x0068DA40, CLightFactory::NewObjectImpl);
 EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
 
 const char* __fastcall LightManagerClassName(CLightFactory*) {
-    return reinterpret_cast<const char*>(kLightManagerClassName);
+    return kLightManagerClassName;
 }
 int __fastcall LightManagerClassId(CLightFactory*) { return 0x29; }
 EI_REPLACE(0x0068D950, LightManagerClassName);

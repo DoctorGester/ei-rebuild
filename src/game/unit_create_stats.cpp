@@ -309,8 +309,8 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
     const Model* model = ModelOf(prototype);   // reads the prototype before the null test
     const Npc* npc = FindNpc(name);
-    if (!prototype) return game::FatalError(reinterpret_cast<const char*>(0x0078F288), name);
-    if (!npc) game::DebugLog(reinterpret_cast<const char*>(0x0078F258), name);
+    if (!prototype) return game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
+    if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
     static_cast<UnitStats*>(stats)->Reset();
 
     const float* speed = &prototype->speed;
@@ -545,7 +545,7 @@ namespace {
 bool NamesRequirement(const mfc::CString& text) {
     if (text.GetLength() == 0) return false;
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(text)),
-                           reinterpret_cast<const unsigned char*>(0x007846F0)) != 0;   // "none"
+                           reinterpret_cast<const unsigned char*>("none")) != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
     return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
@@ -600,7 +600,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         }
         mapObject->ScaleEffectChanged(0);
         object->prototypeId_ = 0;
-        game::DebugLog(reinterpret_cast<const char*>(0x0078F22C), name, object->id_);
+        game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
         return 1;
     }
     const Model* model = ModelOf(prototype);

@@ -34,12 +34,12 @@
 
 namespace {
 
-const char* GoodbyeTopic() { return reinterpret_cast<const char*>(0x007934EC); }       // "goodbye"
-const char* ConstructorTopic() { return reinterpret_cast<const char*>(0x007933B4); }   // "constr"
-const char* BriefingSection() { return reinterpret_cast<const char*>(0x007906E4); }    // "briefing "
-const char* ShowLine() { return reinterpret_cast<const char*>(0x007906DC); }           // "#show"
+const char* GoodbyeTopic() { return "goodbye"; }
+const char* ConstructorTopic() { return "constr"; }
+const char* BriefingSection() { return "briefing "; }
+const char* ShowLine() { return "#show"; }
 const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
-const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }        // "b."
+const char* TopicPrefix() { return "b."; }
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 
 WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }

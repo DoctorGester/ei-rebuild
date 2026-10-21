@@ -23,10 +23,10 @@
 
 namespace {
 
-const char* const kBuySound = reinterpret_cast<const char*>(0x00793800);      // "buttons\camp\buy.wav"
-const char* const kCancelSound = reinterpret_cast<const char*>(0x007937E4);   // "buttons\messbox\cancel.wav"
-const char* const kPrototypeItem = reinterpret_cast<const char*>(0x007938B8);  // "Prototype"
-const char* const kRuneItem = reinterpret_cast<const char*>(0x007938B0);       // "Rune"
+const char* const kBuySound = "buttons\\camp\\buy.wav";
+const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
+const char* const kPrototypeItem = "Prototype";
+const char* const kRuneItem = "Rune";
 // The spell prototypes (their by-name lookup 00613920 is a thiscall on the table).
 void* SpellTable() { return reinterpret_cast<void*>(0x007C8510); }
 

@@ -68,7 +68,7 @@ constexpr int kLocationBody = 1;
 constexpr int kLocationCount = 6;
 
 // 0078FD48, printed when not even the fallback attack animation exists.
-const char* const kNoAnimationMessage = reinterpret_cast<const char*>(0x0078FD48);
+const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!\n";
 
 
 template <typename T>

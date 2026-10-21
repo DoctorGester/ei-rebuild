@@ -64,9 +64,9 @@ EI_REPLACE_METHOD(0x0055F8E0, CWorld::DestroyManagers);
 // manager's slot 25 (0055F3B0, "items") is a CResourceManager slot not declared yet.
 
 namespace {
-constexpr std::uintptr_t kPlayerManagerName = std::uintptr_t(0x0078FEE8);   // "CPlayerManager"
-constexpr std::uintptr_t kEffectManagerName = std::uintptr_t(0x0078FEF8);   // "CEffectManager"
-constexpr std::uintptr_t kItemManagerName = std::uintptr_t(0x0078FF10);     // "CItemManager"
+constexpr const char* kPlayerManagerName = "CPlayerManager";
+constexpr const char* kEffectManagerName = "CEffectManager";
+constexpr const char* kItemManagerName = "CItemManager";
 constexpr int kPlayerManagerId = 0x2E;
 constexpr int kEffectManagerId = 0x32;
 constexpr int kItemManagerId = 0x2F;
@@ -78,7 +78,7 @@ template <typename T> T* DeleteIf(T* self, unsigned flags) {
 }
 } // namespace
 
-const char* __fastcall PlayerManagerClassName(CPlayerManager*) { return reinterpret_cast<const char*>(kPlayerManagerName); }
+const char* __fastcall PlayerManagerClassName(CPlayerManager*) { return kPlayerManagerName; }
 int __fastcall PlayerManagerClassId(CPlayerManager*) { return kPlayerManagerId; }
 void __fastcall PlayerManagerDestruct(CPlayerManager* self) {   // 0055F350
     ei::SetVtable(self, CPlayerManager::kVtableAddress);
@@ -93,7 +93,7 @@ EI_REPLACE(0x0055F320, PlayerManagerClassId);
 EI_REPLACE(0x0055F350, PlayerManagerDestruct);
 EI_REPLACE_METHOD(0x0055F330, CPlayerManager::DeleteScalar);
 
-const char* __fastcall EffectManagerClassName(CBaseManager*) { return reinterpret_cast<const char*>(kEffectManagerName); }
+const char* __fastcall EffectManagerClassName(CBaseManager*) { return kEffectManagerName; }
 int __fastcall EffectManagerClassId(CBaseManager*) { return kEffectManagerId; }
 void __fastcall EffectManagerDestruct(CBaseManager* self) {   // 0055F3A0
     ei::SetVtable(self, kEffectManagerVtable);
@@ -111,7 +111,7 @@ EI_REPLACE_METHOD(0x0055F380, CEffectManager::DeleteScalar);
 BOOL __fastcall EffectManagerCreate(CBaseManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
 EI_REPLACE(0x0067E150, EffectManagerCreate);
 
-const char* __fastcall ItemManagerClassName(CItemManager*) { return reinterpret_cast<const char*>(kItemManagerName); }
+const char* __fastcall ItemManagerClassName(CItemManager*) { return kItemManagerName; }
 int __fastcall ItemManagerClassId(CItemManager*) { return kItemManagerId; }
 void __fastcall ItemManagerDestruct(CItemManager* self) {   // 0055F400
     ei::SetVtable(self, CItemManager::kVtableAddress);

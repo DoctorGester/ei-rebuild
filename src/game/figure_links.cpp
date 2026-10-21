@@ -41,10 +41,10 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
         data = static_cast<std::uint32_t*>(model->mesh->GetFile(name, nullptr));
     } else {
         mfc::CString base(name);
-        mfc::CString path = base + reinterpret_cast<const char*>(0x0078EC70);   // ".lnk"
+        mfc::CString path = base + ".lnk";
         data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
     }
-    if (!data) return game::FatalError(reinterpret_cast<const char*>(0x00790D70), name);
+    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", name);
 
     const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
     {
@@ -78,7 +78,7 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     } else {
         mfc::CString name(bone->GetName());
         mfc::CString directory(bone->name3);
-        mfc::CString path = (directory + name) + reinterpret_cast<const char*>(0x00784640);   // ".bon"
+        mfc::CString path = (directory + name) + ".bon";
         bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;

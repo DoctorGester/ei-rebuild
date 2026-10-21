@@ -105,7 +105,7 @@ void DestroyString(char** s) { reinterpret_cast<mfc::CString*>(s)->~CString(); }
 CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 
 // "Bodypart \"%s\" for object \"%s\" not found\n"
-const char* PartNotFoundFormat() { return reinterpret_cast<const char*>(0x0079189C); }
+const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
 
 // A CStringArray (MFC: vtable, CString data, size, capacity, grow-by), as the server companion and the
 // 3D object lay theirs out by hand (unit.h, map_object_figures.h).

@@ -327,7 +327,7 @@ void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, mfc::CString* re
     cmd->PrepareArguments(script, vars);
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;
-    game::FatalError(reinterpret_cast<const char*>(0x0078B748));   // "Function does not return string at ..."
+    game::FatalError("Function does not return string at SSCCmd::CalcFunction");
 }
 
 } // namespace scriptaddon

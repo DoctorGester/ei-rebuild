@@ -28,15 +28,15 @@ const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 
 
 // The game's data folder (a CString global) and the strings the original passes by address.
 const mfc::CString& DataPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
-const char* ConfigFolder() { return reinterpret_cast<const char*>(0x0079007C); }    // "config\"
-const char* SunlightSection() { return reinterpret_cast<const char*>(0x00790070); }  // "sunlight"
-const char* AmbientSection() { return reinterpret_cast<const char*>(0x00790068); }   // "ambient"
-const char* SkySection() { return reinterpret_cast<const char*>(0x00790064); }       // "sky"
+const char* ConfigFolder() { return "config\\"; }
+const char* SunlightSection() { return "sunlight"; }
+const char* AmbientSection() { return "ambient"; }
+const char* SkySection() { return "sky"; }
 
 constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
-const char* NumbersName() { return reinterpret_cast<const char*>(0x0079005C); }            // "numbers"
+const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0079BC94); } // a CString
 void* Renderer() { return *reinterpret_cast<void* const*>(0x007AF080); }
 UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
@@ -138,8 +138,8 @@ constexpr int kSkyFigureClass = 0x44;
 constexpr int kSkyObjectId = -666;
 constexpr int kSkyMaterialType = 0x12;
 constexpr std::uint32_t kSkyObjectFlag = 0x10;
-const char* SkyPartName() { return reinterpret_cast<const char*>(0x00790054); }     // "nask0"
-const char* SkyFigureFile() { return reinterpret_cast<const char*>(0x00790044); }   // "nask0sky.fig"
+const char* SkyPartName() { return "nask0"; }
+const char* SkyFigureFile() { return "nask0sky.fig"; }
 
 // A counted slot gets `object` (referenced), the old one is released.
 template <typename T>

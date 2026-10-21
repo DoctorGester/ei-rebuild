@@ -30,10 +30,10 @@ using InstanceList = mfc::CList<ScriptDefinition>;
 
 // FatalError formats of ScriptBindCall ("Wrong number of script %s float / string / object / group
 // parameters").
-const char* const kWrongFloatCount = reinterpret_cast<const char*>(0x0078BBA0);
-const char* const kWrongStringCount = reinterpret_cast<const char*>(0x0078BB74);
-const char* const kWrongObjectCount = reinterpret_cast<const char*>(0x0078BB48);
-const char* const kWrongGroupCount = reinterpret_cast<const char*>(0x0078BB1C);
+const char* const kWrongFloatCount = "Wrong number of script %s float parameters";
+const char* const kWrongStringCount = "Wrong number of script %s string parameters";
+const char* const kWrongObjectCount = "Wrong number of script %s object parameters";
+const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
 
 // Class id of the sound object an FX source places (CBaseManager::CreateObject).
 constexpr int kClassSound = 0x48;   // CEffectSound

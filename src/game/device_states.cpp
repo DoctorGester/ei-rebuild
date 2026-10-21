@@ -20,7 +20,7 @@ int CSceneRenderer::SetFogColourStateImpl(std::uint32_t colour) {
     IDirect3DDevice7* d3d = device::D3D(device_);
     long hr = device::SetRenderState(d3d, D3DRENDERSTATE_FOGCOLOR, colour);
     render::state::Render(D3DRENDERSTATE_FOGCOLOR, colour);
-    if (hr != 0) return game::FatalError(reinterpret_cast<const char*>(0x0078EE40), colour);   // "Can't set fog color 0x%X"
+    if (hr != 0) return game::FatalError("Can't set fog color 0x%X.\n", colour);
     return 1;
 }
 EI_REPLACE_METHOD(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
@@ -31,10 +31,10 @@ EI_REPLACE_METHOD(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
 int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
     long hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_SRCBLEND, source);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, source);
-    if (hr != 0) return app::FatalErrorCode(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
+    if (hr != 0) return app::FatalErrorCode(hr, "Can't set source alpha blend mode.\n");
     hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_DESTBLEND, dest);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, dest);
-    if (hr != 0) return app::FatalErrorCode(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
+    if (hr != 0) return app::FatalErrorCode(hr, "Can't set destination alpha blend mode.\n");
     return 1;
 }
 EI_REPLACE_METHOD(0x00501C60, CSceneRenderer::SetBlendImpl);

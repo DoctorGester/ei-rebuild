@@ -190,7 +190,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
     mfc::CFileFind find;
     BOOL found;
     {
@@ -218,17 +218,17 @@ EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
 // --- 00653A50 ------------------------------------------------------------------------------------
 
 namespace {
-constexpr std::uintptr_t kQuickFolder = std::uintptr_t(0x007933AC);     // "saveq"
-constexpr std::uintptr_t kAutoFolderA = std::uintptr_t(0x007942E8);     // "savea"
-constexpr std::uintptr_t kAutoFolderB = std::uintptr_t(0x007940F0);     // "saveb"
-constexpr std::uintptr_t kQuickTitle = std::uintptr_t(0x00794924);      // "save_quick"
-constexpr std::uintptr_t kAutoEnterTitle = std::uintptr_t(0x00794914);  // "save_auto_enter"
-constexpr std::uintptr_t kAutoExitTitle = std::uintptr_t(0x00794904);   // "save_auto_exit"
-constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);     // "%s"
+constexpr const char* kQuickFolder = "saveq";
+constexpr const char* kAutoFolderA = "savea";
+constexpr const char* kAutoFolderB = "saveb";
+constexpr const char* kQuickTitle = "save_quick";
+constexpr const char* kAutoEnterTitle = "save_auto_enter";
+constexpr const char* kAutoExitTitle = "save_auto_exit";
+constexpr const char* kPlainFormat = "%s";
 
 
-bool SameFolder(const char* folder, std::uintptr_t name) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
+bool SameFolder(const char* folder, const char* name) {
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(name)) == 0;
 }
 } // namespace
 
@@ -236,20 +236,20 @@ void SaveEntry::MakeTitle(int) {
     mfc::CString quick;
     mfc::CString autoEnter;
     mfc::CString autoExit;
-    Texts()->GetString(game::Text(kQuickTitle), &quick);
-    Texts()->GetString(game::Text(kAutoEnterTitle), &autoEnter);
-    Texts()->GetString(game::Text(kAutoExitTitle), &autoExit);
+    Texts()->GetString(kQuickTitle, &quick);
+    Texts()->GetString(kAutoEnterTitle, &autoEnter);
+    Texts()->GetString(kAutoExitTitle, &autoExit);
     mfc::CString& title = Str(title_);
     if (SameFolder(folder_, kQuickFolder)) {
-        title.Format(game::Text(kPlainFormat), static_cast<const char*>(quick));
+        title.Format(kPlainFormat, static_cast<const char*>(quick));
     } else if (SameFolder(folder_, kAutoFolderA)) {
-        title.Format(game::Text(kPlainFormat), static_cast<const char*>(autoEnter));
+        title.Format(kPlainFormat, static_cast<const char*>(autoEnter));
     } else if (SameFolder(folder_, kAutoFolderB)) {
-        title.Format(game::Text(kPlainFormat), static_cast<const char*>(autoExit));
+        title.Format(kPlainFormat, static_cast<const char*>(autoExit));
     } else {
         // 00653BD0: the zone name ("zone" + zone_ in the texts, else "save_camp").
         const mfc::CString name = ZoneTitle();
-        title.Format(game::Text(kPlainFormat), static_cast<const char*>(name));
+        title.Format(kPlainFormat, static_cast<const char*>(name));
     }
 }
 EI_REPLACE_METHOD(0x00653A50, SaveEntry::MakeTitle);
@@ -274,7 +274,7 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
     static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
@@ -468,7 +468,7 @@ EI_REPLACE_METHOD(0x00655D40, CSaveLoadWindow::FillEntries);
 // --- 006570E0 / 006575B0: quick and automatic saves ----------------------------------------------
 
 namespace {
-constexpr std::uintptr_t kNotifyLoading = std::uintptr_t(0x007949F8);   // "notify_loading"
+constexpr const char* kNotifyLoading = "notify_loading";
 constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
 constexpr int kShotWidth = 256, kShotHeight = 192;
 
@@ -478,7 +478,7 @@ GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
     mfc::CString folder;
-    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), slot);
+    folder.Format(flowdata::kSlotFolder, GameFolder(), slot);
     return folder;
 }
 } // namespace
@@ -549,7 +549,7 @@ void __fastcall QuickLoad(const char* slot) {
     mfc::CString folder = SlotFolder(slot);
     if (libcrt::Access(folder, 0) == -1) return;
     mfc::CString notice;
-    Texts()->GetString(game::Text(kNotifyLoading), &notice);
+    Texts()->GetString(kNotifyLoading, &notice);
     static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
@@ -574,7 +574,7 @@ constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";            // 00793
 constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";       // 00794994
 constexpr int kMessageBoxBytes = 0x180;
 constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
-constexpr std::uintptr_t kFolderFormat = std::uintptr_t(0x00794A08);    // "%ssaves\\%s"
+constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";                             // 0078B054
 
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
@@ -662,7 +662,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     if (entriesBegin_[selected].broken_) return;
     mfc::CString notice;
-    Texts()->GetString(game::Text(kNotifyLoading), &notice);
+    Texts()->GetString(kNotifyLoading, &notice);
     static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
@@ -674,7 +674,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     mfc::CString folder;
-    folder.Format(game::Text(kFolderFormat), GameFolder(), entriesBegin_[selected].folder_);
+    folder.Format(kFolderFormat, GameFolder(), entriesBegin_[selected].folder_);
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {

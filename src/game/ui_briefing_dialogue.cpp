@@ -34,8 +34,8 @@
 
 namespace {
 
-const char* BriefingSection() { return reinterpret_cast<const char*>(0x007906E4); }   // "briefing "
-const char* HumanPrototype() { return reinterpret_cast<const char*>(0x007908C8); }    // "unhuma"
+const char* BriefingSection() { return "briefing "; }
+const char* HumanPrototype() { return "unhuma"; }
 const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }          // ""
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 

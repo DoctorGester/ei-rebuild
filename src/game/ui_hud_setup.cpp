@@ -39,7 +39,7 @@ float TexelBottom() { return GameFloat(0x0073D03C); }       // 254
 float TexelLeft() { return GameFloat(0x0073CDB8); }         // 2
 float LayoutBottom() { return GameFloat(0x00742B0C); }      // 600
 int& UpdatePeriod() { return *reinterpret_cast<int*>(std::uintptr_t(0x0078FF34)); }
-const char* ArrowSprite() { return reinterpret_cast<const char*>(std::uintptr_t(0x007945B0)); }   // "in25arrow"
+const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;
 constexpr int kLayoutBottom = 600;

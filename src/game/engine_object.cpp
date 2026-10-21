@@ -23,8 +23,8 @@ void CEngineObject::Release() {
 }
 
 // 00402CE0 / 00402CF0 (slots 7 / 8): the exe's "noname" and "nodesc" (callers get these pointers).
-const char* CEngineObject::GetName() { return reinterpret_cast<const char*>(0x00783BF0); }
-const char* CEngineObject::GetDescription() { return reinterpret_cast<const char*>(0x00783BF8); }
+const char* CEngineObject::GetName() { return "noname"; }
+const char* CEngineObject::GetDescription() { return "nodesc"; }
 
 namespace {
 // The original leaves `this` in EAX, or what the manager's slot 24 leaves there.

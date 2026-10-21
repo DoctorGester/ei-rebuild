@@ -25,7 +25,7 @@ namespace {
 constexpr std::size_t kEscMenuSize = 0x168;
 void** EscMenuVtable() { return reinterpret_cast<void**>(0x007412A4); }
 void** EscMenuInputVtable() { return reinterpret_cast<void**>(0x00741270); }
-const char* QuickSaveName() { return reinterpret_cast<const char*>(0x007933AC); }   // "saveq"
+const char* QuickSaveName() { return "saveq"; }
 
 constexpr int kActionQuickSave = '5';
 constexpr int kActionQuickLoad = '6';
@@ -40,7 +40,7 @@ constexpr int kTipFormat = 4;
 constexpr int kTipBack = 6;
 constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
-const char* ZoneSound() { return reinterpret_cast<const char*>(0x007941B8); }   // "buttons\globalmap\zone.wav"
+const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }

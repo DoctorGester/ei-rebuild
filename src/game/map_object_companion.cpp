@@ -32,8 +32,8 @@ constexpr float kEndSoundNear = 8.0f;                // pushed as 0x41000000
 constexpr float kEndSoundFar = 20.0f;                // 0x41A00000
 constexpr float kStenchNear = 10.0f;                 // 0073DBE0
 constexpr float kStenchFar = 50.0f;                  // 0073DBE4
-const char* const kEndSoundName = reinterpret_cast<const char*>(0x0078EFCC);     // "magic\end1.wav"
-const char* const kStenchSoundFormat = reinterpret_cast<const char*>(0x0078EFB8); // "magic\Stench\%i.wav"
+const char* const kEndSoundName = "magic\\end1.wav";
+const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 

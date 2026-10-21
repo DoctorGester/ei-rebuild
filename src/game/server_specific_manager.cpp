@@ -14,8 +14,8 @@
 namespace {
 
 // The class names are the exe's strings (GetClassName returns their addresses).
-constexpr std::uintptr_t kManagerClassName = std::uintptr_t(0x0078DAD0);
-constexpr std::uintptr_t kTorchSpecClassName = std::uintptr_t(0x0078DAE8);
+constexpr const char* kManagerClassName = "CServerSpecificManager";
+constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 constexpr int kManagerClassId = 0x31;
 constexpr int kTorchSpecClassId = 0x42;
 
@@ -52,7 +52,7 @@ CServerSpecificManager* CServerSpecificManager::DeletingDestruct(unsigned flags)
 }
 EI_REPLACE_METHOD(0x004D6940, CServerSpecificManager::DeletingDestruct);
 
-const char* CServerSpecificManager::GetClassName() { return reinterpret_cast<const char*>(kManagerClassName); }
+const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
 // Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
@@ -121,7 +121,7 @@ CTorchObjectSpec* CTorchObjectSpec::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x004D6B80, CTorchObjectSpec::DeletingDestruct);
 
-const char* CTorchObjectSpec::GetClassName() { return reinterpret_cast<const char*>(kTorchSpecClassName); }
+const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }
 
 namespace {

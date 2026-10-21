@@ -112,7 +112,7 @@ void CInterface3D::CreateScreen(int id) {
         break;
     case 8:
         screen = gamecrt::operator_new(0x1FC);
-        if (screen) Screen8Construct(screen, nullptr, this, 0, reinterpret_cast<const char*>(0x00793084));
+        if (screen) Screen8Construct(screen, nullptr, this, 0, "Crdt");
         break;
     case 9:
         screen = gamecrt::operator_new(0x1B8);
@@ -197,7 +197,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
         reinterpret_cast<Fn>(top->vtable_[19])(top, 0);
     }
-    if (!window) game::FatalError(reinterpret_cast<const char*>(0x0079308C));
+    if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
 }
 
@@ -243,7 +243,7 @@ void CInterface3D::Activate(CUiWindow* window) {
     app::PumpMessages();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {
-        game::FatalError(reinterpret_cast<const char*>(0x0079308C));
+        game::FatalError("Cannot activate NULL interface screen\n");
         return;
     }
     OpenOnTop(this, window);

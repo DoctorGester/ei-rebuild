@@ -11,8 +11,8 @@
 
 namespace {
 
-const char* const kPerkSound = reinterpret_cast<const char*>(0x00793DF0);   // "buttons\camp\perk.wav"
-const char* const kHeroSound = reinterpret_cast<const char*>(0x00793DD8);   // "buttons\camp\hero.wav"
+const char* const kPerkSound = "buttons\\camp\\perk.wav";
+const char* const kHeroSound = "buttons\\camp\\hero.wav";
 
 constexpr int kNewHeroPage = 10;
 constexpr int kFirstButton = 6;              // regions 6-13

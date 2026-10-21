@@ -40,11 +40,11 @@ static_assert(sizeof(D3DDEVICEDESC7) == sizeof(CRenderHelper::caps_));
 D3DDEVICEDESC7& Caps(CRenderHelper* self) { return *reinterpret_cast<D3DDEVICEDESC7*>(self->caps_); }
 
 // The fatal errors' texts in the game's data.
-const char* CantGetCapsText() { return reinterpret_cast<const char*>(0x0078EC90); }          // "Can't get device caps\n"
-const char* AlreadyRegisteredText() { return reinterpret_cast<const char*>(0x0078ECA8); }    // "Can't register default effect %d\n Already exist"
-const char* CantEndBlockText() { return reinterpret_cast<const char*>(0x0078ECD8); }         // "Can't end state block\n"
-const char* CantBeginBlockText() { return reinterpret_cast<const char*>(0x0078ECF0); }       // "Can't begin state block\n"
-const char* CantDeleteBlockText() { return reinterpret_cast<const char*>(0x0078ED0C); }      // "Can't delete state block %d\n"
+const char* CantGetCapsText() { return "Can't get device caps\n"; }
+const char* AlreadyRegisteredText() { return "Can't register default effect %d\n Already exist"; }
+const char* CantEndBlockText() { return "Can't end state block\n"; }
+const char* CantBeginBlockText() { return "Can't begin state block\n"; }
+const char* CantDeleteBlockText() { return "Can't delete state block %d\n"; }
 
 // vector<T>::resize(count, value) as STLport writes it for plain elements (004FE6B0, 004FE0C0 and
 // their fill inserts): shorter keeps the storage; longer fills at the end, in a new block of
@@ -126,7 +126,7 @@ void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
 stlp::list<DirectDrawDriver>::Node* DriverListEnd() {
     return *reinterpret_cast<stlp::list<DirectDrawDriver>::Node* const*>(0x007AEE64);
 }
-const char* CantFindDriverText() { return reinterpret_cast<const char*>(0x0078E558); }   // "Can't find driver by index.\n"
+const char* CantFindDriverText() { return "Can't find driver by index.\n"; }
 
 void* DeleteIf(void* object, unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(object);
@@ -495,15 +495,15 @@ EI_REPLACE(0x004F0DB0, MatrixStackConstruct);
 
 namespace {
 
-const char* TransformLibraryName() { return reinterpret_cast<const char*>(0x0078EC0C); }   // "3DfpFPU.dll"
-const char* TransformFunctionName() { return reinterpret_cast<const char*>(0x0078EBD4); }  // "GetTLPipeline"
+const char* TransformLibraryName() { return "3DfpFPU.dll"; }
+const char* TransformFunctionName() { return "GetTLPipeline"; }
 // The debug messages ("FPU Transform release library loaded." and "Acquiring geometry processor
 // from transform library.") and the errors' texts ("Can't load 3D transform library." and "Loaded
 // 3D transform library have no function "GetTLPipeline"."), each with a newline.
-const char* LibraryLoadedText() { return reinterpret_cast<const char*>(0x0078EBE4); }
-const char* AcquiringText() { return reinterpret_cast<const char*>(0x0078EB9C); }
-const char* NoLibraryText() { return reinterpret_cast<const char*>(0x0078EB38); }
-const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C); }
+const char* LibraryLoadedText() { return "FPU Transform release library loaded.\n"; }
+const char* AcquiringText() { return "Acquiring geometry processor from transform library.\n"; }
+const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
+const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
 
 // The constructor's failure: a new error object thrown (a GameError*, by the game's own throw).
 // What the original's unwinding does on the way out is done here first: the folder's string and

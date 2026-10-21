@@ -29,7 +29,7 @@ using IdNode = IdList::Node;
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
 // 00783C00: the fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
-const char* OutOfIdsMessage() { return reinterpret_cast<const char*>(0x00783C00); }
+const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't find first free key.\n"; }
 
 // --- Helpers ------------------------------------------------------------------------------------
 

@@ -21,7 +21,7 @@ constexpr unsigned long kCxxMagic = 0x19930520;
 // std::exception's vtable in the exe (scalar deleting destructor 006E7CE6, what 006E7DBE) and what()'s
 // text without one ("Unknown exception", 00747298).
 const void* ExceptionVtable() { return reinterpret_cast<const void*>(0x00747290); }
-const char* UnknownException() { return reinterpret_cast<const char*>(0x00747298); }
+const char* UnknownException() { return "Unknown exception"; }
 
 } // namespace
 

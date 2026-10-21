@@ -236,14 +236,9 @@ EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
 // --- 006456E0: the unit panel's setup ----------------------------------------------------------------
 
 namespace {
-constexpr std::uintptr_t kArrowSprite = std::uintptr_t(0x007945B0);     // "in25arrow"
-constexpr std::uintptr_t kInfoTextFormat = std::uintptr_t(0x007945CC);  // "infounit_%d"
-constexpr std::uintptr_t kPartLabelKeys[4] = {
-    std::uintptr_t(0x00793E38),   // "hl_skull"
-    std::uintptr_t(0x00793E24),   // "hl_torso"
-    std::uintptr_t(0x007945C4),   // "hl_leg"
-    std::uintptr_t(0x007945BC),   // "hl_arm"
-};
+constexpr const char* kArrowSprite = "in25arrow";
+constexpr const char* kInfoTextFormat = "infounit_%d";
+constexpr const char* kPartLabelKeys[4] = {"hl_skull", "hl_torso", "hl_leg", "hl_arm"};
 // The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
 float StripScale() { return static_cast<float>(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
 constexpr int kUnitTravel = 180;
@@ -293,7 +288,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     edge->flags_ |= kPlainColour;
     edge->flatColour_ = 0xB4000000;
     // 2: the sling button.
-    CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
+    CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), SlingTurn(), -50.0f);
@@ -348,15 +343,15 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     mfc::CString key;
     mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
-        key.Format(game::Text(kInfoTextFormat), i);
+        key.Format(kInfoTextFormat, i);
         text.Empty();
         texts->GetString(key, &text);
         infoTexts->SetAtGrow(infoTexts->size, text);
     }
     // A missing label keeps the text before it.
     mfc::CStringArray* labels = &partLabels_;
-    for (std::uintptr_t labelKey : kPartLabelKeys) {
-        texts->GetString(game::Text(labelKey), &text);
+    for (const char* labelKey : kPartLabelKeys) {
+        texts->GetString(labelKey, &text);
         labels->SetAtGrow(labels->size, text);
     }
     for (int& icon : effectIcons_) icon = -1;
@@ -368,7 +363,7 @@ EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
 
 namespace {
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
-constexpr std::uintptr_t kDefaultPicture = std::uintptr_t(0x007942DC);   // "battle00"
+constexpr const char* kDefaultPicture = "battle00";
 float ZoneUnit() { return GameFloat(0x0073CA90); }            // 32: world units per unit of a zone's size
 float MapSide() { return GameFloat(0x0073CDB8); }             // 2: the map's side in map units
 float ZoomRange() { return GameFloat(0x0074134C); }           // 0.05: the largest zoom per world unit
@@ -418,7 +413,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     } else {
         worldWidth_ = 32.0f;
         worldHeight_ = 32.0f;
-        LoadTexture(game::Text(kDefaultPicture), kMapTextureKind, nullptr);
+        LoadTexture(kDefaultPicture, kMapTextureKind, nullptr);
     }
     textureSize_ = worldWidth_ < worldHeight_ ? worldHeight_ : worldWidth_;
     scale_ = MapSide() / textureSize_;
@@ -490,7 +485,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
     // 5: the sling button.
-    CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
+    CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), static_cast<float>(Pi() * SlingQuarter()), 850.0f);
@@ -501,7 +496,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
     Builder(AddSprite(nullptr))->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
-    CUiMesh* needle = AddSprite(game::Text(kArrowSprite));
+    CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
     SpritePlaceOriginal(needle, nullptr, 900.0f, 80.0f, FromBits(kSlingDepthBits));

@@ -50,7 +50,7 @@ void RemoveAll(List& list, Destroy destroy) {
 void __fastcall ScriptReset(CScript* script) {
     script->LoadedFlag() = 0;
     script->FileCount() = 0;
-    script->ErrorText() = reinterpret_cast<const char*>(0x0078BBDC);   // "Unknown error"
+    script->ErrorText() = "Unknown error";
     script->ErrorLine() = 0;
 
     // Instances and runs, removed from the head; a run's destructor is its variables'.

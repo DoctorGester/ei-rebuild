@@ -21,10 +21,10 @@
 namespace {
 
 constexpr std::uintptr_t kManagerVtable = std::uintptr_t(0x0073DCD8);
-constexpr std::uintptr_t kFolderName = std::uintptr_t(0x0078F1D4);      // "map objects"
-constexpr std::uintptr_t kClassName = std::uintptr_t(0x0078F1E0);       // "CMapObjectManager"
-constexpr std::uintptr_t kNoDatabaseText = std::uintptr_t(0x0078F1F4);  // Can't find animation database file for "%s".
-constexpr std::uintptr_t kNoPrototypeText = std::uintptr_t(0x0078F330); // Can't find prototype "%s".
+constexpr const char* kFolderName = "map objects";
+constexpr const char* kClassName = "CMapObjectManager";
+constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
+constexpr const char* kNoPrototypeText = "Can't find prototype \"%s\".\n";
 constexpr int kManagerClassId = 0x2D;
 constexpr int kNoId = -1;
 
@@ -80,9 +80,9 @@ CMapObjectManager* CMapObjectManager::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x00512630, CMapObjectManager::DeletingDestruct);
 
 // 00512600 / 00512610 / 00512620 (slots 25, 11, 12).
-const char* __fastcall MapObjectManagerFolder(CMapObjectManager*) { return game::Text(kFolderName); }
+const char* __fastcall MapObjectManagerFolder(CMapObjectManager*) { return kFolderName; }
 EI_REPLACE(0x00512600, MapObjectManagerFolder);
-const char* __fastcall MapObjectManagerClassName(CMapObjectManager*) { return game::Text(kClassName); }
+const char* __fastcall MapObjectManagerClassName(CMapObjectManager*) { return kClassName; }
 EI_REPLACE(0x00512610, MapObjectManagerClassName);
 int __fastcall MapObjectManagerClassId(CMapObjectManager*) { return kManagerClassId; }
 EI_REPLACE(0x00512620, MapObjectManagerClassId);
@@ -117,7 +117,7 @@ EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(AsResourceManager(this)->GetFile(*figure + ".adb", nullptr));
     if (!database) {
-        game::DebugLog(game::Text(kNoDatabaseText), static_cast<const char*>(*figure));
+        game::DebugLog(kNoDatabaseText, static_cast<const char*>(*figure));
         return nullptr;
     }
     const std::uint32_t variant = key & kKeyVariantBits;
@@ -158,7 +158,7 @@ EI_REPLACE_METHOD(0x00513630, CMapObjectManager::GiveDefaults);
 int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                                           mfc::CString* secondWeapon, mfc::CStringArray* spells) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(name));
-    if (!prototype) return game::FatalError(game::Text(kNoPrototypeText), name);
+    if (!prototype) return game::FatalError(kNoPrototypeText, name);
     armour->SetSize(static_cast<int>(prototype->armourNames.size()), -1);
     for (int i = 0; i < armour->size; ++i) armour->data[i] = prototype->armourNames.begin()[i];
     spells->SetSize(static_cast<int>(prototype->spellNames.size()), -1);

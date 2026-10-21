@@ -67,7 +67,7 @@ EI_REPLACE_METHOD(0x0065BEE0, CUiSpin::SetValue);
 // --- 0065BFD0 (A-H25): a click steps the value ----------------------------------------------------
 
 namespace {
-const char* const kOkSound = reinterpret_cast<const char*>(std::uintptr_t(0x00793A88));   // "buttons\messbox\ok.wav"
+const char* const kOkSound = "buttons\\messbox\\ok.wav";
 } // namespace
 
 void CUiSpin::OnLButtonDown(int, int, int) {

@@ -65,14 +65,14 @@ static_assert(sizeof(LoginRequest) == 0x88);
 CCamera* Camera() { return *reinterpret_cast<CCamera**>(0x007AF7C8); }
 libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56B0); }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
-const char* TextClientToServer() { return reinterpret_cast<const char*>(0x00794CE8); }   // "client to server, size = "
-const char* TextSqueezedSize() { return reinterpret_cast<const char*>(0x00794D04); }     // " squeezed size = "
-const char* TextLoginName() { return reinterpret_cast<const char*>(0x00794CE0); }        // "Tango"
-const char* TextLoginPassword() { return reinterpret_cast<const char*>(0x00794CD0); }    // "Very top secret"
-const char* TextReadPastEnd() { return reinterpret_cast<const char*>(0x00794D98); }
-const char* TextNoHandler() { return reinterpret_cast<const char*>(0x00794D6C); }
-const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794D3C); }
-const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794D18); }
+const char* TextClientToServer() { return "client to server, size = "; }
+const char* TextSqueezedSize() { return " squeezed size = "; }
+const char* TextLoginName() { return "Tango"; }
+const char* TextLoginPassword() { return "Very top secret"; }
+const char* TextReadPastEnd() { return "Pkt read error prevID=%x curID=%x\n"; }
+const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n"; }
+const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
+const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
@@ -87,7 +87,7 @@ struct TextBuffer {
 GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem**>(0x007AF760); }
 void* QuestLog() { return reinterpret_cast<void*>(0x007C7D50); }
-const char* QuestPrefix() { return reinterpret_cast<const char*>(0x00783D7C); }   // "q."
+const char* QuestPrefix() { return "q."; }
 
 // A memory stream on the stack, as the original builds (0041DD70 inlined) and destroys it.
 struct MemoryStream {
@@ -355,7 +355,7 @@ constexpr std::uint8_t kRequestRecording = 2;
 
 // 0079BE70: path markers are shown (written by 006524A0).
 bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
-const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
+const char* TextPartyReceived() { return "party received on client"; }
 
 
 } // namespace
@@ -535,21 +535,21 @@ struct NewObjectHeader {
 };
 
 // Model and part names the handler compares with (the exe's strings).
-const char* TextCow1() { return reinterpret_cast<const char*>(0x00793FA8); }        // "unmoco1"
-const char* TextCow2() { return reinterpret_cast<const char*>(0x0078A5C0); }        // "unmoco2"
-const char* TextHuman() { return reinterpret_cast<const char*>(0x007908C8); }       // "unhuma"
-const char* TextHumanFemale() { return reinterpret_cast<const char*>(0x00792EA4); } // "unhufe"
-const char* TextHairPart() { return reinterpret_cast<const char*>(0x0078FB38); }    // "hr"
-const char* TextHairFormat() { return reinterpret_cast<const char*>(0x0078FB0C); }  // "hr.%.2d"
-const char* TextGoblin() { return reinterpret_cast<const char*>(0x00794DF0); }      // "unmogo"
-const char* TextAxePart() { return reinterpret_cast<const char*>(0x00794DE4); }     // "rh3.axeth00"
-const char* TextSwordPart() { return reinterpret_cast<const char*>(0x00794DD8); }   // "rh3.sword00"
-const char* TextPikePart() { return reinterpret_cast<const char*>(0x00794DCC); }    // "rh3.pike00"
-const char* TextSlingPart() { return reinterpret_cast<const char*>(0x00794DC4); }   // "sling"
-const char* TextWisp() { return reinterpret_cast<const char*>(0x00794DBC); }        // "unmowi"
-const char* TextSkinFrom() { return reinterpret_cast<const char*>(0x0078FB7C); }    // "mo%dp"
-const char* TextSkinTo() { return reinterpret_cast<const char*>(0x0078FB44); }      // "mo%ds"
-const char* TextNone() { return reinterpret_cast<const char*>(0x007846F0); }        // "none"
+const char* TextCow1() { return "unmoco1"; }
+const char* TextCow2() { return "unmoco2"; }
+const char* TextHuman() { return "unhuma"; }
+const char* TextHumanFemale() { return "unhufe"; }
+const char* TextHairPart() { return "hr"; }
+const char* TextHairFormat() { return "hr.%.2d"; }
+const char* TextGoblin() { return "unmogo"; }
+const char* TextAxePart() { return "rh3.axeth00"; }
+const char* TextSwordPart() { return "rh3.sword00"; }
+const char* TextPikePart() { return "rh3.pike00"; }
+const char* TextSlingPart() { return "sling"; }
+const char* TextWisp() { return "unmowi"; }
+const char* TextSkinFrom() { return "mo%dp"; }
+const char* TextSkinTo() { return "mo%ds"; }
+const char* TextNone() { return "none"; }
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
@@ -759,7 +759,7 @@ void CPlayerClient::Clear() {
 namespace {
 constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x00743180);
 constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
-constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x00794CC0);    // "CPlayerClient"
+constexpr const char* kClientClassName = "CPlayerClient";
 constexpr int kClientClassId = 0x3C;
 
 // The engine object part (CPlayerClient does not derive from CEngineObject in C++).
@@ -817,7 +817,7 @@ CPlayerConnection* CPlayerConnection::DeleteScalar(unsigned flags) {
 }
 
 // 00666F90 / 00666FA0 (slots of CEngineObject): "CPlayerClient", class id 0x3C.
-const char* __fastcall PlayerClientClassName(CPlayerClient*) { return reinterpret_cast<const char*>(kClientClassName); }
+const char* __fastcall PlayerClientClassName(CPlayerClient*) { return kClientClassName; }
 int __fastcall PlayerClientClassId(CPlayerClient*) { return kClientClassId; }
 
 EI_REPLACE_METHOD(0x00666D10, CPlayerClient::Construct);

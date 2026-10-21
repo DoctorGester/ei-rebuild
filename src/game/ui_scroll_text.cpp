@@ -154,7 +154,7 @@ EI_REPLACE_METHOD(0x0065D4B0, CUiScrollText::Tokenize);
 
 namespace {
 constexpr int kAlignLeft = 1;
-const char* FontSampleText() { return reinterpret_cast<const char*>(0x00787BCC); }   // "W", measured for each font's height
+const char* FontSampleText() { return "W"; }   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
 // A word of a line (005FDE20, Rebirth-patched: through its address).

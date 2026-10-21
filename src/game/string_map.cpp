@@ -142,7 +142,7 @@ namespace {
 
 // MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
 constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
-const char* FontFace() { return reinterpret_cast<const char*>(0x007842C8); }
+const char* FontFace() { return "Courier New"; }
 
 void DrawString(ui_gdi::GameDC* dc, const stlp::string& s, RECT* rect) {
     dc->DrawText(s.data(), static_cast<int>(s.size()), rect, 0x800u);

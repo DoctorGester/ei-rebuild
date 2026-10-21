@@ -7,7 +7,7 @@
 #include "lib/crt.h"
 
 namespace {
-const char* const kServerName = reinterpret_cast<const char*>(0x0078FCC4);   // "CUnitServer"
+const char* const kServerName = "CUnitServer";
 constexpr int kClassServer = 0x3E;
 constexpr int kOrderNone = 9;
 } // namespace

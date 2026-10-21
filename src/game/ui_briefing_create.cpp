@@ -46,12 +46,12 @@ bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 void** ScreenInputVtable() { return reinterpret_cast<void**>(0x00741154); }
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
 
-const char* SaveLoadTexture() { return reinterpret_cast<const char*>(0x00793380); }   // "saveload"
-const char* DefaultAllod() { return reinterpret_cast<const char*>(0x0079014C); }      // "gipat"
-const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }       // "b."
-const char* ConstructorTopic() { return reinterpret_cast<const char*>(0x007933B4); }  // "constr"
-const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }            // "none"
-const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
+const char* SaveLoadTexture() { return "saveload"; }
+const char* DefaultAllod() { return "gipat"; }
+const char* TopicPrefix() { return "b."; }
+const char* ConstructorTopic() { return "constr"; }
+const char* NoZone() { return "none"; }
+const char* ZoneVariablePrefix() { return "z."; }
 const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // 00608D20: a network client's chat window (0x170 bytes; RET 4, returns this).

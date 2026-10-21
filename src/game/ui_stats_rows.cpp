@@ -15,12 +15,12 @@
 
 namespace {
 
-const char* const kPerkPrefix = reinterpret_cast<const char*>(0x00792FC8);    // "perk "
-const char* const kValueFormat = reinterpret_cast<const char*>(0x0078EEEC);   // "%d"
-const char* const kRangeFormat = reinterpret_cast<const char*>(0x00793BB8);   // "%d/%d"
-const char* const kPartPrefix = reinterpret_cast<const char*>(0x00793DD4);    // "hl_"
-const char* const kPartIndent = reinterpret_cast<const char*>(0x00793DCC);    // "     "
-const char* const kArmourFormat = reinterpret_cast<const char*>(0x00792F78);  // "%.1f"
+const char* const kPerkPrefix = "perk ";
+const char* const kValueFormat = "%d";
+const char* const kRangeFormat = "%d/%d";
+const char* const kPartPrefix = "hl_";
+const char* const kPartIndent = "     ";
+const char* const kArmourFormat = "%.1f";
 
 constexpr std::uint32_t kRowColour = 0xA7D7E4;
 constexpr int kLeft = 0;

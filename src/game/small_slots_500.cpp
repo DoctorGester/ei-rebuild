@@ -8,9 +8,9 @@
 #include "ei/hook.h"
 
 namespace {
-constexpr std::uintptr_t kTrackClassName = std::uintptr_t(0x0078EF1C);   // "CAnimationTrack"
-constexpr std::uintptr_t kBoneClassName = std::uintptr_t(0x0078EF2C);    // "CAnimationNode"
-constexpr std::uintptr_t kStateClassName = std::uintptr_t(0x0078EF3C);   // "CAnimationSystem2"
+constexpr const char* kTrackClassName = "CAnimationTrack";
+constexpr const char* kBoneClassName = "CAnimationNode";
+constexpr const char* kStateClassName = "CAnimationSystem2";
 constexpr int kTrackClassId = 0x22;
 constexpr int kBoneClassId = 0x21;
 constexpr int kStateClassId = 0x21;   // the same id as the bones'
@@ -18,7 +18,7 @@ constexpr int kStateClassId = 0x21;   // the same id as the bones'
 } // namespace
 
 // 0050A6E0 / 0050A6F0 (the animation track's slots 11 / 12, vtable 0073D9D8).
-const char* __fastcall AnimationTrackClassName(AnimationTrack*) { return game::Text(kTrackClassName); }
+const char* __fastcall AnimationTrackClassName(AnimationTrack*) { return kTrackClassName; }
 EI_REPLACE(0x0050A6E0, AnimationTrackClassName);
 int __fastcall AnimationTrackClassId(AnimationTrack*) { return kTrackClassId; }
 EI_REPLACE(0x0050A6F0, AnimationTrackClassId);
@@ -27,13 +27,13 @@ EI_REPLACE(0x0050A6F0, AnimationTrackClassId);
 // piece's), class name and id. The first is 4 bytes (too short to hook).
 const char* __fastcall FigureBoneName(FigureBone* self) { return self->name; }
 EI_REPLACE(0x0050B180, FigureBoneName);
-const char* __fastcall FigureBoneClassName(FigureBone*) { return game::Text(kBoneClassName); }
+const char* __fastcall FigureBoneClassName(FigureBone*) { return kBoneClassName; }
 EI_REPLACE(0x0050B190, FigureBoneClassName);
 int __fastcall FigureBoneClassId(FigureBone*) { return kBoneClassId; }
 EI_REPLACE(0x0050B1A0, FigureBoneClassId);
 
 // 0050C6F0 / 0050C700 (the figure animation state's slots 11 / 12, vtable 0073DA4C).
-const char* __fastcall AnimationStateClassName(CFigureAnimationState*) { return game::Text(kStateClassName); }
+const char* __fastcall AnimationStateClassName(CFigureAnimationState*) { return kStateClassName; }
 EI_REPLACE(0x0050C6F0, AnimationStateClassName);
 int __fastcall AnimationStateClassId(CFigureAnimationState*) { return kStateClassId; }
 EI_REPLACE(0x0050C700, AnimationStateClassId);

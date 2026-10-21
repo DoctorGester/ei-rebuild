@@ -19,7 +19,7 @@
 
 namespace {
 
-constexpr std::uintptr_t kClassName = std::uintptr_t(0x0078DB14);   // "CSkyObject"
+constexpr const char* kClassName = "CSkyObject";
 constexpr int kClassId = 0x20;
 constexpr float kColourScale = 255.0f;   // 0073C370
 constexpr float kLightScale = 150.0f;    // 0073D618
@@ -35,7 +35,7 @@ std::uint32_t Truncate(float v) { return static_cast<std::uint32_t>(static_cast<
 
 } // namespace
 
-const char* CSkyObject::GetClassName() { return reinterpret_cast<const char*>(kClassName); }
+const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
 
 CSkyObject* CSkyObject::Construct() {
@@ -123,7 +123,7 @@ void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, Sky
 
 namespace {
 constexpr int kSkyTextureKind = 0x3D;
-const char* const kSkyTextureName = reinterpret_cast<const char*>(std::uintptr_t(0x0078DB20));   // "sky00"
+const char* const kSkyTextureName = "sky00";
 constexpr float kSkyDrop = 16.0f;                // 0073CA98: the dome sits this far below the eye
 constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // 0073D61C: radians per world tick
 // Two 16-byte statics the draw passes to renderer slot 14 (not read there).

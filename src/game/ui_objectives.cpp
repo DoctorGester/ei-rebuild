@@ -726,8 +726,8 @@ EI_REPLACE_METHOD(0x0064DC60, CObjectivesWindow::ShowQuest);
 // --- 0064BE40 / 0064D990 (A-H25): what the window is opened for, and its help topic --------------------
 
 namespace {
-const char* const kGlobalMapTopic = reinterpret_cast<const char*>(std::uintptr_t(0x00794688));   // "quest_global_map"
-const char* const kMissionTopic = reinterpret_cast<const char*>(std::uintptr_t(0x00794678));     // "quest_mission"
+const char* const kGlobalMapTopic = "quest_global_map";
+const char* const kMissionTopic = "quest_mission";
 } // namespace
 
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {

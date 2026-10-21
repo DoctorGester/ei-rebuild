@@ -78,7 +78,7 @@ namespace {
 // The exe's search strings: the pointer at 0073D080 ("C:\*.*") and the sub-directory suffix 0078B054
 // ("\*.*").
 const char* SeedSearchPattern() { return *reinterpret_cast<const char* const*>(0x0073D080); }
-const char* SubdirectoryPattern() { return reinterpret_cast<const char*>(0x0078B054); }
+const char* SubdirectoryPattern() { return "\\*.*"; }
 
 constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
 constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM

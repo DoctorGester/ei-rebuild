@@ -30,7 +30,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
         std::memcpy(path, directory, length);
         std::size_t nameLength = std::strlen(name);
         std::memcpy(path + length, name, nameLength);
-        std::memcpy(path + length + nameLength, reinterpret_cast<const char*>(0x0078EC78), 5);   // ".fig"
+        std::memcpy(path + length + nameLength, ".fig", 5);
         data = static_cast<std::uint8_t*>(GetFile(path, nullptr));
     }
     if (!data) return 0;

@@ -158,8 +158,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             if (!static_cast<CWorldClient*>(kClientWorld)->FindExitAt(&at.x, &exit)) return;
             mfc::CString name(GameExitTarget(exit));
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                                reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
-                name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
+                                reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
+                name = mfc::CString("z.") + name;
                 double value = LocalPlayerVariable(name);
                 const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
                 // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.

@@ -27,7 +27,7 @@ using FogNode = mfc::CList<CEngineObject*>::Node;
 
 
 constexpr int kFogTextureKind = 6;
-const char* FogTextureName() { return reinterpret_cast<const char*>(0x0078ADAC); }   // "VisionFog"
+const char* FogTextureName() { return "VisionFog"; }
 
 // The fog texture's 4 x 4 tiles (FogTiles, effects.h): filled here, read by the fog's draw.
 constexpr int kFogTiles = 16;

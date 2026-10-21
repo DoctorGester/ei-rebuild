@@ -58,11 +58,11 @@ using namespace scriptparse;
 
 namespace {
 
-// Lexer constants (pointers and the quote character are data in game.exe).
-char QuoteChar() { return ei::GameData<const char>(0x0078BC98); }                     // '"'
-const char* CommentOpen() { return ei::GameData<const char* const>(0x0078BC8C); }     // "/*"
-const char* CommentClose() { return ei::GameData<const char* const>(0x0078BC90); }    // "*/"
-const char* LineComment() { return ei::GameData<const char* const>(0x0078BC94); }     // "//"
+// Lexer constants.
+char QuoteChar() { return '"'; }
+const char* CommentOpen() { return "/*"; }
+const char* CommentClose() { return "*/"; }
+const char* LineComment() { return "//"; }
 
 // Takes a node from the list's free chain, carving a block of `blockSize` nodes when it is empty
 // (CList::NewNode as the game inlines it). Shared by the token and define lists (16-byte nodes).

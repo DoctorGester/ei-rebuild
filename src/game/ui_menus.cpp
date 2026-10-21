@@ -295,7 +295,7 @@ void COptionsWindow::OnDialogResult(int result) {
 
 const char* COptionsWindow::HelpTopic() {
     // "options" (00794848) unless a key binding waits for its key.
-    return waitingForKey_ ? nullptr : reinterpret_cast<const char*>(0x00794848);
+    return waitingForKey_ ? nullptr : "options";
 }
 
 // The settings the window applies while it is open (their ids, the first int of the definition).

@@ -131,8 +131,8 @@ void CItemScreen::CreateBase() {
     iconWindow_->AddObject(objects_.data[0]);
     using BuildFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<BuildFn>(iconWindow_->vtable_[18])(iconWindow_);
-    LoadTexture(reinterpret_cast<const char*>(0x00792EBC), 3, 0);   // "modifiers2"
-    LoadTexture(reinterpret_cast<const char*>(0x00792EB0), 3, 0);   // "campslots"
+    LoadTexture("modifiers2", 3, 0);
+    LoadTexture("campslots", 3, 0);
     std::uint32_t zero = 0;
     std::memcpy(Display() + 0x14, &zero, 4);
     {

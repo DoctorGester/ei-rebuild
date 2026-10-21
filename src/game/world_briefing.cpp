@@ -83,7 +83,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
     if (!IsEmpty(speaker.Get())) {
         mfc::CString prefix(game::briefingwords::VariablePrefix());
         mfc::CString withSpeaker = prefix + speaker.Get();
-        mfc::CString withDot = withSpeaker + game::Text(flowdata::kDot);
+        mfc::CString withDot = withSpeaker + flowdata::kDot;
         mfc::CString variable = withDot + briefing;
         speaker.Get() = variable;
     } else {
@@ -148,8 +148,8 @@ void UnloadQuestTexts() {
 
 namespace {
 
-constexpr std::uintptr_t kQuestFileSuffix = std::uintptr_t(0x00790774);   // ".mq"
-constexpr std::uintptr_t kReadBinary = std::uintptr_t(0x0078E998);        // "rb"
+constexpr const char* kQuestFileSuffix = ".mq";
+constexpr const char* kReadBinary = "rb";
 // BufferedFile::Open's flags for a file that is only read.
 constexpr std::uint32_t kReadOnlyFlags = 2;
 
@@ -185,7 +185,7 @@ void ShareQuestFile(const char* path, const char* name) {
     LocalBuffer local;
     GameBuffer* data = local.Get();
     LocalFile source;
-    source.file.Open(path, game::Text(kReadBinary), kReadOnlyFlags);
+    source.file.Open(path, kReadBinary, kReadOnlyFlags);
     net::BufferUpdateHigh(&source.file);
     const std::int32_t size = static_cast<std::int32_t>(source.file.high - source.file.begin) + source.file.base;
     data->Seek(0);
@@ -211,7 +211,7 @@ stlp::string MapFilePath(const mfc::CString& file) {
 bool __stdcall LoadZoneQuests(const char* zone) {
     auto* texts = static_cast<CTextManager*>(BriefingTexts());
     if (!texts) return false;
-    mfc::CString file = mfc::CString(zone) + game::Text(kQuestFileSuffix);
+    mfc::CString file = mfc::CString(zone) + kQuestFileSuffix;
     bool found;
     {
         mfc::CFileFind find;
@@ -252,7 +252,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     {
         mfc::CString prefix = name.Left(2);
         quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                reinterpret_cast<const unsigned char*>(game::Text(flowdata::kQuestVariablePrefix))) == 0;
+                                reinterpret_cast<const unsigned char*>(flowdata::kQuestVariablePrefix)) == 0;
     }
     if (quest) {
         static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->OnQuestVariable(name, std::bit_cast<float>(value));

@@ -30,7 +30,7 @@ constexpr float kSetFarFactor = 5.0f;          // 0073BF34
 constexpr float kSoundNear = 1.0f;
 constexpr int kTorchClassId = 0x41;
 // 0078F7BC: "CTorchObjectClientSpecific".
-const char* ClassNameText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078F7BC)); }
+const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 CSoundManager* Sounds() { return *reinterpret_cast<CSoundManager* const*>(std::uintptr_t(0x007AF784)); }
 CLightFactory* Lights() { return *reinterpret_cast<CLightFactory* const*>(std::uintptr_t(0x007AF748)); }
