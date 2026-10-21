@@ -293,39 +293,36 @@ struct SpiralCellArrayClass final
 struct SmoothRowArrayClass {   // the path smoothing tables' rows
     static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
 };
-struct SmoothEdgeArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE28); }
-};
-struct SmoothCopyArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE10); }
-};
-struct SmoothStepArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE1C); }
-};
-struct ObjectiveExitArrayClass {   // the objectives window's exits
-    static void* Vtable() { return ei::GamePointer<void>(0x00741264); }
-};
-struct ItemStripArrayClass {   // an item strip's CArray<char*>
-    static void* Vtable() { return ei::GamePointer<void>(0x00741BC0); }
-};
-struct QuickEntryArrayClass {   // the HUD's quick item entries
-    static void* Vtable() { return ei::GamePointer<void>(0x007428A0); }
-};
-struct TokenPtrArrayClass {   // the scroll text's token pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x00742F14); }
-};
-struct LinePtrArrayClass {   // the scroll text's line pointers
-    static void* Vtable() { return ei::GamePointer<void>(0x00742F08); }
-};
-struct TerrainArrayAClass {   // the terrain builder's arrays (006CBE60)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744210); }
-};
-struct TerrainArrayBClass {   // (006CC2A0, 006CC3E0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0074421C); }
-};
-struct TerrainArrayCClass {   // (006CC530)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744228); }
-};
+struct SmoothEdgeArrayClass final
+    : CompiledCollection<SmoothEdgeArrayClass, &ArrayHeader<SmoothEdgeArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct SmoothCopyArrayClass final
+    : CompiledCollection<SmoothCopyArrayClass, &ArrayHeader<SmoothCopyArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+struct SmoothStepArrayClass final
+    : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &SerializeCArray<Plain36>> {};
+// The objectives window's exits.
+struct ObjectiveExitArrayClass final
+    : CompiledCollection<ObjectiveExitArrayClass, &ArrayHeader<ObjectiveExitArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+// An item strip's CArray<char*>.
+struct ItemStripArrayClass final
+    : CompiledCollection<ItemStripArrayClass, &ArrayHeader<ItemStripArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The HUD's quick item entries.
+struct QuickEntryArrayClass final
+    : CompiledCollection<QuickEntryArrayClass, &ArrayHeader<QuickEntryArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+// The scroll text's token pointers.
+struct TokenPtrArrayClass final
+    : CompiledCollection<TokenPtrArrayClass, &ArrayHeader<TokenPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The scroll text's line pointers.
+struct LinePtrArrayClass final
+    : CompiledCollection<LinePtrArrayClass, &ArrayHeader<LinePtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The terrain builder's arrays (006CBE60).
+struct TerrainArrayAClass final
+    : CompiledCollection<TerrainArrayAClass, &ArrayHeader<TerrainArrayAClass>::Destruct, &SerializeCArray<Plain4>> {};
+// (006CC2A0, 006CC3E0).
+struct TerrainArrayBClass final
+    : CompiledCollection<TerrainArrayBClass, &ArrayHeader<TerrainArrayBClass>::Destruct, &SerializeCArray<Plain16>> {};
+// (006CC530).
+struct TerrainArrayCClass final
+    : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &SerializeCArray<Plain4>> {};
 
 // Lists whose elements need nothing.
 // A figure bone's children and an animation state's bones.

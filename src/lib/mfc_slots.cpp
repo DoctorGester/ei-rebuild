@@ -239,23 +239,23 @@ EI_REPLACE(0x0059E240, ScalarDelete<&ArrayHeader<SectorOccluderArrayClass>::Dest
 EI_REPLACE(0x005C1C30, ScalarDelete<&ArrayHeader<SectorCellArrayClass>::Destruct>);   // 005C18E0
 EI_REWRITTEN(0x005C1C50, ScalarDelete<&ArrayHeader<SpiralCellArrayClass>::Destruct>);   // 005C1A90
 EI_REPLACE(0x005C5830, ScalarDelete<&ArrayHeader<SmoothRowArrayClass>::Destruct>);   // 005C5850
-EI_REPLACE(0x005C5870, ScalarDelete<&ArrayHeader<SmoothEdgeArrayClass>::Destruct>);   // 005C5890
-EI_REPLACE(0x005C58B0, ScalarDelete<&ArrayHeader<SmoothCopyArrayClass>::Destruct>);   // 005C58D0
-EI_REPLACE(0x005C58F0, ScalarDelete<&ArrayHeader<SmoothStepArrayClass>::Destruct>);   // 005C5910
+EI_REWRITTEN(0x005C5870, ScalarDelete<&ArrayHeader<SmoothEdgeArrayClass>::Destruct>);   // 005C5890
+EI_REWRITTEN(0x005C58B0, ScalarDelete<&ArrayHeader<SmoothCopyArrayClass>::Destruct>);   // 005C58D0
+EI_REWRITTEN(0x005C58F0, ScalarDelete<&ArrayHeader<SmoothStepArrayClass>::Destruct>);   // 005C5910
 EI_REPLACE(0x005CDD40, ScalarDelete<&PtrList::Destruct<StaticListClass>>);   // 005CDBA0
 EI_REPLACE(0x005D9D20, ScalarDelete<&PtrList::Destruct<AttentionListClass>>);   // 005D99E0
 EI_REPLACE(0x005EBD90, ScalarDelete<&ArrayHeader<UnitPtrArrayClass>::Destruct>);   // 005EBBE0
-EI_REPLACE(0x0060ABC0, ScalarDelete<&ArrayHeader<ObjectiveExitArrayClass>::Destruct>);   // 0060A870
-EI_REPLACE(0x00613A10, ScalarDelete<&ArrayHeader<ItemStripArrayClass>::Destruct>);   // 00613A30
-EI_REPLACE(0x0064B630, ScalarDelete<&ArrayHeader<QuickEntryArrayClass>::Destruct>);   // 0064B1C0
-EI_REPLACE(0x0065DFD0, ScalarDelete<&ArrayHeader<TokenPtrArrayClass>::Destruct>);   // 0065DC70
-EI_REPLACE(0x0065DFF0, ScalarDelete<&ArrayHeader<LinePtrArrayClass>::Destruct>);   // 0065DE20
+EI_REWRITTEN(0x0060ABC0, ScalarDelete<&ArrayHeader<ObjectiveExitArrayClass>::Destruct>);   // 0060A870
+EI_REWRITTEN(0x00613A10, ScalarDelete<&ArrayHeader<ItemStripArrayClass>::Destruct>);   // 00613A30
+EI_REWRITTEN(0x0064B630, ScalarDelete<&ArrayHeader<QuickEntryArrayClass>::Destruct>);   // 0064B1C0
+EI_REWRITTEN(0x0065DFD0, ScalarDelete<&ArrayHeader<TokenPtrArrayClass>::Destruct>);   // 0065DC70
+EI_REWRITTEN(0x0065DFF0, ScalarDelete<&ArrayHeader<LinePtrArrayClass>::Destruct>);   // 0065DE20
 EI_REPLACE(0x00666170, ScalarDelete<&PtrList::Destruct<PlayerListClass>>);   // 00665FF0
 EI_REPLACE(0x006942E0, ScalarDelete<&PtrList::Destruct<TextureListClass>>);   // 00694160
 EI_REPLACE(0x006BD170, ScalarDelete<&PtrList::Destruct<SoundListClass>>);   // 006BC570
-EI_REPLACE(0x006CDBD0, ScalarDelete<&ArrayHeader<TerrainArrayAClass>::Destruct>);   // 006CD6D0
-EI_REPLACE(0x006CDBF0, ScalarDelete<&ArrayHeader<TerrainArrayBClass>::Destruct>);   // 006CD880
-EI_REPLACE(0x006CDC10, ScalarDelete<&ArrayHeader<TerrainArrayCClass>::Destruct>);   // 006CDA20
+EI_REWRITTEN(0x006CDBD0, ScalarDelete<&ArrayHeader<TerrainArrayAClass>::Destruct>);   // 006CD6D0
+EI_REWRITTEN(0x006CDBF0, ScalarDelete<&ArrayHeader<TerrainArrayBClass>::Destruct>);   // 006CD880
+EI_REWRITTEN(0x006CDC10, ScalarDelete<&ArrayHeader<TerrainArrayCClass>::Destruct>);   // 006CDA20
 EI_REPLACE(0x004CAFD0, ScalarDelete<&Strings::Destruct<StringArrayClass>>);   // 004C26A0
 
 // ---- Serialize (vtable slot 2) -------------------------------------------------------------------
@@ -302,17 +302,17 @@ EI_REPLACE(0x005997C0, SerializeCArray<Plain8>);   // AreaListClass
 EI_REWRITTEN(0x0059B0D0, SerializeCArray<Plain4>);   // PartyUnitArrayClass
 EI_REPLACE(0x005C1900, SerializeCArray<Plain4>);   // SectorCellArrayClass
 EI_REPLACE(0x005C4D80, SerializeCArray<Plain8>);   // SmoothRowArrayClass
-EI_REPLACE(0x005C5070, SerializeCArray<Plain20>);   // SmoothEdgeArrayClass
-EI_REPLACE(0x005C5360, SerializeCArray<Plain8>);   // SmoothCopyArrayClass
-EI_REPLACE(0x005C5670, SerializeCArray<Plain36>);   // SmoothStepArrayClass
+EI_REWRITTEN(0x005C5070, SerializeCArray<Plain20>);   // SmoothEdgeArrayClass
+EI_REWRITTEN(0x005C5360, SerializeCArray<Plain8>);   // SmoothCopyArrayClass
+EI_REWRITTEN(0x005C5670, SerializeCArray<Plain36>);   // SmoothStepArrayClass
 EI_REPLACE(0x005EBC00, SerializeCArray<Plain4>);   // UnitPtrArrayClass
-EI_REPLACE(0x0060A890, SerializeCArray<Plain28>);   // ObjectiveExitArrayClass
-EI_REPLACE(0x00613690, SerializeCArray<Plain4>);   // ItemStripArrayClass
-EI_REPLACE(0x0064B1E0, SerializeCArray<Plain12>);   // QuickEntryArrayClass
-EI_REPLACE(0x0065DC90, SerializeCArray<Plain4>);   // TokenPtrArrayClass
-EI_REPLACE(0x0065DE40, SerializeCArray<Plain4>);   // LinePtrArrayClass
-EI_REPLACE(0x006CD6F0, SerializeCArray<Plain4>);   // TerrainArrayAClass
-EI_REPLACE(0x006CDA40, SerializeCArray<Plain4>);   // TerrainArrayCClass
+EI_REWRITTEN(0x0060A890, SerializeCArray<Plain28>);   // ObjectiveExitArrayClass
+EI_REWRITTEN(0x00613690, SerializeCArray<Plain4>);   // ItemStripArrayClass
+EI_REWRITTEN(0x0064B1E0, SerializeCArray<Plain12>);   // QuickEntryArrayClass
+EI_REWRITTEN(0x0065DC90, SerializeCArray<Plain4>);   // TokenPtrArrayClass
+EI_REWRITTEN(0x0065DE40, SerializeCArray<Plain4>);   // LinePtrArrayClass
+EI_REWRITTEN(0x006CD6F0, SerializeCArray<Plain4>);   // TerrainArrayAClass
+EI_REWRITTEN(0x006CDA40, SerializeCArray<Plain4>);   // TerrainArrayCClass
 
 // Lists of plain elements.
 EI_REPLACE(0x00405190, SerializeCList<PtrList>);   // TempListClass
@@ -348,7 +348,7 @@ EI_REWRITTEN(0x005396E0, SerializeCArray<PathRecords>);   // SkinLayerArrayClass
 EI_REPLACE(0x00557E90, SerializeCArray<AnimationSteps>);   // AnimationStepsClass
 EI_REPLACE(0x0059E0C0, SerializeCArray<Plain8>);   // SectorOccluderArrayClass
 EI_REWRITTEN(0x005C1AB0, SerializeCArray<Plain8>);   // SpiralCellArrayClass
-EI_REPLACE(0x006CD8A0, SerializeCArray<Plain16>);   // TerrainArrayBClass
+EI_REWRITTEN(0x006CD8A0, SerializeCArray<Plain16>);   // TerrainArrayBClass
 EI_REWRITTEN(0x00519B50, SerializeCArray<Plain56>);   // FrameArrayClass
 
 // Arrays whose elements SetSize builds and destroys (a shrinking load destroys the ones past the count).

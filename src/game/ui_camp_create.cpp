@@ -64,7 +64,7 @@ VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)};
 VtablePair SpellMakerVtables() { return {Vtable(0x00741670), Vtable(0x0074163C)}; }         // CSpellMakerPage
 VtablePair ItemMakerVtables() { return {Vtable(0x007415D4), Vtable(0x007415A0)}; }          // CConstructorPage
 VtablePair RepairGridVtables() { return {Vtable(0x00741538), Vtable(0x00741504)}; }         // CRepairGrid
-std::uintptr_t ItemArrayVtable() { return ei::DataId(0x00741BC0); }      // the strips' CArray<char*>
+void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strips' CArray<char*>
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
 // The objects' sizes where the class declares less than the original allocates.

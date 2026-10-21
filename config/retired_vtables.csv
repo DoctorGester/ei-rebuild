@@ -100,8 +100,16 @@ vtable,slots,class,file,note
 0073FBF0,22,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
+0073FE10,3,SmoothCopyArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' copies)
+0073FE1C,3,SmoothStepArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' steps)
+0073FE28,3,SmoothEdgeArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' edges)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
+00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
+00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
+007428A0,3,QuickEntryArrayClass,src/lib/mfc_slots.h,CArray (the HUD's quick item entries)
+00742F08,3,LinePtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's line pointers)
+00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
@@ -115,3 +123,6 @@ vtable,slots,class,file,note
 007440F0,13,CSoundManager,src/game/sound.h,
 00744184,3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
 007441B4,3,TerrainAlignedArrayClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records with an aligned block)
+00744210,3,TerrainArrayAClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CBE60)
+0074421C,3,TerrainArrayBClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC2A0 / 006CC3E0)
+00744228,3,TerrainArrayCClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC530)
