@@ -51,8 +51,12 @@ def read_string(image, address):
 
 def literal(text):
     out = []
+    octal = False   # the last piece is an octal escape (a digit after it is a new literal: MSVC C4125)
     for b in text:
         c = chr(b)
+        if octal and c.isdigit():
+            out.append('" "')
+        octal = (b >= 127 or b < 32) and b not in (9, 10, 13)
         if c in '\\"':
             out.append('\\' + c)
         elif c == '\n':

@@ -464,7 +464,7 @@ void CObjectivesWindow::ShowQuest() {
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
-        text += "\007C\377\2631 ";
+        text += "\007C\377\263" "1 ";
         text += line;
         text += " ";
         if (state == 2) {

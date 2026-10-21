@@ -582,7 +582,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             found = texts->Open(textKey);
         }
         if (found) texts->ReadLine(&text, 1);
-        mfc::CString colour("\007C\356\3431 ");   // colour code 0x31E3EE43 and a space
+        mfc::CString colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
         text = colour + title + " " + text;
     } else if (parts.size == 4) {
         if (!IsMultiplayerClient()) {
@@ -617,7 +617,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             TextNextLine(texts);
             texts->ReadLine(&text, 1);
         }
-        mfc::CString colour("\007C\377\2631 ");   // colour code 0x31B3FF43 and a space
+        mfc::CString colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
         text = colour + title + " " + text;
     }
     text = text + "\007C\344\327\247\n";   // colour code and a line end
