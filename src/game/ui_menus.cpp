@@ -210,7 +210,7 @@ void COptionsWindow::RestoreSettings() {
     Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(Global<int>(0x0079BCCC));
     UiDisplaySettings* display = DisplaySettings();
     using Fn = void(__thiscall*)(UiDisplaySettings*, std::uint32_t, std::uint32_t, std::uint32_t);
-    reinterpret_cast<Fn>(display->vtable_[22])(display, Global<std::uint32_t>(0x0079BCFC),
+    ei::VirtualSlot<Fn>(display->vtable_, 22)(display, Global<std::uint32_t>(0x0079BCFC),
                                                Global<std::uint32_t>(0x0079BD00), Global<std::uint32_t>(0x0079BD04));
 }
 
@@ -342,7 +342,7 @@ void COptionsWindow::Update() {
                 float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
                 UiDisplaySettings* display = DisplaySettings();
                 using Fn = void(__thiscall*)(UiDisplaySettings*, float, float, float);
-                reinterpret_cast<Fn>(display->vtable_[22])(display, r, g, b);
+                ei::VirtualSlot<Fn>(display->vtable_, 22)(display, r, g, b);
             }
         }
         if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {
@@ -392,7 +392,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 
 void CUiScrollbar::CallSetPosition(int position) {
     using Fn = void(__thiscall*)(CUiScrollbar*, int);
-    reinterpret_cast<Fn>(vtable_[25])(this, position);
+    ei::VirtualSlot<Fn>(vtable_, 25)(this, position);
 }
 
 void CUiScrollbar::Update() {

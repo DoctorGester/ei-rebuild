@@ -25,7 +25,7 @@ namespace ui_gdi {
 template <typename R, typename... A>
 R CallSlot(void* object, int slot, A... args) {
     using Fn = R(__thiscall*)(void*, A...);
-    return reinterpret_cast<Fn>((*static_cast<void***>(object))[slot])(object, args...);
+    return ei::ObjectSlot<Fn>(object, slot)(object, args...);
 }
 
 // MFC CDC. The virtual members the interface calls go through the vtable as in the original: slot 10

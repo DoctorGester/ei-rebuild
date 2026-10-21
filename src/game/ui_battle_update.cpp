@@ -58,7 +58,7 @@ void EntriesSetSize(void* entries, int size) {
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    reinterpret_cast<Fn>((*reinterpret_cast<void***>(item))[slot])(item, out->Slot());
+    ei::ObjectSlot<Fn>(item, slot)(item, out->Slot());
 }
 
 } // namespace
@@ -376,7 +376,7 @@ void CBattleScreen::Update() {
         using MarkFn = void(__thiscall*)(void*, int);
         auto mark = [](CUnit* unit, int on) {
             void* figure = unit->Object3D()->attached;
-            reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, on);
+            ei::ObjectSlot<MarkFn>(figure, 26)(figure, on);
         };
         for (int i = 0; i < party->size; ++i) {
             auto* unit = party->data[i];
@@ -492,7 +492,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 if (!(flags & 0x10) && (flags & 0x100)) {
                     unit->flags_ = flags & ~0x100u;
                     void* figure = unit->Object3D()->attached;
-                    reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, 0);
+                    ei::ObjectSlot<MarkFn>(figure, 26)(figure, 0);
                 }
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = ei::GameData<const Quaternion>(0x007C8150);   // identity
@@ -510,7 +510,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             }
             int id = unitAt(first)->id_;
             using EventFn = void(__thiscall*)(void*, int, int, int);
-            reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
+            ei::VirtualSlot<EventFn>(vtable_, 0x80 / 4)(this, id, 0, 0);
         }
     }
     RefreshSelection();

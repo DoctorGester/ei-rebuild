@@ -267,7 +267,7 @@ void CCampPages::DoAction() {
     case kEquipment:
         if (itemConstructor_ && !noConstructor_) {
             using HeroFn = PartyUnitRecord*(__thiscall*)(CCampPages*);
-            PartyUnitRecord* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+            PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(vtable_, 51)(this);
             for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CItem*>(hero->weapons[i])->Repair();
             for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) static_cast<CItem*>(hero->armor[i])->Repair();
         }

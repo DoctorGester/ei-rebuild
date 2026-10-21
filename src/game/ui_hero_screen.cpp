@@ -77,7 +77,7 @@ EI_REPLACE_METHOD(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
     using HeroFn = char*(__thiscall*)(CUiWindow*);
-    char* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    char* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
 EI_REPLACE_METHOD(0x00625560, CTradePanel::PurchaseCost);

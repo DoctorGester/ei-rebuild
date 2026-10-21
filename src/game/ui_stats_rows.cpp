@@ -32,7 +32,7 @@ constexpr int kLayers = 3;
 
 UnitStats* HeroStats(CUiWindow* owner) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    PartyUnitRecord* hero = reinterpret_cast<Fn>(owner->vtable_[51])(owner);
+    PartyUnitRecord* hero = ei::VirtualSlot<Fn>(owner->vtable_, 51)(owner);
     return reinterpret_cast<UnitStats*>(hero->stats);
 }
 

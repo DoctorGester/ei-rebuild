@@ -70,7 +70,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     }
     if (region >= kFirstSchool) interface_->PlaySound(kPerkSound, 0);
     using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    PartyUnitRecord* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
     TradeRecord& record = records_.begin[recordIndex_];
 
@@ -140,7 +140,7 @@ void CTradePanel::UpdateHeld() {
     if (held < kHoldRepeat) return;
     int region = heldRegion_;
     using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    PartyUnitRecord* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
     const TradeRow* row;
     std::uint8_t* level;

@@ -19,13 +19,13 @@ void** ContainerInputVtable() { return ei::GamePointer<void*>(0x00740FD4); }
 std::uint32_t FrameMilliseconds() {
     void* display = SceneRenderer();
     using Fn = std::uint32_t(__thiscall*)(void*);
-    return reinterpret_cast<Fn>((*static_cast<void***>(display))[6])(display);
+    return ei::ObjectSlot<Fn>(display, 6)(display);
 }
 
 // Slot 0 of an input side or a window: the deleting destructor (with 1: the memory is freed).
 void DeleteInstance(void* object) {
     using Fn = void(__thiscall*)(void*, int);
-    reinterpret_cast<Fn>((*static_cast<void***>(object))[0])(object, 1);
+    ei::ObjectSlot<Fn>(object, 0)(object, 1);
 }
 } // namespace
 

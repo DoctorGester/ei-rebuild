@@ -36,11 +36,11 @@ int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t c
 // shown under the item for mode `mode`).
 bool OwnerTakes(CUiWindow* owner, char* item, int mode) {
     using Fn = bool(__thiscall*)(CUiWindow*, char*, int);
-    return reinterpret_cast<Fn>(owner->vtable_[0xAC / 4])(owner, item, mode);
+    return ei::VirtualSlot<Fn>(owner->vtable_, 0xAC / 4)(owner, item, mode);
 }
 int OwnerNumber(CUiWindow* owner, char* item, int mode) {
     using Fn = int(__thiscall*)(CUiWindow*, char*, int);
-    return reinterpret_cast<Fn>(owner->vtable_[0xD8 / 4])(owner, item, mode);
+    return ei::VirtualSlot<Fn>(owner->vtable_, 0xD8 / 4)(owner, item, mode);
 }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {

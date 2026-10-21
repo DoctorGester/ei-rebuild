@@ -948,7 +948,7 @@ namespace {
 const LockKey* ItemUseKey(CEngineObject* item, LockKey* buffer) {
     using Fn = const LockKey*(__thiscall*)(CEngineObject*, LockKey*);
     constexpr int kSlot = 21;
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(item))[kSlot])(item, buffer);
+    return ei::ObjectSlot<Fn>(item, kSlot)(item, buffer);
 }
 } // namespace
 

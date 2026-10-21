@@ -54,7 +54,7 @@ struct PartyUnitRecord;
 // Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
 inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    return reinterpret_cast<Fn>(screen->vtable_[51])(screen);
+    return ei::VirtualSlot<Fn>(screen->vtable_, 51)(screen);
 }
 // The statistics' names, also their text keys: the six skill schools followed by "Science"; the
 // attributes (index 7 "Encumbrance").
@@ -652,18 +652,18 @@ public:
     // the shown hero's record (HeroRecord), 54 Price (Rebirth-patched 0060FAB0).
     bool VirtualCanEquip(std::uint8_t* item, int mode) {
         using Fn = bool(__thiscall*)(CCampPages*, std::uint8_t*, int);
-        return reinterpret_cast<Fn>(vtable_[43])(this, item, mode);
+        return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
     }
     void VirtualBestPartySkill(int school, int* skill, int* mana) {
         using Fn = void(__thiscall*)(CCampPages*, int, int*, int*);
-        reinterpret_cast<Fn>(vtable_[45])(this, school, skill, mana);
+        ei::VirtualSlot<Fn>(vtable_, 45)(this, school, skill, mana);
     }
     void VirtualRefreshWeapons() { CallVirtual(46); }
     void VirtualRefreshStats() { CallVirtual(47); }
     PartyUnitRecord* VirtualHeroRecord() { return ShownHero(this); }
     int VirtualPrice(void* item, int kind) {
         using Fn = int(__thiscall*)(CCampPages*, void*, int);
-        return reinterpret_cast<Fn>(vtable_[54])(this, item, kind);
+        return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
     }
 
     int page_;                       // +0x190

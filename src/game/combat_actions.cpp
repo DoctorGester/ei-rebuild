@@ -189,12 +189,12 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         if (!missile) return;
         Vector3 position;
         const Vector3* from = unit->EyePoint(&position);
-        char* bytes = reinterpret_cast<char*>(missile);
-        std::memcpy(bytes + 0x1C, from, sizeof(Vector3));
-        static_cast<CEffectMissile*>(missile)->SetTarget(target->id_);
-        bytes[0x154] = 1;
-        *reinterpret_cast<int*>(bytes + 0x15C) = unit->id_;
-        std::memcpy(bytes + 0x160, hit, sizeof(DamageInfo));
+        auto* arrow = static_cast<CEffectArrowFigure*>(missile);
+        std::memcpy(&arrow->localPosition_, from, sizeof(Vector3));
+        arrow->SetTarget(target->id_);
+        arrow->fromCaster_ = 1;
+        arrow->casterId_ = unit->id_;
+        std::memcpy(&arrow->hit_, hit, sizeof(DamageInfo));
         static_cast<CWorldServer*>(world)->AddTimedObject(missile);
     } else {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);

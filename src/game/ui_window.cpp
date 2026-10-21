@@ -32,13 +32,13 @@ int Mul(int a, int b) {
 // Virtual slot 19 of a window (called with the new enabled state).
 void CallSlot19(CUiWindow* window, int value) {
     using Fn = void(__thiscall*)(CUiWindow*, int);
-    reinterpret_cast<Fn>(window->vtable_[19])(window, value);
+    ei::VirtualSlot<Fn>(window->vtable_, 19)(window, value);
 }
 
 // The deleting destructor (slot 0) of a region's tooltip.
 void DeleteTooltip(CUiTooltip* tip) {
     using Fn = void*(__thiscall*)(CUiTooltip*, int);
-    reinterpret_cast<Fn>(tip->vtable_[0])(tip, 1);
+    ei::VirtualSlot<Fn>(tip->vtable_, 0)(tip, 1);
 }
 } // namespace
 
@@ -444,7 +444,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         static_cast<CUiMesh*>(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);
-        reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);
+        ei::ObjectSlot<ReleaseFn>(object, 4)(object);
         // Back in at the same place: the original grows the array as SetSize does (inlined when
         // the place is the end) and shifts the rest up with memmove.
         int size = sceneObjects_.size;

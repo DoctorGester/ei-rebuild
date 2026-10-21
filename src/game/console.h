@@ -7,6 +7,7 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
+#include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
 #include "../lib/stlp_tree_cstring.h"
 
@@ -83,29 +84,26 @@ private:
 static_assert(sizeof(CStdioFile) == 0x14);
 
 // The game's (pre-standard) ostream. Only the inline float output touches a member: x_floatused.
-class GameOStream {
+class GameOStream : public libcrt::Ostream {
 public:
     GameOStream& operator<<(const char* text);   // 006FC31D
     GameOStream& operator<<(char c);             // 006FC0B0
     GameOStream& operator<<(int n);              // 006FC91C
     GameOStream& operator<<(double d);           // 006FC7FA
     // 00434FE0: operator<<(ostream& (*)(ostream&)), here only with flush (00435000).
-    GameOStream& Apply(void* manipulator);
+    GameOStream& Apply(libcrt::Manipulator manipulator);
     // Apply(flush): the manipulator ostream& flush(ostream&) at 00435000.
-    GameOStream& Flush() { return Apply(reinterpret_cast<void*>(0x00435000)); }
+    GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
     // The header's inline operator<<(float): sets x_floatused, prints as double. The game passes
     // the x87 value as is (never rounded to float).
     GameOStream& PutFloat(double d) {
-        floatUsed_ = 1;
+        floatUsed = 1;
         return *this << d;
     }
     // 004BA9D0: the same, out of line, for a float argument (script_runtime_helpers.cpp).
     GameOStream& PutFloatArgument(float f);
-
-private:
-    void* vbtable_;
-    int floatUsed_;   // +4
 };
+static_assert(sizeof(GameOStream) == 8);
 
 // 007C55A8: the console's ostream (its streambuf is ConsoleStreambuf 007C5868).
 inline GameOStream& Out() { return ei::GameData<GameOStream>(0x007C55A8); }

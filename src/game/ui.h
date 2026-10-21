@@ -521,7 +521,7 @@ public:
     // it): blits the surface onto the render target when it is shown.
     void Blit() {
         using Fn = void(__thiscall*)(CUiSurface*);
-        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this);
+        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this);
     }
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
@@ -579,7 +579,7 @@ inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x00
 struct UiDrawPass {
     void SetColour(std::uint32_t colour) {
         using Fn = void(__thiscall*)(UiDrawPass*, std::uint32_t);
-        reinterpret_cast<Fn>(vtable_[7])(this, colour);
+        ei::VirtualSlot<Fn>(vtable_, 7)(this, colour);
     }
 
     void** vtable_;
@@ -646,12 +646,12 @@ struct UiInputSide {
     // Slot 1.
     void Deactivate() {
         using Fn = void(__thiscall*)(UiInputSide*);
-        reinterpret_cast<Fn>(vtable_[kDeactivate])(this);
+        ei::VirtualSlot<Fn>(vtable_, kDeactivate)(this);
     }
     // Slots 2-11: (buttons, x, y) or (key, repeat, flags). Returns the handler's EAX.
     int Event(int slot, int a, int b, int c) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int);
-        return reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
+        return ei::VirtualSlot<Fn>(vtable_, slot)(this, a, b, c);
     }
     // 005E2860 / 005E2880 (slots 7 / 8 of the base input side 007401D0 and most screens;
     // ui_input_defaults.cpp; RET 0xC): a double click is handled as a single press, slot 2 / 5 with
@@ -670,7 +670,7 @@ struct UiInputSide {
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
-        return reinterpret_cast<Fn>(vtable_[kWheel])(this, flags, delta, x, y);
+        return ei::VirtualSlot<Fn>(vtable_, kWheel)(this, flags, delta, x, y);
     }
 
     void** vtable_;
@@ -766,7 +766,7 @@ public:
     // Slot 33 (+0x84): a quest variable changed (CInterface3D::OnQuestVariable).
     void OnQuestVariable(const char* name, float value) {
         using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
-        reinterpret_cast<Fn>(vtable_[33])(this, name, value);
+        ei::VirtualSlot<Fn>(vtable_, 33)(this, name, value);
     }
     // The interface's news slots (CInterface3D::OnItemsPicked .. SaveWindowState; the battle
     // screen's implementations are in ui_camp.h): 28 items picked up, 29 / 30 a unit joined / left,
@@ -774,47 +774,47 @@ public:
     // window's part of a save game.
     void VirtualItemsPicked(void* items, int money, int crippled) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, int, int);
-        reinterpret_cast<Fn>(vtable_[28])(this, items, money, crippled);
+        ei::VirtualSlot<Fn>(vtable_, 28)(this, items, money, crippled);
     }
     void VirtualUnitJoined(void* unit) {
         using Fn = void(__thiscall*)(CUiWindow*, void*);
-        reinterpret_cast<Fn>(vtable_[29])(this, unit);
+        ei::VirtualSlot<Fn>(vtable_, 29)(this, unit);
     }
     void VirtualUnitLeft(void* unit) {
         using Fn = void(__thiscall*)(CUiWindow*, void*);
-        reinterpret_cast<Fn>(vtable_[30])(this, unit);
+        ei::VirtualSlot<Fn>(vtable_, 30)(this, unit);
     }
     void VirtualGameOver(int won) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[31])(this, won);
+        ei::VirtualSlot<Fn>(vtable_, 31)(this, won);
     }
     void VirtualSpeech(int id, unsigned event, char* extra) {
         using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
-        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
     }
     // Slot 34 (+0x88): a "briefing <name>" string event.
     void VirtualShowBriefing(const char* name) {
         using Fn = void(__thiscall*)(CUiWindow*, const char*);
-        reinterpret_cast<Fn>(vtable_[34])(this, name);
+        ei::VirtualSlot<Fn>(vtable_, 34)(this, name);
     }
     // Slot 35 (+0x8C): whether the window lets the interface stop asking (pollTop_).
     bool VirtualReadyToStopPolling() {
         using Fn = bool(__thiscall*)(CUiWindow*);
-        return reinterpret_cast<Fn>(vtable_[35])(this);
+        return ei::VirtualSlot<Fn>(vtable_, 35)(this);
     }
     void VirtualPlayersChanged(int added) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[36])(this, added);
+        ei::VirtualSlot<Fn>(vtable_, 36)(this, added);
     }
     void VirtualExchangeDone(void* partyB, void* partyA, void* partyC) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
-        reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
+        ei::VirtualSlot<Fn>(vtable_, 37)(this, partyB, partyA, partyC);
     }
     // Slot 38 (+0x98): a multiplayer screen's player list window for kicking (mode 1) or
     // banning (2) a player (the console's kick / ban without a name).
     void VirtualPlayerList(int mode) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[38])(this, mode);
+        ei::VirtualSlot<Fn>(vtable_, 38)(this, mode);
     }
     // Slot 39 (+0x9C): the camp's DebugFill (the console's "give <player> assortment").
     void VirtualDebugFill() { CallVirtual(39); }
@@ -822,17 +822,17 @@ public:
     // Slot 27 (+0x6C): the value a window above left pending when it closed.
     void VirtualMessageResult(int result) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[27])(this, result);
+        ei::VirtualSlot<Fn>(vtable_, 27)(this, result);
     }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {
         using Fn = void(__thiscall*)(CUiWindow*);
-        reinterpret_cast<Fn>(vtable_[26])(this);
+        ei::VirtualSlot<Fn>(vtable_, 26)(this);
     }
     // Slot 0: the deleting destructor (with 1: the memory is freed).
     void DeleteWindow() {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
     }
     // The window's own mouse move handler (input slot 4), through its input vtable.
     void InputMouseMove(int buttons, int x, int y) {
@@ -880,17 +880,17 @@ public:
     // Slot 20 (+0x50): the window's per-frame draw in the renderer's pass (returns 1).
     BOOL VirtualDraw(void* pass) {
         using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
-        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
     }
     BOOL VirtualDraw(int pass) {
         using Fn = BOOL(__thiscall*)(CUiWindow*, int);
-        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
     }
     // Slot 21 (+0x54): the draw a window with child windows (00600F70) gives each enabled child,
     // with the pass.
     void VirtualDrawChild(int pass) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[21])(this, pass);
+        ei::VirtualSlot<Fn>(vtable_, 21)(this, pass);
     }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
@@ -899,16 +899,16 @@ public:
     // null; a panel may set a help topic instead.
     std::uint8_t* VirtualItemAt(int x, int y, int* topic) {
         using Fn = std::uint8_t*(__thiscall*)(CUiWindow*, int, int, int*);
-        return reinterpret_cast<Fn>(vtable_[25])(this, x, y, topic);
+        return ei::VirtualSlot<Fn>(vtable_, 25)(this, x, y, topic);
     }
     // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).
     void VirtualShow(int show) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[19])(this, show);
+        ei::VirtualSlot<Fn>(vtable_, 19)(this, show);
     }
     void CallVirtual(int slot) {
         using Fn = void(__thiscall*)(CUiWindow*);
-        reinterpret_cast<Fn>(vtable_[slot])(this);
+        ei::VirtualSlot<Fn>(vtable_, slot)(this);
     }
     // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
     // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
@@ -962,7 +962,7 @@ struct CUiTooltip : CUiWindow {
     // Slot 0: the deleting destructor (with 1: the memory is freed).
     void Delete() {
         using Fn = void(__thiscall*)(CUiTooltip*, int);
-        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
     }
     // 0065E320 (RET 0x14; ui_tooltip.cpp). Constructor: the window, no lines, idle, of `region`;
     // a non-empty `text` is split at newlines into the lines and measured (Measure). Returns this.
@@ -1034,12 +1034,12 @@ public:
     // Slot 42 (+0xA8): take `item` with the panel's action mode.
     void OwnerTakeItem(void* item) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, int);
-        reinterpret_cast<Fn>(owner_->vtable_[42])(owner_, item, mode_);
+        ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
     }
     // Slot 44 (+0xB0): help topic `topic` clicked.
     void OwnerTopicClicked(int topic) {
         using Fn = void(__thiscall*)(CUiWindow*, int, int);
-        reinterpret_cast<Fn>(owner_->vtable_[44])(owner_, topic, mode_);
+        ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
     }
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
@@ -2176,7 +2176,7 @@ public:
     // `event`.
     void VirtualUnitSpeech(int id, unsigned event, char* extra) {
         using Fn = void(__thiscall*)(CBattleScreen*, int, unsigned, char*);
-        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
     }
 
     // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
@@ -2452,7 +2452,7 @@ struct UiTextToken {
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
-        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this, 1);
+        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this, 1);
     }
     // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
     // base: the base vtable 00742F24 back.

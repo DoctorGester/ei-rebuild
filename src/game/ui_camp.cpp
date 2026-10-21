@@ -279,7 +279,7 @@ double ItemPrice(const std::uint8_t* item) {
     using PriceFn = double(__thiscall*)(const std::uint8_t*);
     void** vtable;
     std::memcpy(&vtable, item, sizeof(vtable));
-    return reinterpret_cast<PriceFn>(vtable[16])(item);
+    return ei::VirtualSlot<PriceFn>(vtable, 16)(item);
 }
 
 // How worn the item is: 1 - durability (+0x20) / maximum (+0x24). Rebirth's FixRepairPrice treats a

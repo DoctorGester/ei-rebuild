@@ -166,9 +166,6 @@ CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(TheServerW
 // A particle source's effect (ScriptParticleSource::object).
 CEffectParticle* ParticleOf(ScriptParticleSource* source) { return static_cast<CEffectParticle*>(source->object); }
 
-// 004BA9F0: the manipulator that ends a console line.
-void* EndLine() { return reinterpret_cast<void*>(0x004BA9F0); }
-
 
 // MFC containers the commands keep on the stack, built and destroyed through the originals: the
 // units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
@@ -672,10 +669,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            console::Out().PutFloatArgument(f[0]).Apply(EndLine());
+            console::Out().PutFloatArgument(f[0]).Apply(libcrt::EndlManipulator);
             break;
         case 0x7E:   // ConsoleString(text)
-            (console::Out() << Text(cmd, 0)).Apply(EndLine());
+            (console::Out() << Text(cmd, 0)).Apply(libcrt::EndlManipulator);
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
             auto* area = static_cast<mfc::CArray<ScriptAreaPart>*>(script->FindArea(Round(f[0])));

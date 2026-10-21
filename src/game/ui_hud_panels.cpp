@@ -76,7 +76,7 @@ CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(TheClientWorld
 
 void CUiScrollbar::CallSetRect(const RECT* rect) {
     using Fn = void(__thiscall*)(CUiScrollbar*, const RECT*);
-    reinterpret_cast<Fn>(vtable_[26])(this, rect);
+    ei::VirtualSlot<Fn>(vtable_, 26)(this, rect);
 }
 
 // --- Unit panel ----------------------------------------------------------------------------------

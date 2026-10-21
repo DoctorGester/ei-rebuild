@@ -44,7 +44,7 @@ __declspec(naked) void __fastcall AddActionButton(CHudActionColumn*, void*, cons
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    reinterpret_cast<Fn>((*reinterpret_cast<void***>(item))[slot])(item, out->Slot());
+    ei::ObjectSlot<Fn>(item, slot)(item, out->Slot());
 }
 
 // The original truncates through _ftol.

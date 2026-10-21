@@ -37,11 +37,11 @@ constexpr int kOwnerPreviousHero = 49;
 
 PartyUnitRecord* OwnerHero(CUiWindow* owner) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    return reinterpret_cast<Fn>(owner->vtable_[kOwnerHero])(owner);
+    return ei::VirtualSlot<Fn>(owner->vtable_, kOwnerHero)(owner);
 }
 void OwnerCall(CUiWindow* owner, int slot) {
     using Fn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<Fn>(owner->vtable_[slot])(owner);
+    ei::VirtualSlot<Fn>(owner->vtable_, slot)(owner);
 }
 UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
 

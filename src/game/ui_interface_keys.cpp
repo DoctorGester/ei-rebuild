@@ -72,7 +72,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         picture->Write(file);
         file->Close();
         using DeleteFn = void(__thiscall*)(void*, int);
-        reinterpret_cast<DeleteFn>((*reinterpret_cast<void***>(picture))[1])(picture, 1);
+        ei::ObjectSlot<DeleteFn>(picture, 1)(picture, 1);
         file->~CFile();
         return;
     }

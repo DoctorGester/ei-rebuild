@@ -79,7 +79,7 @@ CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*
 // The item's names (virtual slots 19 and 20; return a CString through the hidden pointer).
 void ItemName(CItem* item, int slot, mfc::CString* out) {
     using NameFn = mfc::CString*(__thiscall*)(CItem*, mfc::CString*);
-    reinterpret_cast<NameFn>((*reinterpret_cast<void***>(item))[slot])(item, out);
+    ei::ObjectSlot<NameFn>(item, slot)(item, out);
 }
 
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
@@ -362,7 +362,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 
     // Items the strip's mode cannot take get a dark square in front.
     using CanEquipFn = bool(__thiscall*)(CItemScreen*, CItem*, int);
-    if (cell->mode != 9 && !reinterpret_cast<CanEquipFn>(vtable_[43])(this, item, cell->mode)) {
+    if (cell->mode != 9 && !ei::VirtualSlot<CanEquipFn>(vtable_, 43)(this, item, cell->mode)) {
         float depth = static_cast<float>(D(cell->depth) * D(1.25f /*0073CF50*/));
         if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
         CUiMesh* shade = AddSprite(0);

@@ -56,7 +56,7 @@ bool TabKeysEnabled() { return ei::GameData<const int>(0x0079BE84) != 0; }
 // Virtual slot `slot` of an object with its vtable at +0.
 template <typename Fn>
 Fn Virtual(const void* object, int slot) {
-    return reinterpret_cast<Fn>((*reinterpret_cast<void* const* const*>(object))[slot]);
+    return ei::ObjectSlot<Fn>(object, slot);
 }
 
 // A scroll bar's virtual slot 25 (+0x64): set the position.

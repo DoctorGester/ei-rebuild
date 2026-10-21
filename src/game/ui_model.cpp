@@ -41,11 +41,11 @@ void ShowFigurePart(CFigureMesh* part, int show) {
 // The object's virtual slots 25 (the animation clock, seconds as float) and 23 (draw in `pass`).
 void SetClock(CObject3D* object, float seconds) {
     using Fn = void(__thiscall*)(CObject3D*, float);
-    reinterpret_cast<Fn>((*reinterpret_cast<void***>(object))[25])(object, seconds);
+    ei::ObjectSlot<Fn>(object, 25)(object, seconds);
 }
 void DrawObject(CObject3D* object, UiDrawPass* pass) {
     using Fn = void(__thiscall*)(CObject3D*, UiDrawPass*);
-    reinterpret_cast<Fn>((*reinterpret_cast<void***>(object))[23])(object, pass);
+    ei::ObjectSlot<Fn>(object, 23)(object, pass);
 }
 
 // The interface's animation clock: timeGetTime() * 1/67 (00740EFC), the milliseconds loaded as an
