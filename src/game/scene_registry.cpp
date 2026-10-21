@@ -18,6 +18,7 @@
 #include "lib/mfc_list.h"
 #include "originals_library.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -43,7 +44,7 @@ constexpr auto ConstructNamed = mfc::impl::ConstructElementsAt<mfc::impl::NamedD
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
 using SeenMap = DwordMap;
-void* SeenMapVtable() { return ei::GamePointer<void>(0x0073C16C); }
+void* SeenMapVtable() { return mfc::impl::FigureRegistryMapClass::Vtable(); }
 
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {

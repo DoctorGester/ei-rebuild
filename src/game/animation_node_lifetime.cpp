@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -14,7 +15,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kNormalsVtable = std::uintptr_t(0x0073C120);
 constexpr std::uintptr_t kMorphFramesVtable = std::uintptr_t(0x0073D9BC);
 constexpr int kNoKey = -1;   // the key cursors before the first ResetPose
 
@@ -30,7 +30,7 @@ CAnimationNode* CAnimationNode::Construct() {
     children_.Construct();
     rotationKeys_.Construct();
     translationKeys_.Construct();
-    normals_.Construct(kNormalsVtable);
+    normals_.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     morphFrames_.Construct(kMorphFramesVtable);
     defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -76,7 +76,7 @@ void CAnimationNode::DestructBody() {
     pointsB_.FreeData();
     morphFrames_.vtable = ei::GamePointer<void>(kMorphFramesVtable);
     morphFrames_.FreeData();
-    normals_.vtable = ei::GamePointer<void>(kNormalsVtable);
+    normals_.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     normals_.FreeData();
     translationKeys_.FreeData();
     rotationKeys_.FreeData();

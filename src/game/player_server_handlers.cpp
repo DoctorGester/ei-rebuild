@@ -24,6 +24,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 
 #include "ei/hook.h"
@@ -300,7 +301,6 @@ int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer +0x130
-constexpr std::uintptr_t kPointArrayVtable = std::uintptr_t(0x0073C120);
 using PointArray = mfc::CArray<Vector3>;
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
@@ -317,6 +317,11 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
 }
 // The arrays' inlined destructors: the vtable back, the storage freed.
 template <typename T>
+void FreeArray(mfc::CArray<T>* array, void* vtable) {
+    array->vtable = vtable;
+    if (array->data) gamecrt::operator_delete(array->data);
+}
+template <typename T>
 void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
     array->vtable = ei::GamePointer<void>(vtableAddress);
     if (array->data) gamecrt::operator_delete(array->data);
@@ -326,7 +331,7 @@ using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, con
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
     UnitArray units{ei::GamePointer<void>(kUnitArrayVtable), nullptr, 0, 0, 0};
-    PointArray offsets{ei::GamePointer<void>(kPointArrayVtable), nullptr, 0, 0, 0};
+    PointArray offsets{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
@@ -338,7 +343,7 @@ int MoveUnits(MoveCommand command) {
         if (AIMode* mode = brain->FindPlayerMode())
             (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
     }
-    FreeArray(&offsets, kPointArrayVtable);
+    FreeArray(&offsets, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(&units, kUnitArrayVtable);
     return 1;
 }

@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "lib/mfc_array.h"
 #include "record_arrays.h"
+#include "lib/mfc_slots.h"
 #include "render/render.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -563,7 +564,6 @@ constexpr int kProjectionVertices = 0x330;
 
 // The vtables of the sector's CArray instantiations.
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);
-constexpr std::uintptr_t kPositionArrayVtable = std::uintptr_t(0x0073C120);
 constexpr std::uintptr_t kFlagArrayArrayVtable = std::uintptr_t(0x007441A8);
 
 constexpr int kQuarterCells = 16;
@@ -580,7 +580,7 @@ SectorData* SectorData::Construct() {
     box = SectorBox{};
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
     waterMaterials.Construct(kByteArrayVtable);
-    vertices.Construct(kPositionArrayVtable);
+    vertices.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     records.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SectorVertexArrayClass::Vtable()));
     tileTextures.Construct();
     waterTiles.Construct();
@@ -629,7 +629,7 @@ void SectorData::DestructBody() {
     tileTextures.FreeData();
     records.vtable = recordarrays::SectorVertexArrayClass::Vtable();
     records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
-    vertices.vtable = ei::GamePointer<void>(kPositionArrayVtable);
+    vertices.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     vertices.FreeData();
     waterMaterials.vtable = ei::GamePointer<void>(kByteArrayVtable);   // ~CByteArray (006FF61D)
     waterMaterials.FreeData();

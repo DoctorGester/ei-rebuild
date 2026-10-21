@@ -29,6 +29,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
 #include "game_data.h"
 
@@ -585,13 +586,14 @@ mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
 }
 
 // The arrays' vtables the destructors write back.
-constexpr std::uintptr_t kRotationKeysVtable = std::uintptr_t(0x0073C1AC);
-constexpr std::uintptr_t kPositionKeysVtable = std::uintptr_t(0x0073C1B8);
 constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
-constexpr std::uintptr_t kNormalsVtable = std::uintptr_t(0x0073C120);
 constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
-constexpr std::uintptr_t kChildrenVtable = std::uintptr_t(0x0073C138);
 
+template <typename A>
+void FreeArray(A& array, void* vtable) {
+    array.vtable = vtable;
+    array.FreeData();
+}
 template <typename A>
 void FreeArray(A& array, std::uintptr_t vtableAddress) {
     array.vtable = ei::GamePointer<void>(vtableAddress);
@@ -625,12 +627,12 @@ void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
 EI_REWRITTEN(0x00454CE0, FaceGroupArrayDestruct);
 
 void SceneNode::Destruct() {
-    FreeArray(children, kChildrenVtable);
+    FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
     FreeArray(frames, kFramesVtable);
-    FreeArray(normals, kNormalsVtable);
+    FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
     FreeArray(morphKeys, kMorphKeysVtable);
-    FreeArray(positionKeys, kPositionKeysVtable);
-    FreeArray(rotationKeys, kRotationKeysVtable);
+    FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
+    FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
     parent.~CString();
     name.~CString();
 }
@@ -647,12 +649,12 @@ void SceneNode::Construct() {
     spareRotation040.SetIdentity();
     rotation.SetIdentity();
     restRotation.SetIdentity();
-    rotationKeys.Construct(kRotationKeysVtable);
-    positionKeys.Construct(kPositionKeysVtable);
+    rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
+    positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
     morphKeys.Construct(kMorphKeysVtable);
-    normals.Construct(kNormalsVtable);
+    normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(kFramesVtable);
-    children.Construct(kChildrenVtable);   // 00455150
+    children.Construct(mfc::impl::NodeItemsCClass::Vtable());   // 00455150
 }
 
 // 004545C0's element.
@@ -735,7 +737,7 @@ struct Registry {
     ~Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Destroy(); }
 };
 struct TextureLinks : VtArray {
-    TextureLinks() : VtArray{scenedata::TextureLinkArrayVtable(), nullptr, 0, 0, 0} {}
+    TextureLinks() : VtArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureLinks() {
         if (data) gamecrt::operator_delete(data);
     }

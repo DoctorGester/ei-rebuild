@@ -171,7 +171,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     void* world = ObjectWorld(this);
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
-    SpotArray spots{ei::GamePointer<void>(0x0073C120), nullptr, 0, 0, 0};
+    SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
     float size = static_cast<float>(Slots(unit)->Radius());
     Slots(order->target)->UseSpots(&spots, size);
     bool result = true;
@@ -204,7 +204,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
-    spots.vtable = ei::GamePointer<void>(0x0073C120);
+    spots.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }

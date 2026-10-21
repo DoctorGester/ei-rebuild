@@ -200,24 +200,22 @@ protected:
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
-struct NodeItemsAClass {   // inside the scene loader's 0x120-byte node records (00454F80)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C1AC); }
-};
-struct NodeItemsBClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C1B8); }
-};
-struct NodeItemsCClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C138); }
-};
-struct TextureLinkArrayClass {   // the scene loader's {id, value} links
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C150); }
-};
-struct MeshCornerArrayClass {   // the scene meshes' corner records (IndexMeshCorners)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C19C); }
-};
-struct Vector3ArrayClass {   // 12-byte points: animation node normals, use spots, terrain sector data
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C120); }
-};
+// Inside the scene loader's 0x120-byte node records (00454F80).
+struct NodeItemsAClass final
+    : CompiledCollection<NodeItemsAClass, &ArrayHeader<NodeItemsAClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct NodeItemsBClass final
+    : CompiledCollection<NodeItemsBClass, &ArrayHeader<NodeItemsBClass>::Destruct, &SerializeCArray<Plain24>> {};
+struct NodeItemsCClass final
+    : CompiledCollection<NodeItemsCClass, &ArrayHeader<NodeItemsCClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The scene loader's {id, value} links.
+struct TextureLinkArrayClass final
+    : CompiledCollection<TextureLinkArrayClass, &ArrayHeader<TextureLinkArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// The scene meshes' corner records (IndexMeshCorners).
+struct MeshCornerArrayClass final
+    : CompiledCollection<MeshCornerArrayClass, &ArrayHeader<MeshCornerArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+// 12-byte points: animation node normals, use spots, terrain sector data.
+struct Vector3ArrayClass final
+    : CompiledCollection<Vector3ArrayClass, &ArrayHeader<Vector3ArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
 // A trap's circles (map_spec, magic_trap).
 struct TrapCircleArrayClass
     : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
@@ -355,18 +353,16 @@ struct SoundListClass {   // the sound manager's list
 };
 
 // Maps whose elements need nothing.
-struct FigureRegistryMapClass {   // LoadFigureRegistry's map
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C16C); }
-};
-struct CornerMapAClass {   // IndexMeshCorners' maps
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C190); }
-};
-struct CornerMapBClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C184); }
-};
-struct CornerMapCClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C178); }
-};
+// LoadFigureRegistry's map.
+struct FigureRegistryMapClass final
+    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &SerializeCMap<Map32>> {};
+// IndexMeshCorners' maps.
+struct CornerMapAClass final
+    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &SerializeCMap<Map64x64>> {};
+struct CornerMapBClass final
+    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &SerializeCMap<Map64x32>> {};
+struct CornerMapCClass final
+    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &SerializeCMap<Map32>> {};
 
 // Arrays whose elements own something.
 struct FakeUnitBoneArraysClass {   // a fake unit's 20-byte CObject elements (FakeUnitConstruct)
