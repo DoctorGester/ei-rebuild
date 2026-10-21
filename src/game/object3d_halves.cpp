@@ -5,6 +5,7 @@
 #include "map_object_shadow.h"
 
 #include "figure_mesh.h"        // VertexPacket
+#include "game_data.h"
 #include "ground_decal.h"       // DecalTexCoord
 #include "ground_print.h"       // NamedTexture
 #include "map_object_figures.h"
@@ -27,15 +28,15 @@ constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073DFBC);
 constexpr const char* kServerClassName = "CObject3DServer";
 constexpr int kServerClassId = 0x38;
 // The shadow switches by the object's class: units (0x50), class 0x52, any other.
-constexpr std::uintptr_t kUnitShadows = std::uintptr_t(0x0079BD14);
-constexpr std::uintptr_t kOtherShadows = std::uintptr_t(0x0079BD18);
-constexpr std::uintptr_t kClass52Shadows = std::uintptr_t(0x0079BD1C);
+constexpr std::uintptr_t kUnitShadows = ei::DataId(0x0079BD14);
+constexpr std::uintptr_t kOtherShadows = ei::DataId(0x0079BD18);
+constexpr std::uintptr_t kClass52Shadows = ei::DataId(0x0079BD1C);
 constexpr int kClassUnit = 0x50;
 constexpr int kClass52 = 0x52;
 constexpr std::uint32_t kHalfShown = 0x20;
 constexpr int kOutsideView = 2;
 
-int Setting(std::uintptr_t address) { return *reinterpret_cast<const volatile int*>(address); }
+int Setting(std::uintptr_t address) { return *ei::GamePointer<const volatile int>(address); }
 
 // The switch for the class of `object` (its slot 12).
 int ShadowSwitchOf(CObject3D* object) {

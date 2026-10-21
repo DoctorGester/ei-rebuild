@@ -223,7 +223,7 @@
 {Patch::FixRepairPrice, 0x0060FB87, 5},
 {Patch::GameExeDebug, 0x0044C470, 6},
 {Patch::CommandLine, 0x004565D4, 6},
-{Patch::SetDefaultRate, 0x00783E34, 4},
+{Patch::SetDefaultRate, ei::DataId(0x00783E34), 4},
 {Patch::MPConsole, 0x005DD558, 5},
 {Patch::MPConsole, 0x005DD780, 5},
 {Patch::MenuMultiDisable, 0x00633234, 4},

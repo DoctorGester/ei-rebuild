@@ -22,20 +22,22 @@
 // ApplyDefines: the line before (string), the define count (u32) and each define's name and value
 // (strings), the line after (string).
 
+#include "../../src/game/game_data.h"
+
 #include <cstdint>
 
 namespace ei::vectors::script {
 
 constexpr std::uintptr_t kKeywordTablePointer = 0x004CF69B;   // ClassifyToken's MOV EBP,imm32 operand
-constexpr std::uintptr_t kQuoteChar = 0x0078BC98;
-constexpr std::uintptr_t kStringPointers[] = {0x0078BC8C, 0x0078BC90, 0x0078BC94};   // "/*", "*/", "//"
+constexpr std::uintptr_t kQuoteChar = DataId(0x0078BC98);
+constexpr std::uintptr_t kStringPointers[] = {DataId(0x0078BC8C), DataId(0x0078BC90), DataId(0x0078BC94)};   // "/*", "*/", "//"
 // "None", "Unknown command", then the loader's texts (its messages, type names and letters, "#define").
 constexpr std::uintptr_t kTexts[] = {
-    0x0078BC6C, 0x0078D848, 0x00784340, 0x00787B5C, 0x00787D5C, 0x0078BBCC, 0x0078BBD0, 0x0078BBD4, 0x0078BBD8,
-    0x0078BC18, 0x0078D71C, 0x0078D730, 0x0078D740, 0x0078D758, 0x0078D770, 0x0078D790, 0x0078D7A4, 0x0078D7DC,
-    0x0078D7F4, 0x0078D820, 0x0078D828, 0x0078D830, 0x0078D838, 0x0078D858, 0x0078D87C, 0x0078D8AC, 0x0078D8C0,
-    0x0078D8D8, 0x0078D8F0, 0x0078D908, 0x0078D920, 0x0078D954, 0x0078D96C, 0x0078D988, 0x0078D9A8, 0x0078D9B8,
-    0x0078D9DC, 0x0078DA04, 0x0078DA0C, 0x0078DA1C, 0x0078DA38};
+    DataId(0x0078BC6C), DataId(0x0078D848), DataId(0x00784340), DataId(0x00787B5C), DataId(0x00787D5C), DataId(0x0078BBCC), DataId(0x0078BBD0), DataId(0x0078BBD4), DataId(0x0078BBD8),
+    DataId(0x0078BC18), DataId(0x0078D71C), DataId(0x0078D730), DataId(0x0078D740), DataId(0x0078D758), DataId(0x0078D770), DataId(0x0078D790), DataId(0x0078D7A4), DataId(0x0078D7DC),
+    DataId(0x0078D7F4), DataId(0x0078D820), DataId(0x0078D828), DataId(0x0078D830), DataId(0x0078D838), DataId(0x0078D858), DataId(0x0078D87C), DataId(0x0078D8AC), DataId(0x0078D8C0),
+    DataId(0x0078D8D8), DataId(0x0078D8F0), DataId(0x0078D908), DataId(0x0078D920), DataId(0x0078D954), DataId(0x0078D96C), DataId(0x0078D988), DataId(0x0078D9A8), DataId(0x0078D9B8),
+    DataId(0x0078D9DC), DataId(0x0078DA04), DataId(0x0078DA0C), DataId(0x0078DA1C), DataId(0x0078DA38)};
 
 constexpr int kUnasked = 0x7777;
 

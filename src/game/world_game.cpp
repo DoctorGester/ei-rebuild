@@ -2101,10 +2101,10 @@ namespace {
 
 constexpr const char* kQuestFilePattern = "*.mq";
 // The map names of the three allods, each list ended by an empty name.
-constexpr std::uintptr_t kGipatMaps = std::uintptr_t(0x00790270);       // zone2 .. zone9
-constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone12, zone13
-constexpr std::uintptr_t kSuslangerMaps = std::uintptr_t(0x007902C0);   // zone17, zone18
-const char* const* NameList(std::uintptr_t address) { return reinterpret_cast<const char* const*>(address); }
+constexpr std::uintptr_t kGipatMaps = ei::DataId(0x00790270);       // zone2 .. zone9
+constexpr std::uintptr_t kIngosMaps = ei::DataId(0x00790298);       // zone12, zone13
+constexpr std::uintptr_t kSuslangerMaps = ei::DataId(0x007902C0);   // zone17, zone18
+const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<const char* const>(address); }
 
 // 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
 void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {

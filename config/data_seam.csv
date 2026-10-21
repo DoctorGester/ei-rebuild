@@ -2,7 +2,7 @@
 # may only go down; a "*sealed*" line marks a section that must have none.
 file,section,raw
 *sealed*,bss,0
-src/game/ai_area_lists.cpp,data,6
+*sealed*,data,0
 src/game/ai_map.h,rdata,3
 src/game/ai_shape_cache.h,rdata,1
 src/game/ai_unit_layer.h,rdata,1
@@ -34,7 +34,6 @@ src/game/ground_print.h,rdata,4
 src/game/item.h,rdata,9
 src/game/item_db.h,rdata,6
 src/game/item_db_text.h,rdata,1
-src/game/key_bindings.cpp,data,2
 src/game/lightning.h,rdata,1
 src/game/link_figure.h,rdata,5
 src/game/link_loader_create.cpp,rdata,1
@@ -56,13 +55,10 @@ src/game/net_coder.h,rdata,3
 src/game/net_connection.h,rdata,2
 src/game/net_link.h,rdata,7
 src/game/net_messages.h,rdata,17
-src/game/net_session_tick.cpp,data,2
 src/game/object.h,rdata,1
 src/game/object3d_client_parts.cpp,rdata,2
-src/game/object3d_halves.cpp,data,3
 src/game/object3d_halves.cpp,rdata,2
 src/game/object3d_specific_slots.cpp,rdata,1
-src/game/object_tables.cpp,data,2
 src/game/party.h,rdata,2
 src/game/player.cpp,rdata,2
 src/game/player_client.cpp,rdata,2
@@ -116,11 +112,8 @@ src/game/world_effect_missile.cpp,rdata,3
 src/game/world_effect_moshka.cpp,rdata,1
 src/game/world_effect_tornado.cpp,rdata,1
 src/game/world_effect_visibility.cpp,rdata,1
-src/game/world_game.cpp,data,3
 src/game/world_managers.cpp,rdata,1
 src/hook/cover.cpp,rdata,1
-tests/vectors/script_vectors.h,data,45
-tests/verify/addon_sites.inc,data,1
 tests/verify/addon_sites.inc,iat,1
 tests/verify/addon_sites.inc,rdata,3
 tests/verify/harness.cpp,iat,34
