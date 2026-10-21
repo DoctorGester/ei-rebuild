@@ -4,45 +4,60 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "ei/vcall.h"
+
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
-const char* const kTreeName = "CTree";
-const char* const kBuildingName = "CBuilding";
-const char* const kStoneName = "CStone";
-const char* const kStuffName = "CStuffObject";
-constexpr int kClassTree = 0x52;
-constexpr int kClassStone = 0x53;
-constexpr int kClassBuilding = 0x54;
-constexpr int kClassStuff = 0x56;
+template <int ClassId> constexpr const char* kName = nullptr;
+template <> constexpr const char* kName<0x52> = "CTree";
+template <> constexpr const char* kName<0x53> = "CStone";
+template <> constexpr const char* kName<0x54> = "CBuilding";
+template <> constexpr const char* kName<0x56> = "CStuffObject";
 } // namespace
 
-template <std::uintptr_t Vtable>
-PlainMapObject<Vtable>* PlainMapObject<Vtable>::Construct() {
-    CMapObject::Construct();
-    ei::SetVtable(this, Vtable);
+template <int ClassId>
+PlainMapObject<ClassId>::PlainMapObject() {
     CreateMapObject();
-    return this;
 }
 
-template <std::uintptr_t Vtable>
-void PlainMapObject<Vtable>::DestructBody() {
-    ei::SetVtable(this, Vtable);
+template <int ClassId>
+PlainMapObject<ClassId>* PlainMapObject<ClassId>::Construct() {
+    return new (this) PlainMapObject();
+}
+
+template <int ClassId>
+PlainMapObject<ClassId>::~PlainMapObject() {
     DestroyMapObject();
-    CMapObject::DestructBody();
 }
 
-template <std::uintptr_t Vtable>
-PlainMapObject<Vtable>* PlainMapObject<Vtable>::DeletingDestruct(int flags) {
-    DestructBody();
+template <int ClassId>
+void PlainMapObject<ClassId>::DestructBody() {
+    this->PlainMapObject::~PlainMapObject();
+}
+
+template <int ClassId>
+PlainMapObject<ClassId>* PlainMapObject<ClassId>::DeletingDestruct(int flags) {
+    this->PlainMapObject::~PlainMapObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
 
-template class PlainMapObject<mapkind::kTreeVtable>;
-template class PlainMapObject<mapkind::kBuildingVtable>;
-template class PlainMapObject<mapkind::kStoneVtable>;
-template class PlainMapObject<mapkind::kStuffVtable>;
+template <int ClassId>
+const char* PlainMapObject<ClassId>::GetClassName() {
+    return kName<ClassId>;
+}
+
+template <int ClassId>
+int PlainMapObject<ClassId>::GetClassId() {
+    return ClassId;
+}
+
+template class PlainMapObject<0x52>;
+template class PlainMapObject<0x53>;
+template class PlainMapObject<0x54>;
+template class PlainMapObject<0x56>;
 
 EI_REPLACE_METHOD(0x005296E0, CTree::Construct);
 EI_REPLACE_METHOD(0x00529770, CTree::DestructBody);
@@ -57,19 +72,19 @@ EI_REPLACE_METHOD(0x00529980, CStuffObject::Construct);
 EI_REPLACE_METHOD(0x00529A10, CStuffObject::DestructBody);
 EI_REPLACE_METHOD(0x005299F0, CStuffObject::DeletingDestruct);
 
-const char* __fastcall TreeClassName(CMapObject*) { return kTreeName; }
+const char* __fastcall TreeClassName(CTree* self) { return self->CTree::GetClassName(); }
 EI_REPLACE(0x00529730, TreeClassName);
-int __fastcall TreeClassId(CMapObject*) { return kClassTree; }
+int __fastcall TreeClassId(CTree* self) { return self->CTree::GetClassId(); }
 EI_REPLACE(0x00529740, TreeClassId);
-const char* __fastcall BuildingClassName(CMapObject*) { return kBuildingName; }
+const char* __fastcall BuildingClassName(CBuilding* self) { return self->CBuilding::GetClassName(); }
 EI_REPLACE(0x00529810, BuildingClassName);
-int __fastcall BuildingClassId(CMapObject*) { return kClassBuilding; }
+int __fastcall BuildingClassId(CBuilding* self) { return self->CBuilding::GetClassId(); }
 EI_REPLACE(0x00529820, BuildingClassId);
-const char* __fastcall StoneClassName(CMapObject*) { return kStoneName; }
+const char* __fastcall StoneClassName(CStone* self) { return self->CStone::GetClassName(); }
 EI_REPLACE(0x005298F0, StoneClassName);
-int __fastcall StoneClassId(CMapObject*) { return kClassStone; }
+int __fastcall StoneClassId(CStone* self) { return self->CStone::GetClassId(); }
 EI_REPLACE(0x00529900, StoneClassId);
-const char* __fastcall StuffClassName(CMapObject*) { return kStuffName; }
+const char* __fastcall StuffClassName(CStuffObject* self) { return self->CStuffObject::GetClassName(); }
 EI_REPLACE(0x005299D0, StuffClassName);
-int __fastcall StuffClassId(CMapObject*) { return kClassStuff; }
+int __fastcall StuffClassId(CStuffObject* self) { return self->CStuffObject::GetClassId(); }
 EI_REPLACE(0x005299E0, StuffClassId);
