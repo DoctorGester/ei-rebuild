@@ -232,7 +232,7 @@ struct ModifierPoint {
     Vector3 start;              // +0x0C copy of pos
     Vector3 offset;             // +0x18 from the emission point
     std::uint8_t unused_24[0x10];
-    int fade;                   // +0x34 point 0: index into the alpha table 0078A774
+    int fade;                   // +0x34 point 0: index into kFadeAlpha
 };
 static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 
@@ -242,7 +242,7 @@ static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 #define EI_JITTER 0.04f /*0073CE90*/            // 0.04
 #define EI_SCALE_0_08 1.8626451080312744e-11 /*0073CE98*/       // ~0.08 * 2^-32
 
-const std::int32_t* FadeAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A774); }
+constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
 // 0044C470: the game's debug message (cdecl, one argument).
@@ -390,7 +390,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
         PlaceModifierPoints(this);
     }
     ModifierPoint* points = reinterpret_cast<ModifierPoint*>(elements);
-    p->color = (static_cast<std::uint32_t>(FadeAlpha()[points[0].fade]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kFadeAlpha[points[0].fade]) << 24) | 0xFFFFFF;
     if (points[0].fade == 0 && index < elementCount) {
         unsigned kind = static_cast<unsigned>(type_ - 0x201B);
         if (kind <= 11) p->frame = static_cast<int>(kind);
@@ -463,9 +463,10 @@ namespace {
 #define EI_TRANS_GROWTH 0.02f /*0073CCD8*/      // 0.02
 
 // Alpha tables indexed by the ticks left.
-const std::int32_t* SparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB98); }
-const float* GlowAlpha() { return ei::GamePointer<const float>(0x0078AA78); }
-const std::int32_t* DustAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AAD8); }
+constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
+constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                            1.0f, 1.0f};
+constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
 // 00561150 on the map object at 007AF78C: the ground plane at (x, y), as a normal and a distance.
 void* PlaneMap() { return ei::GamePointer<void>(0x007AF78C); }
@@ -510,12 +511,11 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
 EI_REPLACE_METHOD(0x00492D30, CParticleSource::EmitZoneExit);
 
 // 00493280. 0x2039: on its first update (life -10) the particle's lifetime is set from its
-// position in the emission (frameTimer * 8 / particle count + 7); the alpha follows the table at
-// 0078AA78.
+// position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int CParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / particles.count + 7;
     if (--p->life < 0) return 0;
-    int opacity = x87::fistp(static_cast<float>(D(GlowAlpha()[p->life]) * D(EI_BYTE)));
+    int opacity = x87::fistp(static_cast<float>(D(kGlowAlpha[p->life]) * D(EI_BYTE)));
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
     return 1;
 }
@@ -525,7 +525,7 @@ EI_REPLACE_METHOD(0x00493280, CParticleSource::UpdateGlow);
 // measured (element 0: distance +0x0C, normal +0x18), growing and slowing down.
 int CParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
-    p->color = (static_cast<std::uint32_t>(DustAlpha()[p->life]) << 24) + (p->color & 0xFFFFFF);
+    p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
@@ -611,7 +611,7 @@ void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int
 EI_REPLACE_METHOD(0x00494930, CParticleSource::TickPortal);
 
 // 00494CD0. Sparks: the spare ones (state set) get a random size once and are dropped after; the
-// rest fly along their drift, shrinking and slowing, with the alpha from the table at 0078AB98.
+// rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
 int CParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
         EI_NAN_AUDIT(p->size);
@@ -624,7 +624,7 @@ int CParticleSource::UpdateSparks(Particle* p) {
         return 1;
     }
     if (--p->life < 0) return 0;
-    p->color = (static_cast<std::uint32_t>(SparkAlpha()[p->life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kSparkAlpha[p->life]) << 24) | 0xFFFFFF;
     p->pos.x = static_cast<float>(D(p->drift.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));

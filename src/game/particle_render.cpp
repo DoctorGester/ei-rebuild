@@ -34,7 +34,8 @@ double Unsigned(std::uint32_t value) {
 
 ParticleVertexArray& Vertices() { return ei::GameData<ParticleVertexArray>(0x007A9BD0); }
 ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A9BE0); }
-std::uint8_t& ArraysConstructed() { return ei::GameData<std::uint8_t>(0x007A9BF4); }
+// The guard bits of the arrays below (function-local statics in the original).
+std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
 // The world clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
 float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
@@ -43,17 +44,17 @@ constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
 void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
-// The arrays are function-local statics in the original (guard bits 1 and 2 of 007A9BF4, the
+// The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, the
 // destructors 00497D30 / 00497D10 registered with atexit).
 void ConstructArrays() {
-    if (!(ArraysConstructed() & 1)) {
-        ArraysConstructed() |= 1;
+    if (!(g_arraysConstructed & 1)) {
+        g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D30));
     }
-    if (!(ArraysConstructed() & 2)) {
+    if (!(g_arraysConstructed & 2)) {
         Vertices().data = nullptr;
-        ArraysConstructed() |= 2;
+        g_arraysConstructed |= 2;
         Vertices().growBy = 0;
         Vertices().capacity = 0;
         Vertices().size = 0;

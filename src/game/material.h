@@ -98,7 +98,7 @@ public:
     CMaterialManager* DeletingDestruct(unsigned flags);
     // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails); the archive "materials.res" of the text folder (007AF45C) added;
-    // then the colours of each of the eight kinds of the table at 00743BF8 (0x11 leather, wood,
+    // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
     // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the
     // file's colours (after its name: a 16-bit length and the text), or, without the file,
     // diffuse 0.3 (alpha 1), ambient 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's
@@ -119,15 +119,11 @@ public:
 };
 static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
 
-// The kinds the manager's Create enters and their files (00743BF8, eight of them).
+// A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).
 struct MaterialKindFile {
     int kind;
     const char* file;
 };
-constexpr int kMaterialKindFiles = 8;
-inline const MaterialKindFile* MaterialKindFileTable() {
-    return ei::GamePointer<const MaterialKindFile>(0x00743BF8);
-}
 constexpr int kMagicMaterialKind = 0x17;
 // The colours a material file holds: after its name (a 16-bit length, then the text).
 inline const void* MaterialFileColors(const void* data) {

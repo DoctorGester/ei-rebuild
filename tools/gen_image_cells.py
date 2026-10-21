@@ -11,6 +11,10 @@ dword's bytes up to its first zero printable, and the four bytes before it too),
 up to its zero printable, "Any", "May") whose value would point into the middle of text (the byte before the target
 printable ASCII: a pointer to a string points at its start).
 
+The cells inside the ranges our named globals hold (config/named_data.csv, C18) are left out: the image holds those
+bytes zero, and tools/named_data.py --check compares each such cell with the pointer element of ours in its place (a
+string literal, another named range, a function of ours with a registration).
+
 Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
 exception tables, RTTI, MFC's runtime classes) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
 group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out. Each group says what
@@ -68,14 +72,9 @@ SCANNED = [('rdata', IMPORTS[1], 0x00783000), ('data', 0x00783000, 0x0079C000)]
 # that takes it. "Strings" are string literals, which MSVC 6 put in .data.
 REVIEWED_DATA = [
     # .rdata
-    (0x0073B000, 0x00783000, 74, '".SEC": per-file copies of a const char* const from a header, some read by code '
+    (0x0073B000, 0x00783000, 73, '".SEC": per-file copies of a const char* const from a header, some read by code '
                                  '(005B5042 reads 0073FD20)', 0x00783CDC),
-    (0x0073D080, 0x0073D080, 1, '"C:\\*.*": a const char* const read by 0049F660'),
-    (0x0073F918, 0x0073F918, 1, '"SMessBase.reg": a const char* const'),
     (0x0073FD1C, 0x0073FD1C, 1, '".MP": a const char* const'),
-    (0x00743BFC, 0x00743C34, 8, 'the material files by material ("leather.mat", ...): a const char* const table'),
-    (0x00744090, 0x00744094, 2, '"music.reg", ".mp3": const char* consts'),
-    (0x007441D4, 0x007441D4, 1, '".MP": a const char* const'),
     (0x00746900, 0x00746930, 3, "MFC CCmdTarget's dispatch and event sink maps: their entry counts and stock "
                                 "property mask (-1 in .data)"),
     (0x00746C80, 0x00746C80, 1, 'MFC message map entry (ON_REGISTERED_MESSAGE, handler 00706CF4): the message\'s '
@@ -259,10 +258,30 @@ def section_of(value):
     return None
 
 
-def scan(img):
+def named_data_ranges():
+    """(address, size) of config/named_data.csv's ranges: named globals of ours (C18). Their cells are no cells of the
+    image (the bytes are zero there; tools/named_data.py --check compares each pointer element with its target)."""
+    if not os.path.exists(NAMED_DATA):
+        return []
+    with open(NAMED_DATA, newline='') as f:
+        return [(int(r['address'], 16), int(r['size'])) for r in csv.DictReader(f)]
+
+
+def outside_named(keep_named):
+    """A test for a cell address: False inside a named range of config/named_data.csv (unless keep_named)."""
+    if keep_named:
+        return lambda a: True
+    ranges = named_data_ranges()
+    return lambda a: not any(lo <= a < lo + n for lo, n in ranges)
+
+
+def scan(img, keep_named=False):
     cells = []
+    wanted = outside_named(keep_named)
     for _, begin, end in SCANNED:
         for a in range(begin, end, 4):
+            if not wanted(a):
+                continue
             o = a - BASE
             v = struct.unpack_from('<I', img, o)[0]
             if not MOVED[0] <= v <= MOVED[1] or string_tail(img, o) or (text_word(img, o) and mid_text(img, v)):
@@ -417,23 +436,24 @@ def code_group_of(cell, value, kinds, starts, img):
     return None
 
 
-def code_scan(img):
+def code_scan(img, keep_named=False):
     cells = []
+    wanted = outside_named(keep_named)
     for _, begin, end in SCANNED:
         for a in range(begin, end, 4):
             v = struct.unpack_from('<I', img, a - BASE)[0]
-            if in_code(v):
+            if in_code(v) and wanted(a):
                 cells.append((a, v))
     return cells
 
 
-def code_check(img, problems):
+def code_check(img, problems, keep_named=False):
     """The code cells (S18i) with their groups; problems appended. Returns (cells, groups, counts)."""
     kinds = code_structures(img)
     starts = function_starts()
     counts = {}
     code = []
-    for c, v in code_scan(img):
+    for c, v in code_scan(img, keep_named):
         g = code_group_of(c, v, kinds, starts, img)
         if g is None:
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} (the code section) has no review: a code pointer '
