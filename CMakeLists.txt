@@ -76,6 +76,7 @@ add_library(ei_hook SHARED
     src/hook/profile.cpp
     src/hook/rebirth_hook.cpp
     src/hook/standalone.cpp
+    src/standalone/image_data.cpp
     src/standalone/static_exit.cpp
     src/standalone/static_init.cpp
     src/standalone/static_init_run.cpp

@@ -42,6 +42,8 @@ if /i "%CFG%"=="debug" set SHORTMAP=
 python "%~dp0tools\check_short_functions.py" %SHORTMAP% || exit /b 1
 rem The standalone image's static initialisers (src/standalone/static_init.cpp) against game.exe's.
 python "%~dp0tools\check_static_init.py" || exit /b 1
+rem The image's pointer cells into .bss (src/standalone/image_cells.inc, S18b) against game.exe's data.
+python "%~dp0tools\gen_image_cells.py" --check || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
 echo Built: %~dp0build\%CFG%
