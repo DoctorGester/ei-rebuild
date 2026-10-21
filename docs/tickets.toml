@@ -2494,6 +2494,13 @@ group = "cleanup"
 depends = ["C18c"]
 note = "C18c's pointer-aware check can name them once their targets are ours: the 7 CRuntimeClass records src/lib names (mfc_file, mfc_gdi, mfc_exception) point at base records other game records share (CObject, CDC, CGdiObject, CException, CFile), so the form is the whole MFC hierarchy (41 records; CObject is also the base of the 5 serializable .data records the static initialisers link via AfxClassInit: decide those first). The EH ThrowInfo records (mfc_exception's 5, 00759908 game error, 0074C640 out_of_range) share catchable types and point at type descriptors in .data: their form is the compiler's own throw once the thrown classes carry the original's decorated names. docs/notes/standalone.md 'Named data (C18)'."
 
+[[ticket]]
+id = "C20a"
+title = "Code cells: drop game.exe's C++ EH tables' funclet cells"
+group = "cleanup"
+model = "opus"
+note = "13,511 of the 21,439 code cells (13,129 FuncInfo unwind-map actions, 382 try-block catch handlers) are game.exe's own exception metadata: only __CxxFrameHandler running on game.exe's frames reads them, and the standalone runs none of game.exe's code (our compiled code has its own FuncInfo). Check that nothing reads them (no reference from src/ or tests/ to their tables, no registration of a funclet address that a live path needs, the harness's stack walks), then leave them out of image_code_cells.inc in one group, as the CRT's SEH scope tables already are. Same review for the 5+2 ThrowInfo copy/destructor cells if C18e has not taken them. Goldens are the check (every run throws through the EH paths that exist). User 2026-10-21 found C19's pace (~185 cells a batch) slow; this is the one-shot lever, vtables (7,061) stay C19's."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
