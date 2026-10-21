@@ -16,7 +16,9 @@ collides:
   the earliest batch with runs left: a later batch's alone run never stops the backfill;
 - an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
-  stay where run_all puts them), retried as run_all.run_with_retries() does, in the same slot;
+  stay where run_all puts them), retried as run_all.run_with_retries() does; its slots go back as soon as its game
+  ends (frame packing and the reference copy run without them, SV10h) and a retry's game takes slots again before
+  anything new starts;
 - results go into the run rows, the summary and exit code into the batch row;
 - every finished game adds a row to the timing table (expected times: work.expected_times, WB6);
 - when main's tools/work_sched.py, run_all.py or work.py change, no new game starts and, once its own games
@@ -35,6 +37,7 @@ TICK = 0.5           # seconds between scheduling passes at most (a finished gam
 CHECK_EVERY = 5      # seconds between heartbeats and submitter checks
 CODE_FILES = ('work_sched.py', 'run_all.py', 'work.py')    # in the main checkout's tools: a change restarts the scheduler
 UNKNOWN_SECONDS = 1000   # expected time of a run run_times.json does not have (as run_all: new ones first)
+AFTER_GAME_MAX = 16      # runs past their game (packing frames, copying a reference) before no new game starts
 
 
 def live_dir():
@@ -209,9 +212,31 @@ def batch_env(batch):
     return json.loads(text) if text else None
 
 
-def real_runner(batch, run, retries, on_attempt):
-    """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold. A row of our
-    code in game.exe (a submission from a checkout from before S21c) fails without a game."""
+class GameSlots:
+    """A run's game slots, between its thread and the scheduler's loop (SV10h): the run gives them back as soon as its
+    game has ended (release), so its frame packing and reference copy run without them, and a retry's game asks for
+    them again (acquire) and waits until the loop has taken them. keep: an alone run keeps every slot to its end."""
+
+    def __init__(self, post, run_id, keep=False):
+        self.post, self.run_id, self.keep, self.held = post, run_id, keep, True
+
+    def release(self):
+        if self.held and not self.keep:
+            self.held = False
+            self.post(('freed', self.run_id, None))
+
+    def acquire(self):
+        if not self.held:
+            ready = threading.Event()
+            self.post(('want', self.run_id, ready))
+            ready.wait()
+            self.held = True
+
+
+def real_runner(batch, run, retries, on_attempt, slots=None):
+    """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold (slots: a
+    GameSlots, given back while no game of the run plays). A row of our code in game.exe (a submission from a checkout
+    from before S21c) fails without a game."""
     install = run_all.launch_install(run['install'])
     if bool(run['hooks']) != run_all.our_code(install):
         on_attempt(0)
@@ -228,7 +253,8 @@ def real_runner(batch, run, retries, on_attempt):
     def one(name, install, folder):
         on_attempt(next(attempts))
         return run_all.run(name, install, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           clock=clock, game_env=env, fresh=fresh, held=run['slots_held'] if 'slots_held' in run.keys() else 1)
+                           clock=clock, game_env=env, fresh=fresh, held=run['slots_held'] if 'slots_held' in run.keys() else 1,
+                           slots=slots)
     return run_all.run_with_retries(run['scenario'], install, retries, os.path.basename(run['folder']), runner=one,
                                     keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
@@ -330,8 +356,18 @@ class Scheduler:
                     with work.transaction(self.db):
                         self.db.execute('UPDATE run SET attempt = ? WHERE id = ?', (value, run_id))
                 continue
+            if kind == 'freed':          # its game has ended: the slots go to the next game now (SV10h)
+                game = self.games[run_id]
+                self.pool.release(game['slots'])
+                game['slots'], game['held'] = [], game['held'] + time.time() - game['since']
+                continue
+            if kind == 'want':           # a retry's game: grant() gives it slots before anything new starts
+                self.games[run_id]['want'] = value
+                continue
             game = self.games.pop(run_id)
             game['thread'].join()
+            if game['slots']:
+                game['held'] += time.time() - game['since']
             self.pool.release(game['slots'])
             if game['alone']:
                 self.pool.release_gate()
@@ -345,7 +381,8 @@ class Scheduler:
                     work.record_time(self.db, game['scenario'], game['install'], game['root'], seconds, game['batch'])
                 except Exception:
                     self.log(traceback.format_exc())     # never costs the run
-            self.log(f'batch #{game["batch"]}: {os.path.basename(game["folder"])} {result} {seconds:.0f}s')
+            self.log(f'batch #{game["batch"]}: {os.path.basename(game["folder"])} {result} {seconds:.0f}s '
+                     f'(slot {game["held"]:.0f}s)')
 
     def schedule(self):
         gathering = False
@@ -360,6 +397,10 @@ class Scheduler:
 
     def _schedule(self):
         """Starts what can start now; True while gathering every slot for a display-mode run."""
+        if not self.grant():
+            return self.pool.gate is not None               # a retry waits for slots: nothing new starts before it
+        if sum(not g['slots'] for g in self.games.values()) >= AFTER_GAME_MAX:
+            return False                                     # enough runs packing frames
         if self.stale or any(g['alone'] for g in self.games.values()):
             return False                                     # new code to load first / it has the machine to itself
         batches = self.db.execute("SELECT * FROM batch WHERE state IN ('queued', 'running') ORDER BY id").fetchall()
@@ -407,6 +448,30 @@ class Scheduler:
                 return False
         return False
 
+    def grant(self):
+        """Slots for the runs whose retry waits for them (GameSlots.acquire): those gathered for an alone run first,
+        then free ones. False while one still waits."""
+        for run_id, g in self.games.items():
+            if not g['want']:
+                continue
+            if not self.pool.gate_free():
+                return False                                 # a plain run_all gathers for a display-mode game
+            in_use = {i for x in self.games.values() for i in x['slots']}
+            slots = [i for i in self.pool.held if i not in in_use][:g['need']]
+            taken = []
+            while len(slots) < g['need'] and (slot := self.pool.take_one()) is not None:
+                slots.append(slot)
+                taken.append(slot)
+            if len(slots) < g['need']:
+                self.pool.release(taken)
+                return False
+            g['slots'], g['since'] = slots, time.time()
+            g['want'].set()
+            g['want'] = None
+            with work.transaction(self.db):
+                self.db.execute('UPDATE run SET slot = ? WHERE id = ?', (slots[0], run_id))
+        return True
+
     def start(self, batch, run, args, slots):
         t = work.now()
         with work.transaction(self.db):
@@ -423,15 +488,17 @@ class Scheduler:
                                   daemon=True)
         self.games[run['id']] = {'batch': batch['id'], 'slots': slots, 'folder': run['folder'],
                                  'alone': bool(run['alone']), 'thread': thread, 'scenario': run['scenario'],
-                                 'install': run['install'], 'root': batch['worktree']}
+                                 'install': run['install'], 'root': batch['worktree'],
+                                 'need': len(slots), 'want': None, 'since': time.time(), 'held': 0.0}
         self.log(f'batch #{batch["id"]}: {os.path.basename(run["folder"])} started in slot {slots[0]}'
                  + (' (alone)' if run['alone'] else ''))
         thread.start()
         return True
 
     def play(self, batch, run, retries):
+        slots = GameSlots(self.post, run['id'], keep=bool(run['alone']))
         try:
-            value = self.runner(batch, run, retries, lambda n: self.post(('attempt', run['id'], n)))
+            value = self.runner(batch, run, retries, lambda n: self.post(('attempt', run['id'], n)), slots)
         except Exception as e:
             value = ('ERROR', 0.0, [f'{type(e).__name__}: {e}'], {}, [])
         self.post(('done', run['id'], value))
@@ -493,9 +560,12 @@ class Scheduler:
         self.log(f'batch #{batch_id}: done, exit {code}')
 
     def wait_games(self):
-        for g in list(self.games.values()):
-            g['thread'].join()
-        self.collect()
+        """Until every game of ours has ended (a retry's game still gets its slots)."""
+        while self.games:
+            self.wake.wait(TICK)
+            self.wake.clear()
+            self.collect()
+            self.grant()
 
 
 # ---- commands

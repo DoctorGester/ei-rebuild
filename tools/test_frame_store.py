@@ -53,6 +53,17 @@ class FrameStoreTest(unittest.TestCase):
         self.assertEqual(frame_store.read_frame(self.path('frames', 'a.bmp')), a)
         self.assertEqual(frame_store.pack_folder(self.path('frames')), (0, 0))      # nothing left to pack
 
+    def test_pack_run_in_its_own_process(self):
+        os.makedirs(self.path('run', 'frames'))
+        self.assertEqual(frame_store.pack_run(self.path('run')), (0, 0))         # nothing to pack: no process
+        a = bmp(500, 300)
+        with open(self.path('run', 'frames', 'a.bmp'), 'wb') as f:
+            f.write(a)
+        before, after = frame_store.pack_run(self.path('run'))
+        self.assertEqual(before, len(a))
+        self.assertEqual(after, os.path.getsize(self.path('run', 'frames', 'a.bmp.z')))
+        self.assertEqual(frame_store.read_frame(self.path('run', 'frames', 'a.bmp')), a)
+
     def test_compare_frames_reads_both_forms(self):
         os.makedirs(self.path('x', 'frames'))
         os.makedirs(self.path('y', 'frames'))
