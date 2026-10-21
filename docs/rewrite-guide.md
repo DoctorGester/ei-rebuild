@@ -53,7 +53,10 @@ comes from a bug we already hit.
    `EI_REPLACE_METHOD(addr, Class::Method)`. `__fastcall`/`__stdcall`/`__cdecl` free functions use
    `EI_REPLACE(addr, Function)`. Count `RET n` to confirm stack arguments, and declare every one of
    them even when the function never reads it (five loaders declared with one argument too few left
-   4 bytes on the caller's stack and crashed the game at startup).
+   4 bytes on the caller's stack and crashed the game at startup). A rewrite whose address nothing
+   reaches (every caller calls it by name; tools/registration_readers.py) is not registered: write
+   `EI_REWRITTEN(addr, Function)`, which keeps it in the tools' function-to-original map (check_fp_fold,
+   check_signatures, coverage, progress; C20d).
 4. **Virtual methods** cannot be registered by member pointer (that yields a vtable thunk). Declare
    the virtuals in vtable order, implement the body, and register a shim:
    `bool __fastcall FooHook(Cls* self, void*, args...) { return self->Cls::Foo(args...); }`.

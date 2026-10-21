@@ -9,8 +9,9 @@ what is left to find are the folds written in the source.
 
 What it does, on the built ei_hook.dll and its map:
   1. The __real@ constants of the map that our .text loads with an x87 instruction, per function.
-  2. Each function registered with EI_REPLACE (_METHOD, _DISPATCH, _STANDALONE) is matched to its
-     symbol (check_signatures' registrations / candidates_for); the original's body in game.exe gives
+  2. Each function of the function-to-original map (EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, and EI_REWRITTEN
+     for a rewrite without a registration, C20d; "registered" below) is matched to its symbol (check_signatures'
+     registrations / candidates_for); the original's body in game.exe gives
      its known values: x87 memory operands and every dword it reads from a fixed address, as float
      and double, and its 32-bit immediates as float bits and as integers. A function without a
      registration (a helper the compiler did not inline) is compared with the originals of the
@@ -24,7 +25,7 @@ What it does, on the built ei_hook.dll and its map:
      round like the 24-bit FPU) are listed with -v.
 A value listed in tools/check_fp_fold_allow.txt ("<value> <function or *>  # reason") is reviewed.
 
-usage: python tools/check_fp_fold.py [--dll build/release/ei_hook.dll] [-v] [--linked FILE]
+usage: python tools/check_fp_fold.py [--dll build/release/ei_hook.dll] [-v]
 exit code 1 on a problem
 """
 import argparse, bisect, glob, os, re, struct, sys, time
@@ -181,8 +182,6 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--dll', default=os.path.join(ROOT, 'build', 'release', 'ei_hook.dll'))
     ap.add_argument('-v', '--verbose', action='store_true', help='list new floats and reviewed doubles too')
-    ap.add_argument('--linked', metavar='FILE', help='write the original addresses this check compares with (the '
-                    'registrations it needs: tools/registration_readers.py) to FILE and stop')
     args = ap.parse_args(argv)
     started = time.time()
     img = Image(args.dll)
@@ -324,20 +323,6 @@ def main(argv):
                     seen.add(c)
                     todo.append(c)
         return found, table, live
-
-    if args.linked:
-        # The registrations the comparisons below rest on: a function's own (it loads x87 constants), or for a helper
-        # the registered functions that call it.
-        linked = set()
-        for k in uses:
-            if k in original:
-                linked.add(original[k])
-            else:
-                linked |= {original[c] for c in registered_callers(k)[0]}
-        with open(args.linked, 'w') as f:
-            f.write(''.join(f'{a:08X}\n' for a in sorted(linked)))
-        print(f'check_fp_fold: {len(linked)} registration address(es) linked to x87 constants written to {args.linked}')
-        return 0
 
     exe = Exe()
     known = exe.global_values()

@@ -33,6 +33,8 @@ import exe_path  # noqa: E402
 import dashboard_data as dd  # noqa: E402
 
 REGISTERED = re.compile(r'\b(?:EI_REPLACE\w*|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
+# A rewrite without a registration (C20d): its address is the tools' map, not a literal the image reaches.
+REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\([^;]*\)\s*;')
 CODE_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 TEXT_BEGIN, TEXT_END = 0x401000, 0x73A670
 
@@ -50,7 +52,7 @@ def scan_sources():
             for a in dd.ORIGINAL.findall(code):
                 forwarders[int(a, 16)].add(rel)
             if not rel.startswith(('src/hook/', 'src/standalone/')):
-                for m in CODE_LITERAL.finditer(code):
+                for m in CODE_LITERAL.finditer(REWRITTEN.sub('', code)):
                     a = int(m.group(1), 16)
                     if TEXT_BEGIN <= a < TEXT_END:
                         literals[a].add(rel)

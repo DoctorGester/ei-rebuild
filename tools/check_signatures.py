@@ -165,8 +165,10 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_RECORD
-    ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
+    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD, _DISPATCH, _STANDALONE) and EI_REWRITTEN
+    ('replace': our function for the original at the address; EI_REWRITTEN, C20d, has no registration), EI_RECORD
+    ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/: the tools' function-to-original
+    map (check_fp_fold reads it too)."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) + \
@@ -178,7 +180,7 @@ def registrations():
         text = re.sub(r'//[^\n]*', blank, text)
         text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
-        for m in re.finditer(r'EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
+        for m in re.finditer(r'(?:EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN)\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))

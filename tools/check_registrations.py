@@ -14,6 +14,10 @@ per address into the two sets InstallHooks keeps one of:
 
 A replacement together with a recorder at one address is the normal case, not a problem. Each problem names the address and every file:line registering it.
 
+EI_REWRITTEN (a rewrite without a registration, C20d) leaves {address, function, file, line} in the section .eiorg:
+the tools' function-to-original map. One address has at most one, and none where a plain replacement is registered
+(the registration already maps the function).
+
 usage: python tools/check_registrations.py [--dll build/release/ei_hook.dll]
 exit code 1 on any problem
 """
@@ -25,6 +29,7 @@ KINDS = ['EI_REPLACE', 'EI_REPLACE_STANDALONE', 'EI_REPLACE_SHORT', 'EI_REPLACE_
 SET_OF = ['plain replacement', 'plain replacement', 'plain replacement', 'plain replacement',
           'recorder']
 RECORD = struct.Struct('<IIII')   # address, file (VA of the string), line, kind
+ORIGIN = struct.Struct('<IIII')   # EI_REWRITTEN: address, function (VA), file (VA of the string), line
 
 
 class Image:
@@ -59,8 +64,9 @@ class Image:
         return '?'
 
 
-def records(img):
-    sec = img.section('.eireg')
+def records(img, name='.eireg'):
+    """.eireg: (address, file, line, kind); .eiorg: (address, file, line, function VA). None without the section."""
+    sec = img.section(name)
     if sec is None:
         return None
     _, _, vsz, rptr, rsz = sec
@@ -68,11 +74,14 @@ def records(img):
     out = []
     off = 0
     while off + RECORD.size <= len(raw):   # the linker pads between the modules' contributions with zeros
-        address, file_va, line, kind = RECORD.unpack_from(raw, off)
+        if name == '.eiorg':
+            address, code, file_va, line = ORIGIN.unpack_from(raw, off)
+        else:
+            address, file_va, line, code = RECORD.unpack_from(raw, off)
         if address == 0:
             off += 4
             continue
-        out.append((address, img.string_at(file_va), line, kind))
+        out.append((address, img.string_at(file_va), line, code))
         off += RECORD.size
     return out
 
@@ -87,7 +96,8 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--dll', default=os.path.join(ROOT, 'build', 'release', 'ei_hook.dll'))
     args = ap.parse_args(argv)
-    recs = records(Image(args.dll))
+    img = Image(args.dll)
+    recs = records(img)
     if not recs:
         print(f'{args.dll}: no registration records (section .eireg missing or empty)')
         return 1
@@ -104,6 +114,21 @@ def main(argv):
             where = '; '.join(f'{k} at {f}:{l}' for f, l, k in sorted(sites))
             print(f'{address:08X} has {len(sites)} {which} registrations: {where}')
     print(f'{len(recs)} registrations at {len({a for a, _, _, _ in recs})} addresses, {problems} address(es) registered twice')
+    origins = records(img, '.eiorg') or []
+    by_address = {}
+    for address, file, line, code in origins:
+        by_address.setdefault(address, []).append((short(file), line))
+    twice = 0
+    for address, sites in sorted(by_address.items()):
+        registered = groups.get((address, 'plain replacement'), [])
+        if len(sites) > 1 or registered:
+            twice += 1
+            where = '; '.join([f'EI_REWRITTEN at {f}:{l}' for f, l in sorted(sites)] +
+                              [f'{k} at {f}:{l}' for f, l, k in sorted(registered)])
+            print(f'{address:08X} has {len(sites)} EI_REWRITTEN' + (' and a registration' if registered else '') +
+                  f': {where}')
+    print(f'{len(origins)} EI_REWRITTEN at {len(by_address)} addresses, {twice} address(es) mapped twice')
+    problems += twice
     return 1 if problems else 0
 
 

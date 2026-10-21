@@ -49,11 +49,11 @@ def load_game_functions():
 
 
 def load_replacements(bare_only=False):
-    """EI_REPLACE / EI_REPLACE_METHOD lines: function name -> game address. `bare_only`: the names
+    """EI_REPLACE / EI_REPLACE_METHOD / EI_REWRITTEN lines: function name -> game address. `bare_only`: the names
     written without a class, as written (no aliases)."""
     out = {}
     short = collections.defaultdict(set)
-    pattern = re.compile(r'EI_REPLACE(?:_METHOD)?\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:]+)\s*\)')
+    pattern = re.compile(r'(?:EI_REPLACE(?:_METHOD)?|EI_REWRITTEN)\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:]+)\s*\)')
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
         for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
             out.setdefault(m.group(2), int(m.group(1), 16))
