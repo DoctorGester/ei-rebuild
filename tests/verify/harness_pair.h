@@ -11,11 +11,19 @@
 //
 // What makes a pair repeat, so that each side has a golden of its own (tools/golden.py, the run
 // folder's peer\ subfolder):
-// - Lockstep: the two main loops take turns a frame at a time. Side 0's frame n+1 starts once side 1's
-//   frame n has ended, side 1's frame n+1 once side 0's frame n+1 has ended (the frames before each
-//   side's first main loop pass, start-up and the menu's first frame, run at once). Only one game runs
-//   between two passes of its main loop, so which frame a game's datagram reaches the other in never
-//   depends on the machine. A game whose peer has ended (its process handle) goes on alone.
+// - Lockstep: the two main loops take turns a frame at a time. A turn runs from the after-frame peek
+//   (the steps, the messages, the next pass's worlds and net::Pump, the interface's update) to just before
+//   the pass's frame step (00458010: the drawing and the present); the frame step runs while the other
+//   game takes its turn (SV10a). Side 0's turn n+1 starts once side 1's turn n has ended, side 1's turn
+//   n+1 once side 0's turn n+1 has ended (the frames before each side's first main loop pass, start-up and
+//   the menu's first frame, run at once). A game's segment is a turn and the frame step after it; the
+//   segments follow each other in that order as when the frame step was inside the turn, and every
+//   datagram carries its sender's segment (its stamp). The frame step pumps the network too
+//   (CWorldClient::Render 00569E40 calls net::Pump between its drawing stages): its receives take only
+//   datagrams of earlier segments or its own, and it may send only to its own ports, so it sees and does
+//   the same as before whatever the other game has got to; a frame step that would send to the other
+//   game, bind, close or signal fails the run (the guard). So which frame a game's datagram reaches the
+//   other in never depends on the machine. A game whose peer has ended (its process handle) goes on alone.
 // - The pair's own network: the games' UDP sockets (the server and client sessions', the lobby's) do
 //   not talk over the loopback adapter. A datagram goes into the pair's shared mailbox, addressed by
 //   virtual ports: a bind claims the port asked (the game's 8888 stays: no port of its own is needed),
@@ -39,7 +47,16 @@ int Side();
 // Opens the pair's shared state (once, at harness start). False without EI_PAIR.
 bool Install();
 
-// After each frame of the main loop: ends this game's turn and waits for its next one.
+// Whether the turn ends before the frame step (SV10a); EI_PAIR_OVERLAP=0 ends it at the after-frame peek, as
+// before SV10a (to measure the overlap: the same mailbox order, so the same goldens).
+bool Overlap();
+
+// Just before a main loop pass's frame step: ends this game's turn (the other game's may run while this
+// one draws).
+void HandOff();
+
+// After each frame of the main loop (the after-frame peek): ends this game's turn if HandOff did not
+// (a pass without a frame step), and waits for its next one.
 void FrameDone(unsigned frame);
 
 // "peersignal": marks <tag> as reached by this side. "peerwait": whether the other side has marked it.

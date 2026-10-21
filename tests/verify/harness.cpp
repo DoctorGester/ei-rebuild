@@ -1280,6 +1280,16 @@ void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
 }
 
+// A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
+// the other game takes its turn (harness_pair.h). Only the main loop's call; the frame steps of modal
+// loops and screens stay inside the turn.
+constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
+constexpr std::uintptr_t kFrameStep = 0x00458010;
+void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
+    pair::HandOff();
+    reinterpret_cast<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
+}
+
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
 bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(site);
@@ -4057,6 +4067,10 @@ struct Harness {
             hooks.serverUpdate = &HeldServerUpdate;
         if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment)))
             hooks.clientSegment = &HeldClientSegment;
+        if (pair::Active() && pair::Overlap() &&
+            (hookPointsOnly ||
+             RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&HandOffThenFrameStep))))
+            hooks.frameStep = &HandOffThenFrameStep;
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();
