@@ -95,11 +95,11 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
     exits->size = 0;
     for (int i = 0; i < source->size; ++i) {
         const ZoneExit* from = &source->data[i];
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
-                            reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0)
+        if (gamecrt::mbscmp(from->target,
+                            game::EmptyText()) == 0)
             continue;   // leads nowhere
-        if (from->entrance < 0 && gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
-                                                  reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
+        if (from->entrance < 0 && gamecrt::mbscmp(from->target,
+                                                  kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
         gamearrays::ExitsSetSize(exits, index + 1);
@@ -164,8 +164,8 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (int i = 0; i < mobFiles_.size; ++i) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(mobFiles_[i])),
-                            reinterpret_cast<const unsigned char*>(file)) == 0)
+        if (gamecrt::mbscmp(static_cast<const char*>(mobFiles_[i]),
+                            file) == 0)
             return 1;
     }
     LoadingMobFile() = 1;
@@ -245,7 +245,7 @@ void CWorldServer::SaveMapObjects(void* stream) {
 namespace {
 const char*& LoadingMovie() { return ei::GameData<const char*>(0x00791EE0); }
 bool SameName(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+    return gamecrt::mbscmp(a, b) == 0;
 }
 // "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
 constexpr const char* kProgres5 = "progres5.bik";

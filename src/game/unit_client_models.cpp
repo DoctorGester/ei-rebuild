@@ -102,8 +102,8 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         const char* plain = ArmourPartNames()[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
-                            reinterpret_cast<const unsigned char*>(kHair)) == 0) {
+        if (gamecrt::mbscmp(static_cast<const char*>(part),
+                            kHair) == 0) {
             const char* prototype = unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(unit->prototypeId_),
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
@@ -118,8 +118,8 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         } else if (current) {
             if (SameName(plain, kHair)) {
                 static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(current));
-            } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
-                                       reinterpret_cast<const unsigned char*>(current->GetName())) != 0) {
+            } else if (gamecrt::mbscmp(static_cast<const char*>(part),
+                                       current->GetName()) != 0) {
                 static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(part, model, FiguresFlag(unit)));
                 static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(current));
             }
@@ -137,7 +137,7 @@ namespace {
 using PartArray = lib::AlignedArray<CEngineObject*>;
 
 int CompareNames(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 } // namespace
 

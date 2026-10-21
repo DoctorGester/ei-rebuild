@@ -220,7 +220,7 @@ constexpr const char* kPlainFormat = "%s";
 
 
 bool SameFolder(const char* folder, const char* name) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(name)) == 0;
+    return gamecrt::mbsicmp(folder, name) == 0;
 }
 } // namespace
 

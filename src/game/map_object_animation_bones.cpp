@@ -31,7 +31,7 @@ constexpr int kListBlockSize = 10;
 constexpr int kBoneClass = 0x300C;   // FigureBone's class id
 
 int CompareNames(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 
 CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {

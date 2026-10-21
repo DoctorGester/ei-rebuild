@@ -90,7 +90,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 EI_REPLACE_METHOD(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(folder_), reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0)
+    if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
         return;
     ClearSaveFolder(folder_);
     // The entries are MpHeroRecords (world_game.cpp declares the same 0x74-byte records as

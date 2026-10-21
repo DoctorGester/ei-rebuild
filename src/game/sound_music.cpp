@@ -31,10 +31,10 @@ int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 const char* Mp3() { return ei::GameData<const char* const>(0x00744094); }
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 int CompareNoCase(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbsicmp(a, b);
 }
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.

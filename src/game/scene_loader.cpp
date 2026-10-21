@@ -850,8 +850,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         for (int n = 0; n < s.nodes.size; ++n) {
             const char* name = FigureObject(&figureArray.data[f])->GetName();
             SceneNode& nd = nodeArray.data[n];
-            if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(nd.name)),
-                                reinterpret_cast<const unsigned char*>(name)) != 0)
+            if (gamecrt::mbscmp(static_cast<const char*>(nd.name),
+                                name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];
             const VtArray* from = &nd.frames;
@@ -889,8 +889,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         // (0051B470) for each link of the id.
         auto* owner = static_cast<CObject3DClientSpecific*>(u->Object3D()->attached);
         mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
-        bool bmp = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s.textureNames.Name(t).Right(4))),
-                                   reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
+        bool bmp = gamecrt::mbsicmp(static_cast<const char*>(s.textureNames.Name(t).Right(4)),
+                                   scenedata::BmpExtText()) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
             texture = static_cast<const char*>(name.Left(Length(name) - 4));

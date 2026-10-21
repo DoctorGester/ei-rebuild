@@ -35,10 +35,10 @@ namespace {
 
 
 int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 int Mbsicmp(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbsicmp(a, b);
 }
 
 // Argument `i` equals `text` (_mbscmp).

@@ -44,7 +44,7 @@ std::uint32_t Bits(float value) {
 }
 
 int CompareNames(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbsicmp(a, b);
 }
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is

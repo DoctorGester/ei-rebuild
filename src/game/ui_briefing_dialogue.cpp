@@ -297,8 +297,8 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(node->name)),
-                                reinterpret_cast<const unsigned char*>(name)) != 0)
+            if (gamecrt::mbsicmp(static_cast<const char*>(node->name),
+                                name) != 0)
                 continue;
             if (node->item) {
                 RemoveObject(node->item->texture_);

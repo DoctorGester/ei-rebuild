@@ -31,8 +31,6 @@ constexpr const char* kSecondPrimarySetText = "Adding new primary texture set wi
 constexpr int kTypeBuildingLike = 0x35;             // CObject3D::type_: its textures get flag 0x2000
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
-const unsigned char* Bytes(const char* text) { return reinterpret_cast<const unsigned char*>(text); }
-
 // 004EBE60: *slot = value with counted references; the old one released (its slot 4).
 template <typename T>
 void AssignCounted(T** slot, T* value) {
@@ -368,7 +366,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         bool named;
         {
             mfc::CString copy(name);
-            named = libcrt::Mbsicmp(Bytes(copy), Bytes(kNoneText)) != 0;
+            named = gamecrt::mbsicmp(copy, kNoneText) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];
@@ -402,7 +400,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
             material = materials[materialCursor];
         }
     }
-    if (gamecrt::mbscmp(Bytes(secondSkinName), Bytes(kNoneText)) == 0)
+    if (gamecrt::mbscmp(secondSkinName, kNoneText) == 0)
         SetSkins(skinName, nullptr);
     else
         SetSkins(skinName, secondSkinName);

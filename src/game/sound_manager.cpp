@@ -794,8 +794,8 @@ int CSoundManager::RequestStream(const char* name, int mode) {
     int m = 4;
     if (streamState != 0) {
         m = mode;
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(streamName)),
-                            reinterpret_cast<const unsigned char*>(name)) == 0 &&
+        if (gamecrt::mbscmp(static_cast<const char*>(streamName),
+                            name) == 0 &&
             *name != '\0') {
             streamState = 1;
             if (switchMode == 2) {
@@ -810,8 +810,8 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         }
     }
     if (streamState == 2 &&
-        gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(nextName)),
-                        reinterpret_cast<const unsigned char*>(name)) == 0 &&
+        gamecrt::mbscmp(static_cast<const char*>(nextName),
+                        name) == 0 &&
         switchMode >= m) {
         gameapi::LeaveCriticalSection(lock);
         return 1;

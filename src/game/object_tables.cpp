@@ -14,16 +14,10 @@
 #include <cstring>
 #include <new>
 
-namespace {
-
-const unsigned char* Bytes(const char* s) { return reinterpret_cast<const unsigned char*>(s); }
-
-} // namespace
-
 int __fastcall TextKeyFromName(const char* name) {
     std::uint32_t h = 0;
-    for (const unsigned char* p = Bytes(name); *p; ++p)
-        h = static_cast<std::uint32_t>(libcrt::Toupper(*p)) + h * 5;
+    for (const char* p = name; *p; ++p)
+        h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 EI_REPLACE(0x00461360, TextKeyFromName);
@@ -35,14 +29,14 @@ EI_REPLACE(0x004613A0, IsTextKey);
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
-        if (libcrt::Mbsicmp(Bytes(maps.data[i].name), Bytes(name)) == 0) return &maps.data[i];
+        if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
     return nullptr;
 }
 EI_REPLACE_METHOD(0x0045E850, CMapDatabase::FindMap);
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
-        if (libcrt::Mbsicmp(Bytes(allods.data[i].name), Bytes(name)) == 0) return &allods.data[i];
+        if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
     return nullptr;
 }
 EI_REPLACE_METHOD(0x0045E910, CMapDatabase::FindAllod);
@@ -94,7 +88,7 @@ void NamedFloatTable::Load(CStream* stream) {
             key = *read;
             read->~CString();
         }
-        if (gamecrt::mbscmp(Bytes(key), Bytes(game::EmptyText())) == 0) break;
+        if (gamecrt::mbscmp(key, game::EmptyText()) == 0) break;
         float value;
         stream->Read(&value, 4);
         (*this)[key] = value;

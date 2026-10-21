@@ -143,12 +143,12 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;
-        const auto* name = reinterpret_cast<const unsigned char*>(static_cast<const char*>(material));
-        if (gamecrt::mbscmp(name, reinterpret_cast<const unsigned char*>("Crystal")) == 0 ||
-            gamecrt::mbscmp(name, reinterpret_cast<const unsigned char*>("Bone")) == 0 ||
-            gamecrt::mbscmp(name, reinterpret_cast<const unsigned char*>("Stone")) == 0)
+        const char* name = material;
+        if (gamecrt::mbscmp(name, "Crystal") == 0 ||
+            gamecrt::mbscmp(name, "Bone") == 0 ||
+            gamecrt::mbscmp(name, "Stone") == 0)
             material = "stone";
-        else if (gamecrt::mbscmp(name, reinterpret_cast<const unsigned char*>("Metal")) != 0)
+        else if (gamecrt::mbscmp(name, "Metal") != 0)
             material = "leather";
     }
     mfc::CString sound;

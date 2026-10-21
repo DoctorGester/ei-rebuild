@@ -72,10 +72,10 @@ CParty* PartyOf(const ItemStock* stock) { return static_cast<CParty*>(static_cas
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 int CompareNoCase(const char* a, const char* b) {
-    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbsicmp(a, b);
 }
 
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range

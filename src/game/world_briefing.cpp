@@ -48,8 +48,8 @@ struct StringSlot {
 };
 
 bool IsEmpty(const mfc::CString& s) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
-                           reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0;
+    return gamecrt::mbscmp(static_cast<const char*>(s),
+                           game::EmptyText()) == 0;
 }
 
 } // namespace
@@ -68,8 +68,8 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
         static_cast<CTextManager*>(texts)->Split(&words, 1);
         if (words.GetSize() >= 2 &&
-            libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
-                            reinterpret_cast<const unsigned char*>(game::briefingwords::Hero())) != 0)
+            gamecrt::mbsicmp(static_cast<const char*>(words[1]),
+                            game::briefingwords::Hero()) != 0)
             return new (out) mfc::CString(words[1]);
     }
     return new (out) mfc::CString(game::EmptyText());
@@ -249,8 +249,8 @@ void GameFlow::OnVariableChanged(const void* event) {
     bool quest;
     {
         mfc::CString prefix = name.Left(2);
-        quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                reinterpret_cast<const unsigned char*>(flowdata::kQuestVariablePrefix)) == 0;
+        quest = gamecrt::mbscmp(static_cast<const char*>(prefix),
+                                flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
         TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));

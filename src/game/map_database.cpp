@@ -58,7 +58,7 @@ void StoreRadians(void* out, const char* text) {
 }
 
 bool Is(const char* word, const char* text) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(word), reinterpret_cast<const unsigned char*>(text)) == 0;
+    return gamecrt::mbscmp(word, text) == 0;
 }
 
 
@@ -161,7 +161,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         char* a = reinterpret_cast<char*>(db_->allods.data) + i * allod::kSize;
-        if (libcrt::Mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
+        if (gamecrt::mbsicmp(*reinterpret_cast<const char* const*>(a), allodName) != 0)
             continue;
         auto* mapList = reinterpret_cast<mfc::CArray<std::uint32_t>*>(a + allod::kMaps);
         mapList->SetAtGrow(mapList->size, static_cast<std::uint32_t>(map_));   // 00460500

@@ -237,8 +237,8 @@ EI_REPLACE(0x0043D830, stlp::rb::RebalanceForErase);
 namespace stlp {
 
 bool CStringLess::Less(const mfc::CString& a, const mfc::CString& b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(a)),
-                           reinterpret_cast<const unsigned char*>(static_cast<const char*>(b))) < 0;
+    return gamecrt::mbscmp(static_cast<const char*>(a),
+                           static_cast<const char*>(b)) < 0;
 }
 
 } // namespace stlp

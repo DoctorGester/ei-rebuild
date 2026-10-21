@@ -25,7 +25,7 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     mfc::CString alphaPath;
     console::CStringArray pieces;
     if ((flags_ & kTextureLoaded) &&
-        gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(name_), reinterpret_cast<const unsigned char*>(path)) == 0) {
+        gamecrt::mbscmp(name_, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }

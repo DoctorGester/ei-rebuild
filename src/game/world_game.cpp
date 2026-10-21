@@ -167,10 +167,10 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->name),
-                                   reinterpret_cast<const unsigned char*>(kAlwaysCopied)) == 0 ||
-                   gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->allod),
-                                   reinterpret_cast<const unsigned char*>(static_cast<const char*>(currentMap))) == 0;
+            keep = gamecrt::mbscmp(record->name,
+                                   kAlwaysCopied) == 0 ||
+                   gamecrt::mbscmp(record->allod,
+                                   static_cast<const char*>(currentMap)) == 0;
         }
         if (keep) {
             zone = RecordName(record);
@@ -391,8 +391,8 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
 
     NamedFloatTable* variables = &records->variables;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                            reinterpret_cast<const unsigned char*>(kMovieZone)) != 0) {
+        if (gamecrt::mbscmp(static_cast<const char*>(zone),
+                            kMovieZone) != 0) {
             {
                 mfc::CString movie = MoviesFolder() + kMovieFile;
                 PlayMovie(movie, 0, 1, 1, 1, 1, 1);
@@ -403,11 +403,11 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zoneRecord->map),
-                        reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) {
+    if (gamecrt::mbscmp(zoneRecord->map,
+                        game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
-        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                            reinterpret_cast<const unsigned char*>(kFrozenZone)) == 0) {
+        if (gamecrt::mbsicmp(static_cast<const char*>(zone),
+                            kFrozenZone) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
             EI_NAN_AUDIT(frozen);
@@ -1211,7 +1211,7 @@ struct ZoneTable {
 using OutStrings = stlp::vector<stlp::string>;
 
 bool SameText(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+    return gamecrt::mbscmp(a, b) == 0;
 }
 
 // A list of entry pointers on the game's heap (the original keeps STLport lists of copies).
@@ -1515,8 +1515,8 @@ void GameFlow::UseResources(bool network) {
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(wanted)),
-                        reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) == 0)
+    if (gamecrt::mbscmp(static_cast<const char*>(wanted),
+                        static_cast<const char*>(LastResources())) == 0)
         return;
     LastResources() = wanted;
     SwitchResourceDatabases(wanted);
@@ -1706,10 +1706,10 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->name),
-                                        reinterpret_cast<const unsigned char*>(kAlwaysCopied)) == 0 ||
-                        gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(record->allod),
-                                        reinterpret_cast<const unsigned char*>(static_cast<const char*>(currentMap))) == 0;
+            bool keep = gamecrt::mbscmp(record->name,
+                                        kAlwaysCopied) == 0 ||
+                        gamecrt::mbscmp(record->allod,
+                                        static_cast<const char*>(currentMap)) == 0;
             if (keep) {
                 zone = RecordName(record);
                 mfc::CString currentPath = currentFolder + zone;
@@ -1920,8 +1920,8 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             mfc::CString prefix = name.Left(2);
-            quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                    reinterpret_cast<const unsigned char*>(kQuestVariablePrefix)) == 0;
+            quest = gamecrt::mbscmp(static_cast<const char*>(prefix),
+                                    kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
         mfc::CString rest = name.Right(console::Length(name) - 2);
