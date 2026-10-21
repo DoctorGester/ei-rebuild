@@ -42,7 +42,7 @@ struct ListAbi : CList<T, E> {
     // RemoveAt(position) (RET 4: unlinked, then FreeNode) and RemoveAll (plain RET: the elements
     // destroyed, every block freed) are CList's own members (mfc.h), registered through this type.
     // AddTail / AddHead with ARG_TYPE by value (RET 4): the new node (POSITION).
-    static Node* __fastcall AddTailByValue(List* self, void*, T value) { return self->AddTail(value); }
+    Node* AddTailByValue(T value) { return List::AddTail(value); }
     // RemoveHead (plain RET): the head's element (EAX).
     static T __fastcall RemoveHeadByValue(List* self) { return self->RemoveHead(); }
 
@@ -57,21 +57,21 @@ struct ListAbi : CList<T, E> {
 // The constructor of every instantiation: the vtable of `Class`, empty, the block size given (RET 4)
 // or fixed (plain RET). Returns this.
 template <typename Class>
-struct ListHeader {
+struct ListHeader : CList<void*> {
     using List = CList<void*>;
-    static List* __fastcall Construct(List* self, void*, int blockSize) {
-        self->vtable = Class::Vtable();
-        self->head = nullptr;
-        self->tail = nullptr;
-        self->count = 0;
-        self->free = nullptr;
-        self->blocks = nullptr;
-        self->blockSize = blockSize;
-        return self;
+    List* Construct(int nodesPerBlock) {
+        this->vtable = Class::Vtable();
+        this->head = nullptr;
+        this->tail = nullptr;
+        this->count = 0;
+        this->free = nullptr;
+        this->blocks = nullptr;
+        this->blockSize = nodesPerBlock;
+        return this;
     }
     template <int BlockSize>
-    static List* __fastcall ConstructFixed(List* self) {
-        return Construct(self, nullptr, BlockSize);
+    List* ConstructFixed() {
+        return Construct(BlockSize);
     }
 };
 
@@ -79,7 +79,7 @@ struct ListHeader {
 // `blockSize` nodes a block. Returns the list.
 template <typename Class>
 CList<void*>* ConstructListHeader(void* at, int blockSize) {
-    return ListHeader<Class>::Construct(static_cast<CList<void*>*>(at), nullptr, blockSize);
+    return static_cast<ListHeader<Class>*>(static_cast<CList<void*>*>(at))->Construct(blockSize);
 }
 
 // The destructor of a list on the stack or in a layout (ListAbi::Destruct on the list's own type):

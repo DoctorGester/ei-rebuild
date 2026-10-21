@@ -94,7 +94,7 @@ struct ArrayAbi : CArray<T, E> {
     // (RET 8), ElementAt(nIndex) (RET 4) and the by-value GetAt(nIndex) (RET 8) are CArray's own members
     // (mfc.h), registered through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
-    static void __fastcall SetAtGrowByValue(Array* self, void*, int index, T value) { self->SetAtGrow(index, value); }
+    void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
     // ConstructElements / DestructElements (__stdcall, RET 8).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
@@ -380,22 +380,22 @@ struct AnimationStepList : AnimationSteps::Array {
 };
 static_assert(sizeof(AnimationStepList) == 0x18);
 
-struct AnimationStepListAbi {
+struct AnimationStepListAbi : AnimationStepList {
     using Array = AnimationSteps::Array;
     // 0054B260: the copy constructor (RET 4): the steps (SetSize to the source's count, then each
     // step), then extra. Returns this.
-    static AnimationStepList* __fastcall CopyConstruct(AnimationStepList* self, void*, const AnimationStepList* source) {
-        CopyConstructSteps(self, nullptr, source);
-        self->extra = source->extra;
-        return self;
+    AnimationStepList* CopyConstruct(const AnimationStepList* source) {
+        CopyConstructSteps(source);
+        this->extra = source->extra;
+        return this;
     }
     // 00556870: the same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
-    static Array* __fastcall CopyConstructSteps(Array* self, void*, const Array* source);
+    Array* CopyConstructSteps(const Array* source);
     // 005483C0: operator= (RET 4): Copy, then extra. Returns this.
-    static AnimationStepList* __fastcall Assign(AnimationStepList* self, void*, const AnimationStepList* source) {
-        self->Copy(*source);
-        self->extra = source->extra;
-        return self;
+    AnimationStepList* Assign(const AnimationStepList* source) {
+        this->Copy(*source);
+        this->extra = source->extra;
+        return this;
     }
 };
 

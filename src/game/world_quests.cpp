@@ -171,8 +171,8 @@ CItem* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void> lists[2];
     mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
-    mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(first, nullptr, 10);
-    mfc::impl::ListHeader<mfc::impl::TempListClass>::Construct(second, nullptr, 10);
+    mfc::impl::ConstructListHeader<mfc::impl::TempListClass>(first, 10);
+    mfc::impl::ConstructListHeader<mfc::impl::TempListClass>(second, 10);
     CItem* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*first);

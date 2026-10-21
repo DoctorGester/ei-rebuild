@@ -350,7 +350,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     if (SectorList* cell = CellFor(grid, object)) {
         CEngineObject* value = object;
         HoldRef(value);
-        CellOps::Remove(cell, nullptr, &value);
+        CellOps::Remove(cell, value);
         DropRef(value);
     }
     if (SectorList* cell = CellFor(grid, object)) {
@@ -526,7 +526,7 @@ void CWorldClient::RemoveObject(int id) {
     if (SectorList* cell = CellFor(objectGrid_, object)) {
         CEngineObject* value = object;
         HoldRef(value);
-        CellOps::Remove(cell, nullptr, &value);
+        CellOps::Remove(cell, value);
         DropRef(value);
     }
     SectorListNode* ignored;

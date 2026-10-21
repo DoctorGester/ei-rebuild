@@ -248,6 +248,6 @@ typename list<T>::Node* AsNode(Node* node) {
 
 // remove(value) of a list<int> (00511FB0; RET 4; S16a: the light factory's lit ids): every element equal
 // to *value (read again for each node) erased, through 00512030.
-void __fastcall ListRemoveInt(list<int>* self, void*, const int* value);
+void ListRemoveInt(list<int>* self, const int& value);
 
 } // namespace stlp
