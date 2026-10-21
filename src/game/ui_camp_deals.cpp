@@ -28,8 +28,7 @@ const char* const kBuySound = "buttons\\camp\\buy.wav";
 const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
-// The spell prototypes (their by-name lookup 00613920 is a thiscall on the table).
-stlp::RecordsByName* SpellTable() { return itemdb::Named(itemdb::TheSpellDatabase().spells); }
+// The spell prototypes by name: SpellTable::Named (00613920, a thiscall on the table).
 
 // Pages of the action buttons.
 enum CampPage {
@@ -145,8 +144,7 @@ const char* InstructionName(int itemClass) {
 }
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
-// The quick item prototypes by name (an STLport map; 00613820 inserts a missing name).
-void* QuickItemsByName() { return &itemdb::TheItemDatabase().quickItems.names; }
+// The quick item prototypes by name: QuickItemTable::Named (00613820 inserts a missing name).
 constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
@@ -180,8 +178,8 @@ bool CCampPages::DeconstructItem() {
     }
     if (copy->spell_) {
         CResourceManager* manager = results->ItemManager();
-        auto* record = static_cast<const char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(QuickItemsByName()), nullptr, SpellContainerText()));
-        int index = static_cast<int>(record - itemdb::QuickItems().begin) / itemdb::kQuickItemSize;
+        itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
+        int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
         auto* container = static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1);
         if (container) {
             ++container->refCount_;
@@ -211,13 +209,13 @@ void StockSpells(CCampPages* camp, CParty* list) {
         item->Repair();
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             const char* name = item->spell_->GetPrototype()->code;
-            stock->AddSpell(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name)));
+            stock->AddSpell(itemdb::TheSpellDatabase().spells.Named(name));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            stock->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
+            stock->AddSpell(itemdb::SpellAt(index));
         } else if (UiItemKinds::IsModifier(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            stock->AddModifier(itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
+            stock->AddModifier(itemdb::SpellModifierAt(index));
         }
     }
 }
@@ -245,11 +243,11 @@ void StockItems(CCampPages* camp, CParty* list) {
             list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
-            stock->AddWeapon(itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
+            stock->AddWeapon(itemdb::WeaponAt(index));
         else if (kind == static_cast<int>(kRecordArmor))
-            stock->AddArmor(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
+            stock->AddArmor(itemdb::ArmorAt(index));
         else if (kind == static_cast<int>(kRecordQuickItem))
-            stock->AddQuickItem(itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
+            stock->AddQuickItem(itemdb::QuickItemAt(index));
     }
 }
 

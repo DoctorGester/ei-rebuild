@@ -35,11 +35,11 @@ constexpr int kLootChunk = 6;
 
 // Every record of `records` (`stride` bytes each) filed in `index` under the text `key` gives for
 // it (the index's operator[]: a record of a text seen before replaces the earlier one).
-template <typename Index, typename Key>
-void FileRecords(const RecordTable& records, int stride, Index& index, Key key) {
-    for (char* record = records.begin; record != records.end; record += stride) {
+template <typename Record, typename Key>
+void FileRecords(itemdb::NamedRecordTable<Record>& table, Key key) {
+    for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
         stlp::string text(key(record));
-        index[text] = record;
+        table.ByName()[text] = record;
     }
 }
 
@@ -52,8 +52,8 @@ void FileByCode(itemdb::CodeIndexedTable<Record>& table) {
     }
 }
 
-const char* MaterialKey(const char* record) { return reinterpret_cast<const itemdb::MaterialRecordHead*>(record)->key; }
-const char* ItemName(const char* record) { return reinterpret_cast<const itemdb::ItemRecordHead*>(record)->text04; }
+const char* MaterialKey(const itemdb::MaterialRecordHead* record) { return record->key; }
+const char* ItemName(const itemdb::ItemRecordHead* record) { return record->text04; }
 
 } // namespace
 
@@ -111,14 +111,14 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
 
     // The serialisers' unused third argument is the file's data here.
     LoadTable(stream, kMaterialsChunk, &ChunkArchive::SerializeMaterials, &materials, data,
-              [this] { FileRecords(materials.records, kMaterialSize, materials.ByName(), MaterialKey); });
+              [this] { FileRecords(materials, MaterialKey); });
     LoadTable(stream, kWeaponsChunk, &ChunkArchive::SerializeWeapons, &weapons, data,
-              [this] { FileRecords(weapons.records, kWeaponSize, weapons.ByName(), ItemName); });
+              [this] { FileRecords(weapons, ItemName); });
     LoadTable(stream, kArmorsChunk, &ChunkArchive::SerializeArmors, &armors, data,
-              [this] { FileRecords(armors.records, kArmorSize, armors.ByName(), ItemName); });
-    quickItems.LoadQuickItems(stream, kQuickItemsChunk);
-    questItems.LoadQuestItems(stream, kQuestItemsChunk);
-    loot.LoadLoot(stream, kLootChunk);
+              [this] { FileRecords(armors, ItemName); });
+    quickItems.Load(stream, kQuickItemsChunk);
+    questItems.Load(stream, kQuestItemsChunk);
+    loot.Load(stream, kLootChunk);
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();

@@ -224,8 +224,7 @@ int CUiItemStrip::ArmorTab(const char* item) {
         switch (ItemSubKind(item)) {
         case 0: return 0;
         case 1: {
-            auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(
-                itemdb::Armors().RecordAt(ItemRecord(item), itemdb::kArmorSize));
+            auto* armor = itemdb::ArmorAt(ItemRecord(item));
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case 2: return 3;

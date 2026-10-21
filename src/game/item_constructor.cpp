@@ -119,8 +119,9 @@ void DeleteRecord(ItemRecordHead* record) {
 }
 
 // Index of `record` in `table` (the pointer difference divided by the stride, signed).
-std::uint32_t IndexIn(const RecordTable& table, const ItemRecordHead* record, int stride) {
-    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<const char*>(record) - table.begin) / stride);
+template <typename Record>
+std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHead* record) {
+    return static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(record)));
 }
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -231,13 +232,13 @@ BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
 }
 EI_REWRITTEN(0x006A5C50, CItemConstructor::BeginCreateItem);
 
-BOOL CItemConstructor::SetMaterial(char* material) {
+BOOL CItemConstructor::SetMaterial(MaterialRecordHead* material) {
     material_ = material;
     return 1;
 }
 EI_REPLACE_METHOD(0x006A5CC0, CItemConstructor::SetMaterial);
 
-BOOL CItemConstructor::SetPrototype(char* prototype) {
+BOOL CItemConstructor::SetPrototype(ItemRecordHead* prototype) {
     prototype_ = prototype;
     return 1;
 }
@@ -318,7 +319,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         to->damage = damage * factor;
         float spread = from->damageSpread, factor2 = material->damageFactor;
         to->damageSpread = spread * factor2;
-        return IndexIn(Weapons(), prototype, kWeaponSize);
+        return IndexIn(TheItemDatabase().weapons, prototype);
     }
     case kClassArmor: {
         auto* to = static_cast<ArmorRecord*>(record);
@@ -333,15 +334,15 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
             float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
             to->absorbOthers[k] = d * e * f;
         }
-        return IndexIn(Armors(), prototype, kArmorSize);
+        return IndexIn(TheItemDatabase().armors, prototype);
     }
     case kClassQuick:
     case kClassSpell:
         CopyBits(static_cast<QuickItemRecord*>(record)->value70, static_cast<const QuickItemRecord*>(prototype)->value70);
-        return IndexIn(QuickItems(), prototype, kQuickItemSize);
+        return IndexIn(TheItemDatabase().quickItems, prototype);
     case kClassQuest:
         CopyBits(record->category, prototype->category);
-        return IndexIn(QuestItems(), prototype, kQuestItemSize);
+        return IndexIn(TheItemDatabase().questItems, prototype);
     case kClassLoot: {
         auto* to = static_cast<LootItemRecord*>(record);
         auto* from = static_cast<const LootItemRecord*>(prototype);
@@ -352,7 +353,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
             CopyBits(to->index, material->number);
         else
             CopyBits(to->index, from->index);
-        return IndexIn(Loot(), prototype, kLootSize);
+        return IndexIn(TheItemDatabase().loot, prototype);
     }
     default:
         return 0;   // not reached: the record of an unknown class is null and faulted above
@@ -365,8 +366,8 @@ BOOL CItemConstructor::Build() {
     int classId = item_->GetClassId();
     if ((classId == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return 0;
 
-    auto* prototype = reinterpret_cast<const ItemRecordHead*>(prototype_);
-    auto* material = reinterpret_cast<const MaterialRecordHead*>(material_);
+    const ItemRecordHead* prototype = prototype_;
+    const MaterialRecordHead* material = material_;
     ItemRecordHead* record = NewRecord(item_->GetClassId());
     FillCommon(record, prototype, material);
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
@@ -419,12 +420,7 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-stlp::RecordsByName* WeaponTable() { return itemdb::Named(itemdb::TheItemDatabase().weapons); }
-stlp::RecordsByName* ArmorTable() { return itemdb::Named(itemdb::TheItemDatabase().armors); }
-stlp::RecordsByName* QuickTable() { return itemdb::Named(itemdb::TheItemDatabase().quickItems); }
-stlp::RecordsByName* Table14() { return itemdb::Named(itemdb::TheItemDatabase().questItems); }
-stlp::RecordsByName* Table15() { return itemdb::Named(itemdb::TheItemDatabase().loot); }
-stlp::RecordsByName* MaterialTable() { return itemdb::Named(itemdb::TheItemDatabase().materials); }
+// (NamedRecordTable::Named.)
 
 // The string-keyed maps the loot item's table index comes from: operator[] of the weapon
 // (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
@@ -432,25 +428,28 @@ stlp::RecordsByName* MaterialTable() { return itemdb::Named(itemdb::TheItemDatab
 // (name, null) pair.
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
-int TableIndex(const RecordTable& table, const char* record, int stride) {
-    return record ? static_cast<int>(record - table.begin) / stride : -1;
+template <typename Table, typename Record>
+int TableIndex(const Table& table, const Record* record) {
+    return record ? table.IndexOf(record) : -1;
 }
 
 // The table index of a loot item's second name part (`which`: its +0x50).
 int LootTableIndex(int which, const char* name) {
     if (which < 0 || which > 4) return 0;
     stlp::string key(name);
+    ItemDatabase& items = TheItemDatabase();
+    SpellDatabase& spells = TheSpellDatabase();
     switch (which) {
     case 0:
-        return TableIndex(Weapons(), stlp::NamedSlot<char>(itemdb::TheItemDatabase().weapons.names, key), kWeaponSize);
+        return TableIndex(items.weapons, stlp::NamedSlot<WeaponRecord>(items.weapons.names, key));
     case 1:
-        return TableIndex(Armors(), stlp::NamedSlot<char>(itemdb::TheItemDatabase().armors.names, key), kArmorSize);
+        return TableIndex(items.armors, stlp::NamedSlot<ArmorRecord>(items.armors.names, key));
     case 2:
-        return TableIndex(QuickItems(), stlp::NamedSlot<char>(itemdb::TheItemDatabase().quickItems.names, key), kQuickItemSize);
+        return TableIndex(items.quickItems, stlp::NamedSlot<QuickItemRecord>(items.quickItems.names, key));
     case 3:
-        return TableIndex(Spells(), stlp::NamedSlot<char>(itemdb::NameMapOf(itemdb::TheSpellDatabase().spells), key), kSpellSize);
+        return TableIndex(spells.spells, stlp::NamedSlot<SpellRecord>(spells.spells.Names(), key));
     default:
-        return TableIndex(SpellModifiers(), stlp::NamedSlot<char>(itemdb::NameMapOf(itemdb::TheSpellDatabase().modifiers), key), kSpellModifierSize);
+        return TableIndex(spells.modifiers, stlp::NamedSlot<SpellModifierRecord>(spells.modifiers.Names(), key));
     }
 }
 
@@ -482,8 +481,8 @@ CItem* CItemManager::CreateItem(const char* name) {
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
         CItem* item = nullptr;
         if (spell) {
-            char* record = (char*)stlp::RecordNamed(QuickTable(), nullptr, kSpellContainer);
-            int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
+            QuickItemTable& quickItems = TheItemDatabase().quickItems;
+            int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
             item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
             if (item) item->AttachSpell(spell);
         }
@@ -492,11 +491,12 @@ CItem* CItemManager::CreateItem(const char* name) {
 
     // "prototype[.material]".
     const char* prototypeName = parts.data[0];
-    char* prototype = (char*)stlp::RecordNamed(WeaponTable(), nullptr, prototypeName);
-    if (!prototype) prototype = (char*)stlp::RecordNamed(ArmorTable(), nullptr, prototypeName);
-    if (!prototype) prototype = (char*)stlp::RecordNamed(QuickTable(), nullptr, prototypeName);
-    if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(Table14(), nullptr, prototypeName));
-    if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(Table15(), nullptr, prototypeName));
+    ItemDatabase& items = TheItemDatabase();
+    ItemRecordHead* prototype = items.weapons.Named(prototypeName);
+    if (!prototype) prototype = items.armors.Named(prototypeName);
+    if (!prototype) prototype = items.quickItems.Named(prototypeName);
+    if (!prototype) prototype = items.questItems.Named(prototypeName);
+    if (!prototype) prototype = items.loot.Named(prototypeName);
     if (!prototype) {
         // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
@@ -504,13 +504,13 @@ CItem* CItemManager::CreateItem(const char* name) {
         return nullptr;
     }
     constructor->SetManager(this);
-    constructor->BeginCreateItem(RecordSlots(reinterpret_cast<ItemRecordHead*>(prototype))->Kind(), -1);
-    char* material = nullptr;
-    if (parts.size > 1) material = static_cast<char*>(stlp::RecordNamed(MaterialTable(), nullptr, parts.data[1]));
+    constructor->BeginCreateItem(RecordSlots(prototype)->Kind(), -1);
+    MaterialRecordHead* material = nullptr;
+    if (parts.size > 1) material = items.materials.Named(parts.data[1]);
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
-    const char* type = reinterpret_cast<ItemRecordHead*>(prototype)->text04;
+    const char* type = prototype->text04;
     if (console::Length(extra) != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
@@ -542,26 +542,26 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     if (static_cast<std::int16_t>(index) == -1) index = 0;
     constructor->SetManager(this);
     constructor->BeginCreateItem(kind, key);
-    char* prototype = nullptr;
-    char* materialRecord = nullptr;
+    ItemRecordHead* prototype = nullptr;
+    MaterialRecordHead* materialRecord = nullptr;
     switch (kind) {
     case kItemWeapon:
-        prototype = Weapons().RecordAt(index, kWeaponSize);
-        materialRecord = Materials().RecordAt(material, kMaterialSize);
+        prototype = WeaponAt(index);
+        materialRecord = MaterialAt(material);
         break;
     case kItemArmor:
-        prototype = Armors().RecordAt(index, kArmorSize);
-        materialRecord = Materials().RecordAt(material, kMaterialSize);
+        prototype = ArmorAt(index);
+        materialRecord = MaterialAt(material);
         break;
     case kItemQuick:
     case kItemSpell:
-        prototype = QuickItems().RecordAt(index, kQuickItemSize);
+        prototype = QuickItemAt(index);
         break;
     case kItemLoot:
-        prototype = Loot().RecordAt(index, kLootSize);
+        prototype = LootAt(index);
         break;
     case kItemQuest:
-        prototype = QuestItems().RecordAt(index, kQuestItemSize);
+        prototype = QuestItemAt(index);
         break;
     default:
         break;
@@ -581,8 +581,8 @@ EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
 CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
     CSpell* spell = spells->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
-    char* record = (char*)stlp::RecordNamed(QuickTable(), nullptr, kSpellContainer);
-    int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
+    QuickItemTable& quickItems = TheItemDatabase().quickItems;
+    int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
     CItem* item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
     if (item) item->AttachSpell(spell);
     return item;
@@ -594,10 +594,10 @@ namespace {
 // The lists' loop: the array takes the table's count, then every element the name of the record
 // with its index (the count is read again for each; a record out of range would be read at null).
 template <typename Record, typename NameOf>
-void ListRecordNames(const RecordTable& table, mfc::CStringArray* names, NameOf nameOf) {
-    names->SetSize(static_cast<int>(table.end - table.begin) / static_cast<int>(sizeof(Record)), -1);
+void ListRecordNames(const NamedRecordTable<Record>& table, mfc::CStringArray* names, NameOf nameOf) {
+    names->SetSize(static_cast<int>(table.Count()), -1);
     for (int i = 0; i < names->size; ++i) {
-        auto* record = reinterpret_cast<const Record*>(table.RecordAt(static_cast<std::uint32_t>(i), sizeof(Record)));
+        const Record* record = table.At(static_cast<std::uint32_t>(i));
         names->data[i] = *nameOf(record);
     }
 }
@@ -607,12 +607,12 @@ const mfc::CString* HeadName(const ItemRecordHead* record) { return &record->tex
 } // namespace
 
 void CItemManager::ListMaterialNames(mfc::CStringArray* names) {
-    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) { return &record->key; });
+    ListRecordNames(TheItemDatabase().materials, names, [](const MaterialRecordHead* record) { return &record->key; });
 }
-void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames<WeaponRecord>(Weapons(), names, HeadName); }
-void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames<ArmorRecord>(Armors(), names, HeadName); }
+void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames(TheItemDatabase().weapons, names, HeadName); }
+void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames(TheItemDatabase().armors, names, HeadName); }
 void CItemManager::ListQuickItemNames(mfc::CStringArray* names) {
-    ListRecordNames<QuickItemRecord>(QuickItems(), names, HeadName);
+    ListRecordNames(TheItemDatabase().quickItems, names, HeadName);
 }
 EI_REWRITTEN(0x006AD260, CItemManager::ListMaterialNames);
 EI_REWRITTEN(0x006AD2F0, CItemManager::ListWeaponNames);
@@ -621,8 +621,8 @@ EI_REWRITTEN(0x006AD410, CItemManager::ListQuickItemNames);
 
 bool CItemConstructor::MagicCapacity(float* level, float* power) {
     if ((item_->GetClassId() == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return false;
-    auto* prototype = reinterpret_cast<const ItemRecordHead*>(prototype_);
-    auto* material = reinterpret_cast<const MaterialRecordHead*>(material_);
+    const ItemRecordHead* prototype = prototype_;
+    const MaterialRecordHead* material = material_;
     if (material) {
         *level = static_cast<float>(x87::FromUnsigned(prototype->magicLevel + material->magicLevel));
         *power = prototype->charge + material->magicPower;
