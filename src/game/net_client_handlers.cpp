@@ -42,8 +42,7 @@ namespace {
 // The game flow's map file writer (patched by Rebirth: through its address).
 __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
     EI_ORIGINAL(0x005813A0)
-// Parties (00661050 class, outside this range).
-inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
+
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
 inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
@@ -382,8 +381,8 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 
 void __fastcall ClientOnTrade(ClientSession* self, Message* message) {   // 0041F1E0
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
-    PartyReset(&self->parties_[0], nullptr, 1, 0);
-    PartyReset(&self->parties_[1], nullptr, 1, 0);
+    PartyResetOriginal(&self->parties_[0], nullptr, 1, 0);   // parties (00661050 class)
+    PartyResetOriginal(&self->parties_[1], nullptr, 1, 0);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.
