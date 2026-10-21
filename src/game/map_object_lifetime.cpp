@@ -43,7 +43,6 @@ using ei::SetVtable;
 // Vtables.
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
-constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
 // The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
 constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
@@ -214,7 +213,7 @@ void CMapObject::SetUpMapObject() {
     effectCount = 0;
     // The network records (DeltaField, 0xA0 each) and their two memory streams.
     DeltaState* records = NetState();
-    SetVtable(records, kRecordArrayVtable);
+    SetVtable(records, recordarrays::DeltaFieldArrayClass::Vtable());
     records->fields_ = nullptr;
     records->fieldGrowBy_ = 0;
     records->fieldCapacity_ = 0;
@@ -261,7 +260,7 @@ void CMapObject::TearDownMapObject() {
     DeltaState* records = NetState();
     DestroyStream(&records->header_[1]);
     DestroyStream(&records->header_[0]);
-    SetVtable(records, kRecordArrayVtable);
+    SetVtable(records, recordarrays::DeltaFieldArrayClass::Vtable());
     if (DeltaField* data = records->fields_) {
         int count = records->fieldCount_;
         for (int i = 0; i < count; ++i) (data + i)->Destruct();

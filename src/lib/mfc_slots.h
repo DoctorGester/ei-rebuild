@@ -218,30 +218,32 @@ struct MeshCornerArrayClass {   // the scene meshes' corner records (IndexMeshCo
 struct Vector3ArrayClass {   // 12-byte points: animation node normals, use spots, terrain sector data
     static void* Vtable() { return ei::GamePointer<void>(0x0073C120); }
 };
-struct TrapCircleArrayClass {   // a trap's circles (map_spec, magic_trap)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C698); }
-};
-struct TrapPointArrayClass {   // a trap's points
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C6A4); }
-};
+// A trap's circles (map_spec, magic_trap).
+struct TrapCircleArrayClass
+    : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+// A trap's points.
+struct TrapPointArrayClass
+    : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
 struct Array0498Class {   // constructed by 00498E60 only
     static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
 };
-struct ArgObjectsClass {   // a script command's object arguments, the derived class (script_copy)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D484); }
+// A script command's object arguments (script_destroy).
+struct ArgObjectsBaseClass
+    : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A script command's object arguments, the derived class (script_copy).
+struct ArgObjectsClass final : ArgObjectsBaseClass {
+    static void* Vtable() { return CompiledVtable<ArgObjectsClass>(); }
 };
-struct ArgGroupsClass {   // a script command's group arguments, the derived class
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D478); }
+// A script command's group arguments.
+struct ArgGroupsBaseClass
+    : CompiledCollection<ArgGroupsBaseClass, &ArrayHeader<ArgGroupsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A script command's group arguments, the derived class.
+struct ArgGroupsClass final : ArgGroupsBaseClass {
+    static void* Vtable() { return CompiledVtable<ArgGroupsClass>(); }
 };
-struct ArgObjectsBaseClass {   // a script command's object arguments (script_destroy)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3F4); }
-};
-struct ArgGroupsBaseClass {   // a script command's group arguments
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D400); }
-};
-struct BindingsBaseClass {   // a script command's bindings
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D40C); }
-};
+// A script command's bindings.
+struct BindingsBaseClass
+    : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
 struct EffectArrayClass {   // a map object's effects
     static void* Vtable() { return ei::GamePointer<void>(0x0073DBA0); }
 };
@@ -486,11 +488,13 @@ using List30 = ListAbi<Bytes<0x30>>;
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
-struct TrapAreasArrayClass {   // a map trap record's areas (12-byte elements; the magic trap's circles)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C68C); }
+// A map trap record's areas (12-byte elements; the magic trap's circles).
+struct TrapAreasArrayClass final : TrapCircleArrayClass {
+    static void* Vtable() { return CompiledVtable<TrapAreasArrayClass>(); }
 };
-struct TrapTargetsArrayClass {   // a map trap record's targets (8-byte elements; the magic trap's points)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C680); }
+// A map trap record's targets (8-byte elements; the magic trap's points).
+struct TrapTargetsArrayClass final : TrapPointArrayClass {
+    static void* Vtable() { return CompiledVtable<TrapTargetsArrayClass>(); }
 };
 struct BehaviourPatrolsArrayClass {   // a unit record behaviour's patrols (mapspec::Patrol elements)
     static void* Vtable() { return ei::GamePointer<void>(0x0073C37C); }

@@ -47,7 +47,6 @@ inline void* const kRefs = ei::GamePointer<void>(0x0073D110);         // object 
 inline void* const kRefsBase = ei::GamePointer<void>(0x0073D11C);
 inline void* const kGroups = ei::GamePointer<void>(0x0073D304);       // ScriptVars group values
 inline void* const kGroupsBase = ei::GamePointer<void>(0x0073D310);
-inline void* const kCmds = ei::GamePointer<void>(0x0073D4A8);         // CArray<SSCCmd> (loader arrays)
 inline void* const kIfThen = ei::GamePointer<void>(0x0073D430);       // CArray<ScriptIfThen>
 // The CScript members' (the constructor 004BDE40 installs them; A-E1).
 inline void* const kPointLights = ei::GamePointer<void>(0x0073D394);  // CArray<ScriptPointLight>

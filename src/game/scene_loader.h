@@ -490,7 +490,7 @@ inline void* NormalArrayVtable() { return ei::GamePointer<void>(0x0073C86C); }  
 inline void* DwordMapVtable() { return ei::GamePointer<void>(0x0073C818); }
 inline void* MapArrayVtable() { return ei::GamePointer<void>(0x0073C80C); }
 inline void* IndexArrayVtable() { return ei::GamePointer<void>(0x0073C800); }
-inline void* NodeArrayVtable() { return ei::GamePointer<void>(0x0073C15C); }
+
 inline void* TextureNameArrayVtable() { return ei::GamePointer<void>(0x0073C144); }   // {id, CString}
 inline void* TextureLinkArrayVtable() { return ei::GamePointer<void>(0x0073C150); }   // {id, value}
 

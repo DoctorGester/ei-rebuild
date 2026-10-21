@@ -722,7 +722,7 @@ using BoneLinkArray =
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
 struct SceneNodes : VtArray {
-    SceneNodes() : VtArray{scenedata::NodeArrayVtable(), nullptr, 0, 0, 0} {}
+    SceneNodes() : VtArray{recordarrays::SceneNodeArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
         if (!data) return;
         for (int i = 0; i < size; ++i) static_cast<SceneNode*>(&Typed<NodeArray>(*this).data[i])->Destruct();

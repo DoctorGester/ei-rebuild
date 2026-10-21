@@ -7,6 +7,7 @@
 #include "script_load_vectors.h"
 #include "script_vectors.h"
 
+#include "../../src/game/record_arrays.h"
 #include "../../src/game/script.h"
 
 #include "ei/hook.h"
@@ -138,7 +139,7 @@ ScriptDecl* ReadBlockRef(Reader& r) {
     g_blocks.emplace_back();
     ScriptDecl& block = g_blocks.back();
     std::memset(static_cast<void*>(&block), 0, sizeof(block));
-    block.commands.vtable = scriptvtable::kCmds;
+    block.commands.vtable = recordarrays::SubCallArrayClass::Vtable();
     block.id = r.Get<std::int32_t>();
     return &block;
 }
@@ -262,7 +263,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     CScript* s = ReadState(r);
     SetError(s, ReadError(r));
     ScriptVars* locals = ReadLocals(r);
-    ScriptCommands commands{{scriptvtable::kCmds, nullptr, 0, 0, r.Get<std::int32_t>()}};
+    ScriptCommands commands{{recordarrays::SubCallArrayClass::Vtable(), nullptr, 0, 0, r.Get<std::int32_t>()}};
     Run run;
     ReadRun(r, &run);
     const crt::NegativeClassesScope negative(r);

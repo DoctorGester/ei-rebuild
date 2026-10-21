@@ -174,10 +174,10 @@ EI_REPLACE(0x0045E000, ScalarDelete<&ArrayHeader<ArrayBaseClass>::Destruct>);   
 EI_REPLACE(0x0045E230, ScalarDelete<&ArrayHeader<ArrayBaseClass>::Destruct>);   // 0045E250
 EI_REPLACE(0x004600B0, ScalarDelete<&ArrayHeader<IntArrayClass>::Destruct>);   // 004600D0
 EI_REPLACE(0x00468F50, ScalarDelete<&ArrayHeader<SpriteArrayClass>::Destruct>);   // 00468D80
-EI_REPLACE(0x0046E8F0, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destruct>);   // 0046E910
-EI_REPLACE(0x0046E930, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046E950
-EI_REPLACE(0x0046EF20, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destruct>);   // 0046EF40
-EI_REPLACE(0x0046EF60, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046EF80
+EI_REWRITTEN(0x0046E8F0, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destruct>);   // 0046E910
+EI_REWRITTEN(0x0046E930, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046E950
+EI_REWRITTEN(0x0046EF20, ScalarDelete<&ArrayHeader<TrapCircleArrayClass>::Destruct>);   // 0046EF40
+EI_REWRITTEN(0x0046EF60, ScalarDelete<&ArrayHeader<TrapPointArrayClass>::Destruct>);   // 0046EF80
 EI_REPLACE(0x00476C90, ScalarDelete<&ArrayHeader<FilePointArrayClass>::Destruct>);   // 00474F30
 EI_REPLACE(0x00476CB0, ScalarDelete<&ArrayHeader<FileUvArrayClass>::Destruct>);   // 00475110
 EI_REPLACE(0x00476CD0, ScalarDelete<&ArrayHeader<FileFaceArrayClass>::Destruct>);   // 004752F0
@@ -195,17 +195,17 @@ EI_REPLACE(0x004C1A00, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destru
 EI_REPLACE(0x004CAF70, ScalarDelete<&ArrayHeader<ScriptAreaClass>::Destruct>);   // 004CAF90
 EI_REPLACE(0x004CAFF0, ScalarDelete<&ArrayHeader<ScriptFloatsClass>::Destruct>);   // 004C29C0
 EI_REPLACE(0x004CB030, ScalarDelete<&ArrayHeader<FloatArrayClass>::Destruct>);   // 004CB050
-EI_REPLACE(0x004CB070, ScalarDelete<&ArrayHeader<ArgObjectsBaseClass>::Destruct>);   // 004C4840
-EI_REPLACE(0x004CB090, ScalarDelete<&ArrayHeader<ArgGroupsBaseClass>::Destruct>);   // 004C4B30
-EI_REPLACE(0x004CB0B0, ScalarDelete<&ArrayHeader<BindingsBaseClass>::Destruct>);   // 004C4E20
+EI_REWRITTEN(0x004CB070, ScalarDelete<&ArrayHeader<ArgObjectsBaseClass>::Destruct>);   // 004C4840
+EI_REWRITTEN(0x004CB090, ScalarDelete<&ArrayHeader<ArgGroupsBaseClass>::Destruct>);   // 004C4B30
+EI_REWRITTEN(0x004CB0B0, ScalarDelete<&ArrayHeader<BindingsBaseClass>::Destruct>);   // 004C4E20
 EI_REPLACE(0x004CB110, ScalarDelete<&ArrayHeader<ScriptIfThenArrayClass>::Destruct>);   // 004C5AF0
 EI_REPLACE(0x004CB6F0, ScalarDelete<&ArrayHeader<PartySlotArrayClass>::Destruct>);   // 004CB710
 EI_REPLACE(0x004CB730, ScalarDelete<&PtrList::Destruct<PtrListClass>>);   // 004C96F0
 EI_REPLACE(0x004CB750, ScalarDelete<&ArrayHeader<AiLookArrayClass>::Destruct>);   // 004CB770
 EI_REPLACE(0x004CCED0, ScalarDelete<&ArrayHeader<FloatArrayClass>::Destruct>);   // 004BF760
-EI_REPLACE(0x004CCEF0, ScalarDelete<&ArrayHeader<ArgObjectsBaseClass>::Destruct>);   // 004BF780
-EI_REPLACE(0x004CCF10, ScalarDelete<&ArrayHeader<ArgGroupsBaseClass>::Destruct>);   // 004BF7A0
-EI_REPLACE(0x004CCF30, ScalarDelete<&ArrayHeader<BindingsBaseClass>::Destruct>);   // 004BF7C0
+EI_REWRITTEN(0x004CCEF0, ScalarDelete<&ArrayHeader<ArgObjectsBaseClass>::Destruct>);   // 004BF780
+EI_REWRITTEN(0x004CCF10, ScalarDelete<&ArrayHeader<ArgGroupsBaseClass>::Destruct>);   // 004BF7A0
+EI_REWRITTEN(0x004CCF30, ScalarDelete<&ArrayHeader<BindingsBaseClass>::Destruct>);   // 004BF7C0
 EI_REPLACE(0x004CDF20, ScalarDelete<&ArrayHeader<AiLookArrayClass>::Destruct>);   // 004CDF00
 EI_REWRITTEN(0x0050DFB0, ScalarDelete<&PtrList::Destruct<BoneListClass>>);   // 0050DBC0
 EI_REWRITTEN(0x0050DFD0, ScalarDelete<&PtrList::Destruct<AnimationStateListClass>>);   // 0050DE30
@@ -270,8 +270,8 @@ EI_REPLACE(0x00451EE0, SerializeCArray<Plain16>);   // MeshCornerArrayClass
 EI_REPLACE(0x0045D950, SerializeCArray<Plain20>);   // ArrayBaseClass
 EI_REPLACE(0x0045FA40, SerializeCArray<Plain4>);   // IntArrayClass
 EI_REPLACE(0x00468DA0, SerializeCArray<Plain8>);   // SpriteArrayClass
-EI_REPLACE(0x0046EC10, SerializeCArray<Plain12>);   // TrapCircleArrayClass
-EI_REPLACE(0x0046EDA0, SerializeCArray<Plain8>);   // TrapPointArrayClass
+EI_REWRITTEN(0x0046EC10, SerializeCArray<Plain12>);   // TrapCircleArrayClass
+EI_REWRITTEN(0x0046EDA0, SerializeCArray<Plain8>);   // TrapPointArrayClass
 EI_REPLACE(0x00474F50, SerializeCArray<Plain12>);   // FilePointArrayClass
 EI_REPLACE(0x00475130, SerializeCArray<Plain12>);   // FileUvArrayClass
 EI_REPLACE(0x00475310, SerializeCArray<Plain28>);   // FileFaceArrayClass
@@ -284,9 +284,9 @@ EI_REPLACE(0x00498EA0, SerializeCArray<Plain8>);   // Array0498Class
 EI_REPLACE(0x004C1E70, SerializeCArray<Plain20>);   // ScriptAreaClass
 EI_REPLACE(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
 EI_REPLACE(0x004C4560, SerializeCArray<Plain4>);   // FloatArrayClass
-EI_REPLACE(0x004C4860, SerializeCArray<Plain4>);   // ArgObjectsBaseClass
-EI_REPLACE(0x004C4B50, SerializeCArray<Plain4>);   // ArgGroupsBaseClass
-EI_REPLACE(0x004C4E40, SerializeCArray<Plain12>);   // BindingsBaseClass
+EI_REWRITTEN(0x004C4860, SerializeCArray<Plain4>);   // ArgObjectsBaseClass
+EI_REWRITTEN(0x004C4B50, SerializeCArray<Plain4>);   // ArgGroupsBaseClass
+EI_REWRITTEN(0x004C4E40, SerializeCArray<Plain12>);   // BindingsBaseClass
 EI_REPLACE(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
 EI_REPLACE(0x004C9B10, SerializeCArray<Plain16>);   // AiLookArrayClass
 EI_REPLACE(0x0050FFD0, SerializeCArray<Plain20>);   // EffectArrayClass
@@ -361,7 +361,7 @@ EI_REPLACE(0x00450D40, SerializeCArray<AlignedAt4Records>);   // AlignedAt4Array
 EI_REPLACE(0x0050A210, SerializeCArray<AlignedAt8Records>);   // AlignedAt8ArrayClass
 EI_REPLACE(0x00450570, SerializeCArray<OwnedBoneLinkArrays>);   // FakeUnitBoneArraysClass
 EI_REPLACE(0x00476430, SerializeCArray<OwnedDwordMaps>);   // SceneObjectArrayClass
-EI_REPLACE(0x006C4C90, SerializeCArray<AlignedArrays>);   // vtable 007441B4
+EI_REWRITTEN(0x006C4C90, SerializeCArray<AlignedArrays>);   // vtable 007441B4
 EI_REPLACE(0x00451A70, SerializeCArray<NamedStrings>);   // TextureNameArrayClass
 
 // Records with CStrings.

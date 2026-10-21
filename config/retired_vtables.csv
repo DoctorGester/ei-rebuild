@@ -6,14 +6,27 @@ vtable,slots,class,file,note
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
+0073C15C,3,SceneNodeArrayClass,src/game/record_arrays.h,CArray<SceneNode> (the scene loader's nodes)
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
+0073C680,3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
+0073C68C,3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
+0073C698,3,TrapCircleArrayClass,src/lib/mfc_slots.h,CArray (a trap's circles)
+0073C6A4,3,TrapPointArrayClass,src/lib/mfc_slots.h,CArray (a trap's points)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073D3F4,3,ArgObjectsBaseClass,src/lib/mfc_slots.h,CArray (a script command's object arguments)
+0073D400,3,ArgGroupsBaseClass,src/lib/mfc_slots.h,CArray (a script command's group arguments)
+0073D40C,3,BindingsBaseClass,src/lib/mfc_slots.h,CArray (a script command's bindings)
+0073D418,3,SubCallBaseClass,src/game/record_arrays.h,CArray (a command's nested calls; the base)
+0073D478,3,ArgGroupsClass,src/lib/mfc_slots.h,CArray (a script command's group arguments; derived from 0073D400)
+0073D484,3,ArgObjectsClass,src/lib/mfc_slots.h,CArray (a script command's object arguments; derived from 0073D3F4)
+0073D49C,3,BindingArrayClass,src/game/record_arrays.h,CArray (a command's binding arrays; derived from 0073D40C)
+0073D4A8,3,SubCallArrayClass,src/game/record_arrays.h,CArray (a command's nested calls; derived from 0073D418)
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
@@ -26,6 +39,7 @@ vtable,slots,class,file,note
 0073DA40,3,BoneListClass,src/lib/mfc_slots.h,CList (a figure bone's children and an animation state's bones)
 0073DA4C,13,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DA80,3,AnimationStateListClass,src/lib/mfc_slots.h,CList (an animation state's queue)
+0073DB94,3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
@@ -47,6 +61,7 @@ vtable,slots,class,file,note
 0073EB9C,3,MotionPointsClass,src/lib/mfc_slots.h,CArray (a unit motion's points; derived from 0073EBA8)
 0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
+0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
@@ -80,3 +95,5 @@ vtable,slots,class,file,note
 00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,
 007440F0,13,CSoundManager,src/game/sound.h,
+00744184,3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
+007441B4,3,TerrainAlignedArrayClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records with an aligned block)
