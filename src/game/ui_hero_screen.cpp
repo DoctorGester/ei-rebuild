@@ -173,7 +173,7 @@ void CMpHeroScreen::Update() {
     bool equal = points == target;
     bool ready = equal && name.GetLength() != 0;
     float shade = ready ? 1.0f : 0.5f;
-    auto* button = reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[kCreateButton]);
+    auto* button = window.SceneMesh(kCreateButton);
     button->tint_[0] = shade;
     button->tint_[1] = shade;
     button->tint_[2] = shade;
@@ -263,7 +263,7 @@ constexpr int kListFormat = 0x800;
 constexpr float kFrameDepth = 3.0f;
 
 CUiMesh* SelectionFrame(CUiWindow& window) {
-    return reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[kSelectionFrame]);
+    return window.SceneMesh(kSelectionFrame);
 }
 // A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
 CParty* MpHero(std::uint32_t index) { return reinterpret_cast<CParty*>(MpHeroes().begin + index * kMpHeroSize); }

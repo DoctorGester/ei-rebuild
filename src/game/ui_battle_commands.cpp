@@ -74,8 +74,8 @@ template <typename Column>
 void DropColumn(Column* panel, bool inlinePanels) {
     for (int i = 0; i < panel->count_; ++i) {
         if (inlinePanels) {
-            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]);
-            reinterpret_cast<CUiMesh*>(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
+            CUiMesh* sprite = panel->SceneMesh(i);
+            sprite->SetScale(std::bit_cast<float>(kScaleOne));
             sprite->flatSpecular_ = kSpriteOpaque;
             panel->selected_ = i;
         } else {
@@ -130,7 +130,7 @@ void CBattleScreen::ToggleMember(int index) {
     for (int i = 0; i < party->size; ++i) {
         auto* portraits = static_cast<CHudPortraits*>(portraits_);
         std::uint32_t value = chosen.data[i];
-        reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[i * 5 + 4])->visible_ = static_cast<int>(value);
+        portraits->SceneMesh(i * 5 + 4)->visible_ = static_cast<int>(value);
         Quaternion turn;
         const Quaternion* rest = ei::GamePointer<const Quaternion>(0x007C8150);   // identity
         if (value != 0) {

@@ -346,7 +346,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         DrawListAt(this);
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
-        auto* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword]);
+        auto* sprite = SceneMesh(kSpritePassword);
         sprite->textureOffsetU_ = hostPassword_.GetLength() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         TheGameFlow()->JoinServer(&entries_[selected_].address, boxText_);
@@ -377,7 +377,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         break;
     case kRegionUnlisted: {
         unlisted_ = !unlisted_;
-        auto* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteUnlisted]);
+        auto* sprite = SceneMesh(kSpriteUnlisted);
         sprite->textureOffsetU_ = unlisted_ ? FrameOn() : FrameOff();
         break;
     }
@@ -387,7 +387,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
             OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
         } else {
             hostPassword_.Empty();
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword])->textureOffsetU_ = 0.0f;
+            SceneMesh(kSpritePassword)->textureOffsetU_ = 0.0f;
         }
         break;
     case kRegionSortFirst:
@@ -406,8 +406,8 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
             if (selected_ == 0) {
                 gameType_ = region - kRegionTabFirst;
                 for (int i = 0; i < kTabs; ++i)
-                    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + i])->textureOffsetU_ = 0.0f;
-                reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + gameType_])->textureOffsetU_ = kTabSelected;
+                    SceneMesh(kSpriteTabFirst + i)->textureOffsetU_ = 0.0f;
+                SceneMesh(kSpriteTabFirst + gameType_)->textureOffsetU_ = kTabSelected;
             }
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
@@ -710,7 +710,7 @@ void CMpConnectScreen::Create() {
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
         region(460, top, 670, bottom, 0);
     }
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst])->textureOffsetU_ = kTabSelected;
+    SceneMesh(kSpriteTabFirst)->textureOffsetU_ = kTabSelected;
     gameType_ = 0;
     unlisted_ = true;
     hostPassword_.Empty();

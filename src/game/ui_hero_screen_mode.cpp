@@ -41,7 +41,7 @@ constexpr float kScale = 100.0f;
 void Enable(void* window, int enabled) { static_cast<CUiWindow*>(window)->SetEnabled(enabled, 1); }
 
 CUiMesh* Sprite(CMpHeroScreen* screen, int index) {
-    return reinterpret_cast<CUiMesh*>(screen->window.sceneObjects_.data[index]);
+    return screen->window.SceneMesh(index);
 }
 
 void ShowSprites(CMpHeroScreen* screen, int first, int end, int visible) {

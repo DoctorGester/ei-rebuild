@@ -198,7 +198,7 @@ EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < sceneObjects_.size; ++i)
-        static_cast<CUiMesh*>(sceneObjects_.data[i])->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
+        SceneMesh(i)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
     for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
@@ -428,8 +428,8 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         if (!made) return nullptr;
         ++made->refCount_;
         static_cast<CFigureMesh*>(made)->SetObject(reinterpret_cast<CObject3D*>(this));
-        auto* sprite = reinterpret_cast<CUiMesh*>(made);
-        auto* old = reinterpret_cast<CUiMesh*>(object);
+        auto* sprite = AsUiMesh(made);
+        auto* old = AsUiMesh(object);
         sprite->material_ = blackMaterial_;
         sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
         std::memcpy(&sprite->localPosition_, &old->localPosition_, 12);
@@ -438,7 +438,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
         float scale = old->GetScaleX();
-        static_cast<CUiMesh*>(made)->SetScale(scale);
+        AsUiMesh(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);
         ei::ObjectSlot<ReleaseFn>(object, 4)(object);
@@ -470,7 +470,7 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
         ++object->refCount_;
         static_cast<CFigureMesh*>(object)->SetObject(reinterpret_cast<CObject3D*>(this));
     }
-    auto* sprite = reinterpret_cast<CUiMesh*>(object);
+    auto* sprite = AsUiMesh(object);
     sprite->material_ = blackMaterial_;
     sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
     return sprite;

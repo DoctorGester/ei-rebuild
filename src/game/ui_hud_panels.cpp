@@ -33,7 +33,7 @@ constexpr char kNewLine[] = {'\n', '\0'};                           // 00784340
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // The panel's scene object `index` (the HUD's are interface sprites).
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {

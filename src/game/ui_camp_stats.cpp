@@ -171,8 +171,8 @@ EI_REWRITTEN(0x00624CB0, CHeroStatsPanel::HoverInfo);
 
 void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     bool party = reinterpret_cast<CParty*>(LocalPlayerData())->members_.size > 1;
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[0])->visible_ = party ? 1 : 0;
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[1])->visible_ = party ? 1 : 0;
+    SceneMesh(0)->visible_ = party ? 1 : 0;
+    SceneMesh(1)->visible_ = party ? 1 : 0;
     regions_.data[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
     regions_.data[1]->SetTip(party ? kTipNextHero : 0, 1, 0);
     heroIndex_ = heroIndex;

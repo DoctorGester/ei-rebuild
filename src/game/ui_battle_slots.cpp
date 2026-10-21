@@ -155,7 +155,7 @@ EI_REPLACE_METHOD(0x00635080, CBattleScreen::SaveState);
 
 void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = static_cast<CHudPortraits*>(portraits_);
-    reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[index * kPortraitSprites + 4])->visible_ = 1;
+    portraits->SceneMesh(index * kPortraitSprites + 4)->visible_ = 1;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion turn;
     portraits->slots_[index].restB_ = *turn.SetAxisAngle(axis, SelectedFaceAngle());

@@ -64,7 +64,7 @@ long GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
 // Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
 // original stores the constants as dwords).
 void SetTint(CEngineObject* object, std::uint32_t bits) {
-    float* tint = reinterpret_cast<CUiMesh*>(object)->tint_;
+    float* tint = AsUiMesh(object)->tint_;
     std::memcpy(&tint[0], &bits, 4);
     std::memcpy(&tint[1], &bits, 4);
     std::memcpy(&tint[2], &bits, 4);
@@ -552,7 +552,7 @@ UI_INPUT_HANDLER(0x00649750, CHudMovePanel, OnMouseMove);
 void CHudMovePanel::ShowModeVanilla(int mode) {
     widescreen::EnterLeftPanel();    // addon's 100233C7; 100233E0 at the end
     mode_ = mode;
-    auto* marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
+    auto* marker = SceneMesh(0);
     marker->visible_ = mode < 0 ? 0 : 1;
     for (int i = 0; i < 4; ++i) {
         CEngineObject* button = sceneObjects_.data[1 + i];
@@ -598,7 +598,7 @@ void CHudMovePanel::Update() {
     flag_ = flag;
     // Scene object 5 shows the flag through its texture offset (textureOffsetU_, +0xCC).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    std::memcpy(&reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->textureOffsetU_, &bits, 4);
+    std::memcpy(&SceneMesh(5)->textureOffsetU_, &bits, 4);
 }
 EI_REPLACE_METHOD(0x00649550, CHudMovePanel::Update);
 
@@ -899,16 +899,16 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int slot = quick->regionItem_[i];
             if (slot < 0 || slot >= quick->shownCount_) continue;
             CEngineObject* sprite = quick->sceneObjects_.data[slot];
-            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
-            reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
+            AsUiMesh(sprite)->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
+            AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
         }
         quick->selected_ = -1;
         // The spell and action columns (the same layout: count_, selected_, the sprites).
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_.data[i];
-                static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(kScaleOne));
-                reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
+                AsUiMesh(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
+                AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }
             panel->selected_ = -1;

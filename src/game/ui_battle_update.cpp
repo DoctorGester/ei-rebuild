@@ -98,7 +98,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
             CEngineObject* shown = sceneObjects_.data[last];
-            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(shown))->SetScale(slot < 4 ? 0.55f : 0.85f);
+            AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->flatSpecular_ = 0xFF000000;
         }
     };
@@ -482,7 +482,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             static_cast<CWorldClient*>(world)->Deselect(nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
+            auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
             auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
             for (int i = 0; i < party->size; ++i) {
                 CUnit* unit = unitAt(i);

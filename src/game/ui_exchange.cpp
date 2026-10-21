@@ -261,7 +261,7 @@ void SetTint(CUiMesh* sprite, float value) {
     sprite->tint_[1] = value;
     sprite->tint_[2] = value;
 }
-CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
+CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 bool LiveAccepted(const net::PartyMessage* offer) {
     return offer && !(offer->flags7_ & CRefObject::kDetached) && offer->accepted_;
 }

@@ -65,7 +65,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kStencilFormat = 0x4000;   // DDPF_STENCILBUFFER
 constexpr DWORD kClearedRects = 3;
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 IDirect3DDevice7* D3DDevice(UiRenderer* renderer) { return reinterpret_cast<IDirect3DDevice7*>(renderer->device_); }
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 

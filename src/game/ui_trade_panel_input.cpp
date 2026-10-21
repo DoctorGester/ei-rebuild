@@ -32,7 +32,7 @@ constexpr int kMaxLevel = 100;
 constexpr float kFirstHold = -0.5f;
 constexpr float kHoldRepeat = 0.25f;   // 0073C3B0
 
-CUiMesh* Arrow(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Arrow(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // An MFC CString's length (its header before the characters).
 int TextLength(const char* text) { return reinterpret_cast<const int*>(text)[-2]; }

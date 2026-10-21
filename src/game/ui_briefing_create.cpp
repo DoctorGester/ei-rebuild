@@ -160,7 +160,7 @@ void StepTurning(BriefingMover* node) {
 
 void SetMeshesVisible(CUiWindow* window, int visible) {
     for (int i = 0; i < window->sceneObjects_.size; ++i)
-        reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[i])->visible_ = visible;
+        window->SceneMesh(i)->visible_ = visible;
 }
 
 // The speaker's lips stop (CUnitClientSpecific's blink: eyes open).
@@ -319,8 +319,8 @@ void CBriefingScreen::Update() {
     switch (state_) {
     case kChoosing: {
         surfaces_.data[kTopicsSurface]->Freeze(1, 0);
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicBackdrop])->visible_ = 1;
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicFrame])->visible_ = 1;
+        SceneMesh(kTopicBackdrop)->visible_ = 1;
+        SceneMesh(kTopicFrame)->visible_ = 1;
         topicBar_->SetEnabled(1, 1);
         int position;
         if (topicBar_->TakePosition(&position)) {

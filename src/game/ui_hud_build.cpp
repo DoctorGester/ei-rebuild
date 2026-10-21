@@ -44,7 +44,7 @@ constexpr int kIconSize = 0x40;                    // the items', spells' and ac
 constexpr int kWeaponWidth = 0x2A, kWeaponHeight = 0x80;
 constexpr int kMaxQuickItems = 8;
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // The tooltips' labels: the texts "infoitem_<id>" appended in order.
 template <int N>

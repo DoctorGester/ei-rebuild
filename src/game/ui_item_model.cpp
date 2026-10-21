@@ -24,7 +24,7 @@ CEngineObject* __fastcall ItemModel(const char* name) {
     CEngineObject* model = static_cast<CFigureManager*>(manager)->NewFigure(name);
     if (!model) {
         model = static_cast<CFigureManager*>(manager)->NewFigure(nullptr);
-        reinterpret_cast<CUiMesh*>(model)->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
+        AsUiMesh(model)->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
         static_cast<CFigureMesh*>(model)->FitVertexBounds();
     }
     ++model->refCount_;

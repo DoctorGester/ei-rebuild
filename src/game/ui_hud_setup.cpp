@@ -171,7 +171,7 @@ void CHudMovePanel::SetupVanilla() {
     Builder(AddSprite(nullptr))->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowMode(-1);
     flag_ = -1;
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->textureOffsetU_ = 0.48046875f;
+    SceneMesh(5)->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00649190, CHudMovePanel::SetupVanilla);

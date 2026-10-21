@@ -416,7 +416,7 @@ void CUiScrollbar::SetMaximum(int maximum) {
     maxPosition_ = maximum;
     moved_ = true;
     int visible = maximum != 0 ? 1 : 0;
-    for (int i = 0; i < kScrollbarSprites; ++i) reinterpret_cast<CUiMesh*>(sceneObjects_.data[i])->visible_ = visible;
+    for (int i = 0; i < kScrollbarSprites; ++i) SceneMesh(i)->visible_ = visible;
     int position = position_;
     position_ = position - 1;
     CallSetPosition(position);

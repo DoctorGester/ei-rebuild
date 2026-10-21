@@ -77,7 +77,7 @@ constexpr float kMarkerRise = 60.0f;          // 0073F090
 constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
 
 // The interface sprite helpers on scene objects (CUiMesh, ui.h).
-CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
+CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 Quaternion* RotationOf(CEngineObject* object) {
     return &Sprite(object)->localRotation_;

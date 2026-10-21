@@ -75,7 +75,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     CUiSurface* surface = surfaces_.data[0];
     ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
-    CUiMesh* marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kMarkerSprite]);
+    CUiMesh* marker = SceneMesh(kMarkerSprite);
     marker->visible_ = 0;
 
     // The rows from the scroll position: the title (the typed name for the selected row of a save
@@ -107,7 +107,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     pen.Destruct();
                 }
             }
-            marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kMarkerSprite]);
+            marker = SceneMesh(kMarkerSprite);
             marker->visible_ = 1;
             SpritePlaceOriginal(marker, nullptr, 239.0f, static_cast<float>(y), 3.0f);
         } else {

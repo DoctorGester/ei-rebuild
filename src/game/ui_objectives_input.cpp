@@ -194,7 +194,7 @@ constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
 constexpr float kAlphaScale = 255.0f;
 
 CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
-    return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]);
+    return window->SceneMesh(index);
 }
 } // namespace
 
