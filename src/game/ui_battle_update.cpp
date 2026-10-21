@@ -195,8 +195,6 @@ using ListNode = List::Node;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // the 12-byte nodes
 
-// An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
-using PtrArray = mfc::CArray<void*>;
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
@@ -434,7 +432,6 @@ bool SameIds(const IdVector& a, const IdVector& b) {
 bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
-EI_REPLACE_METHOD(0x006381E0, CBattleScreen::PartyIds::Equals);
 
 // --- 00638B30: the battle screen's left button release -----------------------------------------
 
@@ -523,8 +520,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         NodeFreeList() = units.head;
     }
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
@@ -678,4 +673,3 @@ void CBattleScreen::RefreshSelection() {
     for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
     actions->selected_ = -1;
 }
-EI_REPLACE_METHOD(0x00637DC0, CBattleScreen::RefreshSelection);

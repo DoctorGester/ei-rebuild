@@ -37,7 +37,6 @@ double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     if (!weapon) return kNoSkill;
     return static_cast<double>(weapon->skillBonus[skill]);
 }
-EI_REPLACE(0x00526860, WeaponPrototypeSkillBonus);
 
 double UnitParams::VisionRange(float daylight) {
     double day = static_cast<double>(valuesB0[1]) * daylight * kPercent;

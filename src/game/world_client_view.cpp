@@ -365,19 +365,8 @@ BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
     return ModelOf(b)->touchTime < ModelOf(a)->touchTime;
 }
 
-// 005742F0 (A-W14). The rank the model sorts compare first: the first dword of the model's
-// first part set (+0x20), 0 without one. UnitOrderLess::Less has it inlined.
-std::uint32_t __fastcall ModelMaterialRank(CObject3DClientSpecific* model) {
-    const TextureParts* first = model->partSets[0];
-    return first ? *reinterpret_cast<const std::uint32_t*>(first) : 0;
-}
-EI_REPLACE(0x005742F0, ModelMaterialRank);
-
 EI_REPLACE_METHOD(0x0056A990, CWorldClient::CollectVisible);
 EI_REPLACE_METHOD(0x0056BF30, CWorldClient::PickGround);
 EI_REPLACE_METHOD(0x0056C350, CWorldClient::PickSurface);
 EI_REPLACE(0x005740D0, IntroSortByModel);
 EI_REPLACE(0x00574390, FinalSortByModel);
-EI_REPLACE(0x00573D50, IntroSortByModelUse);
-EI_REPLACE(0x00573F10, FinalSortByModelUse);
-EI_REPLACE_METHOD(0x00573EE0, ModelUseLess::Less);

@@ -172,7 +172,6 @@ bool SocketDriver::Open(int port) {
     libcrt::imports::SetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
     return true;
 }
-EI_REPLACE_METHOD(0x004409A0, SocketDriver::Open);
 
 bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     if (index >= AddressCount(this)) return false;
@@ -180,7 +179,6 @@ bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     out->port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
     return true;
 }
-EI_REPLACE_METHOD(0x00440A90, SocketDriver::Broadcast);
 
 // A broadcast address's trailing 0xFF bytes are the host part.
 bool SocketDriver::IsLocal(const NetAddress* address) {
@@ -200,13 +198,11 @@ bool SocketDriver::IsLocal(const NetAddress* address) {
     }
     return false;
 }
-EI_REPLACE_METHOD(0x00440AF0, SocketDriver::IsLocal);
 
 bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     std::int32_t length = Length(buffer);
     return libcrt::imports::SendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
-EI_REPLACE_METHOD(0x00440B90, SocketDriver::SendTo);
 
 // The buffer is first sought (its slot 6) to room for 0x800 bytes.
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
@@ -249,7 +245,6 @@ MasterLink* MasterLink::Construct(const void* address) {
     state = 1;
     return this;
 }
-EI_REPLACE_METHOD(0x00440C60, MasterLink::Construct);
 
 // 00440D40: closes the socket (left as it is) and destroys the buffers.
 void __fastcall MasterLinkDestruct(MasterLink* self) {

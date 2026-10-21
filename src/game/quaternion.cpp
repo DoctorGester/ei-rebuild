@@ -76,7 +76,6 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
     w = nw;
     x = nx;
 }
-EI_REPLACE_METHOD(0x0049E870, Quaternion::PreMultiplyConjugate);
 
 // 0049E950. out = conj(b) * a (b copied first, its vector part negated through float
 // temporaries); a is read completely before out is written. Dead (SV5c): only MakeFrameRelative
@@ -95,7 +94,6 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
     out->z = static_cast<float>(nz);
     return out;
 }
-EI_REPLACE(0x0049E950, MultiplyByConjugate);
 
 // 0049ED20. *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is
 // negative); nearly equal rotations interpolate linearly. The weight of a is rounded to float, the

@@ -79,7 +79,6 @@ std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     std::uint32_t larger = levelBytes * (scale - 1) * 4 / (scale * 3);
     return larger + extraSize;
 }
-EI_REPLACE_METHOD(0x006908E0, MmpHeader::MipOffset);
 
 std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const {
     std::uint32_t bits = bitsPerPixel;

@@ -302,9 +302,6 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return rgb;
 }
-EI_REPLACE_METHOD(0x005FD240, CUiSurface::PixelAt);
 
 EI_REPLACE_METHOD(0x005FD7A0, CUiSurface::SwapContents);
-EI_REPLACE_METHOD(0x005FD3D0, CUiSurface::CaptureScreen);
 EI_REPLACE_METHOD(0x005FD440, CUiSurface::Rgb565Copy);
-EI_REPLACE_METHOD(0x005FE440, CUiSurface::Greyscale);

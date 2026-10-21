@@ -54,7 +54,6 @@ CSceneRenderer* CSceneRenderer::ConstructBase() {
     sun_ = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x00500440, CSceneRenderer::ConstructBase);
 
 void CSceneRenderer::DestroyBase() {
     CLight* sun = sun_;
@@ -75,7 +74,6 @@ void CSceneRenderer::DestructBase() {
     ei::SetVtable(this, kBaseVtable);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x00500480, CSceneRenderer::DestructBase);
 
 CSceneRenderer* CSceneRenderer::DeleteBase(unsigned flags) {
     DestructBase();
@@ -102,7 +100,6 @@ void CSceneRenderer::SetSun(CLight* light) {
     if (old) old->Release();
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
-EI_REPLACE_METHOD(0x005007C0, CSceneRenderer::SetSun);
 
 void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
@@ -118,7 +115,6 @@ EI_REPLACE_METHOD(0x00500800, CSceneRenderer::SetSunAndAmbient);
 
 // 00500960 (cdecl, no arguments). The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
-EI_REPLACE(0x00500960, SceneRenderer);
 
 CSceneRenderer* CSceneRenderer::ConstructRenderer() {
     ConstructBase();
@@ -231,17 +227,6 @@ EI_REPLACE_METHOD(0x00504780, CSceneRenderer::RestoreSurfaces);
 
 // --- The device object's counted holder (+0x20) ----------------------------------------------------
 
-// 00504E00 (the holder's destructor; reached from an unwind funclet of the creation). Releases the
-// device object, the pointer left as it is.
-void __fastcall DeviceHolderRelease(CTextureDevice** holder) {
-    if (*holder) (*holder)->Release();
-}
-EI_REPLACE(0x00504E00, DeviceHolderRelease);
-// Byte-identical copies: other counted holders released the same way (an int count at +4, slot 0 with 1 at zero).
-EI_REPLACE(0x00519560, DeviceHolderRelease);
-EI_REPLACE(0x0051E3E0, DeviceHolderRelease);
-EI_REPLACE(0x0055FCE0, DeviceHolderRelease);
-
 // 00504E20 (RET 4). The holder takes `device` (one more reference), then the old one is released.
 void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device) {
     CTextureDevice* old = *holder;
@@ -249,7 +234,6 @@ void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevic
     if (device) device->AddRef();
     if (old) old->Release();
 }
-EI_REPLACE(0x00504E20, DeviceHolderAssign);
 
 // --- Texture holders -----------------------------------------------------------------------------
 
@@ -277,9 +261,3 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
 }
 EI_REPLACE(0x00500A00, TextureHolderLoad);
 
-// --- Aligned array constructors --------------------------------------------------------------------
-// 00504F60, 00505140, 00505260: the constructors of the sprite draw's work arrays (TLVertex, sort
-// records, their pointers; 00502CA0's statics, 00561536), every field zero (lib::AlignedArray).
-EI_REPLACE_METHOD(0x00504F60, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00505140, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00505260, lib::AlignedArray<std::uint32_t>::Construct);

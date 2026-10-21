@@ -206,4 +206,3 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, c
         if (libcrt::Stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00512F60, CBaseManager::FindFigureAnimation);

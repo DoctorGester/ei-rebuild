@@ -140,7 +140,6 @@ void AIPath::Destruct() {
     steps.vtable = PathCellListVtable();
     steps.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00546100, AIPath::Destruct);
 
 // --- OrderPlan ----------------------------------------------------------------------------------
 
@@ -162,7 +161,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     // The by-value list's destructor: only its data is freed.
     if (steps.steps) gamecrt::operator_delete(steps.steps);
 }
-EI_REPLACE_METHOD(0x00545110, OrderPlan::TakeSteps);
 
 // --- AIBrain ------------------------------------------------------------------------------------
 
@@ -196,7 +194,6 @@ AIBrain* AIBrain::Construct() {
     Init();
     return this;
 }
-EI_REPLACE_METHOD(0x00545990, AIBrain::Construct);
 
 void AIMemory::Destruct() {
     calls.vtable = kCallsBaseVtable;
@@ -217,7 +214,6 @@ void AIMemory::Destruct() {
     DestroyObjectList(visible);
     DestroyObjectList(nearby);
 }
-EI_REPLACE_METHOD(0x00545CB0, AIMemory::Destruct);
 
 void AIBrain::Destruct() {
     Init();
@@ -240,4 +236,3 @@ void AIBrain::Destruct() {
     looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
     if (looks.data) gamecrt::operator_delete(looks.data);
 }
-EI_REPLACE_METHOD(0x005457E0, AIBrain::Destruct);

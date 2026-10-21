@@ -35,14 +35,6 @@ void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream
 // --- CRefObject root / reference-counted value -------------------------------------------------
 
 void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::kVtableAddress); }
-EI_REPLACE(0x00412720, RefObjectDestructBase);
-EI_REPLACE(0x00413430, RefObjectDestructBase);   // byte-identical copy
-EI_REPLACE(0x005ED7A0, RefObjectDestructBase);   // byte-identical copy (interface)
-EI_REPLACE(0x00412960, RefObjectDestructBase);   // byte-identical copy
-EI_REPLACE(0x004368C0, RefObjectDestructBase);   // byte-identical copy
-EI_REPLACE(0x00562770, RefObjectDestructBase);   // byte-identical copies (A-W12)
-EI_REPLACE(0x0058FBE0, RefObjectDestructBase);
-EI_REPLACE(0x005B3590, RefObjectDestructBase);   // A-W14: the unit shape's base destructor (005B3570 calls it)
 
 void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
     SetVtable(self, CRefCounted::kVtableAddress);
@@ -55,7 +47,6 @@ void* __fastcall RefValueConstructBase(void* self) {
     SetVtable(self, CRefObject::kVtableAddress);
     return self;
 }
-EI_REPLACE(0x00419720, RefValueConstructBase);
 
 // The original calls 00412720 (the root's destructor body) out of line.
 void* __fastcall RefValueDeletingDestructor(void* self, void*, unsigned flags) {
@@ -74,10 +65,8 @@ CStream* CStream::ConstructBase() {
     ok_ = 1;
     return this;
 }
-EI_REPLACE_METHOD(0x0047A200, CStream::ConstructBase);
 
 void CStream::DestructBase() { SetVtable(this, kVtableAddress); }
-EI_REPLACE_METHOD(0x004174E0, CStream::DestructBase);
 
 CStream* CStream::DeletingDestruct(unsigned flags) {
     SetVtable(this, kVtableAddress);
@@ -92,7 +81,6 @@ mfc::CString* CStream::ReadString(void* out) {
     while (Read(&byte, 1) && byte) text = mfc::operator+(text, static_cast<char>(byte));
     return new (out) mfc::CString(text);
 }
-EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------
 
@@ -148,7 +136,6 @@ void CMemoryStream::Reset() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-EI_REPLACE_METHOD(0x00468C20, CMemoryStream::Reset);
 
 // --- Aligned pointer arrays --------------------------------------------------------------------
 
@@ -158,18 +145,6 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
     reinterpret_cast<std::uint8_t**>(aligned)[-1] = block;
     return reinterpret_cast<void**>(aligned);
 }
-EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
-EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
-EI_REPLACE(0x0066BE00, AlignedPointerArrayAlloc);   // the same instructions (A-H15)
-EI_REPLACE(0x005A6F80, AlignedPointerArrayAlloc);   // the same instructions (A-W14; the old figure format's loader)
-
-void __fastcall AlignedObjectsClear(lib::AlignedArray<CEngineObject*>* objects) {
-    // The size is read again after every call (a release may change the array).
-    CEngineObject** element = objects->data;
-    for (int i = 0; i < objects->size; ++i) (*element++)->Release();
-    objects->RemoveAll();
-}
-EI_REPLACE(0x0047B620, AlignedObjectsClear);
 
 // --- Coder state -------------------------------------------------------------------------------
 

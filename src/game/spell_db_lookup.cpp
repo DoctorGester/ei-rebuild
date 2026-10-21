@@ -11,4 +11,3 @@ char* itemdb::CodeIndexedTable::FindByCode(const char* code) {
     return byCode[pair.key];
 }
 EI_REPLACE_METHOD(0x0068C820, itemdb::CodeIndexedTable::FindByCode);
-EI_REPLACE_METHOD(0x0068C920, itemdb::CodeIndexedTable::FindByCode);

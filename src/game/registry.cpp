@@ -71,7 +71,6 @@ CFileRegistry* CFileRegistry::Construct() {
     data_ = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x00694520, CFileRegistry::Construct);
 
 void CFileRegistry::Destroy() {
     if (!attached_) file_.Close();   // 00675720
@@ -79,7 +78,6 @@ void CFileRegistry::Destroy() {
     data_ = nullptr;
     file_.Close();                   // 006756D0, the mapped file's destructor
 }
-EI_REPLACE_METHOD(0x00694540, CFileRegistry::Destroy);
 
 BOOL CFileRegistry::Open(const char* path) {
     if (!file_.Open(path, 0)) return 0;
@@ -119,7 +117,6 @@ void CFileRegistry::Close() {
     attached_ = 0;
     data_ = nullptr;
 }
-EI_REPLACE_METHOD(0x006946B0, CFileRegistry::Close);
 
 // --- Lookups -------------------------------------------------------------------------------------
 
@@ -189,12 +186,10 @@ int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue
         return FloatToInt(reinterpret_cast<const float*>(value));
     return defaultValue;
 }
-EI_REPLACE_METHOD(0x00694B90, CFileRegistry::GetInt);
 
 int CFileRegistry::GetInt2(const char* section, const char* key, int defaultValue) {
     return GetInt(section, key, defaultValue);
 }
-EI_REPLACE_METHOD(0x00694BE0, CFileRegistry::GetInt2);
 
 double CFileRegistry::GetFloat(const char* section, const char* key, float defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegFloat, nullptr))
@@ -203,7 +198,6 @@ double CFileRegistry::GetFloat(const char* section, const char* key, float defau
         return static_cast<int>(U32(value));
     return defaultValue;
 }
-EI_REPLACE_METHOD(0x00694C80, CFileRegistry::GetFloat);
 
 mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
@@ -228,7 +222,6 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     gamecrt::strncpy(buffer, defaultValue, static_cast<std::size_t>(*length));
     *length = static_cast<int>(std::strlen(buffer));
 }
-EI_REPLACE_METHOD(0x00694DC0, CFileRegistry::GetStringBuffer);
 
 BOOL CFileRegistry::GetIntArray(const char* section, const char* key, DwordArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);

@@ -70,7 +70,6 @@ void ReleaseCounted(CRefObject* object) {
 // ---- CPlayerSource (0073F38C) ---------------------------------------------------------------------
 
 void CPlayerSource::DestructBase() { ei::SetVtable(this, CRefCounted::kVtableAddress); }   // 0055F2E0
-EI_REPLACE_METHOD(0x0055F2E0, CPlayerSource::DestructBase);
 
 CPlayerSource* CPlayerSource::DeletingDestructBase(unsigned flags) {   // 0055F2F0
     DestructBase();
@@ -109,7 +108,6 @@ void CWorldHandle::Destruct() {   // 0055F280
     ReleaseCounted(pendingLink_);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x0055F280, CWorldHandle::Destruct);
 
 CWorldHandle* CWorldHandle::DeletingDestruct(unsigned flags) {   // 0055F260
     Destruct();
@@ -253,4 +251,3 @@ void CWorld::CloseSession() {
     session.Destroy();
     session.ptr = nullptr;
 }
-EI_REPLACE_METHOD(0x0055F890, CWorld::CloseSession);

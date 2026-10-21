@@ -60,13 +60,3 @@ StringPair* __fastcall PairAbi::DeletingDestructor(StringPair* self, void*, unsi
 
 using stlp::PairAbi;
 
-EI_REPLACE(0x00407DE0, PairAbi::ConstructDwords);
-EI_REPLACE(0x0040A9D0, PairAbi::ConstructDwords);
-EI_REPLACE(0x005729D0, PairAbi::ConstructStringDword);
-EI_REPLACE(0x00689950, PairAbi::ConstructStringDword);
-EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
-EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
-EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
-EI_REPLACE(0x004FB170, PairAbi::ConstructStringDword);   // the link loader's (library.csv: string's copy constructor)
-EI_REPLACE(0x0069C1C0, PairAbi::ConstructStringList);
-EI_REPLACE(0x004AD640, PairAbi::DestroyStringList);

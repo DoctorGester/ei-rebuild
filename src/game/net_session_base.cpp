@@ -15,10 +15,6 @@
 
 namespace net {
 
-namespace {
-
-} // namespace
-
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
     v->PushDefault<recordvec::ReplicatedElement>();
     Replicated* last = v->end() - 1;
@@ -42,7 +38,6 @@ int TypeRegistry::TypeOf(const std::uint32_t* key) const {
     const ByVtable::Node* node = byVtable.Find(*key);
     return node ? static_cast<int>(node->value) : -1;
 }
-EI_REPLACE_METHOD(0x00429F40, TypeRegistry::TypeOf);
 
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
@@ -88,16 +83,6 @@ SessionBase* SessionBase::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x00436770, SessionBase::Construct);
-
-// 00436A30 (no Ghidra function): the handler vector's element constructor (an empty vector; the
-// session constructor inlines it). Leaves 0 in EAX, as the original.
-void* __fastcall HandlerVectorConstruct(HandlerVector* self) {
-    self->Start() = nullptr;
-    self->Finish() = nullptr;
-    self->EndOfStorage() = nullptr;
-    return nullptr;
-}
-EI_REPLACE(0x00436A30, HandlerVectorConstruct);
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;

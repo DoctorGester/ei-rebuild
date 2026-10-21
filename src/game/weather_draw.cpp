@@ -46,4 +46,3 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     HandOver(this, renderer);
     return result;
 }
-EI_REPLACE_METHOD(0x004E5680, CRainSnow::DrawImpl);

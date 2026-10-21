@@ -93,7 +93,6 @@ char* UnitStats::SkillLevelRecord(int index) {
     if (level == 0) return nullptr;
     return unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
 }
-EI_REPLACE_METHOD(0x00528270, UnitStats::SkillLevelRecord);
 
 double UnitStats::SkillLevelValue(int index) {
     std::uint8_t level = skillLevels[index];
@@ -132,7 +131,6 @@ double UnitStats::Value6E9() {
 EI_REPLACE_METHOD(0x00525CD0, UnitStats::Value6E9);
 
 double UnitStats::Value6E9Arg(int) { return Value6E9(); }
-EI_REPLACE_METHOD(0x00525D60, UnitStats::Value6E9Arg);
 
 double UnitStats::Reduce(float value) {
     double taken = kZero;   // accumulated on the FPU stack in the original

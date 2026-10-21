@@ -138,7 +138,6 @@ void* ScriptObjectRef::DestroyElement(int flags) {
     return Finish(this, flags);
 }
 EI_REPLACE_METHOD(0x004CE1E0, ScriptObjectRef::DestroyElement);
-EI_REPLACE_METHOD(0x0052D030, ScriptObjectRef::DestroyElement);   // byte-identical copy (A-U11)
 
 void* ScriptGroup::DestroyElement(int flags) {
     DestructBody();

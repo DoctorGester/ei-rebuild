@@ -13,10 +13,6 @@
 #include "game_data.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);                  // refptr_copies.cpp
-// The release (PairReleaseSecond) or the owner's Destroy (PairDestroySecond) of the RefPtr at +4: a
-// pair's destructor (refptr_copies.cpp).
-void __fastcall PairReleaseSecond(void* self);
-void __fastcall PairDestroySecond(void* self);
 void __fastcall ObjectHolderRelease(CEngineObject** self);    // refptr_copies.cpp
 void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* object);
 

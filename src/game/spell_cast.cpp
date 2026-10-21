@@ -124,7 +124,6 @@ void CSpell::CopyTo(CSpell* target) {
     }
     target->prototypeId_ = prototypeId_;
 }
-EI_REPLACE_METHOD(0x0068B370, CSpell::CopyTo);
 
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
@@ -132,7 +131,6 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
     CopyTo(spell);   // 0068B370
     return spell;
 }
-EI_REPLACE_METHOD(0x0068B410, CSpell::Clone);
 
 // --- CSpellContainer ---------------------------------------------------------------------------
 
@@ -173,7 +171,6 @@ int CSpellContainer::AllowsModifier(const char* modifier) {
     default: return 1;
     }
 }
-EI_REPLACE_METHOD(0x0068BEC0, CSpellContainer::AllowsModifier);
 
 BOOL CSpellContainer::Build() {
     CSpell* spell = Spell();
@@ -313,7 +310,6 @@ EI_REPLACE_METHOD(0x0068BF60, CSpellContainer::Build);
 CSpellContainer* CSpellManager::NewContainer() {
     return static_cast<CSpellContainer*>(CreateObject(kClassSpellContainer, -1));
 }
-EI_REPLACE_METHOD(0x00688EB0, CSpellManager::NewContainer);
 
 CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifiers) {
     CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
@@ -346,7 +342,6 @@ void CSpellConstructor::DestructBody() {
     if (container_) container_->Release();   // the container member's destructor
     DestructBase();
 }
-EI_REPLACE_METHOD(0x006840A0, CSpellConstructor::DestructBody);
 
 CSpellConstructor* CSpellConstructor::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -387,7 +382,6 @@ void CSpellConstructor::SetManager(CSpellManager* manager) {
     manager_ = manager;
     if (manager) ++manager->refCount_;
 }
-EI_REPLACE_METHOD(0x006841A0, CSpellConstructor::SetManager);
 
 BOOL CSpellConstructor::BeginConstruct(char* prototype) {
     if (!manager_) return game::FatalError(kNoSpellManager);

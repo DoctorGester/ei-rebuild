@@ -127,4 +127,3 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     cunit->flags_ |= 0x100000;
     return 1;
 }
-EI_REPLACE(0x00461CB0, HooverCollectLoot);

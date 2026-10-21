@@ -394,7 +394,6 @@ int CSpellEffect::Update() {
         return 0;
     }
 }
-EI_REPLACE_METHOD(0x0067E6D0, CSpellEffect::Update);
 
 void CSpellEffect::UpdateMissile(int type) {
     switch (type) {
@@ -452,10 +451,7 @@ void CSpellEffect::UpdateLasting(int type) {
 EI_REPLACE_METHOD(0x00682650, CSpellEffect::UpdateLasting);
 
 void CSpellEffect::ReleaseVisual() { Assign(this, &visual, nullptr); }
-EI_REPLACE_METHOD(0x0067EE00, CSpellEffect::ReleaseVisual);
 
 void CSpellEffect::ReleaseSound() { Assign(this, &sound, nullptr); }
-EI_REPLACE_METHOD(0x0067EE40, CSpellEffect::ReleaseSound);
 
 void CSpellEffect::ReleaseLight() { Assign(this, &light, nullptr); }
-EI_REPLACE_METHOD(0x0067EE80, CSpellEffect::ReleaseLight);

@@ -159,12 +159,3 @@ void CRegionMap::AttachSearches() {
     backward.Attach(this, true);
 }
 
-EI_REPLACE_METHOD(0x005AED60, BlockSearch::Attach);
-EI_REPLACE_METHOD(0x005AEE30, BlockSearch::Requeue);
-EI_REPLACE_METHOD(0x005AEEC0, BlockSearch::Relax);
-EI_REPLACE_METHOD(0x005AEFF0, BlockSearch::PickBest);
-EI_REPLACE_METHOD(0x005AF0C0, BlockSearch::Expand);
-EI_REPLACE_METHOD(0x005B0AF0, CRegionMap::SeedSearch);
-EI_REPLACE_METHOD(0x005AFC70, CRegionMap::UpdateBlocks);
-EI_REPLACE_METHOD(0x005AFEE0, CRegionMap::UpdateBlocksFor);
-EI_REPLACE_METHOD(0x005AFEC0, CRegionMap::AttachSearches);

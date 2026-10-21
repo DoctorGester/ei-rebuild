@@ -150,7 +150,6 @@ int CCursor::ChangeShape(int shape) {
     gameapi::LeaveCriticalSection(&lock_);
     return previous;
 }
-EI_REPLACE_METHOD(0x005E5200, CCursor::ChangeShape);
 
 void CCursor::ShowImage(int shown) {
     if (!enabled_) return;
@@ -166,7 +165,6 @@ void CCursor::SetHeld(char held) {
     held_ = static_cast<std::uint8_t>(held);
     gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REPLACE_METHOD(0x005E67B0, CCursor::SetHeld);
 
 void CCursor::TakeLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::EnterCriticalSection(&lock_);
@@ -176,7 +174,6 @@ EI_REPLACE_METHOD(0x005E65F0, CCursor::TakeLock);
 void CCursor::ReleaseLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REPLACE_METHOD(0x005E6610, CCursor::ReleaseLock);
 
 void CCursor::Start() {
     shape_ = 0;
@@ -263,4 +260,3 @@ char CCursor::UpdatePosition() {
     position_ = point;
     return moved;
 }
-EI_REPLACE_METHOD(0x005E52E0, CCursor::UpdatePosition);

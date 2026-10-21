@@ -163,8 +163,11 @@ std::string ModFileStep(const std::string& argument) {
     if (sscanf_s(argument.c_str(), "%259s %259s %ld", archive, static_cast<unsigned>(sizeof(archive)), name,
                  static_cast<unsigned>(sizeof(name)), &expected) != 3)
         return "modfile " + argument + ": not <archive> <file> <bytes>";
-    // The archive as the game opens its own: the text resources' folder (007AF45C) and the name.
-    const mfc::CString path = *static_cast<const mfc::CString*>(worlddata::TextPathString()) + archive;
+    // The archive as the game opens its own: the text resources' folder and the name. In game.exe's --no-hooks
+    // runs its own folder: our named copy (C18) is never set there.
+    const mfc::CString& folder = ei::Standalone() ? *static_cast<const mfc::CString*>(worlddata::TextPathString())
+                                                  : ei::OriginalGameData<mfc::CString>(0x007AF45C);
+    const mfc::CString path = folder + archive;
     void* memory = ::operator new(sizeof(CMappedResource));
     std::memset(memory, 0, sizeof(CMappedResource));
     CMappedResource* res = HarnessMappedResourceConstruct(memory);

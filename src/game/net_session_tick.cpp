@@ -40,13 +40,11 @@ void LogAddress(const char* text, const char* address) { NetLog()->Put(text)->Pu
 void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
-EI_REPLACE(0x00419CC0, BufferUpdateHigh);
 
 stlp::string* NetAddress::ToString(stlp::string* out) const {
     Format(out, 0);
     return out;
 }
-EI_REPLACE_METHOD(0x00435010, NetAddress::ToString);
 
 // 00437370 (slot 14): advances the session clock by `dt`, then hands every datagram waiting on the
 // socket to the handler slot of its kind (its first byte) with the sender's address and a cursor
@@ -145,7 +143,6 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
                                   reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
     return out;
 }
-EI_REPLACE_METHOD(0x00436CC0, SessionBase::FindClient);
 
 // 00436CF0 (slot 2): logs it, closes the connection and erases the node.
 void SessionBase::RemoveClientImpl(ClientNode* node) {
@@ -213,7 +210,6 @@ GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     cur += size;
     return this;
 }
-EI_REPLACE_METHOD(0x00436C30, GameBuffer::BufferWriteRaw);
 
 // 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
 // otherwise through slot 4. Returns `size` or what slot 4 left.
@@ -224,7 +220,6 @@ unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
     cur += size;
     return size;
 }
-EI_REPLACE_METHOD(0x00436C60, GameBuffer::BufferWrite);
 
 namespace net {
 
@@ -233,13 +228,11 @@ constexpr std::uintptr_t kLocalRate = ei::DataId(0x00783E38);
 constexpr std::uintptr_t kRemoteRate = ei::DataId(0x00783E34);
 
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
-EI_REPLACE_METHOD(0x00436F60, SessionBase::Send);
 
 std::uint32_t SessionBase::RateFor(const NetAddress* address) {
     bool local = socket_.IsLocal(address);
     return ei::GameData<const std::uint32_t>(local ? kLocalRate : kRemoteRate);
 }
-EI_REPLACE_METHOD(0x00436F80, SessionBase::RateFor);
 
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     alignas(4) std::uint8_t storage[sizeof(GameBuffer)];

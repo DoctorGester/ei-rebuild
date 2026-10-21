@@ -80,7 +80,6 @@ Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d) {
     out->z = z;
     return out;
 }
-EI_REPLACE(0x00488940, DivideVector);
 
 // --- Source setters -----------------------------------------------------------------------------
 

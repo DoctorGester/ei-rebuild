@@ -70,23 +70,5 @@ EI_REPLACE(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>);       // 
 // of each (A-W12).
 constexpr auto* CountedHolderDelete = &DeletingDestructor<RefPtrRelease>;
 constexpr auto* CountedHolderDelete2 = &DeletingDestructor<&RefPtr::Destroy>;
-EI_REPLACE(0x004292A0, *CountedHolderDelete);
-EI_REPLACE(0x004292C0, *CountedHolderDelete2);
-EI_REPLACE(0x0059DD90, *CountedHolderDelete);
-EI_REPLACE(0x005DA270, *CountedHolderDelete2);
-EI_REPLACE(0x0042A5D0, DeletingDestructor<&RefPtr::Destroy>);                // 0042A610
-EI_REPLACE(0x0042A5F0, DeletingDestructor<&RefPtr::Destroy>);                // 00421600
-EI_REPLACE(0x0042B880, DeletingDestructor<&RefPtr::Destroy>);                // 00419D00
 EI_REPLACE(0x0042D6D0, DeletingDestructor<misc400::ManagerDestruct>);        // 0042D6F0
-EI_REPLACE(0x0043DCA0, DeletingDestructor<&RefPtr::Destroy>);                // 00438B30
-EI_REPLACE(0x0043DCC0, DeletingDestructor<PairReleaseSecond>);               // 00438A50
-EI_REPLACE(0x0043DCE0, DeletingDestructor<PairReleaseSecond>);               // 00438A70
-EI_REPLACE(0x0043FD00, DeletingDestructor<PairReleaseSecond>);               // 00438A30
-EI_REPLACE(0x0043FD20, DeletingDestructor<PairDestroySecond>);               // 00438AE0
 
-EI_REPLACE(0x004054F0, CleanupClear8);
-EI_REPLACE(0x00405530, CleanupClear8);
-EI_REPLACE(0x00689810, CleanupClear8);   // byte-identical copies called by unwind funclets (A-H24)
-EI_REPLACE(0x00689880, CleanupClear8);
-EI_REPLACE(0x0059AF10, CleanupClear8);   // the world server's (A-W14)
-EI_REPLACE(0x0059AFE0, CleanupClear8);

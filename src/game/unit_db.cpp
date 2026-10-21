@@ -172,7 +172,6 @@ EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);
 void __fastcall SerializeFourDwords(std::uint32_t* values, void*, ChunkArchive* ar) {
     for (int i = 0; i < 4; ++i) Dword(ar, i, &values[i]);
 }
-EI_REPLACE(0x0052D6A0, SerializeFourDwords);
 
 void UnitModelSlot::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &levelName);
@@ -366,13 +365,11 @@ SkillLevelRecord* SkillDatabase::FindLevel(const char* levelName) {
         if (SameName(levels[i].name, levelName)) return &levels[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0051FE00, SkillDatabase::FindLevel);
 
 int SkillDatabase::IndexOf(const char* levelName) const {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return static_cast<int>(i);
     return -1;
 }
-EI_REPLACE_METHOD(0x0051FE80, SkillDatabase::IndexOf);
 
 // 0051FF00 SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).

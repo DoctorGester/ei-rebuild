@@ -72,32 +72,11 @@ void* __fastcall FakeUnitConstruct(FakeUnitScene* self) {
     ei::SetVtable(self, FakeUnitScene::kVtableAddress);
     return self;
 }
-EI_REPLACE(0x004466D0, FakeUnitConstruct);
-
-// 00446910: the destructor. After the figures' SetSize(0, -1) the original walks the (now empty)
-// figure array dropping each figure's count; kept as written.
-void __fastcall FakeUnitDestruct(FakeUnitScene* self) {
-    ei::SetVtable(self, FakeUnitScene::kVtableAddress);
-    ReleaseParts(self);
-    scene::Typed<recordarrays::FigureParts::Array>(self->figures).SetSize(0, -1);   // 0044FCD0
-    FigureArray& figures = Figures(self);
-    for (int i = 0; i < figures.size; ++i) --figures.data[i].refCount_;
-    DestructArray(Helpers(self), mfc::impl::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
-    DestructArray(BoneLinks(self), mfc::impl::FakeUnitBoneArraysClass::Vtable(), [](scene::VtArray& links) {
-        reinterpret_cast<mfc::CObjectVirtuals*>(&links)->DeletingDestructor(0);
-    });
-    DestructArray(Meshes(self), mfc::impl::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
-    DestructArray(figures, mfc::impl::FakeUnitPartArrayClass::Vtable(), [](CFigureMesh& figure) { DestroyRecord(&figure); });
-    self->skin.Destruct();
-    UnitDestructBody(self);
-}
-EI_REPLACE(0x00446910, FakeUnitDestruct);
 
 } // namespace fakeunit
 
 // 004468F0: the scalar deleting destructor.
 void* scene::FakeUnitScene::DeleteScalar(unsigned flags) {
-    fakeunit::FakeUnitDestruct(this);   // 00446910
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

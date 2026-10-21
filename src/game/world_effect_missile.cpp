@@ -444,8 +444,6 @@ CEffectArrowFigure* CEffectArrowFigure::DeletingDestruct(unsigned flags) {
     return this;
 }
 
-EI_REPLACE_METHOD(0x0067BB90, CEffectArrowFigure::Construct);
-EI_REPLACE_METHOD(0x0067BCD0, CEffectArrowFigure::Destruct);
 EI_REPLACE_METHOD(0x0067BCB0, CEffectArrowFigure::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067BAA0, CEffectArrowFigure::Reset);
 EI_REPLACE_METHOD(0x0067BE20, CEffectArrowFigure::Tick);
@@ -456,12 +454,10 @@ EI_REPLACE_METHOD(0x0067C170, CEffectArrowFigure::Pack);
 EI_REPLACE_METHOD(0x0067C200, CEffectArrowFigure::LoadState);
 EI_REPLACE_METHOD(0x0067C290, CEffectArrowFigure::SaveState);
 
-EI_REPLACE_METHOD(0x0067AE30, CEffectArrow::Construct);
 EI_REPLACE_METHOD(0x0067B1C0, CEffectArrow::Destruct);
 EI_REPLACE_METHOD(0x0067B1A0, CEffectArrow::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067AAB0, CEffectMissile::Steer);
 EI_REPLACE_METHOD(0x0067AA00, CEffectMissile::ResetMissile);
-EI_REPLACE_METHOD(0x0067AC70, CEffectMissile::SetTarget);
 EI_REPLACE_METHOD(0x0067AC90, CEffectArrow::Tick);
 EI_REPLACE_METHOD(0x0067AD10, CEffectArrow::Reset);
 EI_REPLACE_METHOD(0x0067B450, CEffectArrow::MoveParts);

@@ -214,7 +214,9 @@ void ReadWorld(CWorldServer* w, Builder& b) {
 }
 
 void ReadRandom(Builder& b) {
-    const IsaacRandom& r = IsaacRandom::Global();
+    // The generator the game uses: ours in the image (a named global, C18l), game.exe's own at 007A9D40 in its
+    // --no-hooks runs, where our copy is never touched.
+    const IsaacRandom& r = ei::Standalone() ? IsaacRandom::Global() : ei::OriginalGameData<IsaacRandom>(0x007A9D40);
     b.Unsigned("isaac.seeded", r.seeded_);
     b.Unsigned("isaac.count", r.count_);
     b.Bits("isaac.a", r.a_);

@@ -94,5 +94,3 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     return true;
 }
 
-EI_REPLACE_METHOD(0x005B61B0, CAIMap::AddOccluderRecord);
-EI_REPLACE_METHOD(0x005B6380, CAIMap::ClearOccluderRecord);

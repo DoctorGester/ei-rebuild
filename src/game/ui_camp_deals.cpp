@@ -345,4 +345,3 @@ void CCampPages::UndoAction() {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00611760, CCampPages::UndoAction);

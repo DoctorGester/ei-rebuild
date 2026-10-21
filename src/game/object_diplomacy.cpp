@@ -20,10 +20,6 @@ void CDiplomacy::Reset() {
     for (int i = 0; i < 32; ++i) hostile_[i] = 0;
     for (int i = 0; i < 32; ++i) allied_[i] = 1u << i;
 }
-EI_REPLACE_METHOD(0x004554B0, CDiplomacy::Reset);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x0058A370, CDiplomacy::Reset);
 
 void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUnits) {
     std::uint32_t bit = Bit(other);
@@ -57,32 +53,27 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
     }
     if (it.manager) --it.manager->refCount_;
 }
-EI_REPLACE_METHOD(0x004554E0, CDiplomacy::SetRelation);
 
 int CDiplomacy::GetRelation(int player, int other) const {
     std::uint32_t bit = Bit(other);
     if (allied_[player] & bit) return kRelationAllied;
     return (hostile_[player] & bit) != 0 ? kRelationHostile : kRelationNeutral;
 }
-EI_REPLACE_METHOD(0x00455630, CDiplomacy::GetRelation);
 
 int CDiplomacy::GetHostileMask(int player) const {
     if (player >= 0 && player < 32) return static_cast<int>(hostile_[player]);
     return -1;
 }
-EI_REPLACE_METHOD(0x00455660, CDiplomacy::GetHostileMask);
 
 void CDiplomacy::ReadFrom(CStream* stream) {
     stream->Read(allied_, sizeof(allied_));
     stream->Read(hostile_, sizeof(hostile_));
 }
-EI_REPLACE_METHOD(0x004557C0, CDiplomacy::ReadFrom);
 
 void CDiplomacy::WriteTo(CStream* stream) {
     stream->Write(allied_, sizeof(allied_));
     stream->Write(hostile_, sizeof(hostile_));
 }
-EI_REPLACE_METHOD(0x004557F0, CDiplomacy::WriteTo);
 
 void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
     if (!attacker || !victim) return;
@@ -99,4 +90,3 @@ void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
                                  Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
     }
 }
-EI_REPLACE_METHOD(0x00455680, CDiplomacy::OnAttack);

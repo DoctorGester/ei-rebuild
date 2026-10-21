@@ -127,6 +127,3 @@ void __fastcall ResetAIMap(CAIMap* self) {
     if (self) ConstructAIMap(self);
 }
 
-EI_REPLACE(0x005B3C30, ConstructAIMap);
-EI_REPLACE(0x005B5E10, ResetAIMap);
-EI_REPLACE(0x0058A450, DestructAIMap);

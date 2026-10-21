@@ -128,10 +128,8 @@ BOOL __fastcall TextClose(CTextManager* self) {
     self->cursor_ = nullptr;
     return 1;
 }
-EI_REPLACE(0x004DF020, TextClose);
 
 int __fastcall TextCharCode(const char* p) { return CharCode(p); }
-EI_REPLACE(0x004DF4E0, TextCharCode);
 
 BOOL CTextManager::PeekWord(mfc::CString* out) {
     mfc::CString tmp;
@@ -165,7 +163,6 @@ BOOL __fastcall TextSkipLine(CTextManager* self) {
     self->cursor_ = MbsInc(p);
     return 1;
 }
-EI_REPLACE(0x004DF6E0, TextSkipLine);
 
 BOOL __fastcall TextNextLine(CTextManager* self) {
     mfc::CString word;

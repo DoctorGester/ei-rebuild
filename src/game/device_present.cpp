@@ -16,4 +16,3 @@ long __fastcall DevicePresent(CTextureDevice* device) {
     render::Present();
     return 0;
 }
-EI_REPLACE(0x004EF610, DevicePresent);

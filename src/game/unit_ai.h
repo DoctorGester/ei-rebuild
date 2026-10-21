@@ -915,13 +915,6 @@ static_assert(offsetof(AIEventTable, slots) == 0x2C);
 static_assert(offsetof(AIEventTable, rows) == 0x10030);
 static_assert(sizeof(AIEventTable) == 0x1003C);
 
-// 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack
-// options: zero bytes.
-void __stdcall ZeroAttackOptions(AIAttackOption* first, int count);
-// 005D9830 (__stdcall, RET 4). CList::GetNext of the AI's pointer lists: the address of the node's
-// data slot (node + 8); `position` (a node) moves on to the next.
-void* __stdcall ListGetNext(void** position);
-
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 

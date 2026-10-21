@@ -42,7 +42,6 @@ PlayerMode* PlayerMode::Construct() {
     run = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005D3760, PlayerMode::Construct);
 
 PatrolMode* PatrolMode::Construct() {
     points.data = nullptr;
@@ -54,7 +53,6 @@ PatrolMode* PatrolMode::Construct() {
     current = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005D0F60, PatrolMode::Construct);
 
 void PatrolMode::Destruct() {
     vtable = aimode::kPatrolVtable;
@@ -97,7 +95,6 @@ PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*,
     return out;
 }
 EI_REPLACE(0x005D9E40, PatrolPointCopyAt);
-EI_REPLACE(0x005D9590, PatrolPointCopyAt);
 
 // 005D0F90 (slot 3): a copy with its own points. The reference count dword is cleared before the
 // allocation's null test; the abstract base's vtable stands while the points are copied, each
@@ -156,7 +153,6 @@ int FearMode::Reset() {
 EI_REPLACE_METHOD(0x005D28F0, FearMode::Reset);
 
 void FearMode::Destruct() { vtable = aimode::kRootVtable; }
-EI_REPLACE_METHOD(0x005D2950, FearMode::Destruct);
 
 FearMode* FearMode::DeletingDestruct(int flags) {
     Destruct();
@@ -169,13 +165,11 @@ AIMode* __fastcall aimode::ConstructModeBase(AIMode* mode) {
     mode->vtable = kBaseVtable;
     return mode;
 }
-EI_REPLACE(0x005D8850, aimode::ConstructModeBase);
 
 AIMode* __fastcall aimode::ConstructActionBase(AIMode* mode) {
     mode->vtable = kActionBaseVtable;
     return mode;
 }
-EI_REPLACE(0x005D6D10, aimode::ConstructActionBase);
 
 void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
     points->vtable = aimode::kPatrolPointsBaseVtable;
@@ -188,7 +182,6 @@ void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
     gamecrt::operator_delete(points->data);
 }
 EI_REPLACE(0x005D8CF0, PatrolPointsDestruct);
-EI_REPLACE(0x005D95B0, PatrolPointsDestruct);   // byte-identical copy (A-W12)
 
 PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags) {
     PatrolPointsDestruct(points);
@@ -198,14 +191,3 @@ PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* poin
 EI_REPLACE(0x005D8CD0, PatrolPointsDeletingDestruct);
 EI_REPLACE(0x005D9D00, PatrolPointsDeletingDestruct);   // byte-identical copy (A-W12)
 
-void __stdcall ZeroAttackOptions(AIAttackOption* first, int count) {
-    std::memset(first, 0, sizeof(AIAttackOption) * static_cast<unsigned>(count));
-}
-EI_REPLACE(0x005D9E10, ZeroAttackOptions);
-
-void* __stdcall ListGetNext(void** position) {
-    auto* node = static_cast<AIObjectList::Node*>(*position);
-    *position = node->next;
-    return &node->data;
-}
-EI_REPLACE(0x005D9830, ListGetNext);

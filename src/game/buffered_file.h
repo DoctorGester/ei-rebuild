@@ -86,9 +86,6 @@ public:
 };
 static_assert(sizeof(BufferedStream) == 0x1C);
 
-// 004DB040 (slot 2). Rebase.
-void __fastcall BufferedStreamCommit(BufferedStream* self);
-
 // The file stream (destructor body 00580E60). 0x20 bytes.
 class BufferedFile : public BufferedStream {
 public:

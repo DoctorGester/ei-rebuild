@@ -196,7 +196,6 @@ static_assert(offsetof(BufferCursor, sink) == 0x10);
 // 0041D960: the same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the
 // coder without a sink).
 struct CoderState;
-std::uint32_t __fastcall CoderEndOutput(CoderState* coder);
 
 // The 0x2828-byte LZ coder state (constructor 0042FCA0 in core_streams.cpp). The window keeps the
 // last 0x400 bytes twice (+0 and +0x400) so that comparisons can run past the wrap. Compressed

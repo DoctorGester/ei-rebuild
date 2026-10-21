@@ -45,7 +45,6 @@ EI_REPLACE(0x0067E4C0, ConstructSpellFootprint);
 EI_REPLACE(0x0067E500, FreeSpellFootprint);
 
 void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
-EI_REPLACE_METHOD(0x005BD350, FootprintCellSet::SetSize);
 
 namespace {
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
@@ -76,7 +75,6 @@ void FootprintCellSet::AddTop(int x, int y, int height, std::int8_t kind, std::i
     FootprintCell cell{x, y, 0x7FFFFFFF, height, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
-EI_REPLACE_METHOD(0x005B2D10, FootprintCellSet::AddTop);
 
 void FootprintCellSet::AddBottom(int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
     hashed = true;
@@ -87,7 +85,6 @@ void FootprintCellSet::AddBottom(int x, int y, int height, std::int8_t kind, std
     FootprintCell cell{x, y, height, 0, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
-EI_REPLACE_METHOD(0x005B2E10, FootprintCellSet::AddBottom);
 
 void FootprintCellSet::GetBounds(int* bounds) const {
     bounds[0] = 100000;
@@ -102,7 +99,6 @@ void FootprintCellSet::GetBounds(int* bounds) const {
         if (!(bounds[3] > y)) bounds[3] = y;
     }
 }
-EI_REPLACE_METHOD(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
@@ -309,7 +305,6 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     refreshUnits = savedRefreshUnits;
     return fits;
 }
-EI_REPLACE_METHOD(0x005B6A80, CAIMap::MarkFootprint);
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
@@ -324,7 +319,6 @@ bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x005B65B0, CAIMap::ApplyFootprint);
 
 bool CAIMap::StampFootprint(int owner, FootprintCellSet* set) {
     bool savedRefreshUnits = refreshUnits;
@@ -337,7 +331,6 @@ bool CAIMap::StampFootprint(int owner, FootprintCellSet* set) {
     refreshUnits = savedRefreshUnits;
     return fits;
 }
-EI_REPLACE_METHOD(0x005B7820, CAIMap::StampFootprint);
 
 bool CAIMap::ClearFootprint(FootprintCellSet* set) {
     bool savedRefreshUnits = refreshUnits;
@@ -349,7 +342,6 @@ bool CAIMap::ClearFootprint(FootprintCellSet* set) {
     refreshUnits = savedRefreshUnits;
     return cleared;
 }
-EI_REPLACE_METHOD(0x005B78F0, CAIMap::ClearFootprint);
 
 void CAIMap::BeginRefresh() {
     if (batching) {
@@ -362,10 +354,8 @@ void CAIMap::BeginRefresh() {
     dirtyMaxY = 0;
     batching = true;
 }
-EI_REPLACE_METHOD(0x005B8B30, CAIMap::BeginRefresh);
 
 void CAIMap::EndRefresh() {
     RefreshArea(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
     batching = false;
 }
-EI_REPLACE_METHOD(0x005B8B80, CAIMap::EndRefresh);

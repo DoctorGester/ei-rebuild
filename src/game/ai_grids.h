@@ -30,7 +30,6 @@ void FreeGrid(SearchGrid<T>& grid) {
 // Allocate per element type (thiscall on the grid).
 void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid);            // 005B1470
 void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid);          // 005B14C0
-void __fastcall AllocateBlockRecordGrid(SearchGrid<BlockRecord>* grid);    // 005B1500
 // 005B1550: the region map's edge words, eight per block, all -1.
 void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid);
 // 005B15F0: the region map's representative cells, zeroed.
@@ -47,7 +46,6 @@ void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
 // 005CD4B0: the event table's cells (the Rebirth-patched resize 005C9310 calls it).
 struct AIEventCell;   // unit_ai.h
-void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid);
 // 005AF580 / 005AF590: the edge and representative-cell grids' default constructors (1 x 1, then
 // the allocator; the region map's constructor hands them to the vector constructor iterator).
 void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);

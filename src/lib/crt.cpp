@@ -229,7 +229,6 @@ int __cdecl Strncmp(const char* a, const char* b, std::size_t n) {
     }
     return 0;
 }
-EI_REPLACE(0x006E9180, libcrt::Strncmp);
 
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
     std::size_t i = 0;
@@ -237,7 +236,6 @@ char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
     for (; i < n; ++i) to[i] = '\0';
     return to;
 }
-EI_REPLACE(0x006E7E80, libcrt::Strncpy);
 
 void* __cdecl Memmove(void* to, const void* from, std::size_t n) {
     unsigned char* d = static_cast<unsigned char*>(to);
@@ -249,7 +247,6 @@ void* __cdecl Memmove(void* to, const void* from, std::size_t n) {
     }
     return to;
 }
-EI_REPLACE(0x006E79A0, libcrt::Memmove);
 
 int __cdecl Strcmp(const char* a, const char* b) {
     for (;; ++a, ++b) {
@@ -276,7 +273,6 @@ int __cdecl Stricmp(const char* a, const char* b) {
         if (la != lb) return la < lb ? -1 : 1;
     }
 }
-EI_REPLACE(0x006F2230, libcrt::Stricmp);
 
 // A terminator in either string ends the compare (the raw bytes compared); otherwise the folded bytes.
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
@@ -292,7 +288,6 @@ int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
     }
     return 0;
 }
-EI_REPLACE(0x006FA1A0, libcrt::Strnicmp);
 
 // VC6's _memicmp: no terminator test; bytes that differ are compared folded (A-Z in the "C" locale,
 // _tolower_lk otherwise), as unsigned bytes: -1 or 1 (S16).
@@ -308,30 +303,24 @@ int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
     }
     return 0;
 }
-EI_REPLACE(0x006FD2F0, libcrt::Memicmp);
 
 // Single-byte code page (__ismbcodepage zero): strcmp and _stricmp.
 int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) {
     return Strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
-EI_REPLACE(0x006E848B, libcrt::Mbscmp);
 
 int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
     return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
-EI_REPLACE(0x006E8767, libcrt::Mbsicmp);
 
 unsigned char* __cdecl Mbsinc(const unsigned char* p) {
     const bool lead = (MultibyteFlags()[*p] & kMbLead) != 0;
     return const_cast<unsigned char*>(p + (lead ? 2 : 1));
 }
-EI_REPLACE(0x006E9947, libcrt::Mbsinc);
 
 int __cdecl Ismbblead(unsigned c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0 ? 1 : 0; }
-EI_REPLACE(0x006E99F2, libcrt::Ismbblead);
 
 int __cdecl Isleadbyte(int c) { return CharClasses()[static_cast<unsigned char>(c)] & kLeadByte; }
-EI_REPLACE(0x006E9A6C, libcrt::Isleadbyte);
 
 // In the "C" locale only A-Z / a-z change (any other int comes back as it is); under a locale,
 // MapCaseByLocale.
@@ -345,12 +334,10 @@ int __cdecl Toupper(int c) {
     if (LocaleHandle() == 0) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
     return MapCaseByLocale(c, LCMAP_UPPERCASE, kLower);
 }
-EI_REPLACE(0x006E91C0, libcrt::Toupper);
 
 // The single-byte path (__mb_cur_max 1): the class bits of the table entry. isdigit and isspace
 // test the entry's low byte, isalpha and isprint the word (same results for their masks).
 int __cdecl Isalpha(int c) { return CharClasses()[c] & kAlpha; }
-EI_REPLACE(0x006E92FB, libcrt::Isalpha);
 
 int __cdecl Isdigit(int c) { return CharClasses()[c] & kDigit; }
 EI_REPLACE(0x006E9379, libcrt::Isdigit);
@@ -359,7 +346,6 @@ int __cdecl Isspace(int c) { return CharClasses()[c] & kSpace; }
 EI_REPLACE(0x006E93CE, libcrt::Isspace);
 
 int __cdecl Isprint(int c) { return CharClasses()[c] & kPrint; }
-EI_REPLACE(0x006E944C, libcrt::Isprint);
 
 // Leading white space, a sign, then decimal digits; overflow wraps.
 long __cdecl Atol(const char* text) {
@@ -377,14 +363,12 @@ long __cdecl Atol(const char* text) {
 }
 
 int __cdecl Atoi(const char* text) { return static_cast<int>(Atol(text)); }
-EI_REPLACE(0x006E80D8, libcrt::Atoi);
 
 // Only radix 10 writes a minus sign; other radixes write the value's bits as unsigned.
 char* __cdecl Itoa(int value, char* buffer, int radix) {
     UnsignedToText(static_cast<unsigned long>(value), buffer, static_cast<unsigned>(radix), radix == 10 && value < 0);
     return buffer;
 }
-EI_REPLACE(0x006E9B36, libcrt::Itoa);
 
 // The drive when the second character is ':'; the directory up to the last '/' or '\'; the name up to
 // the last '.' after it; each part at most 255 characters. A lead byte skips the byte after it, as in
@@ -431,7 +415,6 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
         if (ext) ext[0] = '\0';
     }
 }
-EI_REPLACE(0x006E8BEE, libcrt::Splitpath);
 
 namespace {
 
@@ -517,21 +500,16 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
         hi = hiStack[stacked];
     }
 }
-EI_REPLACE(0x006E88FC, libcrt::Qsort);
 
 // ---- Plain string and memory functions; the multibyte ones by their single-byte path ----
 
 void* __cdecl Memcpy(void* to, const void* from, std::size_t n) { return Memmove(to, from, n); }
-EI_REPLACE(0x006EC3A0, libcrt::Memcpy);
 
 void* __cdecl Memset(void* to, int value, std::size_t n) { return std::memset(to, value, n); }
-EI_REPLACE(0x006E9CE0, libcrt::Memset);
 
 char* __cdecl Strstr(const char* text, const char* part) { return const_cast<char*>(std::strstr(text, part)); }
-EI_REPLACE(0x006EAE30, libcrt::Strstr);
 
 std::size_t __cdecl Wcslen(const wchar_t* text) { return std::wcslen(text); }
-EI_REPLACE(0x006EC6D5, libcrt::Wcslen);
 
 namespace {
 const char* AsText(const unsigned char* p) { return reinterpret_cast<const char*>(p); }
@@ -542,31 +520,25 @@ unsigned char* AsBytes(const char* p) { return reinterpret_cast<unsigned char*>(
 unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c) {
     return AsBytes(std::strchr(AsText(text), static_cast<int>(c)));
 }
-EI_REPLACE(0x006EC6F2, libcrt::Mbschr);
 
 unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c) {
     return AsBytes(std::strrchr(AsText(text), static_cast<int>(c)));
 }
-EI_REPLACE(0x006EC99C, libcrt::Mbsrchr);
 
 unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part) {
     return AsBytes(Strstr(AsText(text), AsText(part)));
 }
-EI_REPLACE(0x006ECAB3, libcrt::Mbsstr);
 
 unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set) {
     return AsBytes(std::strpbrk(AsText(text), AsText(set)));
 }
-EI_REPLACE(0x006EC789, libcrt::Mbspbrk);
 
 int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
     if (n == 0) return 0;
     return Strncmp(AsText(a), AsText(b), n);
 }
-EI_REPLACE(0x006ECD2B, libcrt::Mbsncmp);
 
 std::size_t __cdecl Mbclen(const unsigned char* c) { return (MultibyteFlags()[*c] & kMbLead) ? 2 : 1; }
-EI_REPLACE(0x006ECC98, libcrt::Mbclen);
 
 unsigned char* __cdecl Mbslwr(unsigned char* text) {
     for (unsigned char* p = text; *p; ++p) {
@@ -580,10 +552,8 @@ unsigned char* __cdecl Mbslwr(unsigned char* text) {
     }
     return text;
 }
-EI_REPLACE(0x006EC8A8, libcrt::Mbslwr);
 
 double __cdecl Floor(double value) { return std::floor(value); }
-EI_REPLACE(0x006E7F7E, libcrt::Floor);
 
 // ---- rand / srand ----
 
@@ -626,7 +596,6 @@ EI_REPLACE(0x006E77EA, libcrt::Srand);
 // ---- Maths ----
 
 double __cdecl Ceil(double value) { return std::ceil(value); }
-EI_REPLACE(0x006E8B1F, libcrt::Ceil);
 
 // modf: the whole part truncated, the fraction value - whole (+0 for a negative whole number, where
 // std::modf gives -0); zero, infinity and NaN keep the value as the whole part, and the fraction is
@@ -647,7 +616,6 @@ double __cdecl Modf(double value, double* whole) {
     *whole = std::trunc(value);
     return value - *whole;
 }
-EI_REPLACE(0x006EAD0B, libcrt::Modf);
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
 // The original (006EBBB4) is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
@@ -712,7 +680,6 @@ unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
     if ((wanted ^ current) & kKept) x87::SetControlWord(wanted);
     return word;
 }
-EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
 
 // ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
 
@@ -779,7 +746,6 @@ void* __cdecl Realloc(void* p, std::size_t size) {
         if (!TryAgain(size)) return nullptr;
     }
 }
-EI_REPLACE_STANDALONE(0x006ED69A, libcrt::Realloc);
 
 // The byte count is count * size without an overflow check, as in VC6.
 void* __cdecl Calloc(std::size_t count, std::size_t size) {
@@ -792,10 +758,8 @@ void* __cdecl Calloc(std::size_t count, std::size_t size) {
         if (!TryAgain(rounded)) return nullptr;
     }
 }
-EI_REPLACE_STANDALONE(0x006F0317, libcrt::Calloc);
 
 std::size_t __cdecl Msize(void* p) { return gameapi::HeapSize(Heap(), 0, p); }
-EI_REPLACE_STANDALONE(0x006EEC7B, libcrt::Msize);
 
 char* __cdecl Strdup(const char* text) {
     if (!text) return nullptr;
@@ -804,14 +768,12 @@ char* __cdecl Strdup(const char* text) {
     if (copy) std::memcpy(copy, text, bytes);
     return copy;
 }
-EI_REPLACE_STANDALONE(0x006EEC50, libcrt::Strdup);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = HeapNewHandler();
     HeapNewHandler() = handler;
     return old;
 }
-EI_REPLACE(0x006E8D35, libcrt::SetNewHandler);
 
 void* __cdecl OperatorNew(std::size_t size) {
     for (;;) {
@@ -889,7 +851,6 @@ char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
         ChunkEnd() = ChunkStart() + request;
     }
 }
-EI_REPLACE(0x00406B70, libcrt::NodeChunkAlloc);
 
 void* __fastcall NodeRefill(std::size_t bytes) {
     const std::size_t size = RoundUp(bytes);
@@ -909,7 +870,6 @@ void* __fastcall NodeRefill(std::size_t bytes) {
     }
     return chunk;
 }
-EI_REPLACE(0x004060E0, libcrt::NodeRefill);
 
 void* __fastcall NodeAllocate(std::size_t bytes) {
     if (bytes > kMaxPooled) return gamecrt::operator_new(bytes);
@@ -920,7 +880,6 @@ void* __fastcall NodeAllocate(std::size_t bytes) {
     }
     return NodeRefill(bytes);
 }
-EI_REPLACE(0x00405950, libcrt::NodeAllocate);
 
 void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
     if (bytes > kMaxPooled) {
@@ -931,15 +890,12 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
     static_cast<FreeBlock*>(p)->next = list;
     list = static_cast<FreeBlock*>(p);
 }
-EI_REPLACE(0x00404D70, libcrt::NodeDeallocate);
 
 void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes) {
     if (p) NodeDeallocate(p, bytes);
 }
-EI_REPLACE(0x0043B310, libcrt::NodeDeallocateChecked);
 
 void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
-EI_REPLACE(0x00426450, libcrt::NodeDeallocateCheckedStd);
 
 namespace {
 // The onexit list, run last-registered first by exit (functions registered while it runs, too).
@@ -962,7 +918,6 @@ ExitFunction __cdecl OnExit(ExitFunction function) {
     }
     return function;
 }
-EI_REPLACE_STANDALONE(0x006E71FD, libcrt::OnExit);
 
 int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
 EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
@@ -987,7 +942,6 @@ void __cdecl Exit(int code) {
     }
     std::exit(code);
 }
-EI_REPLACE_STANDALONE(0x006E8DA7, libcrt::Exit);
 
 } // namespace libcrt
 
@@ -1035,26 +989,8 @@ long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const 
     return Slot(&DirectInputCreateEx, 0x0073B044)(instance, version, iid, out, outer);
 }
 
-EI_REPLACE(0x006E60E2, Htons);
-EI_REPLACE(0x006E60E8, GetHostByName);
-EI_REPLACE(0x006E60EE, InetAddr);
-EI_REPLACE(0x006E60F4, Ntohs);
-EI_REPLACE(0x006E60FA, GetHostByAddr);
-EI_REPLACE(0x006E6100, GetHostName);
 EI_REPLACE(0x006E6106, WsaStartup);
 EI_REPLACE(0x006E610C, WsaCleanup);
-EI_REPLACE(0x006E6112, CloseSocket);
-EI_REPLACE(0x006E6118, SetSockOpt);
-EI_REPLACE(0x006E611E, IoctlSocket);
-EI_REPLACE(0x006E6124, Bind);
-EI_REPLACE(0x006E612A, Socket);
-EI_REPLACE(0x006E6130, SendTo);
-EI_REPLACE(0x006E6136, RecvFrom);
-EI_REPLACE(0x006E613C, Connect);
-EI_REPLACE(0x006E6142, Recv);
-EI_REPLACE(0x006E6148, Send);
-EI_REPLACE(0x006E614E, Select);
-EI_REPLACE(0x006E61F0, DirectInputCreateEx);
 
 } // namespace libcrt::imports
 #endif

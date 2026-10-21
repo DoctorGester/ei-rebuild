@@ -133,7 +133,6 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         }
     }
 }
-EI_REPLACE(0x004A7080, ClassTemplateFill);
 
 // ---- 004A7630 -------------------------------------------------------------------------------------
 
@@ -188,7 +187,6 @@ void TemplateTable::Build(unsigned fourClasses) {
         AddTemplate(v, 5, 1, 1, kZeroWeights);
     }
 }
-EI_REPLACE_METHOD(0x004A7630, TemplateTable::Build);
 
 // ---- Small members ----------------------------------------------------------------------------------
 
@@ -209,4 +207,3 @@ unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
     }
     return i;
 }
-EI_REPLACE(0x004A88E0, ClassTemplatesQuestCompleted);

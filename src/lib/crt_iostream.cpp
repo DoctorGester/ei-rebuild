@@ -170,7 +170,6 @@ Streambuf* Streambuf::Construct(char* buffer, int length) {
     gameapi::InitializeCriticalSection(Section(lock));
     return this;
 }
-EI_REPLACE_METHOD(0x006FCAD2, libcrt::Streambuf::Construct);
 
 void Streambuf::Destruct() {
     SetVtable(StreambufVtable());
@@ -178,7 +177,6 @@ void Streambuf::Destruct() {
     DefaultSync();
     if (allocated && base) gamecrt::operator_delete(base);
 }
-EI_REPLACE_METHOD(0x006FCB35, libcrt::Streambuf::Destruct);
 
 Streambuf* Streambuf::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -319,7 +317,6 @@ Ios* Ios::Construct() {
     if (LiveIosCount()++ == 0) gameapi::InitializeCriticalSection(SharedLock());
     return this;
 }
-EI_REPLACE_METHOD(0x006FCDB1, libcrt::Ios::Construct);
 
 void Ios::Destruct() {
     lockFlag = -1;
@@ -345,7 +342,6 @@ void Ios::Init(Streambuf* buffer) {
     if (buffer) state &= ~kBad;
     else state |= kBad;
 }
-EI_REPLACE_METHOD(0x006FCF26, libcrt::Ios::Init);
 
 void Ios::DestructOstream() {
     Ostream* stream = reinterpret_cast<Ostream*>(this) - 1;
@@ -379,7 +375,6 @@ Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
     ei::Code<Ostream*(__cdecl*)(Ostream*)>(reinterpret_cast<std::uintptr_t>(manipulator))(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00434FE0, libcrt::Ostream::Apply);
 
 // With a width, through writepad as a one-byte string (a zero byte writes only the padding); otherwise
 // put, and on EOF overflow is asked once more before failbit | badbit.
@@ -396,13 +391,11 @@ Ostream* Ostream::PutChar(char c) {
     Suffix(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006FC0B0, libcrt::Ostream::PutChar);
 
 Ostream* Ostream::PutUnsigned(unsigned value) {
     PutInteger(this, value, "%u", 1, true);
     return this;
 }
-EI_REPLACE_METHOD(0x006FC14E, libcrt::Ostream::PutUnsigned);
 
 Ostream* Ostream::PutText(const char* text) {
     if (Prefix(this)) {
@@ -411,7 +404,6 @@ Ostream* Ostream::PutText(const char* text) {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x006FC31D, libcrt::Ostream::PutText);
 
 // "%[+][#].<precision>g", the letter 'f' under fixed, 'e' under scientific (upper case under uppercase,
 // except 'f'); the precision at most 15, or 6 after the inline float inserter (floatUsed, cleared). The
@@ -450,19 +442,16 @@ Ostream* Ostream::PutDouble(double value) {
     Suffix(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006FC7FA, libcrt::Ostream::PutDouble);
 
 Ostream* Ostream::PutLong(long value) {
     PutInteger(this, value, "%ld", 2, value > 0);
     return this;
 }
-EI_REPLACE_METHOD(0x006FC91C, libcrt::Ostream::PutLong);
 
 Ostream* Ostream::PutInt(int value) {
     PutInteger(this, value, "%d", 1, value > 0);
     return this;
 }
-EI_REPLACE_METHOD(0x006FC9C6, libcrt::Ostream::PutInt);
 
 Ostream* Ostream::Flush() {
     Ios& ios = Base();
@@ -473,12 +462,9 @@ Ostream* Ostream::Flush() {
     ios.Unlock();
     return this;
 }
-EI_REPLACE_METHOD(0x006FC346, libcrt::Ostream::Flush);
 
 Ostream* __cdecl FlushManipulator(Ostream* stream) { return stream->Flush(); }
-EI_REPLACE(0x00435000, libcrt::FlushManipulator);
 
 Ostream* __cdecl EndlManipulator(Ostream* stream) { return stream->PutChar('\n')->Flush(); }
-EI_REPLACE(0x004BA9F0, libcrt::EndlManipulator);
 
 } // namespace libcrt

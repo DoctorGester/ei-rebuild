@@ -294,33 +294,20 @@ void __stdcall ThrowResourceException() {
 void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
 void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
 
-EI_REPLACE_METHOD(0x00702053, CException::Construct);
-EI_REPLACE_METHOD(0x0070205D, CException::ConstructAutoDelete);
 EI_REPLACE_METHOD(0x006E68C9, CSimpleException::ConstructResource);
 EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
 EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
 EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
-EI_REPLACE(0x00702069, DeleteException);
 EI_REPLACE_METHOD(0x0070209C, CException::ReportError);
-EI_REPLACE_METHOD(0x006FE31D, CSimpleException::InitString);
 EI_REPLACE_METHOD(0x006FE346, CSimpleException::GetErrorMessage);
 EI_REPLACE_METHOD(0x00703135, CFileException::GetErrorMessage);
 EI_REPLACE_METHOD(0x0070A795, CArchiveException::GetErrorMessage);
-EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);
 EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
-EI_REPLACE_METHOD(0x006E6BA1, CArchiveException::Destruct);
 EI_REPLACE_METHOD(0x006E6B85, CArchiveException::DeletingDestructor);
 EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
 EI_REPLACE(0x006E695C, UserExceptionDestruct);
 EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
 EI_REPLACE(0x006E6B7D, NotSupportedExceptionDestruct);
-EI_REPLACE(0x00703296, OsErrorToException);
-EI_REPLACE(0x007031D5, ThrowFileException);
-EI_REPLACE(0x007030F0, ThrowOsError);
-EI_REPLACE(0x0070A835, ThrowArchiveException);
-EI_REPLACE(0x006FE3A2, ThrowNotSupported);
-EI_REPLACE(0x006FE389, ThrowMemoryException);
-EI_REPLACE(0x0070A29E, ThrowResourceException);
 EI_REPLACE(0x0070CF4C, FileExceptionRuntimeClass);
 EI_REPLACE(0x0070CF46, ArchiveExceptionRuntimeClass);
 
@@ -352,9 +339,5 @@ void __cdecl TryCleanup() {
     if (link->exception) impl::DeleteException(static_cast<impl::CException*>(link->exception));
     *top = link->previous;
 }
-
-EI_REPLACE(0x007020F1, ConstructExceptionLink);
-EI_REPLACE(0x0070212F, TryCleanup);
-EI_REPLACE_STANDALONE(0x00702107, ExceptionLinkTop);
 
 } // namespace mfc

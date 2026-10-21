@@ -268,7 +268,6 @@ void __fastcall CloseResourceHook(CMappedResource* self) { self->CMappedResource
 void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource::FreeAllFiles(); }
 } // namespace
 
-EI_REPLACE_METHOD(0x00674850, CMappedResource::FindEntry);
 EI_REPLACE_METHOD(0x00671280, CMappedResource::Construct);
 EI_REPLACE_METHOD(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
 EI_REPLACE_METHOD(0x006713A0, CMappedResource::DeletingDestroy);
@@ -416,19 +415,5 @@ bool CMMIOResource::CloseFileImpl(void*) { return true; }
 
 void CMMIOResource::FreeAllFiles() {}
 
-namespace {
-void __fastcall MmioCloseResourceHook(CMMIOResource* self) { self->CMMIOResource::CloseResource(); }
-void __fastcall MmioFlushHook(CMMIOResource* self) { self->CMMIOResource::Flush(); }
-} // namespace
-
-EI_REPLACE_METHOD(0x006756B0, CMappedFile::Construct);
-EI_REPLACE_METHOD(0x006756D0, CMappedFile::Close);
-EI_REPLACE_METHOD(0x00675720, CMappedFile::Close);
 EI_REPLACE_METHOD(0x00675770, CMappedFile::Open);
-EI_REPLACE_METHOD(0x00675A50, CMappedFile::Flush);
-EI_REPLACE_METHOD(0x006724E0, CMMIOResource::OpenResourceImpl);
 EI_REPLACE_METHOD(0x00672520, CMMIOResource::OpenFromMemoryImpl);
-EI_REPLACE(0x006725A0, MmioCloseResourceHook);
-EI_REPLACE(0x006725D0, MmioFlushHook);
-EI_REPLACE_METHOD(0x006725E0, CMMIOResource::GetFileImpl);
-EI_REPLACE_METHOD(0x00672640, CMMIOResource::CloseFileImpl);

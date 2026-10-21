@@ -74,7 +74,6 @@ WinThread* WinThread::Construct(ThreadProc procedure, void* parameter) {
     CommonConstruct();
     return this;
 }
-EI_REPLACE_METHOD(0x0070C259, WinThread::Construct);
 
 void WinThread::CommonConstruct() {
     mainWnd = nullptr;
@@ -88,7 +87,6 @@ void WinThread::CommonConstruct() {
     oleTermOrFreeLib = nullptr;
     autoDelete = TRUE;
 }
-EI_REPLACE_METHOD(0x0070C2F6, WinThread::CommonConstruct);
 
 void WinThread::Delete() {
     if (!autoDelete) return;
@@ -110,7 +108,6 @@ WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int p
     if (!(flags & CREATE_SUSPENDED)) gameapi::ResumeThread(thread->thread);
     return thread;
 }
-EI_REPLACE_STANDALONE(0x007022A0, AfxBeginThread);
 
 void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread) {
     if (WinThread* thread = t_current) {
@@ -120,6 +117,5 @@ void __stdcall AfxEndThread(UINT exitCode, BOOL deleteThread) {
     }
     _endthreadex(exitCode);
 }
-EI_REPLACE_STANDALONE(0x00702380, AfxEndThread);
 
 } // namespace mfc::impl

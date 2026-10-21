@@ -11,7 +11,8 @@ code can get there:
   data         function starts (config/functions.csv) that game.exe's data sections point at: vtable slots
                and pointer tables the image keeps (library code mostly: MFC's vtables, the CRT's tables).
                The compiler's exception funclets (kind "eh") and config/dead_code.csv are left out: the
-               image runs none of game.exe's own exception tables.
+               image runs none of game.exe's own exception tables; so are the retired vtables' slots
+               (config/retired_vtables.csv, C19), whose bytes the image holds zero.
 A listed address is not necessarily reachable: a forwarder may be behind a branch the image never takes
 (ei::Standalone()), a vtable may belong to a class the game never makes. config/standalone_unreachable.csv
 names what the image can never run, with the reason (S16d): a whole vtable, data words or ranges, or an
@@ -57,6 +58,8 @@ def scan_sources():
 
 
 def data_references(exe_path, functions):
+    import gen_image_cells
+    retired = gen_image_cells.retired_cells()   # the retired vtables' slots: zero in the image (C19)
     data = open(exe_path, 'rb').read()
     pe = struct.unpack_from('<I', data, 0x3c)[0]
     nsec, opt = struct.unpack_from('<H', data, pe + 6)[0], struct.unpack_from('<H', data, pe + 20)[0]
@@ -68,7 +71,7 @@ def data_references(exe_path, functions):
             continue
         for off in range(0, rawsz - 3, 4):
             v = struct.unpack_from('<I', data, rawptr + off)[0]
-            if v in functions:
+            if v in functions and 0x400000 + va + off not in retired:
                 refs[v].append(0x400000 + va + off)
     return refs
 

@@ -923,10 +923,6 @@ constexpr std::uint32_t kScriptsChunk = 0xA000;          // the .mob file's scri
 constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script text, packed and XORed
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 
-// The decoder (mob_script_decoder.h): 00598940 constructs an empty vector<char> (allocator by
-// pointer); 0042D2C0 / 00598D80 free them (FreeStorage); 004D8E10 (RET 4) decodes `input` into `text` and the
-// CString, called through its address so its verify wrapper sees the zone's scripts.
-using CharVector = stlp::vector<char>;
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
@@ -1776,10 +1772,6 @@ EI_REPLACE(0x0057BC30, CurrentSaveSize);
 
 // ---- After starting the sessions (0057EB10) -----------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void GameFlow::AfterServerStart() {
     UseResources(true);
     // The variables of the party outside a game (007C82B0 + 0x54) start empty. Rebirth's
@@ -2130,8 +2122,6 @@ EI_REPLACE(0x0057F4A0, DestroyZoneTable);
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
-EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
-EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
@@ -2140,19 +2130,11 @@ EI_REPLACE(0x0057F850, PickZones);
 EI_REPLACE(0x00579E60, LoadMission);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
-EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
-EI_REPLACE(0x00581630, RequestZone);
-EI_REPLACE_METHOD(0x00581660, GameFlow::CloseSessions);
-EI_REPLACE_METHOD(0x0057ECA0, GameFlow::DropSessions);
-EI_REPLACE_METHOD(0x0057ED00, GameFlow::EndSession);
-EI_REPLACE_METHOD(0x005816C0, GameFlow::RequestState3);
 EI_REPLACE_METHOD(0x005816D0, GameFlow::RequestLoad);
 EI_REPLACE_METHOD(0x00581700, GameFlow::RequestZoneChange);
 EI_REPLACE_METHOD(0x00581730, GameFlow::RequestPartyZone5);
 EI_REPLACE_METHOD(0x00581760, GameFlow::RequestPartyZone6);
-EI_REPLACE_METHOD(0x00581620, GameFlow::DisconnectClient);
-EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);
 EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);

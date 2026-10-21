@@ -507,14 +507,11 @@ static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRender
 CSceneRenderer* __cdecl SceneRenderer();
 // The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
 // left), 00504E20 (RET 4) takes `device` (one more reference) and releases the old one.
-void __fastcall DeviceHolderRelease(CTextureDevice** holder);
 void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
 Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);
-// 004F13F0. Shear along z that maps `dir` onto the z axis. Returns out.
-Matrix4* __stdcall ShearMatrix(Matrix4* out, const Vector3* dir);
 // 004F0E80. Perspective projection; `fov` in radians (full angle). Returns out.
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 

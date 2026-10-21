@@ -69,7 +69,6 @@ void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, 
     const int rectangle[4] = {from->left, from->top, from->right, from->bottom};
     render::TexturePatch(target->surface_, to, source->surface_, rectangle);
 }
-EI_REPLACE(0x00533980, BlitMipChain);
 
 void CUnitClientSpecific::BlinkClose(bool force) {
     if (!faceTexture) return;

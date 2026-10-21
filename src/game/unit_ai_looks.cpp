@@ -45,19 +45,11 @@ AILookArray* __fastcall LooksInit(AILookArray* looks) {
     looks->size = 0;
     return looks;
 }
-EI_REPLACE(0x005573F0, LooksInit);
-
-// 005D8EE0: SetSize (growBy -1 keeps the step; new elements zeroed, also when they fit the
-// capacity; a shrink only lowers the size). 005D8B60: Copy (SetSize to the other's size, then its
-// elements; the original copies them with memcpy, the same bytes).
-EI_REPLACE_METHOD(0x005D8EE0, AILookArray::SetSize);
-EI_REPLACE_METHOD(0x005D8B60, AILookArray::Copy);
 
 AILook* AILooks::CopyAt(AILook* out, int index) const {
     *out = data[index];
     return out;
 }
-EI_REPLACE_METHOD(0x005D9DE0, AILooks::CopyAt);
 
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
@@ -109,7 +101,3 @@ PatrolPoint& PatrolPoint::operator=(const PatrolPoint& other) {
     return *this;
 }
 
-// 005D93B0 (RET 4): Add, returning the new index. 005D9F30 (RET 8): SetAtGrow (a new point at
-// `index` grows the array to index + 1 first).
-EI_REPLACE_METHOD(0x005D93B0, PatrolPointArray::Add);
-EI_REPLACE_METHOD(0x005D9F30, PatrolPointArray::SetAtGrow);

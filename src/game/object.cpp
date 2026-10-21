@@ -15,13 +15,11 @@ CHoover* CHoover::Construct() {
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x00461C10, CHoover::Construct);
 
 void CHoover::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00461C80, CHoover::Destruct);
 
 // --- Unit and figure getters --------------------------------------------------------------------
 

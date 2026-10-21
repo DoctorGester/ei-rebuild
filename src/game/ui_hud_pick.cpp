@@ -120,7 +120,6 @@ void CHudSpellColumn::Click(int index) {
     int mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint;
     owner_->SetPendingAction(mode, index, -1);
 }
-EI_REPLACE_METHOD(0x0063EC90, CHudSpellColumn::Click);
 
 // --- 0063FB50: an action button ----------------------------------------------------------------
 
@@ -138,7 +137,6 @@ void CHudActionColumn::Select(int index) {
     int action = static_cast<int>(actions_.data[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
-EI_REPLACE_METHOD(0x0063FB50, CHudActionColumn::Select);
 
 // --- 0063DD70: a quick item slot ---------------------------------------------------------------
 
@@ -161,7 +159,6 @@ void CHudQuickItems::Pick(int slot) {
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner_->SetPendingAction(mode, slot, -1);
 }
-EI_REPLACE_METHOD(0x0063DD70, CHudQuickItems::Pick);
 
 // --- 0063E020 / 0063EF60: a quick item or spell used at once ------------------------------------
 

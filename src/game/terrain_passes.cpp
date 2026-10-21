@@ -71,12 +71,10 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 } // namespace
 
 void SectorData::SetDetail(int level) { detail = level; }
-EI_REPLACE_METHOD(0x006C1390, SectorData::SetDetail);
 
 // --- The sector's part of the passes (006BFB00-006BFC7B; A-Z1) -------------------------------------
 
 int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing ? 1 : 0; }
-EI_REPLACE_METHOD(0x006BFB00, SectorData::IsDrawn);
 
 void SectorData::ClipTest(CSceneRenderer* renderer) {
     // The verdict as it is stored: -1 counts as outside.
@@ -88,7 +86,6 @@ void SectorData::ClipTest(CSceneRenderer* renderer) {
     if (clipMode == terrain::kCulled) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
-EI_REPLACE_METHOD(0x006BFB20, SectorData::ClipTest);
 
 void SectorData::FindSeams() {
     seamAfter = 0;
@@ -108,7 +105,6 @@ void SectorData::FindSeams() {
         if (coarser(sx + 1, sy, 2)) seamAfter = 1;
     }
 }
-EI_REPLACE_METHOD(0x006BFB80, SectorData::FindSeams);
 
 void Terrain::ChooseDetail(SectorData* sector) {
     const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
@@ -153,10 +149,7 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006C6460, Terrain::DrawPages);
 
 void Terrain::DrawGround(CSceneRenderer* renderer) { DrawPass(this, renderer, 0, pages + 1); }
-EI_REPLACE_METHOD(0x006C6230, Terrain::DrawGround);
 
 void Terrain::DrawWater(CSceneRenderer* renderer) { DrawPass(this, renderer, pages + 2, pages * 2 + 3); }
-EI_REPLACE_METHOD(0x006C6330, Terrain::DrawWater);

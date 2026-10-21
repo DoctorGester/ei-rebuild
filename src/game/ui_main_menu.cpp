@@ -85,7 +85,6 @@ void CInterface3D::ResetSavedState() {
     hudTopPage_ = 0;
     fastGame_ = 0;
 }
-EI_REPLACE_METHOD(0x005F51F0, CInterface3D::ResetSavedState);
 
 // --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
 
@@ -226,8 +225,6 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     }
     InputOf(this)->OnMouseMove(buttons, x, y);
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
@@ -237,6 +234,4 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     if (box) box = static_cast<CMessageBox*>(box)->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
     interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

@@ -271,7 +271,6 @@ AIMode* AIBrain::FindMode(int type) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005D5DD0, AIBrain::FindMode);
 
 AIMode* AIBrain::FindPatrolMode() {
     for (auto* node = modes.head; node;) {
@@ -281,7 +280,6 @@ AIMode* AIBrain::FindPatrolMode() {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005D5E30, AIBrain::FindPatrolMode);
 
 AIMode* AIBrain::FindPlayerMode() {
     for (auto* node = modes.head; node;) {
@@ -291,7 +289,6 @@ AIMode* AIBrain::FindPlayerMode() {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005D5E60, AIBrain::FindPlayerMode);
 
 CUnit* AIBrain::PlayerModeLeader() {
     for (auto* node = modes.head; node;) {
@@ -301,7 +298,6 @@ CUnit* AIBrain::PlayerModeLeader() {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005D5EE0, AIBrain::PlayerModeLeader);
 
 CEngineObject* AIBrain::LeaderOrFollowed() {
     CEngineObject* leader = nullptr;
@@ -316,7 +312,6 @@ CEngineObject* AIBrain::LeaderOrFollowed() {
     if (!leader && action == kActionFollow) return target;
     return leader;
 }
-EI_REPLACE_METHOD(0x005D5E90, AIBrain::LeaderOrFollowed);
 
 CEngineObject* AIBrain::AggressionEnemy() {
     for (auto* node = modes.head; node;) {
@@ -329,7 +324,6 @@ CEngineObject* AIBrain::AggressionEnemy() {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005D5F20, AIBrain::AggressionEnemy);
 
 // --- Positions -----------------------------------------------------------------------------------
 
@@ -374,7 +368,6 @@ std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     std::memset(&previousPosition.z, 0, 4);
     return kUnset;
 }
-EI_REPLACE_METHOD(0x005D5080, AIBrain::SetOwner);
 
 void AIBrain::OnObjectDeleted(CEngineObject* object) {
     for (auto* node = modes.head; node;) {
@@ -386,7 +379,6 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
     if (seen == object && seen) ReleaseRef(seen);
     memory.Forget(object);
 }
-EI_REPLACE_METHOD(0x005D58D0, AIBrain::OnObjectDeleted);
 
 // --- Actions -------------------------------------------------------------------------------------
 
@@ -466,13 +458,11 @@ void AIBrain::UpdateAttack() {
     if (o->action2.kind == 4 || o->action2.kind == 5) return;
     action = kActionNone;
 }
-EI_REPLACE_METHOD(0x005D76A0, AIBrain::UpdateAttack);
 
 void AIBrain::StopAction() {
     ReleaseRef(target);
     action = kActionNone;
 }
-EI_REPLACE_METHOD(0x005D7790, AIBrain::StopAction);
 
 namespace {
 // Holds `object` in `ref` with a counted reference (the inlined assignment of the original).
@@ -506,7 +496,6 @@ void AIBrain::AttackTarget(CEngineObject* object) {
     }
     owner->OrderAttack(target, 6, 0, flags);
 }
-EI_REPLACE_METHOD(0x005D7B50, AIBrain::AttackTarget);
 
 void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
     if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, object) == 0) return;
@@ -514,7 +503,6 @@ void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
     HoldRef(target, object);
     owner->OrderAttack(target, how, unknown, 2);
 }
-EI_REPLACE_METHOD(0x005D7C60, AIBrain::AttackWith);
 
 void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
     if (!object) return;
@@ -537,7 +525,6 @@ void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x005D7CE0, AIBrain::UseOn);
 
 void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
@@ -549,20 +536,17 @@ void AIBrain::TurnTowards(const Vector3* direction, float time) {
     action = kActionWalk;
     owner->OrderTurn(&direction->x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
-EI_REPLACE_METHOD(0x005D7B30, AIBrain::TurnTowards);
 
 void AIBrain::CastAt(int spell, const Vector3* point, int run) {
     if (!owner->IsScrollSource(spell)) action = kActionCast;
     actionTime = spell;
     owner->OrderCastAt(spell, &point->x, run);
 }
-EI_REPLACE_METHOD(0x005D7DA0, AIBrain::CastAt);
 
 void AIBrain::Follow(CEngineObject* object) {
     action = kActionFollow;
     HoldRef(target, object);
 }
-EI_REPLACE_METHOD(0x005D7E40, AIBrain::Follow);
 
 namespace {
 const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
@@ -583,4 +567,3 @@ void AIBrain::SetSeen(CEngineObject* object) {
     if (!alerted && alertMode == 1) alerted = 1;
     if (object && object->GetClassId() == kClassUnit) memory.ForceSee(owner->unit, static_cast<CUnit*>(object));
 }
-EI_REPLACE_METHOD(0x005D7E90, AIBrain::SetSeen);

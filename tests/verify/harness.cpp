@@ -3170,7 +3170,12 @@ void RunSteps() {
             } else {
                 int kind = *reinterpret_cast<const int*>(record + kZoneRecordKind);
                 Log("harness: zone %s (map.txt type %s), exit %d", name, kind == 0 ? "game" : kind == 2 ? "brief" : "edge", exitIndex);
-                static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exitIndex);
+                // In game.exe's --no-hooks runs its own LeaveToZone: ours would use our named globals (C18, the
+                // random generator among them), which game.exe never reads.
+                if (ei::Standalone())
+                    static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exitIndex);
+                else
+                    reinterpret_cast<void(__thiscall*)(void*, const char*, int)>(0x0066F310)(connection, name, exitIndex);
                 if (ConnectionState(connection) != 3)
                     g_failures.push_back(std::string("zone ") + name + ": LeaveToZone did not leave (the leader dead or missing?; " +
                                          DescribeLocalPlayer() + ")");

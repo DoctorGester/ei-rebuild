@@ -286,8 +286,6 @@ void CEffectMoshka::Follow(int objectId) {
 
 int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
 
-EI_REPLACE_METHOD(0x0067C950, CEffectMoshka::Construct);
-EI_REPLACE_METHOD(0x0067CAF0, CEffectMoshka::Destruct);
 EI_REPLACE_METHOD(0x0067CAD0, CEffectMoshka::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067CC90, CEffectMoshka::Reset);
 EI_REPLACE_METHOD(0x0067CD70, CEffectMoshka::Tick);

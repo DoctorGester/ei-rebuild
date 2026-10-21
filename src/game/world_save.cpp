@@ -94,7 +94,6 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 // A player's MFC list of plain dwords (WorldPlayer::ids, AddTail 0059CC60) and of objects
 // (WorldPlayer::items, AddTail 004C98F0); only head and the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
-using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The item link record of an item of the item manager (CItem::link_).
 CItemLink* LinkOf(CEngineObject* item) {
@@ -910,4 +909,3 @@ EI_REPLACE_METHOD(0x005947E0, CWorldServer::AddSharedObject);
 EI_REPLACE_METHOD(0x00596E70, CWorldServer::LoadSave);
 EI_REPLACE_METHOD(0x00597BD0, CWorldServer::SaveWorld);
 EI_REPLACE_METHOD(0x00596900, CWorldServer::LoadSavedMapObjects);
-EI_REPLACE_METHOD(0x0058D280, CWorldServer::UpdatePlayerTimes);

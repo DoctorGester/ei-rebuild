@@ -18,4 +18,3 @@ int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int
     render::TerrainPage(this, context, page);
     return 1;
 }
-EI_REPLACE_METHOD(0x006BFF40, terrain::SectorData::DrawPage);
