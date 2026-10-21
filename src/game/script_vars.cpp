@@ -169,7 +169,7 @@ void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVar
         const ScriptBinding& b = bindings->data[k];
         switch (b.type) {
         case kScriptFloat:
-            x87::CopyFloat(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex]);
+            std::memcpy(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex], sizeof(float));
             break;
         case kScriptString:
             ScriptStringsCopyTo(&vars->strings, nullptr, b.varIndex, &stringArgs.data[b.argIndex]);   // 004C2F80

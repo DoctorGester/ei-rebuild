@@ -165,8 +165,8 @@ bool LessOrUnordered(float a, float b) { return (x87::CompareStatus(a, b) & x87:
 float SelectLess(float a, float b) { return LessOrUnordered(a, b) ? a : b; }
 // ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
 float ClampToZero(float t) { return LessOrUnordered(0.0f, t) ? t : 0.0f; }
-// Copies a float through the FPU.
-float Reload(float v) { return std::bit_cast<float>(x87::LoadStoreBits(&v)); }
+// The original copies a float through the FPU (FLD / FSTP); here the value as it is.
+float Reload(float v) { return v; }
 // The game's _ftol of a float.
 int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).

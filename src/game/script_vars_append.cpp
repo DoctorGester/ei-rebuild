@@ -61,7 +61,7 @@ template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>
     names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
-        x87::CopyFloat(&values.data[old + i], &other->values.data[i]);
+        std::memcpy(&values.data[old + i], &other->values.data[i], sizeof(float));
     }
 }
 EI_REPLACE_METHOD(0x004C2B70, ScriptNamedValues<float>::Append);

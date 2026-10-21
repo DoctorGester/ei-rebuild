@@ -27,7 +27,7 @@ namespace {
 // arguments), then each value copied (the source's size re-read).
 void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from) {
     to->SetSize(from->size, -1);
-    for (int i = 0; i < from->size; ++i) x87::CopyFloat(&to->data[i], &from->data[i]);
+    for (int i = 0; i < from->size; ++i) std::memcpy(&to->data[i], &from->data[i], sizeof(float));
 }
 
 // A plain array resized (004C46F0 object, 004C49F0 group arguments, 004C4CE0 bindings), then each

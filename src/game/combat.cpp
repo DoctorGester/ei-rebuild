@@ -445,11 +445,11 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     int keyed = IsTextKey(self->id_) & 0xFF;
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
-        x87::CopyFloat(&out->damageMin, &weapon->damage_);
+        std::memcpy(&out->damageMin, &weapon->damage_, sizeof(float));
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        x87::CopyFloat(&out->speed, &weapon->weight_);
+        std::memcpy(&out->speed, &weapon->weight_, sizeof(float));
         float base = WeaponStat84(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(gamecrt::Ftol(bonus + base));

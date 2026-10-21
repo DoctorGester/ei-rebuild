@@ -84,8 +84,8 @@ int RoundTimeOffset(int time, float extra) {
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// Copies a float through the FPU (FLD/FSTP), like the original.
-void CopyFloat(float* dst, const float* src) { x87::CopyFloat(dst, src); }
+// Copies a float's bits (the original copies through FLD/FSTP, which quiets a signalling NaN; here it is kept).
+void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
 constexpr std::uint32_t kZero = 0;

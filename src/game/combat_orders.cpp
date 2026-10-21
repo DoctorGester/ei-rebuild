@@ -122,7 +122,7 @@ void CUnitServer::FinishCast() {
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = LessOrUnordered(left, maximum) ? left : maximum;
         float result = LessOrUnordered(kZero, capped) ? capped : kZero;
-        x87::CopyFloat(mana, &result);
+        std::memcpy(mana, &result, sizeof(float));
         (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
         unit->MarkChanged(0);
     }

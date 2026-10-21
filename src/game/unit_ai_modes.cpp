@@ -389,8 +389,8 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         return value;
     }
     level = brain->noticedLevel;
-    x87::CopyFloat(&point.x, &brain->noticedX);
-    x87::CopyFloat(&point.y, &brain->noticedY);
+    std::memcpy(&point.x, &brain->noticedX, sizeof(float));
+    std::memcpy(&point.y, &brain->noticedY, sizeof(float));
     point.z = 0.0f;
     return level;
 }

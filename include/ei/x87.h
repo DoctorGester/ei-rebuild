@@ -49,22 +49,6 @@ inline int CompareStatus(double a, double b) {
     return 0;
 }
 
-// A float loaded and stored back by FLD / FSTP: the same bits, except that a signalling NaN comes back
-// quiet. The original copies floats this way.
-inline std::uint32_t LoadStoreBits(std::uint32_t bits) {
-    const bool nan = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
-    return nan ? bits | 0x00400000u : bits;
-}
-inline std::uint32_t LoadStoreBits(const void* from) {
-    std::uint32_t bits;
-    std::memcpy(&bits, from, sizeof(bits));
-    return LoadStoreBits(bits);
-}
-inline void CopyFloat(void* to, const void* from) {
-    const std::uint32_t bits = LoadStoreBits(from);
-    std::memcpy(to, &bits, sizeof(bits));
-}
-
 __declspec(naked) inline double __cdecl fsin(double) {
     __asm fld qword ptr [esp + 4]
     __asm fsin

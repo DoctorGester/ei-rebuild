@@ -146,8 +146,8 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
   `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` / `CiFmod` the bodies of `_CIpow` / `_CIfmod`, `x87::FromUnsigned` the FILD of
   an unsigned.
 - FCOM status: `x87::CompareStatus` gives AH's C0 / C2 / C3 (`kC0`, `kC2`, `kC3`), or write the NaN-aware comparison directly
-  (`!(x <= 1.0f)` for "C0 of FCOM 1.0, x", `a >= b ? b : a` for TEST AH,1). An FLD / FSTP copy of a float quiets a signalling NaN:
-  `x87::CopyFloat` / `LoadStoreBits`.
+  (`!(x <= 1.0f)` for "C0 of FCOM 1.0, x", `a >= b ? b : a` for TEST AH,1). An FLD / FSTP copy of a float quiets a signalling NaN; the
+  rebuild's copies are plain (`std::memcpy` of the four bytes, `std::bit_cast` for the bits): see "SSE2 build".
 - An original returning in ST0 is called through a `double(__fastcall*)(self, void*, ...)` pointer (the value stays unrounded).
 - Sums over vector components use the `lib/vecmath.h` Unrounded helpers (`LengthSquared2DUnrounded`, `DotUnrounded<Sum3::...>`), which
   `check_cleanup` asks for.
@@ -196,7 +196,7 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
 | `flog` / `flog10` (16) | `std::log` / `log10` | same | FYL2X ignores the precision control (converted, separate commit) |
 | `fexp` (7) | `std::exp` | **97 differ** | VC6's inline exp rounds its FMUL / FSUB / FADD at PC24 (about 24 bits accurate): 64% of float arguments give another float, up to 3.6e-7 relative. One site does it all: `unit_client_path`'s heading weight `x87::fexp(rate * kDecay)` (checked alone: the same 43 records as the whole family); cunit702's `rot.w` 0.112546213 / 0.112546332 at world update 45 in gz1g, then its place |
 | `FromUnsigned` (85) | `static_cast<double>` | not run | rejected by check_x87 on IA32 (the FADD 2^32 rounds at PC24); exact under SSE2 (check_x87 would need an SSE2 mode: SSE2 code also loads 2^32) |
-| `CopyFloat` / `LoadStoreBits` (57) | the bits as they are | same | no signalling NaN is copied in the suite |
+| `CopyFloat` / `LoadStoreBits` (57) | the bits as they are (`memcpy` / `bit_cast`) | same | no signalling NaN is copied in the suite (converted, C16b, the helpers are gone). Behaviour change: a signalling NaN float copied at those sites keeps its bits, where the original's FLD / FSTP set the quiet bit (0x00400000); only a NaN with a clear quiet bit read from a file or a message is affected |
 | `IsNaN` / `CompareStatus` (116) | `IsNaN` false (the plain comparison) | same | no NaN reaches those sites in the suite: the NaN audit (cleanup plan) can write plain comparisons, a behaviour change only for NaN |
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
