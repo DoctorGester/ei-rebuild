@@ -2050,6 +2050,10 @@ struct SavedParties {
 static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);
 static_assert(offsetof(SavedParties, eos_) == 0x0C);
+static_assert(sizeof(SavedParties) == 0x84);
+// The saved parties (007C82A0; world_game.cpp), built empty by the static initialiser 0065F2A0.
+extern lib::StaticObject<SavedParties> g_savedParties;
+inline SavedParties& TheSavedParties() { return *g_savedParties; }
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
 // (0066B1B0); returns what that returns.
@@ -2142,9 +2146,8 @@ enum class FrameList {
 inline stlp::vector<CEngineObject*>& FrameObjects(FrameList list) {
     return *reinterpret_cast<stlp::vector<CEngineObject*>*>(ei::GameAddress(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
 }
-inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
-    return ei::GamePointer<stlp::list<CEngineObject*>>(0x007AF5B4);
-}
+extern lib::StaticObject<stlp::list<CEngineObject*>> g_deferredUnits;   // static_lists.cpp
+inline stlp::list<CEngineObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }
 // 007AF63C: the id the next object only the client makes gets (client figures such as a bow
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return ei::GameData<int>(0x007AF63C); }

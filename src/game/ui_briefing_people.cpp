@@ -34,8 +34,8 @@
 
 namespace {
 
-// The loot table (007C8758): its records, then their name index.
-stlp::RecordsByName* LootTable() { return ei::GamePointer<stlp::RecordsByName>(0x007C8758); }
+// The quest item table (007C8758; this window calls it the loot table): its records, then their name index.
+stlp::RecordsByName* LootTable() { return itemdb::Named(itemdb::TheItemDatabase().questItems); }
 float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }

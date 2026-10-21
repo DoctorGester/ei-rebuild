@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ai.h"
+#include "originals_library.h"
 #include "originals_render.h"
 #include "originals_units.h"
 
@@ -23,6 +24,25 @@ FootprintCellSet* FootprintCellSet::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
+
+// The spells' footprint set (spell_effect_internal.h), empty at the start: built by the static initialiser 0067E4C0 in the
+// list's order and freed by the exit function it registers (0067E500); both ported on the name and registered at their
+// addresses (docs/notes/standalone.md, "The static initialisers' objects").
+namespace spellfx {
+constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {};
+}
+using spellfx::g_spellFootprint;
+
+namespace {
+void __cdecl ConstructSpellFootprint() {   // 0067E4C0
+    g_spellFootprint->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
+}
+void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }   // 0067E500
+} // namespace
+
+EI_REPLACE(0x0067E4C0, ConstructSpellFootprint);
+EI_REPLACE(0x0067E500, FreeSpellFootprint);
 
 void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
 

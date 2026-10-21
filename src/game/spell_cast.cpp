@@ -38,8 +38,8 @@ SpellModifierNode*& NodeFreeList16() { return ei::GameData<SpellModifierNode*>(0
 
 // The spell and modifier tables: a holder object whose +0x0C is a name hash_map; the lookups
 // below are thiscall on it.
-void* const kSpellTableHolder = ei::GamePointer<void>(0x007C8510);
-void* const kModifierTableHolder = ei::GamePointer<void>(0x007C8530);
+itemdb::CodeIndexedTable& SpellTableHolder() { return itemdb::TheSpellDatabase().spells; }
+itemdb::CodeIndexedTable& ModifierTableHolder() { return itemdb::TheSpellDatabase().modifiers; }
 
 // 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
 void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpret_cast<stlp::string*>(codes), nullptr, n); }
@@ -190,7 +190,7 @@ BOOL CSpellContainer::Build() {
     spell->prototypeField14_ = DwordAt(proto, 0x3C);
     spell->effectPower_ = 0x10;
 
-    char* found = static_cast<itemdb::CodeIndexedTable*>(kSpellTableHolder)->FindByCode(*reinterpret_cast<char* const*>(proto + 4));
+    char* found = SpellTableHolder().FindByCode(*reinterpret_cast<char* const*>(proto + 4));
     int index = found ? static_cast<int>(found - itemdb::Spells().begin) / itemdb::kSpellSize : -1;
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
@@ -254,7 +254,7 @@ BOOL CSpellContainer::Build() {
         SetFloat(spell->manaCost_, FloatAt(modifier, 0x10) + GetFloat(spell->manaCost_));
         SetFloat(spell->price_, FloatAt(modifier, 0x08) + GetFloat(spell->price_));
 
-        char* record = static_cast<itemdb::CodeIndexedTable*>(kModifierTableHolder)->FindByCode(modifier + 4);
+        char* record = ModifierTableHolder().FindByCode(modifier + 4);
         int modifierIndex =
             record ? static_cast<int>(record - itemdb::SpellModifiers().begin) / itemdb::kSpellModifierSize : -1;
         char code = static_cast<char>(modifierIndex + 1);

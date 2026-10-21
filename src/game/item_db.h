@@ -12,6 +12,7 @@
 #include "console.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <bit>
@@ -432,29 +433,6 @@ static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 template <int Stride>
 char* __fastcall RecordTableAt(const RecordTable* table, void*, std::uint32_t index);
 
-inline const RecordTable& Materials() { return ei::GameData<const RecordTable>(0x007C86D8); }
-inline const RecordTable& Weapons() { return ei::GameData<const RecordTable>(0x007C86F8); }
-inline const RecordTable& Armors() { return ei::GameData<const RecordTable>(0x007C8718); }
-inline const RecordTable& QuickItems() { return ei::GameData<const RecordTable>(0x007C8738); }
-inline const RecordTable& QuestItems() { return ei::GameData<const RecordTable>(0x007C8758); }
-inline const RecordTable& Loot() { return ei::GameData<const RecordTable>(0x007C8778); }
-inline const RecordTable& Spells() { return ei::GameData<const RecordTable>(0x007C8510); }
-inline const RecordTable& SpellModifiers() { return ei::GameData<const RecordTable>(0x007C8530); }
-
-// The records of those tables typed (null when the index is out of range).
-inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
-    return reinterpret_cast<MaterialRecordHead*>(Materials().RecordAt(index, kMaterialSize));
-}
-inline WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().RecordAt(index, kWeaponSize)); }
-inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().RecordAt(index, kArmorSize)); }
-inline QuickItemRecord* QuickItemAt(std::uint32_t index) {
-    return reinterpret_cast<QuickItemRecord*>(QuickItems().RecordAt(index, kQuickItemSize));
-}
-inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().RecordAt(index, kSpellSize)); }
-inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
-    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().RecordAt(index, kSpellModifierSize));
-}
-
 // The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armours
 // (00796534..0079654C), by type (the model and picture names).
 inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
@@ -560,6 +538,45 @@ struct ItemDatabase {
     IndexedRecordTable loot;        // +0xA0 kLootSize (Loot())
 };
 static_assert(sizeof(ItemDatabase) == 0xC0);
+
+// The databases (database_globals.cpp): built empty by their static initialisers, destroyed by the exit functions those
+// register (docs/notes/standalone.md, "The static initialisers' objects").
+} // namespace itemdb
+extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;   // 007C8510
+extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;     // 007C86D8
+namespace itemdb {
+inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
+inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
+
+// A table as the by-name lookups (stlp::RecordNamed, thiscall on the records and their index) and the name maps
+// (stlp::NamedSlot) see it.
+inline stlp::RecordsByName* Named(IndexedRecordTable& table) { return reinterpret_cast<stlp::RecordsByName*>(&table); }
+inline stlp::RecordsByName* Named(CodeIndexedTable& table) { return reinterpret_cast<stlp::RecordsByName*>(&table); }
+inline stlp::NameMap& NameMapOf(CodeIndexedTable& table) { return reinterpret_cast<stlp::NameMap&>(table.byCode); }
+static_assert(sizeof(stlp::RecordsByName) == sizeof(IndexedRecordTable) && sizeof(stlp::RecordsByName) == sizeof(CodeIndexedTable));
+
+inline const RecordTable& Materials() { return TheItemDatabase().materials.records; }
+inline const RecordTable& Weapons() { return TheItemDatabase().weapons.records; }
+inline const RecordTable& Armors() { return TheItemDatabase().armors.records; }
+inline const RecordTable& QuickItems() { return TheItemDatabase().quickItems.records; }
+inline const RecordTable& QuestItems() { return TheItemDatabase().questItems.records; }
+inline const RecordTable& Loot() { return TheItemDatabase().loot.records; }
+inline const RecordTable& Spells() { return TheSpellDatabase().spells.records; }
+inline const RecordTable& SpellModifiers() { return TheSpellDatabase().modifiers.records; }
+
+// The records of those tables typed (null when the index is out of range).
+inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
+    return reinterpret_cast<MaterialRecordHead*>(Materials().RecordAt(index, kMaterialSize));
+}
+inline WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().RecordAt(index, kWeaponSize)); }
+inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().RecordAt(index, kArmorSize)); }
+inline QuickItemRecord* QuickItemAt(std::uint32_t index) {
+    return reinterpret_cast<QuickItemRecord*>(QuickItems().RecordAt(index, kQuickItemSize));
+}
+inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().RecordAt(index, kSpellSize)); }
+inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
+    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().RecordAt(index, kSpellModifierSize));
+}
 
 // The spell records' fields spell.cpp still reads by offset (SpellRecord::code, price;
 // SpellModifierRecord::code).

@@ -53,10 +53,10 @@ void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-void* const kWeapons = ei::GamePointer<void>(0x007C86F8);
-void* const kArmors = ei::GamePointer<void>(0x007C8718);
-stlp::NameMap& QuickItemMap() { return ei::GameData<stlp::NameMap>(0x007C8744); }
-stlp::NameMap& FourthKindMap() { return ei::GameData<stlp::NameMap>(0x007C86E4); }
+stlp::RecordsByName* Weapons() { return itemdb::Named(itemdb::TheItemDatabase().weapons); }
+stlp::RecordsByName* Armors() { return itemdb::Named(itemdb::TheItemDatabase().armors); }
+stlp::NameMap& QuickItemMap() { return itemdb::TheItemDatabase().quickItems.names; }
+stlp::NameMap& FourthKindMap() { return itemdb::TheItemDatabase().materials.names; }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
@@ -89,12 +89,12 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kWeapons), nullptr, names.data[i]);
+        void* record = stlp::RecordNamed(Weapons(), nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kArmors), nullptr, names.data[i]);
+        void* record = stlp::RecordNamed(Armors(), nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);

@@ -2655,7 +2655,15 @@ title = "Named data: the remaining static-init CStrings and counted pointers (St
 group = "cleanup"
 model = "sonnet"
 depends = ["C18k"]
-note = "C18k's lib::StaticObject<mfc::CString> pattern (app_main.cpp's command line strings, game_folders.cpp): ui_objectives' CString 007C8178 (guarded exit, guard 007C8174), bink_video's guarded release 007C551C (guard 007C5518); then the other 'constructor + atexit' objects static_exit.cpp still lists whose class has no game.exe vtable (string_map 0079B930, app_helpers 0079BC2C, options 0079BC70, ... check each: a vtable store in the constructor means C19). The initialiser and the exit function are ported on the names and registered at their addresses (rows in config/extra_function_sizes.csv / function_sizes.inc for an initialiser without a Ghidra function)."
+note = "Done: ui_objectives CString, bink loading holder, 3 stlp lists, 5 resource databases, lever table, unit/skill databases, party manager, saved parties, spell footprint, party id set, unread set named (game data addresses 1928 -> 1878). Skipped: C19 vtable objects; options/GameFlow/CCursor/CInterface3D filed as C18k5."
+
+[[ticket]]
+id = "C18k5"
+title = "Named data: options 0079BC70, GameFlow 007AFE20, CCursor 007C7BD8, CInterface3D 007C7D50 (static-init objects with many raw field accesses)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k4"]
+note = "Left by C18k4: the four static-init objects without a vtable store whose raw-address field accesses (options, game flow, cursor, interface 3D) need their sizes and a StaticObject per object first (STATIC_OBJECT_BYTES in tools/named_data.py). Same pattern as C18k4 (database_globals.cpp, app_lifetime.cpp): port the initialiser and exit function on the names, register at the address, rows in config/extra_function_sizes.csv and function_sizes.inc. string_map 0079B930, CMapDatabase 0079BF00, renderer 007AF060 and the other vtable-storing objects stay with C19."
 
 [[ticket]]
 id = "C20d"

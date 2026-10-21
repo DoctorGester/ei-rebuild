@@ -5,6 +5,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <windows.h>
@@ -226,9 +227,8 @@ struct DirectDrawDriver {
 static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDriver, description) == 0x20);
 static_assert(sizeof(DirectDrawDriver) == 0x30);
 // The driver list (007AEE64).
-inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() {
-    return ei::GameData<stlp::list<DirectDrawDriver>>(0x007AEE64);
-}
+extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;   // static_lists.cpp
+inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 // 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
 // past the last: a fatal error ("Can't find driver by index.") and null.
 DirectDrawDriver* __fastcall DriverAt(int index);
