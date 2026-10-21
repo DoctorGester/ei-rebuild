@@ -22,22 +22,22 @@ constexpr int kNumberShift = 22;
 
 // The first of `parts` that `matches`, or null.
 template <typename Match>
-CFigureMesh* FirstPart(const AlignedPtrArray& parts, Match matches) {
+CFigureMesh* FirstPart(const FigurePartArray& parts, Match matches) {
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
+        CFigureMesh* part = parts.data[i];
         if (matches(part)) return part;
     }
     return nullptr;
 }
 
 // Removes entry `index`, moving the ones after it down.
-void RemoveAt(AlignedPtrArray& parts, int index) {
+void RemoveAt(FigurePartArray& parts, int index) {
     int after = parts.size - index - 1;
     if (after) std::memmove(&parts.data[index], &parts.data[index + 1], after * sizeof(void*));
     --parts.size;
 }
 
-int IndexOf(const AlignedPtrArray& parts, const CFigureMesh* part) {
+int IndexOf(const FigurePartArray& parts, const CFigureMesh* part) {
     for (int i = 0; i < parts.size; ++i)
         if (parts.data[i] == part) return i;
     return -1;

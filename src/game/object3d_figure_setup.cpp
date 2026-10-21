@@ -197,18 +197,18 @@ EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
-void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
+void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
     // The original asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
+        auto* part = parts.data[i];
         if (!startsWith(part)) continue;
         int index = out->size;
         out->SetSize(index + 1, -1);   // 00519D70
         out->data[index] = part;
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
+        auto* part = pendingParts.data[i];
         if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
     }
 }

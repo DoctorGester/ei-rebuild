@@ -63,11 +63,11 @@ void CAnimationNode::Rewind() {
 EI_REWRITTEN(0x005081C0, CAnimationNode::Rewind);
 
 // The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
-int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
+int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
     for (int i = 0; i < parts->size; ++i) {
-        auto* part = static_cast<CEngineObject*>(parts->data[i]);
+        CFigureMesh* part = parts->data[i];
         if (std::strcmp(part->GetName(), name_) != 0) continue;
-        mesh_ = static_cast<CFigureMesh*>(parts->data[i]);
+        mesh_ = part;
         ++mesh_->refCount_;
         if (mesh_) {
             mesh_->localPosition_ = posePosition_;
@@ -92,7 +92,7 @@ void SceneSkin::Rewind() {
     clock[1] = 0;
 }
 
-int SceneSkin::BindMeshes(const lib::AlignedArray<void*>* parts) {
+int SceneSkin::BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
     if (root) root->AttachMeshes(parts);
     return 1;
 }

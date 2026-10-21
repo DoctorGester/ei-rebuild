@@ -651,7 +651,7 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < figure->parts.size; ++i) static_cast<CFigureMesh*>(figure->parts.data[i])->flags_ |= kPartFlagFigure;   // 00517910
+        for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;   // 00517910
         created->flags_ |= kFlagNoParts;
     }
     CEngineObject* attached = figure->attached;

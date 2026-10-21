@@ -27,6 +27,8 @@ struct tagRECT;           // windows.h
 // (map_object_figures.cpp) and their copies 0051A010 / 0051A190, 00663960-00663D30 and
 // 00664490-00664710; Add 00519A10 (object3d_figure_setup.cpp).
 using AlignedPtrArray = lib::AlignedArray<void*>;
+// An object's figure parts (CObject3D::parts / pendingParts).
+using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
 class CFigureMesh;      // figure_mesh.h: a part of an object's figure
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
@@ -424,7 +426,7 @@ public:
     CFigureMesh* FindPartOfType(int type);
     // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
     // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
-    void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);
+    void CollectPartsByPrefix(const char* prefix, FigurePartArray* out);
     // 005167E0. Takes `part` out of the parts (it forgets its owner, 0059F3D0) or else out of the
     // pending parts, tells the animation state (+0x98, 0050D350) and releases it. The side half
     // (+0x94, slot 15) hears of it first, found or not. Returns 1 when it was there, else 0.
@@ -594,8 +596,8 @@ public:
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
     Vector3 scale;                  // +0x0C4
-    AlignedPtrArray parts;          // +0x0D0 CFigureMesh*
-    AlignedPtrArray pendingParts;   // +0x0E0 CFigureMesh*, built by LoadFigures
+    FigurePartArray parts;          // +0x0D0
+    FigurePartArray pendingParts;   // +0x0E0 built by LoadFigures
     // +0x0F0 the figure (counted; slot 0 deletes), made by the figure cache: the parts' piece
     // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     CLinkMesh* figure;

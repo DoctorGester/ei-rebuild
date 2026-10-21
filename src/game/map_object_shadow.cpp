@@ -195,7 +195,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 // The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
 bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
 
-CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
+CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts.data[i]; }
 
 constexpr int kKeyTexelPitch = 0x200;   // 256 texels of 2 bytes
 

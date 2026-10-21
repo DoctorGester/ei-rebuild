@@ -94,7 +94,7 @@ void CUiModel::ShowPart(const char* name, int show) {
 // 005FC4F0 (RET 4). Every part (+0xD0) shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
-        if (auto* part = static_cast<CFigureMesh*>(Figure()->parts.data[i])) ShowFigurePart(part, show);
+        if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
 }
 
 // 005FC2F0 (RET 4). Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
