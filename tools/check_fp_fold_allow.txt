@@ -1,0 +1,2 @@
+# Reviewed constants of tools/check_fp_fold.py: "<value> <function or *>  # reason".
+0.001 CMapObject::AddEffectImpl  # addon.dll's own double (100181D5), not a fold: RemoveOutdatedEffects inlined (/Ob2)

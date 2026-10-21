@@ -899,6 +899,14 @@ across runs; the goldens check the game state.
    helpers inlined 0.087-0.089 / FISTP inlined too 0.066-0.070, the town 0.036 / 0.029 / 0.024: about 0.12 ms a
    harness frame in zone1. Check: terrain_water_waves' goldens (vanilla, and Rebirth's, recorded in R16c4; in the
    Rebirth smoke set) and every golden the same, ei_vectors 0.
+   **R16c5 /Ob2 (done).** The build inlines at /Ob2 (CMakeLists' `EI_INLINE`; 1 builds as before, for A/B runs with
+   `EI_BUILD_DIR`), so file-local helpers inline without `inline`. Measured: render_stats vanilla, the /Ob1 and /Ob2
+   verify builds run at the same time, three rounds (main thread CPU ms a frame, /Ob1 -> /Ob2): fight 17.1 / 18.0 /
+   26.7 -> 16.0 / 17.1 / 23.5, town 5.3 / 5.5 / 5.8 -> 4.6 / 5.0 / 5.0, zone1 5.3 / 8.8 / 5.3 -> 4.4 / 7.5 / 4.3
+   (escape menu, map, camp within the noise). Inlined constant helpers folded five products the original rounds to
+   24 bits (check_fp_fold; written as the float now). Check: goldens both installs, ei_vectors 0, the build checks.
+   /Ob3 against /Ob2 (three rounds the same way): no gain beyond the noise (fight 18.3 / 18.7, town 6.9 / 7.0, zone1
+   5.8 / 5.3 ms means), and one more fold (`SetTimeSpeedImpl` 0058EEE0's 1 / 15), so the build stays at /Ob2.
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
    `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh

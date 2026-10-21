@@ -153,7 +153,7 @@ void CHudClock::Update() {
     Turn(face, 1.0f, static_cast<float>((D(hours) + FaceOffset()) * D(Pi()) * FaceStep()));
 
     // The four dial marks (objects 2-5), a notch apart.
-    float angle = static_cast<float>(D(dial_) - D(Pi()) * FaceStep());
+    float angle = static_cast<float>(D(dial_) - D(static_cast<float>(D(Pi()) * FaceStep())));
     for (int k = 2; k < 6; ++k) {
         CEngineObject* mark = objects[k];
         Turn(mark, 1.0f, angle);
@@ -161,7 +161,7 @@ void CHudClock::Update() {
         float y = static_cast<float>(CentreY() - c * DialRadius());
         float x = static_cast<float>(x87::fsin(angle) * DialRadius() + CentreX());
         Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
-        angle = static_cast<float>(D(angle) - D(Pi()) * DialStep());
+        angle = static_cast<float>(D(angle) - D(static_cast<float>(D(Pi()) * DialStep())));
     }
 
     SetTint(objects[6], highlight_ ? pulse : 1.0f);

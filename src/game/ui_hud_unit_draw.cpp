@@ -157,7 +157,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             // WideScreen: 100 - shift (00646608).
             const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
                                          DepthUnit() * ModelDepth());
-            const float y = static_cast<float>(height / size - DepthUnit() * ModelDepth() * ModelDrop());
+            const float y = static_cast<float>(height / size - static_cast<float>(DepthUnit() * ModelDepth()) * ModelDrop());
             model->position = Vector3{x, y, ModelDepth()};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};

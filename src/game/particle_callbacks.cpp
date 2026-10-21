@@ -2386,7 +2386,7 @@ void SetUpCylinder(CParticleSource* s) {
         *ElementFloat(&e, 0x18) = c;
         *ElementFloat(&e, 0x1C) = sn;
         e.ticks = 18;
-        *ElementFloat(&e, 0x2C) = static_cast<float>(D(EI_CYL_TWO) / static_cast<double>(e.ticks) * D(radius) * D(EI_CYL_RISE));
+        *ElementFloat(&e, 0x2C) = static_cast<float>(D(static_cast<float>(D(EI_CYL_TWO) / static_cast<double>(e.ticks))) * D(radius) * D(EI_CYL_RISE));
         *ElementFloat(&e, 0x24) = static_cast<float>(D(EI_P_ONE) / orbit);
         *ElementFloat(&e, 0x28) = static_cast<float>(orbit);
         count = s->elementCount;

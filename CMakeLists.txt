@@ -14,6 +14,10 @@ foreach(kind EXE SHARED MODULE)
     string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "" flags "${CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO}")
     set(CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO "${flags} /INCREMENTAL:NO")
 endforeach()
+# Inline expansion (R16c5): RelWithDebInfo's /Ob1 inlines only functions marked inline; /Ob2 also the
+# compiler's own picks (file-local helpers). EI_INLINE=1 builds as before, for A/B timing runs.
+set(EI_INLINE 2 CACHE STRING "Inline expansion level /Ob<n> of the release and verify builds")
+string(REGEX REPLACE "/Ob[0-3]" "/Ob${EI_INLINE}" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 
 # Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe with ei_hook.dll's
 # code); `verify` is the harness build, the same image and code plus the harness (tests/verify: scenario runs
