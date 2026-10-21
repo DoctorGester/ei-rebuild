@@ -47,9 +47,8 @@ constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  
                                      List(kClub),  List(kBow),  List(kCrossbow)};
 
 // Calls add(name) for each part of the weapon prototype `record` (not null), in the original's order.
-template <typename Add> void ForEachPart(const char* record, Add add) {
+template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
     char number[8];
-    auto* head = reinterpret_cast<const ItemRecordHead*>(record);
     gamecrt::sprintf(number, "%.2d", head->number);
     std::uint32_t type = static_cast<std::uint32_t>(head->type);
     if (type >= sizeof(kPartsByType) / sizeof(kPartsByType[0])) return;
@@ -77,14 +76,14 @@ template <typename Add> void ForEachPart(const char* record, Add add) {
 
 void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out) {
     out->SetSize(0, -1);
-    const char* record = Weapons().RecordAt(index, kWeaponSize);
+    const WeaponRecord* record = WeaponAt(index);
     if (!record) return;
     ForEachPart(record, [out](const char* name) { out->SetAtGrow(out->GetSize(), name); });
 }
 EI_REWRITTEN(0x006A0FF0, WeaponModelParts);
 
 void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out) {
-    const char* record = Weapons().RecordAt(PrototypeIndex(packedId), kWeaponSize);
+    const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
     if (!record) return;
     ForEachPart(record, [out](const char* name) {
         stlp::string s(name);

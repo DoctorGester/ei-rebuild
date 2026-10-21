@@ -19,16 +19,16 @@ constexpr float kZero = 0.0f;   // 0073B858
 
 ItemRecordHead* CItem::GetPrototype() {
     std::uint32_t index = PrototypeIndex(prototypeId_);
-    char* record = nullptr;
+    ItemRecordHead* record = nullptr;
     switch (type_) {
-    case kItemWeapon: record = Weapons().RecordAt(index, kWeaponSize); break;
-    case kItemArmor: record = Armors().RecordAt(index, kArmorSize); break;
-    case kItemQuick: record = QuickItems().RecordAt(index, kQuickItemSize); break;
-    case kItemLoot: record = Loot().RecordAt(index, kLootSize); break;
-    case kItemQuest: record = QuestItems().RecordAt(index, kQuestItemSize); break;
+    case kItemWeapon: record = WeaponAt(index); break;
+    case kItemArmor: record = ArmorAt(index); break;
+    case kItemQuick: record = QuickItemAt(index); break;
+    case kItemLoot: record = LootAt(index); break;
+    case kItemQuest: record = QuestItemAt(index); break;
     default: break;
     }
-    return reinterpret_cast<ItemRecordHead*>(record);
+    return record;
 }
 EI_REWRITTEN(0x006A0110, CItem::GetPrototype);
 

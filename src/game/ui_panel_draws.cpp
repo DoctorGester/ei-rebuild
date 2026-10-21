@@ -272,10 +272,10 @@ void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
 // A part's prototype by its record type (weapons, armour, quick items), or null.
 const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
     switch (part->recordType_) {
-    case 0: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Weapons().RecordAt(part->index_, itemdb::kWeaponSize));
-    case 1: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Armors().RecordAt(part->index_, itemdb::kArmorSize));
+    case 0: return itemdb::WeaponAt(part->index_);
+    case 1: return itemdb::ArmorAt(part->index_);
     case 2:
-        return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::QuickItems().RecordAt(part->index_, itemdb::kQuickItemSize));
+        return itemdb::QuickItemAt(part->index_);
     default: return nullptr;
     }
 }

@@ -67,8 +67,8 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
             continue;
         maker->SetManager(manager);
         maker->BeginCreateItem(kind, -1);
-        maker->SetPrototype(reinterpret_cast<char*>(record));
-        maker->SetMaterial(itemdb::Materials().RecordAt(static_cast<std::uint32_t>(j), itemdb::kMaterialSize));
+        maker->SetPrototype(record);
+        maker->SetMaterial(itemdb::MaterialAt(static_cast<std::uint32_t>(j)));
         CItem* item = maker->EndCreateItem();
         maker->SetManager(nullptr);
         AddCounted(list, item);
@@ -78,9 +78,6 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
 // The record's name (+0x04) contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
     return record->text04.Find(word) >= 0;
-}
-itemdb::ItemRecordHead* Record(const RecordTable& table, int index, int stride) {
-    return reinterpret_cast<itemdb::ItemRecordHead*>(table.RecordAt(static_cast<std::uint32_t>(index), stride));
 }
 
 } // namespace
@@ -98,14 +95,14 @@ void CCampPages::DebugFill() {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemManager();
             CItemConstructor* maker = items->ItemConstructor();
-            itemdb::ItemRecordHead* weapon = Record(itemdb::Weapons(), i, itemdb::kWeaponSize);
+            itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
             AddInMaterials(items, manager, maker, weapon, kWeaponClass, materials.size);
         }
 
         static_cast<CItemManager*>(ItemDatabase())->ListArmorNames(&names);
         for (int i = 0; i < names.size; ++i) {
             CResourceManager* manager = items->ItemManager();
-            itemdb::ItemRecordHead* armor = Record(itemdb::Armors(), i, itemdb::kArmorSize);
+            itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
             if (NameHas(armor, PrototypeWord())) continue;
             AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
             CItemConstructor* maker = items->ItemConstructor();
@@ -114,7 +111,7 @@ void CCampPages::DebugFill() {
 
         static_cast<CItemManager*>(ItemDatabase())->ListQuickItemNames(&names);
         for (int i = 0; i < names.size; ++i) {
-            itemdb::ItemRecordHead* quick = Record(itemdb::QuickItems(), i, itemdb::kQuickItemSize);
+            itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
             if (NameHas(quick, WandWord()))
                 AddNamed(items, InstructionQuickItem(), static_cast<std::uint32_t>(i), kInstructionCount);
         }

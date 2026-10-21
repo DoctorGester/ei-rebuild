@@ -118,8 +118,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self
         if (slot == kNoArmourSlot) continue;
         std::uint32_t material = self->armourIds[slot] & 0xFFFF;
         if (material == kNoMaterial) continue;
-        const auto* record = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-            itemdb::Materials().RecordAt(material, itemdb::kMaterialSize));
+        const auto* record = itemdb::MaterialAt(material);
         if (record) return record;
     }
     return nullptr;

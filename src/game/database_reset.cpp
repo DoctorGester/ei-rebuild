@@ -44,10 +44,10 @@ void ConstructUnitTable(Table& table) {
 }
 
 // An item table: the index, then the records.
-template <typename Abi>
-void DestroyItemTable(itemdb::IndexedRecordTable& table) {
+template <typename Abi, typename Record>
+void DestroyItemTable(itemdb::NamedRecordTable<Record>& table) {
     table.ByName().Destroy();
-    DestroyRecords<Abi>(&table);
+    Abi::Destruct(&table.records);
 }
 
 } // namespace

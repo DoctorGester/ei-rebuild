@@ -9,7 +9,7 @@ rem                      and widescreen
 rem The UTF-8 release build (build\release-utf8, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth option and the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe (imported once from the registry; the starter's WideScreen is the switch).
-rem Until ST1b, the game ends at once when a harness game is open (the original's one-instance check).
+rem A harness game open does not end it (ST1b: harness windows have their own title).
 setlocal
 set MODE=%~1
 if "%MODE%"=="" set MODE=rebirth

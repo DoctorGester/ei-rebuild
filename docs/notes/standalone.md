@@ -1118,6 +1118,14 @@ the `--no-hooks` suite) keeps the registry.
   are dropped, as the registry's were), no import, a read of a value the file lacks fails the run unless the
   snapshot marks it absent (`"name"=-`). So a standalone run never depends on the machine's registry, and its
   folder shows the settings it played with. The advapi32 hooks stay for anything else that reads the registry.
+- **Playing while the suites run (ST1b)**: WinMain's one-instance check (FindWindowA on the class atom and the title,
+  app_main.cpp RegisterWindowClass) used to find a hidden harness game's window and end a play launch silently
+  (exit -1). Harness runs answer the check themselves (harness.cpp NoOtherGameWindow: no other window, so two harness
+  runs never meet, and a harness run never meets the user's), and now give the game window the title "<title>
+  (harness)" (CreateWithoutActivating; nothing reads the title, goldens do not record it), so the play launch's real
+  check matches nothing. This covers game.exe's harness runs too (the same hook). When the check does end a game it
+  logs `app: another game window exists (window .. of process ..)` in ei_hook.log, and ei_launch (no harness) says
+  so on stderr for exit code -1.
 - **Checks (ST1a)**: the product's two file paths, which a read-only pinned run does not reach, are checked without
   the user's registry.
   - *Format and import, no game*: src/game/settings_document.cpp holds `Document` (Text / Parse), `JoinPath` and the

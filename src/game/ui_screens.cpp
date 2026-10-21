@@ -32,10 +32,12 @@ const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
 const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
-// Item fields read by the strips.
-int ItemType(const char* item) { return *reinterpret_cast<const int*>(item + 0x10); }
-int ItemSubKind(const char* item) { return *reinterpret_cast<const int*>(item + 0x50); }
-std::uint32_t ItemRecord(const char* item) { return *reinterpret_cast<const std::uint32_t*>(item + 0x54); }
+// The strips' items (their slots hold CItem pointers).
+const CItem* AsItem(const char* item) { return reinterpret_cast<const CItem*>(item); }
+// Item fields read by the strips: the kind, a loot item's record type and record index.
+int ItemType(const char* item) { return AsItem(item)->type_; }
+int ItemSubKind(const char* item) { return static_cast<int>(static_cast<const CItemLoot*>(AsItem(item))->recordType_); }
+std::uint32_t ItemRecord(const char* item) { return static_cast<const CItemLoot*>(AsItem(item))->index_; }
 
 constexpr int kTypeWeapon = 0x3004;
 constexpr int kTypeArmor = 0x3006;
@@ -111,14 +113,14 @@ EI_REWRITTEN(0x005EE110, UiItemKinds::IsKindOne);
 
 bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     auto* object = const_cast<CItem*>(item);
-    auto* prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
-    if (prototype && !prototype->buildable_) return false;
+    const itemdb::ItemRecordHead* prototype = object->GetPrototype();
+    if (prototype && !prototype->buildable) return false;
     int type = object->type_;
     if (type == kTypeWeapon || type == 0x3005) return true;
     if (type != kTypeArmor) return false;
-    prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
+    prototype = object->GetPrototype();
     return prototype &&
-           gamecrt::mbsicmp(prototype->materialClass_, game::NoneText()) != 0;
+           gamecrt::mbsicmp(prototype->materialClass, game::NoneText()) != 0;
 }
 EI_REWRITTEN(0x005EE130, UiItemKinds::IsBuildable);
 
@@ -130,10 +132,6 @@ void LeaveGame() { TheGameFlow()->CloseSessions(); }
 
 // --- CUiItemStrip -----------------------------------------------------------------------------
 
-namespace {
-// The strips' items (their slots hold CItem pointers).
-const CItem* AsItem(const char* item) { return reinterpret_cast<const CItem*>(item); }
-} // namespace
 
 void CUiItemStrip::SetTab(int tab) {
     float& position = position_[tab_];
@@ -224,8 +222,7 @@ int CUiItemStrip::ArmorTab(const char* item) {
         switch (ItemSubKind(item)) {
         case 0: return 0;
         case 1: {
-            auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(
-                itemdb::Armors().RecordAt(ItemRecord(item), itemdb::kArmorSize));
+            auto* armor = itemdb::ArmorAt(ItemRecord(item));
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case 2: return 3;
