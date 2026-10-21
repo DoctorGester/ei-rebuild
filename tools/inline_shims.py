@@ -7,10 +7,11 @@ address comment above it). Left alone: shims registered or passed as pointers, d
 elsewhere, overloaded, with control flow or more than one statement, returning float / double, or whose
 arguments cannot be substituted without changing the order of effects. Spelling only.
 
-usage: python tools/inline_shims.py [NAME_OR_FILE ...] [--apply] [--skip A,B]
+usage: python tools/inline_shims.py [NAME_OR_FILE ...] [--apply] [--skip A,B] [--fp A,B]
   NAME_OR_FILE   only these shims (by name or by defining file); default all
   --apply        write the files (default: a dry run that prints the removed definitions)
   --skip A,B     leave these shims alone (a name, a file, or file:name)
+  --fp A,B       also inline these float / double shims (check first that the callee returns the same type)
 Review `git diff` and build both configurations afterwards.
 """
 import argparse
@@ -27,10 +28,14 @@ _ap = argparse.ArgumentParser(description='Inline one-statement __fastcall (T* s
 _ap.add_argument('only', nargs='*', help='shim names or defining files (default: all)')
 _ap.add_argument('--apply', action='store_true', help='write the changes')
 _ap.add_argument('--skip', default='', help='comma-separated names, files or file:name to leave alone')
+_ap.add_argument('--fp', default='', help='comma-separated float / double shims to inline too (the callee must return '
+                 'the same type: the value then keeps the precision it had through the shim)')
 _args = _ap.parse_args()
 APPLY = _args.apply
 ONLY = _args.only
 SKIP = set(x for x in _args.skip.split(',') if x)
+FP_OK = set(x for x in _args.fp.split(',') if x)
+RETURN_SELF = re.compile(r'^([^;]*;)\s*return\s+(\w+)\s*;$', re.S)
 BAD_BODY = re.compile(r'__asm|\[\s*[&=]|\bif\b|\bfor\b|\bwhile\b|\bswitch\b|\bdo\b|\{')
 
 
@@ -195,14 +200,22 @@ def analyse(files, defs):
             why = 'overload'
         elif d['name'] in SKIP or d['path'] in SKIP or (d['path'] + ':' + d['name']) in SKIP:
             why = 'skip'
-        elif not b.endswith(';') or b.count(';') != 1 or BAD_BODY.search(b):
+        elif BAD_BODY.search(b) or not b.endswith(';'):
+            why = 'body'
+        elif b.count(';') != 1 and not RETURN_SELF.match(b):
             why = 'body'
         if why is None:
             d['hasret'] = bool(re.match(r'return\b', b))
             d['expr'] = re.sub(r'^return\b\s*', '', b[:-1].strip()) if d['hasret'] else b[:-1].strip()
-            if not d['hasret'] and d['rettype'] != 'void':
+            d['returns_self'] = False
+            m = RETURN_SELF.match(b)
+            if m and b.count(';') == 2 and m.group(2) == param_name(d['p0']):
+                d['expr'] = m.group(1).strip()[:-1].strip()
+                d['hasret'] = False
+                d['returns_self'] = True
+            if not d['hasret'] and d['rettype'] != 'void' and not d['returns_self']:
                 why = 'nonvoid noreturn'
-            if re.search(r'\b(float|double)\b', d['rettype']):
+            if re.search(r'\b(float|double)\b', d['rettype']) and d['name'] not in FP_OK:
                 why = 'float ret'
         if why is None:
             d['pnames'] = [param_name(d['p0']), None] + [param_name(x) for x in d['rest']]
@@ -217,15 +230,47 @@ def analyse(files, defs):
 DEFPATHS = collections.defaultdict(set)
 
 
+FOREIGN = {}   # name -> paths holding a function body of that name (any signature, not `Class::Name`)
+
+
+def foreign_defs(files, codes):
+    FOREIGN.clear()
+    pat = re.compile(r'(?<![\w:.>])(\w+)\s*\([^;{}()]*(?:\([^()]*\)[^;{}()]*)*\)\s*(?:const\s*)?(?:noexcept\s*)?\{')
+    for p, code in codes.items():
+        for m in pat.finditer(code):
+            FOREIGN.setdefault(m.group(1), set()).add(p)
+
+
 def scope_paths(files, d):
-    other = DEFPATHS[d['name']] - {d['path']}
+    other = (DEFPATHS[d['name']] | FOREIGN.get(d['name'], set())) - {d['path']}
     return [p for p in files if p not in other]
+
+
+def enclosing_namespaces(code, pos):
+    """Names of the named namespaces open at pos, or None when a class / struct / function is open too."""
+    stack = []
+    for m in re.finditer(r'\bnamespace\s*(\w*)\s*\{|\{|\}', code[:pos]):
+        tok = m.group(0)
+        if tok == '}':
+            if stack:
+                stack.pop()
+        elif tok == '{':
+            stack.append(False)
+        else:
+            stack.append(m.group(1) or None)
+    if any(n is False for n in stack):
+        return None
+    return {n for n in stack if n}
+
+
+KEYWORDS = {'return', 'else', 'case', 'do', 'throw', 'new', 'delete', 'sizeof', 'co_return', 'goto', 'and', 'or', 'not'}
 
 
 def find_uses(files, codes, d):
     calls = []
     others = []
     decls = []
+    ns = enclosing_namespaces(codes[d['path']], d['sigstart'])
     pat = re.compile(r'\b' + re.escape(d['name']) + r'\b')
     for p in scope_paths(files, d):
         code = codes[p]
@@ -238,6 +283,9 @@ def find_uses(files, codes, d):
             if code[max(0, s - 1):s] == '.' or code[max(0, s - 2):s] == '->':
                 continue  # a member of the same name, not the free function
             if code[max(0, s - 2):s] == '::':
+                q = re.search(r'(\w+)\s*::$', code[max(0, s - 80):s])
+                if ns is not None and q and q.group(1) not in ns:
+                    continue  # Other::Name, not a function of the shim's namespaces
                 others.append((p, s))
                 continue
             j = m.end()
@@ -254,10 +302,14 @@ def find_uses(files, codes, d):
             pre = code[max(0, s - 40):s]
             if re.search(r'__fastcall\s*$', pre) and re.match(r'\s*;', code[c + 1:c + 20]) and len(args) == len(d['ptypes']):
                 span = decl_span(code, s)
-                if span:
+                if span and same_declaration(code, s, args, d, codes[d['path']]) and enclosing_namespaces(code, s) == ns:
                     decls.append((p,) + span)
                     continue
             if len(args) != len(d['ptypes']) or args[1] not in ('nullptr', '0'):
+                word = re.search(r'([\w>*&]+)\s*$', pre)
+                follows = code[c + 1:c + 40].lstrip()
+                if word and word.group(1) not in KEYWORDS and (follows[:1] in (';', '{') or follows.startswith('const')):
+                    continue  # `Type Name(other parameters);`: another function of the same name
                 others.append((p, s))
                 continue
             if re.search(r'__fastcall\s*$', pre):
@@ -265,6 +317,28 @@ def find_uses(files, codes, d):
                 continue
             calls.append((p, s, c + 1, args))
     return calls, others, decls
+
+
+def bare_type(decl):
+    """A parameter declaration without its name, spaces removed."""
+    name = param_name(decl)
+    if name:
+        decl = re.sub(r'\b' + re.escape(name) + r'\s*(?:\[\d*\])?\s*$', '', decl.strip())
+    return re.sub(r'\s+', '', decl)
+
+
+def return_type(code, s):
+    """The return type written before `__fastcall Name` at s."""
+    b = max(code.rfind(';', 0, s), code.rfind('}', 0, s), code.rfind('{', 0, s))
+    text = re.sub(r'\b(inline|static|extern|constexpr|__forceinline|__fastcall)\b', '', code[b + 1:s])
+    return re.sub(r'\s+', '', text)
+
+
+def same_declaration(code, s, args, d, defcode):
+    """Whether the declaration at s (arguments `args`) has the shim's return and parameter types."""
+    if return_type(code, s) != re.sub(r'\s+', '', d['rettype']):
+        return False
+    return [bare_type(a) for a in args] == [bare_type(x) for x in d['ptypes']]
 
 
 def decl_span(code, s):
@@ -354,6 +428,8 @@ def build_replacement(d, args, code, s, e):
     na = code[e:].lstrip()[:1]
     isolated = (pc in ('(', ',', ';', '{', '}', '=', '') or (prevword and prevword.group(1) == 'return')) and na in (')', ',', ';')
     stmt = na == ';' and (pc in (';', '{', '}', ')', '') ) and not (prevword and prevword.group(1) == 'return')
+    if d['returns_self'] and not stmt:
+        return None   # the result of the call is used
     if stmt and d['hasret']:
         out = re.sub(r'^\((?:int|BOOL|unsigned|void\*|CEngineObject\*|char\*)\)\s*', '', out)
     if not is_atom(out) and not isolated:
@@ -366,6 +442,7 @@ def run():
     total_removed = []
     for it in range(8):
         codes = {p: srcscan.blank_comments(t) for p, t in files.items()}
+        foreign_defs(files, codes)
         defs = find_defs(files)
         elig, reasons = analyse(files, defs)
         if ONLY:
@@ -392,6 +469,7 @@ def run():
                 nedits += 1
             files[p] = t
         codes = {p: srcscan.blank_comments(t) for p, t in files.items()}
+        foreign_defs(files, codes)
         defs = find_defs(files)
         elig2, _ = analyse(files, defs)
         if ONLY:

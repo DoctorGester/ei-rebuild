@@ -59,7 +59,6 @@ void AimPointInto(CEngineObject* object, Vector3* out) { Slots(object)->AimPoint
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
-inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
@@ -263,7 +262,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         EI_NAN_AUDIT(sy, sx, sight.minDistanceSq);
         if (LengthSquared2DUnrounded(sy, sx) < sight.minDistanceSq) break;   // closer
         Vector3 from = {position.x, position.y, position.z};
-        from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
+        from.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
         EI_NAN_AUDIT(visible);
         if (visible >= 0.1f /*0073EEC0*/) break;

@@ -74,7 +74,6 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
 // The unit's setup.
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
@@ -270,7 +269,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
-        UnitSetController(unit, nullptr, player);
+        static_cast<CUnit*>(unit)->SetPlayer(reinterpret_cast<char*>(player));
         slots->SetScriptName(record->texts[0]);
         static_cast<CUnit*>(unit)->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         static_cast<CMapObject*>(unit)->ClearProtectionBases();
@@ -534,7 +533,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
-            UnitSetController(object, nullptr, nullptr);
+            static_cast<CUnit*>(object)->SetPlayer(nullptr);
             reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
             UnitSetDiplomacy(object, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);

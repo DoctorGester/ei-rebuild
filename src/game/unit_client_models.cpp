@@ -70,11 +70,6 @@ void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
 // 005AA5F0. Figure manager: the model named `name`.
 // 00516A80. 3D object: its figure part named `name`, or null.
 CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return static_cast<CObject3D*>((void*)a0)->FindPartByPrefix(a2); }
-// 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
-// no such part).
-CEngineObject* __fastcall AddPart(CUnit* unit, void*, const char* name, void* model, std::uint32_t arg) {
-    return static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(name, model, arg));
-}
 // 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
 void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
@@ -118,18 +113,18 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         CEngineObject* current = FindPart(unit, nullptr, part);
         armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), ItemHead(armour)->number);
         if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
-            AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
+            static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(armourPart, model, FiguresFlag(unit)));
             if (!SameName(plain, kHead)) static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(current));
         } else if (current) {
             if (SameName(plain, kHair)) {
                 static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(current));
             } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
                                        reinterpret_cast<const unsigned char*>(current->GetName())) != 0) {
-                AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+                static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(part, model, FiguresFlag(unit)));
                 static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(current));
             }
         } else {
-            AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+            static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(part, model, FiguresFlag(unit)));
         }
     }
     return true;
@@ -178,11 +173,11 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part, parts.data[0]->GetName()) != 0) {
                 static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(parts.data[0]));
-                AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+                static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(part, model, FiguresFlag(unit)));
             }
         } else {
             for (int k = 0; k < parts.size; ++k) static_cast<CObject3D*>(unit)->RemovePart(static_cast<CFigureMesh*>(parts.data[k]));
-            AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+            static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(part, model, FiguresFlag(unit)));
         }
         if (parts.data) gamecrt::operator_delete(reinterpret_cast<void**>(parts.data)[-1]);
     }
@@ -219,7 +214,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     if (next != kNone) {
         WeaponModelParts(next >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) {
-            CEngineObject* part = AddPart(unit, nullptr, names[i], model, FiguresFlag(unit));
+            CEngineObject* part = static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(names[i], model, FiguresFlag(unit)));
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;

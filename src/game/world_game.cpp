@@ -306,7 +306,6 @@ const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x0
 // 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::WakeUnitsAround, Tick and SetZoneExits, through their
 // addresses (rewritten in world_tick / world_zone).
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
-int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
@@ -432,7 +431,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             bool loaded;
             {
                 mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
-                loaded = NewZone(TheServerWorld(), nullptr, map, mob, zoneRecord->name) != 0;
+                loaded = WorldNewZoneOriginal((void*)TheServerWorld(), nullptr, map, mob, zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
@@ -546,7 +545,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         {
             mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
             mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
-            loaded = NewZone(TheServerWorld(), nullptr, map, mob, zone) != 0;
+            loaded = WorldNewZoneOriginal((void*)TheServerWorld(), nullptr, map, mob, zone) != 0;
         }
         if (!loaded) return 0;
         TheServerWorld()->SetTimeImpl(std::bit_cast<float>(kStartTime));
@@ -1404,7 +1403,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     TheServerWorld()->SetTimeSpeedImpl(static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
-        NewZone(TheServerWorld(), nullptr, kMenuMap, kMenuMob, nullptr);
+        WorldNewZoneOriginal((void*)TheServerWorld(), nullptr, kMenuMap, kMenuMob, nullptr);
         // The menu shows the local time of day.
         SYSTEMTIME now;
         gameapi::GetLocalTime(&now);
@@ -1830,7 +1829,6 @@ unsigned& AppliedStamp() { return ei::GameData<unsigned>(0x007AFED4); }  // the 
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
-inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // 00580840 (GameFlow::OnVariableChanged): the original passes the variable node as ECX and as the
 // event (the method reads only the event).
 void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<void*>(node))->OnVariableChanged(node); }
@@ -1887,7 +1885,7 @@ void GameFlow::UpdateFromServer() {
         variables->Clear();
     VariableSet(variables, kConstructionVariable, construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
-        if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.data());
+        if (Active(map)) FlowLoadQuestsOriginal(map->text_.data());
     }
 
     // The game type's construction variable and briefings, at least 1.

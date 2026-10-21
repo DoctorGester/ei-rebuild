@@ -146,7 +146,6 @@ EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
 namespace {
 
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
-inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 
 char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
 
@@ -199,7 +198,7 @@ EI_REPLACE(0x004A8910, PartyNextId);
 
 bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, void* target) {
     if (*key == 0) {
-        PartyReset(target, nullptr, 1, 0);
+        PartyResetOriginal((void*)target, nullptr, 1, 0);
         return true;
     }
     MapNode* node = FindNode(map, *key);

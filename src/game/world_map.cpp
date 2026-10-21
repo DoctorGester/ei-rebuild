@@ -191,8 +191,6 @@ void CWorldServer::ResetZone() {
 
 namespace {
 
-void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
-
 } // namespace
 
 void CWorldServer::TeardownZone() {
@@ -200,7 +198,7 @@ void CWorldServer::TeardownZone() {
     PlayerIterator it;
     for (WorldPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
-        PlayerDisconnect(player, nullptr);
+        PlayerDisconnectOriginal((void*)player);
         static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;

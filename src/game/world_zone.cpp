@@ -59,7 +59,6 @@ Quaternion DefaultRotation() {
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
-char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
 static char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<char**>(static_cast<CUnit*>(object)->GetPrototype()); }
@@ -150,7 +149,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     ei::SetVtable(root, RootChunk::kMapObjectFileVtableAddress);
 
     mfc::CString path;
-    ServerMapPath(this, nullptr, reinterpret_cast<char**>(&path), file);   // constructs the CString in place
+    ServerMapPathOriginal((void*)this, nullptr, (void*)&path, file);   // constructs the CString in place
     int result;
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);

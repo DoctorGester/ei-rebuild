@@ -30,7 +30,6 @@ namespace {
 
 
 // CParticleSource (effects.cpp, through the game addresses).
-inline void* __fastcall CreateSource(void* manager, void*, int type) { return static_cast<CParticleManager*>(manager)->CreateSource(type); }
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
@@ -337,7 +336,7 @@ void CEffectParticle::Spawn() {
     }
 
     TexturePointerAssign(reinterpret_cast<CEngineObject**>(&source_), nullptr,   // 0056F1A0
-                         static_cast<CEngineObject*>(CreateSource(ParticleManager(), nullptr, type_)));
+                         reinterpret_cast<CEngineObject*>(reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_)));
     std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

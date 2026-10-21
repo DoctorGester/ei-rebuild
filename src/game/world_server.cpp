@@ -57,7 +57,6 @@ CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, n
 // RemoveObject's callees (not rewritten).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 // 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
@@ -231,7 +230,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     object->ClearState();   // slot 5: it leaves the server
     bool unit = object->GetClassId() == world::kClassUnit;
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
-    if (unit) UnitSetController(object, nullptr, nullptr);
+    if (unit) static_cast<CUnit*>(object)->SetPlayer(nullptr);
     object->flags_ |= 1;
     ScriptPurgeDeletedObjects(MainScript());     // 004BED90: what refers to removed objects dropped
     ScriptPurgeDeletedObjects(SecondScript());

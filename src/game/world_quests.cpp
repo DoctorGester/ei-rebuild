@@ -470,7 +470,6 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)a0->AddItem(static_cast<CItem*>(a2), a3, a4); }
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
@@ -562,7 +561,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     CParty* party = PartyOf(player);
     for (auto* node = player->items.head; node;) {
         auto* next = node->next;
-        PartyAddItem(party, nullptr, node->data, 1, 1);
+        party->AddItem(reinterpret_cast<CItem*>(node->data), 1, 1);
         node = next;
     }
     RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};

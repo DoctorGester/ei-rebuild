@@ -32,7 +32,6 @@ namespace {
 // [00530280 (x, y)], its turn toward a direction [00401F00 (direction, flag)], its heading from a
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
-inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 
 constexpr float kCellScale = 1.0f;            // 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
@@ -65,7 +64,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
-    position.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + unit->heightOffset);
+    position.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(position.x, position.y) + unit->heightOffset);
     static_cast<CWorld*>(ObjectWorld(self))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
