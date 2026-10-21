@@ -126,10 +126,8 @@ EI_REPLACE(0x005FBD30, DestroyGlobalMapZone);
 namespace {
 
 // The arrays as the GetAt bodies (script_copy.cpp) take them.
-const mfc::CArray<SSCCmd>* Plain(const Cmds::Array* a) { return reinterpret_cast<const mfc::CArray<SSCCmd>*>(a); }
-const mfc::CArray<ScriptSubCall>* Plain(const SubCalls::Array* a) {
-    return reinterpret_cast<const mfc::CArray<ScriptSubCall>*>(a);
-}
+const ScriptCommands* Plain(const Cmds::Array* a) { return reinterpret_cast<const ScriptCommands*>(a); }
+const ScriptSubCalls* Plain(const SubCalls::Array* a) { return reinterpret_cast<const ScriptSubCalls*>(a); }
 
 // The storage of a copy constructor: exactly `n` elements, built by the instantiation's
 // ConstructElements; none when `n` is 0.
@@ -149,7 +147,7 @@ void AllocateExact(typename Abi::Array* self, int n) {
 void AssignSubCalls(SubCalls::Array* self, const SubCalls::Array* source) {
     for (int i = 0; i < source->size; ++i) {
         ScriptSubCall copy;
-        ScriptSubCallCopyAt(Plain(source), nullptr, &copy, i);
+        Plain(source)->CopyAt(&copy, i);
         ScriptSubCall& to = self->data[i];
         to.type = copy.type;
         to.argIndex = copy.argIndex;
@@ -177,7 +175,7 @@ void __fastcall CmdArrayCopy(Cmds::Array* self, void*, const Cmds::Array* source
     for (int i = 0; i < source->size; ++i) {
         alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
         auto* copy = reinterpret_cast<SSCCmd*>(storage);
-        ScriptCmdCopyAt(Plain(source), nullptr, copy, i);
+        Plain(source)->CopyAt(copy, i);
         self->data[i].ScriptCmdAssign(copy);
         ScriptCmdDestruct(copy);
     }
@@ -217,8 +215,8 @@ EI_REPLACE(0x004C6D10, SubCallArrayCopy);
 EI_REPLACE(0x004CCCB0, BindingsCopyConstruct);
 EI_REPLACE(0x004CCD90, SubCallsCopyConstruct);
 // The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
-EI_REPLACE(0x004CD450, ScriptCmdCopyAt);
-EI_REPLACE(0x004C7510, ScriptSubCallCopyAt);
+EI_REPLACE_METHOD(0x004CD450, ScriptCommands::CopyAt);
+EI_REPLACE_METHOD(0x004C7510, ScriptSubCalls::CopyAt);
 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 

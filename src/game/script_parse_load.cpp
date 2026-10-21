@@ -47,14 +47,14 @@ struct Original : CScript {
     BOOL ExpectLexemeAt(const ScriptTokenList* tokens, ScriptPos* pos, int id);
     BOOL LoadFunctionAt(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id, ScriptVars* locals,
                         const char* signature, BOOL assignment, BOOL scriptCall);
-    BOOL LoadCommandsAt(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
+    BOOL LoadCommandsAt(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
     BOOL LoadAt(mfc::CString* text, BOOL runWorldScript);
 };
 __declspec(naked) BOOL Original::TokenizeAt(const mfc::CString&, ScriptTokenList*) EI_ORIGINAL(0x004CF7A0)
 __declspec(naked) BOOL Original::ExpectLexemeAt(const ScriptTokenList*, ScriptPos*, int) EI_ORIGINAL(0x004CF4D0)
 __declspec(naked) BOOL Original::LoadFunctionAt(SSCCmd*, ScriptPos*, const ScriptTokenList*, int, ScriptVars*, const char*,
                                                 BOOL, BOOL) EI_ORIGINAL(0x004CFBC0)
-__declspec(naked) BOOL Original::LoadCommandsAt(mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
+__declspec(naked) BOOL Original::LoadCommandsAt(ScriptCommands*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
     EI_ORIGINAL(0x004D1330)
 BOOL Original::LoadAt(mfc::CString* a0, BOOL a1) { return (BOOL)ScriptLoadLine((void*)this, nullptr, (const mfc::CString*)a0, (int)a1); }
 Original* Orig(CScript* script) { return static_cast<Original*>(script); }
@@ -425,9 +425,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         if (bind) {
             if (local.varIndex >= 0) {
-                ScriptBindingsAdd(&cmd->localBindings, nullptr, &local);
+                cmd->localBindings.Add(local);
             } else if (global.varIndex >= 0) {
-                ScriptBindingsAdd(&cmd->globalBindings, nullptr, &global);
+                cmd->globalBindings.Add(global);
             } else {
                 sub.type = 0;
                 sub.argIndex = 0;
@@ -444,7 +444,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                     DeleteCmd(sub.cmd);
                     return 0;
                 }
-                ScriptSubCallsAdd(&cmd->subCalls, nullptr, &sub);
+                cmd->subCalls.Add(sub);
             }
         }
 
@@ -464,7 +464,7 @@ EI_REPLACE_METHOD(0x004CFBC0, CScript::LoadFunction);
 
 // ---- Sections -----------------------------------------------------------------------------------
 
-BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
+BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
                              ScriptVars* locals) {
     LocalToken token;
     mfc::CString text;
@@ -481,7 +481,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
         const char* signature = SignatureAt(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, "Function returning float expected");
         if (!Orig(this)->LoadFunctionAt(cmd.Get(), pos, tokens, id, locals, signature, 0, 0)) return 0;
-        ScriptCmdsSetAtGrow(conditions, nullptr, conditions->size, cmd.Get());
+        conditions->SetAtGrow(conditions->size, *cmd.Get());
     }
 }
 EI_REPLACE_METHOD(0x004D0BF0, CScript::LoadConditions);
@@ -622,7 +622,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
 }
 EI_REPLACE_METHOD(0x004D1FE0, CScript::LoadVariableDeclarations);
 
-BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
+BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
     LocalToken token;
     mfc::CString text, qualified;
     LocalCmd local;
@@ -688,7 +688,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
                     return 0;
                 cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs.data[0], index);
-                ScriptCmdsAdd(commands, nullptr, cmd);
+                commands->Add(*cmd);
                 continue;
             }
             if (Globals()->HasVariable(text)) {
@@ -700,7 +700,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
             }
         }
         if (!ok) return 0;
-        ScriptCmdsAdd(commands, nullptr, cmd);
+        commands->Add(*cmd);
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
@@ -803,7 +803,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
                 if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
                 if (!LoadScriptBody(decl, &pos, &tokens)) return fail(0);
-                ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
+                Scripts().Add(*decl);
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
@@ -825,7 +825,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 return fail(Error(this, token.line, 15, "Duplicate script %s", static_cast<const char*>(word)));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
-            ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
+            Scripts().Add(*decl);
             break;
         }
         case kLexGlobalVars: {

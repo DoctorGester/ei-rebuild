@@ -1024,7 +1024,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!last) break;
             AILook look;
             AILook* value = look.ScriptAILookConstruct(f[0], f[1], f[2], 0);
-            ScriptLooksSetAtGrow(&last->looks, nullptr, last->looks.size, value);
+            last->looks.SetAtGrow(last->looks.size, *value);
             break;
         }
         case 0x31: {   // UMPlayer

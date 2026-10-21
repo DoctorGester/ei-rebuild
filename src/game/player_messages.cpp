@@ -128,7 +128,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 
 void CPlayerServer::SendState73(void* source) {
     WriteByte(&out_, 0x73);
-    TweenSave(static_cast<const TweenArray*>(source), nullptr, &out_);   // 006D4570
+    static_cast<const WaterTweens*>(source)->Save(&out_);   // 006D4570
     Owner()->dirty_ &= ~0x20;
 }
 

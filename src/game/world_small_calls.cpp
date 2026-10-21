@@ -10,13 +10,6 @@
 
 #include "ei/hook.h"
 
-namespace {
-
-// The water levels of a world (CWorld +0x70): a CArray<TweenEntry>.
-TweenArray* WaterLevels(CWorld* world) { return &world->countdowns_; }
-
-} // namespace
-
 CTexture* CWorldClient::NewTexture(int type) {
     if (!textureManager_) return nullptr;
     return textureManager_->NewTextureOfType(type);
@@ -36,12 +29,12 @@ void CWorldClient::SetCamera(CCamera* camera) {
 void CWorldClient::SetWorldValue(int value) { worldValue_ = value; }
 
 int CWorldClient::ReadWaterLevels(CStream* stream) {
-    TweenLoad(WaterLevels(this), nullptr, stream, terrain_);
+    countdowns_.Load(stream, terrain_);
     return 1;
 }
 
 void CWorldServer::SetWaterLevel(int key, float target, int steps) {
-    TweenSetTarget(WaterLevels(this), nullptr, key, target, steps);
+    countdowns_.SetTarget(key, target, steps);
 }
 
 EI_REPLACE_METHOD(0x005655D0, CWorldClient::NewTexture);

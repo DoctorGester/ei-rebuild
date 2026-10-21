@@ -72,7 +72,12 @@ static_assert(sizeof(AILook) == 0x10);
 
 // CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). SetSize 005D8EE0 (new elements
 // zeroed) and Copy 005D8B60 are registered on the template (unit_ai_looks.cpp).
-using AILookArray = mfc::CArray<AILook>;
+struct AILooks : mfc::CArray<AILook> {
+    // 004CDCB0 (RET 8; script_parse_arrays.cpp; the brain's look queue and the patrol looks of
+    // UMPatrol). Grown to index + 1 when needed (new looks zeroed, 004CDE10), the look copied.
+    void SetAtGrow(int index, const AILook& look);
+};
+using AILookArray = AILooks;
 void __fastcall LooksDestroyAt(AILookArray* looks);                                  // 004CB770 (base vtable, frees the data)
 // 005573F0 (unit_ai_looks.cpp). Base vtable, no data, growth step 0. Returns `looks`.
 AILookArray* __fastcall LooksInit(AILookArray* looks);

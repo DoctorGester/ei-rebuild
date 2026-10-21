@@ -87,7 +87,7 @@ void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     for (int i = 0; i < from->commands.size; ++i) {
         alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
         auto* copy = reinterpret_cast<SSCCmd*>(storage);
-        ScriptCmdCopyAt(&from->commands, nullptr, copy, i);
+        from->commands.CopyAt(copy, i);
         to->commands.data[i].ScriptCmdAssign(copy);
         ScriptCmdDestruct(copy);
     }

@@ -138,7 +138,7 @@ void CWorldServer::Tick(char force) {
 
     TimeWheelAdvance(timeWheel_, nullptr, tick_);
     // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
-    if (TweenTick(&countdowns_)) MarkPlayersDirty(0x20);
+    if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
     auto& missiles = projectiles_;

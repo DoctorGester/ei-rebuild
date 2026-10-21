@@ -106,7 +106,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             vars.floats.SetSize(vars.floats.size + 1, -1);
             mfc::CString temp(text);
-            ScriptNamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
+            vars.floatNames.SetAtGrow(vars.floatNames.size, temp);
             result = 1;
         }
         letter = "f";
@@ -117,7 +117,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             vars.strings.SetSize(vars.strings.size + 1, -1);
             mfc::CString temp(text);
-            ScriptNamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
+            vars.stringNames.SetAtGrow(vars.stringNames.size, temp);
             result = 1;
         }
         letter = "s";
@@ -128,7 +128,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(vars.objects.size + 1, -1);
             mfc::CString temp(text);
-            ScriptNamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
+            vars.objectNames.SetAtGrow(vars.objectNames.size, temp);
             result = 1;
         }
         letter = "o";
@@ -164,7 +164,7 @@ EI_REPLACE_METHOD(0x004BB800, ScriptDefinition::AddParameterImpl);
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
-void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVars* vars) {
+void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
     for (int k = 0; k < bindings->size; ++k) {
         const ScriptBinding& b = bindings->data[k];
         switch (b.type) {
@@ -172,7 +172,7 @@ void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVar
             std::memcpy(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex], sizeof(float));
             break;
         case kScriptString:
-            ScriptStringsCopyTo(&vars->strings, nullptr, b.varIndex, &stringArgs.data[b.argIndex]);   // 004C2F80
+            vars->strings.CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);   // 004C2F80
             break;
         case kScriptObject:
             objectArgs.data[b.argIndex] = &vars->objects.data[b.varIndex];

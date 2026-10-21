@@ -262,7 +262,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     CScript* s = ReadState(r);
     SetError(s, ReadError(r));
     ScriptVars* locals = ReadLocals(r);
-    mfc::CArray<SSCCmd> commands{scriptvtable::kCmds, nullptr, 0, 0, r.Get<std::int32_t>()};
+    ScriptCommands commands{{scriptvtable::kCmds, nullptr, 0, 0, r.Get<std::int32_t>()}};
     Run run;
     ReadRun(r, &run);
     const crt::NegativeClassesScope negative(r);
