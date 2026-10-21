@@ -579,3 +579,10 @@ void __fastcall FogDestroy(CVisibilityFog* self);
 const char* __fastcall FogClassName(CVisibilityFog* self);
 int __fastcall FogClassId(CVisibilityFog* self);
 static_assert(sizeof(CVisibilityFog) == 0x6C);
+
+// The size of an orbiting sphere's particle by the ticks it has left (the fire, electricity and air spheres'
+// 16 entries; the antimagic sphere's 6): effects.cpp, particle_callbacks.cpp.
+inline constexpr float kSphereSizeByLife[16] = /*0073CB38*/ {
+    0.01f, 0.02f, 0.03f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.035f, 0.03f,
+    0.02f, 0.01f};
+inline constexpr float kAntimagicSizeByLife[6] = /*0073CB78*/ {0.01f, 0.015f, 0.02f, 0.03f, 0.015f, 0.01f};

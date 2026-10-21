@@ -99,7 +99,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     const char* armour = ArmourRecord(type);
     mfc::CString armourPart;
     for (int i = 0; i < 7; ++i) {
-        const char* plain = ArmourPartNames()[row][i];
+        const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (gamecrt::mbscmp(static_cast<const char*>(part),
@@ -157,7 +157,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
-        const char* plain = ArmourPartNames()[row][i];
+        const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (CompareNames(part, kHair) == 0) {
@@ -302,7 +302,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
         int row = RowOfSlot(ItemHead(armour)->type);
         if (row < 0) continue;
         for (int i = 0; i < 7; ++i) {
-            const char* plain = ArmourPartNames()[row][i];
+            const char* plain = kArmourPartNames[row][i];
             if (!plain[0]) break;
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
@@ -321,7 +321,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
     // test on the name's address never fails), so the empty names of the helmet row go in too.
     for (int row = 0; row < 3; ++row) {
         for (int i = 0; i < 7; ++i) {
-            const char* plain = ArmourPartNames()[row][i];
+            const char* plain = kArmourPartNames[row][i];
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;

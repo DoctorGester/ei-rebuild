@@ -118,8 +118,7 @@ EI_REPLACE_METHOD(0x00435F10, IdPool::Allocate);
 // connection). Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit
 // may be judged one call apart from the original.
 int Connection::Silent() const {
-    float factor;
-    std::memcpy(&factor, ei::GamePointer<const void>(0x0073BAA4), sizeof(factor));   // 3.0
+    const float factor = 3.0f /*0073BAA4*/;
     float limit = roundTrip_ * factor;
     return limit >= idleTime_ ? 0 : 1;   // a NaN is silent
 }

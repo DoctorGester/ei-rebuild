@@ -129,7 +129,7 @@ struct IndexOfLevelCall {
     std::int32_t offset;
     std::int32_t result;
 };
-// UnitParams::ProtectionBlock. A slot's `weight` is the table entry (0073E0FC) at its type, for the
+// UnitParams::ProtectionBlock. A slot's `weight` is the table entry (unitdb::kSlotWeights) at its type, for the
 // slots a keyed call reads; `factor` the setting "Absorption" at `difficulty`, for a call that is not.
 struct ProtectionSlot {
     std::int32_t type, kind;
