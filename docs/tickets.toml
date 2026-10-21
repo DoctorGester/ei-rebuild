@@ -400,7 +400,7 @@ size = 1
 model = "opus"
 depends = ["R16", "R16d"]
 files = ["src/render/render_mesh.cpp", "src/game/figure_part_draw.cpp"]
-note = "docs/notes/renderer.md section 13, item 8. The game morphs figure positions on the CPU every frame; key frames on the GPU with the blend in the vertex shader remove the moved meshes uploads and the CPU morph. Bounds for picking and culling stay on the CPU. Check: models, units at 8 / 0.5%; goldens (picking)."
+note = "docs/notes/renderer.md section 13, item 8. The game morphs figure positions on the CPU every frame; key frames on the GPU with the blend in the vertex shader remove the moved meshes uploads and the CPU morph. Bounds for picking and culling stay on the CPU. Check: models, units at 8 / 0.5%; goldens (picking). Outcome: measured, not built. Creatures animate by their bones (a matrix per part, already on the GPU); the per-vertex morph moves 0.6 of the fight's 331 mesh draws a frame (12 corners), none in zone1 / town / menu, no profile samples, and its result is read by game code (projection: visibility and screen rectangles; the shadow raster). Delivered: renderstats' morphed meshes and main-thread CPU / wall per frame; follow-ups R16k (device per-corner work) and SV10g (libcrt control word)."
 
 [[ticket]]
 id = "R16i"
@@ -475,6 +475,15 @@ group = "renderer"
 depends = ["R16j1"]
 files = ["src/render/render_shadows.cpp"]
 note = "Found in R16j1 (renderer.md section 13 item 10): no caster is missing; the user's 'missing' ruin and fern shadows are classic-decal effects. (1) Classic decals stack: overlapping objects each darken by half, the dirt under the fight's ruin is at 21% of its lit brightness classic and 43% with the map (kStrength 0.5, one sun). Options: a darker kStrength, or ambient-occlusion-like extra darkening where the map's blocker is close; show the user. (2) The classic direction sums the sun and the point lights in reach (0051CE60 LightDirection), so near the town's campfire shadows point away from the fire; the map has the sun only. Options: per point light a small cube or spot map for the strongest one or two lights near the camera (R16i territory), or leave. Wants the user's call; crops in build/R16j1. User 2026-10-21 on (1): 'Color-wise shadows looked about the same I think?' - keep kStrength 0.5, no extra darkening where shadows overlap. What is left is (2), point lights, which goes with R16i (GPU lighting)."
+
+[[ticket]]
+id = "R16k"
+title = "Device mesh draws without the old path's per-corner work (TL vertices, clipping, fog) when the new renderer takes the mesh"
+group = "renderer"
+size = 1
+model = "opus"
+files = ["src/game/device_mesh.cpp src/game/device_draw.cpp"]
+note = "Found by R16h (profile of render_stats, image): DrawMesh 004E9010 / 004E9A50 (device_mesh.cpp) still fills a TL vertex per corner (FillCorners), clips meshes crossing the view (ClipTriangles, ToScreenClipped), fogs them (FogVertices) and submits them for every pass, though the new renderer draws every pass from the model-space hand-over (MeshPass takes it; the old path draws nothing). Game code reads only the projection's verdict and, with draw flag 1, the screen rectangle (BoundsOfProjected; for a crossing mesh BoundsOfVertices of the clipped vertices: keep the clip for flag 1 only), and the device's counters (vertexCount_, primitiveCount_, drawCount_). Skip the rest when render::Active(), keeping the passes' hand-over (DrawIndexed per pass with the same counts). Measure first: render_stats' fight and town main-thread CPU per frame (renderstats' new field) with and without. Check: goldens (picking reads the rectangles), render_scene / models / units samecapture A/B at 8 / 0.1%."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -1617,6 +1626,15 @@ size = 0.5
 model = "opus"
 files = ["tools/run_all.py tools/work.py src/game/app_dxversion.cpp"]
 note = "User 2026-10-21 (\"Yeah\", after: the standalone has no dgVoodoo dependency). The image (ei_standalone.exe) always draws with our D3D11 renderer, but the harness runs it from run\\vanilla (and run\\rebirth), the copies the original game.exe also uses, which hold dgVoodoo's DDraw.dll / D3D8.dll / D3D9.dll / D3DImm.dll. So app::GetDxVersion (0045E310) loads dgVoodoo's DDraw.dll and D3D8.dll only to read a version: 0.45-1.3 s of every image run's start-up (SV10b's profile), the largest part left. With the system's DDRAW.DLL, PF3's native path already takes DirectX 7 as given (app_dxversion.cpp). Give the image runs a run folder without dgVoodoo's DLLs (the rest of the install as now; links or a filtered copy, made by run_all's prepare like run\\<install>), so the check behaves as for a player with the standalone in a clean folder. The original game.exe runs (--no-hooks) keep dgVoodoo: it draws them. Check: the log's 'native run' line in image runs, start-up before/after from the TIMING: lines (before from main's latest runs), work.py test --golden --jobs 4 0 differ on both installs. Watch for anything else the image loads from the install folder (mss32, binkw32, mp3dec.asi stay)."
+
+[[ticket]]
+id = "SV10g"
+title = "libcrt math without a control-word switch per call when the word is already right"
+group = "verification"
+size = 0.5
+model = "sonnet"
+files = ["src/lib/crt_x87.cpp"]
+note = "Found by R16h (profile of render_stats' town, image): ctrlfp (the CRT's __control87_2) is 9% of the main thread's samples. MathControlWord (crt_x87.cpp) reads and sets the x87 control word around every libcrt math call (Hypot from Vector3::Length, the camera's ClampAboveObjects over every object within 16 units, frexp ...): three __control87_2 calls each. Set it only when it differs from the word wanted, restore only what was changed, and use the cheapest form (fnstcw / fldcw); the results must stay bit-identical (vectors of the libcrt family, goldens). Also check the renderer's FpuGuard (render.cpp; per mesh pass, MeshPass). Measure with renderstats' main-thread CPU per frame (R16h) in the town and the fight."
 
 # ---------------------------------------------------------------- harness and suite
 

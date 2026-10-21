@@ -316,6 +316,10 @@ void Write(CachedMesh& e) {
 namespace detail {
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
+    if (g_haveSource && g_source.moved) {
+        ++Stats().morphMeshes;
+        Stats().morphCorners += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
+    }
     if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
 #if defined(EI_RENDER_VALIDATION)
     if (!g_cacheOn) return nullptr;

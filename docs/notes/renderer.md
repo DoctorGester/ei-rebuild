@@ -772,7 +772,10 @@ only for its own field) and each terrain page's / mesh's vertices against the la
 changed = relit; positions or texture coordinates changed = moved; new), plus the meshes whose geometry equals
 another's in the frame. The harness step `renderstats <label>|-` logs the averages since the last one into the report;
 scenario `render_stats` (image only) measures the main menu, zone1, a fight of twelve creatures (GodMode hero), the
-camp, the base bz1g (a town), the global map and its escape menu. `EI_PROFILE=1` gives the game side
+camp, the base bz1g (a town), the global map and its escape menu. It also logs the mesh draws whose positions an
+animation's per-vertex offsets moved ("morphed meshes", R16h) and the main thread's CPU and wall time per frame since
+the last `renderstats` (its cycles, in milliseconds by the thread's CPU time, as the TIMING lines): the game's work and
+the renderer's together, what a many-figure frame costs. `EI_PROFILE=1` gives the game side
 (tools/profile_report.py). RenderDoc was not needed: the counters see the hand-over, which a capture does not.
 
 Per frame, vanilla, 3840 x 2160 (the harness's desktop size; Rebirth's runs are within a few percent; times from a run
@@ -789,7 +792,8 @@ without the profiler):
 | escape menu | 0 | 12 | 14 | 3 / 4 | 0 / 105 | none | 32.4 MB | 0.05 / 2.94 / 0.12 |
 
 Meshes against the last frame: zone1 112 same / 22 relit / 11 moved, fight 131 / 199 / 19 (132 share another mesh's
-geometry), town 52 / 60 / 23. A shadow texture is 64 x 64 with mips (21 KB). Game side (profile, zone1, about 13 ms a
+geometry), town 52 / 60 / 23 (the moved ones are the classic shadows' decals, projected again every frame; with the
+shadow map zone1 1, fight 2, town 1). A shadow texture is 64 x 64 with mips (21 KB). Game side (profile, zone1, about 13 ms a
 harness frame): terrain lighting (`SectorData::Light` / `ShadeSun`) about 16%, object shadows (`DrawShadow`: CPU raster
 and decal projection) 10-17%, the renderer's `MemoryChanged` 5%.
 
@@ -898,10 +902,26 @@ across runs; the goldens check the game state.
    device's state. Particles: the scenes measured have 0-3 pre-transformed draws, so they follow only if a spell-heavy
    scene (spells_cast) shows otherwise. Gain: small now (draws are few), grows with unit counts and wider views. Check:
    render_scene, units at 8 / 0.1%.
-8. **R16h Figure animation on the GPU.** The game morphs the figure parts' positions on the CPU every frame; key frames
-   on the GPU and the blend in the vertex shader remove the moved meshes' uploads and the CPU morph. The game keeps its
-   bounds for picking and culling on the CPU. Risk: float differences against the CPU blend; picking. Check: models,
-   units at 8 / 0.5%; the goldens (picking).
+8. **R16h Figure animation on the GPU (measured, not built: nothing to gain).** The plan assumed the game morphs the
+   figure parts' positions on the CPU every frame. Creatures animate by their bones: FigureBone::Place (0050C230) gives
+   each part a position and rotation, i.e. its matrix, which the GPU already applies. The per-vertex morph
+   (AnimationTrack::Evaluate 0050ACD0 blends a track's key-frame vertex sets; Place hands them to the part through
+   CFigureMesh::SetOffsets 005A0B10; the part draws add them into a copy of the positions) is almost unused: per frame
+   0.6 of the fight's 331 mesh draws (12 corners), none in zone1, the town or the menu (renderstats' "morphed
+   meshes"), and a profile of render_stats has no sample in Evaluate or the copies. Its result is also read by game
+   code, so it would stay on the CPU: the device's projection of the moved positions (DrawMesh 004E9010: the
+   visibility verdict and, with draw flag 1, the part's screen rectangle for picking) and the object shadow's
+   (CFigureMesh::DrawOffset 005A0CD0, CLinkMesh::ProjectPart 004F4680: the raster whose bounds feed the shadow
+   lists). What a GPU path could take is the renderer's reading and upload of the few moved corners (R16d already
+   uploads only the changed range). The "moved" meshes in the table above were the classic shadows' decals (R16e).
+   Where a many-figure frame's main-thread time goes instead (render_stats, vanilla 4K, harness build; main thread
+   CPU / wall ms per frame, renderstats): fight 18.6 / 19.0, mostly the server's AI path search (LocalSearch,
+   CAIMap::FindPath); town 8.8 / 9.1: by profile figure lighting in 3DfpFPU (17% of the samples; R16i), the x87
+   control word set around every libcrt math call (the CRT's ctrlfp 9%: Hypot in the camera's ClampAboveObjects;
+   SV10g), the ground decals' projection and clipping (DecalBuilder; R16e) and the device's per-corner work for meshes
+   the new renderer draws from the hand-over anyway (FillCorners, the clipper, fog: R16k). The renderer's own CPU
+   (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame
+   1.2 / 1.4 ms.
 9. **R16i GPU lighting and shadows (later: it changes the look and waits for the user).** Sun and point lights per pixel
    and shadow maps (or GPU-drawn shadow textures) instead of the terrain lit per vertex (about 2 ms a frame on the
    CPU), figures lit per draw (3DfpFPU slots 39-44) and 64 x 64 CPU-rasterised object shadows; the game's vertex

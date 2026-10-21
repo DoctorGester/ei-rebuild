@@ -815,7 +815,8 @@ void AddFrameStats() {
                        &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
                        &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
                        &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
-                       &FrameStats::textureChanges, &FrameStats::comparedBytes})
+                       &FrameStats::textureChanges, &FrameStats::comparedBytes, &FrameStats::morphMeshes,
+                       &FrameStats::morphCorners})
         s.*field += f.*field;
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];

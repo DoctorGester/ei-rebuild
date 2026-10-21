@@ -142,6 +142,9 @@ struct FrameStats {
     double shadowMs = 0.0;
     std::uint32_t gpuFrames = 0;
     double gpuShadowMs = 0.0, gpuFrameMs = 0.0;
+    // R16h: the meshes handed over with positions moved by per-vertex offsets (an animation's morph:
+    // CFigureMesh::offsets_) and their corners.
+    std::uint64_t morphMeshes = 0, morphCorners = 0;
 };
 FrameStats TakeFrameStats();
 
