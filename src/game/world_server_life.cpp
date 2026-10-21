@@ -49,7 +49,7 @@ int CWorldServer::Setup() {
     auto* specific = static_cast<CServerSpecificManager*>(gamecrt::operator_new(sizeof(CServerSpecificManager)));
     manager44_ = specific ? specific->Construct() : nullptr;
     ++manager44_->refCount_;   // the original counts the reference without testing the pointer
-    static_cast<CBaseManager*>(manager44_)->SetContext(this);
+    manager44_->SetContext(this);
     auto* hoover = static_cast<CHoover*>(gamecrt::operator_new(sizeof(CHoover)));
     hoover_ = hoover ? hoover->Construct() : nullptr;
     ++hoover_->refCount_;

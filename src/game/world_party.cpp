@@ -281,11 +281,11 @@ CEngineObject* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
 // As in CopyItem, the original also builds and frees two empty CPtrLists around the call.
-CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemManagerCreateItemOriginal(ItemManager(), nullptr, name); }
+CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManagerCreateItemOriginal(ItemManager(), nullptr, name); }
 
-CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
+CItem* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, SpellManager());
+    return static_cast<CItemManager*>(manager)->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

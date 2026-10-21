@@ -171,7 +171,7 @@ CEffectParticle* ParticleOf(ScriptParticleSource* source) { return static_cast<C
 // units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
 // (constructor 004C98C0, AddTail 004C98F0, destructor 00427830) and the party slots (CArray of
 // 40-byte slots: constructor 004BB000, destructor 004BB020).
-using PtrList = mfc::CList<void*>;
+using PtrList = mfc::CList<CUnit*>;
 struct PartySlot {
     int unitId;
     std::uint8_t unused_04[36];
@@ -275,13 +275,13 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float radius = static_cast<CMapObject*>(object)->radius + static_cast<CMapObject*>(object)->radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
-        auto* unit = static_cast<CUnit*>(pos->data);
+        CUnit* unit = pos->data;
         pos = pos->next;
         map->RemoveFromSectors(unit);
     }
     for (PtrList::Node* pos = units.head; pos;) {
         Vector3 free;
-        auto* unit = static_cast<CUnit*>(pos->data);
+        CUnit* unit = pos->data;
         pos = pos->next;
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
@@ -821,7 +821,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xB3: {   // GiveUnitSpell(unit, spell)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
+            CItem* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             unit->AddSpell(spell);
             void* state = UnitState(unit);
@@ -1196,7 +1196,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
-            auto* list = static_cast<CBaseManager*>(TheServerWorld()->itemManager_);
+            auto* list = TheServerWorld()->itemManager_;
             ObjectIterator it;
             it.manager = nullptr;
             for (CEngineObject* object = it.First(list); object; object = it.Next()) static_cast<CItem*>(object)->Repair();

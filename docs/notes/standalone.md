@@ -402,7 +402,7 @@ cells; who names each address in src/ and tests/, comments blanked):
 | interface (ui*, console) | 88 | 1,574 | slots called by index (`vtable_[n]`: 74 sites, ui.h 28) |
 | library (MFC, CRT; RTTI type_info) | 54 | 522 | MFC's own classes; with C14 |
 | network (net*, link*, player_sync, server*) | 45 | 422 | message classes (net_messages.cpp: 117 stores) |
-| no store in src/ | 39 | 421 | only game.exe's code installed them (base vtables a destructor stores, ...): check, then retire |
+| no store in src/ | 39 | 421 | only game.exe's code installed them: 13 retired (batch 2, below); the rest are tails or EH data |
 | render, device, textures, figures, scene, sound | 39 | 516 | |
 | map objects (map_object*, object3d*, trap, magic trap, lever, torch, sky, lightning) | 39 | 947 | |
 | named by the harness | 35 | 940 | the window labels (`kKnownWindows`, `WindowReady`, the census's `W<vtable>#n`), the digest's AI modes and CSpellEffect, harness_savetrace's stream Write slots, the console streambuf's sync slot (`PatchSlot`) |
@@ -432,6 +432,42 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
    address inside them (src/, tests/), no pointer cell points into them and no code cell is left in them. A vtable two
    classes shared (0073F778, the copy constructor's) goes when both do.
 6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
+- **Engine objects** (batch 2: CMusicSystem, CMaterial): CEngineObject's default slots are defined
+  (engine_object.cpp: the destructor clears the owner, CopyFrom is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0), so a
+  derived class with a C++ constructor gets the compiler's vtable; the constructor calls ClearFields. Slot 0 is the
+  virtual destructor: the compiler's scalar deleting destructor runs the destructor and the class's
+  `operator delete` (declare one that calls gamecrt::operator_delete: the global one is not the game's heap). The
+  destructor body leaves out the members' destructors (C++ runs them after it). The registrations: Construct is
+  `new (this) X()`, the destructor bodies call `this->X::~X()` (qualified: no dispatch), slots 11 / 12 overrides
+  with shims calling them qualified. windows.h's GetClassName macro renames slot 11 in a file that includes it in
+  between: engine_object.h, the class's header and its .cpp `#undef GetClassName`.
+- **Batch 2's families**: the chunks (Chunk, RootChunk; 0073BE94 / 0073BE9C and the .mob root's 0073FAD4), the
+  buffered streams (BufferedStream, BufferedFile over GameBuffer's slots; 0073F8C8 / 0073F8A4), CMusicSystem
+  (00744098) and CMaterial (00743BB4). Left for later batches, with what each needs: CSoundManager (007440F0; its
+  members include a CMappedResource, a polymorphic class whose own virtuals and destructor would have to be defined,
+  and a dozen other member types to check for default constructors), CTexture (00743D24; its name_ is a CString C15
+  retypes), CSkyObject (0073D5B8; abstract in C++ and sharing 0073C224 with CFigureMesh), the map objects (torch
+  0073E834 with its tail 0073E850, lever 0073E740, trap 0073E548, magic trap 0073E63C: CMapObject's 61 slots need
+  definitions first), the torch spec (0073E954 with its tail 0073E98C), the texture and material managers
+  (CResourceManager's 26 slots), CArray<MusicTheme> (007440CC, with the container instantiations).
+- **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
+  some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
+  CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
+  stored; retiring it zeroes live slots (the first try of batch 2 retired 0073BD98: every run crashed calling a null
+  slot at startup). gen_image_cells.py's check refuses a retired row that no code of game.exe stores
+  (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use (the overlapping
+  rows 0073D760 / 0073D764 / 0073D768). A family's retirement takes its tails with it (0073E954's 0073E98C).
+- **Retired with no class of ours** (batch 2; file `-` in the csv, the note names the storing functions): 0073B98C
+  (an exception class, 0040C440 / 0040C500), 0073BFAC (CDebugPanel's base), 0073D860 / 0073D888 (the render helper's
+  base and local), 0074019C (CUiMesh::SetVertexCount's local), 00740244 (the battle camera's input side, before
+  InputSideDestroy's 007401D0) and the dead code's 0073C474, 0073CA00 / 08 / 0C / 10, 0073F7C4 / 0073F7F8: 135 code
+  cells. Not retired from the "no store in src/" row: the tails 0073BD98 (CMemoryStream), 0073E98C (0073E954),
+  0073EAA0, 007435B4, 00743618, 00743678, 007436D8, 00743738, 00743AA8, 00743ADC (devirtualised slot calls of the
+  tables before them), 0073BF08, 0073E6E8, 0073E850, 0073F4E8, 00740FE8, 007418E8, 0074247C, 007435D8 (byte matches:
+  inside the table before them), 0073D764 (shares slots with 0073D760 / 0073D768), 0073B984 (an exception base: six stores
+  but some 140 compares with its address in game.exe's code; kept for the library batch) and the five one-slot rows 0074E824,
+  00753B04, 00758904, 00758B0C, 00758B14 (EH unwind map entries, not vtables). The library kind's unstored MFC
+  vtables (CClientDC, CWinApp, ...; config/standalone_unreachable.csv) go with the library batch.
 - **Ids for later families**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
   `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
   recording) and the image give the same: e.g. the harness maps a vtable to a name (`kKnownWindows`' names) through

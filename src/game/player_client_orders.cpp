@@ -78,7 +78,7 @@ struct LocalStream {
 
 // A potion used from a quick slot is counted off at once.
 void SpendPotion(CUnit* user, int slot) {
-    auto* item = static_cast<CItem*>(user->GetQuickItem(static_cast<std::uint32_t>(slot)));
+    auto* item = user->GetQuickItem(static_cast<std::uint32_t>(slot));
     if (item && static_cast<int>(item->count_) > 0 && item->GetCategory() == kPotionCategory) --item->count_;
 }
 

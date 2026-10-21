@@ -22,7 +22,7 @@ void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>*
     GatherItem(items, spells, item);
 }
 
-void AddSlots(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CEngineObject* const* slots,
+void AddSlots(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CItem* const* slots,
               int count) {
     for (int i = 0; i < count; ++i) AddItem(items, spells, slots[i]);
 }

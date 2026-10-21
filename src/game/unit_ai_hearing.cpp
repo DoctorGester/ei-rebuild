@@ -84,14 +84,14 @@ void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.
 EI_REPLACE_METHOD(0x005CBBC0, AIMemory::AddClaim);
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
-    mfc::CTypedPtrList<CEngineObject> units{};
+    mfc::CTypedPtrList<CUnit> units{};
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->position;
     map->SectorMap()->FindUnitsInRadius(point, &units, kNoiseRadius);
     for (auto* node = units.head; node;) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         node = node->next;
         if (!other->IsHostileTo(unit)) continue;
         CUnitServer* control = ControllerOf(other);

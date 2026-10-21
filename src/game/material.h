@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <cstring>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 // A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
 // and the specular power. 0x44 bytes; copied as dwords.
 struct MaterialColors {
@@ -30,31 +32,41 @@ struct MaterialEntry {
 };
 static_assert(sizeof(MaterialEntry) == 0x10);
 
-// A material (vtable 00743BB4, class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material
+// A material (class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material
 // manager (*007AF740, CMaterialManager::NewMaterial) and by the scene loader for its helpers
 // (00454E40 constructs the array of them, FakeUnitScene::helpers in scene_loader.h; the file's
 // vectors are the ambient, diffuse and specular colours, the power and the diffuse alpha). It is
-// also the material a figure part is drawn with (005A7A70). Names provisional.
+// also the material a figure part is drawn with (005A7A70). Names provisional. A real virtual
+// class: the compiler makes its vtable (C19; game.exe's 00743BB4 is retired).
 class CMaterial : public CEngineObject {
 public:
     void SetDiffuse(const Vector3* value);
     void SetAmbient(const Vector3* value);
     void SetSpecular(const Vector3* value);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743BB4);
 
-    // 0068DBC0. The constructor: an engine object with empty names, alpha 1 and an empty deque
-    // (one node). The colours stay as they were. Returns this.
-    CMaterial* Construct();
-    // 0068DE30. The destructor body: the deque emptied and freed, the names, the engine object.
-    void Destruct();
-    // 0068DD20. Slot 0: Destruct, then operator delete when flags bit 0 is set. Returns this.
-    CMaterial* DeletingDestruct(unsigned flags);
+    // 0068DBC0. An engine object with empty names, alpha 1 and an empty deque (one node). The
+    // colours stay as they were.
+    CMaterial();
+    // 0068DE30. The deque emptied and freed, the names, the engine object.
+    ~CMaterial() override;
+    // The deleting destructor (slot 0, 0068DD20) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
     // 2: 0068DF90. Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;
     // 3: 0068E040. Empties the deque.
     void Destroy() override;
-    // Slot 7 (0068DCF0, 4 bytes: too short to hook) returns name; slots 11 / 12 are
-    // MaterialClassName / MaterialClassId below.
+    // 7: 0068DCF0 (short_functions.cpp). The name's text.
+    const char* GetName() override;
+    const char* GetClassName() override;   // 11: 0068DD00 "CMaterial"
+    int GetClassId() override;             // 12: 0068DD10 (5)
+
+    // The registrations of the constructor and destructors (C20 retires them): 0068DBC0 the
+    // constructor in place (returns this), 0068DE30 the destructor, 0068DD20 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    CMaterial* Construct();
+    void Destruct();
+    CMaterial* DeletingDestruct(unsigned flags);
 
     mfc::CString name;                      // +0x1C
     MaterialColors colors;                  // +0x20

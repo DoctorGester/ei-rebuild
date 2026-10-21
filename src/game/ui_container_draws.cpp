@@ -121,12 +121,12 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     DrawBase(pass);
     auto* owner = reinterpret_cast<CItemScreen*>(owner_);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
-        ItemCell cell{static_cast<CItem*>(hero->weapons[i]), static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
+        ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
     }
     for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
-        ItemCell cell{static_cast<CItem*>(hero->quickItems[i]), static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
+        ItemCell cell{hero->quickItems[i], static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
     }
@@ -144,7 +144,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
-        CItem* item = static_cast<CItem*>(hero->armor[i]);
+        CItem* item = hero->armor[i];
         int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       mode_};

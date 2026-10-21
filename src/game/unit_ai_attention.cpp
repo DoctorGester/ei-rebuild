@@ -35,7 +35,7 @@ void AIAttention::CurrentAttack(AIBrain* brain, int* partAndObject) {
 EI_REPLACE_METHOD(0x005CF220, AIAttention::CurrentAttack);
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
-    mfc::CTypedPtrList<CEngineObject> candidates{};
+    mfc::CTypedPtrList<CUnit> candidates{};
     candidates.vtable = mfc::PtrListVtable();
     candidates.blockSize = 10;
     int best[2] = {-1, 0};          // {part, object}

@@ -105,7 +105,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The unit's four quick items in the bottom row.
     for (unsigned slot = 0; slot < 4; ++slot) {
-        CEngineObject* item = unit_->GetQuickItem(slot);
+        CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
             ReturnedString image;

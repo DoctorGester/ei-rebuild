@@ -905,7 +905,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     case 0x3004: {
         // The chosen weapon moves back when the item lies before it.
         int count = static_cast<int>(hero->weaponCount);
-        CEngineObject** weapons = hero->weapons;
+        CItem** weapons = hero->weapons;
         for (int i = 0; i < count; ++i) {
             if (weapons[i] != AsObject(item)) continue;
             if (static_cast<std::uint32_t>(i) < hero->weaponIndex) --hero->weaponIndex;
@@ -962,8 +962,8 @@ void CCampPages::PutOn(std::uint8_t* item) {
                 TakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
         }
         if (heroes_[hero_]) {
-            void* worn = hero->AddArmor(AsItem(item));   // 00660C90
-            static_cast<CUnit*>(heroes_[hero_])->EquipArmour(static_cast<CEngineObject*>(worn));         // 00530730
+            CItem* worn = hero->AddArmor(AsItem(item));   // 00660C90
+            static_cast<CUnit*>(heroes_[hero_])->EquipArmour(worn);         // 00530730
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
         RebuildArmourLayers(hero);

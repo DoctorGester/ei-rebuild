@@ -51,7 +51,7 @@ std::uint8_t& WakeCacheGuard() { return ei::GameData<std::uint8_t>(0x007AFF10); 
 
 // 005C0930 (CSectorMap, inlined here: bounds check and address only). The unit list of sector
 // (x, y), or null outside the map.
-mfc::CTypedPtrList<CEngineObject>* SectorUnits(CSectorMap* map, int x, int y) {
+mfc::CTypedPtrList<CUnit>* SectorUnits(CSectorMap* map, int x, int y) {
     if (x < 0 || y < 0 || x >= map->width || y >= map->height) return nullptr;
     return &map->sectors[map->width * y + x].units;
 }

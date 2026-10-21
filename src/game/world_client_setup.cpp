@@ -153,7 +153,7 @@ void CWorldClient::LoadSky() {
     if (skyDome_) return;
     auto* sky = static_cast<CSky*>(gamecrt::operator_new(sizeof(CSky)));
     skyDome_ = sky ? sky->Construct() : nullptr;
-    auto* figures = static_cast<CBaseManager*>(FigureManager());
+    auto* figures = FigureManager();
     auto* object = static_cast<CSkyObject*>(figures->CreateObject(kSkyFigureClass, kSkyObjectId));
     if (!object) return;
     object->name_ = SkyPartName();

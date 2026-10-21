@@ -376,7 +376,7 @@ int CPlayerClient::OnItemsReceived() {
             result = 0;
             break;
         }
-        auto* manager = static_cast<CBaseManager*>(TheClientWorld()->itemManager_);
+        auto* manager = TheClientWorld()->itemManager_;
         if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
     }
     if (result != 0) {
@@ -604,7 +604,7 @@ int CPlayerClient::OnNewObject() {
 
     // The world's slot 19 is its object manager (+0x40).
     auto* world = static_cast<CWorld*>(Owner()->ManagerContext());
-    CEngineObject* created = static_cast<CBaseManager*>(world->manager40_)->CreateObject(header.type, header.id);
+    CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
     auto* figure = static_cast<CObject3D*>(created);

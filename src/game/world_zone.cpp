@@ -139,14 +139,11 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 // ---- .mob object files ------------------------------------------------------------------------
 
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
-    // The root chunk (vtable 0073FAD4) with its MFC CFile at +0x18, built in place as the
-    // original's inlined constructor does.
-    alignas(4) std::uint8_t storage[0x28];
-    auto* root = reinterpret_cast<RootChunk*>(storage);
-    root->Construct(nullptr);
-    new (&root->file_) mfc::CFile();
+    // The root chunk with its MFC CFile (the original's inlined constructor, game.exe's vtable
+    // 0073FAD4: RootChunk's slots).
+    RootChunk rootChunk;
+    RootChunk* root = &rootChunk;
     auto* fileObject = reinterpret_cast<mfc::CFileVirtuals*>(&root->file_);
-    ei::SetVtable(root, RootChunk::kMapObjectFileVtableAddress);
 
     mfc::CString path;
     ServerMapPathOriginal((void*)this, nullptr, (void*)&path, file);   // constructs the CString in place
@@ -158,8 +155,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
-    root->Destruct();
-    return result;
+    return result;   // the CFile destroyed with the root (0042D270)
 }
 
 int CWorldServer::LoadMobFile(const char* file) {

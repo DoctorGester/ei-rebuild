@@ -34,7 +34,7 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+using ObjectList = mfc::CTypedPtrList<CUnit>;
 
 } // namespace
 

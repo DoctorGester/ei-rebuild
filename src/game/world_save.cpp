@@ -227,7 +227,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(id);
+        CEngineObject* object = manager40_->FindObject(id);
         auto* mapObject = static_cast<CMapObject*>(object);
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
@@ -329,11 +329,11 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         PlayerRecordsLoad(player->party, nullptr, stream, 1);
         player->lastTick = world->tick_;
         stream->Read(&player->sessionKind, 4);
-        CEngineObject* items = world->ItemFactory();
+        CBaseManager* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
-            CEngineObject* object = static_cast<CBaseManager*>(items)->FindObject(id);
+            CEngineObject* object = items->FindObject(id);
             if (!object) continue;
             player->items.AddTail(object);
             ++object->refCount_;
@@ -437,7 +437,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id == -1) break;
                 int type = ReadValue<int>(stream);
                 std::uint32_t value18 = ReadValue<std::uint32_t>(stream);
-                CEngineObject* object = static_cast<CBaseManager*>(manager40_)->CreateObject(type, id);   // slot 23
+                CEngineObject* object = manager40_->CreateObject(type, id);   // slot 23
                 object->prototypeId_ = value18;
             }
             manager48_->Load(stream);
@@ -445,16 +445,16 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             itemManager_->Load(stream);
             ShowLoadProgress(kProgressManagers);
             LoadSavedMapObjects(stream);
-            static_cast<CBaseManager*>(manager48_)->LoadObjects(stream);
-            static_cast<CBaseManager*>(manager4C_)->LoadObjects(stream);
-            static_cast<CBaseManager*>(itemManager_)->LoadObjects(stream);
+            manager48_->LoadObjects(stream);
+            manager4C_->LoadObjects(stream);
+            itemManager_->LoadObjects(stream);
             ShowLoadProgress(kProgressObjects);
 
             // Timed objects (spells, effects) by id.
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id == -1) break;
-                CEngineObject* object = static_cast<CBaseManager*>(manager48_)->FindObject(id);
+                CEngineObject* object = manager48_->FindObject(id);
                 ++object->refCount_;
                 static_cast<CEffect*>((void*)object)->MarkChanged();
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -491,7 +491,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id < 0) break;
-                CEngineObject* item = static_cast<CBaseManager*>(itemManager_)->FindObject(id);
+                CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
                 auto* node = counted_.NewNode(nullptr, counted_.head);
                 ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
@@ -510,7 +510,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     stream->Read(&id, 4);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
-                    CEngineObject* object = static_cast<CBaseManager*>(ItemFactory())->FindObject(id);
+                    CEngineObject* object = ItemFactory()->FindObject(id);
                     if (!object) continue;
                     auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
                     // The count's whole dword is cleared, before the null test.
@@ -572,10 +572,10 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 }
             }
 
-            static_cast<CBaseManager*>(manager40_)->ReleaseUnused();
-            static_cast<CBaseManager*>(manager48_)->ReleaseUnused();
-            static_cast<CBaseManager*>(manager4C_)->ReleaseUnused();
-            static_cast<CBaseManager*>(itemManager_)->ReleaseUnused();
+            manager40_->ReleaseUnused();
+            manager48_->ReleaseUnused();
+            manager4C_->ReleaseUnused();
+            itemManager_->ReleaseUnused();
             result = 1;
         }
     }
@@ -640,10 +640,10 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     ConstructSaveStream(&current);
 
     if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimes(0.0f);
-    static_cast<CBaseManager*>(manager40_)->ReleaseUnused();
-    static_cast<CBaseManager*>(manager48_)->ReleaseUnused();
-    static_cast<CBaseManager*>(manager4C_)->ReleaseUnused();
-    static_cast<CBaseManager*>(itemManager_)->ReleaseUnused();
+    manager40_->ReleaseUnused();
+    manager48_->ReleaseUnused();
+    manager4C_->ReleaseUnused();
+    itemManager_->ReleaseUnused();
 
     WriteString(stream, mobName_);
     WriteString(stream, mapName_);
@@ -682,9 +682,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->Save(stream);
     itemManager_->Save(stream);
     SaveMapObjects(stream);
-    static_cast<CBaseManager*>(manager48_)->SaveObjects(stream);
-    static_cast<CBaseManager*>(manager4C_)->SaveObjects(stream);
-    static_cast<CBaseManager*>(itemManager_)->SaveObjects(stream);
+    manager48_->SaveObjects(stream);
+    manager4C_->SaveObjects(stream);
+    itemManager_->SaveObjects(stream);
 
     for (auto* node = timedObjects_.map.First(); node; node = timedObjects_.map.After(node))
         WriteCopy(stream, node->value->id_);
@@ -800,7 +800,7 @@ void SharedObject::Load(WorldStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CEngineObject* object = static_cast<CBaseManager*>(WorldItemManager())->FindObject(id);
+        CEngineObject* object = WorldItemManager()->FindObject(id);
         if (object) Append(entry->objects, object);   // the original inlines the SetSize
     }
 }

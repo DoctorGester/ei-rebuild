@@ -13,6 +13,8 @@
 #include <cstring>
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 constexpr const char* kMaterialClassName = "CMaterial";
@@ -39,33 +41,27 @@ void ResetFields(CMaterial* m) {
 
 // --- CMaterial -------------------------------------------------------------------------------------
 
-CMaterial* CMaterial::Construct() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+CMaterial::CMaterial() {
     ClearFields();
-    new (&name) mfc::CString();
     entries.Construct();
-    new (&name2) mfc::CString();
-    new (&name3) mfc::CString();
-    ei::SetVtable(this, kVtableAddress);
     ResetFields(this);
     entries.PopAll();
-    return this;
 }
+
+CMaterial* CMaterial::Construct() { return new (this) CMaterial(); }
 EI_REPLACE_METHOD(0x0068DBC0, CMaterial::Construct);
 
-void CMaterial::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+// The names go after the body (name3, name2, then name after the deque in the original).
+CMaterial::~CMaterial() {
     entries.PopAll();
-    name3.~CString();
-    name2.~CString();
     entries.Destroy();
-    name.~CString();
-    DestructBase();
 }
+
+void CMaterial::Destruct() { this->CMaterial::~CMaterial(); }
 EI_REPLACE_METHOD(0x0068DE30, CMaterial::Destruct);
 
 CMaterial* CMaterial::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CMaterial::~CMaterial();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -81,8 +77,12 @@ void CMaterial::Destroy() {
     entries.PopAll();
 }
 
-const char* __fastcall MaterialClassName(CMaterial*) { return kMaterialClassName; }
-int __fastcall MaterialClassId(CMaterial*) { return 5; }
+const char* CMaterial::GetName() { return name; }
+const char* CMaterial::GetClassName() { return kMaterialClassName; }
+int CMaterial::GetClassId() { return 5; }
+
+const char* __fastcall MaterialClassName(CMaterial* self) { return self->CMaterial::GetClassName(); }
+int __fastcall MaterialClassId(CMaterial* self) { return self->CMaterial::GetClassId(); }
 EI_REPLACE(0x0068DD00, MaterialClassName);
 EI_REPLACE(0x0068DD10, MaterialClassId);
 
@@ -169,8 +169,7 @@ int CMaterialManager::Create() {
 CEngineObject* CMaterialManager::NewObjectImpl(int type) {
     void* block = gamecrt::operator_new(sizeof(CMaterial));
     if (!block) return nullptr;
-    CMaterial* material = static_cast<CMaterial*>(block)->Construct();
-    if (!material) return nullptr;
+    auto* material = new (block) CMaterial();
     material->type_ = type;
     return material;
 }

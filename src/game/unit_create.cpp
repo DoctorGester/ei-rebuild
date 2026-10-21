@@ -93,7 +93,7 @@ void CUnit::DropBrokenEquipment() {
     broken.blockSize = kPtrListBlockSize;
     void* messages = PlayerMessages(owner);
 
-    for (CEngineObject*& slot : armor) {
+    for (CItem*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         ++slot->refCount_;
         broken.AddTail(slot);
@@ -109,7 +109,7 @@ void CUnit::DropBrokenEquipment() {
 
     bool weaponLost = false;
     for (int i = 3; i >= 0; --i) {
-        CEngineObject*& slot = weapons[i];
+        CItem*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
         static_cast<CPlayerServer*>(messages)->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
         ++slot->refCount_;

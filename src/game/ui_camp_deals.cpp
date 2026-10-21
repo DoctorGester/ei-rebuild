@@ -183,7 +183,7 @@ bool CCampPages::DeconstructItem() {
         CResourceManager* manager = results->ItemManager();
         auto* record = static_cast<const char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(QuickItemsByName()), nullptr, SpellContainerText()));
         int index = static_cast<int>(record - itemdb::QuickItems().begin) / itemdb::kQuickItemSize;
-        auto* container = static_cast<CItem*>(static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1));
+        auto* container = static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1);
         if (container) {
             ++container->refCount_;
             CSpell* clone = static_cast<CSpell*>(copy->spell_)->Clone(results->SpellManager());
@@ -268,8 +268,8 @@ void CCampPages::DoAction() {
         if (itemConstructor_ && !noConstructor_) {
             using HeroFn = PartyUnitRecord*(__thiscall*)(CCampPages*);
             PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(vtable_, 51)(this);
-            for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CItem*>(hero->weapons[i])->Repair();
-            for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) static_cast<CItem*>(hero->armor[i])->Repair();
+            for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) hero->weapons[i]->Repair();
+            for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) hero->armor[i]->Repair();
         }
         break;
     case kTrade:

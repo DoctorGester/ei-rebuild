@@ -41,7 +41,7 @@ int IndexOf(const char* const* begin, const char* const* end, const char* name) 
 }
 
 // The first entry of a record's item array, or null when it is empty.
-CItem* FirstOf(CEngineObject* const* data, int count) { return count > 0 ? static_cast<CItem*>(data[0]) : nullptr; }
+CItem* FirstOf(CItem* const* data, int count) { return count > 0 ? data[0] : nullptr; }
 
 } // namespace
 

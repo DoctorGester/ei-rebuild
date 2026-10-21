@@ -665,7 +665,7 @@ namespace {
 // game state request to the server (a change goes out with a new version_).
 net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
 // The server world's player list (a CPlayerManager): the number of players registered.
-int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(TheServerWorld()->players_)->objects_.Size()); }
+int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
 
 } // namespace
 

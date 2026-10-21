@@ -62,7 +62,7 @@ void InitAction(UnitAction& action) {
 }
 
 // The empty CList of counted object references the memory keeps (00556C80 with blocks of 10).
-void InitObjectList(mfc::CTypedPtrList<CEngineObject>& list) {
+void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
     list.vtable = kObjectListVtable;
     list.blockSize = kBlockSize;
@@ -70,7 +70,7 @@ void InitObjectList(mfc::CTypedPtrList<CEngineObject>& list) {
 
 // Its destructor: the vtable, each element released and cleared (0052CEC0 / 0052D030), then
 // RemoveAll.
-void DestroyObjectList(mfc::CTypedPtrList<CEngineObject>& list) {
+void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.vtable = kObjectListVtable;
     for (auto* node = list.head; node; node = node->next) {
         if (node->data) node->data->Release();

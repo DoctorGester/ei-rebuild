@@ -65,7 +65,8 @@ void CopyList(AlignedPtrArray& list, const AlignedPtrArray& source, CParty* part
     }
 }
 
-const AlignedPtrArray& ConstList(CEngineObject** const& data) { return *reinterpret_cast<const AlignedPtrArray*>(&data); }
+template <typename T>
+const AlignedPtrArray& ConstList(T** const& data) { return *reinterpret_cast<const AlignedPtrArray*>(&data); }
 
 } // namespace
 

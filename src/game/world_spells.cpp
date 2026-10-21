@@ -39,7 +39,7 @@ constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 // The spell passed in. Its +0x34 is the radius (float bits) and +0x38 the number of targets.
 const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spell); }
 
-using UnitList = mfc::CTypedPtrList<CEngineObject>;
+using UnitList = mfc::CTypedPtrList<CUnit>;
 // SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
 // constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
 // 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
@@ -156,7 +156,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
             }
         if (found) RemoveNode(units, found);
         UnitList::Node* node = units.NewNode(nullptr, units.head);
-        node->data = target;
+        node->data = static_cast<CUnit*>(target);
         if (units.head) units.head->prev = node;
         else units.tail = node;
         units.head = node;
@@ -164,12 +164,12 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
 
     while (targets > 0) {
         if (!units.head) break;
-        CEngineObject* best = nullptr;
+        CUnit* best = nullptr;
         UnitList::Node* bestNode = nullptr;
         std::uint32_t bestBits = kFarAway;
         for (UnitList::Node* node = units.head; node;) {
             UnitList::Node* next = node->next;
-            CEngineObject* unit = node->data;
+            CUnit* unit = node->data;
             if (ObjectSlots(unit)->IsDead()) {
                 RemoveNode(units, node);
             } else if (unit == target) {
@@ -177,9 +177,9 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 bestNode = node;
                 break;
             } else {
-                double dz = static_cast<double>(to->z) - static_cast<CUnit*>(unit)->position.z;
-                double dy = static_cast<double>(to->y) - static_cast<CUnit*>(unit)->position.y;
-                double dx = static_cast<double>(to->x) - static_cast<CUnit*>(unit)->position.x;
+                double dz = static_cast<double>(to->z) - unit->position.z;
+                double dy = static_cast<double>(to->y) - unit->position.y;
+                double dx = static_cast<double>(to->x) - unit->position.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
@@ -211,14 +211,14 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 hit = true;
             } else {
                 int casterSide = static_cast<CUnit*>(caster)->side;
-                int bestSide = static_cast<CUnit*>(best)->side;
+                int bestSide = best->side;
                 hit = (diplomacy_.allied_[bestSide] & (1u << (casterSide & 31))) != 0;
             }
         }
         if (!hit) continue;
-        Vector3* at = &static_cast<CUnit*>(best)->position;
+        Vector3* at = &best->position;
         if (!SpellHasLineOfSight(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), static_cast<CUnit*>(caster),
-                                 from, static_cast<CUnit*>(best), at))
+                                 from, best, at))
             continue;
         if (!static_cast<const CSpell*>(spell)->CanAffect(caster, best)) continue;
         CreateMissile(spell, caster, *from, best, at, extra);

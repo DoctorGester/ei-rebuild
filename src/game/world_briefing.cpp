@@ -157,17 +157,6 @@ bool ServerRuns() {
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-// A buffered file on the stack, as the original's inlined constructor and destructor build it.
-struct LocalFile {
-    LocalFile() {
-        file.Construct();
-        ei::SetVtable(&file, BufferedFile::kFileVtableAddress);
-        file.file = nullptr;
-    }
-    ~LocalFile() { file.DestructFile(); }
-    BufferedFile file;
-};
-
 // A growing buffer on the stack. Raw storage: the game's constructor makes the object, and its
 // slots are called through the vtable that constructor stores.
 struct LocalBuffer {
@@ -182,13 +171,13 @@ struct LocalBuffer {
 void ShareQuestFile(const char* path, const char* name) {
     LocalBuffer local;
     GameBuffer* data = local.Get();
-    LocalFile source;
-    source.file.Open(path, kReadBinary, kReadOnlyFlags);
-    net::BufferUpdateHigh(&source.file);
-    const std::int32_t size = static_cast<std::int32_t>(source.file.high - source.file.begin) + source.file.base;
+    BufferedFile source;   // the original's inlined constructor and destructor
+    source.Open(path, kReadBinary, kReadOnlyFlags);
+    net::BufferUpdateHigh(&source);
+    const std::int32_t size = static_cast<std::int32_t>(source.high - source.begin) + source.base;
     data->Seek(0);
     std::uint8_t* to = data->BeginWrite(size);
-    source.file.ReadBytes(to, static_cast<unsigned>(size));
+    source.ReadBytes(to, static_cast<unsigned>(size));
     data->cur = to + size;
     data->Commit();
     stlp::string listed(name);

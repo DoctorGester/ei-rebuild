@@ -16,6 +16,16 @@ void CEngineObject::CopyFromImpl(const CEngineObject& other) {
     prototypeId_ = other.prototypeId_;
 }
 
+// The default slots for the classes whose vtable is the compiler's (C19): the destructor's body is
+// DestructBase's without the vtable; 1 is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0 (00402CC0,
+// 00402CD0, 00402D00, 00402D10).
+CEngineObject::~CEngineObject() { owner_ = nullptr; }
+void CEngineObject::CopyFrom(const CEngineObject& other) { CopyFromImpl(other); }
+void CEngineObject::ClearState() {}
+int CEngineObject::RunTick() { return 0; }
+void CEngineObject::Load(void*) {}
+void CEngineObject::Save(void*) {}
+
 // 00455980 (slot 4). When the last reference goes, the owning manager releases the object (its
 // slot 24, CBaseManager::ReleaseObject).
 void CEngineObject::Release() {

@@ -68,7 +68,7 @@ const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
 // 0052CDB0's new node holds a null reference, then the assignment counts the object).
-void AddCounted(mfc::CTypedPtrList<CEngineObject>& list, CEngineObject* object) {
+void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
     list.AddTail(object);
     ++object->refCount_;
 }
@@ -131,9 +131,9 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    mfc::CTypedPtrList<CEngineObject>& known = ControllerOf(revived)->Brain()->memory.seenCorpses;
+    mfc::CTypedPtrList<CUnit>& known = ControllerOf(revived)->Brain()->memory.seenCorpses;
     for (auto* node = ControllerOf(dead)->Brain()->memory.seenCorpses.head; node;) {
-        CEngineObject* object = node->data;
+        CUnit* object = node->data;
         node = node->next;
         if (object && object->GetClassId() == kClassUnit && !known.Find(object)) AddCounted(known, object);
     }

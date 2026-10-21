@@ -57,18 +57,13 @@ EI_REPLACE_METHOD(0x004DAC80, BufferedStream::ReleaseBlock);
 
 BufferedStream* BufferedStream::Construct() {
     base = 0;
-    ei::SetVtable(this, kVtableAddress);
     begin = nullptr;
     flags = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00580DD0, BufferedStream::Construct);
 
-void BufferedStream::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
-    ReleaseBlock();
-    ei::SetVtable(this, kBaseVtableAddress);
-}
+void BufferedStream::DestructBody() { ReleaseBlock(); }
 EI_REPLACE_METHOD(0x00580DF0, BufferedStream::DestructBody);
 
 BufferedStream* BufferedStream::DeletingDestruct(unsigned deleteFlags) {
@@ -103,6 +98,12 @@ void BufferedStream::Rebase() {
     if (base == position) return;
     Flush();
     MoveWindow(position);
+}
+
+// The original leaves EAX as Rebase does; no caller reads it.
+std::uint32_t BufferedStream::Commit() {
+    Rebase();
+    return 0;
 }
 
 void __fastcall BufferedStreamCommit(BufferedStream* self) { self->Rebase(); }
@@ -215,11 +216,8 @@ void BufferedFile::Close() {
 EI_REPLACE_METHOD(0x004DB680, BufferedFile::Close);
 
 void BufferedFile::DestructFile() {
-    ei::SetVtable(this, kFileVtableAddress);
     Close();
-    ei::SetVtable(this, kVtableAddress);
     ReleaseBlock();
-    ei::SetVtable(this, kBaseVtableAddress);
 }
 EI_REPLACE_METHOD(0x00580E60, BufferedFile::DestructFile);
 

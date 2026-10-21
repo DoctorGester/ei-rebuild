@@ -127,11 +127,11 @@ int CEffectTornado::Tick() {
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) Source()->Stop();
     CWorld* world = WorldOf(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
-        mfc::CTypedPtrList<CEngineObject> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        mfc::CTypedPtrList<CUnit> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         static_cast<CWorldServer*>(WorldOf(this))->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto* node = units.head; node != nullptr;) {
-            auto* unit = static_cast<CUnit*>(node->data);
+            auto* unit = node->data;
             node = node->next;
             if (unit->player != nullptr) ServerSlots(unit->controller)->TakeHitSlot(&hit, nullptr, nullptr);
         }

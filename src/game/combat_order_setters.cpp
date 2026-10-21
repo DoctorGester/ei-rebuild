@@ -129,7 +129,7 @@ bool CUnitServer::TargetBusy(CEngineObject* target) {
     if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
     for (auto* node = ai->memory.nearby.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (!other || ObjectSlots(other)->IsDead() != 0) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
         const UnitAction& order = controller->action;
@@ -146,7 +146,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     {
         mfc::CString figure(unit->name);
         auto* world = static_cast<CWorld*>(ManagerContext());
-        entry = (static_cast<CBaseManager*>(world->MapObjectManager()))->FindFigureAnimation(figure, name);
+        entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
     }
     if (!entry) return;
     action2.Reset();
