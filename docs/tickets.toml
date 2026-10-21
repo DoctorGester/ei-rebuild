@@ -611,6 +611,14 @@ size = 1
 model = "opus"
 note = "User 2026-10-22, playing play.cmd: shadows are drawn only for objects in the current screen space, so there is significant shadow pop. R16j's casters are the objects the game draws this frame (0051CE60 CastsShadow after visibility tests), so an object just outside the view casts nothing onto the visible ground. Add casters outside the view whose shadow can reach it (the sun-side caster room the map already keeps), without changing what the game draws or its goldens' logic; frame captures may change."
 
+[[ticket]]
+id = "R21"
+title = "Performance overlay in the standalone, switched by the settings file"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-10-22: a small performance overlay in the standalone game; the setting comes from config, no UI needed. Default: a value in ei_settings.ini (e.g. key Software\\Nival Interactive\\EvilIslands\\Standalone, \"PerfOverlay\"=dword:1), off when absent; never on in harness runs (their pinned file lacks it, and it must not reach any capture or golden). Show at least FPS and frame time (average / worst over the last second), plus what is cheap and useful: GPU time of the main passes (timestamp queries), draw calls, the shadow pass's cost. Drawn by our renderer on top of everything, small, in a corner."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
