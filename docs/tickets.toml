@@ -2480,6 +2480,13 @@ group = "cleanup"
 depends = ["C18"]
 note = "Set the pattern for written globals (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): pick one area whose .data objects only hand-written code names (named_data.py --split 'data object': particle* 29, app* 16, net* 12), make each a tagged non-const definition, check that no generated static initialiser stores into it, no harness file reads it (the harness runs in game.exe too), no vector stand-in fills it and no cell points at it. Opus for the first, sonnet after."
 
+[[ticket]]
+id = "C21"
+title = "Pointer static_casts: typed parameters and fields instead of void* and downcasts"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-21 asked whether the many static_casts are needed. Measured: 12,954 in src/, 3,785 of them to a pointer type (char* 533, CUnit* 260, CItem* 123, CMapObject* 104, ...). Those are typing debt like C15's: void* parameters left by shims, fields typed as a base class or void*, downcasts from CMapObject* / CEngineObject* to the real class. Retype the parameters and fields (one family per batch) so the casts go; add the pointer static_cast count to tools/progress.py first. The ~9,000 numeric casts (float 4,134, int 1,122, double 1,054, ...) mostly mark where the original rounded to float or int on the x87 and stay for exactness; a redundant-cast audit needs a compiler-level tool (clang-tidy readability-redundant-casting, an LLVM install the user has to approve) and would come after C16d's SSE2 switch."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
