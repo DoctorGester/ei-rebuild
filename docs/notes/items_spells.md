@@ -55,7 +55,12 @@ Record Serialize (A-H23, item_db_serialize.cpp; loading read twice, ours then th
 `SerializeHead` (fields 0-15), weapon, armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members),
 quick, the 0x7C kind (zone list through InlineStrings), the 0x78 kind (fields 0x15-0x17).
 
-Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadQuestItems / LoadLoot`
+The item database's tables are `itemdb::NamedRecordTable<Record>` (item_db.h: `stlp::vector<Record>` plus the name
+index; `At` (the bounds-checked lookup, also `WeaponAt` / `ArmorAt` / ... ), `IndexOf` (the byte offset divided by the
+record size, signed, as the original computes it, also for a null record), `Named` (the by-name lookups 004AB720 etc.:
+a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
+
+Loading (item_db_load.cpp; O; startup, every scenario): `QuickItemTable / QuestItemTable / LootItemTable::Load`
 (a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed under its name with
 find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them by address),
 `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` (the quest_records.cpp pattern; the loads call

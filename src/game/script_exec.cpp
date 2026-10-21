@@ -173,15 +173,14 @@ struct PartySlot {
 using PartyArray = mfc::CArray<PartySlot>;
 using ObjectIterator = ObjectListIterator;
 
-// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used, the original reserves 0x4C).
-__declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B40)
+// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo (00522B40).
 
 // ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
 
 // The unit's server half (CUnit::controller).
 void* UnitState(CUnit* unit) { return unit->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
-AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
+AIBrain* BrainOf(void* state) { return Controller(state)->Brain(); }
 // The brain's patrol mode, null when it has none.
 PatrolMode* PatrolOf(void* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
@@ -745,7 +744,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x36: {   // SetPlayer(unit, player)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            unit->SetHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy())->GetHostileMask(Ftol(f[0])));
+            unit->SetHostileMask(TheDiplomacy()->GetHostileMask(Ftol(f[0])));
             unit->SetSide(Ftol(f[0]));
             break;
         }
@@ -759,23 +758,23 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x35: {   // KillUnit(object)
             CEngineObject* object = Arg(cmd, 0);
-            alignas(4) std::uint8_t damage[0x4C];
-            ResetDamageInfoAt(damage);
-            if (object) ObjectSlots(object)->ReceiveHit(reinterpret_cast<DamageInfo*>(damage), nullptr, nullptr);
+            DamageInfo damage;   // (the original reserves 0x4C bytes)
+            ResetDamageInfo(&damage);
+            if (object) ObjectSlots(object)->ReceiveHit(&damage, nullptr, nullptr);
             break;
         }
         case 0x44: {   // InflictDamage(unit, amount)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            std::uint32_t damage[15] = {};
-            damage[5] = 0x3F800000u;    // +0x14 1.0
-            damage[7] = 0;              // +0x1C
-            damage[8] = 0x42C80000u;    // +0x20 100.0
-            std::memcpy(&damage[9], &f[0], 4);   // +0x24 amount
-            damage[10] = 0x3F800000u;   // +0x28 1.0
-            damage[11] = 1;             // +0x2C
+            DamageInfo damage = {};
+            damage.typeWeights[5] = 1.0f;
+            damage.weaponValue = 0;
+            damage.attackRoll = 0x42C80000u;   // 100.0
+            damage.amount = f[0];
+            damage.multiplier = 1.0f;
+            damage.location = 1;
             // TakeHit(hit, attacker, source): three arguments (the original pushes the first 0 early).
-            ServerSlots(Controller(state))->TakeHitSlot(reinterpret_cast<DamageInfo*>(damage), nullptr, nullptr);
+            ServerSlots(Controller(state))->TakeHitSlot(&damage, nullptr, nullptr);
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)

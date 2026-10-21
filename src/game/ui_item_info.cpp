@@ -177,8 +177,8 @@ EI_REPLACE(0x005F13A0, ItemDamageLists);
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
-// The spell and modifier records the spell book reads (UiRecordTable's SpellAt / ModifierAt, ui.h:
-// itemdb::SpellAt / SpellModifierAt) and the item records (item_db.h).
+// The spell and modifier records the spell book reads (itemdb::SpellAt / SpellModifierAt) and the
+// item records (item_db.h).
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;

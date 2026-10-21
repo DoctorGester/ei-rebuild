@@ -185,8 +185,4 @@ EI_REWRITTEN(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------
 
-char* UiRecordTable::SpellAt(std::uint32_t index) const { return RecordAt(index, 0x84); }
-EI_REWRITTEN(0x005F2EA0, UiRecordTable::SpellAt);
-
-char* UiRecordTable::ModifierAt(std::uint32_t index) const { return RecordAt(index, 0x24); }
-EI_REWRITTEN(0x005F2EE0, UiRecordTable::ModifierAt);
+// 005F2EA0 / 005F2EE0: the spell and modifier tables' At (spell_db_lookup.cpp).

@@ -35,12 +35,6 @@ struct RecordTable {
         std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(end - begin) / stride);
         return index < count ? begin + index * stride : nullptr;
     }
-    // RecordAt out of line for one record size (006A5950 / 006A5990 / 006A59D0 / 006A5A10; RET 4: the armour,
-    // quick item, quest item and loot tables; only the quick item's figure name 006A3CD0 called them).
-    template <int Stride>
-    char* RecordAtStride(std::uint32_t index) const {
-        return RecordAt(index, Stride);
-    }
 };
 
 // Reads a field of a record that may be null (the original then faults reading address `offset`).
@@ -231,7 +225,9 @@ struct ItemRecordHead {
     std::uint32_t materialUnits;        // +0x4C units of material (the price; the trader stock takes them)
     console::CStringArray list50;       // +0x50
     std::uint32_t classMask;            // +0x64 bit (class - 1): the class templates that may use it
-    std::uint8_t field15;               // +0x68 archive field 15, 1 after construction (nothing reads it)
+    // +0x68 archive field 15, 1 after construction: 0 keeps the item out of the camp's item
+    // constructor (UiItemKinds::IsBuildable).
+    std::uint8_t buildable;
     std::uint8_t unused_69[3];
     // +0x6C the category (5 wands, 8 quick items whose prototype names their spell), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
@@ -239,7 +235,7 @@ struct ItemRecordHead {
 };
 static_assert(offsetof(ItemRecordHead, list20) == 0x20);
 static_assert(offsetof(ItemRecordHead, list50) == 0x50);
-static_assert(offsetof(ItemRecordHead, field15) == 0x68);
+static_assert(offsetof(ItemRecordHead, buildable) == 0x68);
 static_assert(offsetof(ItemRecordHead, type) == 0x0C);
 static_assert(offsetof(ItemRecordHead, materialClass) == 0x10);
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
@@ -493,7 +489,10 @@ struct NamedRecordTable {
     NameIndex& ByName() { return *reinterpret_cast<NameIndex*>(&names); }
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
-    // The record at `index`, or nullptr when out of range.
+    // The record at `index`, or nullptr when out of range (out of line for the armour, quick item,
+    // quest item and loot tables: 006A5950 / 006A5990 / 006A59D0 / 006A5A10, RET 4; only the quick
+    // item's figure name 006A3CD0 called them; the materials' and weapons' 0056E400 / 0056E440 are
+    // world.h's RecordBytes).
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record` as the original computes it: the byte offset from the first record
     // divided by the record size, signed (a null record gives the index the original computes too).
@@ -532,7 +531,8 @@ struct CodeIndexedTable {
     void Construct();
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
-    // The record at `index`, or nullptr when out of range.
+    // The record at `index`, or nullptr when out of range (out of line as the spell book reads the
+    // tables: 005F2EA0 / 005F2EE0, RET 4).
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }

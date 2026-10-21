@@ -1082,13 +1082,8 @@ inline const signed char* KeyActions() { return ei::GamePointer<const signed cha
 inline signed char* KeyActionTable() { return ei::GamePointer<signed char>(0x0079BF70); }
 constexpr int kKeyActionCount = 0x200;
 
-// 005F2EA0 / 005F2EE0. Bounds-checked records of the spell and spell-modifier databases, as the
-// spell book reads them (stride 0x84 and 0x24; see item_db.h).
-struct UiRecordTable : RecordTable {
-    char* SpellAt(std::uint32_t index) const;
-    char* ModifierAt(std::uint32_t index) const;
-};
-static_assert(sizeof(UiRecordTable) == 8);
+// 005F2EA0 / 005F2EE0: the bounds-checked records of the spell and spell-modifier databases, as the
+// spell book reads them: itemdb::SpellTable::At / SpellModifierTable::At (item_db.h).
 
 // --- Battle screen and its HUD panels (00630000-00660000; ui_hud.cpp) -----------------------
 //
