@@ -217,7 +217,7 @@ Next ApplyBuff(CSpellEffect* e) {
     record.Construct();
     std::memcpy(&record, &e->effectRecord, sizeof(record));
     record.power = static_cast<std::uint8_t>(
-        PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(worlddata::BuffScale())));
+        PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;
     ObjectSlots(e->target)->AddEffect(&record);
     return Next::Done;

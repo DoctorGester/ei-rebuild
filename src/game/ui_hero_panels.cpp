@@ -38,11 +38,11 @@ T Read(const std::uint8_t* p, int offset) {
 
 // Unit statistics (UnitStats) values left in ST0 (not rewritten here).
 
-struct SurfaceDraw {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
+struct SurfaceDraw : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
@@ -121,16 +121,16 @@ EI_REWRITTEN(0x006233C0, CHeroStatsPanel::ShowStats);
 // --- 00623880 ----------------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawStats() {
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
+    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
     draw->Text(title_, &title, 1, 0xFFFFFF, 1, 1);
 
-    using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
+    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     using UnitFn = std::uint8_t*(__thiscall*)(CUiWindow*, int);
     auto hero = [this]() { return ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_); };   // +0xCC
-    std::uint8_t* stats = hero() + 0x20;
+    UnitStats* stats = &hero()->stats;
     std::uint8_t* unit = ei::VirtualSlot<UnitFn>(owner_->vtable_, 50)(owner_, heroIndex_);  // +0xC8
     mfc::CString line;
     mfc::CString text;
@@ -139,9 +139,9 @@ void CHeroStatsPanel::DrawStats() {
 
     if (page_ == 10) {
         // A new hero's statistics: points left = 75 - (strength + dexterity + intelligence).
-        int strength = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x0C))));
-        int dexterity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x14))));
-        int intelligence = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x1C))));
+        int strength = static_cast<int>(gamecrt::Ftol(D(stats->stat10Base)));
+        int dexterity = static_cast<int>(gamecrt::Ftol(D(stats->stat18Base)));
+        int intelligence = static_cast<int>(gamecrt::Ftol(D(stats->stat20Base)));
         int sum = intelligence + dexterity + strength;
         rect = RECT{0x14, 0x41, 0x82, 0x50};
         DrawRow(&rect, "Strength", strength, -1);
@@ -201,7 +201,7 @@ void CHeroStatsPanel::DrawStats() {
         DrawPart(&rect, "legs", 4);   // legs
         Down(&rect);
         Down(&rect);
-        if (Read<int>(hero(), 0x774) == -1) {
+        if (static_cast<int>(hero()->weaponIndex) == -1) {
             for (int i = 0; i < 5; ++i) Down(&rect);
         } else {
             draw->Text(texts_[3], &rect, 0, kBright, 0, 1);
@@ -244,8 +244,8 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             Down(&rect);
         }
-        int weight = static_cast<int>(gamecrt::Ftol(reinterpret_cast<const PartyUnitRecord*>(hero())->CarriedWeight()));
-        int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));
+        int weight = static_cast<int>(gamecrt::Ftol(hero()->CarriedWeight()));
+        int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);
@@ -253,31 +253,31 @@ void CHeroStatsPanel::DrawStats() {
         draw->Text(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
-        DrawRow(&rect, "Strength", static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x10)))), -1);   // Strength
+        DrawRow(&rect, "Strength", static_cast<int>(gamecrt::Ftol(D(stats->stat10))), -1);   // Strength
         Down(&rect);
-        DrawRow(&rect, "Dexterity", static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x18)))), -1);   // Dexterity
+        DrawRow(&rect, "Dexterity", static_cast<int>(gamecrt::Ftol(D(stats->stat18))), -1);   // Dexterity
         Down(&rect);
-        DrawRow(&rect, "Intelligence", static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x20)))), -1);   // Intelligence
+        DrawRow(&rect, "Intelligence", static_cast<int>(gamecrt::Ftol(D(stats->stat20))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, "Health", static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->HitPointCurve())), -1);              // Health
+        DrawRow(&rect, "Health", static_cast<int>(gamecrt::Ftol(stats->HitPointCurve())), -1);              // Health
         Down(&rect);
-        DrawRow(&rect, "Mana", static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->ManaCurve())), -1);            // Mana
+        DrawRow(&rect, "Mana", static_cast<int>(gamecrt::Ftol(stats->ManaCurve())), -1);            // Mana
         Down(&rect);
-        DrawRow(&rect, "Actions", static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x30)))), -1);   // Actions
+        DrawRow(&rect, "Actions", static_cast<int>(gamecrt::Ftol(D(stats->rate))), -1);   // Actions
         Down(&rect);
         DrawRow(&rect, "Experience",
-                  static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x700)) + D(Read<float>(stats, 0x04)))), -1);   // Experience
+                  static_cast<int>(gamecrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);   // Experience
         Down(&rect);
         double carried;
         if (page_ == 11) {
             using WeightFn = double(__thiscall*)(CUiWindow*);
             carried = ei::VirtualSlot<WeightFn>(owner_->vtable_, 53)(owner_);   // +0xD4
         } else {
-            carried = reinterpret_cast<const PartyUnitRecord*>(hero())->CarriedWeight();
+            carried = hero()->CarriedWeight();
         }
         int weight = static_cast<int>(gamecrt::Ftol(carried));
-        int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));
+        int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);

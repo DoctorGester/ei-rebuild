@@ -293,7 +293,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
-    PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), SlingTurn(), -50.0f);
+    PlaceSling(slingButton, SlingTurn(), -50.0f);
     slingButton->SetScale(0.8f);
     // 3-6: the body part buttons; 7: the frame.
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
@@ -486,7 +486,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
-    PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), static_cast<float>(Pi() * SlingQuarter()), 850.0f);
+    PlaceSling(slingButton, static_cast<float>(Pi() * SlingQuarter()), 850.0f);
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
     // 11: "camera north".

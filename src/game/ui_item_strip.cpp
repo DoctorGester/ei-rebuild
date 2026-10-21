@@ -24,11 +24,11 @@ namespace {
 
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
 // Rebirth-patched).
-struct StripSurface {
-    void* GetDC() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
+struct StripSurface : CUiSurface {
+    void* GetDC() { return UiSurfaceGetDC(this); }
     void Clear() { SurfaceClearOriginal(this); }
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
-    void ReleaseDC() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
+    void ReleaseDC() { UiSurfaceReleaseDC(this); }
 };
 int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
@@ -177,7 +177,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     };
     const char* const kNumber = "%d";
     mfc::CString text;
-    auto* counts = reinterpret_cast<StripSurface*>(window.surfaces_.data[0]);
+    auto* counts = static_cast<StripSurface*>(window.surfaces_.data[0]);
     counts->GetDC();
     counts->Clear();
     for (int i = 0; i < 8; ++i) {
@@ -189,7 +189,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         counts->Text(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     counts->ReleaseDC();
-    auto* numbers = reinterpret_cast<StripSurface*>(window.surfaces_.data[1]);
+    auto* numbers = static_cast<StripSurface*>(window.surfaces_.data[1]);
     numbers->GetDC();
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {

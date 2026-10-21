@@ -246,9 +246,9 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     int living = 0;
     inExit->SetSize(0);
     for (int i = 0; i < records->size; ++i) {
-        std::uint8_t* record = (*records)[i];
+        PartyUnitRecord* record = (*records)[i];
         CUnit* found =
-            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unitId));
+            WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;

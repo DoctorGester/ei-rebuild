@@ -71,12 +71,8 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 
-struct UiTexts {
-    // 004DEFC0 (not rewritten). Finds text `key`; non-zero when found (the cursor at its start).
-    int Find(const char* key);
-};
-int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-int FindText(const char* key) { return reinterpret_cast<UiTexts*>(TheTextManager())->Find(key); }
+// 004DEFC0: finds text `key`; non-zero when found (the cursor at its start).
+int FindText(const char* key) { return TheTextManager()->Open(key); }
 
 // The quest the window last selected (a global CString): built empty by the static initialiser 0064BE00 in the list's
 // order, destroyed once by the exit function it registers (guard bit in 007C8174). Both are ported on the names and

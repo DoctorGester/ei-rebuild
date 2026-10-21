@@ -72,7 +72,7 @@ CAIMap* Map() { return TheServerWorld()->AIMap(); }
 
 // The prototype's +0x24 (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height);
+    return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
 // The original builds the move order's looks with the derived array constructor (005D8B40), then
@@ -151,7 +151,7 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     // A unit that fights from a distance keeps away from its nearest enemy.
     CUnit* enemy = brain->memory.NearestEnemy(self);
-    if (enemy && static_cast<std::uint8_t>(reinterpret_cast<CUnitServer*>(owner)->AttacksFromRange()) != 0 &&
+    if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
         bool aggressive = brain->current && brain->current->GetType() == kModeAggression;
@@ -289,10 +289,10 @@ void FearMode::Execute(AIBrain* brain) {
         AIObjectList candidates{};
         candidates.vtable = mfc::impl::PtrListClass::Vtable();
         candidates.blockSize = 10;
-        int best[2] = {-1, 0};      // {part, object}
+        AITargetChoice best{-1, nullptr};
         Vector3 at = *PositionOf(brain->owner->unit);
-        brain->ChooseTarget(best, &candidates, &at, 1, 1);
-        if (best[1]) brain->attention.ApplyAttack(brain, best);
+        brain->ChooseTarget(&best, &candidates, &at, 1, 1);
+        if (best.object) brain->attention.ApplyAttack(brain, &best);
         candidates.RemoveAll();
 
         if (brain->action == AIBrain::kActionNone) {
@@ -322,13 +322,13 @@ void FearMode::Execute(AIBrain* brain) {
 
 EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
 
-void AIAttention::ApplyAttack(AIBrain* brain, const int* partAndObject) {
-    auto* object = reinterpret_cast<CEngineObject*>(partAndObject[1]);
+void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
+    CEngineObject* object = choice->object;
     if (!object) return;
-    int now[2] = {-1, 0};
-    CurrentAttack(brain, now);
-    if (object == reinterpret_cast<CEngineObject*>(now[1]) && partAndObject[0] == now[0]) return;
-    int part = partAndObject[0];
+    AITargetChoice now{-1, nullptr};
+    CurrentAttack(brain, &now);
+    if (object == now.object && choice->part == now.part) return;
+    int part = choice->part;
     if (part == -1) {
         brain->AttackTarget(object);
         return;

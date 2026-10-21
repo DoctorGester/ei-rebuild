@@ -159,7 +159,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         return;
     }
 
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(person_->GetPrototype());
+    auto* prototype = person_->GetPrototype();
     float reach = static_cast<float>(prototype->viewDistance + kSpacing);
     Vector3& personPlace = places_[0];
     Vector3& leaderPlace = places_[1];
@@ -228,7 +228,7 @@ void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
         if (node->item) {
             RemoveObject(node->item->texture_);
-            RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+            RemoveSceneObject(node->item);
         }
         if (node->back) RemoveSceneObject(node->back);
         if (node->frame) RemoveSceneObject(node->frame);
@@ -261,7 +261,7 @@ void CBriefingScreen::FinishDialogue() {
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);
-        auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+        auto* controller = serverUnit->ServerController();
         controller->actionDone = nullptr;
         controller->StopAction();
         // (The original then looks for the unit among the party's first members; the result is

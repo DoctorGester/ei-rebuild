@@ -48,6 +48,7 @@ void __cdecl StoreStartFolder();
 class CEngineObject;
 class CPlayerClient;   // player_client.h
 class CUnit;   // unit.h
+struct PartyUnitRecord;   // unit.h
 struct ClientTexts;
 
 // The server world's (007AFF60).
@@ -98,12 +99,12 @@ int __stdcall GamePlayMusic(const char* name);
 // 00578980 (RET 4). CWorld::FindUnit on the client world.
 CUnit* __stdcall GameFindClientUnit(int id);
 // 005789C0 (RET 8) / 005789E0 (RET 4). CWorldClient::CreatePartyUnits / RemoveUnitsOf.
-void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour);
-void __stdcall GameRemoveUnitsOf(const mfc::CArray<std::uint8_t*>* records);
+void __stdcall GameCreatePartyUnits(const mfc::CArray<PartyUnitRecord*>* party, int allArmour);
+void __stdcall GameRemoveUnitsOf(const mfc::CArray<PartyUnitRecord*>* records);
 // 00578A00 (RET 8) / 00578A20 (RET 0xC) / 00578A40 (RET 4). CWorldClient::FindExitAt / PartyInExit /
 // ExitTarget.
 int __stdcall GameFindExitAt(const float* point, int* index);
-int __stdcall GamePartyInExit(const mfc::CArray<std::uint8_t*>* records, int exit, mfc::CArray<std::uint8_t*>* inExit);
+int __stdcall GamePartyInExit(const mfc::CArray<PartyUnitRecord*>* records, int exit, mfc::CArray<PartyUnitRecord*>* inExit);
 const char* __stdcall GameExitTarget(int index);
 // 00578AC0 (RET 4). Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.

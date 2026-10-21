@@ -83,7 +83,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     (void)z;   // the server unit's height is used instead
     auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+    auto* controller = serverUnit->ServerController();
     if (!controller) return;
     Vector3 target{x, y, serverUnit->position.z};
     if (immediate) {
@@ -150,7 +150,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
-            reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();
+            serverUnit->ServerController()->actionDone = SpeakerActionDone();
         }
         return;
     }
@@ -188,8 +188,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     figure.Format(ItemFigureFormat(), record->number);
     CUiMesh* item = AddSprite(figure);
     if (!item) {
-        if (back) RemoveSceneObject(reinterpret_cast<CEngineObject*>(back));
-        if (frame) RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
+        if (back) RemoveSceneObject(back);
+        if (frame) RemoveSceneObject(frame);
         return;
     }
     if (index >= kTintFrom) {
@@ -210,8 +210,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     auto* node = static_cast<BriefingShownItem*>(stlp::allocate(sizeof(BriefingShownItem)));
     new (&node->name) mfc::CString(name);
     node->item = item;
-    node->back = reinterpret_cast<CEngineObject*>(back);
-    node->frame = reinterpret_cast<CEngineObject*>(frame);
+    node->back = back;
+    node->frame = frame;
     BriefingShownItem* first = shown_->next;
     node->next = first;
     node->prev = first->prev;

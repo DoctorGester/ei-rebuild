@@ -338,7 +338,8 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
         if (!IsSpellContainer(item)) return false;
         char* spell = reinterpret_cast<char*>(AsItem(item)->spell_);
         PartyUnitRecord* hero = VirtualHeroRecord();
-        return HeroCanUseSpell(hero->stats, spell);
+        return HeroCanUseSpell(&hero->stats, spell);
+
     }
     case 2:     // the spell constructor
         return IsSpellContainer(item) || IsSpell(item) || IsModifier(item);
@@ -659,7 +660,7 @@ BOOL CCampPages::Draw(int pass) {
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
     UpdateAction();
-    reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);
+    CUiContainer::DrawContainer(pass);
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);
@@ -717,7 +718,7 @@ bool CCampPages::CanMakeSpell() {
         constructor->CallSetManager(nullptr);
         return false;
     }
-    CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
+    CSpell* made = constructor->container_->Spell()->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
     auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, "spell container"));
@@ -817,7 +818,7 @@ void CCampPages::Close() {
         record->unitId += kRecordBias;
         int index = records.size;
         records.SetSize(index + 1, -1);
-        records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
+        records.data[index] = &player->members_.data[i];
     }
     GameRemoveUnitsOf(&records);
     for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
@@ -884,7 +885,7 @@ namespace {
 void* GluePlayerData() { return LocalPlayerData(); }
 
 // The hero's statistics (UnitStats at the record's +0x20).
-UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
+UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // The hero's statistics with the armour it wears as their outer layers again.
 void RebuildArmourLayers(PartyUnitRecord* hero) {
@@ -1264,7 +1265,7 @@ EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
-    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
+    CUiContainer::Construct(ui);
     hoveredItem_ = nullptr;
     // The caches' compare byte is the flag's low byte.
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);

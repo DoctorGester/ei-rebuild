@@ -125,7 +125,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         bar->textureOffsetV_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
 
         mfc::CString name;
-        name = reinterpret_cast<UnitModelRecord*>(unit->GetPrototypeModel())->slots[i].levelName;
+        name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
             if (gamecrt::mbscmp(static_cast<const char*>(name),
                                 kPartNames[k]) == 0) {

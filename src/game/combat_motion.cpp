@@ -676,7 +676,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         CUnit* member = node->value;
         if (!member) break;
         if (member == unit) continue;
-        auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
+        auto* controller = member->ServerController();
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;

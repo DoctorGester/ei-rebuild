@@ -97,9 +97,9 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
 AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
-void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
+void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b) {
     // 005D0030 reads `a` as a byte.
-    attention.Choose(this, partAndObject, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
+    attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
 }
 
 // --- The corpse list (005D8D50) ---------------------------------------------------------------
@@ -148,7 +148,7 @@ void AIBrain::Think() {
     for (auto* node = memory.visible.head; node;) {
         CUnit* other = node->data;
         node = node->next;
-        if (unit->IsHostileTo(reinterpret_cast<CUnit*>(other)) && IsGone(other) == 0) {
+        if (unit->IsHostileTo(other) && IsGone(other) == 0) {
             memory.seesEnemy = 1;
             break;
         }

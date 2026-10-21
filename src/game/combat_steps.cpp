@@ -458,7 +458,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     float orderDistance = static_cast<float>(ActionDistance(&order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
-    void* victimStats = &reinterpret_cast<CUnitServer*>(victim->controller)->stats;
+    void* victimStats = &victim->ServerController()->stats;
     float myBase = static_cast<float>(unit->GroundHeight(x, y) + z);
     float mySize = static_cast<float>(unit->DoubleHeight());
     float theirBase = static_cast<float>(victim->GroundHeight(aim.x, aim.y) + aim.z);

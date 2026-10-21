@@ -46,10 +46,10 @@ namespace {
 // The unit prototypes (+8 the model) and models (+0xE8 the texture name prefix), the armours (+0xB8
 // the layer). An index past the end gives null.
 const UnitPrototypeRecord* UnitPrototype(std::uint32_t index) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
+    return unitdb::PrototypeRecord(index);
 }
 const UnitModelRecord* UnitModel(std::uint32_t index) {
-    return reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
+    return unitdb::ModelRecord(index);
 }
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
     return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));

@@ -117,7 +117,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     }
     auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+    auto* controller = serverUnit->ServerController();
     controller->StopAction();
     controller->actionDone = SpeakerActionDone();
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
@@ -175,7 +175,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
             place = places_[index];
             facing = directions_[index];
         }
-        auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+        auto* prototype = unit->GetPrototype();
         float reach = prototype->viewDistance;
         float reachX = static_cast<float>(facing.x * reach);
         float reachY = static_cast<float>(facing.y * reach);
@@ -302,7 +302,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
                 continue;
             if (node->item) {
                 RemoveObject(node->item->texture_);
-                RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+                RemoveSceneObject(node->item);
             }
             if (node->back) RemoveSceneObject(node->back);
             if (node->frame) RemoveSceneObject(node->frame);
@@ -322,7 +322,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, person->id_)) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
-            auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+            auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();
             // (The original then looks for the person among the party's first members; the result

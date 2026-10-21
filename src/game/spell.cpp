@@ -77,8 +77,8 @@ BOOL CSpell::InitFromPrototype(const char* prototype) {
 }
 EI_REWRITTEN(0x0068B430, CSpell::InitFromPrototype);
 
-char* CSpell::GetPrototype() {
-    return Spells().RecordAt(prototypeId_ >> 16, kSpellSize);
+itemdb::SpellRecord* CSpell::GetPrototype() {
+    return reinterpret_cast<itemdb::SpellRecord*>(Spells().RecordAt(prototypeId_ >> 16, kSpellSize));
 }
 EI_REWRITTEN(0x0068BA20, CSpell::GetPrototype);
 

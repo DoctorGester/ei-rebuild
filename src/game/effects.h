@@ -546,7 +546,8 @@ struct FogGrid {
 };
 static_assert(sizeof(FogGrid) == 0x18);
 
-class CVisibilityFog {
+// The engine object's virtuals are game.exe's (vtable 0073D6B4, set by the manager; never constructed here).
+class CVisibilityFog : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
 
@@ -567,9 +568,6 @@ public:
     // Not rewritten (forwarders).
     CWorld* World();                                // 00455950 (CEngineObject)
 
-    void* vtable_;                  // +0x00
-    int refCount_;                  // +0x04
-    std::uint8_t unused_08[0x1C - 0x08];
     int boundsKind;                 // +0x1C 3 once computed
     Vector3 center;                 // +0x20
     float radius;                   // +0x2C
@@ -580,6 +578,7 @@ public:
     std::uint8_t boundsValid;       // +0x68
     std::uint8_t unused_69[3];
 };
+static_assert(offsetof(CVisibilityFog, boundsKind) == 0x1C);
 static_assert(offsetof(CVisibilityFog, cells) == 0x54);
 // The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
 // (004E24A0 "CVisibilityFog", 004E24B0 0x5F); effects_weather.cpp.

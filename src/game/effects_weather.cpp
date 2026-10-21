@@ -45,7 +45,7 @@ constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
-float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
+float LoadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
@@ -200,7 +200,7 @@ EI_REPLACE_METHOD(0x005617E0, CRainSnow::DeletingDestruct);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
-CWorld* CVisibilityFog::World() { return ObjectWorld(reinterpret_cast<const CEngineObject*>(this)); }
+CWorld* CVisibilityFog::World() { return ObjectWorld(this); }
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {
@@ -215,30 +215,30 @@ void CVisibilityFog::ComputeBounds() {
         boundsMax.y = boundsMax.y >= p.y ? boundsMax.y : p.y;
         boundsMax.z = boundsMax.z >= p.z ? boundsMax.z : p.z;
     });
-    boundsMax.x = Load(boundsMax.x) + kHalf;
-    boundsMax.y = Load(boundsMax.y) + kHalf;
-    boundsMax.z = Load(boundsMax.z) + kHalf;
-    boundsMin.x = Load(boundsMin.x) - kHalf;
-    boundsMin.y = Load(boundsMin.y) - kHalf;
-    boundsMin.z = Load(boundsMin.z) - kHalf;
+    boundsMax.x = LoadFloat(boundsMax.x) + kHalf;
+    boundsMax.y = LoadFloat(boundsMax.y) + kHalf;
+    boundsMax.z = LoadFloat(boundsMax.z) + kHalf;
+    boundsMin.x = LoadFloat(boundsMin.x) - kHalf;
+    boundsMin.y = LoadFloat(boundsMin.y) - kHalf;
+    boundsMin.z = LoadFloat(boundsMin.z) - kHalf;
     // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
-    float sy = static_cast<float>(Load(boundsMin.y) + Load(boundsMax.y));
-    float sz = static_cast<float>(Load(boundsMin.z) + Load(boundsMax.z));
-    float cx = static_cast<float>((Load(boundsMax.x) + Load(boundsMin.x)) * kHalf);
+    float sy = static_cast<float>(LoadFloat(boundsMin.y) + LoadFloat(boundsMax.y));
+    float sz = static_cast<float>(LoadFloat(boundsMin.z) + LoadFloat(boundsMax.z));
+    float cx = static_cast<float>((LoadFloat(boundsMax.x) + LoadFloat(boundsMin.x)) * kHalf);
     float cy = static_cast<float>(sy * kHalf);
     float cz = static_cast<float>(sz * kHalf);
     center.x = cx;
     center.y = cy;
     center.z = cz;
-    boundsMin.x = Load(boundsMin.x) - cx;
-    boundsMin.y = Load(boundsMin.y) - cy;
-    boundsMin.z = Load(boundsMin.z) - cz;
-    boundsMax.x = Load(boundsMax.x) - cx;
-    boundsMax.y = Load(boundsMax.y) - cy;
-    boundsMax.z = Load(boundsMax.z) - cz;
-    float x = Load(boundsMax.x);
-    float y = Load(boundsMax.y);
-    float z = Load(boundsMax.z);
+    boundsMin.x = LoadFloat(boundsMin.x) - cx;
+    boundsMin.y = LoadFloat(boundsMin.y) - cy;
+    boundsMin.z = LoadFloat(boundsMin.z) - cz;
+    boundsMax.x = LoadFloat(boundsMax.x) - cx;
+    boundsMax.y = LoadFloat(boundsMax.y) - cy;
+    boundsMax.z = LoadFloat(boundsMax.z) - cz;
+    float x = LoadFloat(boundsMax.x);
+    float y = LoadFloat(boundsMax.y);
+    float z = LoadFloat(boundsMax.z);
     boundsSpare = {0.0f, 0.0f, 0.0f};
     radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
     boundsKind = 3;
@@ -265,7 +265,7 @@ int CVisibilityFog::UpdateCells() {
         else
             cell.alpha = cell.alpha * kHalf;
         EI_NAN_AUDIT(cell.alpha);
-        if (Load(cell.alpha) < kFogMinAlpha) {
+        if (LoadFloat(cell.alpha) < kFogMinAlpha) {
             if (dead.Finish() == dead.EndOfStorage()) {
                 KeyVectorInsertOverflow(&dead, dead.Finish(), &n->key, 1);
             } else {
@@ -309,7 +309,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             r = IsaacRandom::Global().Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
             // The world's slot 30: the water surface height, used unrounded from ST0.
-            double ground = World()->SurfaceHeightAt(Load(cell->pos.x), Load(cell->pos.y));
+            double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + kHalf);
             cell->frame = static_cast<std::int8_t>(IsaacRandom::Global().Next() % 15);
@@ -331,10 +331,10 @@ void CVisibilityFog::ClearCells() {
 }
 
 void CVisibilityFog::Destruct() {
-    vtable_ = ei::GamePointer<void>(0x0073D6B4);
+    ei::SetVtable(this, 0x0073D6B4);
     ClearCells();
     cells.Destroy();
-    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+    DestructBase();
 }
 EI_REWRITTEN(0x004E24E0, CVisibilityFog::Destruct);
 

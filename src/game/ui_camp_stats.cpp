@@ -50,7 +50,7 @@ constexpr int kPartLegs = 4;
 constexpr int kTipPreviousHero = 0x4F4C;
 constexpr int kTipNextHero = 0x4F4D;
 
-UnitStats* HeroStats(CUiWindow* owner) { return reinterpret_cast<UnitStats*>(ShownHero(owner)->stats); }
+UnitStats* HeroStats(CUiWindow* owner) { return &ShownHero(owner)->stats; }
 
 } // namespace
 
@@ -101,7 +101,7 @@ EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     PartyUnitRecord* hero = ShownHero(owner_);
     info->kind = kNone;
-    info->stats = reinterpret_cast<UnitStats*>(hero->stats);
+    info->stats = &hero->stats;
     int row = RegionAt(x, y);
     if (((page_ == 1 || page_ == 11) && row >= 2) || (page_ == 10 && row >= 2 && row < 5)) {
         info->kind = kAttribute;

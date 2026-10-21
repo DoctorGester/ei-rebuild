@@ -108,7 +108,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         return nullptr;
     }
     if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
 
     if (kind == 0x25 || kind == 0x26) {
@@ -137,8 +137,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     } else if (kind <= 0x32) {
         ModelAcks* record = db.models.Find(prototype->name);
         if (!record) {
-            auto* model = reinterpret_cast<const UnitModelRecord*>(
-                unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
             record = db.models.Find(model->name);
             if (!record) return nullptr;
         }
@@ -166,7 +165,7 @@ EI_REWRITTEN(0x006D8430, SayAck);
 
 const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
+    auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
     UnitAcks* record = Database().units.Find(prototype->name);
     if (!record) return nullptr;

@@ -200,7 +200,7 @@ void CHudPortraits::Rebuild(int wide) {
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
-        const int skin = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->skin;
+        const int skin = unit->GetPrototype()->skin;
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
         build = "me";
@@ -211,7 +211,7 @@ void CHudPortraits::Rebuild(int wide) {
             build = "fa";
         const char* figure = unit->name;
         model.Format("infa%s%s%dface", figure, static_cast<const char*>(build),
-                     reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair + 1);
+                     unit->GetPrototype()->hair + 1);
         picture.Format("face%s%02d", static_cast<const char*>(sex), skin);
         AddPortraitAt(model, picture, wide, 0);
 
@@ -225,7 +225,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
         slots_[i].ModelPrefix().Format("infa%s", static_cast<const char*>(unit->name));
-        const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
+        const int hair = unit->GetPrototype()->hair;
         slots_[i].ModelSuffix().Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;

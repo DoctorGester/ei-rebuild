@@ -304,10 +304,10 @@ static_assert(offsetof(CCampScreen, partStrip_) == 0x1F0);
 // A party hero's statistics (UnitStats at +0x20 of a 0x784-byte hero record) as the camp reads
 // them: the skill in a spell school rounded like FISTP, and the whole "mana units" (the mana
 // maximum stored as float, divided by the period, truncated).
-int HeroSchoolSkill(void* stats, int school);
-int HeroManaUnits(void* stats);
+int HeroSchoolSkill(UnitStats* stats, int school);
+int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (+0x50 required skill, +0x40 mana cost).
-bool HeroCanUseSpell(void* stats, char* spell);
+bool HeroCanUseSpell(UnitStats* stats, char* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
@@ -368,7 +368,8 @@ public:
     void BackToNewHero();
 
     // Called through the vtable, as the original does.
-    char* Hero();                       // slot 51 (+0xCC)
+    PartyUnitRecord* Hero();            // slot 51 (+0xCC)
+
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
     void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
@@ -504,8 +505,7 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
@@ -861,8 +861,7 @@ public:
     // plays animation 0.
     void OnClose();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
@@ -961,8 +960,7 @@ public:
     // closed (005DBF70).
     void OnMessageResult(int result);
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written

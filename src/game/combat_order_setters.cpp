@@ -131,7 +131,7 @@ bool CUnitServer::TargetBusy(CEngineObject* target) {
     for (auto* node = ai->memory.nearby.head; node; node = node->next) {
         auto* other = node->data;
         if (!other || ObjectSlots(other)->IsDead() != 0) continue;
-        auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
+        auto* controller = other->ServerController();
         const UnitAction& order = controller->action;
         if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&
             (controller->state == kStateActing || controller->searchingTarget))

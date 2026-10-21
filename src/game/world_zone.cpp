@@ -21,6 +21,7 @@
 #include "net_delta.h"
 #include "party.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include <cstring>
 #include <new>
@@ -60,8 +61,6 @@ Quaternion DefaultRotation() {
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
-// 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
-static char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<char**>(static_cast<CUnit*>(object)->GetPrototype()); }
 
 // The unit record AddUnitToServer builds on its stack: a CParty (party.h; constructor 00661050,
 // destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
@@ -128,7 +127,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.size = 0;
     PartyUnitRecord* record = builder.Record();
     records.SetSize(1, -1);
-    records.data[0] = reinterpret_cast<std::uint8_t*>(record);
+    records.data[0] = record;
     record->unitId = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
@@ -223,7 +222,8 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         int id = object->id_;
         out->Write(&id, 4u);
         const char* prototype =
-            object->GetClassId() == world::kClassUnit ? *UnitPrototype(object, nullptr) : mapObject->name;
+            object->GetClassId() == world::kClassUnit ? static_cast<const char*>(static_cast<CUnit*>(object)->GetPrototype()->name)
+                                                       : static_cast<const char*>(mapObject->name);
         out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).

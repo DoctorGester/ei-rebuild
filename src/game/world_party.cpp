@@ -122,7 +122,7 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     for (int i = 0; i < items->size; ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CItem* item = ItemAt(items, i);
-        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(item->GetPrototype());
+        itemdb::QuestItemRecord* info = static_cast<itemdb::QuestItemRecord*>(item->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;
@@ -187,7 +187,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
     for (int i = 0; i < party->members_.size; ++i) {
         int index = records.size;
         records.SetSize(index + 1, -1);
-        records.data[index] = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
+        records.data[index] = &party->members_.data[i];
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {

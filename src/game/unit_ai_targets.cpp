@@ -49,7 +49,7 @@ const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height);
+    return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
@@ -116,11 +116,11 @@ void AIOrder::MakeCast(int spell, CEngineObject* target) {
 EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 
 // 005CF3C0
-bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHere) {
+bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
     ScopedPath local;
     CUnit* self = brain->owner->unit;
-    auto* target = reinterpret_cast<CUnit*>(partAndObject[1]);
-    int part = partAndObject[0];
+    auto* target = static_cast<CUnit*>(choice->object);
+    int part = choice->part;
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
@@ -177,11 +177,11 @@ const AIAttackOption* AIAttention::FindOption(int part) const {
     return nullptr;
 }
 
-bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
-    auto* target = reinterpret_cast<CUnit*>(partAndObject[1]);
+bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
+    auto* target = static_cast<CUnit*>(choice->object);
     if (!target) return true;
     CUnit* self = brain->owner->unit;
-    const AIAttackOption* option = FindOption(partAndObject[0]);
+    const AIAttackOption* option = FindOption(choice->part);
     if (!option) return false;
     if (option->kind < 2 || option->kind > 3) return true;
     EI_NAN_AUDIT(PrototypeSize(self));
@@ -284,33 +284,32 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
 }
 EI_REWRITTEN(0x005CF9A0, AIAttention::Score);
 
-void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
+void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
     if (spells.size == 0 && (candidates->count == 0 || weapons.size == 0)) {
-        partAndObject[1] = 0;
+        choice->object = nullptr;
         return;
     }
-    int current[2] = {-1, 0};   // {part, object}
-    brain->attention.CurrentAttack(brain, current);
-    if (!IsUsable(brain, current)) current[1] = 0;
-    auto* held = reinterpret_cast<CEngineObject*>(current[1]);
+    AITargetChoice current{-1, nullptr};
+    brain->attention.CurrentAttack(brain, &current);
+    if (!IsUsable(brain, &current)) current.object = nullptr;
+    CEngineObject* held = current.object;
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
         if (candidates->count == 1 && spells.size == 0) {
-            partAndObject[0] = current[0];
-            partAndObject[1] = current[1];
+            *choice = current;
             return;
         }
-        const AIAttackOption* option = FindOption(current[0]);
+        const AIAttackOption* option = FindOption(current.part);
         if (!option) {
             held = nullptr;
-            current[1] = 0;
+            current.object = nullptr;
         } else {
             best = static_cast<float>(Score(from, self, candidates, held, static_cast<CUnit*>(held), kFloorScore, option));
             EI_NAN_AUDIT(best);
             if (best < kFloorScore) {
-                current[1] = 0;
+                current.object = nullptr;
                 best = kFloorScore;
             }
         }
@@ -350,45 +349,43 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
     }
 
     while (!scored.empty()) {
-        partAndObject[0] = current[0];
-        partAndObject[1] = current[1];
+        *choice = current;
         int chosen = -1;
         float top = kNoScore;
         for (int i = 0; i < static_cast<int>(scored.size()); ++i) {
             EI_NAN_AUDIT(top, scored[i].score);
             if (top < scored[i].score) {
-                partAndObject[0] = scored[i].part;
-                partAndObject[1] = reinterpret_cast<int>(scored[i].object);
+                choice->part = scored[i].part;
+                choice->object = scored[i].object;
                 chosen = i;
                 top = scored[i].score;
             }
         }
         if (chosen < 0) return;
-        if (partAndObject[1] == current[1] && partAndObject[0] == current[0]) return;
-        auto* object = reinterpret_cast<CEngineObject*>(partAndObject[1]);
-        if (IsUsable(brain, partAndObject)) {
+        if (choice->object == current.object && choice->part == current.part) return;
+        CEngineObject* object = choice->object;
+        if (IsUsable(brain, choice)) {
             bool allowed = true;
             if (alliesOnly && !brain->IsNearPath(PositionOf(static_cast<CUnit*>(object)), kPathNear)) {
                 AIOrder order{};
-                if (partAndObject[0] < 0) {
+                if (choice->part < 0) {
                     order.MakeAttack(object);
                 } else {
-                    order.MakeCast(partAndObject[0], object);
+                    order.MakeCast(choice->part, object);
                 }
                 allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), PositionOf(self));
                 order.object.Reset();
             }
-            if (allowed && CanReach(brain, partAndObject, reachArg)) return;
+            if (allowed && CanReach(brain, choice, reachArg)) return;
         }
         // Rejected: an object scored only once (and not the current target) is reported.
         int seen = 0;
         for (const Scored& entry : scored)
             if (entry.object == object) ++seen;
-        if (seen == 1 && partAndObject[1] != current[1]) brain->memory.reports.Report(object, kRejectedReport);
+        if (seen == 1 && choice->object != current.object) brain->memory.reports.Report(object, kRejectedReport);
         scored.erase(scored.begin() + chosen);
     }
-    partAndObject[0] = current[0];
-    partAndObject[1] = current[1];
+    *choice = current;
 }
 
 EI_REWRITTEN(0x005D0030, AIAttention::Choose);

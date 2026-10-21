@@ -35,7 +35,6 @@ const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 int ItemType(const char* item) { return *reinterpret_cast<const int*>(item + 0x10); }
 int ItemSubKind(const char* item) { return *reinterpret_cast<const int*>(item + 0x50); }
 std::uint32_t ItemRecord(const char* item) { return *reinterpret_cast<const std::uint32_t*>(item + 0x54); }
-float ItemWeight(const char* item) { return *reinterpret_cast<const float*>(item + 0x34); }
 
 constexpr int kTypeWeapon = 0x3004;
 constexpr int kTypeArmor = 0x3006;
@@ -409,21 +408,20 @@ EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>:
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
-int HeroSchoolSkill(void* stats, int school) {
-    return x87::fistp(static_cast<float>(static_cast<UnitStats*>(stats)->SpellSchoolSkill(school)));
+int HeroSchoolSkill(UnitStats* stats, int school) {
+    return x87::fistp(static_cast<float>(stats->SpellSchoolSkill(school)));
 }
 
-int HeroManaUnits(void* stats) {
+int HeroManaUnits(UnitStats* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
-    float maximum = static_cast<float>(static_cast<UnitStats*>(stats)->ManaCurve());
+    float maximum = static_cast<float>(stats->ManaCurve());
     return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
 }
 
-bool HeroCanUseSpell(void* stats, char* spell) {
+bool HeroCanUseSpell(UnitStats* stats, char* spell) {
     bool ok = true;
     int required = *reinterpret_cast<int*>(spell + 0x50);
-    const char* prototype = reinterpret_cast<CSpell*>(spell)->GetPrototype();
-    if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
+    if (HeroSchoolSkill(stats, reinterpret_cast<CSpell*>(spell)->GetPrototype()->school) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;
@@ -436,7 +434,7 @@ void CCampScreen::BestPartySkill(int school, int* skill, int* mana) {
     int bestSkill = 0;
     int bestMana = 0;
     for (int i = 0; i < LocalPlayerData()->members_.size; ++i) {
-        void* stats = &LocalPlayerData()->members_.data[i].stats;
+        UnitStats* stats = &LocalPlayerData()->members_.data[i].stats;
         int value = HeroSchoolSkill(stats, school);
         if (!(bestSkill > value)) bestSkill = value;
         int units = HeroManaUnits(stats);
@@ -484,7 +482,7 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
 
-char* CMpHeroScreen::Hero() { return Virtual<char*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
+PartyUnitRecord* CMpHeroScreen::Hero() { return Virtual<PartyUnitRecord*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
 void CMpHeroScreen::Refresh() { Virtual<void(__thiscall*)(CMpHeroScreen*)>(this, 47)(this); }
 void CMpHeroScreen::VirtualChooseFigure(const char* prototype) {
     Virtual<void(__thiscall*)(CMpHeroScreen*, const char*)>(this, 52)(this, prototype);
@@ -516,21 +514,23 @@ void CMpHeroScreen::ClampVoiceSelection() {
     TakeScrollPos(voiceScroll_, nullptr, &voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const mfc::CString& file = voices_->begin()[voiceIndex_].file;
-    *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
+    Hero()->texts[6] = file;
     DrawVoices();
 }
 EI_REWRITTEN(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 
 double CMpHeroScreen::EquipmentWeight() {
-    char* hero = Hero();
+    PartyUnitRecord* hero = Hero();
     double weight = 0.0;
     if (weapon_) weight = weapon_->Weight();
     if (armor_) weight += armor_->Weight();
     if (spellContainer_) weight += spellContainer_->Weight();
-    int count = *reinterpret_cast<int*>(hero + 0x754);
-    char** quick = *reinterpret_cast<char***>(hero + 0x750);
+    // The original reads the list at +0x750 (armorCount / armor) as the quick items.
+    int count = static_cast<int>(hero->armorCount);
+    CItem** quick = hero->armor;
     for (int i = 0; i < count; ++i)
-        if (quick[i]) weight += ItemWeight(quick[i]);
+        if (quick[i]) weight += quick[i]->Weight();
+
     return weight;
 }
 EI_REPLACE_METHOD(0x006193C0, CMpHeroScreen::EquipmentWeight);
@@ -566,8 +566,8 @@ bool CMpHeroScreen::CanEquip(char* item, int) {
     if (ItemType(item) != kTypeSpellContainer) return true;
     char* spell = *reinterpret_cast<char**>(item + 0x44);
     if (!spell) return true;
-    char* hero = Hero();
-    return HeroCanUseSpell(hero + 0x20, spell);
+    return HeroCanUseSpell(&Hero()->stats, spell);
+
 }
 EI_REPLACE_METHOD(0x006188E0, CMpHeroScreen::CanEquip);
 

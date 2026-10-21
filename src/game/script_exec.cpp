@@ -1135,7 +1135,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 if (cmd->id == 0xD4) {
                     target->CopyItemsFrom(source, toRecords);
                 } else {
-                    std::memcpy(target->stats, source->stats, sizeof(target->stats));
+                    std::memcpy(&target->stats, &source->stats, sizeof(target->stats));
                     target->texts[0] = source->texts[0];
                 }
             }
