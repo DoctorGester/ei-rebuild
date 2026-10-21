@@ -6,6 +6,7 @@
 #include "standalone/static_init.h"
 #include "game/originals_library.h"
 #include "lib/crt.h"
+#include "render/render.h"
 
 #include <windows.h>
 
@@ -280,6 +281,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     // static initialisers, WinMain, then exit with its result (the CRT's exit runs the functions the
     // initialisers registered with atexit).
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
+    render::PrepareDevice();   // the renderer's device made while the game starts up
     libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);

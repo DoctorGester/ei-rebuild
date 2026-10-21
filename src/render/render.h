@@ -31,6 +31,10 @@ namespace render {
 // Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's. Without a call the
 // environment is read at the first use.
 void Configure(const char* spec);
+// Starts making the Direct3D 11 device on a thread of its own (the image's start-up, before WinMain):
+// the game's own start-up (its DirectX probe, the sound) runs meanwhile and the renderer's first use
+// takes the device (SV10b: 0.15 s of each start).
+void PrepareDevice();
 
 // The smooth option (R12a; user 2026-10-20: off by default): the image as the user's Rebirth dgVoodoo
 // setup draws it (starter\Engine\dgVoodoo.conf: Filtering 16, Antialiasing 8x). On, the world view's

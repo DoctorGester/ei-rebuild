@@ -386,10 +386,24 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
 - **The suite's wall is net_pair_quest's.** 124 runs of `--golden --jobs 4` (the scheduler fills all 16
   slots): 178-215 s; net_pair_quest starts first and takes 171-186 s of it, the golden comparison ~7 s; the
   other 119 runs sum to 725-860 s (about 55 s spread over the free slots). Median run 6-7 s.
-- **Start-up** (process start to the first frame): image 1.5-2.3 s, original 2.3-3.2 s; exit and ei_launch
-  ~0.3 s. About a third of all the suite's game time. Image start-up by profile: d3dcompiler compiling the
-  renderer's shaders 0.35 s, GetDxVersion's DirectDraw probing 0.45 s, the sound device open 0.3 s, the exe
-  check through imagehlp 0.18 s, the rest loading.
+- **Start-up** (process start to the first frame): image 1.5-2.3 s before SV10b, original 2.3-3.2 s; exit and
+  ei_launch ~0.3 s. About a third of all the suite's game time. Image start-up by profile then: d3dcompiler
+  compiling the renderer's shaders 0.35 s, GetDxVersion's DirectDraw probing 0.45 s, the sound device open 0.3 s,
+  the rest loading.
+- **Start-up cuts (SV10b)**, none in the game's code (the user: the sound open, the DirectX probe and the exe
+  check stay): the shaders are compiled at build time (fxc; docs/notes/renderer.md, "Shaders": the bytecode is
+  d3dcompiler_47's at run time to the byte but the recorded flags and the checksum, so frames do not change); the
+  harness found the main thread (harness_clock.cpp FindMainThread) in a toolhelp snapshot, which lists every thread
+  of the machine (16,000 with the suite's games: 70-130 ms a run), now ntdll's NtGetNextThread over the process's
+  own (under 1 ms); InstallHooks' 9,350 "hooked" lines go to ei_hook.log in one write (each Log line is flushed:
+  15-25 ms); the renderer's Direct3D 11 device is made on a thread of its own from the image's start
+  (render::PrepareDevice, standalone.cpp) while the game's own start-up runs: its first use waits 4-10 ms instead
+  of 70-190 ms (boot alternately with and without it, 6 each: the probe no slower beside it).
+- **What start-up is now** (boot, profiled): ~25 ms to the hook DLL, ~35 ms hook set-up, then GetDxVersion's probe
+  0.45-1.3 s (the most of it, and the most sensitive to load: it runs through run\vanilla's dgVoodoo DDraw.dll,
+  because the image runs in the vanilla install's folder, where PF3's native-run skip does not apply; the game's
+  code, kept), the sound open 0.15-0.3 s (kept), the device swap chain and loading. The exe check through imagehlp
+  did not show in boot's profile (the FUN_00640060 named for it is CHudPortraits::AddPortrait).
 - **A frame** (four games, machine otherwise idle): median 6-8 ms (image), 7-9 ms (original); with 16 games
   1.3-1.6x that (the main thread's own CPU per frame grows too: shared cores and memory). Per frame: server
   0.2-0.4 ms (render_stats' fights 2.5-3), client 1-4, digest 0.3-0.8 (every 20 updates, about every 4th

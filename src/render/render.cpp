@@ -187,17 +187,50 @@ HRESULT CreateRemovableDevice(const D3D_FEATURE_LEVEL* levels, UINT count, D3D_F
 }
 #endif
 
+const D3D_FEATURE_LEVEL kLevels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+constexpr UINT kLevelCount = static_cast<UINT>(sizeof(kLevels) / sizeof(kLevels[0]));
+
+HRESULT CreatePlainDevice(ID3D11Device** device, ID3D11DeviceContext** context, D3D_FEATURE_LEVEL* got) {
+    return D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, kLevels, kLevelCount,
+                             D3D11_SDK_VERSION, device, got, context);
+}
+
+// The device made ahead (render::PrepareDevice): on a thread of its own while the game starts up.
+struct PreparedDevice {
+    HANDLE thread = nullptr;
+    HRESULT result = E_FAIL;
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* context = nullptr;
+    D3D_FEATURE_LEVEL got{};
+};
+PreparedDevice g_prepared;
+
+DWORD WINAPI PrepareDeviceThread(void*) {
+    g_prepared.result = CreatePlainDevice(&g_prepared.device, &g_prepared.context, &g_prepared.got);
+    return 0;
+}
+
+// The prepared device, waited for; false when none was being made.
+bool TakePreparedDevice(HRESULT* result, D3D_FEATURE_LEVEL* got) {
+    if (!g_prepared.thread) return false;
+    WaitForSingleObject(g_prepared.thread, INFINITE);
+    CloseHandle(g_prepared.thread);
+    g_prepared.thread = nullptr;
+    *result = g_prepared.result;
+    g_device = g_prepared.device;
+    g_context = g_prepared.context;
+    *got = g_prepared.got;
+    return true;
+}
+
 bool CreateDevice() {
-    const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
-    const UINT levelCount = static_cast<UINT>(sizeof(levels) / sizeof(levels[0]));
     D3D_FEATURE_LEVEL got{};
     HRESULT hr = S_OK;
 #if defined(EI_RENDER_VALIDATION)
-    if (g_removable) hr = CreateRemovableDevice(levels, levelCount, &got);
+    if (g_removable) hr = CreateRemovableDevice(kLevels, kLevelCount, &got);
     else
 #endif
-        hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels, levelCount,
-                               D3D11_SDK_VERSION, &g_device, &got, &g_context);
+        if (!TakePreparedDevice(&hr, &got)) hr = CreatePlainDevice(&g_device, &g_context, &got);
     if (FAILED(hr)) {
         ei::Log("render: D3D11CreateDevice failed (%08lX); the new renderer stays off", static_cast<unsigned long>(hr));
         return false;
@@ -651,6 +684,15 @@ void Configure(const char* spec) {
     std::string environment = EnvironmentSpec();
     if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
     ParseSpec(combined.c_str());
+}
+
+void PrepareDevice() {
+    EnsureConfigured();
+    if (!Active() || g_started || g_prepared.thread) return;
+#if defined(EI_RENDER_VALIDATION)
+    if (g_removable) return;   // made at the first use (CreateRemovableDevice)
+#endif
+    g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
 }
 
 // game.exe (the harness and the vector recorders in the original's process) never runs the new

@@ -23,6 +23,16 @@ hit points), the weather (after its builders draw) and the movies (also the play
 menu's and the save game's screen copy comes from the new frame. The game has no DirectDraw or Direct3D 7 device and no
 texture or surface holder of it is a DirectDraw object (section 9).
 
+Shaders (SV10b): written in `src/render/shaders/*.hlsl` (`shadow_receiver.hlsli` is included by the terrain's and
+the meshes'), compiled to bytecode at build time by the Windows SDK's fxc (CMakeLists.txt's `ei_shader`,
+`shaders/compile.cmake`: column-major matrices, `/O3`, the flags sokol would give d3dcompiler; fxc's warnings fail
+the build) into headers that `render_shaders.cpp` turns into `ShaderBytecode` (render_internal.h); the shader
+descriptions take it with `SetBytecode`. No compiler runs at start (it took 0.35 s of every run's start-up); the
+bytecode is what d3dcompiler_47 made at run time to the byte but the recorded compile flags and the checksum. A new
+shader: its `.hlsl`, an `ei_shader` line per function, its arrays in render_shaders.cpp. The Direct3D 11 device is
+made on a thread of its own from the image's start (`render::PrepareDevice`, called by standalone.cpp before
+WinMain; not with "removable") and taken at the renderer's first use.
+
 ## 1. Always on in the image (no DirectDraw fallback)
 
 The standalone image always draws with the new renderer (R11a, user's decision 2026-10-16: the game code's DirectDraw
@@ -877,12 +887,12 @@ across runs; the goldens check the game state.
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
-    after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`ShadowHlsl`:
+    after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`shaders/shadow_receiver.hlsli`:
     soft edges below, receiver-plane depth bias, face normal from screen derivatives so surfaces turned
     away from the sun stay as the game lit them) and darken by up to half (the old decal's alpha 0x80) before fog.
     **Soft edges (R16j2; the user: the map's shadows were much harder than the old ones, the town gate's).** PCSS,
     contact-hardening: after the casters two small passes make the map's depth range per 16 x 16-texel cell
-    (`kReduceSource`: nearest and farthest texel, Gather, shader model 4.1; `kDilateSource`: the same over the cells
+    (`shaders/shadow_reduce.hlsl`: nearest and farthest texel, Gather, shader model 4.1; `shadow_dilate.hlsl`: the same over the cells
     within the widest filter's reach, 3 cells at 56-72 units, plus the cell's own nearest; one 256 x 256 RGBA32F
     image). A receiver nearer than every depth around is lit, farther than every one shadowed (most pixels end
     there); near an edge the nearest depth around bounds the radius, and when that bound is wider than a cell a
