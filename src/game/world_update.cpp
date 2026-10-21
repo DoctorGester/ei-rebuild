@@ -57,7 +57,7 @@ void DropPlayer(CWorldServer* world, WorldPlayer* player) {
 void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
     auto& units = player->units.map;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+        CUnit* unit = node->value;
         auto* controller = static_cast<CUnitServer*>(unit->controller);
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;

@@ -306,9 +306,9 @@ int CPlayerClient::OnQuestItemsChanged() {
 int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
-    CPlayer::ObjectMap& units = Owner()->units_;
-    for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+    CPlayer::UnitMap& units = Owner()->units_;
+    for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
+        CUnit* unit = node->value;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;

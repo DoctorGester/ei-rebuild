@@ -358,6 +358,7 @@ public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743104);
     // The world objects the player knows, by id, each counted once (player_sync.cpp).
     using ObjectMap = stlp::hash_map<int, CEngineObject*, stlp::IntHash>;
+    using UnitMap = stlp::hash_map<int, CUnit*, stlp::IntHash>;
 
     // 00664BF0. Constructor body: the maps (NextPrime(100) buckets each; their functor bytes are
     // left as they are), the party (constructed, then created), the lists (block size 10), then
@@ -436,7 +437,7 @@ public:
     int playerId_;                              // +0x24 player number (0 = the local player)
     ObjectMap knownObjects_;                    // +0x28 map objects sent to the client
     int maxObjectId_;                           // +0x3C highest id put in knownObjects_
-    ObjectMap units_;                           // +0x40 the player's units by id (counted)
+    UnitMap units_;                             // +0x40 the player's units by id (counted)
     int maxUnitId_;                             // +0x54 highest id put in units_
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C

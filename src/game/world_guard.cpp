@@ -50,7 +50,7 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
         // controllers' statistics.
         auto& map = player->units.map;
         for (auto* node = map.First(); node && node->value; node = map.After(node)) {
-            auto* controller = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(node->value)->controller);
+            auto* controller = reinterpret_cast<CUnitServer*>(node->value->controller);
             XorRange(reinterpret_cast<std::uint8_t*>(&controller->stats), key);
         }
     }

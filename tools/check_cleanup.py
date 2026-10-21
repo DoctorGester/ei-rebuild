@@ -93,9 +93,9 @@ PATTERNS = {
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over lib::AlignedArray (its SetSize forwards to the array's); ObjectIdMap and UnitSet
-# are records whose members are stlp::hash_maps; CRegionMap is a
+# (and UnitIdMap, its shape with CUnit* values) are records whose members are stlp::hash_maps; CRegionMap is a
 # block grid; PlatformSet is the engine's CBridgeManager around an mfc::CList.
-NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'UnitSet', 'CRegionMap', 'PlatformSet'}
+NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'UnitIdMap', 'UnitSet', 'CRegionMap', 'PlatformSet'}
 # src/lib/crt_x87.cpp holds the CRT's register-argument x87 entries (_ftol, _CIpow, ...): naked by necessity.
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',

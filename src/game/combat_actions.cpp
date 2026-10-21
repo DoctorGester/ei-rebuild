@@ -83,7 +83,7 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
 CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
     const auto& map = player->units.map;
     for (auto* node = map.First(); node; node = map.After(node)) {
-        auto* member = static_cast<CUnit*>(node->value);
+        CUnit* member = node->value;
         if (!member) return nullptr;
         if (member != self) return member;
     }
