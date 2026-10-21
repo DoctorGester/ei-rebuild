@@ -244,7 +244,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 continue;
             }
             PushId(&ids.withUnit, unitId);
-            net::BindingMessage* camera = static_cast<net::BindingMessage*>(session->binding_);
+            net::BindingMessage* camera = session->binding_;
             if (camera && !(camera->flags7_ & CRefCounted::kDetached) &&
                 camera->first_.ptr == player)
                 ids.camera = *unitId;

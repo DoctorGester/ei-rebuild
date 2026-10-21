@@ -45,8 +45,12 @@ namespace net {
 
 class Connection;   // net_connection.h
 class Message;
-class LoginMessage;   // net_messages.h
-class PartyMessage;   // net_messages.h
+class BindingMessage;   // net_messages.h
+class HostMessage;      // net_messages.h
+class LoginMessage;     // net_messages.h
+class MapMessage;       // net_messages.h
+class PartyMessage;     // net_messages.h
+class TradeMessage;     // net_messages.h
 
 // The memory of a message (or another reference-counted object) as the game's code allocates it
 // inline: operator new, then the reference count dword cleared before the null check.
@@ -605,7 +609,7 @@ public:
     stlp::CountedRefList fileRequests_; // +0x259C the clients' requests (0073BC58: file, connection)
     // +0x25A0 where the game is hosted (a HostMessage, net_messages.h; world_game.cpp's AnnounceHost),
     // replicated to everyone when set
-    RefPtr hostInfo_;
+    RefPtrTo<HostMessage> hostInfo_;
     stlp::SharedRefList bindings_;      // +0x25A4 player <-> connection (0073BCB8)
     RefPtr map_;                        // +0x25A8 the map message (0073BD00) while a map is played
     stlp::SharedRefList queuedMaps_;    // +0x25AC map messages (0073BCD0) the host may pick next
@@ -763,9 +767,9 @@ public:
     stlp::CountedRefList files_;        // +0x25E0 shared files (0073BD18)
     stlp::CountedRefList chunks_;       // +0x25E4 file chunks (0073BD30)
     stlp::SharedRefList fileRequests_;  // +0x25E8 file requests for the server (0073BC58)
-    CRefObject* info_;                  // +0x25EC the game's description (0073BCA0), counted
-    CRefObject* binding_;               // +0x25F0 our binding (0073BCB8), counted
-    CRefObject* map_;                   // +0x25F4 the map message (0073BD00), counted
+    HostMessage* info_;                 // +0x25EC the game's description (0073BCA0), counted
+    BindingMessage* binding_;           // +0x25F0 our binding (0073BCB8), counted
+    MapMessage* map_;                   // +0x25F4 the map message (0073BD00), counted
     stlp::CountedRefList zones_;        // +0x25F8 map messages the host may pick (0073BCD0)
     stlp::CountedRefList variables_;    // +0x25FC script variables (0073BCE8)
     RefPtrTo<LoginMessage> player_;     // +0x2600 the local player's login record (0073BBF8)
@@ -774,7 +778,7 @@ public:
     RefPtrTo<PartyMessage> party_;      // +0x260C our trade offer (party description 0073BD78)
     stlp::CountedRefList offers_;       // +0x2610 the other players' trade offers (0073BD78)
     stlp::list<TradeRecord> tradeRecords_;   // +0x2614 the trades done
-    CRefObject* trade_;                 // +0x2618 the current trade (0073BD60), counted
+    TradeMessage* trade_;               // +0x2618 the current trade (0073BD60), counted
     std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable
     PartyStorage parties_[2];           // +0x2620 ours (published at +0x260C), +0x2690 the partner's
 };
