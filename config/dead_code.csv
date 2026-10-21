@@ -691,3 +691,5 @@ address,size,name,evidence
 00690970,442,FUN_00690970,"R11b, DirectDraw only (texture fill, one format): never runs in the image (no DirectDraw surface or device there); its only caller is 0068FA10 (itself dead here); only game.exe's own code calls it"
 00690B30,498,FUN_00690b30,"R11b, DirectDraw only (texture fill, one format): never runs in the image (no DirectDraw surface or device there); its only caller is 0068FA10 (itself dead here); only game.exe's own code calls it"
 00690D30,437,FUN_00690d30,"R11b, DirectDraw only (texture fill, one format): never runs in the image (no DirectDraw surface or device there); its only caller is 0068FA10 (itself dead here); only game.exe's own code calls it"
+004E7820,32,FUN_004e7820,"R9b3, vertex-buffer batch (gave no buffer, always null): the batch code and its callers' buffer branches are gone; only game.exe's own code calls it"
+004E7E00,432,FUN_004e7e00,"R9b3, vertex-buffer batch (appended indices to a batch no mesh draw ever started): the batch code is gone; only game.exe's own code calls it"

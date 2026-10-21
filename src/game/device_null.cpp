@@ -431,14 +431,12 @@ constexpr auto kDeviceTraps = TrapTable<0>(std::make_integer_sequence<int, kTrap
 constexpr auto kDirectDrawTraps = TrapTable<1>(std::make_integer_sequence<int, kTrapSlots>{});
 InterfaceToken g_device{kDeviceTraps.data()};
 InterfaceToken g_directDraw{kDirectDrawTraps.data()};
-bool g_withoutDirectDraw = false;
 
 } // namespace
 
 namespace device {
 
 void* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
-    g_withoutDirectDraw = true;
     g_switchOver.SetMode(width, height, bitsPerPixel);
     ei::Log("device: built without DirectDraw or Direct3D (%dx%d, %d bits); the new renderer presents", width, height,
             bitsPerPixel);
@@ -467,118 +465,70 @@ std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
 
 // ---- The rewritten code's device calls (ticket R9b) ----------------------------------------------
 //
-// The switch-over's state answers when the interface given is the device object's token (or none);
-// any other interface is called (game.exe's own, in the harness's code that runs in the original).
+// Every call answers from the switch-over's state: the device object holds tokens, never interfaces
+// (the interface argument, the object's +0x54 / +0x0C, is not used). game.exe's own runs build no
+// switch-over device and do not come here.
 
-namespace {
-bool NoDevice(const IDirect3DDevice7* d3d) {
-    return g_withoutDirectDraw && (!d3d || static_cast<const void*>(d3d) == &g_device);
-}
-bool NoDirectDraw(const IDirectDraw7* ddraw) {
-    return g_withoutDirectDraw && (!ddraw || static_cast<const void*>(ddraw) == &g_directDraw);
-}
-} // namespace
+void AddRef(IDirect3DDevice7*) {}
+void Release(IDirect3DDevice7*) {}
+void Release(IDirectDraw7*) {}
 
-void AddRef(IDirect3DDevice7* d3d) {
-    if (!NoDevice(d3d)) d3d->AddRef();
+HRESULT GetCaps(IDirect3DDevice7*, D3DDEVICEDESC7* desc) { return FillDeviceCaps(desc); }
+HRESULT EnumTextureFormats(IDirect3DDevice7*, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context) {
+    return EnumFormats(callback, context);
 }
-void Release(IDirect3DDevice7* d3d) {
-    if (!NoDevice(d3d)) d3d->Release();
-}
-void Release(IDirectDraw7* ddraw) {
-    if (!NoDirectDraw(ddraw)) ddraw->Release();
-}
-
-HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc) {
-    return NoDevice(d3d) ? FillDeviceCaps(desc) : d3d->GetCaps(desc);
-}
-HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context) {
-    return NoDevice(d3d) ? EnumFormats(callback, context) : d3d->EnumTextureFormats(callback, context);
-}
-HRESULT BeginScene(IDirect3DDevice7* d3d) { return NoDevice(d3d) ? g_switchOver.BeginScene() : d3d->BeginScene(); }
-HRESULT EndScene(IDirect3DDevice7* d3d) { return NoDevice(d3d) ? g_switchOver.EndScene() : d3d->EndScene(); }
-HRESULT Clear(IDirect3DDevice7* d3d, DWORD count, D3DRECT* rects, DWORD flags, D3DCOLOR colour, D3DVALUE z,
-              DWORD stencil) {
-    return NoDevice(d3d) ? D3D_OK : d3d->Clear(count, rects, flags, colour, z, stencil);
-}
-HRESULT SetViewport(IDirect3DDevice7* d3d, D3DVIEWPORT7* viewport) {
-    if (!NoDevice(d3d)) return d3d->SetViewport(viewport);
+HRESULT BeginScene(IDirect3DDevice7*) { return g_switchOver.BeginScene(); }
+HRESULT EndScene(IDirect3DDevice7*) { return g_switchOver.EndScene(); }
+HRESULT Clear(IDirect3DDevice7*, DWORD, D3DRECT*, DWORD, D3DCOLOR, D3DVALUE, DWORD) { return D3D_OK; }
+HRESULT SetViewport(IDirect3DDevice7*, D3DVIEWPORT7* viewport) {
     if (viewport) g_switchOver.SetViewport(*viewport);
     return D3D_OK;
 }
-HRESULT SetRenderTarget(IDirect3DDevice7* d3d, IDirectDrawSurface7* target, DWORD flags) {
-    return NoDevice(d3d) ? D3D_OK : d3d->SetRenderTarget(target, flags);
-}
-HRESULT SetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD value) {
-    if (!NoDevice(d3d)) return d3d->SetRenderState(state, value);
+HRESULT SetRenderTarget(IDirect3DDevice7*, IDirectDrawSurface7*, DWORD) { return D3D_OK; }
+HRESULT SetRenderState(IDirect3DDevice7*, D3DRENDERSTATETYPE state, DWORD value) {
     g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
     return D3D_OK;
 }
-HRESULT GetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD* value) {
-    if (!NoDevice(d3d)) return d3d->GetRenderState(state, value);
+HRESULT GetRenderState(IDirect3DDevice7*, D3DRENDERSTATETYPE state, DWORD* value) {
     if (!value) return DDERR_INVALIDPARAMS;
     *value = g_switchOver.RenderState(static_cast<DWORD>(state));
     return D3D_OK;
 }
-HRESULT SetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) {
-    if (!NoDevice(d3d)) return d3d->SetTextureStageState(stage, state, value);
+HRESULT SetTextureStageState(IDirect3DDevice7*, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) {
     g_switchOver.SetStageState(stage, static_cast<DWORD>(state), value);
     return D3D_OK;
 }
-HRESULT GetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value) {
-    if (!NoDevice(d3d)) return d3d->GetTextureStageState(stage, state, value);
+HRESULT GetTextureStageState(IDirect3DDevice7*, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value) {
     if (!value) return DDERR_INVALIDPARAMS;
     *value = g_switchOver.StageState(stage, static_cast<DWORD>(state));
     return D3D_OK;
 }
-HRESULT BeginStateBlock(IDirect3DDevice7* d3d) {
-    return NoDevice(d3d) ? g_switchOver.BeginStateBlock() : d3d->BeginStateBlock();
+HRESULT BeginStateBlock(IDirect3DDevice7*) { return g_switchOver.BeginStateBlock(); }
+HRESULT EndStateBlock(IDirect3DDevice7*, DWORD* handle) { return g_switchOver.EndStateBlock(handle); }
+HRESULT ApplyStateBlock(IDirect3DDevice7*, DWORD handle) { return g_switchOver.ApplyStateBlock(handle); }
+HRESULT DeleteStateBlock(IDirect3DDevice7*, DWORD handle) { return g_switchOver.DeleteStateBlock(handle); }
+HRESULT SetTexture(IDirect3DDevice7*, DWORD stage, IDirectDrawSurface7* texture) {
+    return g_switchOver.SetTexture(stage, texture);
 }
-HRESULT EndStateBlock(IDirect3DDevice7* d3d, DWORD* handle) {
-    return NoDevice(d3d) ? g_switchOver.EndStateBlock(handle) : d3d->EndStateBlock(handle);
-}
-HRESULT ApplyStateBlock(IDirect3DDevice7* d3d, DWORD handle) {
-    return NoDevice(d3d) ? g_switchOver.ApplyStateBlock(handle) : d3d->ApplyStateBlock(handle);
-}
-HRESULT DeleteStateBlock(IDirect3DDevice7* d3d, DWORD handle) {
-    return NoDevice(d3d) ? g_switchOver.DeleteStateBlock(handle) : d3d->DeleteStateBlock(handle);
-}
-HRESULT SetTexture(IDirect3DDevice7* d3d, DWORD stage, IDirectDrawSurface7* texture) {
-    return NoDevice(d3d) ? g_switchOver.SetTexture(stage, texture) : d3d->SetTexture(stage, texture);
-}
-HRESULT DrawPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
-                      DWORD flags) {
-    return NoDevice(d3d) ? D3D_OK : d3d->DrawPrimitive(type, fvf, vertices, count, flags);
-}
-HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
-                             WORD* indices, DWORD indexCount, DWORD flags) {
-    return NoDevice(d3d) ? D3D_OK : d3d->DrawIndexedPrimitive(type, fvf, vertices, count, indices, indexCount, flags);
+HRESULT DrawPrimitive(IDirect3DDevice7*, D3DPRIMITIVETYPE, DWORD, void*, DWORD, DWORD) { return D3D_OK; }
+HRESULT DrawIndexedPrimitive(IDirect3DDevice7*, D3DPRIMITIVETYPE, DWORD, void*, DWORD, WORD*, DWORD, DWORD) {
+    return D3D_OK;
 }
 
-HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated) {
-    return NoDirectDraw(ddraw) ? FillDirectDrawCaps(driver, emulated) : ddraw->GetCaps(driver, emulated);
-}
-HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc) {
-    if (!NoDirectDraw(ddraw)) return ddraw->GetDisplayMode(desc);
+HRESULT GetCaps(IDirectDraw7*, DDCAPS* driver, DDCAPS* emulated) { return FillDirectDrawCaps(driver, emulated); }
+HRESULT GetDisplayMode(IDirectDraw7*, DDSURFACEDESC2* desc) {
     if (!desc) return DDERR_INVALIDPARAMS;
     *desc = g_switchOver.Mode();
     return DD_OK;
 }
-HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,
-                         LPDDENUMMODESCALLBACK2 callback) {
-    return NoDirectDraw(ddraw) ? EnumMode(context, callback) : ddraw->EnumDisplayModes(flags, filter, context, callback);
+HRESULT EnumDisplayModes(IDirectDraw7*, DWORD, DDSURFACEDESC2*, void* context, LPDDENUMMODESCALLBACK2 callback) {
+    return EnumMode(context, callback);
 }
-HRESULT RestoreDisplayMode(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->RestoreDisplayMode(); }
-HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags) {
-    return NoDirectDraw(ddraw) ? DD_OK : ddraw->SetCooperativeLevel(window, flags);
-}
-HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DWORD* free) {
-    return NoDirectDraw(ddraw) ? VideoMemory(total, free) : ddraw->GetAvailableVidMem(caps, total, free);
-}
-HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->RestoreAllSurfaces(); }
-HRESULT FlipToGDISurface(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->FlipToGDISurface(); }
-HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event) {
-    return NoDirectDraw(ddraw) ? DD_OK : ddraw->WaitForVerticalBlank(flags, event);
-}
+HRESULT RestoreDisplayMode(IDirectDraw7*) { return DD_OK; }
+HRESULT SetCooperativeLevel(IDirectDraw7*, HWND, DWORD) { return DD_OK; }
+HRESULT GetAvailableVidMem(IDirectDraw7*, DDSCAPS2*, DWORD* total, DWORD* free) { return VideoMemory(total, free); }
+HRESULT RestoreAllSurfaces(IDirectDraw7*) { return DD_OK; }
+HRESULT FlipToGDISurface(IDirectDraw7*) { return DD_OK; }
+HRESULT WaitForVerticalBlank(IDirectDraw7*, DWORD, HANDLE) { return DD_OK; }
 
 } // namespace device

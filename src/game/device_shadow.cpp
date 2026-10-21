@@ -88,20 +88,11 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
-        // The device's vertex-buffer batch (004E7820: never available).
-        TLVertex* target = static_cast<TLVertex*>(device->LockVertexBuffer(count));
-        if (!target) {
-            Vertices().SetSizeDiscard(count);
-            target = Vertices().data;
-        }
-        Fill(target, count, colours, uvs);
-        if (target == Vertices().data) {
-            Scale(count, &zScale);
-            device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
-            return 0;
-        }
-        device->AppendBatchIndices(indices, indexCount);
-        device->batch_.vertexCount += count;
+        // (004E7820, the device's vertex-buffer batch, never gave a buffer: the vertices are drawn.)
+        Vertices().SetSizeDiscard(count);
+        Fill(Vertices().data, count, colours, uvs);
+        Scale(count, &zScale);
+        device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
         return 0;
     }
     if (visibility == 2) return 2;

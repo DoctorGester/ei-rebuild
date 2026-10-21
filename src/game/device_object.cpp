@@ -109,27 +109,6 @@ void ConstructWithoutDirect3D(CTextureDevice* device) {
     device->colour_ = 0xFF000000;
 }
 
-// One of the batches' lists emptied: each buffer released.
-void ReleaseBuffers(stlp::list<CVertexBufferHolder*>& buffers) {
-    buffers.ClearWith([](CVertexBufferHolder** buffer) {
-        if (*buffer) (*buffer)->Release();
-    });
-}
-
-// A batch's members destroyed (its list is empty by then).
-void DestroyBatch(DeviceVertexBatch& batch) {
-    batch.indices.FreeData();
-    if (batch.buffer) batch.buffer->Release();
-    batch.used.Destroy();
-}
-
-// A batch's members as the constructor leaves them (its vertex memory and vertex count are not set).
-void ConstructBatch(DeviceVertexBatch& batch) {
-    batch.used.Construct();
-    batch.buffer = nullptr;
-    batch.indices.Construct();
-}
-
 } // namespace
 
 void CTextureDevice::BuildFormatTable() {
@@ -197,9 +176,6 @@ void CTextureDevice::Destruct() {
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
         if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, "Can't delete state block %d.\n", handle);   // "Can't delete state block %d.\n"
     }
-    ReleaseBuffers(batch_.used);
-    ReleaseBuffers(batch2_.used);
-    ReleaseBuffers(spareBuffers_);
     device::AssignHolder(depth2_, nullptr);
     device::AssignHolder(depth_, nullptr);
     if (CTransformPipeline* pipeline = pipeline_) {
@@ -211,11 +187,6 @@ void CTextureDevice::Destruct() {
 
     // The members' destructors, last to first.
     if (material_) material_->Release();
-    spareArray_.FreeData();
-    if (spareBuffer_) spareBuffer_->Release();
-    spareBuffers_.Destroy();
-    DestroyBatch(batch2_);
-    DestroyBatch(batch_);
     formats_.Destroy();
     textureFormats_.Destroy();
     depthFormats_.Destroy();
@@ -245,11 +216,6 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     textureFormats_.Construct();
     formats_.InitBuckets(100);
     largestFormatId_ = 0;
-    ConstructBatch(batch_);
-    ConstructBatch(batch2_);
-    spareBuffers_.Construct();
-    spareBuffer_ = nullptr;
-    spareArray_.Construct();
     material_ = nullptr;
     ei::SetVtable(this, 0x0073D760);
     d3dDevice_ = nullptr;

@@ -79,16 +79,14 @@ const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 
 // ---- The rewritten code's calls into the old device (ticket R9b) ----
 //
-// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name on the interface given (the
-// device object's +0x54 / +0x0C), as the original calls it. Once the device object is built
-// (StartWithoutDirectDraw), when the interface is the device object's token (or null), the call has
-// the same result without a device (any other interface, game.exe's own in the harness, is called):
-// the render and
-// texture stage states, state blocks, bound textures, viewport and scene bracket are kept in the
-// switch-over device's state (the states also go to the new renderer's mirror, render_state.h), the
-// capability, display mode, texture format and video memory queries answer the fixed values, and
-// the draws, clears, mode and cooperative level changes and surface restores do nothing (D3D_OK /
-// DD_OK: the new renderer draws from the hand-over and presents on its own swap chain).
+// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given the device object's
+// +0x54 / +0x0C (a token, not used) as the original calls it: the render and texture stage states,
+// state blocks, bound textures, viewport and scene bracket are kept in the switch-over device's
+// state (the states also go to the new renderer's mirror, render_state.h), the capability, display
+// mode, texture format and video memory queries answer the fixed values, and the draws, clears, mode
+// and cooperative level changes and surface restores do nothing (D3D_OK / DD_OK: the new renderer
+// draws from the hand-over and presents on its own swap chain). No call reaches an interface: game.exe
+// runs only the original (its harness calls its own interface directly).
 HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc);
 HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context);
 HRESULT BeginScene(IDirect3DDevice7* d3d);

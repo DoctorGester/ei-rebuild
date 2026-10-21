@@ -110,14 +110,11 @@ EI_REPLACE(0x004CF470, ScriptError);
 // ---- Keyword table ------------------------------------------------------------------------------
 
 const ScriptKeyword* KeywordTable() {
-    // ClassifyToken loads the table with MOV EBP,imm32 at 004CF69A; Rebirth's AddNewScriptCommands
-    // rewrites that immediate to point at its extended table (and the other references the same
-    // way). With the flag on, the extended table is ours (script_addon.cpp).
-    // The standalone image has no code there: the vanilla immediate, 0078BCA0.
+    // ClassifyToken loaded the table with MOV EBP,imm32 at 004CF69A; Rebirth's AddNewScriptCommands
+    // rewrote that immediate to point at its extended table (and the other references the same
+    // way). With the flag on, the extended table is ours (script_addon.cpp); else the vanilla one.
     if (scriptaddon::Enabled()) return scriptaddon::Table();
-    static const bool standalone = ei::Standalone();
-    if (standalone) return &ei::GameData<const ScriptKeyword>(0x0078BCA0);
-    return ei::GameData<const ScriptKeyword* const>(0x004CF69B);
+    return &ei::GameData<const ScriptKeyword>(0x0078BCA0);
 }
 
 void __fastcall ClassifyToken(const char* text, int* id, int* rest) {

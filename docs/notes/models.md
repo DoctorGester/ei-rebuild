@@ -52,7 +52,7 @@ object's slot 35 sees every vertex batch when +0x158 is set), +0x150 override co
 to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters), +0x24 the counted state-block helper
 (004FCA60). Device draws hold the lock 007AEE78 and store the HRESULT at +8. Shared buffers of the mesh / flat draws:
 007AEDE0 clip output, 007AEE00 TL vertices, 007AEE10 projected vertices (16 bytes each), 007AEE20 corner outcodes, 007AEE30
-vertex outcode bytes (all ..007AEE3C); the vertex buffer path 004E7820 is dead (always returns null). Ribbon / sprite
+vertex outcode bytes (all ..007AEE3C); the vertex buffer path 004E7820 was dead (always returned null; gone since R9b3). Ribbon / sprite
 buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8).
 
 Rewritten (grep the address): `RendererCreate` 00500B70 (slot 2, RET 8), `DrawRibbon` 00501D90 (slot 16, RET 0x18), `DrawTlTriangles`

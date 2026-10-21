@@ -381,11 +381,12 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive, AddRef / Release;
   IDirectDraw7 GetCaps, GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
   GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank, Release). Each answers from
-  `SwitchOverDevice` when the interface is the device object's token (or null): draws, clears, mode changes and
-  restores give D3D_OK; another interface (game.exe's own, the harness's RestoreAfterMinimise in the original's runs)
-  is called. Every method call on the device in src/ goes through these; the interface's `UiD3DDevice` (ui.h) has
-  declared methods (`ui_d3d_device.cpp`). Left behind the token without a call of device.h: the vertex-buffer
-  batches' DrawIndexedPrimitiveVB (device_binds.cpp), unreachable (no batch gets a buffer without a Direct3D object). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
+  `SwitchOverDevice` (R9b3: no branch to another interface any more; the interface argument is not read): draws,
+  clears, mode changes and restores give D3D_OK. Every method call on the device in src/ goes through these; the
+  interface's `UiD3DDevice` (ui.h) has declared methods (`ui_d3d_device.cpp`). The harness's RestoreAfterMinimise
+  calls game.exe's own IDirectDraw7 directly in the original's runs (nothing in the image). The vertex-buffer
+  batches are gone (R9b3: the batch members, 004E7820 / 004E7E00 and the flush bodies with their
+  DrawIndexedPrimitiveVB; `FlushBatch` / `FlushBatch2` stay as empty ports for their ~35 callers, R9b4). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
   `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
@@ -739,8 +740,7 @@ of 004EDD70); 0049F7B1 is the tail of `IsaacRandom::Seed`.
 
 File map of the device layer (all in `src/game`; the files' headers name the addresses):
 - `device_binds.cpp` (texture binds 004EB300 / 004EBAF0 / 004EB1D0: SetTexture when the stage's holder changes, the
-  batch flushed first; batch flushes 004E7840 / 004E7A40: no vertex buffer is ever locked, so only their first test
-  runs); `directdraw_holder.cpp` (the DirectDraw base 004EDD70, 004EECF0, 004EEC60, destructor body 004EE330; the
+  batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `directdraw_holder.cpp` (the DirectDraw base 004EDD70, 004EECF0, 004EEC60, destructor body 004EE330; the
   driver list 004EE4A0 / 004ED610 / 004EE5D0, 004EEA90, 004EEBC0, 004EEE30 are not ported: dead_code.csv, R11b);
   `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819); `device_object.cpp` (constructor
   004E5E50, 004E6EE0 format table, destructor body 004E68A0, the four state blocks of stage 0 at 007AEDD0..DC; the
@@ -765,8 +765,7 @@ Original details kept: the T&L HAL device is never used; the rain's
 and snow's vertex colours and packet w are never written (the buffer's old bytes are drawn, the fog pass only lowers
 the specular's alpha); the rain's height uses the snow's rise (007AEDA0, both 40); the helper's destructor walks on from
 a record it has just erased (reads freed nodes, so its walk over more than one record differs in ours); slot 1 tests a
-texture operation against the capability bits with `&` (operation number, not its bit); 004E7E00 appends indices and
-copies one index more than asked. Different in ours: a throw from the constructors does not free what was built; the
+texture operation against the capability bits with `&` (operation number, not its bit). Different in ours: a throw from the constructors does not free what was built; the
 driver record's unset GUID and monitor bytes are zeroed; fields the original leaves as stack contents are zero.
 
 ## 13. R16: what a frame costs, and the plan to draw from GPU-resident data

@@ -387,7 +387,7 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
-#include "../../src/game/device.h"   // device::RestoreAllSurfaces
+#include "../../src/game/device.h"   // IDirectDraw7
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
 #include "../../src/game/item.h"
@@ -3878,7 +3878,8 @@ void RestoreAfterMinimise() {
     if (device && device->ddraw_) {
         auto* lock = TheDeviceLock();   // the render device's lock
         EnterCriticalSection(lock);
-        HRESULT result = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
+        // game.exe's own DirectDraw object; the image's device object holds a token (nothing to restore).
+        HRESULT result = ei::Standalone() ? DD_OK : static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
         device->lastLoadResult_ = result;
         LeaveCriticalSection(lock);
         if (result == DDERR_NOEXCLUSIVEMODE) {

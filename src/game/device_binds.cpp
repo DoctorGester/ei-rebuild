@@ -1,7 +1,6 @@
 // The device object's texture binds (004EB300 a surface holder, 004EBAF0 a texture, 004EB1D0 a
-// texture kept by name) and its two vertex-buffer batch flushes (004E7840, 004E7A40). A-S13: the
-// Direct3D 7 calls (SetTexture, IDirect3DVertexBuffer7::Unlock, DrawIndexedPrimitiveVB) are made as
-// the original makes them. See docs/notes/renderer.md (section 12).
+// texture kept by name) and its two vertex-buffer batch flushes (004E7840, 004E7A40: nothing to
+// draw). See docs/notes/renderer.md (section 12).
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -13,48 +12,12 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 
-namespace {
-
-// One batch's flush (the two functions differ only in the batch).
-void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
-    CVertexBufferHolder* buffer = batch.buffer;
-    if (!buffer) return;
-    buffer->result = static_cast<IDirect3DVertexBuffer7*>(buffer->buffer)->Unlock();
-    gameapi::LeaveCriticalSection(TheDeviceLock());
-    if (buffer->result != 0) app::FatalErrorCode(buffer->result, "Can't unlock vertex buffer.\n");   // "Can't unlock vertex buffer.\n"
-    const int vertexCount = batch.vertexCount;
-    if (vertexCount != 0) {
-        const int indexCount = batch.indices.size;
-        if (indexCount != 0) {
-            std::uint16_t* indices = batch.indices.data;
-            CVertexBufferHolder* drawn = batch.buffer;
-            gameapi::EnterCriticalSection(TheDeviceLock());
-            device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitiveVB(
-                D3DPT_TRIANGLELIST, static_cast<IDirect3DVertexBuffer7*>(drawn->buffer), 0,
-                static_cast<DWORD>(vertexCount), indices, static_cast<DWORD>(indexCount), 0);
-            gameapi::LeaveCriticalSection(TheDeviceLock());
-            device->vertexCount_ += vertexCount;
-            device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(indexCount) / 3);
-            ++device->drawCount_;
-        }
-    }
-    // The buffer goes to the end of the batch's list (one more reference), then leaves the batch.
-    batch.used.PushBack(batch.buffer);
-    if (batch.buffer) ++batch.buffer->refCount;
-    CVertexBufferHolder* old = batch.buffer;
-    batch.buffer = nullptr;
-    if (old) old->Release();
-    batch.vertices = nullptr;
-    batch.vertexCount = 0;
-    batch.indices.SetSizeDiscard(0);
-}
-
-} // namespace
-
-void CTextureDevice::FlushBatch() { Flush(this, batch_); }
+// 004E7840 / 004E7A40: the device's two vertex-buffer batches drawn. 004E7820 never gave a batch a
+// buffer, so nothing was ever gathered and the flushes do nothing (their callers go in R9b4).
+void CTextureDevice::FlushBatch() {}
 EI_REPLACE_METHOD(0x004E7840, CTextureDevice::FlushBatch);
 
-void CTextureDevice::FlushBatch2() { Flush(this, batch2_); }
+void CTextureDevice::FlushBatch2() {}
 EI_REPLACE_METHOD(0x004E7A40, CTextureDevice::FlushBatch2);
 
 int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
