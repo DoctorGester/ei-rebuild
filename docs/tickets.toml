@@ -2698,7 +2698,7 @@ id = "C18l1"
 title = "Original suite: the digest's ISAAC state reads our g_random in game.exe (C18l c)"
 group = "cleanup"
 model = "opus"
-note = "Since 67625c45 (C18l c: the ISAAC generator named, IsaacRandom::Global() returns g_random, game.exe's 007A9D40) the harness digest (tests/verify/harness_digest.cpp ReadRandom) reads our g_random also in game.exe, where the original game's code uses 007A9D40: the original suite (--no-hooks --golden) gives 1 the same, 113 differ, every one on isaac.* only (seeded 0, count 0 in the run; seen in C20d's run 2026-10-21). In game.exe the digest has to read the exe's object (or Global() has to be the exe's there). Check other mutable named data the harness reads in game.exe for the same problem; then the original suite 114 the same."
+note = "Since 67625c45 (C18l c: the ISAAC generator named, IsaacRandom::Global() returns g_random, game.exe's 007A9D40) the harness digest (tests/verify/harness_digest.cpp ReadRandom) reads our g_random also in game.exe, where the original game's code uses 007A9D40: the original suite (--no-hooks --golden) gives 1 the same, 113 differ, every one on isaac.* only (seeded 0, count 0 in the run; seen in C20d's run 2026-10-21). In game.exe the digest has to read the exe's object (or Global() has to be the exe's there). Check other mutable named data the harness reads in game.exe for the same problem; then the original suite 114 the same.  Fixed on main in 4cbf5d5c: ei::OriginalGameData reads game.exe's copy in --no-hooks runs for the digest's random, the zone step calls game.exe's own LeaveToZone (0066F310), modfile reads its own text folder (007AF45C); original suite 114 the same."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
