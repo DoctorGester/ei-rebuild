@@ -33,9 +33,8 @@ int CMappedResource::FindEntry(const char* name) const {
     }
 }
 
-CMappedResource* CMappedResource::Construct() {
+CMappedResource::CMappedResource() {
     // CResourceBase part.
-    ei::SetVtable(this, CResourceBase::kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -46,17 +45,16 @@ CMappedResource* CMappedResource::Construct() {
     filesByData_.InitBuckets(100);
     std::memset(&filesByName_, 0, sizeof(filesByName_));
     filesByName_.InitBuckets(100);
-    ei::SetVtable(this, kVtableAddress);
     image_ = nullptr;
     fd_ = -1;
     writable_ = 0;
-    return this;
 }
 
-void CMappedResource::Destroy() {
+CMappedResource* CMappedResource::Construct() { return new (this) CMappedResource(); }
+
+CMappedResource::~CMappedResource() {
     // Rebirth's ResOverride (006714A2): addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
-    ei::SetVtable(this, kVtableAddress);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (fd_ >= 0) {
         libcrt::Close(fd_);
@@ -74,7 +72,6 @@ void CMappedResource::Destroy() {
     filesByData_.Destroy();
 
     // ~CResourceBase.
-    ei::SetVtable(this, CResourceBase::kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -85,11 +82,22 @@ void CMappedResource::Destroy() {
     }
 }
 
+void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
+
 CMappedResource* CMappedResource::DeletingDestroy(unsigned flags) {
-    MappedResourceDestroyOriginal(this);
+    this->CMappedResource::~CMappedResource();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
+
+void CMappedResource::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+// The slots whose bodies are registered by member pointer (the Impl members), and slot 4.
+BOOL CMappedResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
+BOOL CMappedResource::OpenFromMemory(const void* image) { return OpenFromMemoryImpl(image); }
+void CMappedResource::Flush() {}   // 00671390 (short_functions.cpp)
+void* CMappedResource::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
+bool CMappedResource::CloseFile(void* data) { return CloseFileImpl(data); }
 
 BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
     // Rebirth's ResOverride (00671738): addon loads the mod's archives on the first open and records
@@ -380,6 +388,11 @@ BOOL CMMIOResource::OpenFromMemoryImpl(const void* image) {
     names_ = base + header_.tableOffset + header_.count * sizeof(ResEntry);
     return true;
 }
+
+BOOL CMMIOResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
+BOOL CMMIOResource::OpenFromMemory(const void* image) { return OpenFromMemoryImpl(image); }
+void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
+bool CMMIOResource::CloseFile(void* data) { return CloseFileImpl(data); }
 
 void CMMIOResource::CloseResource() {
     file_.Close();

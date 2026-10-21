@@ -585,7 +585,8 @@ def stored_vtable(img, v):
 
 def check_retired(problems, img):
     """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once, the start of a
-    table (stored_vtable), and shares no slot with a vtable still in use (its bytes are zero in the image)."""
+    table (stored_vtable) or the tail of a retired one (the row it ends), and shares no slot with a vtable still in
+    use (its bytes are zero in the image)."""
     with open(VTABLES, newline='') as f:
         vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
     listed = {v for v, _, _, _ in retired_vtables()}
@@ -595,11 +596,17 @@ def check_retired(problems, img):
             for i in range(n):
                 live.setdefault(v + 4 * i, v)
     seen = set()
+    # A tail goes with its table: a retired row's end, when that row is stored or a tail itself.
+    ends = set()
+    for v, n, _, _ in sorted(retired_vtables()):
+        if stored_vtable(img, v) or v in ends:
+            ends.add(v + 4 * n)
     for v, n, cls, path in retired_vtables():
         where = f'config/retired_vtables.csv: {v:08X} ({cls})'
-        if not stored_vtable(img, v):
+        if not stored_vtable(img, v) and v not in ends:
             problems.append(f'gen_image_cells: {where}: no code of game.exe stores it: the tail of the vtable '
-                            'before it (a slot call or a byte match split it off), not a vtable of its own')
+                            'before it (a slot call or a byte match split it off), not a vtable of its own; '
+                            'retire it with that vtable')
         shared = sorted({live[v + 4 * i] for i in range(n) if v + 4 * i in live})
         if shared:
             problems.append(f'gen_image_cells: {where} shares slots with ' + ' '.join(f'{x:08X}' for x in shared) +

@@ -14,6 +14,7 @@
 #include "originals_library.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -228,30 +229,26 @@ void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char*
 
 // --- CMMIOResource -------------------------------------------------------------------------------
 
-CMMIOResource* CMMIOResource::Construct() {
-    CMappedResource::Construct();
-    file_.Construct();
-    ei::SetVtable(this, kVtableAddress);
-    mappedImage_ = nullptr;
-    return this;
-}
+// The mapped file is constructed as a member (CMappedFile's constructor, 006756B0).
+CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
 
-void CMMIOResource::Destroy() {
-    ei::SetVtable(this, kVtableAddress);
+CMMIOResource* CMMIOResource::Construct() { return new (this) CMMIOResource(); }
+
+CMMIOResource::~CMMIOResource() {
     // CloseResource, inlined (00675720 is CMappedFile::Close's copy).
     file_.Close();
     entries_ = nullptr;
     names_ = nullptr;
     mappedImage_ = nullptr;
     header_ = ResHeader{};
-    // The CMappedFile destructor, then the CMappedResource destructor (an inline copy; Rebirth
-    // patches the out-of-line one, 006714A0, so this is not a call to it).
+    // The CMappedFile destructor; CMappedResource's follows (an inline copy in the original).
     file_.Close();
-    CMappedResource::Destroy();
 }
 
+void CMMIOResource::Destroy() { this->CMMIOResource::~CMMIOResource(); }
+
 CMMIOResource* CMMIOResource::DeletingDestroy(unsigned flags) {
-    Destroy();
+    this->CMMIOResource::~CMMIOResource();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
