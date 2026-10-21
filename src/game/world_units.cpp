@@ -459,7 +459,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         }
         base.object = object;
         CTorchObjectSpec* torch = static_cast<CTorchObject*>(object)->spec;
-        auto* companion = static_cast<CMapObjectServer*>(object->companion);
+        auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
         companionTexts(companion);
         race(object);
@@ -521,7 +521,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
         base.object = object;
-        auto* companion = static_cast<CMapObjectServer*>(object->companion);
+        auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
         object->SetSecondName(spec->model);
         companionTexts(companion);

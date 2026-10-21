@@ -117,7 +117,7 @@ int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x9
 int TickOf(const CWorld* world) { return world->tick_; }
 CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
 // The unit's server object (CUnit + 0x170) and its vitals.
-UnitVitals& ServerVitals(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->companion)->vitals; }
+UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));

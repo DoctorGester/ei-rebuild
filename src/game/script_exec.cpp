@@ -250,7 +250,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, &point);
-        if (object->GetClassId() == kClassUnit) Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) Controller(UnitState(unit))->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
         return;
@@ -258,8 +258,8 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float oldZ = Position(object)->z;
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, &point);
-    if (object->GetClassId() == kClassUnit) {
-        Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
+    if (CUnit* unit = UnitOrNull(object)) {
+        Controller(UnitState(unit))->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;

@@ -164,7 +164,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         out_.Write(&scale, sizeof(scale));
         WriteText(&out_, object->name2);
         WriteText(&out_, object->name);
-        auto* server = static_cast<CMapObjectServer*>(object->companion);
+        auto* server = object->ServerCompanion();
         WriteText(&out_, server->name78);
         WriteText(&out_, server->name7C);
         std::uint32_t count = static_cast<std::uint32_t>(server->strings.size);

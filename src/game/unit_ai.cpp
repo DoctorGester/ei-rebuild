@@ -556,7 +556,7 @@ void AIBrain::SetSeen(CMapObject* object) {
             std::uint32_t bit = 1u << (seenUnit->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
-        if (!allied) CallAllies(&static_cast<CMapObject*>(object)->position);
+        if (!allied) CallAllies(&object->position);
     } else {
         CallAllies(&owner->unit->position);
     }

@@ -1271,7 +1271,7 @@ int __stdcall LoadMission(CStream* file) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
-        mission.s.ReadSized(static_cast<CStream*>(GameSaveStream()));
+        mission.s.ReadSized(GameSaveStream());
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70

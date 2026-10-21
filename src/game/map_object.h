@@ -24,6 +24,7 @@
 #include <cstdint>
 
 class CStream;              // core_streams.h
+class CMapObjectServer;     // unit.h
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 class Terrain;              // camera.h
@@ -341,6 +342,8 @@ public:
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
     // radius +0x134, half box `above` +0x144).
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
+    // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
+    CMapObjectServer* ServerCompanion() const;
     // +0x174 world updates until the object's effects are next looked at (5 after Create; the
     // server world's update map sets it, world_units.cpp / world_server.cpp).
     int updateCountdown;

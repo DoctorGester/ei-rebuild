@@ -283,7 +283,7 @@ bool GiveUnitArmor(Call* call) {
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     unit->EquipArmour(item);
     if (override) {
-        UnitStatPair* protection = static_cast<CMapObjectServer*>(unit->companion)->vitals.protection;
+        UnitStatPair* protection = unit->ServerCompanion()->vitals.protection;
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
         // Four blocks of seven values (A, C, B, D in memory order) and their weights.
         float blocks[4][7] = {};

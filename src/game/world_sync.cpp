@@ -178,10 +178,11 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
             CEngineObject* object = node->value;
             if (object->type_ == kTypeNoSync) continue;
-            if (!OutOfView(PositionOf(object), state) ||
-                (object->GetClassId() == world::kClassUnit &&
-                 static_cast<CUnit*>(object)->player == player))
+            if (!OutOfView(PositionOf(object), state)) {
                 *out++ = object;
+                continue;
+            }
+            if (CUnit* unit = UnitOrNull(object); unit && unit->player == player) *out++ = object;
         }
         return out;
     }

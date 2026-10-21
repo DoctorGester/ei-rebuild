@@ -1228,6 +1228,7 @@ static_assert(offsetof(CMapObjectServer, name78) == 0x78);
 static_assert(offsetof(CMapObjectServer, strings) == 0x80);
 static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
+inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }
 
 class CParticleSource;   // effects.h
 

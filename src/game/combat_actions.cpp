@@ -248,7 +248,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
     if (!player || !link) return;
     CResourceManager* items = player->Party()->ItemManager();
-    auto* copy = static_cast<CItem*>(items->FindObject(link->value));
+    CItem* copy = FindItem(items, link->value);
     if (!copy) return;
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
     player->ItemUsed(copy);   // 00665BE0

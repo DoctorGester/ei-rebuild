@@ -246,7 +246,7 @@ EI_REPLACE_METHOD(0x0050F020, CMapObject::PlaceOnGroundImpl);
 std::uintptr_t CMapObject::SetServerDataImpl(const void* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return static_cast<std::uintptr_t>(classId);
-    return static_cast<CMapObjectServer*>(companion)->SetData(data);
+    return ServerCompanion()->SetData(data);
 }
 EI_REPLACE_METHOD(0x0050F050, CMapObject::SetServerDataImpl);
 
@@ -285,7 +285,7 @@ EI_REPLACE_METHOD(0x0050E890, CMapObject::AttachObjectImpl);
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;
-    static_cast<CMapObjectServer*>(companion)->vitals.Pack(PackedVitals());
+    ServerCompanion()->vitals.Pack(PackedVitals());
     return 1;
 }
 EI_REPLACE_METHOD(0x0050E970, CMapObject::PackVitals);
