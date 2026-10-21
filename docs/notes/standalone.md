@@ -473,6 +473,16 @@ kinds given.
         calls `Destroy()`. A guarded exit function's guard byte is named with it (game_folders.cpp's 007AF438).
         named_data compares such a definition with game.exe's bytes (zero): a registered initialiser's stores are
         not applied (decode_all emits only its call).
+      - C18k4 named whole class objects the same way: a class with game.exe's vtable stays with C19, a class
+        without one is `constinit lib::StaticObject<Class> g_x = /*ADDR*/ {};` and the initialiser calls the class's
+        own `Construct(...)`. named_data needs the class's size (STATIC_OBJECT_BYTES in tools/named_data.py maps the
+        T of a StaticObject<T> to it; a template deeper than one level gets an alias, `using IntSet = ...`). Every
+        access goes through the name or a member (an accessor such as `ThePartyManager()`); a raw address inside the
+        range is refused. Named: ui_objectives' last quest string 007C8178, bink_video's loading holder 007C551C, the
+        protection checks / driver / deferred-unit lists (static_lists.cpp), the spell / item / quest / print / speech
+        databases (database_globals.cpp), the lever table, the unit and skill databases (unit_db_globals.cpp), the
+        party manager 007AA5A0, saved parties 007C82A0, the spell footprint set 007C8478, the party id set 007C8370
+        and the unread set 007AB8D8. Left for C18k5: options, GameFlow, CCursor, CInterface3D.
       - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
         the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
         objects above the folder strings, 007AF43C and 007AF468, lost their proof).
