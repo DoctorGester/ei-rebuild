@@ -65,7 +65,7 @@ void ServerSession::TickImpl(double dt) {
         if (gamecrt::mbscmp(host, game::EmptyText()) != 0) ServerAnnounceToMaster(this);
     }
 }
-EI_REPLACE_METHOD(0x004182E0, ServerSession::TickImpl);
+EI_REWRITTEN(0x004182E0, ServerSession::TickImpl);
 
 // 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.

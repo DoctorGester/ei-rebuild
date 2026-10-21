@@ -435,7 +435,7 @@ void Connection::Track(Replicated* item) {
     if (entry) {
         ei::SetVtable(entry, CRefObject::kVtableAddress);
         entry->object_.FromRawCounted(nullptr);
-        ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
+        ei::SetVtable(entry, ReplicaEntry::Vtable());
         entry->version_ = 0;
         entry->id_ = 0;
     }

@@ -211,8 +211,8 @@ void ServerSession::ReportDeparture(void* connection, int text) {
 void ServerSession::OnClientLostImpl(Connection* connection) { ReportDeparture(connection, 4); }
 void ServerSession::OnClientLeftImpl(Connection* connection) { ReportDeparture(connection, 1); }
 
-EI_REPLACE_METHOD(0x0041A050, ServerSession::AdmitImpl);
-EI_REPLACE_METHOD(0x0041A700, ServerSession::OnClientLostImpl);
-EI_REPLACE_METHOD(0x0041A770, ServerSession::OnClientLeftImpl);
+EI_REWRITTEN(0x0041A050, ServerSession::AdmitImpl);
+EI_REWRITTEN(0x0041A700, ServerSession::OnClientLostImpl);
+EI_REWRITTEN(0x0041A770, ServerSession::OnClientLeftImpl);
 
 } // namespace net

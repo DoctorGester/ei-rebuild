@@ -211,7 +211,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     if (!weapon) return;
     auto* spell = weapon->spell_;
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
-    float cost = std::bit_cast<float>(spell->manaCost_);
+    float cost = spell->manaCost_;
     if (cost > weapon->charge_) return;
     UseItemCharge(weapon, cost);
     CUnit* self = unit;
@@ -228,7 +228,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!item) continue;
         auto* spell = item->spell_;
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
-        float cost = std::bit_cast<float>(spell->manaCost_);
+        float cost = spell->manaCost_;
         if (cost > item->charge_) continue;
         bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;

@@ -75,9 +75,9 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
 }
 
 // The modifier record named `name` (find_or_insert with a null record).
-char* FindModifier(const char* name) {
+itemdb::SpellModifierRecord* FindModifier(const char* name) {
     stlp::string key(name);
-    return stlp::NamedSlot<char>(ModifierNameMap(), key);
+    return stlp::NamedSlot<itemdb::SpellModifierRecord>(ModifierNameMap(), key);
 }
 
 } // namespace
@@ -91,10 +91,10 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
 
-    char* prototype;
+    itemdb::SpellRecord* prototype;
     {
         stlp::string key(static_cast<const char*>(text));
-        prototype = stlp::NamedSlot<char>(SpellNameMap(), key);
+        prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
     if (!constructor->CallBeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(text));

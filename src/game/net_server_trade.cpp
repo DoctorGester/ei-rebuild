@@ -124,7 +124,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
         trade->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
         trade->offer_.ptr = nullptr;   // RefPtr() (0041FFD0)
         trade->partnerOffer_.ptr = nullptr;   // RefPtr() (0041FFD0)
-        ei::SetVtable(trade, TradeMessage::kVtableAddress);
+        ei::SetVtable(trade, TradeMessage::Vtable());
         trade->done_ = 0;
         trade->revision_ = 0;
         trade->partnerRevision_ = 0;

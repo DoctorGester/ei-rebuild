@@ -36,7 +36,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
         MessageConstructBase(file);
         stlp::StringElement::Default(&file->name_);
         file->chunks_.ConstructEmpty();
-        ei::SetVtable(file, FileMessage::kVtableAddress);
+        ei::SetVtable(file, FileMessage::Vtable());
     }
 
     BufferUpdateHigh(data);
@@ -51,7 +51,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     if (chunk) {
         MessageConstructBase(chunk);
         chunk->file_.ptr = nullptr;   // RefPtr() (0041FFC0)
-        ei::SetVtable(chunk, FileChunkMessage::kVtableAddress);
+        ei::SetVtable(chunk, FileChunkMessage::Vtable());
     }
     RefPtr filler;
     filler.Share(chunk);

@@ -39,7 +39,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         MessageConstructBase(player);
         stlp::StringElement::Default(&player->name_);
         stlp::StringElement::Default(&player->text_);
-        ei::SetVtable(player, PlayerMessage::kVtableAddress);
+        ei::SetVtable(player, PlayerMessage::Vtable());
         player->host_ = 0;
         player->state_ = 1;
         player->id_ = -1;
@@ -58,7 +58,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         MessageConstructBase(binding);
         binding->PlayerRef().ptr = nullptr;   // RefPtr() (0041FF80)
         binding->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(binding, BindingMessage::kVtableAddress);
+        ei::SetVtable(binding, BindingMessage::Vtable());
     }
     value = RefPtrFromRaw(&ref, binding);   // 00428050
     self->bindings_.Insert(self->bindings_.End(), *value);

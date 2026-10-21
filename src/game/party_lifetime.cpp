@@ -7,6 +7,7 @@
 
 #include "game_strings.h"
 #include "item.h"
+#include "item_class.h"
 #include "spell.h"
 #include "unit.h"
 
@@ -137,7 +138,7 @@ EI_REPLACE_METHOD(0x006641D0, PartyMemberArray::Serialize);
 
 CItemConstructor* CItemConstructor::Construct() {
     ClearFields();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     material_ = nullptr;
     prototype_ = nullptr;
     item_ = nullptr;

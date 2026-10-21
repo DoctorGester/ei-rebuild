@@ -973,7 +973,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
     CUiSurface's UiSurfaceClass 00740F28 (slot 0 Blit, UiSurfaceBlit) and the scrolling text's tokens (TextTokenClass
     00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
-    (ResourceBaseClass 00743324, ResourceStreamClass 00743320); the item records (item_db.h: ItemRecordTag over
+    (00743324 / 00743320: real virtual classes since C15 batch 11); the item records (item_db.h: ItemRecordTag over
     ItemRecordSlots, one tag per kind 00744054-00744068; the base's 00744060 is ItemRecordBaseClass, whose Kind is
     the compiler CRT's `_purecall` as game.exe's 006E73EB, reached only by a bug); prints.db's PrintRecord /
     PrintRecord2 (00744264 / 00744268: real virtual classes, `Vtable()` the compiler's, Serialize defined).
@@ -983,6 +983,28 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Not vtables**: the five rows a full find_vtables rerun adds (0074676C, 0074718C, 007474B8, 00747E2C / 30) are
     string bytes ("%lc", "Unregister", ...) whose first dword happens to fall in .text: never retire them (zeroing
     them breaks the strings); a rerun's rows need that check before they are copied into config/vtables.csv.
+- **Batch 14's families** (2026-10-21): the network area's tables and the items': 42 rows, 6,126 -> 5,666 code cells,
+  220 slot registrations EI_REWRITTEN.
+  - **Messages and server entries** (net_messages.h): `ReplicatedClass<Self, T, Destroy>` declares the six CRefObject
+    slots (0 Destroy plus operator delete, 1 an empty Serialize, 2-5 OnShutdown / Clone / Write / Read called qualified,
+    `_purecall` where T is abstract); one final tag per message class (20 rows 0073BB28-0073BDD0). The message
+    registry keys on the stored table, so every store uses `X::Vtable()`.
+  - **Sessions** (net_classes.h): SessionBaseClass (15 slots), ServerBaseClass / ClientBaseClass (17) and the final
+    ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
+    **Links** (net_link.h): FileStreamClass, NetLinkClass and its Loopback / Replay / Framed / Driver tags,
+    DriverSessionClass. net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
+  - **Items** (item_class.h over engine_object_class.h): EngineObjectClass declares CEngineObject's 13 slots with the
+    base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
+    (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
+    scroll's slots 9, 10, 13 and 14 are CItemQuick's bodies) and the item constructor's.
+  - **Trap: a removed `kVtableAddress` falls back to the base's.** Removing a class's constant leaves an unqualified
+    `kVtableAddress` in its members compiling against the base class's (CEngineObject's 0073B8E0, CRefObject's): the
+    first build of the item tags stored CEngineObject's table from party_lifetime.cpp's CItemConstructor::Construct
+    and every run hit `_purecall` at startup. Before building, declare a poison member (`static const struct
+    Poison kVtableAddress;`) in the classes and build once to list every leftover use.
+  - **Left**: GameBuffer's 0073CA48 / 0073CA64 / 0073D624 (net_coder.h): tests/vectors/record_coder.cpp compares a
+    buffer's table with game.exe's address under game.exe, which named_data's check forbids for a retired row; it
+    needs another recognition first.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

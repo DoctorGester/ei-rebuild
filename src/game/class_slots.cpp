@@ -170,10 +170,10 @@ EI_REPLACE_METHOD(0x004467C0, CMapObject::SetVisibilityModeImpl);
 mfc::CString* CItem::EmptyName(mfc::CString* out) {
     return new (out) mfc::CString(game::EmptyText());
 }
-EI_REPLACE_METHOD(0x00462300, CItem::EmptyName);
-EI_REPLACE_METHOD(0x00462330, CItem::EmptyName);
-EI_REPLACE_METHOD(0x00462360, CItem::EmptyName);
-EI_REPLACE_METHOD(0x00462390, CItem::EmptyName);
+EI_REWRITTEN(0x00462300, CItem::EmptyName);
+EI_REWRITTEN(0x00462330, CItem::EmptyName);
+EI_REWRITTEN(0x00462360, CItem::EmptyName);
+EI_REWRITTEN(0x00462390, CItem::EmptyName);
 
 // 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
 // zeroed and returned. (Slot 16, 004622F0, is four bytes and cannot be hooked.)
@@ -183,4 +183,4 @@ ItemUse* CItem::NoUse(ItemUse* out) {
     out->extra = 0;
     return out;
 }
-EI_REPLACE_METHOD(0x004623C0, CItem::NoUse);
+EI_REWRITTEN(0x004623C0, CItem::NoUse);

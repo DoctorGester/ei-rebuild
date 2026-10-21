@@ -273,12 +273,12 @@ inline float PrototypeRange(CSpellEffect* e) {
 
 inline float Power(CSpellEffect* e) {
     float out;
-    PowerToFloat(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), &out);
+    PowerToFloat(&e->Spell()->damage_, &Prototype(e)->damage, &out);
     return out;
 }
 inline float PowerScaled(CSpellEffect* e, const float& scale) {
     float out;
-    PowerScaledToFloat(&e->damage, reinterpret_cast<const float*>(&Prototype(e)->effectValues[4]), ConstPtr(scale), &out);
+    PowerScaledToFloat(&e->Spell()->damage_, &Prototype(e)->damage, ConstPtr(scale), &out);
     return out;
 }
 
@@ -309,7 +309,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, kPtrListBlockSize);
     DamageInfo hit;
     e->GetDamage(&hit);
-    e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
+    e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
     for (auto* node = units.head; node;) {
         CUnit* unit = node->data;
         node = node->next;

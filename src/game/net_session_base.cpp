@@ -74,7 +74,7 @@ SessionBase* SessionBase::Construct() {
     for (auto& channel : handlers_)
         for (HandlerVector& v : channel) v = HandlerVector{};
     reinterpret_cast<std::uint32_t*>(&time_)[0] = 0;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     reinterpret_cast<std::uint32_t*>(&time_)[1] = 0;
     frame_ = 1;
     magic_ = 0;

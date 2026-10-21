@@ -29,7 +29,7 @@ void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 ServerSession* ServerSession::Construct(std::uint32_t kind) {
     SessionBase::Construct();
     joins_.Construct();
-    ei::SetVtable(this, ServerBase::kVtableAddress);
+    ei::SetVtable(this, ServerBase::Vtable());
     socket_.Open(g_gamePort);
     masterAddress_ = NetAddress{};
     players_.Construct();
@@ -48,7 +48,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     banned_.Construct();
     stlp::StringElement::Default(&name_);
     stlp::StringElement::Default(&mapName_);
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
@@ -161,6 +161,6 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }
-EI_REPLACE_METHOD(0x00417EB0, ServerSession::CollectReplicatedImpl);
+EI_REWRITTEN(0x00417EB0, ServerSession::CollectReplicatedImpl);
 
 } // namespace net

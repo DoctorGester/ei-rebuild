@@ -157,6 +157,6 @@ void ClientSession::TickImpl(double dt) {
     if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
     ApplyAwards();
 }
-EI_REPLACE_METHOD(0x0041CCD0, ClientSession::TickImpl);
+EI_REWRITTEN(0x0041CCD0, ClientSession::TickImpl);
 
 } // namespace net
