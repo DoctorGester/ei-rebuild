@@ -25,7 +25,7 @@ netlink::NetLink* ActiveLink(CPlayer* session) {
 
 void CWorldClient::SetPlayer(std::uint8_t* player) {
     CloseSession();
-    netlink::NetLink* link = netlink::LoopbackLink::CreatePair(shared5C_.ptr, nullptr, player);
+    netlink::NetLink* link = netlink::LoopbackLink::CreatePair(player);
     ClearMaps();
     ResetZoneObjects();
     session_->Connect(nullptr);
@@ -34,7 +34,7 @@ void CWorldClient::SetPlayer(std::uint8_t* player) {
 
 void CWorldClient::PlayRecording(const char* path) {
     session_->Connect(nullptr);
-    netlink::NetLink* link = netlink::ReplayLink::Create(handle_.ptr, nullptr, path);
+    netlink::NetLink* link = netlink::ReplayLink::Create(path);
     ClearMaps();
     ResetZoneObjects();
     session_->Connect(nullptr);

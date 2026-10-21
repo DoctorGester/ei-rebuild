@@ -166,7 +166,7 @@ public:
 
     // 004782E0 (thiscall with an unused this, RET 4). Two links joined to each other; the first goes
     // to the player's link (+8), the second is returned.
-    static LoopbackLink* __fastcall CreatePair(void* unused, void*, std::uint8_t* player);
+    static LoopbackLink* __stdcall CreatePair(std::uint8_t* player);
     // 004787A0. The peer released, the queue destroyed, then the record stream; the root vtable left.
     void Destruct();
     // 00478780 (slot 0).
@@ -199,7 +199,7 @@ public:
     void Disconnect() override;                 // 11: 00478C90 (closes the recording)
 
     // 00478960 (thiscall with an unused this, RET 4). A replay link reading the recording `path`.
-    static ReplayLink* __fastcall Create(void* unused, void*, const char* path);
+    static ReplayLink* __stdcall Create(const char* path);
     // 00478CC0. Both file streams destroyed (the replay's first), the root vtable left.
     void Destruct();
     // 00478CA0 (slot 0).

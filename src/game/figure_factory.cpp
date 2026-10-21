@@ -57,7 +57,7 @@ void* Create(int classId) {
 
 } // namespace
 
-void* __fastcall CreateFigureObject(void*, void*, int classId) {
+void* __stdcall CreateFigureObject(int classId) {
     void* object = Create(classId);
     if (!object) return nullptr;
     static_cast<CEngineObject*>(object)->type_ = classId;

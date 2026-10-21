@@ -56,7 +56,7 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
     }
 }
 
-void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
+void __stdcall GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
     if (!plain) g_guardKey = IsaacRandom::Global().Next();   // a new key each time the data is hidden
     GuardPlayers(ClientPlayers(), 0, g_guardKey);

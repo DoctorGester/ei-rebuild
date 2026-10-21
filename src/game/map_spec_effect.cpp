@@ -27,7 +27,7 @@ namespace mapspec {
 
 // EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
 
-void __fastcall EffectNotify(void*, void*, std::uintptr_t, std::uintptr_t);
+void __stdcall EffectNotify(std::uintptr_t, std::uintptr_t);
 namespace {
 
 void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
@@ -50,7 +50,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // The notification made before a new effect: (kind, family) strings by value, the second made
 // first.
-void Notify(void* self, const char* kind, const char* family) {
+void Notify(const char* kind, const char* family) {
     alignas(mfc::CString) unsigned char second[sizeof(mfc::CString)];
     alignas(mfc::CString) unsigned char first[sizeof(mfc::CString)];
     new (second) mfc::CString(family);
@@ -58,7 +58,7 @@ void Notify(void* self, const char* kind, const char* family) {
     std::uintptr_t a, b;
     std::memcpy(&a, first, 4);
     std::memcpy(&b, second, 4);
-    EffectNotify(self, nullptr, a, b);
+    EffectNotify(a, b);
 }
 
 // A new world object for the record and its effect.
@@ -128,7 +128,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
 EI_REPLACE_METHOD(0x0046D420, EffectSpec::EffectSpecMove);
 
 // 0046D4D0: takes the two strings (by value) and only destroys them.
-void __fastcall EffectNotify(void*, void*, std::uintptr_t kind, std::uintptr_t family) {
+void __stdcall EffectNotify(std::uintptr_t kind, std::uintptr_t family) {
     reinterpret_cast<mfc::CString*>(&kind)->~CString();
     reinterpret_cast<mfc::CString*>(&family)->~CString();
 }
@@ -190,7 +190,7 @@ EI_REPLACE_METHOD(0x0046D730, ParticleSpec::ParticleSpecOnChunk);
 void ParticleSpec::ParticleSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, "efcu3", "particles");
+        Notify("efcu3", "particles");
         if (type) MakeEffect(&effect);
         return;
     }
@@ -264,7 +264,7 @@ EI_REPLACE_METHOD(0x0046DBF0, LightSpec::LightSpecOnChunk);
 void LightSpec::LightSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, "efcu0", "light");
+        Notify("efcu0", "light");
         MakeEffect(&effect);
         return;
     }
@@ -372,7 +372,7 @@ EI_REPLACE_METHOD(0x0046E190, SoundSpec::SoundSpecOnChunk);
 void SoundSpec::SoundSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, "efcu2", "sound");
+        Notify("efcu2", "sound");
         if (sounds.size > 0) MakeEffect(&effect);
         return;
     }

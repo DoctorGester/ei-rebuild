@@ -400,7 +400,7 @@ static_assert(sizeof(CParticleSource) == 0x1F0);
 
 // 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
 // `type` (the register arguments are unused), or null.
-CParticleSource* __fastcall NewParticleSource(void*, void*, int type);
+CParticleSource* __stdcall NewParticleSource(int type);
 // 004982D0 / 004982E0 (CParticleSource slots 11 / 12, particle_create.cpp): "CParticle", 12.
 const char* __fastcall ParticleSourceClassName(CParticleSource* source);
 int __fastcall ParticleSourceClassId(CParticleSource* source);

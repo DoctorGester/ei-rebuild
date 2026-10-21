@@ -2124,7 +2124,7 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to);
 // controller statistics (0x704 bytes from +0x1E0) are XORed with a new random key (007AFECC),
 // with 1 they are XORed back; also the party records outside a game (007C82B0). Nothing when
 // the state (0079026C) is already `plain`. 005791C0 (RET 4) does one player list.
-void __fastcall GuardPlayerData(void* glue, void*, char plain);
+void __stdcall GuardPlayerData(char plain);
 void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------

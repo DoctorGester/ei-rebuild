@@ -675,12 +675,11 @@ void PrintClientSpeed(float speed, float balance) {
 bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
-    void* glue = GameGlueObject();
     if (!(SceneRenderer()->flags_ & 1)) {
-        GuardPlayerData(glue, nullptr, 0);
+        GuardPlayerData(0);
         return false;
     }
-    GuardPlayerData(glue, nullptr, 1);
+    GuardPlayerData(1);
     CWorldClient* client = TheClientWorld();
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
