@@ -34,6 +34,39 @@ target_compile_definitions(ei_render PRIVATE EI_FONT_DIR="${CMAKE_SOURCE_DIR}/th
 if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
+# The renderer's shaders: written in src/render/shaders/*.hlsl, compiled to bytecode here with the Windows
+# SDK's fxc (on the path in the VS build environment) into headers under shaders/ in the build folder, which
+# render_shaders.cpp includes; sokol takes the bytecode, so no shader compiler runs at start (SV10b). The
+# shaders include each other: each header depends on all of them.
+find_program(EI_FXC fxc REQUIRED)
+file(GLOB EI_SHADER_SOURCES CONFIGURE_DEPENDS src/render/shaders/*.hlsl src/render/shaders/*.hlsli)
+set(EI_SHADER_SCRIPT ${CMAKE_SOURCE_DIR}/src/render/shaders/compile.cmake)
+set(EI_SHADER_HEADERS)
+# ei_shader(<array> <file> <entry> <profile> [<define>...]): the array's header shaders/<array>.h.
+function(ei_shader name file entry profile)
+    set(out ${CMAKE_BINARY_DIR}/shaders/${name}.h)
+    add_custom_command(OUTPUT ${out}
+        COMMAND ${CMAKE_COMMAND} -DFXC=${EI_FXC} -DSOURCE=${CMAKE_SOURCE_DIR}/src/render/shaders/${file} -DENTRY=${entry}
+                -DPROFILE=${profile} -DNAME=${name} "-DDEFINES=${ARGN}" -DOUT=${out} -P ${EI_SHADER_SCRIPT}
+        DEPENDS ${EI_SHADER_SOURCES} ${EI_SHADER_SCRIPT}
+        COMMENT "Compiling shader ${file} ${entry} ${ARGN}"
+        VERBATIM)
+    set(EI_SHADER_HEADERS ${EI_SHADER_HEADERS} ${out} PARENT_SCOPE)
+endfunction()
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
+foreach(s blit clear_depth mesh terrain present shadow_caster into_multisampled)
+    ei_shader(${s}_vs ${s}.hlsl vs_main vs_4_0)
+    ei_shader(${s}_ps ${s}.hlsl ps_main ps_4_0)
+endforeach()
+ei_shader(depth_from_multisampled_vs depth_from_multisampled.hlsl vs_main vs_4_0 SAMPLES=8)   # (reads no texture)
+foreach(samples 2 4 8)   # render_internal.h's kSmoothSamples and the counts below it
+    ei_shader(depth_from_multisampled${samples}_ps depth_from_multisampled.hlsl ps_main ps_4_0 SAMPLES=${samples})
+endforeach()
+ei_shader(shadow_range_vs shadow_range_vs.hlsl vs_main vs_4_0)
+ei_shader(shadow_reduce_ps shadow_reduce.hlsl ps_main ps_4_1)   # Gather (Direct3D 10.1)
+ei_shader(shadow_dilate_ps shadow_dilate.hlsl ps_main ps_4_1)
+target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})
+target_include_directories(ei_render PRIVATE ${CMAKE_BINARY_DIR})
 
 add_library(ei_hook SHARED
     src/hook/cover.cpp

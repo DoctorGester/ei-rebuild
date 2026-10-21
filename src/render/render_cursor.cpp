@@ -327,7 +327,7 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
     D3D11_SUBRESOURCE_DATA init{cursor.data(), static_cast<UINT>(w * 4), 0};
     ID3D11Texture2D* texture = nullptr;
     ID3D11ShaderResourceView* view = nullptr;
-    // The window blit's cbuffers (render_blit.cpp kBlitSource): the rectangle and the frame's size;
+    // The window blit's cbuffers (shaders/blit.hlsl): the rectangle and the frame's size;
     // the destination's corner, one texel a pixel, the source corner and the texture's size. The
     // present's (render_window.cpp): the whole frame.
     float blitVs[8] = {static_cast<float>(to.left), static_cast<float>(to.top), static_cast<float>(to.right), static_cast<float>(to.bottom),

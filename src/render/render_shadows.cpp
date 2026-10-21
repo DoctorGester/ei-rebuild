@@ -5,8 +5,8 @@
 // draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
 // meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
-// alpha), then the map's depth range per cell (kReduceSource, kDilateSource). The terrain and mesh
-// shaders sample it with soft, contact-hardening edges (ShadowHlsl, R16j2). With the classic option
+// alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
+// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli, R16j2). With the classic option
 // (render::SetClassicShadows) none of this runs and the game's decals draw as before.
 //
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
@@ -54,12 +54,12 @@ constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fadi
 constexpr double kSunSize = 0.025;
 constexpr double kWidestRadius = 0.6;
 constexpr double kLeastRadius = 1.5;
-// The cells of the map's depth range (kReduceSource, the receivers' early end): kRangeCell texels a
+// The cells of the map's depth range (shaders/shadow_reduce.hlsl, the receivers' early end): kRangeCell texels a
 // side, so kRangeSize cells a side; the dilation reaches at most kMostCellsAround cells.
 constexpr int kRangeCell = 16;
 constexpr int kRangeSize = kMapSize / kRangeCell;
 constexpr int kMostCellsAround = 8;
-static_assert(kMapSize == 4096 && kRangeCell == 16, "the constants written in kReduceSource and kReceiverSource");
+static_assert(kMapSize == 4096 && kRangeCell == 16, "the constants written in shaders/shadow_reduce.hlsl and shadow_receiver.hlsli");
 
 // --- Matrices in double ----------------------------------------------------------------------------
 
@@ -148,162 +148,6 @@ ShadowInfo g_info, g_lastInfo;
 
 // --- GPU side ---------------------------------------------------------------------------------------
 
-// The casters into the map: positions through the light matrix; a pass with alpha test or blending
-// cut out where its stage-0 texel's alpha is below the reference. The texel is the texture's own
-// (level 0): seen from the sun at a grazing angle a smaller level's averaged alpha would cut out
-// edges and fronds that the camera's view keeps.
-const char* const kCasterSource = R"(
-cbuffer vs_params : register(b0) { float4 row0; float4 row1; float4 row2; float4 row3; float4 uv_offset; };
-cbuffer fs_params : register(b0) { float4 alpha; };   // x: cut out, y: the least alpha kept
-struct vs_in { float3 pos : POSITION; float2 uv : TEXCOORD0; };
-struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };
-vs_out vs_main(vs_in i) {
-    float4 p = float4(i.pos, 1.0);
-    vs_out o;
-    o.pos = float4(dot(row0, p), dot(row1, p), dot(row2, p), dot(row3, p));
-    o.uv = i.uv + uv_offset.xy;
-    return o;
-}
-Texture2D<float4> tex : register(t0);
-SamplerState smp : register(s0);
-void ps_main(vs_out i) {
-    if (alpha.x > 0.5 && tex.SampleLevel(smp, i.uv, 0.0).a < alpha.y) discard;
-}
-)";
-
-// The receivers' part (included in the terrain and mesh shaders): how much of the sun the map hides
-// at a pixel, times the strength. `s` is the pixel's position in the map's clip space, `dsx` / `dsy`
-// its screen derivatives (taken before any discard), `pixel` its screen position. Surfaces turned
-// away from the sun (their face normal, towards the camera) are left as the game lit them. Every
-// comparison follows the receiver's plane (its depth slope across the map, clamped).
-// Soft edges (R16j2), contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
-// the nearest and the farthest depth of the cells within the widest filter's reach (x, y) and the
-// cell's own nearest (z). A pixel nearer than every depth around is lit, one farther than every depth
-// around is shadowed. For the others (near an edge) the nearest depth around bounds the filter's
-// radius: the distance along the light to it times the sun's chosen size (soft.x), from soft.z to
-// soft.y. When that bound is wider than a cell, a blocker search narrows it: kSearchTaps cells on a
-// disc of the bound and the pixel's own give the mean distance from the receiver to the nearest
-// caster in each cell that hides it, the radius that distance times soft.x (so a shadow is sharp
-// where its caster meets the ground). Then bilinear comparisons on a disc of the radius:
-// kFilterTaps, or kFewTaps on a narrow one. Both discs are Vogel spirals turned per pixel
-// (interleaved gradient noise of the screen position): the few taps make a fine grain instead of
-// bands. The search reads the small cell image, not the map: the map's texels far apart and turned
-// per pixel cost far more.
-const char* const kReceiverSource = R"(
-static const int kSearchTaps = 8;
-static const int kFilterTaps = 16;
-static const int kFewTaps = 8;
-static const int kShadowCell = 16;   // kRangeCell
-float2 shadow_disc(int k, int n, float2 turn) {
-    float r = sqrt((k + 0.5) / n);
-    float a = k * 2.39996323;   // the golden angle
-    return mul(float2x2(turn.x, -turn.y, turn.y, turn.x), float2(cos(a), sin(a)) * r);
-}
-float shadow_filter(Texture2D<float> map, SamplerComparisonState smp, float2 uv, float z, float2 slope,
-                    float radius, float2 turn, int n) {
-    float lit = 0.0;
-    for (int j = 0; j < n; ++j) {
-        float2 o = shadow_disc(j, n, turn) * radius;
-        lit += map.SampleCmpLevelZero(smp, uv + o, z + dot(slope, o));
-    }
-    return 1.0 - lit / n;
-}
-float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<float4> range, float3 s,
-                    float3 dsx, float3 dsy, float4 on, float4 scale, float4 cam, float4 soft, float2 pixel) {
-    if (on.x < 0.5) return 0.0;
-    float2 uv = float2(s.x * 0.5 + 0.5, 0.5 - s.y * 0.5);
-    if (any(uv < 0.0) || any(uv > 1.0) || s.z > 1.0) return 0.0;
-    float3 n = cross(dsx * scale.xyz, dsy * scale.xyz);
-    float len = length(n);
-    float facing = 1.0;
-    if (len > 1e-20) {
-        n /= len;
-        if (dot(n, (cam.xyz - s) * scale.xyz) < 0.0) n = -n;
-        facing = saturate(-n.z * 6.0);   // the sun's light travels along +z
-    }
-    if (facing <= 0.0) return 0.0;
-    float2 ux = float2(dsx.x * 0.5, -dsx.y * 0.5), uy = float2(dsy.x * 0.5, -dsy.y * 0.5);
-    float det = ux.x * uy.y - ux.y * uy.x;
-    float2 slope = 0.0;
-    if (abs(det) > 1e-24) slope = float2(uy.y * dsx.z - ux.y * dsy.z, ux.x * dsy.z - uy.x * dsx.z) / det;
-    slope = clamp(slope, -scale.w, scale.w);
-    float z = s.z - on.w;
-    int cells = int(soft.w) / kShadowCell - 1;
-    float4 around = range.Load(int3(clamp(int2(uv * soft.w) / kShadowCell, 0, cells), 0));
-    float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
-    if (around.x >= z + reach) return 0.0;
-    if (around.y < z - reach) return facing * on.y;
-    float widest = clamp((z + reach - around.x) * soft.x, soft.z, soft.y);
-    float turn_angle = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
-    float2 turn = float2(cos(turn_angle), sin(turn_angle));
-    float radius = widest;
-    [branch] if (widest * soft.w > kShadowCell) {
-        float apart = 0.0, hidden = 0.0;
-        if (around.z < z) { apart += z - around.z; hidden += 1.0; }
-        [unroll] for (int k = 0; k < kSearchTaps; ++k) {
-            float2 o = shadow_disc(k, kSearchTaps, turn) * widest;
-            float zo = z + dot(slope, o);
-            float d = range.Load(int3(clamp(int2((uv + o) * soft.w) / kShadowCell, 0, cells), 0)).z;
-            if (d < zo) { apart += zo - d; hidden += 1.0; }
-        }
-        if (hidden == 0.0) return 0.0;
-        radius = clamp(apart / hidden * soft.x, soft.z, widest);
-    }
-    float2 turn2 = mul(float2x2(turn.x, -turn.y, turn.y, turn.x), float2(0.70710678, 0.70710678));
-    float part;
-    [branch] if (radius * soft.w < 4.0) part = shadow_filter(map, smp, uv, z, slope, radius, turn2, kFewTaps);
-    else part = shadow_filter(map, smp, uv, z, slope, radius, turn2, kFilterTaps);
-    return part * facing * on.y;
-}
-)";
-
-// The cells' depth range (`range` above) in two passes after the casters: the nearest and farthest
-// texel of each kRangeCell x kRangeCell cell of the map (Gather, shader model 4.1: four texels a fetch),
-// then of the cells within `reach.x` cells around each (enough for the search's and the filter's
-// reach), with the cell's own nearest.
-const char* const kRangeVsSource = R"(
-float4 vs_main(uint id : SV_VertexID) : SV_Position {
-    float2 p = float2((id << 1) & 2, id & 2);
-    return float4(p * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-}
-)";
-const char* const kReduceSource = R"(
-Texture2D<float> map : register(t0);
-SamplerState point_smp : register(s0);
-static const int kCell = 16;          // kRangeCell
-static const float kTexels = 4096.0;  // kMapSize
-float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
-    float2 base = floor(pos.xy) * kCell;
-    float lo = 1.0, hi = 0.0;
-    [unroll] for (int j = 0; j < kCell / 2; ++j) {
-        [unroll] for (int i = 0; i < kCell / 2; ++i) {
-            float4 g = map.Gather(point_smp, (base + float2(i * 2 + 1, j * 2 + 1)) / kTexels);
-            lo = min(lo, min(min(g.x, g.y), min(g.z, g.w)));
-            hi = max(hi, max(max(g.x, g.y), max(g.z, g.w)));
-        }
-    }
-    return float4(lo, hi, 0.0, 0.0);
-}
-)";
-const char* const kDilateSource = R"(
-cbuffer fs_params : register(b0) { int4 reach; };   // x: cells around, y: the last cell
-Texture2D<float4> cells : register(t0);
-SamplerState point_smp : register(s0);
-float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
-    int2 c = int2(pos.xy);
-    int last = reach.y;
-    float lo = 1.0, hi = 0.0;
-    for (int j = -reach.x; j <= reach.x; ++j) {
-        for (int i = -reach.x; i <= reach.x; ++i) {
-            float4 r = cells.Load(int3(clamp(c + int2(i, j), 0, last), 0));
-            lo = min(lo, r.x);
-            hi = max(hi, r.y);
-        }
-    }
-    return float4(lo, hi, cells.Load(int3(c, 0)).x, 0.0);
-}
-)";
-
 struct CasterVs {
     Matrix4 light;
     float uvOffset[4];   // a mesh kept on the GPU's texture offsets (MeshBatch::uOffset, vOffset)
@@ -318,7 +162,7 @@ sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
 sg_sampler g_compare{};
 bool g_dummyCleared = false;
-// The depth range per cell (kReduceSource), then around each cell (kDilateSource).
+// The depth range per cell (shaders/shadow_reduce.hlsl), then around each cell (shadow_dilate.hlsl).
 sg_shader g_reduceShader{}, g_dilateShader{};
 sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
@@ -329,10 +173,7 @@ int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
-    s.vertex_func.source = kCasterSource;
-    s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = kCasterSource;
-    s.fragment_func.entry = "ps_main";
+    SetBytecode(s, kCasterShader);
     s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
     s.attrs[0].hlsl_sem_name = "POSITION";
     s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
@@ -427,15 +268,11 @@ sg_sampler PointSampler() {
 
 // A full-screen pass's shader and pipeline into an RGBA32F image: `fragment` reads view 0 (of
 // `sampleType`, with the point sampler) and, with `uniforms`, 16 bytes of fragment uniforms.
-bool MakeRangePipeline(const char* fragment, sg_image_sample_type sampleType, bool uniforms, const char* label,
+bool MakeRangePipeline(const ShaderBytecode& code, sg_image_sample_type sampleType, bool uniforms, const char* label,
                        sg_shader* shader, sg_pipeline* pipeline) {
     if (shader->id) return sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
-    s.vertex_func.source = kRangeVsSource;
-    s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = fragment;
-    s.fragment_func.entry = "ps_main";
-    s.fragment_func.d3d11_target = "ps_4_1";   // Gather (Direct3D 10.1)
+    SetBytecode(s, code);
     if (uniforms) {
         s.uniform_blocks[0].stage = SG_SHADERSTAGE_FRAGMENT;
         s.uniform_blocks[0].size = 16;
@@ -628,8 +465,6 @@ void ShadowFrameDone() {
     g_info = ShadowInfo{};
 }
 
-const char* ShadowHlsl() { return kReceiverSource; }
-
 void PrepareShadows(Frame& f) {
     ShadowFrame& sh = f.shadow;
     sh.prepared = true;
@@ -804,9 +639,9 @@ void DrawShadowMap(Frame& f) {
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
         bool ok = MakeCasterPipelines() &&
                   (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
-                  MakeRangePipeline(kReduceSource, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
+                  MakeRangePipeline(kReduceShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
                                     &g_reduceShader, &g_reducePipeline) &&
-                  MakeRangePipeline(kDilateSource, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
+                  MakeRangePipeline(kDilateShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
                                     &g_dilateShader, &g_dilatePipeline) &&
                   (g_cells.id || MakeRange(kRangeSize, "ei-shadow-cells", &g_cells, &g_cellsAttachment, &g_cellsTexture)) &&
                   (g_range.id || MakeRange(kRangeSize, "ei-shadow-range", &g_range, &g_rangeAttachment, &g_rangeTexture));

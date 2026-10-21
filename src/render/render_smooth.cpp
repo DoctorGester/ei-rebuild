@@ -15,55 +15,22 @@
 #include <windows.h>
 #include <d3d11.h>
 
-#include <cstdio>
-
 namespace render {
 
 namespace {
 
 using namespace detail;
 
-// A triangle covering the target; the pixel shader reads the source at its own pixel.
-const char* const kIntoMultisampledSource = R"(
-float4 vs_main(uint id : SV_VertexID) : SV_Position {
-    float2 p = float2((id << 1) & 2, id & 2);
-    return float4(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0);
-}
-Texture2D<float4> colour : register(t0);
-Texture2D<float> depth : register(t1);
-float4 ps_main(float4 pos : SV_Position, out float z : SV_Depth) : SV_Target0 {
-    int3 at = int3(pos.xy, 0);
-    z = depth.Load(at);
-    return colour.Load(at);
-}
-)";
-
-// %d: the sample count (shader model 4 wants the multisampled texture's count in its type).
-const char* const kDepthFromMultisampledFormat = R"(
-float4 vs_main(uint id : SV_VertexID) : SV_Position {
-    float2 p = float2((id << 1) & 2, id & 2);
-    return float4(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0);
-}
-Texture2DMS<float, %d> depth : register(t0);
-float4 ps_main(float4 pos : SV_Position, out float z : SV_Depth) : SV_Target0 {
-    z = depth.Load(int2(pos.xy), 0);
-    return float4(0.0, 0.0, 0.0, 0.0);
-}
-)";
-
 sg_shader g_intoShader{}, g_fromShader{};
 sg_pipeline g_into{}, g_from{};
 int g_copySamples = 0;   // the sample count the copies were made for
 sg_sampler g_point{};
 
-// A shader of `source` reading `views` textures (t0..), each paired with one non-filtering sampler
+// A shader of `code` (shaders/*.hlsl) reading `views` textures (t0..), each paired with one non-filtering sampler
 // (sokol wants every texture paired; the shaders only Load).
-sg_shader CopyShader(const char* source, int views, bool multisampled, const char* label) {
+sg_shader CopyShader(const ShaderBytecode& code, int views, bool multisampled, const char* label) {
     sg_shader_desc s{};
-    s.vertex_func.source = source;
-    s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = source;
-    s.fragment_func.entry = "ps_main";
+    SetBytecode(s, code);
     s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
     s.samplers[0].hlsl_register_s_n = 0;
@@ -124,15 +91,13 @@ int SupportedSamples(ID3D11Device* device) {
 bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
     DestroySmooth();
-    char from[1024];
-    std::snprintf(from, sizeof(from), kDepthFromMultisampledFormat, samples);
     sg_sampler_desc d{};
     d.min_filter = SG_FILTER_NEAREST;
     d.mag_filter = SG_FILTER_NEAREST;
     d.label = "ei-smooth-copy";
     g_point = sg_make_sampler(&d);
-    g_intoShader = CopyShader(kIntoMultisampledSource, 2, false, "ei-into-multisampled");
-    g_fromShader = CopyShader(from, 1, true, "ei-depth-from-multisampled");
+    g_intoShader = CopyShader(kIntoMultisampledShader, 2, false, "ei-into-multisampled");
+    g_fromShader = CopyShader(DepthFromMultisampledShader(samples), 1, true, "ei-depth-from-multisampled");
     g_into = CopyPipeline(g_intoShader, samples, true, "ei-into-multisampled");
     g_from = CopyPipeline(g_fromShader, 1, false, "ei-depth-from-multisampled");
     bool ok = sg_query_pipeline_state(g_into) == SG_RESOURCESTATE_VALID && sg_query_pipeline_state(g_from) == SG_RESOURCESTATE_VALID;

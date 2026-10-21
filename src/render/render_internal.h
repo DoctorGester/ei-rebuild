@@ -59,6 +59,23 @@ struct StagePatch {
 // The patch the texture of `holder` has, as of now (render_textures.cpp).
 StagePatch PatchOf(const void* holder);
 
+// A shader's bytecode, vertex and pixel functions (render_shaders.cpp): compiled from
+// src/render/shaders/*.hlsl at build time (CMakeLists.txt's ei_shader), so sokol runs no compiler.
+struct ShaderBytecode {
+    sg_range vs, ps;
+};
+extern const ShaderBytecode kBlitShader, kClearDepthShader;   // render_blit.cpp
+extern const ShaderBytecode kMeshShader;                      // render_mesh.cpp
+extern const ShaderBytecode kTerrainShader;                   // render_terrain.cpp
+extern const ShaderBytecode kPresentShader;                   // render_window.cpp
+extern const ShaderBytecode kIntoMultisampledShader;          // render_smooth.cpp
+extern const ShaderBytecode kCasterShader, kReduceShader, kDilateShader;   // render_shadows.cpp
+// The smooth option's depth copy for a multisampled target of `samples` (2, 4 or 8); null ranges for
+// another count.
+ShaderBytecode DepthFromMultisampledShader(int samples);
+// `code` as the shader functions of `s`.
+void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code);
+
 // The old device's state for one pass of a mesh draw: what the new renderer needs to draw it the
 // same way. Blend, depth and culling make the pipeline; the rest goes to the shader.
 struct PassState {
@@ -151,7 +168,7 @@ struct Command {
     int index;                // into terrainBatches / meshBatches / blitBatches / clears
 };
 
-// The receivers' shader parameters of the shadow map (render_shadows.cpp, ShadowHlsl).
+// The receivers' shader parameters of the shadow map (render_shadows.cpp; shaders/shadow_receiver.hlsli).
 struct ShadowParams {
     float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
     float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
@@ -417,11 +434,10 @@ void DropMeshCache();
 // around the visible ground seen from the sun and gives every receiving batch its light matrix;
 // DrawShadowMap then draws the casters into the map (a pass of its own) and its depth range per cell
 // (two small passes: the receivers' early end and blocker search). The receivers' shaders
-// include ShadowHlsl (vs: `shadow_position(row0..3)`-style light rows; ps: `shadow_factor`), take
+// include shaders/shadow_receiver.hlsli (ps: `shadow_amount`, from the light rows' map position), take
 // ShadowParams in their uniforms and bind the map (or a cleared 1 x 1 one) with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-const char* ShadowHlsl();
 void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
 // The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots,
