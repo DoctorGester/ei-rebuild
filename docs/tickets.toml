@@ -2293,6 +2293,34 @@ model = "opus"
 files = ["CMakeLists.txt src/lib/x87* docs/cleanup-plan.md"]
 note = "User 2026-10-21 asked about removing x87 completely; cleanup-plan Phase 4 plans an SSE2 build. Today: /arch:IA32 /fp:precise; x87:: helpers at ~770 sites (fistp 197, fsqrt 150, IsNaN 106, FromUnsigned 85, fcos 81, fsin 78, CopyFloat 36, fpatan 27, LoadStoreBits 21, flog 15, CompareStatus 10, fexp 7); the game runs the x87 at 24-bit precision in play. Experiment in a worktree, nothing merged unless it is free: build the image with /arch:SSE2 (helpers kept as they are, then a second build with the helpers written as plain C++ / SSE: lrintf for fistp, sqrtf, std::sin etc.), run the image suite, and report per golden: same / differs, the first differing frame and field, and which helper or plain-float expression caused it (bisect by turning helpers back one family at a time). Expected: float arithmetic at 24-bit precision matches SSE single except exponent range; doubles computed under PC24, the transcendental instructions (fsin, fcos, fpatan, flog, fexp) and fistp's rounding mode are where results can part. Output: a table of families that are free to convert (goldens the same), families that change results and how much, and a recommendation for keeping an oracle (bit-exact x87-emulating helpers vs re-recorded goldens with behaviour-level checks). Frame-time difference too (main-thread CPU in render_stats)."
 
+[[ticket]]
+id = "C16a"
+title = "x87:: maths helpers to std:: at the call sites (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "C16 made x87::fsqrt / fsin / fcos / fpatan / flog / flog10 plain wrappers of std::sqrt / sin / cos / atan2 / log / log10 (goldens the same, docs/notes/cleanup-tooling.md 'SSE2 build'). Replace the ~480 call sites with the std:: names and drop the wrappers. Keep the double argument: where the argument is a float expression write std::sqrt(static_cast<double>(x)) etc. (std::sqrt(float) is sqrtf, another function on 53-bit threads). x87::fistp stays (FISTP's 0x80000000 for NaN / out of range) and x87::fexp stays (VC6's inline exp parts the goldens). Mechanical: Sonnet; goldens and ei_vectors must stay the same."
+
+[[ticket]]
+id = "C16b"
+title = "CopyFloat / LoadStoreBits as plain float copies (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "x87::CopyFloat / LoadStoreBits (57 sites) reproduce FLD/FSTP quieting a signalling NaN. C16 replaced them with the bits as they are: goldens the same (no signalling NaN is copied in the suite). Write plain copies (memcpy or a float assignment), note the sNaN behaviour change in the notes; goldens and ei_vectors must stay the same."
+
+[[ticket]]
+id = "C16c"
+title = "NaN audit: plain comparisons instead of x87::IsNaN terms (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "docs/cleanup-plan.md 'Compiler artefacts and the NaN audit'. C16 ran the suite with x87::IsNaN always false and CompareStatus without the unordered case: goldens the same, so no NaN reaches those 116 sites in the suite. Write the plain comparisons (a NaN then behaves as IEEE says, a behaviour change only for NaN), log in debug builds when a NaN shows up there; keep IsNaN where NaN detection is the code's own purpose. Opus (judgement per site)."
+
+[[ticket]]
+id = "C16d"
+title = "Before the SSE2 switch: doubles, chop rounding, check_x87, goldens (C16 follow-up)"
+group = "cleanup"
+depends = ["C16"]
+note = "C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
