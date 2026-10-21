@@ -82,11 +82,6 @@ int __fastcall SpellClassId(CEngineObject*) { return 0x4f; }
 EI_REPLACE(0x0068B280, SpellClassName);
 EI_REPLACE(0x0068B290, SpellClassId);
 
-// 00691910 / 00691920: "CTexture", 6 (its slot 7, 00691900, is 4 bytes: too short to hook).
-const char* __fastcall TextureClassName(CEngineObject*) { return "CTexture"; }
-int __fastcall TextureClassId(CEngineObject*) { return 0x6; }
-EI_REPLACE(0x00691910, TextureClassName);
-EI_REPLACE(0x00691920, TextureClassId);
 
 // The items (item.h).
 // 006A0570 / 006A0580: "CItemWeapon", 0x11.

@@ -33,8 +33,6 @@ const char* __fastcall EffectTornadoClassName(CEngineObject*);
 int __fastcall EffectTornadoClassId(CEngineObject*);
 const char* __fastcall SpellClassName(CEngineObject*);
 int __fastcall SpellClassId(CEngineObject*);
-const char* __fastcall TextureClassName(CEngineObject*);
-int __fastcall TextureClassId(CEngineObject*);
 const char* __fastcall ItemWeaponClassName(CEngineObject*);
 int __fastcall ItemWeaponClassId(CEngineObject*);
 const char* __fastcall ItemArmorClassName(CEngineObject*);

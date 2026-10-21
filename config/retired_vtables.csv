@@ -22,4 +22,5 @@ vtable,slots,class,file,note
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 00743BB4,13,CMaterial,src/game/material.h,
+00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,

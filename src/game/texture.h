@@ -3,10 +3,13 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
 #include <windows.h>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // Pixel format of a texture surface (32 bytes), as filled in by the texture device.
 struct PixelFormat {
@@ -407,10 +410,17 @@ struct ChannelLayout {
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 
-// vtable 00743D24, class id 6. 0x68 bytes (00691810 makes it).
+// Class id 6, "CTexture", 0x68 bytes (the texture manager's 00691810 makes it). A real virtual
+// class: the compiler makes its vtable (C19; game.exe's 00743D24 is retired).
 class CTexture : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743D24);
+    // The constructor 00691810 inlines: CEngineObject's fields, an empty name and extra block, no
+    // surface, then Create's state (no block, sizes 0, an empty format of size 0x20).
+    CTexture();
+    // 00691950. Destroy's work, the extra block freed, the name, CEngineObject's.
+    ~CTexture() override;
+    // The deleting destructor (slot 0, 00691930) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 00690430 (texture_mmp.cpp). Creates the surface from .mmp data, starting at mip level `mip`
     // (the original: a system-memory surface filled from the file by 0068FA10 and loaded into a
@@ -448,10 +458,14 @@ public:
     int Create() override;
     // 3: 00691A70. The block freed, the surface released, +0x64 and flags_ 0.
     void Destroy() override;
+    // 7: 00691900 (short_functions.cpp). The name's text.
+    const char* GetName() override;
+    const char* GetClassName() override;   // 11: 00691910 "CTexture"
+    int GetClassId() override;             // 12: 00691920 (6)
     // 00690FA0. Frees block_ (an aligned block) and clears it.
     void FreeBlock();
-    // 00691950. The destructor body: Destroy's work, the extra block freed, the name destroyed,
-    // CEngineObject's destructor body. 00691930: slot 0.
+    // The registrations of the destructors (C20 retires them): 00691950 the destructor, 00691930
+    // (slot 0) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void DestructBody();
     CTexture* DeletingDestruct(unsigned flags);
 
