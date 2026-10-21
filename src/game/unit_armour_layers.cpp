@@ -51,9 +51,9 @@ EI_REPLACE_METHOD(0x005230C0, UnitStats::AddArmourLayer);
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
-        CEngineObject* piece = unit->armor[i];   // 00530830
+        CItem* piece = unit->armor[i];   // 00530830
         if (!piece) continue;
-        float condition = std::bit_cast<float>(static_cast<CItem*>(piece)->condition_);
+        float condition = std::bit_cast<float>(piece->condition_);
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
     }
 }
@@ -77,10 +77,10 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index, as the original
     float best = kZero;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
-        CEngineObject* item = unit->GetQuickItem(i);
+        CItem* item = unit->GetQuickItem(i);
         if (!item) continue;
         const auto* prototype =
-            reinterpret_cast<const itemdb::QuickItemRecord*>(static_cast<CItem*>(item)->GetPrototype());
+            reinterpret_cast<const itemdb::QuickItemRecord*>(item->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index, as the original
         best = best >= bonus ? best : bonus;   // the original's select
     }

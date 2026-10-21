@@ -232,7 +232,7 @@ EI_REPLACE(0x005F7010, Screen9Destroy);
 namespace {
 // CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
 CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
-    return static_cast<CItem*>(list->AddItem(item, keepCount, merge));
+    return list->AddItem(item, keepCount, merge);
 }
 void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
 void* TurnVtable() { return ei::GamePointer<void>(0x007403F8); }

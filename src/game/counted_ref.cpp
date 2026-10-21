@@ -37,7 +37,7 @@ void AIRef::Load(CStream* stream, void* world) {
         Reset();
         return;
     }
-    auto* manager = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->MapObjectManager());
+    auto* manager = static_cast<CWorld*>(world)->MapObjectManager();
     Assign(manager->FindObject(static_cast<unsigned>(id)));
 }
 EI_REPLACE_METHOD(0x0050E220, AIRef::Load);

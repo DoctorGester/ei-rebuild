@@ -824,7 +824,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xB3: {   // GiveUnitSpell(unit, spell)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
+            CItem* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             unit->AddSpell(spell);
             void* state = UnitState(unit);
@@ -1199,7 +1199,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
-            auto* list = static_cast<CBaseManager*>(TheServerWorld()->itemManager_);
+            auto* list = TheServerWorld()->itemManager_;
             ObjectIterator it;
             it.manager = nullptr;
             for (CEngineObject* object = it.First(list); object; object = it.Next()) static_cast<CItem*>(object)->Repair();

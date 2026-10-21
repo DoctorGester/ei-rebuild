@@ -124,9 +124,9 @@ EI_REPLACE_METHOD(0x0063C180, CHudWeaponBar::SetUnit);
 // --- 0063CEE0: a quick item's tooltip ----------------------------------------------------------
 
 void CHudQuickItems::ItemTip(unsigned index, void* out) {
-    CEngineObject* object = unit_->GetQuickItem(index);
+    CItem* object = unit_->GetQuickItem(index);
     if (!object) return;
-    auto* item = static_cast<CItem*>(object);
+    auto* item = object;
     auto* text = static_cast<mfc::CString*>(out);
     mfc::CString line;
     text->Empty();

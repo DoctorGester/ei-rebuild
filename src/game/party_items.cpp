@@ -40,14 +40,14 @@ void RemoveAt(AlignedPtrArray& list, int index) {
 // The world's spell manager (the item's manager context, slot 22).
 CSpellManager* SpellManagerOf(CItem* item) { return static_cast<CWorld*>(item->ManagerContext())->SpellManager(); }
 
-CItem* AddEntry(CEngineObject**& data, CItem* item) {
+CItem* AddEntry(CItem**& data, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));
     ++entry->refCount_;
     Append(ItemList(data), entry);
     return entry;
 }
 
-void RemoveEntry(CEngineObject**& data, CItem* entry) {
+void RemoveEntry(CItem**& data, CItem* entry) {
     AlignedPtrArray& list = ItemList(data);
     for (int i = 0; i < list.size; ++i) {
         if (list.data[i] != entry) continue;
@@ -229,9 +229,9 @@ EI_REPLACE_METHOD(0x00660FF0, PartyUnitRecord::RemoveSpell);
 
 namespace {
 // One running sum over the lists, in the original's order.
-void AddListWeight(float& weight, CEngineObject* const* list, std::uint32_t count) {
+void AddListWeight(float& weight, CItem* const* list, std::uint32_t count) {
     for (int i = 0; i < static_cast<int>(count); ++i) {
-        if (list[i]) weight += static_cast<const CItem*>(list[i])->Weight();
+        if (list[i]) weight += list[i]->Weight();
     }
 }
 } // namespace

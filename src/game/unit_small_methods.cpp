@@ -40,5 +40,5 @@ EI_REPLACE_METHOD(0x005301A0, CUnit::HasPlayer);
 double CUnit::DoubleHeight() const { return above.z + above.z; }
 EI_REPLACE_METHOD(0x00530560, CUnit::DoubleHeight);
 
-CEngineObject* CUnit::WornItem(int slot) const { return armor[slot]; }
+CItem* CUnit::WornItem(int slot) const { return armor[slot]; }
 EI_REPLACE_METHOD(0x00530830, CUnit::WornItem);

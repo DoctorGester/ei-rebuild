@@ -32,7 +32,7 @@ void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_c
 World* TheWorld() { return ei::GamePointer<World>(0x007AFF60); }
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
+CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
 // CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.
 void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {

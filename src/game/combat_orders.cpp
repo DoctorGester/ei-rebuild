@@ -85,7 +85,7 @@ void CUnitServer::FinishCast() {
     CItem* carrier = nullptr;
     CSpell* spell;
     if (source & kQuickItemSource) {
-        auto* item = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+        auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != kClassQuickItem) return;
         if (item->GetCategory() != kCategoryCharged && item->GetCategory() != kCategoryScroll) return;
         carrier = item;
@@ -232,12 +232,12 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
     std::memcpy(&at, point, sizeof(at));
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
-        auto* item = static_cast<CItem*>(unit->GetQuickItem(slot));
+        auto* item = unit->GetQuickItem(slot);
         if (item && item->GetClassId() == kClassQuickItem &&
             (item->GetCategory() == kCategoryCharged || item->GetCategory() == kCategoryScroll) &&
             item->GetCategory() == kCategoryScroll) {
             void* world = ManagerContext();
-            auto* scroll = static_cast<CItem*>(unit->GetQuickItem(slot));
+            auto* scroll = unit->GetQuickItem(slot);
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
@@ -271,7 +271,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
         CItem* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == kCategoryScroll) {
             void* world = ManagerContext();
-            auto* scroll = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+            auto* scroll = unit->GetQuickItem(source & ~kQuickItemSource);
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;

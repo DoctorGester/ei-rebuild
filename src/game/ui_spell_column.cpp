@@ -64,7 +64,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
     if (!unit_) return;
 
     for (unsigned i = 0; i < 8; ++i) {
-        CEngineObject* spell = unit_->GetSpell(i);
+        CItem* spell = unit_->GetSpell(i);
         if (!spell) continue;
         {
             ReturnedString image;
@@ -73,7 +73,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 20, &model);
             AddSpellSprite(this, nullptr, model.data, image.data);
         }
-        TheTextManager()->GetItemTexts(static_cast<CItem*>(spell), &tip, &description, &description);
+        TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
         std::uint8_t* data = Get<std::uint8_t*>(spell, 0x44);
