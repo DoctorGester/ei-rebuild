@@ -118,7 +118,7 @@ bool CCampPages::DeconstructSpell() {
     spellMade_ = reinterpret_cast<std::uint8_t*>(copy);
     ++copy->refCount_;
     results->RemoveItem(ItemAt(results, 0), 0);
-    auto* spell = static_cast<CSpell*>(copy->spell_);
+    auto* spell = copy->spell_;
 
     CItemLoot* prototype = NewLoot(results, kPrototypeItem);
     prototype->index_ = PrototypeIndex(spell);
@@ -186,7 +186,7 @@ bool CCampPages::DeconstructItem() {
         auto* container = static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1);
         if (container) {
             ++container->refCount_;
-            CSpell* clone = static_cast<CSpell*>(copy->spell_)->Clone(results->SpellManager());
+            CSpell* clone = copy->spell_->Clone(results->SpellManager());
             container->AttachSpell(clone);
             results->AddItem(container, 0, 0);
             container->Release();
@@ -211,7 +211,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
         CItem* item = ItemAt(list, i);
         item->Repair();
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
-            char* prototype = static_cast<CSpell*>(item->spell_)->GetPrototype();
+            char* prototype = item->spell_->GetPrototype();
             const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
             static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(SpellTable()), nullptr, name))));
         } else if (UiItemKinds::IsSpell(item)) {

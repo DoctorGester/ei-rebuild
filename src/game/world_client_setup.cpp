@@ -109,7 +109,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     static_assert(sizeof(CFlyingHitPoints) == 8);
     auto* numbers = static_cast<CFlyingHitPoints*>(gamecrt::operator_new(sizeof(CFlyingHitPoints)));
     numbers_ = numbers ? numbers->Construct() : nullptr;
-    auto* texture = static_cast<CTexture*>(TextureManager()->FindOrCreate(kNumbersKind, NumbersName()));
+    auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         ++texture->refCount_;
         TextureManager()->LoadTexture(texture);

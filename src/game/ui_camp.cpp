@@ -752,7 +752,7 @@ bool CCampPages::CanMakeItem() {
     for (int i = 0; i < CountOf(itemResults_); ++i) {
         std::uint8_t* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
-            CSpell* copy = static_cast<CSpell*>(AsItem(item)->spell_)->Clone(manager);
+            CSpell* copy = AsItem(item)->spell_->Clone(manager);
             ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&spell), nullptr, copy);   // 0052C690
         } else if (IsPart(item)) {
             switch (Read<int>(item, 0x50)) {

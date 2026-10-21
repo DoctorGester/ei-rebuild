@@ -37,7 +37,7 @@ constexpr int kClassQuickItem = 0x13;
 float BackwardSpeedScale() { return ei::GameData<const float>(0x007C5438); }
 float HeroTransitionSpeed() { return ei::GameData<const float>(0x007C542C); }
 
-float ItemWeight(const CEngineObject* item) { return static_cast<const CItem*>(item)->Weight(); }
+float ItemWeight(const CItem* item) { return item->Weight(); }
 
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
 float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
@@ -262,16 +262,16 @@ EI_REPLACE_METHOD(0x00530FA0, CUnit::HasRangedWeapon);
 
 double CUnit::TotalItemWeight() {
     double total = kZero;   // accumulated on the FPU stack in the original
-    for (CEngineObject* item : weapons) {
+    for (CItem* item : weapons) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : quickItems) {
+    for (CItem* item : quickItems) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : spells) {
+    for (CItem* item : spells) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : armor) {
+    for (CItem* item : armor) {
         if (item) total += ItemWeight(item);
     }
     return total;   // unrounded (ST0)

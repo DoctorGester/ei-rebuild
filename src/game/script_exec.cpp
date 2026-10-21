@@ -141,9 +141,6 @@ CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(playe
 // add 004A5E90, remove 004A5FA0.
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
-// A party's items (00661DB0 add, 00661F30 remove).
-int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)party->AddItem(static_cast<CItem*>(item), a, b); }
-void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { party->RemoveItem(static_cast<CItem*>(item), a); }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
@@ -338,10 +335,10 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
     CParty* to = static_cast<CParty*>(Parties()->Find(Text(cmd, 1)));
     if (!from || !to) return;
     if (replace) {
-        while (to->items_.size != 0) PartyRemoveItem(to, to->items_.data[0], 1);
+        while (to->items_.size != 0) to->RemoveItem(to->items_.data[0], 1);
     }
     for (int i = 0; i < from->items_.size; ++i)
-        PartyAddItem(to, from->items_.data[i], 1, 1);
+        to->AddItem(from->items_.data[i], 1, 1);
     if (replace) to->Money() = from->Money();
     else to->Money() += from->Money();
 }

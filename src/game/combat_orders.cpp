@@ -89,7 +89,7 @@ void CUnitServer::FinishCast() {
         if (!item || item->GetClassId() != kClassQuickItem) return;
         if (item->GetCategory() != kCategoryCharged && item->GetCategory() != kCategoryScroll) return;
         carrier = item;
-        spell = static_cast<CSpell*>(item->spell_);
+        spell = item->spell_;
     } else {
         spell = static_cast<CSpell*>(unit->GetSpellObject(source));
     }
@@ -213,7 +213,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     if (source & kQuickItemSource) {
         CItem* carrier = self->SpellCarrier(source);
         if (!carrier) return !(self->unit->flags_ & kFlagSpellBlocked);
-        spell = static_cast<CSpell*>(carrier->spell_);
+        spell = carrier->spell_;
     } else {
         spell = static_cast<CSpell*>(self->unit->GetSpellObject(source));
     }

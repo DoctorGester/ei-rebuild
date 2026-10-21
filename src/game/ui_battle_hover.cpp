@@ -96,7 +96,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             panel->hoverUnit_ = unit;
             std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->panelViewSize, 4);
             std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->height, 4);
-            static_cast<CBattleScreen*>(panel->owner_)->UnitName(static_cast<CUnit*>(panel->hoverUnit_), &panel->strings_[1]);
+            static_cast<CBattleScreen*>(panel->owner_)->UnitName(panel->hoverUnit_, &panel->strings_[1]);
         }
     } else if (panel->hoverUnit_) {
         panel->hoverUnit_ = nullptr;

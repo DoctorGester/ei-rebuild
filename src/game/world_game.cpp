@@ -252,9 +252,9 @@ int GameFlow::SaveGame(const char* slot) {
         }
     } scenarioOwner{&scenario};
     PartySave(ThePartyManager(), nullptr, &scenario);
-    static_cast<CInterface3D*>(TheInterface())->SaveState(&scenario);
+    TheInterface()->SaveState(&scenario);
     ScriptsReset(kScripts);
-    static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
+    TheInterface()->SaveWindowState();
     static_cast<CStream*>(&scenario)->WriteSized(static_cast<CStream*>(kScripts));
     ScriptsReset(kScripts);
     TheCamera()->SaveState(&scenario);
@@ -1665,7 +1665,7 @@ int GameFlow::LoadGame(const char* slot) {
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts);
-        static_cast<CInterface3D*>(TheInterface())->LoadState(&scenario);
+        TheInterface()->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;

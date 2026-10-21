@@ -36,7 +36,7 @@ enum PendingAction : int {
 };
 
 // The spell (+0x44) an item carries, or null.
-CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<CItem*>(item)->spell_); }
+CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // The shared tail of 0063E020 and 0063EF60: `spell` (an item's +0x44) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the

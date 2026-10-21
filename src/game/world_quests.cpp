@@ -476,14 +476,14 @@ constexpr int kSpellSlots = 8;
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
-CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
+CItem* PartyCopy(CParty* party, CItem* item) { return party->CopyItem(item); }
 
 // The record entry for `item` from the party records, with a reference held across `add`.
 template <auto Add>
-CEngineObject* AddToRecord(CParty* party, PartyUnitRecord* record, CEngineObject* item) {
+CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
     CItem* entry = PartyCopy(party, item);
     if (entry) ++entry->refCount_;
-    CEngineObject* added = (CEngineObject*)(record->*Add)(entry);
+    CItem* added = (record->*Add)(entry);
     if (entry) entry->Release();
     return added;
 }
