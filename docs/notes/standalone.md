@@ -318,6 +318,22 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   file and the new one compiled side by side) on 50M calls of Hypot, CiPow, CiAcos, CiAsin and StackFmod under every
   precision, rounding and infinity control: results, control word after, x87 status flags and errno all the same;
   a one-line mutation (Hypot at 53 bits) differs. No vectors of this file exist (the crt family is formatting).
+- **FISTP for std::lrint (SV10j)**: `x87::RoundToInt` (x87.h; FLD float / double, FISTP dword: the original's own
+  rounding, e.g. 004BD339 and 00553420) in the 25 places that called std::lrint (the AI's cells, the scripts' FX and particle
+  ids and delays, combat and armour slots, the tornado, money and level). The UCRT's lrintf / lrint read the x87 and
+  SSE control words on every call (acrt_fenv_get_control). Checked old against new (build/SV10j/equiv.cpp, not checked
+  in: std::lrint and RoundToInt side by side, cw 007F / 027F / 037F with every rounding): every float bit pattern under
+  every rounding and precision with MXCSR at its default, and 50M doubles (random bits, boundaries, halves, specials).
+  At round-to-nearest (the game's: the main thread's word is 007F) every in-range float gives the same value, the same
+  x87 status flags (PE), errno and control word at 24, 53 and 64 bits; at chop too. Differences, all where FISTP is the
+  original: NaN, infinities and values rounding outside the int range (1,644,167,166 float patterns) give FISTP's
+  0x80000000 with IE, where lrint gives 0 with errno EDOM (float 2^31 alone gives 0x80000000 without errno); at round
+  down / up lrint follows MXCSR's rounding, not the x87 one (equal when both are set alike); lrint sets MXCSR's PE flag;
+  lrint(double) at 24 bits computes at the FPU's precision and misrounds values near +-2^31 (1.6% of the doubles there;
+  no game call passes a double). Mutations (the double overload through a float; the float one truncating) differ in
+  61,547 / 786,725 cases at 027F. No call site depends on lrint's 0: Usable / the armour layers test > 0, the tornado clamps
+  below 0, the armour's int16 store keeps 0; the script ids (a NaN id now takes the next negative id, as 004BD347 does),
+  delays, steps and AI cells follow the original. Goldens the same.
 - **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo, so
   the exe's catch tables and ours match; MSVC 6 std::exception (vtable 00747290, "Unknown exception").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers

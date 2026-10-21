@@ -9,6 +9,7 @@
 #include "world_effect.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 
@@ -100,7 +101,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
 void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
-    int id = static_cast<int>(std::lrint(f[0]));
+    int id = x87::RoundToInt(f[0]);
     if (id < 0) id = nextFxId_--;
 
     mfc::CList<ScriptFxSource>& list = fxSources_;
@@ -133,8 +134,8 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
 
     if (cmd->id != kCommandCreateFxSource) {
         source->object = nullptr;
-        source->minDelay = static_cast<int>(std::lrint(f[6]));
-        source->maxDelay = static_cast<int>(std::lrint(f[7]));
+        source->minDelay = x87::RoundToInt(f[6]);
+        source->maxDelay = x87::RoundToInt(f[7]);
         source->countdown = 0;
         std::memcpy(&source->spread, &f[8], 4);
         source->idle = 1;
@@ -192,7 +193,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     int lifetime = type->lifetime;
 
     const float* f = cmd->floatArgs.data;
-    int id = static_cast<int>(std::lrint(f[0]));
+    int id = x87::RoundToInt(f[0]);
     if (id < 0) id = nextParticleId_--;
 
     mfc::CList<ScriptParticleSource>& list = particles_;
@@ -235,7 +236,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
 void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
-    int id = static_cast<int>(std::lrint(f[0]));
+    int id = x87::RoundToInt(f[0]);
     ScriptParticleSource* source = nullptr;
     for (auto* node = particles_.head; node; node = node->next) {
         if (node->data.id == id) {
@@ -245,8 +246,8 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     }
     if (!source) return;
     source->moving = 1;
-    source->deleteAfterMove = static_cast<int>(std::lrint(f[5]));
-    source->steps = static_cast<int>(std::lrint(f[4]));
+    source->deleteAfterMove = x87::RoundToInt(f[5]);
+    source->steps = x87::RoundToInt(f[4]);
     const Vector3& at = static_cast<CEffectParticle*>(source->object)->localPosition_;
     float inverse = 1.0f / static_cast<float>(source->steps);
     source->step.x = (f[1] - at.x) * inverse;

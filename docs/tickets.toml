@@ -1658,6 +1658,12 @@ title = "std::lrint without the UCRT's FP-environment read per call (acrt_fenv_g
 group = "verification"
 note = "Found by SV10i (EI_PROFILE render_stats town, image): after the control-word fix, the UCRT's acrt_fenv_get_control is 1.6% of the main thread's samples: std::lrint (the AI's cell roundings in unit_ai_*.cpp, script_effects.cpp, combat and armour slots, world_effect_tornado ...) reads the x87 and SSE control words on every call to find the rounding mode. The original rounds with FISTP under the current x87 rounding: a shared helper (x87.h, like x87::fistp, for double and float) gives the same result without the read; check that it matches the UCRT's lrint for every rounding mode and for NaN / out-of-range values (the UCRT returns its own value and sets errno where FISTP gives 80000000), the old-against-new way SV10i did (docs/notes/standalone.md, x87 entries), plus goldens. Measure with renderstats' main-thread CPU per frame and a profile."
 
+[[ticket]]
+id = "SV10k"
+title = "_controlfp (006EBBB4) without __control87_2: the raw control word to the CRT's abstract form by hand"
+group = "verification"
+note = "Found by SV10j (EI_PROFILE render_stats): libcrt::Controlfp still reads (and, when it differs, sets) the word through the UCRT's __control87_2, 0.2-0.4% of the town and fight samples under terrain lighting (SectorData::Light calls it twice for every sector it lights: Controlfp(0, 0), Controlfp(0x300, 0x300), restore). FNSTCW / FLDCW plus the abstract-to-raw bit mapping (x87::ControlWord / SetControlWord) gives the same values without the call; check old against new over every control word and mask (results, control word after), as SV10i did, plus goldens."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

@@ -14,6 +14,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/mfc.h"
 
 #include <bit>
@@ -240,7 +241,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     case 7: {
         float base = static_cast<float>(kGroupBase + static_cast<double>(score));
         int hp = candidate->packedVitals.hitPoints;
-        long limit = std::lrint(static_cast<float>(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
+        long limit = x87::RoundToInt(static_cast<float>(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
         if (hp > limit - 2) return kNoScore;
         if (hp * 3 < limit) {
             float weight = control->Brain()->attention.healWeight;

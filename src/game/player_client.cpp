@@ -37,6 +37,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 #include "game_data.h"
 
 #include <cmath>
@@ -125,7 +126,7 @@ int ScaledExperience(const CUnit* unit, float amount) {
     double base = 1.04 /*0073E128*/;
     float offset = 25.0f /*0073E124*/;
     float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->attackRate) - offset) * amount);
-    return static_cast<int>(std::lrint(scaled));
+    return x87::RoundToInt(scaled);
 }
 
 bool IsQuestVariable(const mfc::CString& name) {

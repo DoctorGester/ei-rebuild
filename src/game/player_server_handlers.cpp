@@ -26,6 +26,7 @@
 #include "originals_library.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "game_data.h"
 
 #include <cmath>
@@ -89,7 +90,7 @@ void CPlayerServer::OnLeaderDied() {
     int oldId = kNoId;
     int newId = kNoId;
     if (party->members_.size == 1) {
-        int lost = static_cast<int>(std::lrint(static_cast<float>(static_cast<float>(party->Money()) * MoneyPenalty())));
+        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->Money()) * MoneyPenalty()));
         party->Money() -= lost;
         oldId = static_cast<int>(party->members_.data[0].unitId);
         CUnit* hero = FindUnit(oldId);

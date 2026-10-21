@@ -493,7 +493,21 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   against town 8.19 / 8.40, fight 19.36 / 19.22 after (menu 3.76); the load moves these more than the change, which by
   the profile takes ~12% of the town's main thread (about 1 ms of R16h's quiet 8.8 ms) and ~1% of the fight's. Left:
   the UCRT's `acrt_fenv_get_control` 1.6% of the town (std::lrint reads the FP environment on every call: the AI's
-  and the scripts' roundings; ticket SV10j).
+  and the scripts' roundings; SV10j, next).
+- **std::lrint as FISTP (SV10j).** The 25 std::lrint calls are x87::RoundToInt (FLD; FISTP dword, as the original;
+  docs/notes/standalone.md, "FISTP for std::lrint": old against new over every float, goldens the same). By profile
+  (EI_PROFILE=1, render_stats): acrt_fenv_get_control 1.6% of the town before, no sample in the town after; one
+  sample in the whole run (15.4 s, 7,792 samples) remains, under printf's %f (fegetround). Main-thread CPU / wall ms
+  per frame (renderstats): main's last run (05:56, a loaded machine: menu 4.51) town 13.49 / 23.65, fight 24.37 /
+  42.89; after, three runs with no other batch queued but other workers building: town 12.62 / 27.03, 6.59 / 6.69,
+  7.41 / 7.58 (the profiled run), fight 28.44 / 29.60, 19.07 / 19.27, 18.72 / 19.09 (menu 2.56, 3.29, 2.35); SV10i's
+  quiet run had town 8.19 / 8.40, fight 19.36 / 19.22. The load moves these by 2x between runs, more than the change
+  (by the profile ~1.6% of the town, ~0.1 ms). Left: libcrt::Controlfp (006EBBB4) still converts through
+  __control87_2, 0.2-0.4% of the town and fight under terrain lighting (SectorData::Light, two calls a lit sector).
+- **The profiler and the sealed .bss (SV10j).** EI_PROFILE's stack scan took any word inside game.exe's image as a
+  possible return address and read the bytes before it; a word pointing into .bss tripped the image's data-seam
+  guard ("read of game.exe's .bss ... a use that missed the data seam", the run failed at once). It now takes words
+  in game.exe's code sections only (src/hook/profile.cpp, from the section headers).
 - Proposals (tickets SV10a-SV10e): the pair overlap (SV10a, above) and start-up (SV10b) done; more world updates per
   drawn frame and drawing only frames a step reads dropped (user: frames get faster, not fewer); the harness
   build's renderer checks (SV10e) open.

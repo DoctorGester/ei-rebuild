@@ -12,6 +12,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "game_data.h"
 
 #include <cmath>
@@ -34,7 +35,7 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
         float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / Combat().rate);
-        nextAttackTime = static_cast<int>(std::lrint(scaled)) + now;
+        nextAttackTime = x87::RoundToInt(scaled) + now;
     }
     unit->MarkChanged(0);
     return 1;

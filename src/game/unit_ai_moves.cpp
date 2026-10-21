@@ -180,7 +180,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         // A path much longer than the way there (smoothing) counts as none.
         if (!found || !(kOne / (kOne * kHalf) * distance * kDetourFactor >= static_cast<double>(local.path.smoothing))) {
             result = false;
-            long cooldown = std::lrint(static_cast<float>(distance * kCooldownPerDistance));
+            long cooldown = x87::RoundToInt(static_cast<float>(distance * kCooldownPerDistance));
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
         }
     }
