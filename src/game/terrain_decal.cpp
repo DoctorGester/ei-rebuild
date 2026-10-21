@@ -15,7 +15,7 @@ namespace {
 
 constexpr float kMargin = 1.0f;   // 0073B84C: one cell around the quad
 
-float CellSize() { return ei::GameData<const float>(0x007441D0); }
+float CellSize() { return 1.0f /*007441D0*/; }
 
 // The original's select idioms (FCOMP; C0 picks): the lower of `a` and `b` (a when unordered), and
 // `a` raised to `bound` (bound when unordered).

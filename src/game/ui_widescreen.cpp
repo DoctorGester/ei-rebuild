@@ -202,7 +202,7 @@ SIZE TextExtentToLayout(SIZE pixels) {
 
 float AxisScale() { return Active() ? Get().axisScale : 1.0f; }
 
-float FontScale() { return Active() ? Get().fontScale : ei::GameData<const volatile float>(0x0073D09C); }
+float FontScale() { return Active() ? Get().fontScale : 0.01f /*0073D09C*/; }
 
 int PickShift() { return Active() ? Get().margin / 2 : 0; }
 

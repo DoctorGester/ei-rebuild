@@ -35,11 +35,6 @@ void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reint
 void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
 IsaacRandom* Rng() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
-float GameFloat(std::uintptr_t address) {
-    float f;
-    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
-    return f;
-}
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
@@ -60,7 +55,7 @@ void SizePoints() { GlowPoints().SetSize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(Rng()->Next() & 3)) * GameFloat(0x0073C3B0);
+    return static_cast<float>(static_cast<int>(Rng()->Next() & 3)) * 0.25f /*0073C3B0*/;
 }
 
 } // namespace
@@ -88,10 +83,10 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
-    const float quarter = GameFloat(0x0073C3B0);
+    const float quarter = 0.25f /*0073C3B0*/;
     for (int i = 0; i < 15; ++i) {
         frames[i][0] = static_cast<float>(i & 3) * quarter;
-        frames[i][1] = GameFloat(0x0073C524) - static_cast<float>((i >> 2) & 3) * quarter;
+        frames[i][1] = 0.75f /*0073C524*/ - static_cast<float>((i >> 2) & 3) * quarter;
         frames[i][2] = frames[i][0] + quarter;
         frames[i][3] = frames[i][1] + quarter;
     }
@@ -103,11 +98,11 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
     if (length > 0.0f || length < 0.0f) towards /= length;
-    float scaled = position->x * GameFloat(0x0073C518);   // 15
+    float scaled = position->x * 15.0f /*0073C518*/;   // 15
     int shift = x87::fistp(scaled);
     int frame = (static_cast<CWorld*>(ObjectWorld(this))->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
-        float t = static_cast<float>(j) * GameFloat(0x0073C520);   // 1/8
+        float t = static_cast<float>(j) * 0.125f /*0073C520*/;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
         LightningPoint& p = GlowPoints().data[j];
         p.x = position->x + along.x;
@@ -131,19 +126,19 @@ int CLightning::DrawImpl(void* device) {
     if (!renderer->SetTexture(0, *holder)) return 0;
     int visibility = renderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&boundsKind_));
     if (visibility == 2) return 1;
-    const float zero = GameFloat(0x0073B858);
+    const float zero = 0.0f /*0073B858*/;
     if (power_ >= zero) Animate();
-    const float slant = GameFloat(0x0073C3B0);   // 0.25
+    const float slant = 0.25f /*0073C3B0*/;   // 0.25
     if (!(power_ >= zero)) {   // negative (or NaN): untextured lengthwise
         renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
         for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
+        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * 0.6f /*0073C4FC*/;   // 0.6
         renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches_) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * static_cast<float>(b.points.size) * GameFloat(0x0073C4FC);
+            span = LengthZXY(b.step) * static_cast<float>(b.points.size) * 0.6f /*0073C4FC*/;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
@@ -154,7 +149,7 @@ int CLightning::DrawImpl(void* device) {
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     int frameCounter = static_cast<int*>(ObjectWorld(this))[0x64 / 4];
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C528));   // 0.11
+    float size = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);   // 0.11
     int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).

@@ -122,7 +122,7 @@ each step green on the goldens and removing a measured tie:
   **The cells**: 1071 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata and .data whose value lies in the range, less text. Text
   that reads as an address is of two kinds: string tails (the dword's bytes printable up to a zero and the four
-  bytes before printable too) and short words ("Any", "May", "sky", "say", "day": `xxy ` reads 0079xxxx)
+  bytes before printable too) and short words ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx)
   whose target would be mid-text (the byte before it printable ASCII; a string pointer points at a start).
   Each cell is in a reviewed group of the tool's REVIEWED table (cell range, count, what it is; a new cell or
   a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (74) and a few other
@@ -139,13 +139,28 @@ each step green on the goldens and removing a measured tie:
   across the boundary, text read as cells, cells inside the moved range (fixed up in their new place), and a
   writer before the init_seg(compiler) object (the host's import resolution writes the IAT in .rdata).
 
+- **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
+  the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
+  parentheses, a reference result (effects take the constant's address) as `kFloatConstant<0.5f /*0073B86C*/>`. The type is the
+  spelling: `f` float (dword), no suffix double (qword), an integer the dword; `/*addr f*/` a float widened to double. `--apply`
+  rewrites the reads (`GameFloat(0x..)` helpers found from their definitions, `GameData<const float>(0x..)`, a constant that holds
+  the address) and drops the helpers and address constants nothing uses any more; `--check` (build.cmd) compares every tagged
+  literal with the bytes of game.exe (Python's float parsing; `--asserts FILE` writes static_asserts on the same literals for the
+  compiler, `cl /std:c++20 /c`: all 984 held). What stays data: the cells addon.dll writes (tests/verify/addon_sites.inc: 007428AC,
+  00742B08, 007432F4, 0073B720; found by reading config/rebirth_patches.csv's generated site list; vanilla's and Rebirth's .rdata
+  are the same bytes, and the section is read-only, so those are the only writers), the import table, SV10j's files (unit_ai*,
+  combat_*, unit_hits) and tables / vtables / GUIDs (S18g). **Folds**: the compiler folds a product of constants at 53 bits where the
+  original's FMUL on the main thread rounds to 24, and a literal has no volatile load to stop it: `tools/check_fp_fold.py` flags the
+  doubles that come out of it and its `-v` list of new float constants was compared with main's (all of this ticket's new entries
+  reviewed). The pi * (1/180) of two doubles is `ei::kRadiansPerDegree` (src/game/angles.h, float, checked against exact
+  arithmetic); a chain rounds after each product (`static_cast<float>(kRadiansPerDegree * 90.0)`).
 | Sub-ticket | Step | Tie it removes |
 |---|---|---|
 | S18a | the seam, the check, .bss sealed, the casts of the other sections | raw uses: .bss 883 -> 0, .data 495 -> 64, .rdata 2028 -> 381, IAT 563 -> 76 |
 | S18b | .bss moves to ei_hook.dll's storage, 16 cells fixed up, old range guarded | the image's .bss |
 | S18c | .data sealed | raw .data uses |
 | S18d | .data moves whole with .bss (one range, one shift): bytes from the build, 1071 cells, guarded | the host's copy of .data |
-| S18e | .rdata constants (floats, doubles, integers no code writes) as literals | most .rdata uses |
+| S18e | .rdata constants (floats, doubles, integers no code writes) as literals | .rdata uses 2288 -> 1295 (helper 968 -> 88, seam 603 -> 507, raw 381 -> 367) |
 | S18f | own import table: generated slots resolved by the DLL; gameapi.h and the harness's routes through it | the host's import resolution, the IAT |
 | S18g | .rdata sealed: vtables, RTTI and throw infos, tables, the harness's vtable tables | raw .rdata uses |
 | S18h | .rdata moves | the host's copy of .rdata |

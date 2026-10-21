@@ -27,7 +27,6 @@ using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocat
 PointArray& TexturePoints() { return ei::GameData<PointArray>(0x007C2E00); }
 std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E10); }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 } // namespace
 
@@ -41,7 +40,7 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A1170));
     }
     uv.SetSizeDiscard(buffers.texCoordCount);
-    float scale = GameFloat(0x0073C370);
+    float scale = 255.0f /*0073C370*/;
     for (int i = 0; i < buffers.texCoordCount; ++i) {
         const float* source = static_cast<const float*>(buffers.texCoords) + i * 2;
         uv.data[i].x = x87::fistp(static_cast<float>(source[0] * scale));

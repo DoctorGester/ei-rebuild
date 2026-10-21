@@ -129,7 +129,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
         ClearDepth(deviceOf(), 6, rects, 1.0f);
     } else {
         RECT r;
-        if (D(depth) > D(GameFloat(0x00740160)))
+        if (D(depth) > D(400.0f /*00740160*/))
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
@@ -149,7 +149,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Set(model, 8, Get<std::uint32_t>(model, 8) | 0x800);
     {
         std::uint32_t now = gameapi::timeGetTime();
-        float time = static_cast<float>(x87::FromUnsigned(now) * D(GameFloat(0x0073BB24)) * D(GameFloat(0x0073C518)));
+        float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f /*0073BB24*/) * D(15.0f /*0073C518*/));
         VirtualCall(model, 25, time);
     }
 
@@ -165,12 +165,12 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Vector3 across = Scale(CrossStored(v, origin), static_cast<float>(D(q.w) + D(q.w)));
     Vector3 rotated = Sum(Sum(Scale(origin, static_cast<float>(D(ww) - DotCall(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
-    double dx = ((D(depth) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) * D(GameFloat(0x007402C4))) *
-                D(GameFloat(0x0073BA98));
-    double dy = D(GameFloat(0x007402C4)) * D(GameFloat(0x007403D8));
+    double dx = ((D(depth) * D(0.0025f /*0074015C*/) - D(1.0f /*0073B84C*/)) * D(0.48157462f /*007402C4*/)) *
+                D(6.0f /*0073BA98*/);
+    double dy = static_cast<float>(D(0.48157462f /*007402C4*/) * D(2.1f /*007403D8*/));   // rounded to 24 bits as the FPU does (the compiler folds it at 53)
     float px = static_cast<float>(D(rotated.x) + dx);
     float py = static_cast<float>(D(rotated.y) + dy);
-    float pz = static_cast<float>(D(rotated.z) + D(GameFloat(0x0073BA98)));
+    float pz = static_cast<float>(D(rotated.z) + D(6.0f /*0073BA98*/));
     Set(model, 0x1C, px);
     Set(model, 0x20, py);
     Set(model, 0x24, pz);
@@ -178,12 +178,12 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
     q = Product(q, *tilt.SetAxisAngle(xAxis, GameFloat(0x007C7D24)), false);
-    if (D(depth) > D(GameFloat(0x00740160))) {
+    if (D(depth) > D(400.0f /*00740160*/)) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
         Quaternion side;
         q = Product(q,
                     *side.SetAxisAngle(zAxis,
-                                                    static_cast<float>(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))),
+                                                    static_cast<float>(D(GameFloat(0x007C7D24)) * D(0.15f /*0073CD18*/))),
                     true);
     }
     std::memcpy(model + 0x34, &q, 16);

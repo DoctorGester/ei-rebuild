@@ -153,11 +153,6 @@ void __fastcall PackMeshPositions(FakeUnitScene* unit) {
 EI_REPLACE(0x0044E3B0, PackMeshPositions);
 
 namespace {
-float GameFloat(std::uintptr_t address) {
-    float f;
-    std::memcpy(&f, ei::GamePointer<const void>(address), sizeof(f));
-    return f;
-}
 // The original's branchless select after FCOMP: `b` when a < b or unordered, else `a`.
 float SelectBelow(float a, float b) { return !(a >= b) ? b : a; }
 } // namespace
@@ -168,7 +163,7 @@ float SelectBelow(float a, float b) { return !(a >= b) ? b : a; }
 // (-FLT_MAX), the others at +/-FLT_MAX. Plain float maths (rule 7).
 void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     const PointBuffer& positions = mesh->positions;
-    float maxX = GameFloat(0x0073C1A8);
+    float maxX = (-3.4028235e38f /*0073C1A8*/);
     std::uint32_t lowest = 0xFF7FFFFFu, highest = 0x7F7FFFFFu;
     float maxY, maxZ, minX, minY, minZ;
     std::memcpy(&maxY, &lowest, 4);
@@ -190,7 +185,7 @@ void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     Vector3& centre = mesh->center;
     low = {minX, minY, minZ};
     high = {maxX, maxY, maxZ};
-    const float half = GameFloat(0x0073B86C);
+    const float half = 0.5f /*0073B86C*/;
     centre = {(high.x + low.x) * half, (high.y + low.y) * half, (high.z + low.z) * half};
     float dx = (high.x - low.x) * half, dy = (high.y - low.y) * half, dz = (high.z - low.z) * half;
     mesh->radius = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));

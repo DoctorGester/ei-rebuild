@@ -29,8 +29,7 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-#define EI_ONE GameFloat(0x0073B84C)
+#define EI_ONE 1.0f /*0073B84C*/
 
 // x87 FCOMP; FNSTSW; C0: "a < b or unordered".
 bool LessOrUnordered(double a, double b) { return !(a >= b); }

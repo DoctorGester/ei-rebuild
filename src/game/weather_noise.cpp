@@ -18,12 +18,11 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
-float One() { return GameFloat(0x0073B84C); }
-float Half() { return GameFloat(0x0073B86C); }
-float SmoothingWeight() { return GameFloat(0x0073D724); }   // 0.3: the share of the sample's own value
-float SampleShare() { return GameFloat(0x0073D730); }       // 1 / 128
-float Zero() { return GameFloat(0x0073B858); }
+float One() { return 1.0f /*0073B84C*/; }
+float Half() { return 0.5f /*0073B86C*/; }
+float SmoothingWeight() { return 0.3f /*0073D724*/; }   // 0.3: the share of the sample's own value
+float SampleShare() { return 0.0078125f /*0073D730*/; }       // 1 / 128
+float Zero() { return 0.0f /*0073B858*/; }
 
 constexpr int kRandCentre = 0x3FFF;   // rand() gives 0..0x7FFF
 constexpr int kShift = 20;            // the samples dropped from the front after smoothing
@@ -38,7 +37,7 @@ WeatherNoiseCurve* WeatherNoiseCurveAt(int index) {
     return ei::GamePointer<WeatherNoiseCurve>(kCurves[index]);
 }
 
-float WeatherNoiseAmplitude() { return GameFloat(0x0073D728); }
+float WeatherNoiseAmplitude() { return 0.5f /*0073D728*/; }
 
 void WeatherNoiseCurve::Build(float amplitude) {
     for (float& sample : samples) sample = static_cast<float>(gamecrt::rand() - kRandCentre);

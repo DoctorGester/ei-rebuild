@@ -64,7 +64,7 @@ constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessed
 AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controller)->brain; }
 
 // 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
-float LowLevel() { return ei::GameData<const float>(0x0073CDB8); }
+float LowLevel() { return 2.0f /*0073CDB8*/; }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
 libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }

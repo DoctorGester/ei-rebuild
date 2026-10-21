@@ -28,7 +28,7 @@ float TiltSpeed() { return Option(0x0079BDD8) * Option(0x0079BDD0); }
 float ClimbSpeed() { return Option(0x0079BDE4) * Option(0x0079BDDC); }
 float ZoomSpeed() { return Option(0x0079BDE0) * Option(0x0079BDDC); }
 // 00740240: the wheel's steps per delta unit (read from the exe, rule 9).
-float WheelStep() { return Option(0x00740240); }
+float WheelStep() { return (-0.008333334f /*00740240*/); }
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
@@ -46,8 +46,8 @@ float DragTiltSpeed() { return Option(0x0079BDD4) * Option(0x0079BDD0) * Option(
 int EdgeMargin() { return ei::GameData<const volatile int>(0x0079BDAC); }
 // Layout units to a part of the screen (0074015C 1 / 400, 00740204 1 / 300) and the rates' scales
 // (0073BAAC 10, 0073BAB4 500).
-float PerWidth() { return Option(0x0074015C); }
-float PerHeight() { return Option(0x00740204); }
+float PerWidth() { return 0.0025f /*0074015C*/; }
+float PerHeight() { return 0.0033333334f /*00740204*/; }
 
 // FCOMP; TEST AH,0x40: unordered counts as equal.
 bool Differs(float a, float b) { return a != b && !x87::IsNaN(a) && !x87::IsNaN(b); }
@@ -166,13 +166,13 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         float across = static_cast<float>(drag.x) * PerWidth();
         float along = static_cast<float>(static_cast<float>(drag.y) * PerHeight());
         if (!ModifierHeld(interface_)) {
-            camera->SetTurnRate(DragTurnSpeed() * across * Option(0x0073BAAC));
+            camera->SetTurnRate(DragTurnSpeed() * across * 10.0f /*0073BAAC*/);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
-            const float zero = Option(0x0073B858);
+            const float zero = 0.0f /*0073B858*/;
             if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width)
-                camera->SetTiltRate(DragTiltSpeed() * along * Option(0x0073BAB4));
+                camera->SetTiltRate(DragTiltSpeed() * along * 500.0f /*0073BAB4*/);
             else
                 camera->SetTiltRate(0.0f);
         } else {

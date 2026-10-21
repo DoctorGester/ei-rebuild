@@ -3,6 +3,7 @@
 // and the types (see Create, particle_create.cpp) that use it.
 #include "particle_common.h"
 
+#include "angles.h"
 #include "core_maths.h"
 #include "map_object_figures.h"
 #include "object_maths.h"
@@ -25,20 +26,20 @@ using namespace particle;
 
 namespace {
 
-#define EI_POINT_EIGHT GameFloat(0x0073CCA8)        // 0.8
-#define EI_THREE GameFloat(0x0073BAA4)              // 3.0
-#define EI_TEN GameFloat(0x0073CB98)                // 10.0
-#define EI_TENTH GameFloat(0x0073CB9C)              // 0.1
-#define EI_POINT_SIX GameFloat(0x0073CDE0)          // 0.6
-#define EI_THIRTEENTH GameFloat(0x0073CEE4)         // 1/13
-#define EI_TWENTY_SIXTH GameFloat(0x0073CEE8)       // 1/26
-#define EI_SCALE_0_4_HI GameDouble(0x0073CEB0)      // ~0.8 * 2^-32
-#define EI_CAST_DRIFT GameFloat(0x0073CBA0)         // the swirl's random acceleration bound
-#define EI_CAST_DAMP GameFloat(0x0073CD50)          // velocity kept per tick
-#define EI_CAST_PULL GameFloat(0x0073CEF8)          // pull back to the centre
-#define EI_SCALE_SIZE GameDouble(0x0073CEF0)        // size jitter scale
-#define EI_SIZE_BASE GameFloat(0x0073CEB8)
-#define EI_POINT_THREE GameFloat(0x0073C54C)        // 0.3
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/        // 0.8
+#define EI_THREE 3.0f /*0073BAA4*/              // 3.0
+#define EI_TEN 10.0f /*0073CB98*/                // 10.0
+#define EI_TENTH 0.1f /*0073CB9C*/              // 0.1
+#define EI_POINT_SIX 0.6f /*0073CDE0*/          // 0.6
+#define EI_THIRTEENTH 0.07692308f /*0073CEE4*/         // 1/13
+#define EI_TWENTY_SIXTH 0.03846154f /*0073CEE8*/       // 1/26
+#define EI_SCALE_0_4_HI 1.8626450386423355e-10 /*0073CEB0*/      // ~0.8 * 2^-32
+#define EI_CAST_DRIFT 0.1f /*0073CBA0*/         // the swirl's random acceleration bound
+#define EI_CAST_DAMP 0.95f /*0073CD50*/          // velocity kept per tick
+#define EI_CAST_PULL 0.0005f /*0073CEF8*/          // pull back to the centre
+#define EI_SCALE_SIZE 6.984918201019367e-11 /*0073CEF0*/        // size jitter scale
+#define EI_SIZE_BASE 0.85f /*0073CEB8*/
+#define EI_POINT_THREE 0.3f /*0073C54C*/        // 0.3
 
 const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
 const std::int32_t* CastAlphaByCountdown() { return ei::GamePointer<const std::int32_t>(0x0078A964); }
@@ -248,20 +249,20 @@ EI_REPLACE_METHOD(0x004921D0, CParticleSource::TickCasting);
 
 namespace {
 
-#define EI_SPHERE_RADIUS GameFloat(0x0073CDF4)      // 1.2 (of the carrier's radius)
-#define EI_KEEP_0_9 GameFloat(0x0073CD70)           // 0.9
-#define EI_TAKE_0_1 GameFloat(0x0073B850)           // 0.1
-#define EI_ANTIMAGIC_RATE GameFloat(0x0073CE28)     // 24.0
-#define EI_SPHERE_RATE GameFloat(0x0073BA98)        // 6.0
-#define EI_MOTION_KEEP GameFloat(0x0073C538)        // 0.7
-#define EI_STILL_SPEED GameDouble(0x0073CE20)       // 0.01
-#define EI_TILT_ANGLE GameDouble(0x0073CE30)        // 0.01
-#define EI_BIG_ANTIMAGIC GameFloat(0x0073CE18)      // 2.5
-#define EI_BIG_EARTH GameFloat(0x0073C534)          // 3.5
-#define EI_BIG_SPHERE GameFloat(0x0073C51C)         // 1.5
-#define EI_SCALE_0_03 GameDouble(0x0073CE10)        // ~0.03 * 2^-32
-#define EI_SHELL GameFloat(0x0073CE08)              // 0.65
-#define EI_AIR_SIZE GameFloat(0x0073CC80)           // 1.6
+#define EI_SPHERE_RADIUS 1.2f /*0073CDF4*/      // 1.2 (of the carrier's radius)
+#define EI_KEEP_0_9 0.9f /*0073CD70*/           // 0.9
+#define EI_TAKE_0_1 0.1f /*0073B850*/           // 0.1
+#define EI_ANTIMAGIC_RATE 24.0f /*0073CE28*/     // 24.0
+#define EI_SPHERE_RATE 6.0f /*0073BA98*/        // 6.0
+#define EI_MOTION_KEEP 0.7f /*0073C538*/        // 0.7
+#define EI_STILL_SPEED 0.01 /*0073CE20*/       // 0.01
+#define EI_TILT_ANGLE 0.009999999776482582 /*0073CE30*/        // 0.01
+#define EI_BIG_ANTIMAGIC 2.5f /*0073CE18*/      // 2.5
+#define EI_BIG_EARTH 3.5f /*0073C534*/          // 3.5
+#define EI_BIG_SPHERE 1.5f /*0073C51C*/         // 1.5
+#define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/        // ~0.03 * 2^-32
+#define EI_SHELL 0.65f /*0073CE08*/              // 0.65
+#define EI_AIR_SIZE 1.6f /*0073CC80*/           // 1.6
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
 const float* SphereSizeByLife() { return ei::GamePointer<const float>(0x0073CB38); }
@@ -406,25 +407,24 @@ EI_REPLACE_METHOD(0x0048E070, CParticleSource::EmitOrbit);
 
 namespace {
 
-#define EI_FULL_TURN GameFloat(0x0073CD08)          // 360.0
-#define EI_PI GameDouble(0x0073CAE8)                // pi
-#define EI_PER_DEGREE GameDouble(0x0073BA30)        // 1/180
-#define EI_RING_WIDEN GameFloat(0x0073BAC4)         // 1.1
-#define EI_PER_36 GameFloat(0x0073CD04)             // 1/36
-#define EI_RISE_LOW GameFloat(0x0073CD00)           // -0.1
-#define EI_RISE_HIGH GameFloat(0x0073BA80)          // 0.1
-#define EI_FLAME_SIZE GameFloat(0x0073CCFC)         // 0.0015
-#define EI_TWENTY GameFloat(0x0073CCF8)             // 20.0
-#define EI_HALF GameFloat(0x0073CB28)               // 0.5
-#define EI_SPARK_SPREAD GameFloat(0x0073CCF4)       // 0.001
-#define EI_FADE_SIZE GameFloat(0x0073CD0C)          // 1/1.3
-#define EI_TURN_SPEED GameDouble(0x0073CD10)        // 10.0 (degrees per tick)
-#define EI_TENTH_B GameFloat(0x0073B850)            // 0.1
-#define EI_HEAL_RINGS GameFloat(0x0073BA98)         // 6.0 rings per unit of size
-#define EI_HEAL_RINGS_BASE GameFloat(0x0073CDB8)    // 2.0
-#define EI_HEAL_GROWTH GameFloat(0x0073CDB4)        // 1/144
-#define EI_HEAL_SPREAD GameFloat(0x0073CD18)        // 0.15
-#define EI_HEAL_SPARK_SIZE GameFloat(0x0073CDB0)    // 0.07
+#define EI_FULL_TURN 360.0f /*0073CD08*/          // 360.0
+#define EI_PI 3.141592653589793 /*0073CAE8*/                // pi
+#define EI_RING_WIDEN 1.1f /*0073BAC4*/         // 1.1
+#define EI_PER_36 0.027777778f /*0073CD04*/             // 1/36
+#define EI_RISE_LOW (-0.1f /*0073CD00*/)           // -0.1
+#define EI_RISE_HIGH 0.1f /*0073BA80*/          // 0.1
+#define EI_FLAME_SIZE 0.0015f /*0073CCFC*/         // 0.0015
+#define EI_TWENTY 20.0f /*0073CCF8*/             // 20.0
+#define EI_HALF 0.5f /*0073CB28*/               // 0.5
+#define EI_SPARK_SPREAD 0.001f /*0073CCF4*/       // 0.001
+#define EI_FADE_SIZE 0.7692308f /*0073CD0C*/          // 1/1.3
+#define EI_TURN_SPEED 10.0 /*0073CD10*/        // 10.0 (degrees per tick)
+#define EI_TENTH_B 0.1f /*0073B850*/            // 0.1
+#define EI_HEAL_RINGS 6.0f /*0073BA98*/         // 6.0 rings per unit of size
+#define EI_HEAL_RINGS_BASE 2.0f /*0073CDB8*/    // 2.0
+#define EI_HEAL_GROWTH 0.0069444445f /*0073CDB4*/        // 1/144
+#define EI_HEAL_SPREAD 0.15f /*0073CD18*/        // 0.15
+#define EI_HEAL_SPARK_SIZE 0.07f /*0073CDB0*/    // 0.07
 
 const char* NoCarrierRing() { return "Particle effect Casting without carrier\n"; }
 const char* NoCarrierHealing() { return "Particle effect Healing without carrier\n"; }
@@ -435,7 +435,7 @@ constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's las
 // the radius growth per tick (Healing also sets the flame growth). Each ring counts down from
 // `countdown`.
 void PlaceRings(CParticleSource* s, int countdown) {
-    float step = static_cast<float>(EI_PI * EI_PER_DEGREE * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
+    float step = static_cast<float>(ei::kRadiansPerDegree * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
     Vector3 offset;
     float radius;
     s->AttachmentOffset(&offset, &radius);
@@ -523,7 +523,7 @@ void FollowRing(CParticleSource* s, Particle* p, int ring) {
 void TurnRing(ParticleElement* e) {
     float* radius = ElementFloat(e, 0x0C);
     float* angle = ElementFloat(e, 0x10);
-    double turned = EI_PI * EI_PER_DEGREE * EI_TURN_SPEED + D(*angle);
+    double turned = static_cast<float>(ei::kRadiansPerDegree * EI_TURN_SPEED) + D(*angle);
     *angle = static_cast<float>(turned);
     e->pos.x = static_cast<float>(x87::fsin(turned) * D(*radius) + D(*ElementFloat(e, 0x18)));
     e->pos.y = static_cast<float>(x87::fcos(D(*angle)) * D(*radius) + D(*ElementFloat(e, 0x1C)));
@@ -714,21 +714,21 @@ EI_REPLACE_METHOD(0x0048BCE0, CParticleSource::TickHealing);
 
 namespace {
 
-#define EI_PI_F GameFloat(0x0073CAF0)               // pi
-#define EI_HALF_C GameFloat(0x0073B86C)             // 0.5
-#define EI_POINT_FOUR_C GameFloat(0x0073B868)       // 0.4
-#define EI_SWIRL_TURN_SLOW GameFloat(0x0073CB94)    // 0.3
-#define EI_SWIRL_TURN_FAST GameFloat(0x0073CB90)    // 0.5
-#define EI_SWIRL_HIGH GameFloat(0x0073CC80)         // 1.6
-#define EI_SWIRL_SIZE_SCALE GameDouble(0x0073CEC0)  // ~0.35 * 2^-32
-#define EI_SWIRL_SIZE_BASE GameFloat(0x0073CEB8)    // 0.85
-#define EI_SWIRL_GROW GameFloat(0x0073CD74)         // 0.03
-#define EI_SWIRL_SPARK_SCALE GameDouble(0x0073CEB0) // ~0.8 * 2^-32
-#define EI_SWIRL_SPARK_BASE GameFloat(0x0073CDE0)   // 0.6
-#define EI_SWIRL_SPARK_SIZE GameFloat(0x0073BAD4)   // 0.2
-#define EI_SWIRL_SHRINK GameFloat(0x0073CEC8)       // 0.97
-#define EI_MARKER_SIZE_SCALE GameDouble(0x0073CCB0) // ~0.4 * 2^-32
-#define EI_MARKER_SIZE_BASE GameFloat(0x0073CCA8)   // 0.8
+#define EI_PI_F 3.1415927f /*0073CAF0*/               // pi
+#define EI_HALF_C 0.5f /*0073B86C*/             // 0.5
+#define EI_POINT_FOUR_C 0.4f /*0073B868*/       // 0.4
+#define EI_SWIRL_TURN_SLOW 0.3f /*0073CB94*/    // 0.3
+#define EI_SWIRL_TURN_FAST 0.5f /*0073CB90*/    // 0.5
+#define EI_SWIRL_HIGH 1.6f /*0073CC80*/         // 1.6
+#define EI_SWIRL_SIZE_SCALE 8.149073084894303e-11 /*0073CEC0*/  // ~0.35 * 2^-32
+#define EI_SWIRL_SIZE_BASE 0.85f /*0073CEB8*/    // 0.85
+#define EI_SWIRL_GROW 0.03f /*0073CD74*/         // 0.03
+#define EI_SWIRL_SPARK_SCALE 1.8626450386423355e-10 /*0073CEB0*/ // ~0.8 * 2^-32
+#define EI_SWIRL_SPARK_BASE 0.6f /*0073CDE0*/   // 0.6
+#define EI_SWIRL_SPARK_SIZE 0.2f /*0073BAD4*/   // 0.2
+#define EI_SWIRL_SHRINK 0.97f /*0073CEC8*/       // 0.97
+#define EI_MARKER_SIZE_SCALE 9.313226580990458e-11 /*0073CCB0*/ // ~0.4 * 2^-32
+#define EI_MARKER_SIZE_BASE 0.8f /*0073CCA8*/   // 0.8
 
 const std::int32_t* SwirlMarkerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A918); }
 const std::int32_t* SwirlSparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A914); }
@@ -915,12 +915,12 @@ EI_REPLACE_METHOD(0x00491390, CParticleSource::TickCastSwirl);
 
 namespace {
 
-#define EI_LINK_DEGENERATE GameDouble(0x0073CE00)   // 1e-10
-#define EI_LINK_TWIST GameFloat(0x0073BAD4)         // 0.2
-#define EI_LINK_HALF GameFloat(0x0073B86C)          // 0.5
-#define EI_LINK_QUARTER GameFloat(0x0073C3B0)       // 0.25
-#define EI_LINK_BULGE GameFloat(0x0073CD70)         // 0.9
-#define EI_LINK_ALPHA GameFloat(0x0073C34C)         // 1000.0
+#define EI_LINK_DEGENERATE 1e-10 /*0073CE00*/   // 1e-10
+#define EI_LINK_TWIST 0.2f /*0073BAD4*/         // 0.2
+#define EI_LINK_HALF 0.5f /*0073B86C*/          // 0.5
+#define EI_LINK_QUARTER 0.25f /*0073C3B0*/       // 0.25
+#define EI_LINK_BULGE 0.9f /*0073CD70*/         // 0.9
+#define EI_LINK_ALPHA 1000.0f /*0073C34C*/         // 1000.0
 
 inline float F(std::uint32_t bits) {
     float f;
@@ -1087,25 +1087,25 @@ EI_REPLACE_METHOD(0x0048E040, CParticleSource::TickLink);
 
 namespace {
 
-#define EI_BLAST_FLAME_SIZE GameFloat(0x0073CDE0)    // 0.6
-#define EI_BLAST_POINT_TWO GameFloat(0x0073BAD4)     // 0.2
-#define EI_BLAST_RISE_SCALE GameDouble(0x0073CDD8)   // ~0.35 * 2^-32
-#define EI_BLAST_RISE GameFloat(0x0073CDD4)          // 0.35
-#define EI_BLAST_RISE_BASE GameFloat(0x0073CDD0)     // 0.175
-#define EI_BLAST_HALF GameFloat(0x0073B86C)          // 0.5
-#define EI_BLAST_DEBRIS_SCALE GameDouble(0x0073C540) // ~0.4 * 2^-31
-#define EI_BLAST_POINT_SEVEN GameFloat(0x0073C538)   // 0.7
-#define EI_BLAST_POINT_15 GameFloat(0x0073CD18)      // 0.15
-#define EI_BLAST_POINT_THREE GameFloat(0x0073C54C)   // 0.3
-#define EI_BLAST_SEVENTH GameFloat(0x0073CDCC)       // 1/7
-#define EI_BLAST_POINT_EIGHT GameFloat(0x0073CCA8)   // 0.8
-#define EI_BLAST_SCALE_0_4 GameDouble(0x0073CCB0)    // ~0.4 * 2^-32
-#define EI_BLAST_CORE_SIZE GameFloat(0x0073CDEC)     // 2.3
-#define EI_BLAST_SWELL_LATE GameFloat(0x0073CDE8)    // 1.03
-#define EI_BLAST_SWELL_EARLY GameFloat(0x0073CD40)   // 1.01
-#define EI_BLAST_FRAME_ACCEL GameFloat(0x0073CDE4)   // 1.02
-#define EI_BLAST_DRAG GameFloat(0x0073CD74)          // 0.03
-#define EI_BLAST_SLOW GameFloat(0x0073C524)          // 0.75
+#define EI_BLAST_FLAME_SIZE 0.6f /*0073CDE0*/    // 0.6
+#define EI_BLAST_POINT_TWO 0.2f /*0073BAD4*/     // 0.2
+#define EI_BLAST_RISE_SCALE 8.149072391004912e-11 /*0073CDD8*/   // ~0.35 * 2^-32
+#define EI_BLAST_RISE 0.35f /*0073CDD4*/          // 0.35
+#define EI_BLAST_RISE_BASE 0.175f /*0073CDD0*/     // 0.175
+#define EI_BLAST_HALF 0.5f /*0073B86C*/          // 0.5
+#define EI_BLAST_DEBRIS_SCALE 1.8626451774202136e-10 /*0073C540*/ // ~0.4 * 2^-31
+#define EI_BLAST_POINT_SEVEN 0.7f /*0073C538*/   // 0.7
+#define EI_BLAST_POINT_15 0.15f /*0073CD18*/      // 0.15
+#define EI_BLAST_POINT_THREE 0.3f /*0073C54C*/   // 0.3
+#define EI_BLAST_SEVENTH 0.14285715f /*0073CDCC*/       // 1/7
+#define EI_BLAST_POINT_EIGHT 0.8f /*0073CCA8*/   // 0.8
+#define EI_BLAST_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/    // ~0.4 * 2^-32
+#define EI_BLAST_CORE_SIZE 2.3f /*0073CDEC*/     // 2.3
+#define EI_BLAST_SWELL_LATE 1.03f /*0073CDE8*/    // 1.03
+#define EI_BLAST_SWELL_EARLY 1.01f /*0073CD40*/   // 1.01
+#define EI_BLAST_FRAME_ACCEL 1.02f /*0073CDE4*/   // 1.02
+#define EI_BLAST_DRAG 0.03f /*0073CD74*/          // 0.03
+#define EI_BLAST_SLOW 0.75f /*0073C524*/          // 0.75
 
 constexpr int kBlastCore = -1222;     // the core flash, emitted once at the start
 
@@ -1287,12 +1287,12 @@ EI_REPLACE_METHOD(0x0048C760, CParticleSource::TickBlast);
 
 namespace {
 
-#define EI_FOG_CELL GameFloat(0x0073CB34)            // 1.0: the grid spacing
-#define EI_FOG_QUARTER GameFloat(0x0073C3B0)         // 0.25
-#define EI_FOG_JITTER_LOW GameFloat(0x0073CDA8)      // -0.25
-#define EI_FOG_SIZE_SCALE GameDouble(0x0073CDA0)     // ~0.5 * 2^-32
-#define EI_FOG_SIZE_BASE GameFloat(0x0073CB30)       // 1.0
-#define EI_FOG_ALPHA GameFloat(0x0073CD98)           // 160.0
+#define EI_FOG_CELL 1.0f /*0073CB34*/            // 1.0: the grid spacing
+#define EI_FOG_QUARTER 0.25f /*0073C3B0*/         // 0.25
+#define EI_FOG_JITTER_LOW (-0.25f /*0073CDA8*/)      // -0.25
+#define EI_FOG_SIZE_SCALE 1.1641532185403987e-10 /*0073CDA0*/     // ~0.5 * 2^-32
+#define EI_FOG_SIZE_BASE 1.0f /*0073CB30*/       // 1.0
+#define EI_FOG_ALPHA 160.0f /*0073CD98*/           // 160.0
 
 } // namespace
 
@@ -1359,25 +1359,23 @@ EI_REPLACE_METHOD(0x0048B080, CParticleSource::EmitPoisonFog);
 
 namespace {
 
-#define EI_GEYSER_YAW_SCALE GameDouble(0x0073CD68)   // ~40 * 2^-32 (degrees)
-#define EI_GEYSER_YAW_LOW GameFloat(0x0073CCF8)      // 20.0
-#define EI_GEYSER_TILT_SCALE GameDouble(0x0073CD60)  // ~20 * 2^-32
-#define EI_GEYSER_TILT_LOW GameFloat(0x0073BAAC)     // 10.0
-#define EI_GEYSER_JET_SCALE GameDouble(0x0073CD58)   // ~0.2 * 2^-32
-#define EI_GEYSER_JET_LOW GameFloat(0x0073B850)      // 0.1
-#define EI_GEYSER_PI GameDouble(0x0073CAE8)          // pi
-#define EI_GEYSER_PER_DEGREE GameDouble(0x0073BA30)  // 1/180
-#define EI_GEYSER_DROP GameFloat(0x0073BAD4)         // 0.2
-#define EI_GEYSER_HALF GameFloat(0x0073B86C)         // 0.5
-#define EI_GEYSER_MIST GameFloat(0x0073C548)         // 0.01
-#define EI_GEYSER_MARK_SCALE GameDouble(0x0073CD78)  // ~0.0146 * 2^-32
-#define EI_GEYSER_MARK_BASE GameFloat(0x0073CD74)    // 0.03
-#define EI_GEYSER_SHRINK GameFloat(0x0073CD70)       // 0.9
-#define EI_GEYSER_GRAVITY GameFloat(0x0073CCB8)      // 0.06
-#define EI_GEYSER_ANGLE_SCALE GameDouble(0x0073CD90) // ~360 * 2^-32
-#define EI_GEYSER_TILT_RANGE GameDouble(0x0073CD88)  // ~10 * 2^-32
-#define EI_GEYSER_POWER_SCALE GameDouble(0x0073CD80) // ~0.6 * 2^-32
-#define EI_GEYSER_POWER_BASE GameFloat(0x0073B868)   // 0.4
+#define EI_GEYSER_YAW_SCALE 9.31322574832319e-9 /*0073CD68*/   // ~40 * 2^-32 (degrees)
+#define EI_GEYSER_YAW_LOW 20.0f /*0073CCF8*/      // 20.0
+#define EI_GEYSER_TILT_SCALE 4.656612874161595e-9 /*0073CD60*/  // ~20 * 2^-32
+#define EI_GEYSER_TILT_LOW 10.0f /*0073BAAC*/     // 10.0
+#define EI_GEYSER_JET_SCALE 4.656612943550534e-11 /*0073CD58*/   // ~0.2 * 2^-32
+#define EI_GEYSER_JET_LOW 0.1f /*0073B850*/      // 0.1
+#define EI_GEYSER_DROP 0.2f /*0073BAD4*/         // 0.2
+#define EI_GEYSER_HALF 0.5f /*0073B86C*/         // 0.5
+#define EI_GEYSER_MIST 0.01f /*0073C548*/         // 0.01
+#define EI_GEYSER_MARK_SCALE 6.28642767328642e-11 /*0073CD78*/  // ~0.0146 * 2^-32
+#define EI_GEYSER_MARK_BASE 0.03f /*0073CD74*/    // 0.03
+#define EI_GEYSER_SHRINK 0.9f /*0073CD70*/       // 0.9
+#define EI_GEYSER_GRAVITY 0.06f /*0073CCB8*/      // 0.06
+#define EI_GEYSER_ANGLE_SCALE 8.38190317349087e-8 /*0073CD90*/ // ~360 * 2^-32
+#define EI_GEYSER_TILT_RANGE 2.3283064370807974e-9 /*0073CD88*/  // ~10 * 2^-32
+#define EI_GEYSER_POWER_SCALE 1.3969838483706906e-10 /*0073CD80*/ // ~0.6 * 2^-32
+#define EI_GEYSER_POWER_BASE 0.4f /*0073B868*/   // 0.4
 
 // A random value in [low, high) of the spread box component, added to `base` (the original's
 // order: the random part, the base, then the low end).
@@ -1408,7 +1406,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
     p->size = drop;
     if (e.ticks > 0) {
         p->life = 0x7FFFFFFF;
-        double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+        double radian = ei::kRadiansPerDegree;
         float yaw = static_cast<float>((Unsigned(Next()) * EI_GEYSER_YAW_SCALE - D(EI_GEYSER_YAW_LOW)) * radian + D(e.pos.x));
         float tilt = static_cast<float>((Unsigned(Next()) * EI_GEYSER_TILT_SCALE - D(EI_GEYSER_TILT_LOW)) * radian + D(e.pos.y));
         double power = Unsigned(Next()) * EI_GEYSER_JET_SCALE + D(e.pos.z) - D(EI_GEYSER_JET_LOW);
@@ -1475,7 +1473,7 @@ void CParticleSource::TickGeyser(ParticleElement* e) {
     }
     if (--*ElementInt(e, 0x30) > 0) return;
     e->ticks = static_cast<int>(Next() % 7) + 1;
-    double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+    double radian = ei::kRadiansPerDegree;
     float yaw = static_cast<float>(Unsigned(Next()) * EI_GEYSER_ANGLE_SCALE * radian);
     float tilt = static_cast<float>(Unsigned(Next()) * EI_GEYSER_TILT_RANGE * radian);
     float power = static_cast<float>(Unsigned(Next()) * EI_GEYSER_POWER_SCALE + D(EI_GEYSER_POWER_BASE));
@@ -1493,12 +1491,12 @@ EI_REPLACE_METHOD(0x0048AEC0, CParticleSource::TickGeyser);
 
 namespace {
 
-#define EI_SHOWER_RAYS GameFloat(0x0073CE50)         // 8.0 directions per unit of alpha
-#define EI_SHOWER_JITTER_SCALE GameDouble(0x0073CE48) // ~0.06 * 2^-32
-#define EI_SHOWER_JITTER_LOW GameFloat(0x0073CD74)   // 0.03
-#define EI_SHOWER_SPEED GameFloat(0x0073CE40)        // 1/6
-#define EI_SHOWER_FAST GameFloat(0x0073C51C)         // 1.5
-#define EI_SHOWER_GRAVITY GameFloat(0x0073C52C)      // 0.05
+#define EI_SHOWER_RAYS 8.0f /*0073CE50*/         // 8.0 directions per unit of alpha
+#define EI_SHOWER_JITTER_SCALE 1.3969838310234559e-11 /*0073CE48*/ // ~0.06 * 2^-32
+#define EI_SHOWER_JITTER_LOW 0.03f /*0073CD74*/   // 0.03
+#define EI_SHOWER_SPEED 0.16666667f /*0073CE40*/        // 1/6
+#define EI_SHOWER_FAST 1.5f /*0073C51C*/         // 1.5
+#define EI_SHOWER_GRAVITY 0.05f /*0073C52C*/      // 0.05
 
 const std::int32_t* ShowerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A6B4); }
 
@@ -1609,12 +1607,12 @@ EI_REPLACE_METHOD(0x0048F380, CParticleSource::TickShower);
 
 namespace {
 
-#define EI_BAG_SHRINK GameFloat(0x0073CF40)          // 0.93 per age
-#define EI_BAG_SPREAD_LOW GameFloat(0x0073CF44)      // -0.2
-#define EI_BAG_SPREAD_HIGH GameFloat(0x0073BAD4)     // 0.2
-#define EI_BAG_SPARK_SIZE GameFloat(0x0073B850)      // 0.1
-#define EI_BAG_BALL_SIZE GameFloat(0x0073CD18)       // 0.15
-#define EI_BAG_KICK GameFloat(0x0073C52C)            // 0.05
+#define EI_BAG_SHRINK 0.93f /*0073CF40*/          // 0.93 per age
+#define EI_BAG_SPREAD_LOW (-0.2f /*0073CF44*/)      // -0.2
+#define EI_BAG_SPREAD_HIGH 0.2f /*0073BAD4*/     // 0.2
+#define EI_BAG_SPARK_SIZE 0.1f /*0073B850*/      // 0.1
+#define EI_BAG_BALL_SIZE 0.15f /*0073CD18*/       // 0.15
+#define EI_BAG_KICK 0.05f /*0073C52C*/            // 0.05
 
 float* BagSizes() { return ei::GamePointer<float>(0x007A9BFC); }     // 12 entries
 const std::int32_t* BagColours() { return ei::GamePointer<const std::int32_t>(0x0073CBA4); }   // r, g, b
@@ -1783,19 +1781,19 @@ EI_REPLACE_METHOD(0x004938C0, CParticleSource::TickBag);
 
 namespace {
 
-#define EI_COLUMN_FOOT GameFloat(0x0073C54C)         // 0.3
-#define EI_COLUMN_RADIUS GameFloat(0x0073CCA8)       // 0.8
-#define EI_COLUMN_RISE_SCALE GameDouble(0x0073CE10)  // ~0.03 * 2^-32
-#define EI_COLUMN_RISE_BASE GameFloat(0x0073C538)    // 0.7
-#define EI_COLUMN_RISE GameFloat(0x0073B850)         // 0.1
-#define EI_COLUMN_RING_SCALE GameDouble(0x0073CED8)  // ~0.2 * 2^-32
-#define EI_COLUMN_RING_BASE GameFloat(0x0073CD70)    // 0.9
-#define EI_COLUMN_ANGLE_SCALE GameDouble(0x0073CED0) // ~2 pi * 2^-32
-#define EI_COLUMN_SIZE_SCALE GameDouble(0x0073CEB0)  // ~0.8 * 2^-32
-#define EI_COLUMN_SIZE_BASE GameFloat(0x0073CDE0)    // 0.6
-#define EI_COLUMN_SIZE GameFloat(0x0073C3B0)         // 0.25
-#define EI_COLUMN_SHRINK GameFloat(0x0073CEC8)       // 0.97
-#define EI_COLUMN_SPEED_UP GameFloat(0x0073CEE0)     // 1.05
+#define EI_COLUMN_FOOT 0.3f /*0073C54C*/         // 0.3
+#define EI_COLUMN_RADIUS 0.8f /*0073CCA8*/       // 0.8
+#define EI_COLUMN_RISE_SCALE 1.3969837789817515e-10 /*0073CE10*/  // ~0.03 * 2^-32
+#define EI_COLUMN_RISE_BASE 0.7f /*0073C538*/    // 0.7
+#define EI_COLUMN_RISE 0.1f /*0073B850*/         // 0.1
+#define EI_COLUMN_RING_SCALE 4.6566139843846196e-11 /*0073CED8*/  // ~0.2 * 2^-32
+#define EI_COLUMN_RING_BASE 0.9f /*0073CD70*/    // 0.9
+#define EI_COLUMN_ANGLE_SCALE 1.4629168990718488e-9 /*0073CED0*/ // ~2 pi * 2^-32
+#define EI_COLUMN_SIZE_SCALE 1.8626450386423355e-10 /*0073CEB0*/  // ~0.8 * 2^-32
+#define EI_COLUMN_SIZE_BASE 0.6f /*0073CDE0*/    // 0.6
+#define EI_COLUMN_SIZE 0.25f /*0073C3B0*/         // 0.25
+#define EI_COLUMN_SHRINK 0.97f /*0073CEC8*/       // 0.97
+#define EI_COLUMN_SPEED_UP 1.05f /*0073CEE0*/     // 1.05
 
 // The alpha by remaining life, read backwards from 0078A960.
 const std::int32_t* ColumnAlphaEnd() { return ei::GamePointer<const std::int32_t>(0x0078A960); }
@@ -1892,18 +1890,18 @@ EI_REPLACE_METHOD(0x004918D0, CParticleSource::TickColumn);
 
 namespace {
 
-#define EI_MUSHROOM_ONE GameDouble(0x0073BAC8)       // 1.0
-#define EI_MUSHROOM_SPREAD GameDouble(0x0073CCD0)    // 0.2
-#define EI_MUSHROOM_W_SCALE GameDouble(0x0073CCB0)   // ~0.4 * 2^-32
-#define EI_MUSHROOM_W_BASE GameFloat(0x0073CCA8)     // 0.8
-#define EI_MUSHROOM_UP_SCALE GameDouble(0x0073CCC8)  // ~0.9 * 2^-32
-#define EI_MUSHROOM_UP_BASE GameFloat(0x0073B850)    // 0.1
-#define EI_MUSHROOM_UP GameFloat(0x0073CCC0)         // 0.12
-#define EI_MUSHROOM_GROW GameFloat(0x0073CCBC)       // 0.008 per tick of age
-#define EI_MUSHROOM_SPEED GameFloat(0x0073CCB8)      // 0.06
-#define EI_MUSHROOM_SWELL GameFloat(0x0073BAC4)      // 1.1
-#define EI_MUSHROOM_DRAG GameFloat(0x0073C538)       // 0.7
-#define EI_MUSHROOM_PULL GameFloat(0x0073CCD8)       // 0.02
+#define EI_MUSHROOM_ONE 1.0 /*0073BAC8*/       // 1.0
+#define EI_MUSHROOM_SPREAD 0.20000000298023224 /*0073CCD0*/    // 0.2
+#define EI_MUSHROOM_W_SCALE 9.313226580990458e-11 /*0073CCB0*/   // ~0.4 * 2^-32
+#define EI_MUSHROOM_W_BASE 0.8f /*0073CCA8*/     // 0.8
+#define EI_MUSHROOM_UP_SCALE 2.0954757899032707e-10 /*0073CCC8*/  // ~0.9 * 2^-32
+#define EI_MUSHROOM_UP_BASE 0.1f /*0073B850*/    // 0.1
+#define EI_MUSHROOM_UP 0.12f /*0073CCC0*/         // 0.12
+#define EI_MUSHROOM_GROW 0.008f /*0073CCBC*/       // 0.008 per tick of age
+#define EI_MUSHROOM_SPEED 0.06f /*0073CCB8*/      // 0.06
+#define EI_MUSHROOM_SWELL 1.1f /*0073BAC4*/      // 1.1
+#define EI_MUSHROOM_DRAG 0.7f /*0073C538*/       // 0.7
+#define EI_MUSHROOM_PULL 0.02f /*0073CCD8*/       // 0.02
 
 } // namespace
 
@@ -1998,15 +1996,15 @@ EI_REPLACE_METHOD(0x00488DB0, CParticleSource::UpdateMushroom);
 
 namespace {
 
-#define EI_GAS_RADIUS GameFloat(0x0073C54C)          // 0.3
-#define EI_GAS_RATE GameFloat(0x0073BF34)            // 5.0
-#define EI_GAS_ROUND GameFloat(0x0073B86C)           // 0.5
-#define EI_GAS_LOW GameFloat(0x0073CDFC)             // -0.3
-#define EI_GAS_RISE_LOW GameFloat(0x0073CCD8)        // 0.02
-#define EI_GAS_RISE_HIGH GameFloat(0x0073CD74)       // 0.03
-#define EI_GAS_SIZE GameFloat(0x0073C538)            // 0.7
-#define EI_GAS_SPEED_UP GameFloat(0x0073CDE4)        // 1.02
-#define EI_GAS_SWELL GameFloat(0x0073CD40)           // 1.01
+#define EI_GAS_RADIUS 0.3f /*0073C54C*/          // 0.3
+#define EI_GAS_RATE 5.0f /*0073BF34*/            // 5.0
+#define EI_GAS_ROUND 0.5f /*0073B86C*/           // 0.5
+#define EI_GAS_LOW (-0.3f /*0073CDFC*/)             // -0.3
+#define EI_GAS_RISE_LOW 0.02f /*0073CCD8*/        // 0.02
+#define EI_GAS_RISE_HIGH 0.03f /*0073CD74*/       // 0.03
+#define EI_GAS_SIZE 0.7f /*0073C538*/            // 0.7
+#define EI_GAS_SPEED_UP 1.02f /*0073CDE4*/        // 1.02
+#define EI_GAS_SWELL 1.01f /*0073CD40*/           // 1.01
 
 const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 
@@ -2037,7 +2035,7 @@ int CParticleSource::EmitStench(Particle* p, int) {
     float radius = *ElementFloat(elements, 0x18);
     float carrierHeight = *ElementFloat(elements, 0x20);
     float t = static_cast<float>(Unsigned(Next()) * D(radius) * EI_P_SCALE_1);
-    float twoPi = static_cast<float>(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));
+    float twoPi = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);
     double angle = Unsigned(Next()) * D(twoPi) * EI_P_SCALE_1;
     p->color = 0xFFFFFFFF;
     p->frame = 0;
@@ -2105,29 +2103,29 @@ EI_REPLACE_METHOD(0x0048D7F0, CParticleSource::UpdateStench);
 
 namespace {
 
-#define EI_FUNNEL_PI_F GameFloat(0x0073BF34)         // 5.0: rings per unit height
-#define EI_FUNNEL_PI GameDouble(0x0073CAE8)          // pi
-#define EI_FUNNEL_R_SCALE GameDouble(0x0073CD30)     // ~1.2 * 2^-32
-#define EI_FUNNEL_R_BASE GameFloat(0x0073CCA8)       // 0.8
-#define EI_FUNNEL_R_ADD GameFloat(0x0073BAD4)        // 0.2
-#define EI_FUNNEL_TURN_HIGH GameDouble(0x0073CD28)   // 0.07 (times pi)
-#define EI_FUNNEL_TURN_LOW GameDouble(0x0073CD20)    // 0.06 (times pi)
-#define EI_FUNNEL_TURN_TOP GameFloat(0x0073BAC4)     // 1.1
-#define EI_FUNNEL_TURN_SCALE GameFloat(0x0073C51C)   // 1.5
-#define EI_FUNNEL_SIZE GameFloat(0x0073C54C)         // 0.3
-#define EI_FUNNEL_DUST GameFloat(0x0073CD18)         // 0.15
-#define EI_FUNNEL_RISE GameFloat(0x0073CD44)         // 0.0001
-#define EI_FUNNEL_SPIN_UP GameFloat(0x0073CD40)      // 1.01
-#define EI_FUNNEL_ALPHA GameDouble(0x0073CD38)       // 255.0
-#define EI_FUNNEL_FADE GameFloat(0x0073B850)         // 0.1
-#define EI_FUNNEL_SWAY GameFloat(0x0073CD50)         // 0.95
-#define EI_FUNNEL_HALF_ARC GameDouble(0x0073CC88)    // 0.5
-#define EI_FUNNEL_LEAN GameFloat(0x0073CCF8)         // 20.0
-#define EI_FUNNEL_BACK GameFloat(0x0073B854)         // -1.0
-#define EI_FUNNEL_HALF GameFloat(0x0073B86C)         // 0.5
-#define EI_FUNNEL_MAX_LEAN GameFloat(0x0073C548)     // 0.01
-#define EI_FUNNEL_ONE GameDouble(0x0073BAC8)         // 1.0
-#define EI_FUNNEL_BEND GameDouble(0x0073CD48)        // 0.4
+#define EI_FUNNEL_PI_F 5.0f /*0073BF34*/         // 5.0: rings per unit height
+#define EI_FUNNEL_PI 3.141592653589793 /*0073CAE8*/          // pi
+#define EI_FUNNEL_R_SCALE 2.793967696741381e-10 /*0073CD30*/     // ~1.2 * 2^-32
+#define EI_FUNNEL_R_BASE 0.8f /*0073CCA8*/       // 0.8
+#define EI_FUNNEL_R_ADD 0.2f /*0073BAD4*/        // 0.2
+#define EI_FUNNEL_TURN_HIGH 0.07 /*0073CD28*/   // 0.07 (times pi)
+#define EI_FUNNEL_TURN_LOW 0.06 /*0073CD20*/    // 0.06 (times pi)
+#define EI_FUNNEL_TURN_TOP 1.1f /*0073BAC4*/     // 1.1
+#define EI_FUNNEL_TURN_SCALE 1.5f /*0073C51C*/   // 1.5
+#define EI_FUNNEL_SIZE 0.3f /*0073C54C*/         // 0.3
+#define EI_FUNNEL_DUST 0.15f /*0073CD18*/         // 0.15
+#define EI_FUNNEL_RISE 0.0001f /*0073CD44*/         // 0.0001
+#define EI_FUNNEL_SPIN_UP 1.01f /*0073CD40*/      // 1.01
+#define EI_FUNNEL_ALPHA 255.0 /*0073CD38*/       // 255.0
+#define EI_FUNNEL_FADE 0.1f /*0073B850*/         // 0.1
+#define EI_FUNNEL_SWAY 0.95f /*0073CD50*/         // 0.95
+#define EI_FUNNEL_HALF_ARC 0.5 /*0073CC88*/    // 0.5
+#define EI_FUNNEL_LEAN 20.0f /*0073CCF8*/         // 20.0
+#define EI_FUNNEL_BACK (-1.0f /*0073B854*/)         // -1.0
+#define EI_FUNNEL_HALF 0.5f /*0073B86C*/         // 0.5
+#define EI_FUNNEL_MAX_LEAN 0.01f /*0073C548*/     // 0.01
+#define EI_FUNNEL_ONE 1.0 /*0073BAC8*/         // 1.0
+#define EI_FUNNEL_BEND 0.4 /*0073CD48*/        // 0.4
 
 // The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y
 // blends in the original's two orders; y is returned unrounded.
@@ -2325,7 +2323,7 @@ EI_REPLACE_METHOD(0x00493D10, CParticleSource::EmitPortalStar);
 int CParticleSource::UpdatePortalStar(Particle* p) {
     if (!(flags_ & 1)) return 0;
     p->color = 0xFFFFFFFF;
-    p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size));
+    p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size));
     return 1;
 }
 EI_REPLACE_METHOD(0x00493D50, CParticleSource::UpdatePortalStar);
@@ -2339,17 +2337,17 @@ EI_REPLACE_METHOD(0x00493D50, CParticleSource::UpdatePortalStar);
 
 namespace {
 
-#define EI_CYL_TURN GameFloat(0x0073CC74)            // 0.3
-#define EI_CYL_PI GameFloat(0x0073CAF0)              // pi
-#define EI_CYL_TURN_SCALE GameFloat(0x0073CF48)      // 0.1333
-#define EI_CYL_ORBIT GameFloat(0x0073C538)           // 0.7
-#define EI_CYL_LIFT GameFloat(0x0073BAD4)            // 0.2
-#define EI_CYL_TWO GameFloat(0x0073CDB8)             // 2.0
-#define EI_CYL_RISE GameFloat(0x0073CE90)            // 0.04
-#define EI_CYL_RISE_UP GameFloat(0x0073CF50)         // 1.25
-#define EI_CYL_TWIST GameFloat(0x0073CF4C)           // -0.01333
-#define EI_CYL_SPARK_PULL GameFloat(0x0073CDE0)      // 0.6
-#define EI_CYL_SPARK_SHRINK GameFloat(0x0073CD70)    // 0.9
+#define EI_CYL_TURN 0.3f /*0073CC74*/            // 0.3
+#define EI_CYL_PI 3.1415927f /*0073CAF0*/              // pi
+#define EI_CYL_TURN_SCALE 0.13333334f /*0073CF48*/      // 0.1333
+#define EI_CYL_ORBIT 0.7f /*0073C538*/           // 0.7
+#define EI_CYL_LIFT 0.2f /*0073BAD4*/            // 0.2
+#define EI_CYL_TWO 2.0f /*0073CDB8*/             // 2.0
+#define EI_CYL_RISE 0.04f /*0073CE90*/            // 0.04
+#define EI_CYL_RISE_UP 1.25f /*0073CF50*/         // 1.25
+#define EI_CYL_TWIST (-0.013333334f /*0073CF4C*/)           // -0.01333
+#define EI_CYL_SPARK_PULL 0.6f /*0073CDE0*/      // 0.6
+#define EI_CYL_SPARK_SHRINK 0.9f /*0073CD70*/    // 0.9
 
 const std::int32_t* CylinderAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB18); }
 
@@ -2358,7 +2356,7 @@ void SetUpCylinder(CParticleSource* s) {
     Vector3 offset;
     float radius;
     s->AttachmentOffset(&offset, &radius);
-    double turn = D(EI_CYL_TURN) * D(EI_CYL_PI) * D(EI_CYL_TURN_SCALE);
+    double turn = static_cast<float>(static_cast<float>(D(EI_CYL_TURN) * D(EI_CYL_PI)) * D(EI_CYL_TURN_SCALE));   // each product rounded to 24 bits, as the FPU does
     if (s->type_ == 0x2040) turn = -turn;
     float c = static_cast<float>(x87::fcos(turn));
     float sn = static_cast<float>(x87::fsin(turn));
@@ -2506,7 +2504,7 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
     step[2] = static_cast<float>(D(nz) - D(e->pos.z));
     *rise = static_cast<float>(D(*rise) * D(EI_CYL_RISE_UP));
     e->pos = {nx, ny, nz};
-    double twist = D(EI_CYL_PI) * D(EI_CYL_TWIST);
+    double twist = static_cast<float>(D(EI_CYL_PI) * D(EI_CYL_TWIST));   // rounded to 24 bits, as the FPU does
     if (type_ == 0x2040) twist = -twist;
     float c = static_cast<float>(x87::fcos(twist));
     double s = x87::fsin(twist);
@@ -2525,14 +2523,14 @@ EI_REPLACE_METHOD(0x00494340, CParticleSource::TickCylinder);
 
 namespace {
 
-#define EI_TRAIL_MOVING GameFloat(0x0073CDF0)        // 1e-5: below this distance there is no trail
-#define EI_TRAIL_HEAD GameFloat(0x0073CDF4)          // 1.2
-#define EI_TRAIL_HALF GameFloat(0x0073B86C)          // 0.5
-#define EI_TRAIL_DRAG GameFloat(0x0073CD50)          // 0.95
-#define EI_ARROW_HEAD GameFloat(0x0073B868)          // 0.4
-#define EI_ARROW_PUFF GameFloat(0x0073BAD4)          // 0.2
-#define EI_ARROW_SWELL GameFloat(0x0073CDF8)         // 1.4
-#define EI_ARROW_SPREAD GameFloat(0x0073BAC4)        // 1.1
+#define EI_TRAIL_MOVING 0.00001f /*0073CDF0*/        // 1e-5: below this distance there is no trail
+#define EI_TRAIL_HEAD 1.2f /*0073CDF4*/          // 1.2
+#define EI_TRAIL_HALF 0.5f /*0073B86C*/          // 0.5
+#define EI_TRAIL_DRAG 0.95f /*0073CD50*/          // 0.95
+#define EI_ARROW_HEAD 0.4f /*0073B868*/          // 0.4
+#define EI_ARROW_PUFF 0.2f /*0073BAD4*/          // 0.2
+#define EI_ARROW_SWELL 1.4f /*0073CDF8*/         // 1.4
+#define EI_ARROW_SPREAD 1.1f /*0073BAC4*/        // 1.1
 
 // A random value of [low, high) (the original's spread box order).
 double Between(float low, float high) { return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low); }
@@ -2723,13 +2721,13 @@ EI_REPLACE_METHOD(0x0048CED0, CParticleSource::UpdateArrowSmoke);
 
 namespace {
 
-#define EI_BANSHEE_TALL GameFloat(0x0073BAA4)        // 3.0
-#define EI_BANSHEE_WIDEN GameFloat(0x0073CD04)       // 1/36
-#define EI_BANSHEE_HALF GameFloat(0x0073B86C)        // 0.5
-#define EI_BANSHEE_REACH GameFloat(0x0073BAF0)       // 30.0
-#define EI_BANSHEE_EASE GameFloat(0x0073CB2C)        // 0.5
-#define EI_BANSHEE_THIN GameFloat(0x0073CCF4)        // 0.001
-#define EI_BANSHEE_SIZE GameFloat(0x0073CD18)        // 0.15
+#define EI_BANSHEE_TALL 3.0f /*0073BAA4*/        // 3.0
+#define EI_BANSHEE_WIDEN 0.027777778f /*0073CD04*/       // 1/36
+#define EI_BANSHEE_HALF 0.5f /*0073B86C*/        // 0.5
+#define EI_BANSHEE_REACH 30.0f /*0073BAF0*/       // 30.0
+#define EI_BANSHEE_EASE 0.5f /*0073CB2C*/        // 0.5
+#define EI_BANSHEE_THIN 0.001f /*0073CCF4*/        // 0.001
+#define EI_BANSHEE_SIZE 0.15f /*0073CD18*/        // 0.15
 
 } // namespace
 
@@ -2753,7 +2751,7 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
     }
     float ringRadius;
     std::memcpy(&ringRadius, ElementFloat(elements, 0x0C), sizeof(float));
-    float twoPi = static_cast<float>(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));
+    float twoPi = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);
     std::uint32_t r = Next();
     p->color = 0xFFFFFFFF;
     p->frame = 0;
@@ -2805,14 +2803,14 @@ EI_REPLACE_METHOD(0x00489F30, CParticleSource::TickBanshee);
 
 namespace {
 
-#define EI_PORTAL_HEIGHT GameFloat(0x0073CC7C)       // 8.0
-#define EI_PORTAL_RADIUS GameFloat(0x0073CC78)       // 2.5
-#define EI_PORTAL_ANGLE GameDouble(0x0073CE88)       // ~2 pi * 2^-32
-#define EI_PORTAL_SPIN GameFloat(0x0073B850)         // 0.1
-#define EI_PORTAL_RISE GameFloat(0x0073CF54)         // 0.015
-#define EI_PORTAL_HALF_C GameFloat(0x0073B86C)       // 0.5
-#define EI_PORTAL_TWO GameFloat(0x0073CDB8)          // 2.0
-#define EI_PORTAL_SHRINK GameFloat(0x0073C54C)       // 0.3
+#define EI_PORTAL_HEIGHT 8.0f /*0073CC7C*/       // 8.0
+#define EI_PORTAL_RADIUS 2.5f /*0073CC78*/       // 2.5
+#define EI_PORTAL_ANGLE 1.4629214509862508e-9 /*0073CE88*/       // ~2 pi * 2^-32
+#define EI_PORTAL_SPIN 0.1f /*0073B850*/         // 0.1
+#define EI_PORTAL_RISE 0.015f /*0073CF54*/         // 0.015
+#define EI_PORTAL_HALF_C 0.5f /*0073B86C*/       // 0.5
+#define EI_PORTAL_TWO 2.0f /*0073CDB8*/          // 2.0
+#define EI_PORTAL_SHRINK 0.3f /*0073C54C*/       // 0.3
 
 } // namespace
 
@@ -2823,7 +2821,7 @@ int CParticleSource::EmitPortal(Particle* p, int) {
     if (particles.count == 0) {
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0);
-        p->pos.z = static_cast<float>(D(EI_PORTAL_HEIGHT) * D(GameFloat(0x0073CCA8)) + D(p->pos.z));
+        p->pos.z = static_cast<float>(D(EI_PORTAL_HEIGHT) * D(0.8f /*0073CCA8*/) + D(p->pos.z));
         p->color = 0x60FFFFFF;
         p->state = 1;
         p->frame = 15;
@@ -2856,7 +2854,7 @@ int CParticleSource::EmitPortal(Particle* p, int) {
     }
     p->velocity.x = static_cast<float>(x87::fcos(D(spin)));
     p->velocity.y = static_cast<float>(x87::fsin(D(spin)));
-    p->velocity.z = static_cast<float>((D(EI_P_ONE) - D(spread) + D(GameFloat(0x0073BAA4))) * D(radius) * D(EI_PORTAL_RISE));
+    p->velocity.z = static_cast<float>((D(EI_P_ONE) - D(spread) + D(3.0f /*0073BAA4*/)) * D(radius) * D(EI_PORTAL_RISE));
     p->pos.z = static_cast<float>((Unsigned(Next()) * EI_P_SCALE_1 - D(EI_PORTAL_HALF_C)) * D(p->velocity.z) + D(p->pos.z));
     return 1;
 }
@@ -2976,7 +2974,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     }
     flags_ &= ~1u;
     p->color = 0xFFFFFFFF;
-    float speed = static_cast<float>(Unsigned(Next()) * GameDouble(0x0073CE10) + D(GameFloat(0x0073CCA8)));
+    float speed = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 /*0073CE10*/ + D(0.8f /*0073CCA8*/));
     float x, y, z;
     double lengthSquared;
     for (int tries = 10;;) {
@@ -2993,7 +2991,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     v.Construct(x, y, z);
     Vector3 direction;
     DivideVector(&direction, v, length);
-    double k = D(speed) * D(size) * D(speed) * D(GameFloat(0x0073BAD4));
+    double k = D(speed) * D(size) * D(speed) * D(0.2f /*0073BAD4*/);
     p->drift.x = static_cast<float>(D(direction.x) * k);
     p->drift.y = static_cast<float>(D(direction.y) * k);
     p->drift.z = static_cast<float>(D(direction.z) * k);
@@ -3008,8 +3006,8 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
-    p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
-                    D(GameFloat(0x0073BAD4)));
+    p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
+                    D(0.2f /*0073BAD4*/));
     p->life = 6;
     p->state = 0;
     p->frame = static_cast<int>(Next() % 3) + 1;
@@ -3024,11 +3022,11 @@ EI_REPLACE_METHOD(0x00494A10, CParticleSource::EmitSparks);
 
 namespace {
 
-#define EI_CLAY_SCATTER_SCALE GameDouble(0x0073CD58)  // ~0.2 * 2^-32
-#define EI_CLAY_SCATTER_LOW GameFloat(0x0073B850)     // 0.1
-#define EI_CLAY_SLOW GameFloat(0x0073CD70)            // 0.9
-#define EI_CLAY_COS GameFloat(0x0073CD50)             // 0.95
-#define EI_CLAY_SIN GameFloat(0x0073CE78)             // 0.31225
+#define EI_CLAY_SCATTER_SCALE 4.656612943550534e-11 /*0073CD58*/  // ~0.2 * 2^-32
+#define EI_CLAY_SCATTER_LOW 0.1f /*0073B850*/     // 0.1
+#define EI_CLAY_SLOW 0.9f /*0073CD70*/            // 0.9
+#define EI_CLAY_COS 0.95f /*0073CD50*/             // 0.95
+#define EI_CLAY_SIN 0.31225f /*0073CE78*/             // 0.31225
 
 const std::int32_t* ClayAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A734); }
 const float* ClayReach() { return ei::GamePointer<const float>(0x0078A6F4); }
@@ -3152,18 +3150,16 @@ EI_REPLACE_METHOD(0x0048FBE0, CParticleSource::TickClayRing);
 
 namespace {
 
-#define EI_FALL_SIZE_SCALE GameDouble(0x0073CE68)    // ~0.1 * 2^-32
-#define EI_FALL_SIZE_BASE GameFloat(0x0073B850)      // 0.1
-#define EI_FALL_HALF GameFloat(0x0073B86C)           // 0.5
-#define EI_FALL_PI GameDouble(0x0073CAE8)            // pi
-#define EI_FALL_PER_DEGREE GameDouble(0x0073BA30)    // 1/180
-#define EI_FALL_TEN GameDouble(0x0073CD10)           // 10.0
-#define EI_FALL_DROP_SCALE GameDouble(0x0073CE60)    // ~0.12 * 2^-32
-#define EI_FALL_DROP GameFloat(0x0073CCB8)           // 0.06
-#define EI_FALL_SPIN_SCALE GameDouble(0x0073CE58)    // ~0.4 * 2^-32
-#define EI_FALL_SPIN GameFloat(0x0073CDE0)           // 0.6
-#define EI_FALL_REACH_SCALE GameDouble(0x0073CE70)   // ~0.2 * 2^-32
-#define EI_FALL_TURN GameDouble(0x0073CDC0)          // 360.0
+#define EI_FALL_SIZE_SCALE 2.328306471775267e-11 /*0073CE68*/    // ~0.1 * 2^-32
+#define EI_FALL_SIZE_BASE 0.1f /*0073B850*/      // 0.1
+#define EI_FALL_HALF 0.5f /*0073B86C*/           // 0.5
+#define EI_FALL_TEN 10.0 /*0073CD10*/           // 10.0
+#define EI_FALL_DROP_SCALE 2.7939676620469117e-11 /*0073CE60*/    // ~0.12 * 2^-32
+#define EI_FALL_DROP 0.06f /*0073CCB8*/           // 0.06
+#define EI_FALL_SPIN_SCALE 9.313226234045763e-11 /*0073CE58*/    // ~0.4 * 2^-32
+#define EI_FALL_SPIN 0.6f /*0073CDE0*/           // 0.6
+#define EI_FALL_REACH_SCALE 4.6566131170228816e-11 /*0073CE70*/   // ~0.2 * 2^-32
+#define EI_FALL_TURN 360.0 /*0073CDC0*/          // 360.0
 
 } // namespace
 
@@ -3178,7 +3174,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
     const float* g = &gust.value[0];
     float reach = static_cast<float>(D(g[0]) * D(EI_FALL_HALF));
-    int spread = static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN));
+    int spread = static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TEN)));
     float turn = static_cast<float>(static_cast<double>(spread) * D(g[1]));
     float lowReach = static_cast<float>(-D(reach));
     float x = static_cast<float>(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(g[0]) + D(lowReach));
@@ -3201,7 +3197,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
     int age = *ElementInt(e, 0x30);
     if (age == 0) {
         *ElementFloat(e, 0x0C) = static_cast<float>(Unsigned(Next()) * EI_FALL_REACH_SCALE + D(EI_FALL_SIZE_BASE));
-        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN))));
+        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN)))));
         *ElementFloat(e, 0x10) = static_cast<float>(Unsigned(Next()) * D(whole) * EI_P_SCALE_1);
         age = *ElementInt(e, 0x30);
     }
@@ -3217,9 +3213,9 @@ EI_REPLACE_METHOD(0x0048F6F0, CParticleSource::TickFalling);
 
 namespace {
 
-#define EI_VULKAN_LOW GameFloat(0x0073CDC8)          // -0.5
-#define EI_VULKAN_HALF GameFloat(0x0073B86C)         // 0.5
-#define EI_VULKAN_SMOKE GameFloat(0x0073C54C)        // 0.3
+#define EI_VULKAN_LOW (-0.5f /*0073CDC8*/)          // -0.5
+#define EI_VULKAN_HALF 0.5f /*0073B86C*/         // 0.5
+#define EI_VULKAN_SMOKE 0.3f /*0073C54C*/        // 0.3
 
 } // namespace
 
@@ -3229,7 +3225,7 @@ namespace {
 int CParticleSource::EmitVulkan(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 0;
-    double radian = EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN;
+    double radian = static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TURN);
     if (Next() % 100 + 1 <= 60) {
         p->state = 8;
         p->life = lifetime * 8;
@@ -3313,7 +3309,7 @@ int CParticleSource::UpdateFireStar(Particle* p) {
         SetBits(&p->size, 0);
         return 0;
     }
-    double shrunk = D(p->velocity.x) * D(GameFloat(0x0073CD70));    // 0.9
+    double shrunk = D(p->velocity.x) * D(0.9f /*0073CD70*/);    // 0.9
     p->color = 0xFFFFFFFF;
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     p->velocity.x = static_cast<float>(shrunk);
@@ -3341,9 +3337,9 @@ EI_REPLACE_METHOD(0x004950B0, CParticleSource::EmitRegeneration);
 // above, by 0.4 of the source's size. Its size flickers at random.
 int CParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
-        double shrunk = D(size) * D(GameFloat(0x0073C524));          // 0.75
+        double shrunk = D(size) * D(0.75f /*0073C524*/);          // 0.75
         size = static_cast<float>(shrunk);
-        if (!(shrunk >= D(GameFloat(0x0073CCD8)))) {                    // 0.02
+        if (!(shrunk >= D(0.02f /*0073CCD8*/))) {                    // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3360,20 +3356,20 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
         double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
         float axisY = static_cast<float>(Dot2DUnrounded(x, z, y, w) * 2.0);   // (xy + zw) * 2
         float axisZ = static_cast<float>((x * z - y * w) * 2.0);
-        float scale = static_cast<float>(D(carrier->radius) * D(p->velocity.x) * D(GameFloat(0x0073CE08)));    // 0.65
+        float scale = static_cast<float>(D(carrier->radius) * D(p->velocity.x) * D(0.65f /*0073CE08*/));    // 0.65
         float offsetY = static_cast<float>(D(axisY) * D(scale));
         float offsetZ = static_cast<float>(D(axisZ) * D(scale));
         target.x = static_cast<float>(axisX * D(scale) + D(target.x));
         target.y = static_cast<float>(D(offsetY) + D(target.y));
         target.z = static_cast<float>(D(offsetZ) + D(target.z));
     }
-    p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
-                    D(GameFloat(0x0073C3B0)));                       // (0.8 + [0, 0.4)) * size / 4
-    double keep = D(GameFloat(0x0073C538));                          // 0.7
-    double pull = D(GameFloat(0x0073C54C));                          // 0.3
+    p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
+                    D(0.25f /*0073C3B0*/));                       // (0.8 + [0, 0.4)) * size / 4
+    double keep = D(0.7f /*0073C538*/);                          // 0.7
+    double pull = D(0.3f /*0073C54C*/);                          // 0.3
     p->pos.x = static_cast<float>(D(p->pos.x) * keep + D(target.x) * pull);
     p->pos.y = static_cast<float>(D(p->pos.y) * keep + D(target.y) * pull);
-    p->pos.z = static_cast<float>(D(p->pos.z) * keep + D(size) * D(GameFloat(0x0073B868)) + D(target.z) * pull);
+    p->pos.z = static_cast<float>(D(p->pos.z) * keep + D(size) * D(0.4f /*0073B868*/) + D(target.z) * pull);
     return 1;
 }
 EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
@@ -3386,10 +3382,10 @@ float SpinAngle() { return ei::GameData<const volatile float>(0x007A9BF8); }
 // The turn per satellite of the star: the rate for the satellite that follows `count` particles (1-4).
 float SpinRate(int count) {
     switch (count) {
-    case 1: return GameFloat(0x0073CCA0);
-    case 2: return GameFloat(0x0073CF6C);
-    case 3: return GameFloat(0x0073CF68);
-    default: return GameFloat(0x0073CF64);
+    case 1: return 0.2f /*0073CCA0*/;
+    case 2: return 0.4f /*0073CF6C*/;
+    case 3: return 0.6f /*0073CF68*/;
+    default: return 0.8f /*0073CF64*/;
     }
 }
 
@@ -3408,8 +3404,8 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
     SetBits(&p->size, 0);
     if (lifetime != 1) return 1;
     if (count == 0) {
-        p->velocity.x = static_cast<float>(x87::fcos(GameDouble(0x0073C340)));
-        p->velocity.y = static_cast<float>(x87::fsin(GameDouble(0x0073C340)));
+        p->velocity.x = static_cast<float>(x87::fcos(0.0 /*0073C340*/));
+        p->velocity.y = static_cast<float>(x87::fsin(0.0 /*0073C340*/));
         SetBits(&p->velocity.z, 0);
     } else {
         double angle = D(SpinAngle()) * D(SpinRate(count));
@@ -3417,7 +3413,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
         p->velocity.y = static_cast<float>(x87::fsin(angle));
         SetBits(&p->velocity.z, 0);
     }
-    double half = D(GameFloat(0x0073B86C));
+    double half = D(0.5f /*0073B86C*/);
     p->velocity.x = static_cast<float>(D(p->velocity.x) * half);
     p->velocity.y = static_cast<float>(D(p->velocity.y) * half);
     p->velocity.z = static_cast<float>(D(p->velocity.z) * half);
@@ -3440,9 +3436,9 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     float flicker;
     SetBits(&flicker, 0x3E99999A);     // 0.3
     if (lifetime == 1) {
-        double c = x87::fcos(GameDouble(0x0073CF78));
+        double c = x87::fcos(0.07000000029802322 /*0073CF78*/);
         SetBits(&flicker, 0x3E2E147B);     // 0.17
-        double s = x87::fsin(GameDouble(0x0073CF78));
+        double s = x87::fsin(0.07000000029802322 /*0073CF78*/);
         float turnedY = static_cast<float>(D(p->velocity.y) * c - D(p->velocity.x) * s);
         double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
         p->velocity.y = turnedY;
@@ -3451,15 +3447,15 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
         p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
         p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     }
-    if (type_ == 0x204C) p->pos.z = static_cast<float>(D(p->pos.z) + D(GameFloat(0x0073C538)));
-    double eased = (Unsigned(Next()) * GameDouble(0x0073CF70) + D(GameFloat(0x0073B850))) * D(size) * D(flicker) *
-                       D(GameFloat(0x0073C52C)) +
-                   D(oldSize) * D(GameFloat(0x0073CD50));
+    if (type_ == 0x204C) p->pos.z = static_cast<float>(D(p->pos.z) + D(0.7f /*0073C538*/));
+    double eased = (Unsigned(Next()) * 4.190951527764837e-10 /*0073CF70*/ + D(0.1f /*0073B850*/)) * D(size) * D(flicker) *
+                       D(0.05f /*0073C52C*/) +
+                   D(oldSize) * D(0.95f /*0073CD50*/);
     p->size = static_cast<float>(eased);
     if ((flags_ & 1) && attachedTo) return 1;
-    p->size = static_cast<float>(eased * D(GameFloat(0x0073CD50)));
+    p->size = static_cast<float>(eased * D(0.95f /*0073CD50*/));
     SetBits(&size, 0);
-    if (!(p->size >= GameFloat(0x0073CD74))) {
+    if (!(p->size >= 0.03f /*0073CD74*/)) {
         SetBits(&p->size, 0);
         p->color = 0xFFFFFF;
         return 0;
@@ -3481,8 +3477,8 @@ int CParticleSource::UpdateZoneExit(Particle* p) {
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ZoneExitAlpha()[life]) << 24);
     p->life = --life;
     if (life < 0) return 0;
-    p->pos.z = static_cast<float>(D(p->pos.z) + D(GameFloat(0x0073C52C)));
-    p->aux0 = static_cast<float>(D(p->aux0) * D(GameFloat(0x0073CD70)));
+    p->pos.z = static_cast<float>(D(p->pos.z) + D(0.05f /*0073C52C*/));
+    p->aux0 = static_cast<float>(D(p->aux0) * D(0.9f /*0073CD70*/));
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     return 1;
@@ -3509,11 +3505,11 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     p->pos.x = static_cast<float>(D(p->pos.x) - D(p->velocity.x));
     p->pos.y = static_cast<float>(D(p->pos.y) - D(p->velocity.y));
     p->pos.z = static_cast<float>(D(p->pos.z) - D(p->velocity.z));
-    double c = x87::fcos(GameDouble(0x0073CF78));
-    double s = x87::fsin(GameDouble(0x0073CF78));
+    double c = x87::fcos(0.07000000029802322 /*0073CF78*/);
+    double s = x87::fsin(0.07000000029802322 /*0073CF78*/);
     float turnedY = static_cast<float>(D(p->velocity.y) * c - D(p->velocity.x) * s);
     double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
-    double grow = D(GameFloat(0x0073BAC4));                          // 1.1
+    double grow = D(1.1f /*0073BAC4*/);                          // 1.1
     p->velocity.x = static_cast<float>(turnedX * grow);
     p->velocity.y = static_cast<float>(D(turnedY) * grow);
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
@@ -3521,8 +3517,8 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     double z = D(p->velocity.z) + D(p->pos.z);
     p->size = nextSize;
     p->frame = frame;
-    p->pos.z = static_cast<float>(z + D(GameFloat(0x0073C52C)));
-    *ParticleFloat(p, 0x34) = static_cast<float>(D(*ParticleFloat(p, 0x34)) * D(GameFloat(0x0073CF98)));    // 1.04
+    p->pos.z = static_cast<float>(z + D(0.05f /*0073C52C*/));
+    *ParticleFloat(p, 0x34) = static_cast<float>(D(*ParticleFloat(p, 0x34)) * D(1.04f /*0073CF98*/));    // 1.04
     return 1;
 }
 EI_REPLACE_METHOD(0x00495950, CParticleSource::UpdateFeebleMind);
@@ -3586,9 +3582,9 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     p->pos.x = static_cast<float>(x);
     p->pos.z = static_cast<float>(D(keptZ) + D(towardZ));
-    p->velocity.x = static_cast<float>(D(p->velocity.x) * D(GameFloat(0x0073CCA8)));    // 0.8
-    p->velocity.y = static_cast<float>(D(p->velocity.y) * D(GameFloat(0x0073CF9C)));    // 0.98
-    double slow = D(GameFloat(0x0073CD70));                                 // 0.9
+    p->velocity.x = static_cast<float>(D(p->velocity.x) * D(0.8f /*0073CCA8*/));    // 0.8
+    p->velocity.y = static_cast<float>(D(p->velocity.y) * D(0.98f /*0073CF9C*/));    // 0.98
+    double slow = D(0.9f /*0073CD70*/);                                 // 0.9
     p->drift.x = static_cast<float>(D(p->drift.x) * slow);
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
@@ -3635,7 +3631,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         p->frame = 6;
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0);
-        float start = particles.count != 0 ? GameFloat(0x0073B858) : GameFloat(0x0073CF80);    // 0 / pi
+        float start = particles.count != 0 ? 0.0f /*0073B858*/ : 3.1416f /*0073CF80*/;    // 0 / pi
         p->velocity.x = start;
         p->aux0 = start;
         SetBits(&p->velocity.y, 0x3DCCCCCD);     // 0.1
@@ -3667,7 +3663,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
     float b = static_cast<float>(D(v.y) * s);
     double c = s * D(v.z);
     SetBits(&p->size, 0);
-    double k = D(GameFloat(0x0073CCA8));    // 0.8
+    double k = D(0.8f /*0073CCA8*/);    // 0.8
     float a8 = static_cast<float>(D(a) * k);
     float b8 = static_cast<float>(D(b) * k);
     double c8 = c * k;
@@ -3675,8 +3671,8 @@ int CParticleSource::EmitSilence(Particle* p, int) {
     double y8 = D(b8) + D(startY);
     p->pos.z = static_cast<float>(c8 + D(startZ));
     p->pos.y = static_cast<float>(y8);
-    p->velocity.x = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
-                          D(GameFloat(0x0073CF84)));    // (0.8 + [0, 0.4)) * size * 0.08
+    p->velocity.x = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
+                          D(0.08f /*0073CF84*/));    // (0.8 + [0, 0.4)) * size * 0.08
     p->color = 0xFFFFFFFF;
     p->frame = 6;
     p->state = 0;
@@ -3691,8 +3687,8 @@ EI_REPLACE_METHOD(0x00495320, CParticleSource::EmitSilence);
 // step in +0x38 and flickering in size. A wisp shows +0x20 (shrinking by 0.8) for its life.
 int CParticleSource::UpdateSilence(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
-        if (p->state) size = static_cast<float>(D(size) * D(GameFloat(0x0073CEB8)));    // 0.85
-        if (!(size >= GameFloat(0x0073CCD8))) {                                 // 0.02
+        if (p->state) size = static_cast<float>(D(size) * D(0.85f /*0073CEB8*/));    // 0.85
+        if (!(size >= 0.02f /*0073CCD8*/)) {                                 // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3703,7 +3699,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
             SetBits(&p->size, 0);
             return 0;
         }
-        double shrunk = D(p->velocity.x) * D(GameFloat(0x0073CCA8));
+        double shrunk = D(p->velocity.x) * D(0.8f /*0073CCA8*/);
         std::memcpy(&p->size, &p->velocity.x, sizeof(float));
         p->velocity.x = static_cast<float>(shrunk);
         return 1;
@@ -3712,7 +3708,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float* kept = ParticleFloat(p, 0x34);
     if (attachedTo) {
         radius = D(static_cast<const CObject3D*>(attachedTo)->radius) *
-                 D(GameFloat(0x0073B86C));
+                 D(0.5f /*0073B86C*/);
         *kept = static_cast<float>(radius);
     } else {
         radius = D(*kept);
@@ -3720,7 +3716,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double c = x87::fcos(D(p->velocity.x));
     p->color = 0xFFFFFFFF;
     float sn = static_cast<float>(x87::fsin(D(p->velocity.x)));
-    double hu = x87::fsin(D(p->aux0)) * GameDouble(0x0073CC88);    // * 0.5
+    double hu = x87::fsin(D(p->aux0)) * 0.5 /*0073CC88*/;    // * 0.5
     float h = static_cast<float>(hu);
     double length = x87::fsqrt(hu * D(h) + D(sn) * D(sn) + c * c);
     double ku = radius / length;
@@ -3731,7 +3727,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     float nx = static_cast<float>(cx + D(origin.x));
     float ny = static_cast<float>(D(sy) + D(origin.y));
     double nz = D(sz) + D(origin.z);
-    double z = radius * D(GameFloat(0x0073B86C)) + nz;
+    double z = radius * D(0.5f /*0073B86C*/) + nz;
     SetBits(&p->size, 0x3F800000);
     p->drift.x = static_cast<float>(D(nx) - D(p->pos.x));
     p->pos.x = nx;
@@ -3741,8 +3737,8 @@ int CParticleSource::UpdateSilence(Particle* p) {
     p->pos.z = static_cast<float>(z);
     p->velocity.x = static_cast<float>(D(p->velocity.y) + D(p->velocity.x));
     p->aux0 = static_cast<float>(D(p->aux1) + D(p->aux0));
-    p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CED8) + D(GameFloat(0x0073CD70))) * D(size) *
-                    D(GameFloat(0x0073CF88)));    // (0.9 + [0, 0.2)) * size * 0.22
+    p->size = static_cast<float>((Unsigned(Next()) * 4.6566139843846196e-11 /*0073CED8*/ + D(0.9f /*0073CD70*/)) * D(size) *
+                    D(0.22f /*0073CF88*/));    // (0.9 + [0, 0.2)) * size * 0.22
     return 1;
 }
 EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
@@ -3771,10 +3767,10 @@ int CParticleSource::UpdateModifier(Particle* p) {
         std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
         SetBits(&p->size, 0x3F800000);
         if (Below(D(size), D(EI_P_ZERO))) {
-            p->size = static_cast<float>(oldSize * D(GameFloat(0x0073CEA8)));    // 1 / 1.07
+            p->size = static_cast<float>(oldSize * D(0.9345794f /*0073CEA8*/));    // 1 / 1.07
             p->color = (static_cast<std::uint32_t>(ModifierAlphaIn()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         } else {
-            p->size = static_cast<float>(oldSize * D(GameFloat(0x0073CEA4)));    // 1.07
+            p->size = static_cast<float>(oldSize * D(1.07f /*0073CEA4*/));    // 1.07
             p->color = (static_cast<std::uint32_t>(ModifierAlphaOut()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         }
         return 1;
@@ -3784,7 +3780,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
         p->frameTimer = frameDelay;
     }
     float* spread = &p->aux0;
-    double slow = D(GameFloat(0x0073CD70));    // 0.9
+    double slow = D(0.9f /*0073CD70*/);    // 0.9
     for (int i = 0; i < 3; ++i) spread[i] = static_cast<float>(D(spread[i]) * slow);
     double oldSize = D(p->size);
     double x = D(spread[0]) + D(p->velocity.x);
@@ -3816,7 +3812,7 @@ void CParticleSource::TickModifier(ParticleElement* e) {
     e->pos.y = static_cast<float>(D(offset[1]) + D(origin.y));
     e->pos.z = static_cast<float>(D(offset[2]) + D(origin.z));
     e->pos.z = static_cast<float>(D(spreadMin.x) + D(e->pos.z));
-    double k = Below(D(size), D(EI_P_ZERO)) ? D(GameFloat(0x0073CDF8)) : D(GameFloat(0x0073CEAC));    // 1.4 / 1 / 1.4
+    double k = Below(D(size), D(EI_P_ZERO)) ? D(1.4f /*0073CDF8*/) : D(0.71428573f /*0073CEAC*/);    // 1.4 / 1 / 1.4
     for (int i = 0; i < 3; ++i) offset[i] = static_cast<float>(k * D(offset[i]));
 }
 EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
@@ -3854,7 +3850,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
     }
     p->color = (static_cast<std::uint32_t>(LightningAlpha()[life]) << 22) | 0xFFFFFF;
     if (p->frameTimer != 0) {
-        double shrunk = D(p->aux0) * D(GameFloat(0x0073CD70));
+        double shrunk = D(p->aux0) * D(0.9f /*0073CD70*/);
         ++p->frame;
         std::memcpy(&p->pos, &p->velocity, sizeof(Vector3));
         std::memcpy(&p->size, &p->aux0, sizeof(float));
@@ -3866,8 +3862,8 @@ int CParticleSource::UpdateLightning(Particle* p) {
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));
-    p->aux0 = static_cast<float>(D(p->aux0) * D(GameFloat(0x0073CD70)));
-    double slow = D(GameFloat(0x0073CDE0));    // 0.6
+    p->aux0 = static_cast<float>(D(p->aux0) * D(0.9f /*0073CD70*/));
+    double slow = D(0.6f /*0073CDE0*/);    // 0.6
     p->drift.x = static_cast<float>(D(p->drift.x) * slow);
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
@@ -3886,7 +3882,7 @@ void CParticleSource::TickLightning(ParticleElement* e) {
     e->pos.x = static_cast<float>(D(speed[0]) + D(e->pos.x));
     e->pos.y = static_cast<float>(D(speed[1]) + D(e->pos.y));
     e->pos.z = static_cast<float>(D(speed[2]) + D(e->pos.z));
-    *ElementFloat(e, 0x14) = static_cast<float>(D(speed[2]) - D(GameFloat(0x0073CF28)));
+    *ElementFloat(e, 0x14) = static_cast<float>(D(speed[2]) - D(0.075f /*0073CF28*/));
     if (tick >= 10) flags_ &= ~1u;
 }
 EI_REPLACE_METHOD(0x00492CC0, CParticleSource::TickLightning);
@@ -3905,8 +3901,8 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     float magnitude;
     SetBits(&magnitude, Bits(&size) & 0x7FFFFFFFu);
     double t = Unsigned(Next()) * EI_P_SCALE_1;
-    float spread = static_cast<float>((t + D(EI_P_ONE)) * t * D(GameFloat(0x0073B86C)));
-    double angle = Unsigned(Next()) * GameDouble(0x0073CE88);    // 2 pi * 2^-32
+    float spread = static_cast<float>((t + D(EI_P_ONE)) * t * D(0.5f /*0073B86C*/));
+    double angle = Unsigned(Next()) * 1.4629214509862508e-9 /*0073CE88*/;    // 2 pi * 2^-32
     double reach = D(magnitude) * D(spread);
     float sx = static_cast<float>(x87::fsin(angle) * reach);
     double cy = x87::fcos(angle) * reach;
@@ -3914,24 +3910,24 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     p->pos.x = static_cast<float>(D(sx) + D(origin.x));
     std::memcpy(&p->pos.z, &origin.z, sizeof(float));
     SetBits(&p->size, 0);
-    p->pos.z = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CD58) - D(GameFloat(0x0073B868))) * D(magnitude) +
+    p->pos.z = static_cast<float>((Unsigned(Next()) * 4.656612943550534e-11 /*0073CD58*/ - D(0.4f /*0073B868*/)) * D(magnitude) +
                      D(p->pos.z));    // [-0.4, -0.2) * |size|
-    p->aux0 = static_cast<float>((D(GameFloat(0x0073CDB8)) - D(spread)) * D(GameFloat(0x0073BAD4)));    // (2 - spread) / 5
+    p->aux0 = static_cast<float>((D(2.0f /*0073CDB8*/) - D(spread)) * D(0.2f /*0073BAD4*/));    // (2 - spread) / 5
     if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
         p->frame = static_cast<int>(Next() % 12) + 4;
     } else {
         p->frame = static_cast<int>(Next() & 3);
     }
-    double rise = D(EI_P_ONE) - D(spread) + D(GameFloat(0x0073BAA4));    // 1 - spread + 3
+    double rise = D(EI_P_ONE) - D(spread) + D(3.0f /*0073BAA4*/);    // 1 - spread + 3
     if (size > EI_P_ZERO) {
         SetBits(&p->velocity.x, 0x3F99999A);     // 1.2
         p->state = -19;
-        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(GameFloat(0x0073CE80)));    // 0.15
+        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(0.15f /*0073CE80*/));    // 0.15
     } else {
         p->color = 0xFFFFFF;
         SetBits(&p->velocity.x, 0x3F555555);     // 1 / 1.2
         p->state = 19;
-        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(GameFloat(0x0073CE7C)));    // 2.25
+        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(2.25f /*0073CE7C*/));    // 2.25
     }
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     return 1;
@@ -4017,7 +4013,7 @@ int CParticleSource::EmitCurseStars(Particle* p, int) {
     float lengthF = static_cast<float>(length);
     p->life = 20;
     if (length > D(EI_P_ZERO)) {
-        double k = D(size) * D(GameFloat(0x0073B850));    // 0.1
+        double k = D(size) * D(0.1f /*0073B850*/);    // 0.1
         float ak = static_cast<float>(D(a) * k);
         float bk = static_cast<float>(D(b) * k);
         double ck = c * k;
@@ -4043,15 +4039,15 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
     }
     p->color = (static_cast<std::uint32_t>(CurseAlpha()[life]) << 24) | 0xFFFFFF;
     if (p->size == 0.0f || x87::IsNaN(p->size)) {
-        p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
-                        D(GameFloat(0x0073CE90)));
+        p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
+                        D(0.04f /*0073CE90*/));
     } else {
-        p->size = static_cast<float>(D(p->size) * D(GameFloat(0x0073CD50)));
+        p->size = static_cast<float>(D(p->size) * D(0.95f /*0073CD50*/));
     }
     p->pos.x = static_cast<float>(D(p->drift.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));
-    double slow = D(GameFloat(0x0073CD70));
+    double slow = D(0.9f /*0073CD70*/);
     p->drift.x = static_cast<float>(D(p->drift.x) * slow);
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
@@ -4100,7 +4096,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
         p->drift.x = static_cast<float>(D(nx) / D(ticks));
         p->drift.y = static_cast<float>(D(ny) / D(ticks));
         p->drift.z = static_cast<float>(D(nz) / D(ticks));
-        p->aux0 = static_cast<float>(D(size) * D(GameFloat(0x0073C52C)));    // 0.05
+        p->aux0 = static_cast<float>(D(size) * D(0.05f /*0073C52C*/));    // 0.05
     }
     p->color = 0xFFFFFF;
     SetBits(&p->size, 0);
@@ -4117,11 +4113,11 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
             int life = --p->life;
             if (life < 0) return 0;
             p->color = (static_cast<std::uint32_t>(TransAlpha()[life]) << 24) | 0xFFFFFF;
-            p->size = static_cast<float>(D(p->size) * D(GameFloat(0x0073CDE0)));    // 0.6
+            p->size = static_cast<float>(D(p->size) * D(0.6f /*0073CDE0*/));    // 0.6
             return 1;
         }
         p->color = 0xFFFFFFFF;
-        p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) *
+        p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) *
                         D(*ElementFloat(elements, 0x18)));
         return 1;
     }
@@ -4158,9 +4154,9 @@ double PowInline(double base, int exponent) { return x87::fexp(x87::flog(base) *
 int CParticleSource::EmitNuke(Particle* p, int) {
     int tick = elements[0].ticks;
     int rise = 11 - tick;
-    float fifth = static_cast<float>(D(size) * D(GameFloat(0x0073BAD4)));
+    float fifth = static_cast<float>(D(size) * D(0.2f /*0073BAD4*/));
     float reach = static_cast<float>(Unsigned(Next()) * D(fifth) * EI_P_SCALE_1);
-    float turn = static_cast<float>(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));    // 2 pi
+    float turn = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);    // 2 pi
     double angle = Unsigned(Next()) * D(turn) * EI_P_SCALE_1;
     volatile double s = x87::fsin(angle);    // kept as a double, as the original
     p->pos.x = static_cast<float>(D(reach) * s + D(origin.x));
@@ -4168,14 +4164,14 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     p->pos.y = static_cast<float>(D(reach) * c + D(origin.y));
     float top = static_cast<float>(D(size) + D(size));
     p->pos.z = static_cast<float>(Unsigned(Next()) * D(top) * EI_P_SCALE_1 + D(origin.z));
-    p->size = static_cast<float>(D(size) * D(GameFloat(0x0073BAD4)));
+    p->size = static_cast<float>(D(size) * D(0.2f /*0073BAD4*/));
     p->drift.x = static_cast<float>(s);
     p->drift.y = static_cast<float>(c);
-    p->drift.z = static_cast<float>(static_cast<double>(rise) * D(size) * D(GameFloat(0x0073B850)));
+    p->drift.z = static_cast<float>(static_cast<double>(rise) * D(size) * D(0.1f /*0073B850*/));
     p->life = rise + 30;
     p->frame = elements[0].ticks / 3;
     std::uint32_t a = static_cast<std::uint32_t>(
-        static_cast<int>(gamecrt::Ftol(PowInline(D(GameFloat(0x0073CB24)), elements[0].ticks) * GameDouble(0x0073CCE8))));
+        static_cast<int>(gamecrt::Ftol(PowInline(D(4.0f /*0073CB24*/), elements[0].ticks) * 4.0 /*0073CCE8*/)));
     if (a > 0xFF) a = 0xFF;
     p->state = 0;
     p->color = (a << 24) | 0xFFFFFF;
@@ -4215,15 +4211,15 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
     if (index >= 128) {
         int j = index - 128;
         int diagonal = j / 32;
-        double fu = static_cast<double>(j & 31) * D(GameFloat(0x0073CF3C));
+        double fu = static_cast<double>(j & 31) * D(0.0032258064f /*0073CF3C*/);
         float f = static_cast<float>(fu);
         a = static_cast<float>(fu * D(DustAxisX()[diagonal]));
         b = static_cast<float>(D(f) * D(DustAxisY()[diagonal]));
     } else {
-        double fu = static_cast<double>(index) * D(GameFloat(0x0073CF38));
+        double fu = static_cast<double>(index) * D(0.049140625f /*0073CF38*/);
         float f = static_cast<float>(fu);
-        a = static_cast<float>(x87::fsin(fu) * GameDouble(0x0073CF30));
-        b = static_cast<float>(x87::fcos(D(f)) * GameDouble(0x0073CF30));
+        a = static_cast<float>(x87::fsin(fu) * 0.10000000149011612 /*0073CF30*/);
+        b = static_cast<float>(x87::fcos(D(f)) * 0.10000000149011612 /*0073CF30*/);
     }
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     SetBits(&p->size, 0);
@@ -4304,7 +4300,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     p->pos.x = point.x;
     p->frame = 15;
     p->life = -10;
-    p->pos.z = static_cast<float>(top + D(GameFloat(0x0073CD18)));
+    p->pos.z = static_cast<float>(top + D(0.15f /*0073CD18*/));
     p->frameTimer = index;
     p->color = static_cast<std::uint32_t>(*ElementInt(elements, 0x30));
     return 1;
@@ -4350,7 +4346,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     }
     Vector3 v;
     v.Construct(x, y, z);
-    double k = D(radius) * D(GameFloat(0x0073CCA8));    // 0.8
+    double k = D(radius) * D(0.8f /*0073CCA8*/);    // 0.8
     float a = static_cast<float>(D(v.x) * k);
     float b = static_cast<float>(D(v.y) * k);
     double c = k * D(v.z);
@@ -4362,7 +4358,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     p->pos.z = static_cast<float>(pz);
     p->pos.x = static_cast<float>(px);
     p->life = 20;
-    p->velocity.x = static_cast<float>(Unsigned(Next()) * GameDouble(0x0073CE10) + D(GameFloat(0x0073C538)));
+    p->velocity.x = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 /*0073CE10*/ + D(0.7f /*0073C538*/));
     void* unit = attachedTo;
     if (!unit) {
         flags_ &= ~5u;
@@ -4392,7 +4388,7 @@ int CParticleSource::UpdateStun(Particle* p) {
         return 0;
     }
     p->color = 0xFFFFFFFF;
-    p->size = static_cast<float>((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+    p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
                     D(p->velocity.x));
     if (!attachedTo) {
         flags_ &= ~5u;

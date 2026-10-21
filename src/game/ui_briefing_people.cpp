@@ -36,7 +36,7 @@ void* ServerWorld() { return ei::GamePointer<void>(0x007AFF60); }
 void* SectorMap() { return ei::GamePointer<void>(0x007B01F4); }   // the server world + 0x294
 // The loot table (007C8758): its records, then their name index.
 stlp::RecordsByName* LootTable() { return ei::GamePointer<stlp::RecordsByName>(0x007C8758); }
-float TurnedOver() { return ei::GameData<const float>(0x007410D0); }   // pi
+float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
 const int* SlotXs() { return ei::GamePointer<const int>(0x0074111C); }   // 300, 500, 200, 400, 600, 75, 725

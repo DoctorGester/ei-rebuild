@@ -57,8 +57,8 @@ void DestroyList(List& list, void* vtable) {
     list.RemoveAll();
 }
 
-double Threshold() { return ei::GameData<const volatile double>(0x0073F0A8); }
-float Half() { return ei::GameData<const volatile float>(0x0073B86C); }
+double Threshold() { return 15.0 /*0073F0A8*/; }
+float Half() { return 0.5f /*0073B86C*/; }
 
 } // namespace
 

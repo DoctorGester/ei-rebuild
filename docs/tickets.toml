@@ -3103,6 +3103,20 @@ model = "opus"
 depends = ["S18j"]
 note = "The host no longer reserves 0x400000-0x7D7000 or reads game.exe; ei_standalone links at a normal base; GameAddress's identity case is the original's process only. Dashboard: image ties 0. Checked: full goldens both installs, --no-hooks."
 
+[[ticket]]
+id = "S18e1"
+title = "Standalone: the generated static initialisers' .rdata operands as literals"
+group = "standalone"
+depends = ["S18e"]
+note = "src/standalone/static_init.cpp (tools/gen_static_init.py) still reads 255 float / double operands of .rdata through d.Float / d.Double(0x...) (float folds: ratios and sums of constants, d.Log of one). gen_static_init's operand() can write the tagged literal (tools/rdata_literals.py literal_of; check_static_init's WHERE patterns and the --check tags follow). The fold's rounding needs a look first: the original computes them at the CRT's startup precision (53 bits) and stores a float, while float / float literals fold in float; compare each with exact arithmetic (tools/rdata_literals.py has the helpers) or keep the operation on non-constant operands. Dword reads (pointer cells, 6) stay. Goldens plus check_static_init."
+
+[[ticket]]
+id = "S18e2"
+title = "Standalone: SV10j's files' .rdata constants as literals"
+group = "standalone"
+depends = ["S18e"]
+note = "S18e left the files SV10j had open: unit_ai*.cpp / unit_ai.h, combat_*.cpp, script_effects*, unit_hits.cpp (the armour piece tables stay for S18g). Once SV10j is merged remove the SKIP pattern in tools/rdata_literals.py and run it (--apply, then --check, build.cmd verify and release, check_fp_fold -v against main's list for folds). About 20 reads: unit_ai.h FearDefaultDistance 0073FF00, unit_ai_brain.cpp 0073FED8 / 0073FF00, combat_motion.cpp 0073EEE4 0073B86C 0073CA98 0073F0B8, combat_planning.cpp 0073EF20 0073EF28 0073EEC0, combat_update.cpp 0073C548 and the GameFloat helpers in those files."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

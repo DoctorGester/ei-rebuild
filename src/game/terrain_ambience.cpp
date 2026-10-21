@@ -63,7 +63,7 @@ constexpr float kPercent = 100.0f;          // 0073BAB0
 constexpr float kPi = 3.14159274f;          // 007441C8
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
 
-float CellSize() { return ei::GameData<const float>(0x007441D0); }
+float CellSize() { return 1.0f /*007441D0*/; }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
 float HalfPi() { return ei::GameData<const float>(0x007C8930); }
 CWorldClient* ClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }

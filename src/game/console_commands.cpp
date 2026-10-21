@@ -264,7 +264,7 @@ void __fastcall LastFps(CStringArray*) {
     auto* timer = static_cast<CSceneRenderer*>(SceneRenderer());
     GameOStream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
-    double fps = ei::GameData<const float>(0x0073C34C) / x87::FromUnsigned(ms);
+    double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
 EI_REPLACE(0x005DEEE0, LastFps);

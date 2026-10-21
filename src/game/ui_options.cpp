@@ -56,13 +56,13 @@ constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
 // Float constants read from the exe's memory as the original does (rule 9), all single precision.
-float ConstOne() { return ei::GameData<const float>(0x0073B84C); }        // 1.0
-float ConstFromStep() { return ei::GameData<const float>(0x0074023C); }   // 50.0: value = setting * 50
-float ConstToStep() { return ei::GameData<const float>(0x00742B80); }     // 0.02: setting = value * 0.02
-float ConstScrollFrom() { return ei::GameData<const float>(0x0073BAA0); } // 4.0: setting 20's value
-float ConstScrollTo() { return ei::GameData<const float>(0x0073C3B0); }   // 0.25: setting 20 from it
-float ConstHalf() { return ei::GameData<const float>(0x0073B86C); }       // 0.5: the slider's centre
-float ConstThumbLift() { return ei::GameData<const float>(0x0073B850); }  // 0.1: the thumb above the track
+float ConstOne() { return 1.0f /*0073B84C*/; }        // 1.0
+float ConstFromStep() { return 50.0f /*0074023C*/; }   // 50.0: value = setting * 50
+float ConstToStep() { return 0.02f /*00742B80*/; }     // 0.02: setting = value * 0.02
+float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // 4.0: setting 20's value
+float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // 0.25: setting 20 from it
+float ConstHalf() { return 0.5f /*0073B86C*/; }       // 0.5: the slider's centre
+float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above the track
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
 float QuarterTurn() { return ei::GameData<const float>(0x007C8210); }
 

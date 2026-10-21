@@ -28,7 +28,7 @@
 namespace {
 
 // The bars' share of the screen height (00740150; read from the exe's memory).
-float LetterboxShare() { return ei::GameData<const float>(0x00740150); }
+float LetterboxShare() { return 0.217f /*00740150*/; }
 
 constexpr float kOpaque = 255.0f;     // 0073C370
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
@@ -47,7 +47,6 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 
 // --- The overlays (005F5320) ---
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
 int SurfaceBytesKept() { return ei::GameData<const volatile int>(0x007C7E74); }
 int SurfaceBytesAllocated() { return ei::GameData<const volatile int>(0x007C7E78); }
@@ -178,7 +177,7 @@ void CInterface3D::DrawOverlays() {
         if (fpsSurface_) {
             mfc::CString rate;
             float perSecond =
-                static_cast<float>(fpsFrames_) * GameFloat(0x0073C34C) / static_cast<float>(static_cast<int>(elapsed));
+                static_cast<float>(fpsFrames_) * 1000.0f /*0073C34C*/ / static_cast<float>(static_cast<int>(elapsed));
             rate.Format("%.1f", static_cast<double>(perSecond));
             UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();

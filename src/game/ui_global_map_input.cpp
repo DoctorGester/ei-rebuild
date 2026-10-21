@@ -102,12 +102,12 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         (console::Out7C5760() <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
         // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
-        float turned = static_cast<float>(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
+        float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f /*00740204*/ + angle_);   // 1 / 300
         angle_ = turned;
         angle_ = static_cast<float>(libcrt::StackFmod(turned, GameFloat(0x007C8020)));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
-        tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, GameFloat(0x00742098) * GameFloat(0x0073CCA8));   // pi * 0.8
+        tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);   // pi * 0.8
         Quaternion turn = TiltTimesSpin(tilt, spin);
         std::memcpy(&turn_, &turn, sizeof(turn));
         MouseDragX() = 0;

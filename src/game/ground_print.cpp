@@ -52,8 +52,8 @@ CTextureManager* Textures() { return ei::GameData<CTextureManager* const>(0x007A
 float HalfPi() { return ei::GameData<const float>(0x007C899C); }
 float TwoPi() { return ei::GameData<const float>(0x007C8998); }
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the original).
-double Pi() { return ei::GameData<const double>(0x00744238); }
-double PerDegree() { return ei::GameData<const double>(0x0073BA30); }
+double Pi() { return 3.141592653589793 /*00744238*/; }
+double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
 // The prints settings: blood, footprints, scorch marks (0 off).
 bool BloodPrintsOn() { return ei::GameData<const int>(0x0079BD50) != 0; }
 bool FootprintsOn() { return ei::GameData<const int>(0x0079BD4C) != 0; }

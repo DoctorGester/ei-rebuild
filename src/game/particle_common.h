@@ -34,8 +34,6 @@ inline double Unsigned(std::uint32_t value) {
 // A float read back from memory (the original stores, then reloads it).
 inline float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 
-inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-inline double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 inline std::uint32_t GameDword(std::uintptr_t address) {
     return *reinterpret_cast<const volatile std::uint32_t*>(address);
 }
@@ -119,10 +117,10 @@ inline double UnitScale(void* object) {
 
 constexpr int kUnitClass = 0x50;
 
-#define EI_P_ONE ::particle::GameFloat(0x0073B84C)          // 1.0
-#define EI_P_ZERO ::particle::GameFloat(0x0073B858)         // 0.0
-#define EI_P_SCALE_2 ::particle::GameDouble(0x0073C508)     // ~2^-31
-#define EI_P_SCALE_1 ::particle::GameDouble(0x0073C468)     // ~2^-32
+#define EI_P_ONE 1.0f /*0073B84C*/          // 1.0
+#define EI_P_ZERO 0.0f /*0073B858*/         // 0.0
+#define EI_P_SCALE_2 4.656612874161595e-10 /*0073C508*/     // ~2^-31
+#define EI_P_SCALE_1 2.3283064370807974e-10 /*0073C468*/     // ~2^-32
 
 // Next() * 2^-31 - 1: a random value in [-1, 1), rounded to float.
 inline float SignedUnit() { return static_cast<float>(Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE)); }

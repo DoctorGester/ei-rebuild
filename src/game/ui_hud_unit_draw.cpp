@@ -38,17 +38,17 @@ namespace {
 
 // The constants the original reads at run time.
 float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
-float LayoutUnit() { return GameFloat(0x0074015C); }       // 0.0025: 1 / 400, half the layout's width
-float One() { return GameFloat(0x0073B84C); }
-float DepthUnit() { return GameFloat(0x007423FC); }        // 0.48157: the layout's half height at depth 1
-float ModelDepth() { return GameFloat(0x0074242C); }       // 9: how far in front of the camera the model stands
-float ModelDrop() { return GameFloat(0x0073C3B0); }        // 0.25 of the view's half height below the centre
+float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 0.0025: 1 / 400, half the layout's width
+float One() { return 1.0f /*0073B84C*/; }
+float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
+float ModelDepth() { return 9.0f /*0074242C*/; }       // 9: how far in front of the camera the model stands
+float ModelDrop() { return 0.25f /*0073C3B0*/; }        // 0.25 of the view's half height below the centre
 float SlingTurn() { return GameFloat(0x007C8144); }        // the sling buttons' turn (a global angle)
-float TurnAboutZ() { return GameFloat(0x0073C52C); }       // 0.05
-float TurnAboutX() { return GameFloat(0x00742AE8); }       // 1.15
-float SecondTurnAboutZ() { return GameFloat(0x0073B868); } // 0.4
-float BarHeight() { return GameFloat(0x00742430); }        // 15
-float PanelHeight() { return GameFloat(0x00742AE4); }      // 220
+float TurnAboutZ() { return 0.05f /*0073C52C*/; }       // 0.05
+float TurnAboutX() { return 1.15f /*00742AE8*/; }       // 1.15
+float SecondTurnAboutZ() { return 0.4f /*0073B868*/; } // 0.4
+float BarHeight() { return 15.0f /*00742430*/; }        // 15
+float PanelHeight() { return 220.0f /*00742AE4*/; }      // 220
 // The world time: whole ticks (007AF61C) plus the fraction of the current one (007AFCA8).
 int WorldTick() { return ei::GameData<const int>(0x007AF61C); }
 float WorldTickFraction() { return GameFloat(0x007AFCA8); }

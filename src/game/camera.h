@@ -6,6 +6,7 @@
 // camera_motion.cpp: aiming, turning upright, keeping above objects. camera_object.cpp: the
 // object's construction, vtable slots, camera files and saving. Names are provisional.
 
+#include "angles.h"
 #include "core_streams.h"
 #include "core_transform.h"
 #include "maths.h"
@@ -288,7 +289,6 @@ namespace camera {
 
 inline double D(float f) { return f; }
 
-inline double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
@@ -303,23 +303,22 @@ inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF
 inline const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 
 // Constants (addresses in the exe in the comments).
-#define CAM_PI camera::GameDouble(0x0073B9A0)
-#define CAM_PER_180 camera::GameDouble(0x0073BA30)                 // 1 / 180
-#define CAM_NINETY camera::GameDouble(0x0073BAB8)                  // 90
-#define CAM_FORTY_FIVE camera::GameDouble(0x0073BA28)              // 45
-#define CAM_TWO_SEVENTHS camera::GameDouble(0x0073B9D8)            // 2 / 7
-#define CAM_ONE_D camera::GameDouble(0x0073BAC8)                   // 1.0
-#define CAM_ZOOM_STEP camera::GameDouble(0x0073BAD8)               // 1.05
-#define CAM_LOOK_EPSILON camera::GameDouble(0x0073BAE8)            // 1e-18 (squared length)
-#define CAM_ALIGN_EPSILON camera::GameDouble(0x0073BA90)           // 0.1
-#define CAM_ONE camera::GameFloat(0x0073B84C)                      // 1.0f
-#define CAM_MINUS_ONE camera::GameFloat(0x0073B854)                // -1.0f
-#define CAM_ZERO camera::GameFloat(0x0073B858)                     // 0.0f
-#define CAM_TENTH camera::GameFloat(0x0073BA80)                    // 0.1f
-#define CAM_OBJECT_EXTENT_LIMIT camera::GameFloat(0x0073BAB0)      // 100.0f
-#define CAM_OBJECT_FADE camera::GameFloat(0x0073BAAC)              // 10.0f
-#define CAM_DEGREE (CAM_PI * CAM_PER_180)                            // one degree in radians
-#define CAM_RIGHT_ANGLE (CAM_DEGREE * CAM_NINETY)
+#define CAM_PI 3.141592653589793 /*0073B9A0*/
+#define CAM_NINETY 90.0 /*0073BAB8*/                  // 90
+#define CAM_FORTY_FIVE 45.0 /*0073BA28*/              // 45
+#define CAM_TWO_SEVENTHS 0.2857142857142857 /*0073B9D8*/            // 2 / 7
+#define CAM_ONE_D 1.0 /*0073BAC8*/                   // 1.0
+#define CAM_ZOOM_STEP 1.0499999523162842 /*0073BAD8*/               // 1.05
+#define CAM_LOOK_EPSILON 1e-18 /*0073BAE8*/            // 1e-18 (squared length)
+#define CAM_ALIGN_EPSILON 0.1 /*0073BA90*/           // 0.1
+#define CAM_ONE 1.0f /*0073B84C*/                      // 1.0f
+#define CAM_MINUS_ONE (-1.0f /*0073B854*/)                // -1.0f
+#define CAM_ZERO 0.0f /*0073B858*/                     // 0.0f
+#define CAM_TENTH 0.1f /*0073BA80*/                    // 0.1f
+#define CAM_OBJECT_EXTENT_LIMIT 100.0f /*0073BAB0*/      // 100.0f
+#define CAM_OBJECT_FADE 10.0f /*0073BAAC*/              // 10.0f
+#define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
+#define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
 
 } // namespace camera
 

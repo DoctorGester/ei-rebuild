@@ -59,11 +59,6 @@ void LogAddressLine(const char* text, const NetAddress* address) {
     NetLog()->Put(text)->Put(s.data())->PutChar('\n')->Flush();
 }
 
-float GameFloat(std::uintptr_t a) {
-    float f;
-    std::memcpy(&f, ei::GamePointer<const void>(a), 4);
-    return f;
-}
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
 
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
@@ -305,11 +300,11 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     Query* query = v.QueriesFind(from);
     if (local) {
         e->state_ = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
-        e->timeout_ = GameFloat(0x0073BF98);
+        e->timeout_ = 20.0f /*0073BF98*/;
     } else if (query != end) {
         e->state_ = ServerEntry::kAsked;
         auto count = static_cast<std::uint32_t>(v.list.size());
-        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * GameFloat(0x0073B86C) + GameFloat(0x0073BF98));   // FILD qword
+        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f /*0073B86C*/ + 20.0f /*0073BF98*/);   // FILD qword
     } else {
         if (node == servers_.End()) {
             entry.Destroy();
@@ -571,7 +566,7 @@ void ClientBase::TickImpl(double dt) {
     double left = static_cast<double>(retryTimer_) - dt;
     retryTimer_ = static_cast<float>(left);
     if (left > 0.0) return;
-    if (retryInterval_ > GameFloat(0x0073BAA4)) {
+    if (retryInterval_ > 3.0f /*0073BAA4*/) {
         LogLine("Connection failed");
         joinState_ = kNotJoined;
         return;
@@ -655,7 +650,7 @@ void ServerBase::TickImpl(double dt) {
         float& age = node->data.age;
         double sum = static_cast<double>(age) + dt;
         age = static_cast<float>(sum);
-        if (sum > static_cast<double>(GameFloat(0x0073BF9C))) {
+        if (sum > static_cast<double>(60.0f /*0073BF9C*/)) {
             LogAddressLine("Accept period elapsed for ", &node->data.address);
             node = joins_.Erase(node);
         } else {

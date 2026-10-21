@@ -28,7 +28,6 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
 const char* FontFace() { return "Times New Roman"; }
@@ -112,7 +111,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     if (fonts_[0]) fonts_[0]->Delete();
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();
-        float size = static_cast<float>(width * kFontShares[i]) / scale * GameFloat(0x00740164);   // 1 / 800
+        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f /*00740164*/;   // 1 / 800
         if (!CreateFont(fonts_[i], static_cast<int>(gamecrt::Ftol(size)))) return;
     }
 

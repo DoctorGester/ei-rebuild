@@ -523,7 +523,7 @@ EI_REPLACE(0x006183B0, MpHeroContinue);
 namespace {
 const char* SoundCancel() { return game::CancelSoundText(); }
 // The points the three attributes must add up to (a float in the exe's data).
-float AttributePoints() { return ei::GameData<const float>(0x00741C98); }
+float AttributePoints() { return 75.0f /*00741C98*/; }
 } // namespace
 
 void CMpHeroScreen::RefreshHero() {

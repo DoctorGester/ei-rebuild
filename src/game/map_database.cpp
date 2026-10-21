@@ -1,6 +1,7 @@
 // The map database loader (0045EA20). See map_database.h for the file format.
 #include "item_db_text.h"
 #include "map_database.h"
+#include "angles.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -53,8 +54,7 @@ constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Ex
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
 void StoreRadians(void* out, const char* text) {
     const double degrees = GameAtof(text);
-    const double factor = ei::GameData<const double>(0x0073C3B8) * ei::GameData<const double>(0x0073BA30);
-    *static_cast<float*>(out) = static_cast<float>(degrees * factor);
+    *static_cast<float*>(out) = static_cast<float>(degrees * ei::kRadiansPerDegree);
 }
 
 bool Is(const char* word, const char* text) {

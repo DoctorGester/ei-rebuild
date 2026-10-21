@@ -39,7 +39,7 @@ void* const kTextGlue = ei::GamePointer<void>(0x007AFEA4);
 IsaacRandom& UiRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 // A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * ei::GameData<const volatile double>(0x00742760));
+    return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
 }
 
 // The orders' unit list: an MFC CArray<CUnit*> on the stack (vtable 007402AC, SetSize 005EBDB0,
@@ -149,7 +149,7 @@ void CBattleScreen::ToggleMember(int index) {
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
             const float angle = ei::GameData<const volatile float>(0x007C8144) *
-                                ei::GameData<const volatile float>(0x0073CDCC);   // 1/7
+                                0.14285715f /*0073CDCC*/;   // 1/7
             rest = turn.SetAxisAngle(axis, angle);
         }
         portraits->slots_[i].restB_ = *rest;
@@ -261,7 +261,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (member == unit) {
             Vector3 axis;
             unit->orientation.AxisY(&axis);
-            const float k = ei::GameData<const volatile float>(0x0073B850);   // 0.1
+            const float k = 0.1f /*0073B850*/;   // 0.1
             point.x = point.x + -axis.x * k;
             point.y = point.y + -axis.y * k;
             point.z = point.z + -axis.z * k;

@@ -36,7 +36,7 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-float Pi() { return GameFloat(0x007423F8); }
+float Pi() { return 3.1415927f /*007423F8*/; }
 float TurnPeriod() { return GameFloat(0x007C8140); }      // a global the clock also uses
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle
 const Quaternion* Identity() { return ei::GamePointer<const Quaternion>(0x007C8150); }
@@ -65,10 +65,9 @@ constexpr float kThin = 0.2f;                 // 0073BAD4
 constexpr float kFat = 0.8f;                  // 0073CCA8
 // Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
 // exact powers of two), read from the exe.
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
-double RandomScale32() { return GameDouble(0x0073C468); }
-double RandomDelayScale() { return GameDouble(0x00742760); }
-double RandomScale31() { return GameDouble(0x0073C508); }
+double RandomScale32() { return 2.3283064370807974e-10 /*0073C468*/; }
+double RandomDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
+double RandomScale31() { return 4.656612874161595e-10 /*0073C508*/; }
 constexpr float kWobbleRate = 0.33333334f;    // 0073D9A4 wobbles per second
 constexpr float kTwelfth = 0.083333336f;      // 00741438
 constexpr float kWobbleSpan = 0.2f;           // 0073CCA0

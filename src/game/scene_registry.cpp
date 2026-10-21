@@ -105,7 +105,7 @@ struct Mapping {
 // u = (w / width) * u + x / width; v = 1 - ((h / height) * (1 - v) + y / height), each rounded once
 // (the quotients and products unrounded; the inner v sum is rounded to float before 1 - it).
 void MapTexCoord(float* uv, const Mapping* mapping) {
-    const double one = ei::GameData<const float>(0x0073B84C);
+    const double one = 1.0f /*0073B84C*/;
     const float u = static_cast<float>(static_cast<double>(mapping->w) / mapping->width * uv[0] + static_cast<double>(mapping->x) / mapping->width);
     const float inner = static_cast<float>(static_cast<double>(mapping->h) / mapping->height * (one - uv[1]) +
                                            static_cast<double>(mapping->y) / mapping->height);

@@ -42,7 +42,6 @@ constexpr int kClassQuestItem = 0x14;
 void* World() { return WorldServer(); }
 // 00594180: player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0)); }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 std::int32_t GameMode() { return ei::GameData<const std::int32_t>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
@@ -151,7 +150,7 @@ void ClientSession::TickImpl(double dt) {
             float& seconds = current->data.seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
-            if (!(left >= GameFloat(0x0073B858))) self->timers_.Erase(current);
+            if (!(left >= 0.0f /*0073B858*/)) self->timers_.Erase(current);
         } while (node != sentinel);
     }
     if (self->awards_.First() == self->awards_.End() || GameMode() != 3) return;

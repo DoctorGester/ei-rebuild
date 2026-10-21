@@ -20,8 +20,8 @@ constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
 // track's left edge (0073BF34).
-float ThumbLift() { return ei::GameData<const float>(0x0073B850); }
-float ThumbInset() { return ei::GameData<const float>(0x0073BF34); }
+float ThumbLift() { return 0.1f /*0073B850*/; }
+float ThumbInset() { return 5.0f /*0073BF34*/; }
 
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
@@ -120,7 +120,7 @@ constexpr int kSliderThumbHeight = 10;
 // to int gives 0x80000000).
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120 (00742C84).
-float WheelStep() { return ei::GameData<const float>(0x00742C84); }
+float WheelStep() { return 0.008333334f /*00742C84*/; }
 } // namespace
 
 void CUiScrollbar::OnMouseMove(int, int x, int y) {
