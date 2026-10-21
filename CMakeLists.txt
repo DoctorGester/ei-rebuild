@@ -75,6 +75,12 @@ endforeach()
 ei_shader(shadow_range_vs shadow_range_vs.hlsl vs_main vs_4_0)
 ei_shader(shadow_reduce_ps shadow_reduce.hlsl ps_main ps_4_1)   # Gather (Direct3D 10.1)
 ei_shader(shadow_dilate_ps shadow_dilate.hlsl ps_main ps_4_1)
+# The interface canvases (render_ui.cpp): one file, an entry point per program.
+ei_shader(ui_rect_vs ui_canvas.hlsl vs_rect vs_4_0)
+ei_shader(ui_glyph_vs ui_canvas.hlsl vs_glyph vs_4_0)
+foreach(e solid glyph compose grey copy blit)
+    ei_shader(ui_${e}_ps ui_canvas.hlsl ps_${e} ps_4_0)
+endforeach()
 target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})
 target_include_directories(ei_render PRIVATE ${CMAKE_BINARY_DIR})
 
@@ -219,5 +225,10 @@ target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DI
 add_executable(ei_text_check tools/text_check/text_check.cpp)
 target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
+# Offline check of the interface canvases (render_ui, ticket N1) on a WARP device: every command against
+# a CPU reference, and fills, frames, lines and pixels against GDI drawing into a DIB section (GDI only there).
+add_executable(ei_ui_check tools/ui_check/ui_check.cpp)
+target_include_directories(ei_ui_check PRIVATE include src third_party/sokol)
+target_link_libraries(ei_ui_check PRIVATE ei_render gdi32 user32)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 

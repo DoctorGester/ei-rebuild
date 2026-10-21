@@ -153,6 +153,41 @@ string in ten wraps at a different word than today's GDI at 800x600.
 - **(b) Frame A/B within one frozen moment.** Steps: `uipath cpu`, capture; `uipath native`, capture; then `samecapture` with a UI mask. The renderer writes `frames\<name>.uimask.bmp` from the native blit rectangles. Both representations exist under `uiboth`, so switching is instant.
 - **(c) Suite.** The UI scenarios run with `new,present,uiboth` on vanilla and on `run_all --native`; `--widescreen` keeps comparing against addon.
 
+### N1 done (2026-10-21): `src/render/render_ui.{h,cpp}`, `shaders/ui_canvas.hlsl`, `tools/ui_check`
+
+**What exists** (namespace `render::ui`, no GDI, nothing calls it yet):
+- `Canvas(holder, w, h, format)` makes an RGBA8 render target, black. The same size and format again keeps it; another one makes it
+  again, black. It holds what the surface's memory would: each channel cut to the format's bits and widened again (`Expand`'s
+  rule), so `ReadBack` packs it back exactly. `DropCanvas` runs from `HolderGone`; a lost device brings canvases back black
+  (`DropCanvases`), so P8 needs a CPU copy or a redraw before it drops the DIBs.
+- Commands, in surface pixels: `Fill`, `FrameRect`, `Line`, `Pixel` (colour quantised on the CPU), `GlyphRun(font, layout,
+  colour)`, `CopyFrame(source)`, `Greyscale`. `GlyphRun` composes colour × coverage over what is there (max coverage between
+  glyphs, underlines full), so over black it is `ComposeAgainstBlack`. `Greyscale` follows 005FE440 on the format's bits (5:6:5,
+  5:5:5, else 8-bit channels). `CopyFrame` uses CopyFrameTo's stretch and truncation.
+- `ReadPixels` (0x00RRGGBB) and `ReadBack` (into SurfaceMemory, marked written) run the queue first. `DrawCanvas(holder, dst,
+  src, keyed, key)` records `Command::Canvas`; it draws like the window blit, with the key compared on the stored colour.
+- **Order.** Commands queue in call order. `DrawPending` runs `RunCanvasCommands` before its passes (hoisting). A command on a
+  canvas whose blit is recorded and not drawn calls `SplitFrame` first (the frame so far drawn: the blit shows the old contents).
+  `CopyFrame` always splits first; between frames nothing is drawn, so the copy reads the last frame. `RunCanvasesNow` takes the
+  present's lock (the cursor thread).
+- **GDI rules measured** (Windows 10; `ei_ui_check` holds them): 16-bit DIBs truncate 8-bit colours (no rounding, no dithering)
+  for fills, pens and SetPixel. FrameRect draws a 1-px border inside the rectangle, and odd shapes for an empty one (not
+  modelled; the game never passes one). A 1-px pen leaves out the end point. A 2-px pen (round ends) draws both end points.
+  Vertical, it covers the column left of the line too; horizontal, the row above too, without the start column. A zero-length
+  2-px line is one dot. Wider pens and slanted lines are approximate; the game uses only 1 and 2 px, horizontal or vertical.
+
+**Check.** `ei_ui_check` (build.cmd runs it after the vector replay; about 0.3 s on WARP; `--hardware` uses the GPU, `--verbose`
+prints each check and the difference maps). It plays render.cpp's part: its frame, `SplitFrame`, `RunCanvasesNow`, and
+SurfaceMemory are its own. It gates 64 checks exactly. Fills, frames, 1- and 2-px lines and pixels are compared with GDI drawing
+into a DIB section in 5:6:5, 5:5:5 and 8:8:8. Glyph runs (shadow then text over fills, clipping, underlines, Cyrillic) are
+compared with the CPU rule and `ComposeAgainstBlack`. Also checked: greying against 005FE440's formulas, screen copies against
+CopyFrameTo's, and five frame blits (keyed, stretched, a source part, split, hoisted). Any sokol warning or `ei::Log` line fails.
+
+**For P1:** call `Canvas` where the surface's memory is made (005FDA80's holder), record at the GDI boundary in surface pixels,
+`DrawCanvas` in place of `SurfaceBlit` for native surfaces, `ReadBack` before PixelAt / Rgb565Copy / SwapContents read pixels.
+The text font must outlive its queued runs (`GetTextFont`'s are process-wide). The atlas texture is remade whenever the atlas's
+generation changes (every new glyph); a partial update is a later optimisation.
+
 ## 4. Tickets
 
 The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
@@ -164,9 +199,7 @@ they depend on.
   "disconnect" box in ui_mp_host); the harness now gives each game a free port of its own (`tests/verify/harness_net.{h,cpp}`).
   The census's call chains keep a scanned stack address only when its call leads into the function holding the frame before it
   (method in ui-census.md "How it was measured").
-- **N1** the 2D canvas layer (`src/render/render_ui.{h,cpp}`: render targets, command queue, fill / frame / line / pixel /
-  glyph-run / copy-frame / greyscale / readback, a `Canvas` command in the frame, hoisting and pass split, 16-bit quantise); a few
-  lines in `render.cpp` (dispatch) and `render_internal.h` (Command kind). **N2** glyph atlas and DrawText layout (done, section 2).
+- **N1** the 2D canvas layer (done, section 3 "N1 done"; `src/render/render_ui.{h,cpp}`, checked offline by `ei_ui_check`). **N2** glyph atlas and DrawText layout (done, section 2).
   **N3** comparison harness (`uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask capture, `compare_frames.py
   --mask-file`; `tests/verify/harness_ui.cpp`). **N4** `ui_gallery` scenario (every window family captured frozen; needs the virtual
   clock). **N5** cursor and per-frame images cached (`render_blit.cpp`).

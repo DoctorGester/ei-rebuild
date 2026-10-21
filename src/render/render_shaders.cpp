@@ -28,6 +28,14 @@ namespace {
 #include "shaders/shadow_range_vs.h"
 #include "shaders/shadow_reduce_ps.h"
 #include "shaders/shadow_dilate_ps.h"
+#include "shaders/ui_rect_vs.h"
+#include "shaders/ui_glyph_vs.h"
+#include "shaders/ui_solid_ps.h"
+#include "shaders/ui_glyph_ps.h"
+#include "shaders/ui_compose_ps.h"
+#include "shaders/ui_grey_ps.h"
+#include "shaders/ui_copy_ps.h"
+#include "shaders/ui_blit_ps.h"
 
 static_assert(kSmoothSamples == 8, "a depth_from_multisampled shader for each count up to it (CMakeLists.txt)");
 
@@ -42,6 +50,12 @@ const ShaderBytecode kIntoMultisampledShader{SG_RANGE(into_multisampled_vs), SG_
 const ShaderBytecode kCasterShader{SG_RANGE(shadow_caster_vs), SG_RANGE(shadow_caster_ps)};
 const ShaderBytecode kReduceShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_reduce_ps)};
 const ShaderBytecode kDilateShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_dilate_ps)};
+const ShaderBytecode kUiSolidShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_solid_ps)};
+const ShaderBytecode kUiGlyphShader{SG_RANGE(ui_glyph_vs), SG_RANGE(ui_glyph_ps)};
+const ShaderBytecode kUiComposeShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_compose_ps)};
+const ShaderBytecode kUiGreyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_grey_ps)};
+const ShaderBytecode kUiCopyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_copy_ps)};
+const ShaderBytecode kUiBlitShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_blit_ps)};
 
 ShaderBytecode DepthFromMultisampledShader(int samples) {
     switch (samples) {
