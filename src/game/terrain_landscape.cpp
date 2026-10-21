@@ -417,8 +417,8 @@ constexpr double kByteScale = 255.0;    // 0073C370
 constexpr std::uint32_t kLowFlags = 0xFFFF;
 constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);   // CArray<float>
 
-// ".MP": the map file's extension, through the pointer the loader reads.
-const char* MapExtension() { return ei::GameData<const char* const>(0x007441D4); }
+// The map file's extension.
+constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
 // The original keeps 1 when its FCOMP finds 1 below the value, or the two unordered.
 float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
@@ -453,7 +453,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     // The messages are passed to FatalError as its format string, as the original does.
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + MapExtension(), &size));
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + kMapDataExtension, &size));
     if (!file) {
         ClearMap();
         return game::FatalError("Unable to open file \"" + name + "\"");

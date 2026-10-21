@@ -4552,31 +4552,12 @@
 {DataId(0x00743A88), DataId(0x00783CDC)},
 {DataId(0x00743D98), DataId(0x00783CDC)},
 {DataId(0x00744148), DataId(0x00783CDC)},
-{DataId(0x00744164), DataId(0x00783CDC)},
 {DataId(0x007441D8), DataId(0x00783CDC)},
 {DataId(0x0074425C), DataId(0x00783CDC)},
 {DataId(0x00744280), DataId(0x00783CDC)},
 {DataId(0x007442A0), DataId(0x00783CDC)},
-// "C:\*.*": a const char* const read by 0049F660
-{DataId(0x0073D080), DataId(0x0078B04C)},
-// "SMessBase.reg": a const char* const
-{DataId(0x0073F918), DataId(0x00790804)},
 // ".MP": a const char* const
 {DataId(0x0073FD1C), DataId(0x00791758)},
-// the material files by material ("leather.mat", ...): a const char* const table
-{DataId(0x00743BFC), DataId(0x00795AB4)},
-{DataId(0x00743C04), DataId(0x00795AA8)},
-{DataId(0x00743C0C), DataId(0x00795A9C)},
-{DataId(0x00743C14), DataId(0x00795A90)},
-{DataId(0x00743C1C), DataId(0x00795A84)},
-{DataId(0x00743C24), DataId(0x00795A78)},
-{DataId(0x00743C2C), DataId(0x00795A6C)},
-{DataId(0x00743C34), DataId(0x00795A9C)},
-// "music.reg", ".mp3": const char* consts
-{DataId(0x00744090), DataId(0x007967D4)},
-{DataId(0x00744094), DataId(0x007967CC)},
-// ".MP": a const char* const
-{DataId(0x007441D4), DataId(0x00791758)},
 // MFC CCmdTarget's dispatch and event sink maps: their entry counts and stock property mask (-1 in .data)
 {DataId(0x00746900), DataId(0x00797444)},
 {DataId(0x00746904), DataId(0x00797448)},

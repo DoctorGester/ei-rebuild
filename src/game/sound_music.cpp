@@ -29,8 +29,9 @@ namespace {
 
 // The party's fight state, set by the world (2: fighting).
 int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
-// ".mp3" (the pointer at 00744094).
-const char* Mp3() { return ei::GameData<const char* const>(0x00744094); }
+// The themes' registry file and the music files' extension.
+constexpr const char* kMusicReg = /*00744090*/ "music.reg";
+constexpr const char* kMp3 = /*00744094*/ ".mp3";
 
 int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
@@ -91,8 +92,6 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
 }
 
 const mfc::CString& TextPath() { return ei::GameData<const mfc::CString>(0x007AF45C); }
-// "music.reg" (the pointer at 00744090).
-const char* MusicReg() { return ei::GameData<const char* const>(0x00744090); }
 
 } // namespace
 
@@ -104,13 +103,13 @@ int CMusicSystem::LoadThemes() {
     mfc::BOOL opened;
     {
         mfc::CString folder(TextPath());
-        mfc::CString path = folder + MusicReg();
+        mfc::CString path = folder + kMusicReg;
         opened = reg.Open(path);
     }
     if (!opened) {
         int result;
         {
-            mfc::CString file(MusicReg());
+            mfc::CString file(kMusicReg);
             mfc::CString message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
             mfc::CString full = message + "\"";    // "\""
             result = game::FatalError(static_cast<const char*>(full));
@@ -188,7 +187,7 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, mfc::CString MusicThe
         }
     }
     if (i == music->themeCount) return;
-    mfc::CString path = name + Mp3();
+    mfc::CString path = name + kMp3;
     TheSoundManager()->RequestStream(path, 4);
 }
 } // namespace
@@ -213,7 +212,7 @@ EI_REPLACE_METHOD(0x006B5080, CMusicSystem::PlayConstructor);
 void CMusicSystem::PlayCredits() {
     state = 5;
     TheSoundManager()->StopStream(4);
-    mfc::CString path = credits + Mp3();
+    mfc::CString path = credits + kMp3;
     TheSoundManager()->RequestStream(path, 4);
 }
 EI_REPLACE_METHOD(0x006B5170, CMusicSystem::PlayCredits);
@@ -222,7 +221,7 @@ EI_REPLACE_METHOD(0x006B5170, CMusicSystem::PlayCredits);
 void CMusicSystem::PlayMainMenu() {
     state = 4;
     TheSoundManager()->StopStream(4);
-    mfc::CString path = mainMenu + Mp3();
+    mfc::CString path = mainMenu + kMp3;
     TheSoundManager()->RequestStream(path, 4);
 }
 EI_REPLACE_METHOD(0x006B51F0, CMusicSystem::PlayMainMenu);
@@ -233,7 +232,7 @@ void CMusicSystem::PlayJingle(const char* name) {
     if (state != 1) return;
     {
         mfc::CString stem(name);
-        mfc::CString path = stem + Mp3();
+        mfc::CString path = stem + kMp3;
         jingle = path;
     }
     TheSoundManager()->RequestStream(jingle, 4);
@@ -266,7 +265,7 @@ int CMusicSystem::UpdateMusic() {
     } else if (fighting == 1) {
         if (Compare(current, combatTrack) != 0 || Compare(combatTrack, game::EmptyText()) == 0) {
             combatTrack = PickName(themes[theme].combat);
-            combatTrack += Mp3();
+            combatTrack += kMp3;
         }
         snd->RequestStream(combatTrack, 3);
     } else if (Compare(current, game::EmptyText()) == 0) {
@@ -281,7 +280,7 @@ int CMusicSystem::UpdateMusic() {
             if (t.calm.size != 0) {
                 mfc::CString track;
                 track = PickName(t.calm);
-                track += Mp3();
+                track += kMp3;
                 snd->RequestStream(track, 4);
                 WaitAndEndAfter(snd);
             }

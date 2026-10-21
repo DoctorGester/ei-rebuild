@@ -76,9 +76,8 @@ EI_REPLACE_METHOD(0x0049EE70, IsaacRandom::Refill);
 
 namespace {
 
-// The exe's search strings: the pointer at 0073D080 ("C:\*.*") and the sub-directory suffix 0078B054
-// ("\*.*").
-const char* SeedSearchPattern() { return ei::GameData<const char* const>(0x0073D080); }
+// The search strings: the drive's files and the sub-directory suffix (0078B054).
+constexpr const char* kSeedSearchPattern = /*0073D080*/ "C:\\*.*";
 const char* SubdirectoryPattern() { return "\\*.*"; }
 
 constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
@@ -155,11 +154,11 @@ void IsaacRandom::Seed() {
     int ok = 0;
     while (!ok) {
         int counter = 0;
-        if (!FindSeedFile(path, SeedSearchPattern(), RandomBelow512() + 1, &counter)) {
+        if (!FindSeedFile(path, kSeedSearchPattern, RandomBelow512() + 1, &counter)) {
             int r = gamecrt::rand();
             int files = counter;
             counter = 0;
-            if (!FindSeedFile(path, SeedSearchPattern(), r % (files - 1) + 1, &counter)) continue;
+            if (!FindSeedFile(path, kSeedSearchPattern, r % (files - 1) + 1, &counter)) continue;
         }
         ok = 1;
         mfc::CFile file;

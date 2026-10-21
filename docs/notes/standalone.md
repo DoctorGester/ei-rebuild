@@ -161,9 +161,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 5531 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 5517 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text; 1071 point into .data, 4460 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 1057 point into .data, 4460 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -177,7 +177,7 @@ each step green on the goldens and removing a measured tie:
   maps (11), the type descriptors' vtable (type_info's, 74, in .data), and the CRT's string tables in .data (the
   locale category names, __lc_time_c, the math functions' names, "(null)", setlocale's language / country tables
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
-  is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (74) and a few other
+  is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (73) and a few other
   string constants, MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
   descriptors (117) and EH handler / catchable types (38) to their type descriptors (in .data); in .data the
   string-pointer tables (the key bindings' command table, the action definitions, the script's particle types
@@ -206,7 +206,7 @@ each step green on the goldens and removing a measured tie:
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
-  image_code_cells.inc (21,636 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
+  image_code_cells.inc (21,439 cells of .rdata and .data holding a function start: vtable slots, EH unwind /
   handler / throw / copy entries, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
@@ -300,7 +300,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch, 3,000 after the second). C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2. C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
@@ -310,15 +310,29 @@ kinds given.
   (`kSlotXs[i]`), never the address. It lives in the file that reads it (its anonymous namespace), or as
   `inline constexpr` in the subsystem's header when several files read it (ui_camp.h's `kBodySlotX`). A single float,
   double or integer is no table: it is rdata_literals' tagged literal (`5.0f /*007402EC*/`, S18e), even when the code
-  copied its bytes with memcpy.
+  copied its bytes with memcpy. A table of string pointers is `const char* const kX[] = /*addr*/ {"a", "b"};`, one
+  string pointer `constexpr const char* kX = /*addr*/ "text";` (a per-file copy of a header's `const char* const`
+  the original read through memory: terrain_sector's kSectorExtension); a struct with pointer fields takes string
+  literals, names and nullptr in its initialiser (material.cpp's kMaterialKindFiles).
 - **The check** (`python tools/named_data.py --check`, build.cmd): the initialiser's numbers, packed by the declared
   element type (`TYPES`: the scalars, GUID as `IHH8B`; nested braces are flattened, a `[n]` bound must match the
   count), are game.exe's bytes at the tag (.rdata past the import table, or .data and its zero-filled tail);
   config/named_data.csv lists exactly the tagged ranges (address, size, name, file; `--update` writes it); and
   nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it,
-  no pointer cell of game.exe's data inside it or pointing into it (image_cells.inc), no code cell inside it
-  (image_code_cells.inc), no addon.dll site, no two ranges overlapping. A wrong value fails with its first
-  differing byte.
+  no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it other than its pointer
+  elements (gen_image_cells' scans, the named ranges' own cells included), no addon.dll site, no two ranges
+  overlapping. A wrong value fails with its first differing byte.
+- **Pointer elements** (C18c): a type with pointers (TYPES `P`: `char*`, `MaterialKindFile` `iP`) packs no address.
+  Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
+  literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
+  in .data); the name of another named range its address; the name of a function of ours (`&` optional) the
+  address of its registration (`EI_REPLACE*`: the code game.exe's pointer called, which the image's code cell pointed
+  at); nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
+  offset is a pointer element: the only place a cell may sit inside the range. gen_image_cells leaves the cells inside
+  named ranges out of image_cells.inc / image_code_cells.inc (the bytes are zero, nothing fixes them up) and its
+  reviewed groups' counts drop with them; the strings they pointed at stay in the image for their other readers.
+  A pointer to game.exe's data that is not ours (another record, a type descriptor) has no form: the target is
+  only known at run time (GamePointer), so a table that holds one stays data until its targets are named too.
 - **The bytes**: gen_image_cells.py --bytes writes the csv's ranges zero (CMake's custom command depends on the
   csv), so the image's copy of the sections no longer carries them; what the check proves unreachable is also
   unread at run time.
@@ -344,13 +358,25 @@ kinds given.
     hoover_loot as rdata literals. A table of names is a `char name[rows][cols][n]` of string literals (TYPES
     has no entry: `char` packs each literal into the last bound's chars, zero padded; kArmourPartNames).
     A vector recorder or replayer that read a named table by address reads the name instead (unitdb::kSlotWeights).
-    What is left of the ticket's list holds string pointers (random 0073D080, world_server_life 0073F918,
-    terrain_sector 00744164, terrain_landscape 007441D4): C18c. Keep the original's bound on an index the data
+    C18c did the string pointers (random 0073D080, world_server_life 0073F918, terrain_sector 00744164,
+    terrain_landscape 007441D4, sound_music 00744090 / 00744094) and material.cpp's kind / file table 00743BF8
+    (8 `{kind, "x.mat"}` rows). Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
-  - Tables that hold pointers (material.h 00743BF8, sound_music 00744090, the CRuntimeClass and EH records of
-    src/lib): the check refuses them (a pointer cell inside the range); they need pointers to our own objects, which
-    the packing does not compare yet.
+  - Tables that hold pointers to game.exe's records (not done; C18e): src/lib's MFC CRuntimeClass records
+    (mfc_file's CFile 00745DB0 / CStdioFile 007464C8 / CFileFind 00745EC0, mfc_gdi's CTempDC 00745FB0 /
+    CTempGdiObject 00745F88, mfc_exception's CFileException 00746820 / CArchiveException 007467D8): each one's
+    m_pBaseClass points at a record that other game records point at too (CObject, CDC, CGdiObject, CException; CFile
+    is the base of CStdioFile's and CMemFile's records), so naming one names the whole hierarchy (41 records), and
+    CObject's is also the base of the five serializable records in .data (CDib, CByteArray, CDWordArray,
+    CStringArray, CWordArray) that the generated static initialisers link (AfxClassInit writes m_pNextClass). The
+    create functions would be names of ours (CreateTempDC, CreateTempGdiObject are registered). The EH ThrowInfo
+    records (mfc_exception's file / archive / not supported / memory / resource exceptions, dx_surface's and
+    render_helper's game error 00759908, stlp_string's out_of_range 0074C640) share their catchable types (CException*,
+    CObject*, void*) with the ThrowInfos of game.exe's other throws, and each catchable type points at a type
+    descriptor in .data (a type_info object, whose vtable cell is fixed up): their form is our compiler's own
+    `throw`, once the thrown classes are C++ classes with the original's decorated names (our catch handlers match
+    by the name), not named data.
   - .data and .bss objects (written at run time): the same form without constexpr (`int g_x = /*0079xxxx*/ {5};`,
     `{}` for the zero-filled tail). Before converting, every reader must use the name: the generated static
     initialisers and exit functions (static_init.cpp / static_exit.cpp store into or destroy it: the definition's
