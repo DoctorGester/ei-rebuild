@@ -714,16 +714,30 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
   split by reader (code cells by kind, forwarders, code literals, static init, named data, harness, vectors,
-  scenarios / goldens, the short-function and exit-function generators, check_fp_fold's links from
-  `check_fp_fold.py --linked` on the built DLL), `--unread` / `--files` what nothing reads, `--drop` removes those
-  (with `--exclude` / `--exclude-name` for files another worker holds). After C20c (2026-10-21): 5,258 left of
-  9,347, first reader: vtable cells 2,202, check_fp_fold only 1,754, static init 325, forwarders 270, code literals
-  143, harness / vectors / other 69, unread 495 (65 short functions the generator would write again, 430 in C19's
-  managers and the map objects, left for C19). Code literals include static_init.cpp's six-digit ones (0x5C4210). A dropped function is called by name; one whose registration was the
-  only instantiation of a template needs an explicit instantiation (AckTable<ExtraAcks>::RecordAt).
-- check_fp_fold compares a function's x87 constants with its original through the function's own registration, or
-  a helper's through its registered callers: dropping those reported folds that were none (24 at C20c's first try),
-  so they count as readers until check_fp_fold has another link to the original (C20d).
+  scenarios / goldens, the short-function and exit-function generators), `--unread` / `--files` what nothing reads,
+  `--drop` writes `EI_REWRITTEN` in their place (with `--exclude` / `--exclude-name` for files another worker holds,
+  `--only FILE` for a list `--list` printed). Code literals include static_init.cpp's six-digit ones (0x5C4210). A
+  dropped function is called by name; one whose registration was the only instantiation of a template needs an
+  explicit instantiation (AckTable<ExtraAcks>::RecordAt). Counts (progress.py's "EI_REPLACE registrations"): 9,347
+  before C20c, 5,262 after it, 3,527 after C20d (1,735 that only check_fp_fold read became EI_REWRITTEN; 20 in
+  CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
+  from the map (C20d1).
+- **The function-to-original map** (C20d): the registrations plus `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h).
+  EI_REWRITTEN registers nothing: it leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which nothing
+  reads at run time, so the compiler checks the name and the function's own copy stays in the image as with a
+  registration. check_registrations reads `.eiorg` (one EI_REWRITTEN per address, none also registered). The tools
+  read the map from the sources: check_signatures.registrations() (kind 'replace'; check_fp_fold and
+  check_signatures), coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, gen_originals.py,
+  progress.py's / dashboard_data.py's rewritten counts, check_cleanup (its address is no raw literal), and
+  gen_short_functions.ported_elsewhere (a rewrite: no generated short function, and gen_static_init neither inlines
+  nor decodes it). standalone_gaps and registration_readers skip the lines (no reader, no reached literal).
+  Switching kept every map the same (C20d's comparison: same entries in all of them; check_fp_fold on main's DLL with
+  the new sources: the same counts). Converting the 1,735 changed some inlining (removing the registrars' static
+  constructors let MSVC inline a few converted functions into their callers): release check_fp_fold went from 1,260
+  functions with constants / 4,752 matched / 196 helpers / 40 unattached / 417 uncalled to 1,276 / 4,752 / 200 / 44 /
+  418, 0 problems in both.
+- standalone_gaps reads .rsrc too: dialog text can spell a function start (007D4030, " L" = 004C0020), listed in
+  config/standalone_unreachable.csv when the function's registration goes.
 - Library functions need a row in config/extra_function_sizes.csv even when Ghidra has a function (the installer
   skips an unknown start); some Ghidra sizes run past the RET (0070CAD2, 006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
