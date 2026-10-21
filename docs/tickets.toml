@@ -427,7 +427,7 @@ id = "R16c2"
 title = "Water waves in the terrain vertex shader"
 group = "renderer"
 depends = ["R16c"]
-note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%."
+note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%. Measured (R16c2): GPU waves not built, about 0.03 ms a frame to gain. The waves option is off in the harness (EnableWaterWaves 0): zone1's water uploads are animated tiles' texture coordinates (174 / 221 KB vanilla / Rebirth, writes 0.03-0.04 ms). With the option on Animate costs 1.0-1.2 ms in zone1, which stays on the CPU (the game reads the heights); GPU waves would take only the waves' share of the writes and the crests' specular. Built instead: TerrainChange (Rebuilt / Moved / WaterMoved), a page re-reads only for its own kind: zone1 34 -> 4.7 pages, 0.11 -> 0.05 ms a frame (Rebirth 0.13 -> 0.06); terraincache off now builds every page. Follow-up R16c3 (Animate's loop)."
 
 [[ticket]]
 id = "R16d2"
@@ -503,6 +503,12 @@ model = "opus"
 depends = ["R16e1"]
 files = ["src/game/map_object_shadow.cpp", "src/game/world_client_decals.cpp"]
 note = "Found by R16e (renderer.md section 13 item 5). With the shadow map the object shadows' ProjectDecal 0056C750 (0.34 / 0.60 / 0.48-0.63 ms a frame in zone1 / the fight / the town, render_stats vanilla 4K) is read only for its mesh's bounds: the shadow's sphere (FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (CollectVisible 0056A990 then lists them for shadows and updates their pose) and vertices.size (DrawShadow's early return). A sphere around the decal's prism (the quad through the plane at the point minus depth * 0.33, clamped to the terrain's and platforms' heights under it) is conservative: more objects out of view listed for shadows (more casters in the map, which also helps the open 'casters off screen cast nothing'), more pose updates. Changes the shadow lists, so it waits for the user's call; check goldens 0 differ, render_shadows, renderstats' shadow projections gone with the map."
+
+[[ticket]]
+id = "R16c3"
+title = "Water waves' CPU loop (Animate) faster, bit-exact"
+group = "renderer"
+note = "R16c2 measured SectorData::Animate 006C3E80 at 1.0 ms a frame in zone1 (1.2 Rebirth, 0.35 in the town) with the water waves option on (EnableWaterWaves; off in the harness's registry, so no scenario reaches the waves now). The circling waves' sineX / sineY depend only on the column / row and the world time (read per vertex): 33 values each per call; the time once per call. Same float expressions, so bit-exact; needs a scenario with the option on (a harness step setting enableWaterWaves_ before newgame) and a golden or vectors for Animate. docs/notes/renderer.md section 13 item 3 (R16c2)."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -2345,6 +2351,20 @@ title = "Before the SSE2 switch: doubles, chop rounding, check_x87, goldens (C16
 group = "cleanup"
 depends = ["C16"]
 note = "C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
+
+[[ticket]]
+id = "C16e"
+title = "NaN audit, part 2: the !(a >= b)-style NaN-aware helpers"
+group = "cleanup"
+depends = ["C16c"]
+note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)'. C16c made the x87::IsNaN / CompareStatus sites plain comparisons with EI_NAN_AUDIT; left are the helpers that keep the original's NaN results without IsNaN: LessOrUnordered (combat*, effects*, particle_*, quaternion, terrain, unit_vitals, world_client SelectLess), ZeroOrUnordered, NonZero, EqualOrNaN (ui_item_strip, unit_record), IsZeroOrNaN (unit_stats, world_effect_sequence), AtMostOne / AtLeastZero / AtMostZero, ClampToMap, the ZeroOrNaN bit tests in device_mesh / object_tables / scene_bones, about 30 files. Same rule (rewrite guide 8): the plain comparison the source had, EI_NAN_AUDIT where the NaN result changes, the NaN-keeping plain form where it reads as naturally; check a NaN can never hang a loop. Goldens --golden 0 differ and no 'NaN audit' line in the runs' logs. Opus (judgement per site)."
+
+[[ticket]]
+id = "C16f"
+title = "NaN audit, part 3: the inline !(a >= b) and !(a < b) && !(a > b) forms"
+group = "cleanup"
+depends = ["C16e"]
+note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)' and its C16e item. C16e converted the named helpers; left are the inline NaN-keeping forms of the earlier port: about 380 lines with a negated comparison (!(a >= b), !(x > y): ai_footprint, ai_map, ai_motion, camera, camera_motion, lightning*, figure_mesh, ui_item_strip, ...; some are integer tests and stay) and about 35 equal-or-NaN tests written !(a < b) && !(a > b) or !(a < 0 || a > 0) (effects_weather, exit_area, lightning_draw, model_db, party_members, ui_camp, unit_vitals, world_game, ...), plus the shadow / decal helpers C16e left for R16e1 (device_shadow OneOrNaN, terrain_shadow AtMostZero, terrain_decal Lower / Raised). Same rule (rewrite guide 8): plain comparison with EI_NAN_AUDIT where the NaN result changes, the exact plain form (a >= b ? x : y) where it reads as naturally, loops must end on a NaN. Goldens --golden 0 differ, no 'NaN audit' line in the runs' logs. Opus; split by area if large."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

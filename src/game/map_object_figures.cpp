@@ -51,8 +51,8 @@ void AnimationSetScale(void* state, void*, float x, float y, float z) {
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the
 // comparison sets C0 (it is beyond the bound, or unordered).
-std::uint32_t KeepLower(std::uint32_t bound, float v) { return !(v >= Float(bound)) ? Bits(v) : bound; }
-std::uint32_t KeepHigher(std::uint32_t bound, float v) { return !(Float(bound) >= v) ? Bits(v) : bound; }
+std::uint32_t KeepLower(std::uint32_t bound, float v) { return v >= Float(bound) ? bound : Bits(v); }
+std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= v ? bound : Bits(v); }
 
 // a + b + c in that order, stored to a float.
 float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<double>(a) + b) + c); }

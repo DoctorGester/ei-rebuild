@@ -22,6 +22,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
@@ -73,10 +74,11 @@ Vector3 Middle(const Vector3& a, const Vector3& b) {
 
 Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.x, a.y - b.y, a.z - b.z}; }
 
-// Normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
+// Normalised unless its length is zero (FCOM, TEST AH,0x40).
 void Normalise(Vector3* v) {
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
-    if (length == 0.0f || x87::IsNaN(length)) return;
+    EI_NAN_AUDIT(length);
+    if (length == 0.0f) return;
     float inverse = 1.0f / length;
     v->x = inverse * v->x;
     v->y = inverse * v->y;

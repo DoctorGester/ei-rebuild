@@ -8,6 +8,12 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# No incremental linking in the two builds: an incremental relink of ei_hook.dll twice left out new code
+# from ei_render.lib while reporting success (R16c2), so a run could test stale code.
+foreach(kind EXE SHARED MODULE)
+    string(REGEX REPLACE "/INCREMENTAL(:[A-Z]+)?" "" flags "${CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO}")
+    set(CMAKE_${kind}_LINKER_FLAGS_RELWITHDEBINFO "${flags} /INCREMENTAL:NO")
+endforeach()
 
 # Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe with ei_hook.dll's
 # code); `verify` is the harness build, the same image and code plus the harness (tests/verify: scenario runs
@@ -113,6 +119,8 @@ if(EI_HARNESS)
     file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
     target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
 endif()
+# The NaN audit's log (src/lib/nan_audit.h) in the verify and debug builds.
+target_compile_definitions(ei_hook PRIVATE $<$<OR:$<BOOL:${EI_HARNESS}>,$<CONFIG:Debug>>:EI_NAN_AUDIT_LOG>)
 # Hooks register themselves via static objects; keep them even if nothing references them.
 # /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
 target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)

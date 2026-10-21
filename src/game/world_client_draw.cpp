@@ -28,6 +28,7 @@
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
@@ -159,12 +160,15 @@ const char* MarkerPartName() { return "hp"; }
 // FLD a; FADD/FSUB b; FSTP: the result rounded to float.
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
 float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
-// FLD a; FCOMP b: whether C0 is set (a < b, or unordered).
-bool LessOrUnordered(float a, float b) { return (x87::CompareStatus(a, b) & x87::kC0) != 0; }
+// FLD a; FCOMP b: whether C0 is set (a < b).
+bool Less(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a < b;
+}
 // The original's mask selects: C0 picks a's bits, else b's (the smaller one) ...
-float SelectLess(float a, float b) { return LessOrUnordered(a, b) ? a : b; }
+float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
-float ClampToZero(float t) { return LessOrUnordered(0.0f, t) ? t : 0.0f; }
+float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
 // The original copies a float through the FPU (FLD / FSTP); here the value as it is.
 float Reload(float v) { return v; }
 // The game's _ftol of a float.

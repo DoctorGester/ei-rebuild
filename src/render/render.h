@@ -80,6 +80,18 @@ void BeginCaster(const void* object);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
 void ClassicShadowDecal();
+// R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
+// raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
+// BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection
+// (its sphere: ShadowInView 0051E300). ClassicShadowSkipped: true when Active() and not
+// ClassicShadows(), unless the harness asked for the full classic build (its "shadowbuild full", the
+// harness build only: A/B frames and timings). ShadowTextureGeneration: moved by
+// RebuildShadowTextures (the harness's "shadows rebuild"); the shadow draw makes again, at its next
+// draw, each texture made in an earlier generation or not made (skipped), once the textures are needed.
+bool ClassicShadowSkipped();
+void SetShadowBuildFull(bool full);
+unsigned ShadowTextureGeneration();
+void RebuildShadowTextures();
 // The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
 // caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
 // the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
@@ -147,6 +159,9 @@ struct FrameStats {
     double decalShadowMs = 0.0, decalPrintMs = 0.0, flatShadowMs = 0.0, flatOtherMs = 0.0, shadowBuildMs = 0.0;
     std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
     std::uint64_t flatShadowDraws = 0, flatOtherDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
+    // R16e1: of the shadow builds, those that made the classic texture, and of them those built only
+    // because the texture was missing (CountShadowTexture).
+    std::uint64_t shadowTextures = 0, staleShadowTextures = 0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
     // gpuFrames) of the shadow pass and of the whole frame's passes.
@@ -184,6 +199,9 @@ void BeginFlatDrawTime(int vertices);
 void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
+// Harness build: counts a shadow build that made the classic texture (R16e1), `stale` when it ran only
+// because the texture was not made or is of an earlier generation (ShadowTextureGeneration).
+void CountShadowTexture(bool stale);
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
 // movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns
@@ -371,9 +389,11 @@ void ClearDepth(float z, const Rect* rects, int count);
 // 0..pages+1, water pages after them).
 void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
 // The game changed what the sector's pages are built from (R16c: the renderer keeps them on the GPU):
-// `rebuilt` its tile lists and records (SectorData::Build, Clear), else it moved vertices or texture
-// coordinates (Animate's waves and animated tiles, ApplyWaterLevels).
-void TerrainChanged(const terrain::SectorData* sector, bool rebuilt);
+// Rebuilt its tile lists and records (SectorData::Build, Clear); Moved vertices or texture coordinates
+// (Animate's animated tiles); WaterMoved only the water layer's positions (Animate's waves,
+// ApplyWaterLevels: only the pages reading that layer read their vertices again).
+enum class TerrainChange { Rebuilt, Moved, WaterMoved };
+void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 // Harness build only (the harness's "terraincache", R16c): the terrain pages kept on the GPU (on, the
 // default) or built and uploaded again every frame (off: as before R16c, for frame comparisons); the
 // pages kept, and the checks of kept pages against a fresh build (every 16th frame) with how many

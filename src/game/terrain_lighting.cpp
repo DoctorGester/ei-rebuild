@@ -36,9 +36,9 @@ float WaterFalloff() { return ei::GameData<const float>(0x007C8908); }
 
 // The original's select idioms (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or
 // unordered", picks b).
-float Max(float a, float b) { return !(a >= b) ? b : a; }
-float AtMostOne(float v) { return !(1.0f >= v) ? 1.0f : v; }
-float AtLeastZero(float v) { return !(v >= 0.0f) ? 0.0f : v; }
+float Max(float a, float b) { return a >= b ? a : b; }
+float AtMostOne(float v) { return v <= 1.0f ? v : 1.0f; }
+float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
 
 bool SignClear(float v) {
     std::uint32_t bits;

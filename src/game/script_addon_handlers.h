@@ -15,9 +15,6 @@ using Handler = bool (*)(Call* call);
 // _ftol2_sse (10090EB0): truncation toward zero (CVTTSD2SI); NaN and out-of-range values give
 // 0x80000000.
 int Ftol(float value);
-// FNSTSW after FLD a, FCOMP b, as AH: 0x01 C0 (a < b), 0x04 C2, 0x40 C3 (a == b); all three when
-// unordered.
-int Status(float a, float b);
 // FLD / FSTP of a value into *dst, as the handlers store their results.
 void Store(float* dst, float value);
 // _ftol2's x87 path (10090EE6, called directly by NearestUnit and UnitsNearPoint): truncation of

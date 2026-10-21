@@ -65,9 +65,6 @@ CDiplomacy* DiplomacyOf(void* world) { return &static_cast<CWorldServer*>(world)
 // The world's AI events.
 AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
 
-// x87 FCOM: "ST < operand or unordered".
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
 // An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
@@ -291,9 +288,8 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     AxisUnrounded<double> axisX = AxisXUnrounded<double>(*rotation);
     double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
     float sideStored = static_cast<float>(side);
-    if (LessOrUnordered(AbsBits(sideStored), AbsBits(frontStored)))
-        return frontStored > kZero ? 0x800000 : 0x400000;
-    return sideStored > kZero ? 0xC00000 : 0x1000000;
+    if (AbsBits(sideStored) >= AbsBits(frontStored)) return sideStored > kZero ? 0xC00000 : 0x1000000;
+    return frontStored > kZero ? 0x800000 : 0x400000;
 }
 EI_REPLACE_METHOD(0x005518F0, CUnitServer::HitDirection);
 
@@ -463,7 +459,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     log->Put(static_cast<double>(theirs))->PutChar(10)->Apply(kLogEndLine);
 
     skill = action.source;
-    if (skill != 0 && !LessOrUnordered(theirs, mine)) {
+    if (skill != 0 && theirs >= mine) {
         DiplomacyOf(world)->OnAttack(unit, other, 10);
         return;
     }

@@ -16,6 +16,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -120,7 +121,8 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             Vector3 reach{static_cast<float>(dx + dx), static_cast<float>(dy + dy), static_cast<float>(direction->z + direction->z)};
             Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
             float sight = AIMap()->LineOfSight(&eye, &to);
-            if (sight == kOne || x87::IsNaN(sight)) break;
+            EI_NAN_AUDIT(sight);
+            if (sight == kOne) break;
         }
         AILook look{};
         look.angle = static_cast<float>(x87::fpatan(dy, dx));

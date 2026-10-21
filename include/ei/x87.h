@@ -23,8 +23,9 @@ inline double FromUnsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// NaN test on the bits. Under /fp:fast MSVC folds `v != v` to false, so the usual idiom silently
-// stops detecting NaN (found in the sort verify of world_client); use this instead.
+// NaN test on the bits, for code whose purpose is detecting NaN (the NaN audit's log, lib/nan_audit.h).
+// Under /fp:fast MSVC folds `v != v` to false (found in the sort verify of world_client), and the
+// standalone's compiler flags may change again; comparisons themselves are plain C++.
 inline bool IsNaN(float v) {
     std::uint32_t bits;
     std::memcpy(&bits, &v, sizeof(bits));
@@ -35,18 +36,6 @@ inline bool IsNaN(double v) {
     std::uint64_t bits;
     std::memcpy(&bits, &v, sizeof(bits));
     return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
-}
-
-// The condition bits FCOM / FCOMP leave for FNSTSW AX, as the original reads them from AH: C0 "less or
-// unordered", C3 "equal or unordered"; unordered (a NaN) sets C0, C2 and C3.
-constexpr int kC0 = 0x01;
-constexpr int kC2 = 0x04;
-constexpr int kC3 = 0x40;
-inline int CompareStatus(double a, double b) {
-    if (IsNaN(a) || IsNaN(b)) return kC0 | kC2 | kC3;
-    if (a < b) return kC0;
-    if (a == b) return kC3;
-    return 0;
 }
 
 __declspec(naked) inline double __cdecl fsin(double) {

@@ -446,6 +446,31 @@ void CastsShadow(const void* object, float strength) {
 
 void ClassicShadowDecal() { g_classicDecal = true; }
 
+namespace {
+bool g_shadowBuildFull = false;          // the harness's "shadowbuild full" (R16e1)
+unsigned g_shadowTextureGeneration = 0;  // RebuildShadowTextures
+} // namespace
+
+bool ClassicShadowSkipped() { return Active() && !ClassicShadows() && !g_shadowBuildFull; }
+
+void SetShadowBuildFull(bool full) {
+#if defined(EI_RENDER_VALIDATION)
+    if (full != g_shadowBuildFull)
+        ei::Log("render: object shadows: %s", full ? "the classic texture and decal made with the shadow map too"
+                                                     : "the classic texture and decal made only when drawn");
+    g_shadowBuildFull = full;
+#else
+    (void)full;
+#endif
+}
+
+unsigned ShadowTextureGeneration() { return g_shadowTextureGeneration; }
+
+void RebuildShadowTextures() {
+    ++g_shadowTextureGeneration;
+    ei::Log("render: object shadows: every classic texture made again at its next draw");
+}
+
 ShadowInfo ShadowState() {
     ShadowInfo info = g_lastInfo;
     info.classic = ClassicShadows();

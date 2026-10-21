@@ -12,6 +12,7 @@
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "game_data.h"
 
 #include <concepts>
@@ -224,7 +225,8 @@ EI_REPLACE_METHOD(0x00492030, CParticleSource::UpdateCasting);
 // their velocity, which gets a random kick in [-k, k), damping and a pull back to the centre.
 void CParticleSource::TickCasting(ParticleElement* e) {
     float* f = ElementFloat(e, 0);
-    if (!(f[0] == 0.0f || x87::IsNaN(f[0]))) {
+    EI_NAN_AUDIT(f[0]);
+    if (f[0] != 0.0f) {
         if ((flags_ & 1) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
         *ElementInt(e, 0x30) = CastAlphaByCountdown()[*ElementInt(elements, 0x34)];
@@ -1182,7 +1184,8 @@ int CParticleSource::EmitBlast(Particle* p, int) {
 
     p->frame = static_cast<int>(Next() % 3);
     ParticleElement* e = &fragments[kind];
-    if (*ElementFloat(e, 0x24) == 0.0f || x87::IsNaN(*ElementFloat(e, 0x24))) p->frame = 8;
+    EI_NAN_AUDIT(*ElementFloat(e, 0x24));
+    if (*ElementFloat(e, 0x24) == 0.0f) p->frame = 8;
     float u = static_cast<float>(Unsigned(Next()) * EI_P_SCALE_1);
     float scale = size;
     const float* velocity = ElementFloat(e, 0x0C);
@@ -1233,7 +1236,8 @@ int CParticleSource::UpdateBlast(Particle* p) {
     int frame = p->frame;
     if (frame >= 14) {
         if (state != kBlastCore) return 0;
-        if (p->size == 0.0f || x87::IsNaN(p->size)) p->size = static_cast<float>(D(size) * D(EI_BLAST_CORE_SIZE));
+        EI_NAN_AUDIT(p->size);
+        if (p->size == 0.0f) p->size = static_cast<float>(D(size) * D(EI_BLAST_CORE_SIZE));
         else SetBits(&p->size, 0);
         return *ElementInt(fragments, 0x30) < 3;
     }
@@ -1341,9 +1345,9 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             boundsMin.x = PickIfLess(q->pos.x, boundsMin.x);
             boundsMin.y = PickIfLess(q->pos.y, boundsMin.y);
             boundsMin.z = PickIfLess(q->pos.z, boundsMin.z);
-            boundsMax.x = !(boundsMax.x >= q->pos.x) ? q->pos.x : boundsMax.x;
-            boundsMax.y = !(boundsMax.y >= q->pos.y) ? q->pos.y : boundsMax.y;
-            boundsMax.z = !(boundsMax.z >= q->pos.z) ? q->pos.z : boundsMax.z;
+            boundsMax.x = boundsMax.x >= q->pos.x ? boundsMax.x : q->pos.x;
+            boundsMax.y = boundsMax.y >= q->pos.y ? boundsMax.y : q->pos.y;
+            boundsMax.z = boundsMax.z >= q->pos.z ? boundsMax.z : q->pos.z;
             particles.AddTail(q);
         }
     }
@@ -1701,7 +1705,10 @@ int CParticleSource::UpdateBag(Particle* p) {
     int fade = p->life > 9 ? 9 : p->life;
     p->color = (static_cast<std::uint32_t>(BagAlpha()[fade]) << 24) | BagRgb(age);
     const float* step = ElementFloat(ball, 0x0C);
-    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    auto isZero = [](float f) {
+        EI_NAN_AUDIT(f);
+        return f == 0.0f;
+    };
     if (isZero(step[0]) && isZero(step[1]) && isZero(step[2])) {
         std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3) + sizeof(float));
         p->prevColor = p->color;
@@ -2239,7 +2246,8 @@ void CParticleSource::TickTornado(ParticleElement* e) {
     ParticleElement* bottom = elements;
     float bend;
     std::memcpy(&bend, ElementFloat(bottom, 0x28), sizeof(float));
-    if (bend == 0.0f || x87::IsNaN(bend)) {
+    EI_NAN_AUDIT(bend);
+    if (bend == 0.0f) {
         Vector3 sway;
         sway.Construct(static_cast<float>(D(bottom->pos.x) - D(motion.x)), static_cast<float>(D(bottom->pos.y) - D(motion.y)),
                        static_cast<float>(D(bottom->pos.z) - D(motion.z)));
@@ -2269,7 +2277,8 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         float az = static_cast<float>(D(sz) * D(EI_FUNNEL_BACK));
         Vector3 n = {ax, ay, az};
         double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az));
-        if (!(length == 0.0 || x87::IsNaN(static_cast<float>(length)))) {
+        EI_NAN_AUDIT(length);
+        if (length != 0.0) {
             double inverse = D(EI_P_ONE) / length;
             n.x = static_cast<float>(D(ax) * inverse);
             n.y = static_cast<float>(D(ay) * inverse);
@@ -2297,7 +2306,8 @@ void CParticleSource::TickTornado(ParticleElement* e) {
     if (!attachedTo) {
         float b;
         std::memcpy(&b, ElementFloat(elements, 0x28), sizeof(float));
-        if ((b == 0.0f || x87::IsNaN(b)) && particles.count != 0) {
+        EI_NAN_AUDIT(b);
+        if (b == 0.0f && particles.count != 0) {
             flags_ &= ~5u;
             Attach(nullptr);
         }
@@ -2405,7 +2415,10 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
     p->life = life;
     if (life < 0) return 0;
     const float* step = &e.value[0];
-    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    auto isZero = [](float f) {
+        EI_NAN_AUDIT(f);
+        return f == 0.0f;
+    };
     if (isZero(step[0]) && isZero(step[1])) return 0;
     p->frame = 1;
     p->state = -1;
@@ -3138,7 +3151,10 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
     double turnedY = D(direction[0]) * D(EI_CLAY_COS) + D(direction[1]) * D(EI_CLAY_SIN);
     direction[0] = static_cast<float>(turnedY);
     direction[1] = static_cast<float>(turnedX);
-    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    auto isZero = [](float f) {
+        EI_NAN_AUDIT(f);
+        return f == 0.0f;
+    };
     if (isZero(previous[0]) && isZero(previous[1])) std::memcpy(previous, &e->pos, sizeof(Vector3));
 }
 EI_REPLACE_METHOD(0x0048FBE0, CParticleSource::TickClayRing);
@@ -3750,8 +3766,6 @@ namespace {
 const std::int32_t* ModifierAlphaIn() { return ei::GamePointer<const std::int32_t>(0x0078A800); }     // by tick
 const std::int32_t* ModifierAlphaOut() { return ei::GamePointer<const std::int32_t>(0x0078A88C); }    // by tick
 
-// x87 FCOMP's "below" (also taken when unordered).
-bool Below(double a, double b) { return !(a >= b); }
 
 } // namespace
 
@@ -3766,7 +3780,8 @@ int CParticleSource::UpdateModifier(Particle* p) {
         const ParticleElement& e = elements[p->state];
         std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
         SetBits(&p->size, 0x3F800000);
-        if (Below(D(size), D(EI_P_ZERO))) {
+        EI_NAN_AUDIT(size);
+        if (size < EI_P_ZERO) {
             p->size = static_cast<float>(oldSize * D(0.9345794f /*0073CEA8*/));    // 1 / 1.07
             p->color = (static_cast<std::uint32_t>(ModifierAlphaIn()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         } else {
@@ -3812,7 +3827,7 @@ void CParticleSource::TickModifier(ParticleElement* e) {
     e->pos.y = static_cast<float>(D(offset[1]) + D(origin.y));
     e->pos.z = static_cast<float>(D(offset[2]) + D(origin.z));
     e->pos.z = static_cast<float>(D(spreadMin.x) + D(e->pos.z));
-    double k = Below(D(size), D(EI_P_ZERO)) ? D(1.4f /*0073CDF8*/) : D(0.71428573f /*0073CEAC*/);    // 1.4 / 1 / 1.4
+    double k = size >= EI_P_ZERO ? D(0.71428573f /*0073CEAC*/) : D(1.4f /*0073CDF8*/);    // 1 / 1.4, 1.4
     for (int i = 0; i < 3; ++i) offset[i] = static_cast<float>(k * D(offset[i]));
 }
 EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
@@ -3823,7 +3838,10 @@ namespace {
 
 const std::int32_t* LightningAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A9F8); }    // by life
 
-bool ZeroOrNaN(float f) { return f == 0.0f || x87::IsNaN(f); }
+bool IsZero(float f) {
+    EI_NAN_AUDIT(f);
+    return f == 0.0f;
+}
 
 } // namespace
 
@@ -3836,7 +3854,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
     if (life < 0) return 0;
     if (p->state != 0) {
         if (p->frameTimer != 0) {
-            if (ZeroOrNaN(p->size)) {
+            if (IsZero(p->size)) {
                 emitCount = 50;
                 std::memcpy(&p->size, &p->aux0, sizeof(float));
                 return 1;
@@ -4038,7 +4056,8 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
         return 0;
     }
     p->color = (static_cast<std::uint32_t>(CurseAlpha()[life]) << 24) | 0xFFFFFF;
-    if (p->size == 0.0f || x87::IsNaN(p->size)) {
+    EI_NAN_AUDIT(p->size);
+    if (p->size == 0.0f) {
         p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
                         D(0.04f /*0073CE90*/));
     } else {
@@ -4256,8 +4275,11 @@ double PlatformHeight(const Vector3* at, float ground) {
     return ei::Code<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
 }
 
-// FCOMP's "equal" (also taken when unordered).
-bool SameOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
+// FCOMP's "equal".
+bool Same(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a == b;
+}
 
 } // namespace
 
@@ -4274,7 +4296,8 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
         SetBits(&mark[0], 0xBF800000);
         SetBits(&mark[1], 0xBF800000);
         SetBits(&mark[2], 0xBF800000);
-        if (alpha == 0.0f || x87::IsNaN(alpha)) {
+        EI_NAN_AUDIT(alpha);
+        if (alpha == 0.0f) {
             *ElementInt(elements, 0x30) = 0xB0B0B0;
         } else if (Bits(&alpha) == 0x3F800000) {
             *ElementInt(elements, 0x30) = 0x40FF40;
@@ -4287,7 +4310,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     Vector3 scratch;
     Vector3 point = *UnitPoint(unit, &scratch, index + ei::GameData<const int>(0x007AF61C));
     float* mark = ElementFloat(elements, 0x18);
-    if (SameOrNaN(mark[0], point.x) && SameOrNaN(mark[1], point.y) && SameOrNaN(mark[2], point.z)) return 0;
+    if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));
     Vector3 under;
     std::memcpy(&under.x, &point.x, sizeof(float));

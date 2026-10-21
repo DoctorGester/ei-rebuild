@@ -160,9 +160,10 @@ bool NearestUnit(Call* call) {
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
         float distance = Distance(static_cast<CMapObject*>(object)->position.x, static_cast<CMapObject*>(object)->position.y, x, y);
-        if (Status(radius, distance) & 0x41) return;
-        best = object;
-        radius = distance;
+        if (distance < radius) {   // TEST AH,0x41 on FCOMP radius, distance: ordered greater
+            best = object;
+            radius = distance;
+        }
     });
     (*static_cast<ScriptObjectRef**>(call->result))->Assign(best);
     return true;
@@ -280,7 +281,7 @@ bool GetObjectsOnMap(Call* call) {
     ScriptGroup* group = *static_cast<ScriptGroup**>(call->result);
     group->SetSize(0, -1);
     const mfc::CArray<float>& classes = call->cmd->floatArgs;
-    bool all = classes.size == 1 && (Status(-1.0f, classes.data[0]) & 0x45) == 0x40;
+    bool all = classes.size == 1 && classes.data[0] == -1.0f;
     ForWorldObjects([&](CEngineObject* object) {
         if (!object) return;
         if (all) {

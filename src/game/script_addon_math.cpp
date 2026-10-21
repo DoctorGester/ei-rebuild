@@ -22,10 +22,6 @@ namespace scriptaddon {
 
 namespace {
 
-constexpr int kC0 = 0x01;
-constexpr int kC2 = 0x04;
-constexpr int kC3 = 0x40;
-
 float* Floats(Call* call) { return call->cmd->floatArgs.data; }
 int FloatCount(Call* call) { return call->cmd->floatArgs.size; }
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
@@ -117,7 +113,7 @@ bool Max(Call* call) {
     float m;
     Store(&m, f[0]);
     for (int i = 1, n = FloatCount(call); i < n; ++i)
-        if ((Status(f[i], m) & (kC0 | kC2)) != kC0) Store(&m, f[i]);
+        if (!(f[i] < m)) Store(&m, f[i]);
     Store(FloatResult(call), m);
     return true;
 }
@@ -128,7 +124,7 @@ bool Min(Call* call) {
     float m;
     Store(&m, f[0]);
     for (int i = 1, n = FloatCount(call); i < n; ++i)
-        if (Status(f[i], m) & (kC0 | kC3)) Store(&m, f[i]);
+        if (!(f[i] > m)) Store(&m, f[i]);
     Store(FloatResult(call), m);
     return true;
 }
@@ -137,7 +133,7 @@ bool Min(Call* call) {
 bool Abs(Call* call) {
     float x;
     Store(&x, Floats(call)[0]);
-    float result = (Status(0.0f, x) & (kC0 | kC3)) ? x : -x;
+    float result = x < 0.0f ? -x : x;
     Store(FloatResult(call), result);
     return true;
 }
@@ -148,12 +144,12 @@ bool Round(Call* call) {
     Store(&x, Floats(call)[0]);
     float shifted;
     double rounded;
-    if (Status(0.0f, x) & (kC0 | kC3)) {
-        shifted = static_cast<float>(static_cast<double>(x) + 0.5);
-        rounded = std::floor(static_cast<double>(shifted));
-    } else {
+    if (x < 0.0f) {
         shifted = static_cast<float>(static_cast<double>(x) - 0.5);
         rounded = std::ceil(static_cast<double>(shifted));
+    } else {
+        shifted = static_cast<float>(static_cast<double>(x) + 0.5);
+        rounded = std::floor(static_cast<double>(shifted));
     }
     Store(FloatResult(call), static_cast<float>(rounded));
     return true;
@@ -180,10 +176,10 @@ bool Random(Call* call) {
     float low, high;
     Store(&low, Floats(call)[0]);
     Store(&high, Floats(call)[1]);
-    if (Status(high, low) & (kC0 | kC3)) {
-        Store(FloatResult(call), low);
-    } else {
+    if (high > low) {
         *FloatResult(call) = static_cast<float>(RandomRange(GameRandom(), nullptr, low, high));
+    } else {
+        Store(FloatResult(call), low);
     }
     return true;
 }

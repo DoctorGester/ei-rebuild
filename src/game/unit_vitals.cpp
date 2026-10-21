@@ -88,7 +88,7 @@ double LevelValueOf(const UnitStats* stats, int skill) {
 double RecordValue(const char* record) { return reinterpret_cast<const SkillLevelRecord*>(record)->Value(); }
 
 // The original's branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
-float LessOrUnordered(float a, float b, float ifLess, float otherwise) { return !(a >= b) ? ifLess : otherwise; }
+float SelectLess(float a, float b, float ifLess, float otherwise) { return a >= b ? otherwise : ifLess; }
 
 MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
 float EffectValueField(const MapEffect& effect) {
@@ -118,7 +118,7 @@ float ScaledAtLeastOne(CUnit* unit, float k, float value) {
     float scaled = static_cast<float>(scale * value);
     float one = kOne;
     float s = scaled;
-    return LessOrUnordered(one, s, s, one);
+    return SelectLess(one, s, s, one);
 }
 
 // The lowest current / maximum ratio of the used slots of `type` that are not exactly full.
@@ -129,7 +129,7 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
         if (!(slot.current < slot.maximum || slot.current > slot.maximum)) continue;   // equal or NaN
         float ratio = slot.current / slot.maximum;
         float r = ratio;
-        lowest = LessOrUnordered(r, lowest, r, lowest);
+        lowest = SelectLess(r, lowest, r, lowest);
     }
     return lowest;
 }
@@ -154,7 +154,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
             (LevelValueOf(stats, kSkillManaRegen) * kPercent + kOne) * regen * maxMana + mana);
         float limit = maxMana;
         float r = raised;
-        mana = LessOrUnordered(limit, r, limit, r);
+        mana = SelectLess(limit, r, limit, r);
         changed = true;
     }
     if (!(hitPoints >= maxHitPoints)) {
@@ -189,7 +189,7 @@ bool UnitStats::HealSlots(float scale, float amount) {
         float limit = slot.maximum;
         float raised = static_cast<float>(share * limit + slot.current);
         float r = raised;
-        float healed = LessOrUnordered(limit, r, limit, r);
+        float healed = SelectLess(limit, r, limit, r);
         slot.current = healed;
         if (healed >= kRevived) slot.kind = 3;
     }
@@ -210,7 +210,7 @@ BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
         float limit = slot.maximum;
         float raised = static_cast<float>(vitals->hitPointRegen * limit + slot.current);
         float r = raised;
-        slot.current = LessOrUnordered(r, limit, r, limit);
+        slot.current = SelectLess(r, limit, r, limit);
     }
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
@@ -225,7 +225,7 @@ void UnitStats::SetSlotMaxima(float maxHitPoints) {
         slot.maximum = limit;
         float m = limit;
         float current = slot.current;
-        slot.current = LessOrUnordered(m, current, m, current);
+        slot.current = SelectLess(m, current, m, current);
     }
 }
 EI_REPLACE_METHOD(0x00525A00, UnitStats::SetSlotMaxima);
@@ -240,7 +240,7 @@ void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
         float m = static_cast<float>(limit);
         float scaled = factor * slot.current;
         float s = scaled;
-        slot.current = LessOrUnordered(m, s, m, s);
+        slot.current = SelectLess(m, s, m, s);
     }
 }
 EI_REPLACE_METHOD(0x00525A70, UnitStats::ScaleSlotMaxima);
@@ -363,25 +363,25 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
         float value = EffectValueField(effect);
         float old = strongest[type];
-        strongest[type] = LessOrUnordered(old, value, value, old);
+        strongest[type] = SelectLess(old, value, value, old);
     }
     // Fire, cold and lightning protection: their own effect or the general one (0x1A).
     float general = strongest[0x1A];
-    vitals->protection[3].current = LessOrUnordered(strongest[9], general, general, strongest[9]) + vitals->protection[3].current;
-    vitals->protection[5].current = LessOrUnordered(strongest[10], general, general, strongest[10]) + vitals->protection[5].current;
-    vitals->protection[4].current = LessOrUnordered(strongest[11], general, general, strongest[11]) + vitals->protection[4].current;
+    vitals->protection[3].current = SelectLess(strongest[9], general, general, strongest[9]) + vitals->protection[3].current;
+    vitals->protection[5].current = SelectLess(strongest[10], general, general, strongest[10]) + vitals->protection[5].current;
+    vitals->protection[4].current = SelectLess(strongest[11], general, general, strongest[11]) + vitals->protection[4].current;
     valuesB0[0].current = strongest[12] + valuesB0[0].current;
     valuesB0[1].current = strongest[13] + valuesB0[1].current;
     valuesB0[2].current = strongest[14] + valuesB0[2].current;
     float lowered = valuesE0[0].current - strongest[15] * kPercentB;
     float l = lowered;
-    valuesE0[0].current = LessOrUnordered(kZero, l, l, kZero);
+    valuesE0[0].current = SelectLess(kZero, l, l, kZero);
     lowered = valuesE0[3].current - strongest[16];
     l = lowered;
-    valuesE0[3].current = LessOrUnordered(kZero, l, l, kZero);
+    valuesE0[3].current = SelectLess(kZero, l, l, kZero);
     lowered = valuesE0[2].current - strongest[17];
     l = lowered;
-    valuesE0[2].current = LessOrUnordered(kZero, l, l, kZero);
+    valuesE0[2].current = SelectLess(kZero, l, l, kZero);
     valuesE0[4].current = strongest[19] + valuesE0[4].current;
     float hasteDelta = strongest[0x21] - strongest[0x22];
 
@@ -406,7 +406,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         slot.maximum = slotLimit;
         float m = slotLimit;
         float current = slot.current;
-        slot.current = LessOrUnordered(m, current, m, current);
+        slot.current = SelectLess(m, current, m, current);
     }
 
     if (keyed) {
@@ -427,7 +427,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     rate = static_cast<float>(value);
     float hasted = static_cast<float>(value + hasteDelta);
     float h = hasted;
-    rate = LessOrUnordered(kOne, h, h, kOne);
+    rate = SelectLess(kOne, h, h, kOne);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
 }
 EI_REPLACE_METHOD(0x00524560, UnitStats::Recompute);
@@ -558,7 +558,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     float boosted = static_cast<float>(HitPointEffectScale(unit) * maxHitPoints);
     float one = kOne;
     float b = boosted;
-    vitals->maxHitPoints = LessOrUnordered(one, b, b, one);
+    vitals->maxHitPoints = SelectLess(one, b, b, one);
     curve = ExperienceCurve(&GameLogicSettings().mpVal[3], &experience, &GameLogicSettings().mpVal[2], &GameLogicSettings().mpVal[4]);
     scaled = static_cast<float>(curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]));
     vitals->maxMana =
@@ -567,10 +567,10 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     float lowered = unit->baseScale.y - kPointTwo;
     float l = lowered;
-    unit->baseScale.y = LessOrUnordered(kZero, l, l, kZero);
+    unit->baseScale.y = SelectLess(kZero, l, l, kZero);
     lowered = unit->scale.y - kPointTwo;
     l = lowered;
-    unit->scale.y = LessOrUnordered(kZero, l, l, kZero);
+    unit->scale.y = SelectLess(kZero, l, l, kZero);
     unit->MarkChanged(1);
     Recompute(vitals, unit);
     unit->MarkChanged(4);

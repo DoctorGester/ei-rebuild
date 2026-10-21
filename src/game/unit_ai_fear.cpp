@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 
@@ -53,8 +54,11 @@ constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   //
 constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 0073C468: 1 / 2^32
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                   // -1313: no shelter
 
-// FCOMP 0; TEST AH,0x40; JNZ: equal to zero or unordered.
-bool ZeroOrNaN(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
+// FCOMP 0; TEST AH,0x40; JNZ: equal to zero.
+bool IsZero(double v) {
+    EI_NAN_AUDIT(v);
+    return v == 0.0;
+}
 
 bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
 
@@ -84,7 +88,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
                      Vector3* out) {
     Vector3 away{dx, dy, static_cast<float>(static_cast<double>(foe.z) - me.z)};
     double length = LengthZXY(away);
-    if (!ZeroOrNaN(length)) {
+    if (!IsZero(length)) {
         double scale = kFlightStep / length;
         away.x = static_cast<float>(scale * away.x);
         away.y = static_cast<float>(away.y * scale);
@@ -234,7 +238,7 @@ void FearMode::Execute(AIBrain* brain) {
     if (static_cast<double>(distance) * distance > near2 && brain->owner->action.kind != kCommandWalk &&
         brain->owner->action2.kind != kCommandWalk) {
         Vector3 dest;
-        if (!ZeroOrNaN(fleePoint.z)) {
+        if (!IsZero(fleePoint.z)) {
             dest = fleePoint;
             fleePoint.z = 0.0f;
         } else {
@@ -244,10 +248,11 @@ void FearMode::Execute(AIBrain* brain) {
             Vector3 step{static_cast<float>(vx), static_cast<float>(vy), static_cast<float>(vz)};
             float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
             float limit = static_cast<float>(static_cast<double>(distance) * kSpreadScale);
-            // The smaller of the two; an unordered pair keeps the old spread.
-            float width = (spread < limit || x87::IsNaN(spread) || x87::IsNaN(limit)) ? spread : limit;
+            // The smaller of the two.
+            EI_NAN_AUDIT(spread, limit);
+            float width = spread < limit ? spread : limit;
             spread = width;
-            if (!ZeroOrNaN(length)) {
+            if (!IsZero(length)) {
                 double scale = kFlightStep / length;
                 step.x = static_cast<float>(scale * step.x);
                 step.y = static_cast<float>(step.y * scale);
@@ -291,7 +296,7 @@ void FearMode::Execute(AIBrain* brain) {
             Vector3 v = from - *here;
             Vector3 direction = v;
             double length = LengthXYZ(v);
-            if (!ZeroOrNaN(length)) {
+            if (!IsZero(length)) {
                 double twice = length + length;
                 direction.x = static_cast<float>(v.x / twice);
                 direction.y = static_cast<float>(v.y / twice);

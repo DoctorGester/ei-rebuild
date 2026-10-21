@@ -16,6 +16,7 @@
 #include "originals_world.h"
 #include "world.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -255,11 +256,6 @@ float AbsBits(float f) {
     return f;
 }
 
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
-// FCOM; TEST AH,0x40 not taken: neither equal nor unordered.
-bool NonZero(double v) { return v < 0.0 || v > 0.0; }
-
 void SetBits(void* dst, std::uint32_t bits) { std::memcpy(dst, &bits, sizeof(bits)); }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
@@ -321,10 +317,12 @@ void PlaceModifierPoints(CParticleSource* s) {
             y = static_cast<float>(D(y) - D(py));
             z = z - pz;
             lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);
-            if (NonZero(lengthSq)) break;
+            EI_NAN_AUDIT(lengthSq);
+            if (lengthSq != 0.0) break;   // a NaN ends the search too
         }
         double scale = D(twice) / std::sqrt(lengthSq);
-        if (LessOrUnordered(s->size, EI_ZERO)) scale = scale * D(EI_SMALL_RING);
+        EI_NAN_AUDIT(s->size);
+        if (s->size < EI_ZERO) scale = scale * D(EI_SMALL_RING);
         ModifierPoint& point = reinterpret_cast<ModifierPoint*>(s->elements)[i];
         float ex = static_cast<float>(scale * D(x));
         float ey = static_cast<float>(scale * D(y));
@@ -399,7 +397,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
         p->state = index;
         std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
         SetBits(&p->size, 0x3F800000);
-        SetBits(&p->size, LessOrUnordered(size, EI_ZERO) ? 0x3E4CCCCDu : 0x3E000000u);   // 0.2 / 0.125
+        SetBits(&p->size, size >= EI_ZERO ? 0x3E000000u : 0x3E4CCCCDu);   // 0.125 / 0.2
         p->life = 25;
         return 1;
     }
@@ -474,7 +472,7 @@ void* PlaneMap() { return ei::GamePointer<void>(0x007AF78C); }
 
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
-    return LessOrUnordered(a, b) ? ifLess : otherwise;
+    return a >= b ? otherwise : ifLess;
 }
 
 // One random draw in [-1, 1) through the ISAAC results: Next() * ~2^-31 - 1.
@@ -489,7 +487,8 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     int count = x87::fistp(static_cast<float>(D(alpha) * D(typeParam)));
     if (count > 40) count = 40;
     emitCount = count;
-    p->color = NonZero(extent.x) ? 0x00FF6060u : 0x00FFFFFFu;
+    EI_NAN_AUDIT(extent.x);
+    p->color = extent.x != 0.0f ? 0x00FF6060u : 0x00FFFFFFu;
     p->frame = static_cast<int>(GlobalRandom().Next() & 15);
     p->life = 15;
     p->frameTimer = 1;
@@ -553,7 +552,7 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         float* plane = reinterpret_cast<float*>(e);
         static_cast<PlatformSet*>(PlaneMap())->SurfacePlane(origin.x, origin.y, reinterpret_cast<Vector3*>(plane + 6), plane + 3);
-        if (NonZero(plane[8])) plane[8] = static_cast<float>(D(EI_ONE) / D(plane[8]));
+        if (plane[8] != 0.0f) plane[8] = static_cast<float>(D(EI_ONE) / D(plane[8]));   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags_ &= ~1u;
 }
@@ -564,7 +563,8 @@ EI_REPLACE_METHOD(0x004934F0, CParticleSource::TickGroundPlane);
 int CParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
         if (!(flags_ & 1)) return 0;
-        if (LessOrUnordered(size, EI_ONE)) {
+        EI_NAN_AUDIT(size);
+        if (size < EI_ONE) {
             std::memset(&p->size, 0, sizeof(float));
             return 1;
         }
@@ -614,7 +614,8 @@ EI_REPLACE_METHOD(0x00494930, CParticleSource::TickPortal);
 // rest fly along their drift, shrinking and slowing, with the alpha from the table at 0078AB98.
 int CParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
-        if (NonZero(p->size)) {
+        EI_NAN_AUDIT(p->size);
+        if (p->size != 0.0f) {
             std::memset(&p->size, 0, sizeof(float));
             return 0;
         }
@@ -680,7 +681,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
         x = static_cast<float>(Signed(GlobalRandom().Next()));
         double wide = Signed(GlobalRandom().Next());
         y = static_cast<float>(wide);
-        if (LessOrUnordered(wide * D(y) + D(x) * D(x), EI_ONE)) break;
+        if (wide * D(y) + D(x) * D(x) < EI_ONE) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;
     }
     float scale = e.value[3];          // +0x18

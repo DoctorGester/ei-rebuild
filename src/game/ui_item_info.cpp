@@ -25,6 +25,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -302,8 +303,10 @@ void* SpellOf(CItem* item) { return Read<void*>(item, 0x44); }
 // FCOMP; TEST AH,0x40; JZ. Returns the index, or 7.
 unsigned FirstDamageKind(const float* weights) {
     unsigned i = 0;
-    for (; i < 7; ++i)
-        if (!x87::IsNaN(weights[i]) && !(weights[i] == 0.0f)) break;
+    for (; i < 7; ++i) {
+        EI_NAN_AUDIT(weights[i]);
+        if (weights[i] != 0.0f) break;
+    }
     return i;
 }
 

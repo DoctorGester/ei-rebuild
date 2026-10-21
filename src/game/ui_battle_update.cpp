@@ -21,6 +21,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/mfc.h"
@@ -549,8 +550,11 @@ CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
-// FCOMP; TEST AH,0x40: equal, or unordered.
-bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
+// FCOMP; TEST AH,0x40: equal.
+bool Equal(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a == b;
+}
 
 } // namespace
 
@@ -564,10 +568,10 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     const float failed = 3.0f /*0073BAA4*/;     // 3
     if (parts.size == 3) {
         const char* key;
-        if (EqualOrNaN(value, complete)) {
+        if (Equal(value, complete)) {
             if (questSound_ <= 3) questSound_ = 3;
             key = "combat_complete_quest";
-        } else if (EqualOrNaN(value, failed)) {
+        } else if (Equal(value, failed)) {
             value = 1.0f;
             key = "combat_failed_quest";
         } else {
@@ -590,12 +594,13 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable);
             // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
-            if (current == static_cast<double>(0.0f /*0073B858*/) || x87::IsNaN(static_cast<float>(current))) return;
+            EI_NAN_AUDIT(current);
+            if (current == static_cast<double>(0.0f /*0073B858*/)) return;
         }
         const char* key;
-        if (EqualOrNaN(value, complete)) {
+        if (Equal(value, complete)) {
             key = "combat_complete_subobj";
-        } else if (EqualOrNaN(value, failed)) {
+        } else if (Equal(value, failed)) {
             value = 1.0f;
             key = "combat_failed_subobj";
         } else {

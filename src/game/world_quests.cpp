@@ -25,6 +25,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/mfc_list.h"
+#include "lib/nan_audit.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -44,9 +45,6 @@ constexpr int kMercSlots = 10;
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
-
-// C3 of FCOMP: equal or unordered (the original's TEST AH,0x40).
-bool EqualOrUnordered(double a, float b) { return !(a < b) && !(a > b); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
 // original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
@@ -92,8 +90,10 @@ void CWorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->variables;
+            double left = VariableGet(variables, b.n10);
+            EI_NAN_AUDIT(left);
             if (inParty) {
-                if (!EqualOrUnordered(VariableGet(variables, b.n10), worlddata::Zero())) {
+                if (left != worlddata::Zero()) {
                     set(b.n8, 0.0f);
                     set(b.n1, 0.0f);
                     set(b.n2, 0.0f);
@@ -106,7 +106,7 @@ void CWorldServer::UpdateMercBriefings() {
                     set(b.n9, 0.0f);
                     set(b.n2, briefedHere ? 1.0f : 0.0f);
                 }
-            } else if (!EqualOrUnordered(VariableGet(variables, b.n10), worlddata::Zero())) {
+            } else if (left != worlddata::Zero()) {
                 set(b.n8, 0.0f);
                 set(b.n1, 0.0f);
                 set(b.n2, 0.0f);
@@ -118,10 +118,12 @@ void CWorldServer::UpdateMercBriefings() {
                 double hiredValue = VariableGet(variables, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
                 float hiredStored = hired;
-                if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
-                    if (!EqualOrUnordered(VariableGet(variables, b.n8), worlddata::One())) {
+                double briefed = VariableGet(variables, b.n8);
+                EI_NAN_AUDIT(hiredValue, briefed);
+                if (hiredValue != worlddata::Zero()) {
+                    if (briefed != worlddata::One()) {
                         if (otherMercs < 2) {
-                            bool firstTime = EqualOrUnordered(hiredStored, worlddata::One());
+                            bool firstTime = hiredStored == worlddata::One();
                             set(b.n1, firstTime ? 1.0f : 0.0f);
                             set(b.n3, firstTime ? 0.0f : 1.0f);
                             set(b.n8, 0.0f);
@@ -141,7 +143,7 @@ void CWorldServer::UpdateMercBriefings() {
                         set(b.n9, 0.0f);
                         set(b.n10, 0.0f);
                     }
-                } else if (!EqualOrUnordered(VariableGet(variables, b.n8), worlddata::One())) {
+                } else if (briefed != worlddata::One()) {
                     set(b.n11, 1.0f);
                 }
             }

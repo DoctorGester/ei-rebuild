@@ -26,6 +26,7 @@
 #include "originals_units.h"
 #include "originals_ai.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -103,11 +104,8 @@ float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { ServerSlots(controller)->GetAttackParams(out); }
 
-// x87 FCOM: "ST < operand or unordered" (C0), as `TEST AH,1` reads it.
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
 // The original's branch-free max(0, v): FLD 0; FCOMP v; C0 picks v (0 < v, or v is NaN), else +0.
-float MaxZero(float v) { return LessOrUnordered(kZero, v) ? v : kZero; }
+float MaxZero(float v) { return v <= kZero ? kZero : v; }
 
 // A zero-extended dword loaded with FILD qword (exact; a plain uint32 conversion would add 2^32
 // with an FADD that precision control rounds).
@@ -309,8 +307,8 @@ bool CUnitServer::CanCast(const UnitAction* order) {
         void* spell = item->spell_;
         if (!spell) return false;
         if (item->GetCategory() != 5) return true;
-        // FCOMPP of the charge against the cost: less or unordered refuses.
-        return !LessOrUnordered(item->charge_, SpellCost(spell));
+        // FCOMPP of the charge against the cost: less (or unordered) refuses.
+        return item->charge_ >= SpellCost(spell);
     }
     void* spell = unit->GetSpellObject(source);
     if (!spell) return false;
@@ -374,7 +372,7 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
         if (other->player && unit->player) floor = kMeleeFloorParty;
         CItemWeapon* weapon = ActiveWeapon(unit);
         float range = weapon ? weapon->reach_ : Combat().reach;
-        float reach = LessOrUnordered(range, floor) ? floor : range;
+        float reach = range >= floor ? range : floor;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
@@ -398,7 +396,8 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
     }
     float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->height);
     double height = static_cast<double>(offset) + other->position.z;
-    return LessOrUnordered(height, kOnePointFive);
+    EI_NAN_AUDIT(height);
+    return height < kOnePointFive;
 }
 EI_REPLACE_METHOD(0x0054C800, CUnitServer::CanReachTarget);
 
@@ -599,8 +598,10 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     void* world = ManagerContext();
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
-    // |+0x20| below FLT_MAX (or NaN): not resolved yet.
-    if (LessOrUnordered(std::bit_cast<float>(hit->attackRoll & 0x7FFFFFFFu), kHitMark)) ResolveHit(hit, attacker);
+    // |+0x20| below FLT_MAX: not resolved yet.
+    float roll = std::bit_cast<float>(hit->attackRoll & 0x7FFFFFFFu);
+    EI_NAN_AUDIT(roll);
+    if (roll < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
         static_cast<CWorldServer*>(world)->AddToUpdateMap(unit);
         if (attacker) {
@@ -688,9 +689,9 @@ namespace {
 std::int16_t SizeClassOf(double size, float load) {
     if (load > kLoadOverloaded) return 7;
     if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
-    if (LessOrUnordered(size, kSizeSmall)) return 1;
-    if (LessOrUnordered(size, kSizeMedium)) return 2;
-    return LessOrUnordered(size, kSizeLarge) ? 3 : 4;
+    if (size >= kSizeLarge) return 4;
+    if (size >= kSizeMedium) return 3;
+    return size >= kSizeSmall ? 2 : 1;   // also for a NaN size
 }
 } // namespace
 
@@ -706,7 +707,7 @@ void CUnitServer::UpdateSizeClasses() {
     double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
-        size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;
+        size = uncapped <= kHeroSizeCap ? uncapped : kHeroSizeCap;
     }
     combat.sizeClass = SizeClassOf(size, load);
     combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);

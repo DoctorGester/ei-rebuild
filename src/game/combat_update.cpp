@@ -102,7 +102,7 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<C
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
 
 // 0073C548: how much faster a dead body sinks every update.
-float SinkAcceleration() { return ei::GameData<const float>(0x0073C548); }
+float SinkAcceleration() { return 0.01f /*0073C548*/; }
 int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
 int WorldTime(const void* object) { return TickOf(ManagerContextOf(object)); }
 // The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).

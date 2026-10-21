@@ -25,6 +25,7 @@
 #include "originals_units.h"
 #include "originals_library.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "lib/mfc_list.h"
 #include "game_data.h"
@@ -103,10 +104,11 @@ inline double ClampPow(float ratio) {
 }
 
 // The spell's power factor, repeated inline about twenty times in the original: 1 (0073B84C) when
-// the prototype's effect (+0x2C) compares equal to 0 (0073B858) or is NaN (FCOM; TEST AH,0x40),
-// else ClampPow of damage / effect rounded to float.
+// the prototype's effect (+0x2C) compares equal to 0 (0073B858), else ClampPow of damage / effect
+// rounded to float.
 inline double PowerFactor(const float* damage, const float* effect) {
-    if ((x87::CompareStatus(*effect, 0.0f /*0073B858*/) & x87::kC3) != 0) return 1.0f /*0073B84C*/;
+    EI_NAN_AUDIT(*effect);
+    if (*effect == 0.0f /*0073B858*/) return 1.0f /*0073B84C*/;
     return ClampPow(static_cast<float>(static_cast<double>(*damage) / *effect));
 }
 

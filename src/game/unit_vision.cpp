@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -55,8 +56,9 @@ EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceTimeImpl);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = ObjectSlots(this);
-    // FCOMP; TEST AH,0x40: C3, set for equal and for NaN.
-    if (x87::IsNaN(level) || level == 0.0f) return slots->SetVisibilityMode(0);
+    // FCOMP; TEST AH,0x40: C3, set for equal.
+    EI_NAN_AUDIT(level);
+    if (level == 0.0f) return slots->SetVisibilityMode(0);
     if (level == kOne) return slots->SetVisibilityMode(1);
     return slots->SetVisibilityMode(2);
 }

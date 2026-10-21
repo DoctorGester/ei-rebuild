@@ -91,7 +91,7 @@ void SectorData::Clear() {
         for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].SetSize(0, -1);
     }
     ResetFields();
-    render::TerrainChanged(this, true);
+    render::TerrainChanged(this, render::TerrainChange::Rebuilt);
 }
 
 void SectorData::ScheduleRelight(int frames) {
@@ -123,7 +123,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                 tile.vertices[k].v = 1.0f - uv[k + 9];
             }
         }
-        if (stepped) render::TerrainChanged(this, false);   // the pages kept on the GPU (R16c)
+        if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU (R16c)
     }
     if (!hasWater || (landscape->landscapeFlags & 1) == 0) return;
 
@@ -193,7 +193,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
         }
         rowStart = static_cast<float>(rowStart + stepY);
     }
-    render::TerrainChanged(this, false);
+    render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
 
 namespace {
@@ -224,7 +224,7 @@ std::uint8_t& SortedSectorsGuard() { return ei::GameData<std::uint8_t>(0x007C894
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).
-float AwayFromZero(float v) { return !(std::fabs(v) >= kMinComponent) ? std::copysign(kMinComponent, v) : v; }
+float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
 
 } // namespace
 

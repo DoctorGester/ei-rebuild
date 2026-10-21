@@ -12,6 +12,7 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect.h"
+#include "lib/nan_audit.h"
 
 
 using namespace spellfx;
@@ -133,14 +134,14 @@ Next StartAcidColumn(CSpellEffect* e) {
 }
 
 // The direction from the caster to the wall's centre; straight along x when it has no ground part
-// (both compare equal to 0, NaN included).
+// (both 0).
 Vector3 WallDirection(const Vector3& centre, const Vector3& from) {
     Vector3 d;
     d.x = centre.x - from.x;
     d.y = centre.y - from.y;
     d.z = centre.z - from.z;
-    auto zeroOrNaN = [](float v) { return !(v < 0.0f) && !(v > 0.0f); };
-    if (zeroOrNaN(d.x) && zeroOrNaN(d.y)) d.x = 1.0f;
+    EI_NAN_AUDIT(d.x, d.y);
+    if (d.x == 0.0f && d.y == 0.0f) d.x = 1.0f;
     return d;
 }
 

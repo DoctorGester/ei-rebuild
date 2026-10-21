@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -379,11 +380,12 @@ void COptionsWindow::LoadSettings() {
     // _ftol: truncation.
     s[3].value_ = static_cast<int>(OptSpeedA() * fromStep);
     s[4].value_ = static_cast<int>(OptSpeedB() * fromStep);
-    // FCOMP; TEST AH,0x40: equal (or unordered) gives 0.
+    // FCOMP; TEST AH,0x40: equal gives 0.
     float sign22 = OptSign22();
     float sign23 = OptSign23();
-    s[22].value_ = x87::IsNaN(sign22) || sign22 == one ? 0 : 1;
-    s[23].value_ = x87::IsNaN(sign23) || sign23 == one ? 0 : 1;
+    EI_NAN_AUDIT(sign22, sign23);
+    s[22].value_ = sign22 == one ? 0 : 1;
+    s[23].value_ = sign23 == one ? 0 : 1;
     s[5].value_ = Opt5();
     s[6].value_ = Opt6Tenths() / 10;
     s[20].value_ = static_cast<int>(Opt20() * static_cast<double>(ConstScrollFrom()));

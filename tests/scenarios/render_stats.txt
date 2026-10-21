@@ -10,8 +10,10 @@
 # renderer's memory made again as new images (R16b: as before they were updated in place), zone1, the
 # fight and the town with the device's mesh draws doing all the old per-corner work (R16k: TL vertices,
 # fog, clipped vertices to the screen, as before R16k; the main thread's CPU per frame tells the gain),
-# then again without it (_read: the scene's own load changes over time, so the full stretch lies between two). Counts only, but no terrain page or mesh kept on the GPU may have been
-# found stale.
+# then again without it (_read: the scene's own load changes over time, so the full stretch lies between two),
+# and zone1, the fight and the town with the object shadows' classic texture and decal made with the
+# shadow map too (R16e1: _shadowfull, as before R16e1), then again without (_shadowskip). Counts only,
+# but no terrain page or mesh kept on the GPU may have been found stale.
 # no original: vanilla rebirth (the counts are our renderer's)
 render new,present
 timeout 120
@@ -55,6 +57,12 @@ renderstats zone1_cornersfull
 meshcorners read
 frames 60
 renderstats zone1_read
+shadowbuild full
+frames 60
+renderstats zone1_shadowfull
+shadowbuild skip
+frames 60
+renderstats zone1_shadowskip
 
 # A fight: eight of twelve creatures attack the hero, who cannot die (blood prints, hit effects, many
 # figures and shadows).
@@ -114,6 +122,12 @@ renderstats fight_cornersfull
 meshcorners read
 frames 60
 renderstats fight_read
+shadowbuild full
+frames 60
+renderstats fight_shadowfull
+shadowbuild skip
+frames 60
+renderstats fight_shadowskip
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @RemoveUnitFromServer(GetObjectByName("F1"))
 console @RemoveUnitFromServer(GetObjectByName("F2"))
@@ -170,6 +184,12 @@ renderstats town_cornersfull
 meshcorners read
 frames 60
 renderstats town_read
+shadowbuild full
+frames 60
+renderstats town_shadowfull
+shadowbuild skip
+frames 60
+renderstats town_shadowskip
 
 screen 4
 waitwindow 15 map

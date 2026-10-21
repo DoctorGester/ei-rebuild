@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -37,8 +38,6 @@ float FactorStatRange() { return ei::GameData<const float>(kFactorStatRange); }
 const SkillLevelRecord* LevelRecord(std::uint32_t index) {
     return reinterpret_cast<const SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
 }
-
-bool IsZeroOrNaN(float f) { return !(f < kZero || f > kZero); }
 
 } // namespace
 
@@ -196,8 +195,8 @@ std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
 EI_REPLACE(0x00522B40, ResetDamageInfo);
 
 BOOL __fastcall HasElementalDamage(const DamageInfo* info) {
-    if (IsZeroOrNaN(info->typeWeights[3]) && IsZeroOrNaN(info->typeWeights[4]) &&
-        IsZeroOrNaN(info->typeWeights[5])) {
+    EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
+    if (info->typeWeights[3] == kZero && info->typeWeights[4] == kZero && info->typeWeights[5] == kZero) {
         return 0;
     }
     return 1;

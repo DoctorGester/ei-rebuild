@@ -70,7 +70,7 @@ float& ItemFloat(CEngineObject* item, int offset) {
     return *reinterpret_cast<float*>(reinterpret_cast<char*>(item) + offset);
 }
 
-float Max0(float value) { return !(kZero >= value) ? value : kZero; }   // the original's select
+float Max0(float value) { return value <= kZero ? kZero : value; }   // the original's select
 } // namespace
 
 // The hit log stream (global 007AF284, a MSVC 6 ostream) and its inserters (library code).

@@ -330,8 +330,8 @@ def run_apply(files):
     return 0
 
 
-# Files other workers have open (S18e's brief): SV10j's unit_ai_*, script_effects, combat and armour files.
-SKIP = re.compile(r'src/game/(unit_ai|script_effects|combat_|armo)|^src/standalone/|^tools/')
+# Files the tool leaves alone: the standalone host and the tools (S18e2 dropped SV10j's files and the armour tables).
+SKIP = re.compile(r'^src/standalone/|^tools/')
 
 
 def skipped(path):

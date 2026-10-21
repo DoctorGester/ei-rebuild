@@ -55,7 +55,7 @@ inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), 
 inline double GroundHeight(float x, float y) { return WorldClient()->ClientRawSurfaceHeight(x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
-inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
+inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
 // 0044C470: the game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }

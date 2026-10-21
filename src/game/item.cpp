@@ -3,6 +3,7 @@
 #include "ei/hook.h"
 #include "random.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <climits>
 #include <cstring>
@@ -15,8 +16,6 @@ IsaacRandom* GlobalRandom() { return ei::GamePointer<IsaacRandom>(0x007A9D40); }
 
 constexpr float kZero = 0.0f;   // 0073B858
 
-// FCOMP; TEST AH,0x40: ZF set when equal or unordered (a NaN compares "equal").
-bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
 } // namespace
 
 char* CItem::GetPrototype() {
@@ -40,7 +39,8 @@ int CItem::GetCategory() {
 EI_REPLACE_METHOD(0x006A4230, CItem::GetCategory);
 
 int CItem::RunTick() {
-    if (EqualOrUnordered(charge_, chargeMax_)) return 0;
+    EI_NAN_AUDIT(charge_, chargeMax_);
+    if (charge_ == chargeMax_) return 0;
     if (!(chargeRate_ > kZero)) {
         std::memcpy(&charge_, &chargeMax_, sizeof(float));
         return 1;
@@ -71,7 +71,8 @@ void CItemWeapon::GetDamageTypes(float* out) {
 EI_REPLACE_METHOD(0x006A0770, CItemWeapon::GetDamageTypes);
 
 double CItemWeapon::RollDamage() {
-    if (EqualOrUnordered(damageSpread_, kZero)) return damage_;
+    EI_NAN_AUDIT(damageSpread_);
+    if (damageSpread_ == kZero) return damage_;
     float high = damageSpread_ + damage_;   // stored as float in the original
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = GlobalRandom()->Next();
@@ -88,9 +89,10 @@ BOOL CItemWeapon::IsSameAsImpl(CItem* item) {
     if (!CItem::IsSameAsImpl(item)) return 0;
     auto* other = static_cast<CItemWeapon*>(item);
     if (other->actionValue_ != actionValue_) return 0;
-    if (!EqualOrUnordered(other->damage_, damage_)) return 0;
-    if (!EqualOrUnordered(other->damageSpread_, damageSpread_)) return 0;
-    if (!EqualOrUnordered(other->reach_, reach_)) return 0;
+    EI_NAN_AUDIT(other->damage_, damage_, other->damageSpread_, damageSpread_, other->reach_, reach_);
+    if (other->damage_ != damage_) return 0;
+    if (other->damageSpread_ != damageSpread_) return 0;
+    if (other->reach_ != reach_) return 0;
     return 1;
 }
 EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAsImpl);
@@ -159,8 +161,9 @@ EI_REPLACE(0x006A2BD0, WeaponAttack);
 int __fastcall WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     for (int i = 0; i < 7; ++i) {
-        // FCOMP; TEST AH,0x40; JZ: stop at the first weight not equal (and not NaN) to zero.
-        if (!EqualOrUnordered(weapon->damageTypes[i], kZero)) return i;
+        // FCOMP; TEST AH,0x40; JZ: stop at the first weight not equal to zero.
+        EI_NAN_AUDIT(weapon->damageTypes[i]);
+        if (weapon->damageTypes[i] != kZero) return i;
     }
     return 6;
 }

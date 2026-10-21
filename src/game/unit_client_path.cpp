@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
@@ -73,7 +74,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     }
     if (unit->flags_ & 0x10000000) {
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 1);
-    } else if (!x87::IsNaN(rate) && rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
+    } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
         FacingAxis(&unit->orientation, nullptr, &axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
@@ -84,9 +85,9 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
-            if (x87::IsNaN(gap) || gap <= kHalfTurn) break;
+            if (!(gap > kHalfTurn)) break;   // (a NaN gap ends the loop too)
             // Bring the smaller angle up by a full turn until they are within half a turn.
-            if (!x87::IsNaN(target) && !x87::IsNaN(current) && target > current)
+            if (target > current)
                 current = FullTurn() + current;
             else
                 target = FullTurn() + target;
@@ -107,8 +108,9 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
     }
     float length;
     std::memcpy(&length, &animation->stride, sizeof(length));
-    // FCOMP + TEST AH,0x40: equal to 0 (or unordered).
-    if (x87::IsNaN(length) || length == 0.0f) {
+    // FCOMP + TEST AH,0x40: equal to 0.
+    EI_NAN_AUDIT(length);
+    if (length == 0.0f) {
         unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));
         return;
     }
@@ -119,7 +121,8 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
         reinterpret_cast<const char*>(animation - index) - offsetof(AnimationDatabase, animations));
     float frames = 1.0f;
     float span = database->length;
-    if (!(x87::IsNaN(span) || span == 0.0f))
+    EI_NAN_AUDIT(span);
+    if (span != 0.0f)
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
     double moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
     double numerator = moved * speed * kAnimationRate;

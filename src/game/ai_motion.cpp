@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "map_object.h"
@@ -19,8 +20,6 @@
 #include <cstring>
 
 namespace {
-// x87 FCOM followed by TEST AH,0x40: "equal", which unordered (NaN) operands also are.
-bool Equal(double a, double b) { return !(a < b) && !(a > b); }
 
 float AbsBits(float f) {
     std::uint32_t bits;
@@ -88,7 +87,8 @@ double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
         return static_cast<double>(m->startAngle) + m->turn;
     }
     *final = false;
-    float sign = m->turn < 0.0f || x87::IsNaN(m->turn) ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
+    EI_NAN_AUDIT(m->turn);
+    float sign = m->turn < 0.0f ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
     return static_cast<double>(sign) * elapsed * m->turnRate + m->startAngle;
 }
 } // namespace
@@ -118,7 +118,8 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
     double angle = length > 0.0 ? x87::fpatan(dy / length, dx / length) : 0.0;
     double x = kHalfCellScale * position->x;
     float y = static_cast<float>(kHalfCellScale * position->y);
-    bool same = order->kind == 0 && Equal(order->angle, angle) && Equal(x, order->x) && Equal(order->y, y);
+    EI_NAN_AUDIT(order->angle, angle, x, order->x, order->y, y);
+    bool same = order->kind == 0 && order->angle == angle && x == order->x && order->y == y;
     order->x = static_cast<float>(x);
     order->angle = static_cast<float>(angle);
     order->kind = 0;
@@ -314,7 +315,8 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         double dy = ty - order->y;
         direction[1] = static_cast<float>(dy);
         double norm = std::sqrt(dy * dy + static_cast<double>(direction[0]) * direction[0]);
-        if (Equal(norm, 0.0)) return true;
+        EI_NAN_AUDIT(norm);
+        if (norm == 0.0) return true;
         double inverse = 1.0f / norm;
         direction[0] = static_cast<float>(inverse * direction[0]);
         direction[1] = static_cast<float>(inverse * direction[1]);
@@ -357,7 +359,8 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             if (!(ratio >= time)) {
                 angle = static_cast<double>(startAngle) + turn;
             } else {
-                float sign = turn < 0.0f || x87::IsNaN(turn) ? kMinusOne : (turn > 0.0f ? kOne : kZero);
+                EI_NAN_AUDIT(turn);
+                float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = static_cast<double>(sign) * turnRate * time + startAngle;
             }
             direction[0] = static_cast<float>(x87::fcos(angle));
@@ -465,11 +468,13 @@ void UnitMotion::Build(AIPath* path) {
         float s = static_cast<float>(x87::fsin(angle));
         double c = x87::fcos(angle);
         float cf = static_cast<float>(c);
-        if (Equal(c, 0.0) && Equal(s, 0.0)) {
+        EI_NAN_AUDIT(c, s);
+        if (c == 0.0 && s == 0.0) {
             turn = 0.0f;
             return;
         }
-        if (!Equal(rate, 0.0)) turnRate = rate;
+        EI_NAN_AUDIT(rate);
+        if (rate != 0.0f) turnRate = rate;
         else turnRate = baseTurnRate;
         NormalizeTurn(this, x87::fpatan(s, cf) - startAngle);
         return;
@@ -478,7 +483,8 @@ void UnitMotion::Build(AIPath* path) {
         float angle = AsFloat(order->arg5);
         double s = x87::fsin(angle);
         double c = x87::fcos(angle);
-        if (Equal(c, 0.0) && Equal(s, 0.0)) {
+        EI_NAN_AUDIT(c, s);
+        if (c == 0.0 && s == 0.0) {
             turn = 0.0f;
             return;
         }
@@ -574,7 +580,8 @@ void UnitMotion::Build(AIPath* path) {
         AssignCells(path);
         return;
     }
-    if (Equal(p->dirX, 0.0) && Equal(p->dirY, 0.0)) {
+    EI_NAN_AUDIT(p->dirX, p->dirY);
+    if (p->dirX == 0.0f && p->dirY == 0.0f) {
         turn = 0.0f;
         AssignCells(path);
         return;
@@ -621,14 +628,16 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
     double dx = static_cast<double>(a->x) - b->x;
     double dy = static_cast<double>(a->y) - b->y;
     double distance = std::sqrt(LengthSquared2DUnrounded(dy, dx));
-    if (Equal(distance, 0.0)) distance = kMinLength;
+    EI_NAN_AUDIT(distance);
+    if (distance == 0.0) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
     p.cellY = -1;
     p.dirX = static_cast<float>((static_cast<double>(b->x) - a->x) / distance);
     p.dirY = static_cast<float>((static_cast<double>(b->y) - a->y) / distance);
 
-    if (!Equal(startOffset, 0.0) && !Equal(endOffset, 0.0) && cells == 1) {
+    EI_NAN_AUDIT(startOffset, endOffset);
+    if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
         // A single cell from start to target: one point at each end.
         CopyBits(&p.x, &a->x);
         CopyBits(&p.y, &a->y);

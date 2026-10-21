@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -71,9 +72,7 @@ T Get(const void* object, int offset) {
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // x87 compares as the original's TEST AH masks read them.
-bool LessOrUnordered(double a, double b) { return !(a >= b); }   // TEST AH,1 taken
-bool Greater(double a, double b) { return a > b; }                // TEST AH,0x41 not taken
-bool ZeroOrUnordered(double a) { return !(a < 0.0 || a > 0.0); } // TEST AH,0x40 taken
+bool Greater(double a, double b) { return a > b; }   // TEST AH,0x41 not taken
 
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 
@@ -162,13 +161,14 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
     float limit = Get<float>(self, 0x2A4);
     float range = Get<float>(self, 0x904) * Get<float>(self, 0x294);
     float rangeValue = range;
-    std::uint32_t chosenBits = LessOrUnordered(rangeValue, limit) ? Bits(limit) : Bits(rangeValue);
+    std::uint32_t chosenBits = rangeValue >= limit ? Bits(rangeValue) : Bits(limit);
     float chosen = std::bit_cast<float>(chosenBits);
     double reach = static_cast<double>(chosen) * kRangeSlack;
     CUnit* unit = self->unit;
     double dy = static_cast<double>(unit->position.y) - point[1];
     double dx = static_cast<double>(unit->position.x) - point[0];
-    return LessOrUnordered(reach * reach, LengthSquared2DUnrounded(dx, dy));
+    EI_NAN_AUDIT(reach, dx, dy);
+    return reach * reach < LengthSquared2DUnrounded(dx, dy);
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
@@ -217,7 +217,8 @@ bool NeedsClearWay(CUnitServer* self, const UnitAction* order) {
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = ActiveWeapon(self->unit);
     float reach = weapon ? weapon->reach_ : self->Combat().reach;
-    return LessOrUnordered(reach, kMeleeReach);
+    EI_NAN_AUDIT(reach);
+    return reach < kMeleeReach;
 }
 } // namespace
 
@@ -242,7 +243,9 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
-    if (LessOrUnordered(DistanceSquaredXYUnrounded<double>(sight.point, unit->position), sight.minDistanceSq)) return true;
+    double apartSq = DistanceSquaredXYUnrounded<double>(sight.point, unit->position);
+    EI_NAN_AUDIT(apartSq, sight.minDistanceSq);
+    if (apartSq < sight.minDistanceSq) return true;
 
     Vector3 eye;
     eye.x = unit->position.x;
@@ -251,7 +254,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.z = static_cast<float>(UnitGroundHeight(unit, nullptr, eye.x, eye.y) + sight.eyeHeight);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
     double visibility = map->LineOfSight(&eye, &sight.point);
-    return !LessOrUnordered(visibility, kPointOne);
+    return visibility >= kPointOne;
 }
 EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);
 
@@ -269,10 +272,10 @@ void DestroySteps(AnimationSteps* steps) {
 }
 
 // The quick item or spell value the cast animation is built with: the spell's +0x4C scaled by
-// 15 / stats +0x30 (left at stats +0x30 when that is 0 or NaN), rounded.
+// 15 / stats +0x30 (left at stats +0x30 when that is 0), rounded.
 int CastValue(CUnitServer* self, void* spell) {
     double scale = Get<float>(self, 0x210);
-    if (!ZeroOrUnordered(scale)) scale = kFifteen / scale;
+    if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
     volatile std::int64_t wide = Get<std::uint32_t>(spell, 0x4C);
     float value = static_cast<float>(static_cast<double>(wide) * scale);
     return x87::fistp(value);
@@ -302,7 +305,10 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     if (order->flag18) {
         double distance = ActionDistance(order);
-        if (LessOrUnordered(distance * distance, DistanceSquaredXYUnrounded<double>(order->point, unit->position))) {
+        double limitSq = distance * distance;
+        double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->position);
+        EI_NAN_AUDIT(limitSq, apartSq);
+        if (limitSq < apartSq) {
             DestroySteps(&steps);
             return false;
         }
@@ -376,7 +382,8 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         if (!Greater(distanceSq, reachSq)) {
             double dot = DotUnrounded<Sum3::ZYX, double>(delta.x, delta.y, delta.z, facing.x, facing.y, facing.z);
             double cone = std::sqrt(distanceSq) * kFrontCosine;
-            inFront = LessOrUnordered(cone, dot);
+            EI_NAN_AUDIT(cone, dot);
+            inFront = cone < dot;
         }
         if (inFront) {
             // Within reach and in front: the target may walk off for half the turn and the action.
@@ -422,12 +429,13 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             // Out of reach: wait while the target comes closer, give up once it moves off.
             if (!Greater(stored, best)) {
                 tryHere = false;
-            } else if (!LessOrUnordered(stored, outerSq)) {
+            } else if (stored >= outerSq) {
                 break;
             }
         }
         if (tryHere) {
-            bool facingIt = (ZeroOrUnordered(delta.x) && ZeroOrUnordered(delta.y)) ||
+            EI_NAN_AUDIT(delta.x, delta.y);
+            bool facingIt = (delta.x == 0.0f && delta.y == 0.0f) ||
                             (targetUnit && targetUnit->id_ == unit->id_);
             int turnTicks = -1;
             if (!facingIt) {

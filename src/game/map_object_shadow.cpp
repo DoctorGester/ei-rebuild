@@ -33,6 +33,7 @@
 
 #include <bit>
 #include <cstring>
+#include <unordered_map>
 #include <vector>
 #include "originals_render.h"
 #include "game_data.h"
@@ -219,9 +220,76 @@ float CornerY(const float* m, float a, float b) {
 // --- The shadow -------------------------------------------------------------------------------
 
 namespace {
-// Renders the shadow texture again and projects it onto the ground. Returns false (with the
-// fatal error's result in *failure) when the render surface cannot be locked.
-bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* failure) {
+// Whether any of the object's parts (but those too far, hidden or not) has keyed texels: the decal
+// then skips the platforms (the original reads it in the raster's loop; the raster changes no flag).
+int KeyedParts(const CObject3D* object) {
+    int keyedParts = 0;
+    for (int i = 0; i < object->parts.size; ++i) {
+        const CFigureMesh* part = PartAt(object, i);
+        if (PartTooFar(part)) continue;
+        keyedParts |= (part->bounds_.flags >> 10) & 1;
+    }
+    return keyedParts;
+}
+
+// The 64 x 64 texture from the parts' pixels (Pixels()): rasterised into the render surface, blurred,
+// copied into the shadow texture and handed to the new renderer. False (with the fatal error's result
+// in *failure) when the render surface cannot be locked.
+bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
+    // Rasterise into the render surface.
+    void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
+    SurfacePixels description;
+    if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
+        *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
+        return false;
+    }
+    RasterTarget target{};
+    CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
+    target.keyTexels = skin && (skin->flags_ & kTextureKeyed) ? skin->block_ : nullptr;
+    target.keyPitch = kKeyTexelPitch;
+    target.pitch = description.pitch;
+    // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
+    // from there) and copied into the surface afterwards.
+    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
+    target.bits = pixels.data();
+    std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
+    int count = 0;
+    for (int i = 0; i < self->object->parts.size; ++i) {
+        CFigureMesh* part = PartAt(self->object, i);
+        if (PartTooFar(part)) continue;
+        if (part->flags_ & kPartHidden) continue;
+        if (CLinkMesh* figure = self->object->figure) {
+            const char* name = PartAt(self->object, i)->GetName();
+            stlp::string key(name);
+            count += figure->RasterisePart(&key, &Pixels()[count].x, &target);
+        } else {
+            count += RasteriseFigureMesh(part, nullptr, static_cast<CPixelConverter*>(device), &Pixels()[count],
+                                         &target);   // 005A0E80
+        }
+    }
+    if (ShadowMode() == 2) {
+        auto* converter = static_cast<CPixelConverter*>(device);
+        converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
+        converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
+    }
+    std::memcpy(description.bits, pixels.data(), pixels.size());
+    static_cast<CTexture*>(surface)->UnlockPixels();
+
+    // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
+    // new renderer's memory, texture_shadow.cpp).
+    auto* shadowTexture = static_cast<CTexture*>(self->texture);
+    shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
+    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
+    // texture in its memory is read from there instead).
+    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
+                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
+                          description.alphaMask);
+    return true;
+}
+
+// Renders the shadow texture again (with `makeTexture`) and projects it onto the ground. Returns false
+// (with the fatal error's result in *failure) when the render surface cannot be locked.
+bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* failure, bool makeTexture) {
     CTransformPipeline* pipeline = context->pipeline_;
     void* device = context->graphicsProcessor_;
 
@@ -320,57 +388,13 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     Pixels().SetSizeDiscard(count);
 
-    // Rasterise into the render surface.
-    void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
-    SurfacePixels description;
-    if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
-        *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
+    // The texture (R16e1: only when it is drawn; the decal's projection below takes only whether
+    // any part is keyed).
+    const int keyedParts = KeyedParts(self->object);
+    if (makeTexture && !MakeTexture(self, device, failure)) {
         if (lights.manager) --lights.manager->refCount_;
         return false;
     }
-    RasterTarget target{};
-    CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
-    target.keyTexels = skin && (skin->flags_ & kTextureKeyed) ? skin->block_ : nullptr;
-    target.keyPitch = kKeyTexelPitch;
-    target.pitch = description.pitch;
-    // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
-    // from there) and copied into the surface afterwards.
-    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
-    target.bits = pixels.data();
-    std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
-    count = 0;
-    int keyedParts = 0;
-    for (int i = 0; i < self->object->parts.size; ++i) {
-        CFigureMesh* part = PartAt(self->object, i);
-        if (PartTooFar(part)) continue;
-        keyedParts |= (part->bounds_.flags >> 10) & 1;
-        if (part->flags_ & kPartHidden) continue;
-        if (CLinkMesh* figure = self->object->figure) {
-            const char* name = PartAt(self->object, i)->GetName();
-            stlp::string key(name);
-            count += figure->RasterisePart(&key, &Pixels()[count].x, &target);
-        } else {
-            count += RasteriseFigureMesh(part, nullptr, static_cast<CPixelConverter*>(device), &Pixels()[count],
-                                         &target);   // 005A0E80
-        }
-    }
-    if (ShadowMode() == 2) {
-        auto* converter = static_cast<CPixelConverter*>(device);
-        converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
-        converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
-    }
-    std::memcpy(description.bits, pixels.data(), pixels.size());
-    static_cast<CTexture*>(surface)->UnlockPixels();
-
-    // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
-    // new renderer's memory, texture_shadow.cpp).
-    auto* shadowTexture = static_cast<CTexture*>(self->texture);
-    shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
-    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
-    // texture in its memory is read from there instead).
-    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
-                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
-                          description.alphaMask);
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;
@@ -455,6 +479,21 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     if (lights.manager) --lights.manager->refCount_;
     return true;
 }
+
+// R16e1: the shadows whose classic texture is made, with the generation it was made in
+// (render::ShadowTextureGeneration); a shadow built without it is left out. Keyed by the shadow: a
+// new one at a freed one's address starts without a texture and is built at its first draw anyway.
+std::unordered_map<const CObject3DClientSpecific*, unsigned> g_madeTextures;
+
+bool TextureCurrent(const CObject3DClientSpecific* self) {
+    auto it = g_madeTextures.find(self);
+    return it != g_madeTextures.end() && it->second == render::ShadowTextureGeneration();
+}
+
+void MarkTexture(const CObject3DClientSpecific* self, bool made) {
+    if (made) g_madeTextures[self] = render::ShadowTextureGeneration();
+    else g_madeTextures.erase(self);
+}
 } // namespace
 
 int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
@@ -477,13 +516,22 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         *static_cast<CTexture*>(texture)->Name() = name;
         flags_ |= kFlagRefresh;
     }
+    // R16e1: with the shadow map the texture and the decal's draw are left out (nothing reads them).
+    // When they are needed again (the classic option turned on), a shadow whose texture was not made,
+    // or made before the harness's "shadows rebuild", is built again though the game would not
+    // rebuild it (flags 0x600: built once).
+    const bool makeTexture = !render::ClassicShadowSkipped();
+    const bool stale = makeTexture && !TextureCurrent(this);
     std::uint32_t objectFlags = object->flags_;
-    if ((objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh)) {
+    const bool gameBuilds = (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);
+    if (gameBuilds || stale) {
         int failure;
         render::BeginShadowBuildTime();
-        bool built = RenderShadow(this, context, &failure);
+        bool built = RenderShadow(this, context, &failure, makeTexture);
         render::EndShadowBuildTime();
         if (!built) return failure;
+        MarkTexture(this, makeTexture);
+        if (makeTexture) render::CountShadowTexture(!gameBuilds);
     }
 
     if (vertices.size == 0) return 1;
@@ -495,6 +543,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
     std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
+    if (!makeTexture) return 1;   // the shadow map draws it
     render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
     static_cast<CTextureDevice*>(RenderDevice())
         ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,

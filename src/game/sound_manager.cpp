@@ -25,6 +25,7 @@
 #include "originals_library.h"
 #include "game_lists.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -46,9 +47,6 @@ float AbsBits(float f) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
-
-// FCOMP 0; FNSTSW; TEST AH,0x40 not taken: neither zero nor NaN.
-bool NonZero(double v) { return v < 0.0 || v > 0.0; }
 
 constexpr float kHeightFull = 30.0f;     // 007440DC: 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // 007440E0: ... and silent above
@@ -211,7 +209,8 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    if (!NonZero(distF)) {
+    EI_NAN_AUDIT(distF);
+    if (distF == 0.0f) {
         slot->pan = 0;
         return;
     }
@@ -259,7 +258,8 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
     std::memcpy(&listener, position, sizeof(listener));
     std::memcpy(&listenerAxis, axis, sizeof(listenerAxis));
     double len = std::sqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
-    if (!NonZero(len)) {
+    EI_NAN_AUDIT(len);
+    if (len == 0.0) {
         listenerAxis.x = 1.0f;
         listenerAxis.y = 0.0f;
         listenerAxis.z = 0.0f;
@@ -890,7 +890,8 @@ void CSoundManager::StopStream(int mode) {
             musicFader.mode = 2;
             musicFader.finished = 0;
             musicFader.step = step;
-            if (!NonZero(step)) musicFader.step = FloatBits(FadeStepBits());
+            EI_NAN_AUDIT(step);
+            if (step == 0.0f) musicFader.step = FloatBits(FadeStepBits());
             musicFader.holdUntil = 0;
             std::uint32_t until = gameapi::timeGetTime() + 2000;
             musicFader.holdUntil = until;
@@ -1088,7 +1089,7 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
     double v = volume;
     if (heightFade != 0) {
         float h = m->listener.z;
-        if (!(h < kHeightSilent) && !x87::IsNaN(h)) v = 0.0;
+        if (h >= kHeightSilent) v = 0.0;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
     v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);

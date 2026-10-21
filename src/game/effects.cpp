@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -47,9 +48,6 @@ const float* SizeCurve() { return ei::GamePointer<const float>(0x0073CB38); }
 const float* AntimagicSizeCurve() { return ei::GamePointer<const float>(0x0073CB78); }
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
-
-// x87 FCOM: "ST < operand or unordered" (C0), as `TEST AH,1` reads it.
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
@@ -122,7 +120,8 @@ EI_REPLACE_METHOD(0x00485360, CParticleSource::Stop);
 // Falling drops: move by the drift, scale the size, accelerate down to the terminal speed in
 // velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
 int CParticleSource::UpdateFalling(Particle* p) {
-    if (LessOrUnordered(p->pos.z, kZero)) return 0;
+    EI_NAN_AUDIT(p->pos.z);
+    if (p->pos.z < kZero) return 0;
     float terminal;
     std::memcpy(&terminal, &p->velocity.y, sizeof(terminal));
     p->pos.x = p->drift.x + p->pos.x;
@@ -130,7 +129,7 @@ int CParticleSource::UpdateFalling(Particle* p) {
     p->pos.z = p->drift.z + p->pos.z;
     p->size = p->velocity.x * p->size;
     float fall = static_cast<float>(p->velocity.z + p->drift.z);
-    p->drift.z = LessOrUnordered(fall, terminal) ? terminal : fall;
+    p->drift.z = fall >= terminal ? fall : terminal;
     return 1;
 }
 EI_REPLACE_METHOD(0x0048F670, CParticleSource::UpdateFalling);
@@ -251,7 +250,8 @@ int CParticleSource::UpdateDebris(Particle* p) {
     std::uint32_t a = gamecrt::Ftol(Unsigned(p->color >> 24) * kDebrisFadeIn);
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
-    if (LessOrUnordered(p->drift.z, kZero) && size * kHalfDouble + origin.z > p->pos.z) {
+    EI_NAN_AUDIT(p->drift.z);
+    if (p->drift.z < kZero && size * kHalfDouble + origin.z > p->pos.z) {
         float speed = std::bit_cast<float>(std::bit_cast<std::uint32_t>(p->drift.z) & 0x7FFFFFFFu);
         p->state = 1;
         p->drift.x = speed * p->drift.x;
@@ -283,8 +283,8 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
         float t = static_cast<float>(-(DotZYX(p->velocity, n) / d));
-        t = LessOrUnordered(t, kOne) ? t : kOne;
-        t = LessOrUnordered(t, kZero) ? kZero : t;
+        t = t >= kOne ? kOne : t;
+        t = t >= kZero ? t : kZero;
         Vector3 along;
         along.Construct(t * n.x, t * n.y, t * n.z);
         SubtractVectors(&offset, p->velocity, along);

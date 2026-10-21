@@ -18,6 +18,7 @@
 #include "originals_script.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
@@ -47,8 +48,6 @@ std::uint32_t ItemCharge(const void* object) {
 // The world player's party variables (a NamedFloatTable, object_tables.h).
 NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables_; }
 
-bool IsNaN(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0; }
-
 } // namespace
 
 // --- Variables and state -------------------------------------------------------------------------
@@ -71,8 +70,9 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
     std::uint32_t resultBits = !(value >= current) ? currentBits : valueBits;
     float result;
     std::memcpy(&result, &resultBits, 4);
-    // Nothing to do when it compares equal (or unordered).
-    if (IsNaN(resultBits) || IsNaN(currentBits) || result == current) return;
+    // Nothing to do when it compares equal.
+    EI_NAN_AUDIT(result, current);
+    if (result == current) return;
     VariableSet(Variables(Owner()), name, resultBits);
     WriteByte(&out_, 0x81);
     WriteText(&out_, name);

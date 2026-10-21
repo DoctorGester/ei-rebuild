@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/stlp.h"
 
 #include <cstring>
@@ -25,12 +26,6 @@ const float* SizeClassHeights() { return ei::GameData<const float[8]>(0x0079169C
 float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
-
-bool IsNaN(float f) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
-    return (bits & 0x7FFFFFFF) > 0x7F800000;
-}
 
 // The entry of the cell (x, y): the key is (short)x << 16 | (short)y.
 const BridgeMap::Node* FindBridgeHeight(const BridgeMap* map, short x, short y) {
@@ -307,7 +302,8 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     float dx = to->x - from->x, dy = to->y - from->y;
     float dz = to->z - from->z;
     float length = static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) / (1.0f * 0.5f));   // half-cells
-    if (length == 0.0f || x87::IsNaN(length)) return 1.0f;   // FCOM sets "equal" for NaN too
+    EI_NAN_AUDIT(length);
+    if (length == 0.0f) return 1.0f;
     float inverse = 1.0f / length;
     int steps = x87::fistp(length);
 
@@ -372,7 +368,8 @@ const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* co
 } // namespace
 
 const std::int16_t* SpiralCache::Get(float r, int* count) {
-    if (r == radius || IsNaN(r) || IsNaN(radius)) {    // FCOMP; TEST AH,0x40: NaN compares equal
+    EI_NAN_AUDIT(r, radius);
+    if (r == radius) {
         *count = length;
         return SpiralOffsets();
     }

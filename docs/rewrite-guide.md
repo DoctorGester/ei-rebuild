@@ -102,11 +102,19 @@ comes from a bug we already hit.
      callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it
      (docs/notes/rebirth.md).
    - Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never `static_cast<double>`: MSVC adds 2^32 with an FADD
-     that rounds; `tools/check_x87.py` checks this. Test NaN with `x87::IsNaN` (a bit test; `v != v` was folded to false under /fp:fast and the
-     standalone's compiler flags may change again).
+     that rounds; `tools/check_x87.py` checks this. Where detecting NaN is the code's purpose, test it with `x87::IsNaN` (a bit test; `v != v`
+     was folded to false under /fp:fast and the standalone's compiler flags may change again).
 
-8. **x87 compare semantics:** `FCOM; TEST AH,0x41; JNZ` means "jump if <= or NaN"; `TEST AH,1` means
-   "less or NaN". Write `!(a > b)` / `!(a >= b)` so NaN behaves the same.
+8. **Comparisons are plain C++ (the NaN audit, C16c).** Decode VC6's FCOM / FNSTSW / TEST AH to the comparison the
+   source had: C3 (`TEST AH,0x40`) is `==`, C0 (`TEST AH,1`) `<`, C0|C3 (`TEST AH,0x41`) `<=` (its negation `>`), C0 as a
+   select mask `a < b ? x : y`. The original counted a NaN operand as equal and less; the plain comparison follows IEEE, a
+   behaviour change only for NaN (none reaches these places in the suite). Next to a comparison whose result changes for a
+   NaN, `EI_NAN_AUDIT(values...)` (`lib/nan_audit.h`) logs the first NaN per site to ei_hook.log in the verify and debug
+   builds. Where an equally plain form keeps the original's NaN result (`a > b`; `x < low ? x : low` for a bound a NaN never
+   replaces; `if (!(gap > limit)) break;` for a loop a NaN must still end), prefer it. addon.dll was built by an IEEE
+   compiler (its tests read C2): its status tests are exact plain comparisons. A select whose C0 mask picks `ifLess` is
+   `a >= b ? otherwise : ifLess` (exact for NaN). Not yet converted: the inline `!(a >= b)` / `!(a < b) && !(a > b)`
+   forms of the earlier port, ticket C16f.
 9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
    EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
    ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten

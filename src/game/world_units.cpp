@@ -35,6 +35,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/mfc_window.h"
 #include "originals_ai.h"
 #include "originals_library.h"
@@ -451,7 +452,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         bits &= 0x7FFFFFFFu;
         float level;
         std::memcpy(&level, &bits, 4);
-        if (x87::IsNaN(level) || level < worlddata::CampfireHeight()) {
+        EI_NAN_AUDIT(level);
+        if (level < worlddata::CampfireHeight()) {
             Vector3 at;
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;

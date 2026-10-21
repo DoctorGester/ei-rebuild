@@ -490,7 +490,7 @@ static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
 static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // 0073FF00: a new Fear mode's distance, which `distance` returns to.
-inline float FearDefaultDistance() { return ei::GameData<const float>(0x0073FF00); }
+inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
 
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
