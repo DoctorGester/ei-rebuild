@@ -1188,6 +1188,7 @@ public:
 };
 static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
 static_assert(offsetof(CHudWeaponBar, labels_) == 0x158);
+static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 
 // Quick items (constructor 0063C800, vtables 0074283C / 00742808): 2 rows of four 50x50 slots
 // at (520..720, 500..600).
@@ -1279,6 +1280,7 @@ public:
 };
 static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
 static_assert(offsetof(CHudQuickItems, labels_) == 0x18C);
+static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator new
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
@@ -1344,6 +1346,7 @@ public:
 static_assert(offsetof(CHudSpellColumn, count_) == 0x14C);
 static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
 static_assert(offsetof(CHudSpellColumn, labels_) == 0x158);
+static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator new
 
 // Action column on the left (constructor 0063F300, vtables 00742980 / 0074294C; six 40x40
 // buttons at 0..40 x 270..510).
@@ -1400,6 +1403,7 @@ static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
 static_assert(offsetof(CHudActionColumn, selected_) == 0x150);
 static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
 static_assert(offsetof(CHudActionColumn, labels_) == 0x16C);
+static_assert(sizeof(CHudActionColumn) == 0x180);   // CBattleScreen's operator new
 
 // A portrait's state (0x78 bytes, array at CHudPortraits +0x158): the last hit points seen,
 // the face (rest orientation, current orientation and a random wobble), the face picture and
