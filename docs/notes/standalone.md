@@ -419,6 +419,22 @@ kinds given.
     pointing at it (a cell keeps it at its address). The check's literal and cell scans cover src/, tests/ and
     the cells; config/ and the vector data name none of these. Saves and messages carry values, not addresses:
     the goldens catch a changed value.
+  - C18g named the single-owner world* and ai* objects (1,875 -> 1,829 game data addresses): the area-list tables, the
+    mark table (00791164: 5 rows of 16; the open-cell mark is column 10, so 0079118C is inside it), occluder costs
+    and damping, steep offsets, transparency, the order angle limit, normal.dat's table, the three SpiralCache
+    function statics with their guards, function-static guards, the decal builder, stamps and the guard key, and the
+    arrays with a plain `free` exit function (world_sync's four, world_tick's two, the object sets' scratch, the
+    decals' part points: `constinit lib::AlignedArray<T> g_x = /*addr*/ {}` and the exit function ported beside it,
+    EI_REPLACE at its address; the code that registered the generated ExitXXXX registers the port). **Left**: the
+    tables the path vectors fill by address (00791108 / 0079112C / 00791978 and its middle 00791988, 0079169C,
+    the spiral tree 007C2FDC-007C2FF0, 007C3038 / 007C3058: C18i's kind), members of larger objects (the options
+    object 0079BC70-0079BEDC: 0079BC98, 0079BD24-0079BD58, 0079BE54, 0079BECC-0079BED4; the client world 007AF5B8
+    + 0x7E4: 007AF5F0, 007AF63C, 007AF758 / 75C; the server world 007AFF60: 007AFF98, 007AFFC8, 007B007C; the
+    scene renderer 007AF060: 007AF07C; the interface 007C7D50: 007C7D84, 007C7DD8), the map name lists
+    00790270-007902C0 (pointers into strings in the same region), objects with a constructor or a destructor that
+    is not a plain free (ai_region_reach's three point arrays, the water patch 007C2F64, LastResources, the script
+    stream, ai_events' pool, the shape cache, the smoothing pool), the alarm log pointer 007C2EB8 (a static
+    initialiser stores another object's address) and 007C2F8C (ln 0.6: a call's result).
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
