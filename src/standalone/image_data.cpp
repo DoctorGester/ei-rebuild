@@ -3,10 +3,11 @@
 // table at its start, .data with its zero-filled tail, the .bss) are kept in g_dataStorage instead of at their
 // addresses: the data seam (game_data.h) adds g_dataShift to each of their addresses, the pointer cells of
 // game.exe's .rdata and .data that point into the range (image_cells.inc, tools/gen_image_cells.py: vtables'
-// RTTI, the C++ exception tables, MFC's runtime classes and maps, string pointers) get the same shift, and the
-// old range's pages are made PAGE_NOACCESS, so a use that missed the seam faults and is named with its data
-// address and code address (OnOldData). The initial bytes come from game.exe at build time
-// (image_data_bytes.inc in the build folder, gen_image_cells.py --bytes); the host lays out neither section.
+// RTTI, the C++ exception tables, MFC's runtime classes and maps, string pointers) get the same shift. Nothing is at
+// the old range (the host keeps what of game.exe's range is free reserved, S18k), so a use that missed the seam
+// faults and is named with its data address and code address (OnOldData); a game address outside the range asked
+// of the seam is named too (StrayGameAddress). The initial bytes come from game.exe at build time
+// (image_data_bytes.inc in the build folder, gen_image_cells.py --bytes).
 // In game.exe (the original's runs) none of it happens: the shift stays 0.
 //
 // The import slots at the storage's start are ours: zero from the build, resolved right after the move
@@ -15,10 +16,12 @@
 // The move runs before every other static constructor of ei_hook.dll (init_seg(compiler)): the
 // harness and the game's globals bind references to game data at static initialisation, and the harness
 // takes import slots there.
+#include "ei/hook.h"
 #include "game/game_data.h"
 #include "hook/log.h"
 
 #include <windows.h>
+#include <intrin.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -40,7 +43,6 @@ void DescribeImportSlot(std::uintptr_t slot, char* out, std::size_t size);   // 
 
 namespace {
 
-constexpr std::uintptr_t kImageBase = 0x00400000;
 constexpr std::size_t kMovedSize = kMovedEnd - kMovedBegin;
 constexpr std::uintptr_t kDataBegin = DataId(0x00783000);   // .data, after .rdata's pages
 constexpr std::uintptr_t kKeptBits = 0xFFFF;   // the low 16 bits of each address stay
@@ -94,13 +96,9 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
 }
 
 void MoveData() {
-    if (GetModuleHandleA(nullptr) == reinterpret_cast<HMODULE>(kImageBase)) return;   // game.exe
+    if (!Standalone()) return;   // game.exe
     const auto storage = reinterpret_cast<std::uintptr_t>(g_dataStorage);
     const std::uintptr_t begin = storage + ((kMovedBegin - storage) & kKeptBits);
-    // The host lays out neither section: the old range should be all zero (a byte that is not means it still copies).
-    const auto* old = reinterpret_cast<const unsigned char*>(kMovedBegin);
-    std::size_t nonzero = 0;
-    for (std::size_t i = 0; i < kMovedSize; ++i) nonzero += old[i] != 0;
     std::memcpy(reinterpret_cast<void*>(begin), kInitialData, sizeof(kInitialData));
     g_dataShift = begin - kMovedBegin;
     int moved = 0;
@@ -114,15 +112,10 @@ void MoveData() {
         value = GameAddress(value);
         ++moved;
     }
-    DWORD was;
-    const bool guarded =
-        VirtualProtect(reinterpret_cast<void*>(kMovedBegin), kMovedSize, PAGE_NOACCESS, &was) != 0;
     AddVectoredExceptionHandler(1, OnOldData);
-    Log("standalone: game.exe's .rdata and .data kept at %08X (shift %08X), %u bytes from the build, %d of %d cells moved, "
-        "%u byte(s) of the old range nonzero, old range %s",
+    Log("standalone: game.exe's .rdata and .data kept at %08X (shift %08X), %u bytes from the build, %d of %d cells moved",
         static_cast<unsigned>(begin), static_cast<unsigned>(g_dataShift), static_cast<unsigned>(sizeof(kInitialData)),
-        moved, static_cast<int>(std::size(kCells)), static_cast<unsigned>(nonzero),
-        guarded ? "PAGE_NOACCESS" : "NOT guarded");
+        moved, static_cast<int>(std::size(kCells)));
     ResolveImageImports();
 }
 
@@ -131,5 +124,19 @@ struct DataMover {
 } g_dataMover;
 
 } // namespace
+
+void StrayGameAddress(std::uintptr_t address) {
+    char code[160], what[320];
+    DescribeCode(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), code, sizeof(code));
+    const char* part = address < 0x00401000 ? "headers" : address < kMovedBegin ? "code" : ".rsrc";
+    std::snprintf(what, sizeof(what),
+                  "the data seam was asked for game.exe's %s at %08X (by %s): the image has nothing of game.exe there",
+                  part, static_cast<unsigned>(address), code);
+    std::fprintf(stderr, "ei_hook: %s\n", what);
+    std::fflush(stderr);
+    ReportImageFailure(what);
+    TerminateProcess(GetCurrentProcess(), 3);
+    for (;;) Sleep(INFINITE);
+}
 
 } // namespace ei

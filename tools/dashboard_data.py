@@ -102,6 +102,15 @@ STANDALONE = {
                                   r'|RegQueryValueExA|RegSetValueExA|GetModuleFileNameA|SetWindowTextA|MessageBoxA'
                                   r'|TextOutA|DrawTextA|ExtTextOutA|GetTextExtentPoint32A|GetKeyNameTextA)\b'),
 }
+# Standalone readiness: what ties the image to game.exe at run time (S18k): the host linked at a fixed base with
+# game.exe's range in its own image, and reads of game.exe's file by the host and by ei_hook.dll in the image.
+IMAGE_TIES = [
+    ('CMakeLists.txt', re.compile(r'ei_standalone\s+PRIVATE[^\n]*/FIXED')),       # the host at a fixed base
+    ('src/standalone/host.cpp', re.compile(r'\bg_reserve\b')),                    # game.exe's range in the host
+    ('src/standalone/host.cpp', re.compile(r'\bReadWholeFile\b')),                # the host reads game.exe
+    ('src/hook/hook.cpp', re.compile(r'\bStandaloneExePath\b')),                  # InstallHooks reads it in the image
+    ('src/standalone/image_imports.cpp', re.compile(r'\bEiStandaloneExe\b')),    # imports from game.exe's folder
+]
 DATA_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 UNHOOKABLE_BYTES = 5   # a hook needs five bytes: shorter functions are written at standalone time
 
@@ -250,6 +259,7 @@ def measure(tree):
         data_addresses=len(data), unported_functions=len(left),
         unported_unhookable=sum(1 for a in left if sizes.get(a, 0) < UNHOOKABLE_BYTES),
         unported_rebirth_patched=len(left & patched))
+    standalone['image_ties'] = sum(1 for path, rx in IMAGE_TIES if rx.search(COMMENT.sub('', tree.read(path) or '')))
     # The exe's library code (config/library.csv) with our code at its address: what the standalone image
     # runs there instead of INT3 (S3 / S6 / S12 / S16).
     ours = library & (replaced | standalone_only)

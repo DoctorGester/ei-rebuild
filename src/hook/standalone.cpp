@@ -1,12 +1,13 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
-// The host holds game.exe's address range with nothing of game.exe in it (its headers, code section and .rsrc
-// guarded; game.exe's resources are the host's own, S18j); the DLL's static
+// The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
+// access (S18k; game.exe's resources are the host's own, S18j); the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
 // its data are pointed at them, and WinMain runs.
 #include "ei/hook.h"
 #include "log.h"
 #include "standalone/static_init.h"
+#include "game/game_data.h"
 #include "game/originals_library.h"
 #include "lib/crt.h"
 #include "render/render.h"
@@ -76,7 +77,6 @@ void ReportImageFailure(const char* what);
 
 namespace {
 
-char g_exePath[MAX_PATH];
 std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
 std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
 void (*g_missingCodeHandler)(const char* what);
@@ -90,8 +90,8 @@ LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
     if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
-    const bool execute = r->ExceptionInformation[0] == 8;
     const std::uintptr_t data = r->ExceptionInformation[1];
+    const bool execute = r->ExceptionInformation[0] == 8 || at == data;
     if (data < kTextBegin || data >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
     if (execute) ReportNoCode(at, *reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp));
     char code[160], what[320];
@@ -131,17 +131,26 @@ int CheckCode() {
     return bad;
 }
 
-// The image's code section holds nothing of game.exe's code and is guarded (the host makes it PAGE_NOACCESS):
-// no instruction of the original runs, none that calls through game.exe's import slots (CALL [slot], JMP
-// [slot]) either, and nothing jumps through it. Returns the bytes of it that are not guarded.
+// The image has nothing of game.exe at its addresses (S18k): no instruction of the original runs, none that calls
+// through game.exe's import slots (CALL [slot], JMP [slot]) either. The host reserved what of game.exe's range was
+// free with no access, so a stray game address faults and is named (OnOldCode, image_data.cpp's OnOldData, the
+// host's OnGameRange). Logs what of the range an access would not fault on (memory the loader had put there before
+// the host ran) and returns its size.
 std::size_t CheckGuard() {
     std::size_t open = 0;
-    for (std::uintptr_t a = kTextBegin; a < kTextEnd;) {
+    for (std::uintptr_t a = kImageBegin; a < kImageEnd;) {
         MEMORY_BASIC_INFORMATION mbi;
-        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) return kTextEnd - a + open;
+        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) return kImageEnd - a + open;
         const std::uintptr_t regionEnd = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
-        const std::uintptr_t end = (std::min)(kTextEnd, regionEnd);
-        if (mbi.Protect != PAGE_NOACCESS) open += end - a;
+        const std::uintptr_t end = (std::min)(kImageEnd, regionEnd);
+        if (mbi.State == MEM_COMMIT && !(mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))) {
+            char owner[MAX_PATH] = "not a module";
+            if (mbi.Type == MEM_IMAGE)
+                GetModuleFileNameA(static_cast<HMODULE>(mbi.AllocationBase), owner, MAX_PATH);
+            Log("standalone: %08X-%08X of game.exe's range is open (%s)", static_cast<unsigned>(a),
+                static_cast<unsigned>(end), owner);
+            open += end - a;
+        }
         a = end;
     }
     return open;
@@ -251,12 +260,11 @@ const void* ImageRoute(const char* dll, const char* function) {
     return nullptr;
 }
 
+// The host exports EiStandaloneHost; game.exe exports nothing.
 bool Standalone() {
-    static const bool standalone = GetModuleHandleA(nullptr) != reinterpret_cast<HMODULE>(kImageBase);
+    static const bool standalone = GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneHost") != nullptr;
     return standalone;
 }
-
-const char* StandaloneExePath() { return g_exePath; }
 
 void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
 
@@ -267,15 +275,17 @@ void ReportImageFailure(const char* what) {
 
 } // namespace ei
 
-// Called by the host once the image is laid out, with the game's arguments (what followed "--" on the
-// host's command line, as typed). `run` 0: take and check the registrations, point the code cells at them and
+// Called by the host once ei_hook.dll is loaded, with the game's arguments (what followed "--" on the host's
+// command line, as typed). `run` 0: take and check the registrations, point the code cells at them and
 // route the image's calls, then return (0 when all of it is right and WinMain has code). `run` 1: then run WinMain.
-extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePath, int run, const char* arguments) {
+extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const char* arguments) {
     using namespace ei;
-    strcpy_s(g_exePath, exePath);
+    // GetCommandLineA's line: the program, as GetModuleFileNameA(NULL) names it (the host), then the arguments.
+    char program[MAX_PATH];
+    GetModuleFileNameA(nullptr, program, MAX_PATH);
     const bool hasArguments = arguments && *arguments;
-    g_commandLine = std::string("\"") + exePath + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
-    g_argumentsAt = std::strlen(exePath) + 2 + (hasArguments ? 1 : 0);
+    g_commandLine = std::string("\"") + program + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
+    g_argumentsAt = std::strlen(program) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
     // The missing-code report first: InstallHooks runs the startup actions (WideScreen's parses its
     // resolution there, S16b), so a jump into game.exe's code before WinMain is named too, not a silent end (S16c).
@@ -287,16 +297,19 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     Log("standalone: %d registration(s) taken as game.exe's code, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
     FixCodeCells();
+    // Informational: what the loader put in game.exe's range before the host ran is not ours to move.
     const std::size_t open = CheckGuard();
-    Log("standalone: game.exe's code section %s (%zu byte(s) not)", open ? "NOT all guarded" : "guarded", open);
-    const int stray = open ? 1 : 0;
+    const auto* taken = reinterpret_cast<const std::uint32_t*>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneRangeTaken"));
+    Log("standalone: game.exe's range %08X-%08X %s (%zu byte(s) open; %u taken before the host's main; the host at %p)",
+        static_cast<unsigned>(kImageBegin), static_cast<unsigned>(kImageEnd), open ? "NOT all guarded" : "guarded", open,
+        taken ? *taken : 0u, static_cast<void*>(GetModuleHandleA(nullptr)));
     const bool routed = RouteImageCalls();
     Log("standalone: game.exe's resources in the host, its command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
     const int missingImports = ImageImportsMissing();
     // What the static initialisers call that has no code yet (logged; not a failure of the check).
     static_init::ReportMissingTargets();
-    if (!run) return installed > 0 && bad == 0 && winMain && routed && missingImports == 0 && stray == 0 ? 0 : 1;
+    if (!run) return installed > 0 && bad == 0 && winMain && routed && missingImports == 0 ? 0 : 1;
     if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
         ReportImageFailure("game.exe's imports did not all resolve");
         return 1;

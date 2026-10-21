@@ -3203,6 +3203,13 @@ model = "opus"
 depends = ["S18i"]
 note = "Since S18i every EI_ORIGINAL forwarder and ei::Code literal asks CodeAddress at run time (ei_code_dispatch: a binary search over ~9,350 registrations per call). Make the ones whose address has a registration call it directly (a generated forwarder -> replacement table, or the macro naming the replacement; harness redirections and unregistered addresses keep the lookup), and drop the lookup from the hot paths. Checked: goldens both installs, the frame time of a heavy scenario before / after.  Done: EI_ORIGINAL keeps a CodeLink per forwarder and jumps through it once bound (BindCode: registration or game.exe's own address; redirections and stubs keep the lookup); code literals left (about 20 lookups a frame). Measured (render_stats, vanilla, three 30-frame A/B pairs, harness step codebinding off/on): fight 9,000 -> 25 lookups a frame, main thread CPU 19.0 -> 18.45 ms; town 3,300 -> 20, 7.4 -> 6.7 ms (noisy)."
 
+[[ticket]]
+id = "S18k1"
+title = "run_all: no game.exe for the image's installs"
+group = "standalone"
+depends = ["S18k"]
+note = "Since S18k the image reads no game.exe and loads no import beside it: run_all still builds run\\<install>-clean and hands its game.exe to ei_launch --standalone (only the shared host copy's place and EI_GAME_ROOT use it). Drop the clean folders and --exe for the standalone installs (tools/test_work_sched.py asserts them), keep EI_GAME_ROOT."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

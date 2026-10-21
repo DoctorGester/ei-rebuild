@@ -6,13 +6,14 @@
 // slot routes) reaches our table. The image's command-line import gets its wrapper in place of the export
 // (ImageRoute, hook/standalone.cpp); the resource and module imports take the host's module as it is (S18j).
 //
-// game.exe's own table is guarded with the rest of the old .rdata (S18h, image_data.cpp): the image runs none of
+// Nothing is at game.exe's own table, as at the rest of the old .rdata (S18h, S18k; image_data.cpp): the image runs none of
 // game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's import
 // and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
 // trap until the run ends (OnTrap; the launch-free check fails on it).
 //
 // Runs from image_data.cpp's mover, before every other static constructor of ei_hook.dll: the harness takes
 // import slots in its own. In game.exe (the original's runs) nothing happens: the loader filled its table.
+#include "ei/hook.h"
 #include "game/game_data.h"
 #include "hook/log.h"
 
@@ -31,8 +32,6 @@ void ReportImageFailure(const char* what);                                // hoo
 const void* ImageRoute(const char* dll, const char* function);   // hook/standalone.cpp
 
 namespace {
-
-constexpr std::uintptr_t kImageBase = 0x00400000;
 
 struct Import {
     std::uintptr_t slot;   // game.exe's slot (an id of the seam)
@@ -82,25 +81,15 @@ LONG CALLBACK OnTrap(EXCEPTION_POINTERS* e) {
 
 bool Exists(const std::string& path) { return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
-// game.exe's path, as the host was given it (its export EiStandaloneExe); empty when it has none.
-std::string ExePath() {
-    using ExeFn = const char*(__cdecl*)();
-    const auto exe = reinterpret_cast<ExeFn>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneExe"));
-    return exe && exe() ? exe() : "";
-}
-
-// An import of game.exe: from game.exe's folder (Rebirth's dgVoodoo DDraw.dll), then the working directory
-// (mss32.dll, binkw32.dll in the game root), else System32. Rebirth's dinput.dll beside game.exe is a proxy
-// that loads addon.dll, which patches game.exe's code: always the system one.
-HMODULE LoadImport(const char* name, const std::string& exeFolder) {
+// An import of game.exe: from the working directory, the game folder (mss32.dll, binkw32.dll in its root), else
+// System32. game.exe's own folder is not looked in (S18k: the image needs no game.exe). dinput.dll is always the
+// system one: Rebirth's beside its game.exe is a proxy that loads addon.dll, which patches game.exe's code.
+HMODULE LoadImport(const char* name) {
     if (_stricmp(name, "dinput.dll") != 0) {
         char cwd[MAX_PATH];
         GetCurrentDirectoryA(MAX_PATH, cwd);
-        for (const std::string& folder : {exeFolder, std::string(cwd)}) {
-            if (folder.empty()) continue;
-            const std::string path = folder + "\\" + name;
-            if (Exists(path)) return LoadLibraryA(path.c_str());
-        }
+        const std::string path = std::string(cwd) + "\\" + name;
+        if (Exists(path)) return LoadLibraryA(path.c_str());
     }
     return LoadLibraryExA(name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
 }
@@ -114,7 +103,7 @@ void Fail(const char* what) {
 } // namespace
 
 void ResolveImageImports() {
-    if (GetModuleHandleA(nullptr) == reinterpret_cast<HMODULE>(kImageBase)) return;   // game.exe
+    if (!Standalone()) return;   // game.exe
     g_traps = static_cast<unsigned char*>(VirtualAlloc(nullptr, kSlots, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     if (g_traps) {
         std::memset(g_traps, 0xCC, kSlots);
@@ -122,9 +111,6 @@ void ResolveImageImports() {
         VirtualProtect(g_traps, kSlots, PAGE_EXECUTE_READ, &was);
         AddVectoredExceptionHandler(1, OnTrap);
     }
-    const std::string exe = ExePath();
-    const std::size_t slash = exe.find_last_of("\\/");
-    const std::string exeFolder = slash == std::string::npos ? std::string() : exe.substr(0, slash);
     int resolved = 0, routed = 0;
     g_missing = 0;
     HMODULE module = nullptr;
@@ -136,7 +122,7 @@ void ResolveImageImports() {
         ours = g_traps ? g_traps + index : nullptr;
         if (!moduleName || _stricmp(moduleName, i.dll) != 0) {
             moduleName = i.dll;
-            module = LoadImport(i.dll, exeFolder);
+            module = LoadImport(i.dll);
             if (!module) {
                 std::snprintf(what, sizeof(what), "cannot load game.exe's import %s (error %lu)", i.dll, GetLastError());
                 Fail(what);
