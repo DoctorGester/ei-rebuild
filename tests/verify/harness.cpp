@@ -1272,23 +1272,14 @@ void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
 }
 
-// A pair's game ends its turn inside the main loop pass's frame step (CL draw, DL cursor), after the
-// world view's last net::Pump (CWorldClient::Render 00569E40 pumps the network four times between its
-// drawing stages), so that the rest of its drawing runs while the other game takes its turn
-// (harness_pair.h). Only in the pass's frame step: a Render of a modal loop or a screen stays in the turn.
+// A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
+// the other game takes its turn (harness_pair.h). Only the main loop's call; the frame steps of modal
+// loops and screens stay inside the turn.
 constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
 constexpr std::uintptr_t kFrameStep = 0x00458010;
-constexpr std::uintptr_t kWorldLastPumpCall = 0x0056A2CA;
-constexpr std::uintptr_t kNetPump = 0x004122D0;
-bool g_inPassFrameStep = false;
-void __fastcall PassFrameStep(bool draw, bool cursor) {
-    g_inPassFrameStep = true;
+void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
+    pair::HandOff();
     reinterpret_cast<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
-    g_inPassFrameStep = false;
-}
-void WorldLastPump() {
-    reinterpret_cast<void (*)()>(kNetPump)();
-    if (g_inPassFrameStep) pair::HandOff();
 }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
@@ -4033,12 +4024,10 @@ struct Harness {
             hooks.serverUpdate = &HeldServerUpdate;
         if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment)))
             hooks.clientSegment = &HeldClientSegment;
-        if (pair::Active() &&
-            (hookPointsOnly || RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&PassFrameStep)))) {
-            hooks.frameStep = &PassFrameStep;
-            if (hookPointsOnly || RedirectCall(kWorldLastPumpCall, kNetPump, reinterpret_cast<const void*>(&WorldLastPump)))
-                hooks.worldLastPump = &WorldLastPump;
-        }
+        if (pair::Active() && pair::Overlap() &&
+            (hookPointsOnly ||
+             RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&HandOffThenFrameStep))))
+            hooks.frameStep = &HandOffThenFrameStep;
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();

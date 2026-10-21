@@ -24,6 +24,7 @@ constexpr DWORD kSilentMs = 90000;           // the other game gives no turn for
 struct Datagram {
     LONG full;
     std::uint32_t seq;
+    std::int32_t stamp;   // the sender's segment (Stamp): datagrams are taken in (stamp, seq) order
     std::uint16_t to, from;
     std::int32_t length;
     char data[kDatagramBytes];
@@ -59,6 +60,7 @@ HANDLE g_turn[2];          // auto-reset events: "your turn may have come"
 HANDLE g_peerProcess;
 bool g_alone = false;      // the other game has ended (or never came): no more waiting
 volatile LONG g_handedOff = 0;   // this game's turn has ended (HandOff) and the next has not begun
+std::int32_t g_stamp = 0;        // this game's segment: 2 * turn + side (a turn and the frame step after it)
 unsigned g_frame = 0;            // the last FrameDone's frame (for the guard's message)
 LONG g_outOfTurn = 0;            // mailbox calls and signals outside the turn (the guard)
 bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here is received
@@ -75,6 +77,11 @@ std::uint16_t g_nextOwn = 0;
 // For the report.
 unsigned g_turns = 0;
 unsigned long long g_waitedMs = 0;
+// Where a frame's time goes (QueryPerformanceCounter ticks): in the turn (from the end of the wait to the
+// hand-off) and, for a turn handed off in the frame step, the rest of the frame step after it (outside).
+LARGE_INTEGER g_turnStart{}, g_endedAt{};
+long long g_inTurnTicks = 0, g_outsideTicks = 0;
+unsigned g_turnsTimed = 0, g_handedOffEarly = 0;
 unsigned g_sent = 0, g_unheard = 0, g_received = 0, g_lost = 0;
 long g_peerEndedAt = -1;   // our frame when the other game was seen ended
 std::vector<std::string> g_failures;
@@ -116,25 +123,46 @@ std::uint16_t PortOf(std::uintptr_t s) {
     return port;
 }
 
-// The guard (SV10a): the mailbox and the signals are only for a game in its turn. After the hand-off the
-// rest of the frame step runs while the other game takes its turn, so a datagram or a signal from it could
-// land before or after the other game's reads depending on the machine. A call there fails the run (the
-// first is logged).
-void InTurn(const char* call) {
-    if (!g_handedOff || g_alone) return;
+// The guard (SV10a). After the hand-off the frame step runs while the other game takes its turn. What
+// the frame step does with the pair's network must not depend on how far the other game has got:
+// - its receives take only datagrams of earlier segments or its own (RecvFrom's stamp rule), the same
+//   ones as when the frame step was inside the turn;
+// - it may send only to its own ports (the host's client and server) and to no one (a cut network, the
+//   fake master): a datagram to the other game would reach it in this turn or the next, depending on
+//   the machine;
+// - binds, closes and signals change what the other game sees: never outside the turn.
+// A call that breaks a rule fails the run (the first is logged). The pair's network is the main
+// thread's only.
+void OutOfTurn(const char* call) {
     if (InterlockedIncrement(&g_outOfTurn) != 1) return;
-    char what[200];
+    char what[240];
     std::snprintf(what, sizeof(what),
-                  "pair: %s outside this game's turn (after the hand-off in frame %u's frame step, thread %lu); "
-                  "after the world view's last net::Pump the frame step must not reach the pair's network or signals",
+                  "pair: %s outside this game's turn (in frame %u's frame step after the hand-off, thread %lu): "
+                  "the frame step runs beside the other game's turn",
                   call, g_frame + 1, GetCurrentThreadId());
     Log("harness: %s", what);
-    Locked lock;   // the report reads g_failures from another thread
     g_failures.push_back(what);
+}
+
+bool OutsideTurn() { return g_handedOff && !g_alone; }
+
+void InTurn(const char* call) {
+    if (OutsideTurn()) OutOfTurn(call);
+}
+
+bool ClaimedHere(std::uint16_t port) {
+    for (const Claim& c : g_shared->claims)
+        if (c.used && c.port == port && c.side == g_side) return true;
+    return false;
 }
 
 void EndTurn() {
     if (InterlockedExchange(&g_handedOff, 1)) return;
+    QueryPerformanceCounter(&g_endedAt);
+    if (g_turnStart.QuadPart) {
+        g_inTurnTicks += g_endedAt.QuadPart - g_turnStart.QuadPart;
+        ++g_turnsTimed;
+    }
     InterlockedIncrement(&g_shared->done[g_side]);
     SetEvent(g_turn[1 - g_side]);
 }
@@ -142,6 +170,11 @@ void EndTurn() {
 } // namespace
 
 bool Active() { return g_shared != nullptr; }
+
+bool Overlap() {
+    char value[8] = "";
+    return !(GetEnvironmentVariableA("EI_PAIR_OVERLAP", value, sizeof(value)) && value[0] == '0');
+}
 int Side() { return g_side; }
 
 bool Install() {
@@ -155,6 +188,7 @@ bool Install() {
     }
     *comma = '\0';
     g_side = comma[1] - '0';
+    g_stamp = 2 + g_side;
     std::snprintf(g_name, sizeof(g_name), "%s", value);
     char name[160];
     std::snprintf(name, sizeof(name), "Local\\%s", g_name);
@@ -187,6 +221,12 @@ void FrameDone(unsigned frame) {
     if (!g_shared) return;
     const int other = 1 - g_side;
     g_frame = frame;
+    if (g_handedOff && g_turnStart.QuadPart) {   // handed off in the frame step
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        g_outsideTicks += now.QuadPart - g_endedAt.QuadPart;
+        ++g_handedOffEarly;
+    }
     EndTurn();
     const LONG n = g_shared->done[g_side];
     if (g_alone) {
@@ -221,6 +261,8 @@ void FrameDone(unsigned frame) {
         }
     }
     g_waitedMs += GetTickCount() - start;
+    QueryPerformanceCounter(&g_turnStart);
+    g_stamp = 2 * (n + 1) + g_side;
     InterlockedExchange(&g_handedOff, 0);   // this game's next turn
 }
 
@@ -277,7 +319,6 @@ bool Bind(std::uintptr_t s, std::uint16_t port) {
 }
 
 int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
-    InTurn("SendTo");
     if (length < 0 || length > kDatagramBytes) {
         WSASetLastError(WSAEMSGSIZE);
         return SOCKET_ERROR;
@@ -312,6 +353,7 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
         for (Datagram& d : g_shared->slots) {
             if (d.full) continue;
             d.seq = g_shared->nextSeq++;
+            d.stamp = g_stamp;
             d.to = from;
             d.from = port;
             d.length = 9;
@@ -325,6 +367,7 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
             g_masterAnswers, key, g_lastToken, token);
         return length;
     }
+    if (OutsideTurn() && !ClaimedHere(port)) OutOfTurn("SendTo to a port of the other game's or nobody's");
     if (!Claimed(port)) {
         ++g_unheard;   // nobody holds the port: gone, as a datagram to a closed port is
         return length;
@@ -332,6 +375,7 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
     for (Datagram& d : g_shared->slots) {
         if (d.full) continue;
         d.seq = g_shared->nextSeq++;
+        d.stamp = g_stamp;
         d.to = port;
         d.from = from;
         d.length = length;
@@ -344,7 +388,6 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
 }
 
 int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* fromLength) {
-    InTurn("RecvFrom");
     const std::uint16_t port = PortOf(s);
     Datagram* oldest = nullptr;
     Locked lock;
@@ -356,7 +399,12 @@ int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* from
                 ++g_lost;
                 continue;
             }
-            if (!oldest || static_cast<std::int32_t>(d.seq - oldest->seq) < 0) oldest = &d;
+            // The stamp rule: a datagram of the other game's later segment (sent in its turn beside this
+            // frame step) is not there yet. In order of segments, then of sending.
+            if (d.stamp > g_stamp) continue;
+            if (!oldest || d.stamp < oldest->stamp ||
+                (d.stamp == oldest->stamp && static_cast<std::int32_t>(d.seq - oldest->seq) < 0))
+                oldest = &d;
         }
     }
     if (!oldest) {
@@ -424,6 +472,14 @@ void Report(FILE* f) {
                  "(%u to no one), %u received; the other game %s\n",
                  g_side, g_side == 0 ? "the scenario's game" : "the peer", g_turns, g_waitedMs, g_sent, g_unheard,
                  g_received, ended);
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    const double ms = 1000.0 / static_cast<double>(frequency.QuadPart);
+    std::fprintf(f, "PAIR: per turn %.2f ms in the turn (from its start to the hand-off); %u of %u turns handed off in "
+                 "the frame step (%s), the frame step's rest after it %.2f ms on average, beside the other game's turn\n",
+                 g_turnsTimed ? static_cast<double>(g_inTurnTicks) * ms / g_turnsTimed : 0.0, g_handedOffEarly, g_turnsTimed,
+                 Overlap() ? "before the frame step" : "EI_PAIR_OVERLAP=0: at the after-frame peek",
+                 g_handedOffEarly ? static_cast<double>(g_outsideTicks) * ms / g_handedOffEarly : 0.0);
 }
 
 std::string Failure() {
