@@ -46,11 +46,11 @@ int __stdcall StandingLevel(const CUnit* unit) {
 }
 EI_REWRITTEN(0x005B7B70, StandingLevel);
 
-int __fastcall BridgeHeight(const BridgeMap* map, void*, short x, short y) {
-    const auto* node = FindBridgeHeight(map, x, y);
+int BridgeHeights::HeightAt(short x, short y) const {
+    const auto* node = FindBridgeHeight(this, x, y);
     return node ? static_cast<std::uint16_t>(node->value) : 0;
 }
-EI_REWRITTEN(0x005B3160, BridgeHeight);
+EI_REWRITTEN(0x005B3160, BridgeHeights::HeightAt);
 
 // --- Cell queries --------------------------------------------------------------------------------
 

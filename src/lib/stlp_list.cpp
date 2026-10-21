@@ -8,12 +8,12 @@
 
 namespace stlp {
 
-void __fastcall ListRemoveHeld(list<CEngineObject*>* self, void*, CEngineObject* const* value) {
-    self->Remove<HeldObject>(*value, [](CEngineObject* a, CEngineObject* b) { return a == b; });
+void ListRemoveHeld(list<CEngineObject*>* self, CEngineObject* const& value) {
+    self->Remove<HeldObject>(value, [](CEngineObject* a, CEngineObject* b) { return a == b; });
 }
 
-void __fastcall ListRemoveInt(list<int>* self, void*, const int* value) {
-    self->Remove(*value, [](int a, int b) { return a == b; });
+void ListRemoveInt(list<int>* self, const int& value) {
+    self->Remove(value, [](int a, int b) { return a == b; });
 }
 
 char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f) {

@@ -71,7 +71,7 @@ TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
         if (rows->end) rows->end->CopyConstruct(&value);
         ++rows->end;
     } else {
-        recordvec::TradeRowVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRow>*>(rows), nullptr, rows->end, &value, 1);
+        static_cast<recordvec::TradeRowVector*>(reinterpret_cast<stlp::vector<TradeRow>*>(rows))->InsertOverflow(rows->end, value, 1);
     }
     return rows->end - 1;
 }
@@ -432,8 +432,8 @@ void CTradePanel::ResetRecords() {
             if (records_.end) *records_.end = blank;
             ++records_.end;
         } else {
-            recordvec::TradeRecordVector::InsertOverflow(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_), nullptr,
-                                                         records_.end, &blank, 1);
+            static_cast<recordvec::TradeRecordVector*>(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_))
+                ->InsertOverflow(records_.end, blank, 1);
         }
         recordIndex_ = i;
         TradeSnapshotRecord(this);

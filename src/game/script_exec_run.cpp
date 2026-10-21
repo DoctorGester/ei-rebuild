@@ -247,7 +247,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     if (instance) {
         ScriptVars& from = instance->vars;
         run->vars.floats.Copy(from.floats);   // 004C1A80
-        mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&run->vars.strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from.strings));
+        run->vars.strings.CopyFrom(from.strings);
         run->vars.objects.CopyFrom(from.objects);
         run->vars.groups.CopyFrom(from.groups);
     }

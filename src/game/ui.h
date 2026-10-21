@@ -104,6 +104,15 @@ public:
     int CallScalePointToScreenNoMargin(POINT* point) const;     // -> 005F7D20
     int CallScalePointFromScreenNoMargin(POINT* point) const;   // -> 005F7E00
 
+    // The hooks of the scaling functions 005F7CA0, 005F7D20, 005F7DA0, 005F7E00 and 005F7E30
+    // (ui_interface.cpp): the methods above, except that with Rebirth's WideScreen code addon's own
+    // callers reach them with ECX 0 (no interface): then the wide scaling without the margin.
+    int ScaleRectToScreenEntry(RECT* rect) const;
+    int ScalePointToScreenEntry(POINT* point) const;
+    int ScaleRectFromScreenEntry(RECT* rect) const;
+    int ScalePointFromScreenEntry(POINT* point) const;
+    int ScalePointFromScreenCopyEntry(POINT* point) const;
+
     // 005F57C0. Once per frame (main loop): closes the top window while a value is pending,
     // closes all windows on request, activates a queued window, reads the mouse and updates the
     // top window and the root (ui_interface_frame.cpp).
@@ -374,14 +383,6 @@ static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterfac
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 
-// The hooks of the scaling functions 005F7CA0, 005F7D20, 005F7DA0, 005F7E00 and 005F7E30
-// (ui_interface.cpp): the CInterface3D methods, except that with Rebirth's WideScreen code addon's
-// own callers reach them with ECX 0 (no interface): then the wide scaling without the margin.
-int __fastcall ScaleRectToScreenEntry(const CInterface3D* self, void*, RECT* rect);
-int __fastcall ScalePointToScreenEntry(const CInterface3D* self, void*, POINT* point);
-int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect);
-int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point);
-int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, POINT* point);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
 static_assert(offsetof(CInterface3D, messageText_) == 0xA4 && offsetof(CInterface3D, savedText_) == 0xAC);

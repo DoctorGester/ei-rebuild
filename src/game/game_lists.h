@@ -72,9 +72,12 @@ using Runs = ListAbi<ScriptRun, RunElements>;
 using Decls = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
 using Groups = ListAbi<ScriptGroup, EachElements<ScriptGroup, gamearrays::InitGroup, gamearrays::DestroyGroup>>;
 
-// 00599FA0 (RET 4): AddTail of a counted engine object (the node's slot zeroed, then assigned:
-// the object gains a reference); returns the node.
-EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*, CEngineObject* object);
+// The counted engine objects' list. 00599FA0 (RET 4): AddTail of a counted engine object (the node's
+// slot zeroed, then assigned: the object gains a reference); returns the node.
+struct CountedEngineObjects : EngineObjects::List {
+    Node* AddTailCounted(CEngineObject* object);
+};
+using CountedEngineList = CountedEngineObjects;
 
 // The lists' vtables are game_slots.h's (gameslots::*ListClass).
 

@@ -251,7 +251,7 @@ void Reserve(StringList& list, int needed) {
     stlp::string* storage;
     if (list.Start()) {
         storage = StringList::AllocateAndCopy<stlp::StringElement>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
-        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
+        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) static_cast<stlp::StringAbi*>(s)->DeletingDestructor(0);
         StringsFree(list.Start(), Capacity(list));
     } else {
         storage = needed ? reinterpret_cast<stlp::string*>(NodeAllocate(needed * static_cast<int>(sizeof(stlp::string)))) : nullptr;
@@ -298,7 +298,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
     stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);   // 0053BF40
-    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
+    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) static_cast<stlp::StringAbi*>(s)->DeletingDestructor(0);
     stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);   // 0053BF40
 }
 

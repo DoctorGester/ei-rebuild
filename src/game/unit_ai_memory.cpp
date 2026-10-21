@@ -42,12 +42,12 @@ console::GameOStream& PutLong(console::GameOStream& os, long value) {
 }
 } // namespace
 
-AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void*, CUnit* object) {
-    AIObjectList::Node* node = list->AddTail(object);
+AIObjectList::Node* AIObjectList::AddCountedTail(CUnit* object) {
+    Node* node = AddTail(object);
     if (object) ++object->refCount_;
     return node;
 }
-EI_REWRITTEN(0x005CD500, AddCountedTail);
+EI_REWRITTEN(0x005CD500, AIObjectList::AddCountedTail);
 
 void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
@@ -122,8 +122,8 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (IsDead(object)) {
         console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
         console::EndLine(PutLong(os, other->id_));
-        AddCountedTail(&seenCorpses, nullptr, object);
-        if (Allied(self->side, other->side)) AddCountedTail(&corpses, nullptr, object);
+        seenCorpses.AddCountedTail(object);
+        if (Allied(self->side, other->side)) corpses.AddCountedTail(object);
     } else {
         visible.AddHead(object);
         ++object->refCount_;
@@ -137,8 +137,8 @@ EI_REWRITTEN(0x005CBC80, AIMemory::ForceSee);
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
     console::EndLine(PutLong(os, corpse->id_));
-    AddCountedTail(&seenCorpses, nullptr, corpse);
-    if (Allied(self->side, corpse->side)) AddCountedTail(&corpses, nullptr, corpse);
+    seenCorpses.AddCountedTail(corpse);
+    if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }
 
 EI_REWRITTEN(0x005CBE90, AIMemory::SeeCorpse);

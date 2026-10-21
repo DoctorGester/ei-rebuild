@@ -104,7 +104,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     }
     memory->nearby.RemoveAll();
     for (int i = 0; i < count; ++i) {
-        AIObjectList* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        mfc::CTypedPtrList<CUnit>* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
         for (auto* node = units->head; node; node = node->next) {
             CUnit* other = node->data;
@@ -170,8 +170,8 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         }
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&memory->seenCorpses, nullptr, other);
-            if (Allied(self->side, other->side)) AddCountedTail(&memory->corpses, nullptr, other);
+            memory->seenCorpses.AddCountedTail(other);
+            if (Allied(self->side, other->side)) memory->corpses.AddCountedTail(other);
             continue;
         }
         if (alive) {
@@ -216,8 +216,8 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&memory->seenCorpses, nullptr, other);
-            if (Allied(self->side, other->side)) AddCountedTail(&memory->corpses, nullptr, other);
+            memory->seenCorpses.AddCountedTail(other);
+            if (Allied(self->side, other->side)) memory->corpses.AddCountedTail(other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();

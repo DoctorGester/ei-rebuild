@@ -57,12 +57,15 @@ struct PartyUnitRecordElements {
 };
 // A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable 00742FF4). Its SetSize
 // (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
-using PartyMemberArray = mfc::CArray<PartyUnitRecord, PartyUnitRecordElements>;
+struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
+    // 00664160 (party_lifetime.cpp). The array's destructor body: its vtable, the records destroyed
+    // and the storage freed.
+    void Destruct();
+    // 00664470: slot 0 (operator delete with flags bit 0; returns the array).
+    PartyMembers* DeletingDestruct(unsigned flags);
+};
+using PartyMemberArray = PartyMembers;
 constexpr std::uintptr_t kPartyMemberArrayVtable = std::uintptr_t(0x00742FF4);
-// 00664160 (party_lifetime.cpp). The array's destructor body: its vtable, the records destroyed
-// and the storage freed. 00664470: slot 0 (operator delete with flags bit 0; returns the array).
-void __fastcall DestructPartyMemberArray(PartyMemberArray* array);
-PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags);
 
 class CParty : public CEngineObject {
 public:

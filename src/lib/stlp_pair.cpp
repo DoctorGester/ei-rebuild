@@ -9,64 +9,65 @@
 
 namespace stlp {
 
-DwordPair* __fastcall PairAbi::ConstructDwords(DwordPair* self, void*, const std::uint32_t* first, const std::uint32_t* second) {
-    self->first = *first;
-    self->second = *second;
-    return self;
+DwordPair* DwordPair::Construct(const std::uint32_t& firstValue, const std::uint32_t& secondValue) {
+    first = firstValue;
+    second = secondValue;
+    return this;
 }
 
-StringDwordPair* __fastcall PairAbi::ConstructStringDword(StringDwordPair* self, void*, const string* first,
-                                                          const std::uint32_t* second) {
-    new (&self->first) string(*first);
-    self->second = *second;
-    return self;
+StringDwordPair* StringDwordPair::Construct(const string& firstValue, const std::uint32_t& secondValue) {
+    new (&first) string(firstValue);
+    second = secondValue;
+    return this;
 }
 
 void StringDwordElement::Copy(StringDwordPair* to, const StringDwordPair& from) {
-    PairAbi::ConstructStringDword(to, nullptr, &from.first, &from.second);
+    to->Construct(from.first, from.second);
 }
 
-StringPair* __fastcall PairAbi::ConstructStrings(StringPair* self, void*, const string* first, const string* second) {
-    new (&self->first) string(*first);
-    new (&self->second) string(*second);
-    return self;
+StringPair* StringPair::Construct(const string& firstValue, const string& secondValue) {
+    new (&first) string(firstValue);
+    new (&second) string(secondValue);
+    return this;
 }
 
-StringListPair* __fastcall PairAbi::ConstructStringList(StringListPair* self, void*, const string* first,
-                                                        const list<void*>* second) {
-    new (&self->first) string(*first);
-    self->second.Construct();
-    list<void*>::InsertRange(self->second.End(), second->First(), second->End());
-    return self;
+StringListPair* StringListPair::Construct(const string& firstValue, const list<void*>& secondValue) {
+    new (&first) string(firstValue);
+    second.Construct();
+    list<void*>::InsertRange(second.End(), secondValue.First(), secondValue.End());
+    return this;
 }
 
-void __fastcall PairAbi::DestroyStringList(StringListPair* self) {
-    self->second.Destroy();
-    self->first.~string();
+void StringListPair::Destruct() {
+    second.Destroy();
+    first.~string();
 }
 
-void __fastcall PairAbi::DestroyStrings(StringPair* self) {
-    self->second.~string();
-    self->first.~string();
+void StringPair::Destruct() {
+    second.~string();
+    first.~string();
 }
 
-StringPair* __fastcall PairAbi::DeletingDestructor(StringPair* self, void*, unsigned flags) {
-    DestroyStrings(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+StringPair* StringPair::DeletingDestructor(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 
 } // namespace stlp
 
-using stlp::PairAbi;
+using stlp::DwordPair;
+using stlp::StringDwordPair;
+using stlp::StringPair;
+using stlp::StringListPair;
 
-EI_REWRITTEN(0x00407DE0, PairAbi::ConstructDwords);
-EI_REWRITTEN(0x0040A9D0, PairAbi::ConstructDwords);
-EI_REWRITTEN(0x005729D0, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x00689950, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x006BC140, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x0064F880, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x006A7710, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x004FB170, PairAbi::ConstructStringDword);
-EI_REWRITTEN(0x0069C1C0, PairAbi::ConstructStringList);
-EI_REWRITTEN(0x004AD640, PairAbi::DestroyStringList);
+EI_REWRITTEN(0x00407DE0, DwordPair::Construct);
+EI_REWRITTEN(0x0040A9D0, DwordPair::Construct);
+EI_REWRITTEN(0x005729D0, StringDwordPair::Construct);
+EI_REWRITTEN(0x00689950, StringDwordPair::Construct);
+EI_REWRITTEN(0x006BC140, StringDwordPair::Construct);
+EI_REWRITTEN(0x0064F880, StringDwordPair::Construct);
+EI_REWRITTEN(0x006A7710, StringDwordPair::Construct);
+EI_REWRITTEN(0x004FB170, StringDwordPair::Construct);
+EI_REWRITTEN(0x0069C1C0, StringListPair::Construct);
+EI_REWRITTEN(0x004AD640, StringListPair::Destruct);

@@ -781,7 +781,15 @@ struct AIEventTable;   // unit_ai.h
 // The cells under a bridge (CAIMap::bridgeHeights): an STLport hash_map keyed (short)x << 16 |
 // (short)y, the value the cell's saved ground level (low word), object height (bits 16-21) and
 // occluder kind (bits 24-28).
-using BridgeMap = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
+struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash> {
+    // 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
+    // the cell's bridge map entry saved (ground level, object height, the occluder word's low five
+    // bits) and erases the entry; nothing without one. x and y are read as shorts.
+    void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
+    // 005B3160. Bridge deck height of cell (x, y), 0 if none.
+    int HeightAt(short x, short y) const;
+};
+using BridgeMap = BridgeHeights;
 static_assert(sizeof(BridgeMap) == 0x14);
 
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
@@ -1092,9 +1100,3 @@ void __fastcall InitCostTables(CAIMap* map);
 int __stdcall LevelForSizeClass(int sizeClass);
 // 005B7B70. Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
 int __stdcall StandingLevel(const CUnit* unit);
-// 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
-// the cell's bridge map entry saved (ground level, object height, the occluder word's low five
-// bits) and erases the entry; nothing without one. x and y are read as shorts.
-void __fastcall RestoreBridgeCell(BridgeMap* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder);
-// 005B3160. Bridge deck height of cell (x, y) from the hash map at CAIMap + 0x10C, 0 if none.
-int __fastcall BridgeHeight(const BridgeMap* map, void*, short x, short y);

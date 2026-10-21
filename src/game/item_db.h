@@ -34,6 +34,12 @@ struct RecordTable {
         std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(end - begin) / stride);
         return index < count ? begin + index * stride : nullptr;
     }
+    // RecordAt out of line for one record size (006A5950 / 006A5990 / 006A59D0 / 006A5A10; RET 4: the armour,
+    // quick item, quest item and loot tables; only the quick item's figure name 006A3CD0 called them).
+    template <int Stride>
+    char* RecordAtStride(std::uint32_t index) const {
+        return RecordAt(index, Stride);
+    }
 };
 
 // Reads a field of a record that may be null (the original then faults reading address `offset`).
@@ -426,12 +432,6 @@ static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
 static_assert(offsetof(MaterialRecordHead, damageFactor) == 0x28);
 static_assert(offsetof(MaterialRecordHead, absorbFactors) == 0x2C);
 static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
-
-// 006A5950 / 006A5990 / 006A59D0 / 006A5A10 (RET 4; item_db_records.cpp, A-H25): RecordTable::RecordAt
-// out of line for the armour, quick item, quest item and loot tables (only the quick item's figure name
-// 006A3CD0 called them).
-template <int Stride>
-char* __fastcall RecordTableAt(const RecordTable* table, void*, std::uint32_t index);
 
 // The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armours
 // (00796534..0079654C), by type (the model and picture names).

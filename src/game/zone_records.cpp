@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "game/game_flow_data.h"
 #include "game/object_tables.h"
 #include "game/game_arrays.h"
@@ -22,12 +23,7 @@ void __fastcall ExitDestruct(MapExit* self) { DestroyString(self->target); }
 EI_REWRITTEN(0x00460460, ExitDestruct);
 
 // 004608B0: the zone exit's scalar deleting destructor.
-void* __fastcall ExitDelete(void* self, void*, unsigned flags) {
-    ExitDestruct(static_cast<MapExit*>(self));
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
-EI_REWRITTEN(0x004608B0, ExitDelete);
+EI_REWRITTEN(0x004608B0, mfc::impl::ScalarDelete<&ExitDestruct>);
 
 // 00460970: a zone record's destructor: the exits' array (base vtable 0073C3F4; each exit's string
 // destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.

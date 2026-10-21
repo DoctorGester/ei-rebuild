@@ -30,8 +30,7 @@ namespace {
 // value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
 // referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
 mfc::CString* StringAt(const void* array, void* out, int index) {
-    return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
-        static_cast<const mfc::impl::StringArrayAbi::Array*>(array), nullptr, static_cast<mfc::impl::CString*>(out), index));
+    return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
 }
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 

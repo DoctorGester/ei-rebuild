@@ -139,7 +139,7 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
             V value;
             ar->Read(&key, sizeof(K));
             ar->Read(&value, sizeof(V));
-            *Abi::ElementAt(self, nullptr, &key) = value;
+            self->ElementAt(key) = value;
         }
     }
 }
@@ -331,10 +331,10 @@ struct DwordMapClass final
     : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &SerializeCMap<Map32>> {};
 
 // The animation list's copy constructor of the steps' array alone (00556870): the copy tag's table written first.
-inline AnimationStepListAbi::Array* __fastcall AnimationStepListAbi::CopyConstructSteps(Array* self, void*, const Array* source) {
-    self->Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
-    self->Copy(*source);
-    return self;
+inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
+    Array::Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
+    Array::Copy(*source);
+    return this;
 }
 
 // ---- Element policies of the owned-element arrays ------------------------------------------------
