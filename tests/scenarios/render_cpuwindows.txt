@@ -5,7 +5,7 @@
 # world / world_again must match. The same frames as render_present_cpuwindows; this run keeps its
 # own walk (the camp, the global map) and golden. A run of the original code captures dgVoodoo's
 # frames.
-render new,cpuwindows
+render new,cpuwindows,checkall
 reject Script error
 waitmenu
 console thingamabob

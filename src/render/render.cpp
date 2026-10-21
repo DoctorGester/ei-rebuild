@@ -46,6 +46,7 @@ bool g_smooth = false;
 bool g_classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
+bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs (SV10e); else the first few of each kind, then every 16th
 #endif
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
@@ -57,6 +58,7 @@ void ParseSpec(const char* spec) {
     bool classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
+    g_checkAll = false;
 #endif
     std::string s = spec ? spec : "";
     std::size_t start = 0;
@@ -70,6 +72,7 @@ void ParseSpec(const char* spec) {
         else if (word == "classicshadows") classicShadows = true;
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
+        else if (word == "checkall") g_checkAll = true;
 #endif
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
@@ -688,6 +691,12 @@ Addresses& Where() {
     return addresses;
 }
 } // namespace game
+
+#if defined(EI_RENDER_VALIDATION)
+namespace detail {
+bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || count % 16 == 0; }
+} // namespace detail
+#endif
 
 // The step's words, then EI_RENDER's.
 void Configure(const char* spec) {

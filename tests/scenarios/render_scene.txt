@@ -10,7 +10,7 @@
 # the renderer's memory updated in place (world_remade: made again as new images, as before R16b).
 # R16k: the same with the device's mesh draws doing all the old per-corner work (world_cornersfull: TL
 # vertices, fog, clipped vertices to the screen, as before R16k; nothing in the image reads them).
-render new
+render new,checkall
 reject Script error
 waitmenu
 console thingamabob

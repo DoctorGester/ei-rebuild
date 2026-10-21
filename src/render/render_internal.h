@@ -287,6 +287,11 @@ bool TakeSimulatedLoss();
 // render::RemoveDevice was called: the removable device is removed now (once). Called right before
 // the game window's Present, or at the end of the frame without one.
 void RemoveIfAsked();
+// Whether the verify build's GPU read-backs (CheckUpload, CheckRamp: a stall each) run for the `count`th
+// (from 0) of their kind: the first kReadBackAlways of each kind, then every 16th, and every one with
+// "checkall" in EI_RENDER (the render_* scenarios that count on them).
+constexpr long kReadBackAlways = 64;
+bool ReadBackDue(long count);
 #endif
 // The losses and recoveries so far and the last loss (WindowPresents).
 void DeviceLossCounts(WindowPresentInfo* info);

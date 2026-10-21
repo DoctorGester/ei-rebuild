@@ -9,7 +9,7 @@
 # "cpuwindows: surface holders in the switch-over get no DirectDraw surface" (the windows, the
 # cursor's holders and images, the movies have only the new renderer's memory). world / world_again
 # must match.
-render new,present,cpuwindows
+render new,present,cpuwindows,checkall
 reject Script error
 waitmenu
 console thingamabob

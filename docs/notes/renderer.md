@@ -326,7 +326,8 @@ since the last commit; sokol allows one update per image and frame, and the blit
 is rewritten; only when every image is in use is a one-frame image made. A movie keeps one image per player, updated
 in place unless it was already blitted or updated in this frame (then a new one replaces it after the present).
 Harness build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
-in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference).
+in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference;
+sampled like the gamma ramp check: the first 64 of each kind, then every 16th, all with `checkall`).
 
 ## 9. The present path and what is left
 
@@ -426,7 +427,9 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   applies only to what is presented, not to the frame (captures, ReadFrame), as the hardware ramp did not change
   surface reads. Harness build: after a ramp change the presented back buffer is read back at a 17x17 grid
   (one-to-one placement only) and compared with the frame through the ramp ("render: gamma ramp check" / "render:
-  MISMATCH gamma ramp").
+  MISMATCH gamma ramp"). Both read-backs (this and the image uploads below) stall on the GPU, so they are sampled (SV10e,
+  `ReadBackDue`): the first 64 of each kind (cursor / fill uploads, movie uploads, ramps), then every 16th; the
+  render_* scenarios (not render_stats, which measures) say `checkall` in their `render` line for every one.
 - Full screen (device flags_ bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
   from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user

@@ -10,7 +10,7 @@
 # second part (section 7) no texture has one: the .mmp textures are the new renderer's decoded
 # copy, the object shadows' textures its memory (ei_hook.log: "... .mmp textures in the switch-over
 # get no DirectDraw texture ...").
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 console thingamabob

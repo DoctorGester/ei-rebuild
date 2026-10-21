@@ -8,7 +8,7 @@
 # frames: the main menu, the titles (the movie's frame and the scrolling text must both show), the
 # main menu again. ei_hook.log says once "cpuwindows: surface holders in the switch-over get no
 # DirectDraw surface".
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 

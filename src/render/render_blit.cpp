@@ -279,6 +279,7 @@ sg_view MakeImageView(sg_image image) {
 
 #if defined(EI_RENDER_VALIDATION)
 long g_uploadChecks = 0, g_uploadMismatches = 0;
+long g_uploads[2] = {0, 0};   // uploads so far, cursor / fill and movie (the read-back is sampled: ReadBackDue)
 // Verify build: reads the image back from the GPU and compares it with the pixels just written
 // (what the blit's unchanged shader then draws is exactly these texels).
 void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
@@ -325,8 +326,12 @@ void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUs
     CountUpload(use == ImageUse::Movie ? FrameStats::Movie : FrameStats::Small, data.mip_levels[0].size);
     sg_update_image(image, &data);
 #if defined(EI_RENDER_VALIDATION)
-    CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
-    if (g_uploadChecks % 20 == 1 && g_uploadChecks) ei::Log("render: image uploads checked back from the GPU: %ld, mismatches %ld", g_uploadChecks, g_uploadMismatches);
+    long& uploads = g_uploads[use == ImageUse::Movie ? 1 : 0];
+    if (ReadBackDue(uploads++)) {
+        CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
+        if (g_uploadChecks % 20 == 1 && g_uploadChecks)
+            ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads[0] + g_uploads[1], g_uploadMismatches);
+    }
 #endif
 }
 

@@ -8,7 +8,7 @@
 # classic frame matches the one with the shadow textures made again as new images with their levels
 # made on the CPU (memorytextures remake, as before R16b) at 8 / 0.5% (the GPU's levels differ a little).
 # no original: vanilla rebirth (the shadow map is our renderer's)
-render new,present
+render new,present,checkall
 timeout 120
 reject Script error
 waitmenu

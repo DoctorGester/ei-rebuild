@@ -12,7 +12,7 @@
 # moments with the shadows as they started, off (or on, when they started off), and back. R16b: each
 # moment with the classic shadows too (the shadow textures), updated in place and made again as new
 # images (memorytextures remake, as before R16b): they match at 8 / 0.5%.
-render new,present
+render new,present,checkall
 reject Script error
 waitmenu
 frames 5
