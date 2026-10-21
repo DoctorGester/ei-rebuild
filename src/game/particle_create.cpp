@@ -804,9 +804,9 @@ void CParticleSource::Reset() {
     frameCount = 1;
     frameColumns = 1;
     frameDelay = 10000;
-    void* held = texture;
+    CTexture* held = texture;
     texture = nullptr;
-    if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
+    if (held) held->Release();
     std::memset(&windDirection, 0, sizeof(Vector3));
     std::memset(&extent, 0, sizeof(Vector3));
     emitFn = nullptr;
@@ -841,9 +841,9 @@ EI_REWRITTEN(0x004847E0, CParticleSource::Reset);
 // from the object the source follows, then resets.
 void CParticleSource::Clear() {
     ReleaseAllParticles();
-    void* held = texture;
+    CTexture* held = texture;
     texture = nullptr;
-    if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
+    if (held) held->Release();
     if (attachedTo)   // 00518AE0: detached from the object it is attached to
         static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(this);
     Reset();
@@ -872,7 +872,7 @@ int CParticleSource::CreateForType() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, 6, name);
+    TextureHolderLoad(&texture, nullptr, 6, name);
     BuildFrames(this);
     return 1;
 }
@@ -941,7 +941,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 void CParticleSource::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     Clear();
-    if (texture) (*static_cast<void(__fastcall***)(void*, void*)>(texture))[4](texture, nullptr);
+    if (texture) texture->Release();
     if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
     ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;

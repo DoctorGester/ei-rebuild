@@ -67,6 +67,7 @@ static_assert(sizeof(ParticleElement) == 0x38);
 
 class CParticleSource;
 class CObject3D;
+class CTexture;   // texture.h
 
 // The particle manager (0xE8 bytes; the client world's +0x19C and *007AF754; a real virtual class:
 // the compiler makes its vtable, C19, game.exe's 0073F644 is retired;
@@ -382,7 +383,7 @@ public:
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
-    void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
+    CTexture* texture;              // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
@@ -428,7 +429,7 @@ Particle** __fastcall NextParticle(void* list, void*, mfc::CTypedPtrList<Particl
 
 // 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
 // through the renderer (slot 11). __thiscall on the renderer.
-int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder);
+int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder);
 
 // 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
 // stored just below; __fastcall.
@@ -476,7 +477,7 @@ public:
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
-    CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
+    CTexture* texture;              // +0x01C counted texture ("RainSnow")
     class CWorldClient* world;      // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
     // The draws' work arrays.

@@ -114,8 +114,8 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     boundsMax_.y += 1.0f;
     boundsMax_.z += 1.0f;
     radius_ = boundsMax_.Length();
-    auto** glow = reinterpret_cast<CTexture**>(&glowTexture_);
-    auto** main = reinterpret_cast<CTexture**>(&texture_);
+    CTexture** glow = &glowTexture_;
+    CTexture** main = &texture_;
     if (demon) {
         TextureHolderLoad(glow, nullptr, 6, "DemonLight");
         TextureHolderLoad(main, nullptr, 6, "DemonLightning");
@@ -136,8 +136,8 @@ void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct
 void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
 
 // A texture reference dropped: cleared, then released.
-void DropTexture(CEngineObject*& slot) {
-    CEngineObject* old = slot;
+void DropTexture(CTexture*& slot) {
+    CTexture* old = slot;
     slot = nullptr;
     if (old) old->Release();
 }

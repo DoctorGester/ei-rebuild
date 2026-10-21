@@ -1663,7 +1663,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
-        auto* holder = reinterpret_cast<CTexture**>(&skyDome_->texture);
+        CTexture** holder = &skyDome_->texture;
         if (cave == kCave) {
             TextureHolderLoad(holder, nullptr, kSkyTextureKind, worlddata::CaveSkyText());
             skyDome_->turns = 0;
