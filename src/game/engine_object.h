@@ -81,8 +81,9 @@ struct HeldEngineObject {
     CEngineObject* object;
 
     static HeldEngineObject* Of(CEngineObject** pointer) { return reinterpret_cast<HeldEngineObject*>(pointer); }
-    // 004EBE60 (RET 4; device_helpers.cpp; byte-identical to 00429B50 and 0056F1A0, a particle
-    // source's): takes `value`, counted first, then the old one released through its slot 4.
+    // 004EBE60 (RET 4; refptr_copies.cpp; byte-identical to 00429B50, 00511B90, 0052C690, 00556C40,
+    // 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first, then the old one
+    // released through its slot 4.
     void Assign(CEngineObject* value);
     // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; library_containers.cpp):
     // the pointer copied, its count raised when not null; returns this.

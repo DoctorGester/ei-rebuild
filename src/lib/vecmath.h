@@ -87,6 +87,9 @@ struct Quaternion {
     // 004D9AA0 (matrix_math.cpp, RET 4). The rotation part of the row-major 4x4 matrix `out`
     // (elements 0-2, 4-6, 8-10; the others are left as they are).
     void ToMatrix(float* out) const;
+
+    // 0046A4B0 (map_spec.cpp, RET 8). `out` = `v` rotated by the quaternion; returns `out`.
+    Vector3* Rotate(Vector3* out, const Vector3* v) const;
 };
 static_assert(sizeof(Quaternion) == 16);
 

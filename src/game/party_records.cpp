@@ -147,22 +147,11 @@ namespace {
 
 char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
 
-// The node of `key` in an STLport hash_map<int, Party> (buckets +0x04..+0x08; node: next, key,
-// value at +8), null if none.
-struct MapNode {
-    MapNode* next;
-    int key;
-};
-static_assert(sizeof(MapNode) == 8);
-MapNode* FindNode(const void* map, int key) {
-    auto* buckets = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 4);
-    auto* bucketsEnd = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 8);
-    unsigned count = static_cast<unsigned>(bucketsEnd - buckets);
-    for (MapNode* node = buckets[static_cast<unsigned>(key) % count]; node; node = node->next)
-        if (node->key == key) return node;
-    return nullptr;
+// The party stored under `key` (find, inlined), null if none.
+CParty* FindParty(const PartyMap& parties, int key) {
+    PartyMap::Node* node = parties.Find(static_cast<std::uint32_t>(key));
+    return node ? node->value.mapped.Get() : nullptr;
 }
-CParty* NodeParty(MapNode* node) { return reinterpret_cast<PartyInPlace*>(node + 1)->Get(); }
 
 } // namespace
 
@@ -193,24 +182,20 @@ int __stdcall PartyNextId(int* out) {
 EI_REWRITTEN(0x004A8910, PartyNextId);
 
 bool PartyManager::LoadParty(int, int, const int* key, CParty* target) const {
-    const void* map = this;
     if (*key == 0) {
         PartyResetOriginal((void*)target, nullptr, 1, 0);
         return true;
     }
-    MapNode* node = FindNode(map, *key);
-    if (!node) return false;
-    target->Assign(NodeParty(node));
+    CParty* stored = FindParty(parties, *key);
+    if (!stored) return false;
+    target->Assign(stored);
     return true;
 }
 EI_REWRITTEN(0x004A8790, PartyManager::LoadParty);
 
 bool PartyManager::StoreParty(const int* key, CParty* source) {
-    void* map = this;
-    MapNode* node = FindNode(map, *key);
-    CParty* value = node ? NodeParty(node)
-                         : static_cast<gamehash::PartyTable*>(map)->At(
-                               reinterpret_cast<const std::uint32_t*>(key))->Get();   // 004A91B0
+    CParty* value = FindParty(parties, *key);
+    if (!value) value = parties.At(key)->Get();   // 004A91B0
     value->Assign(source);
     return true;
 }

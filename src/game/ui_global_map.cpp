@@ -53,9 +53,6 @@
 
 using console::CStringArray;
 
-namespace mapspec {
-Vector3* __fastcall QuaternionRotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/);
-}
 namespace {
 
 constexpr std::uintptr_t kWeatherVtable = std::uintptr_t(0x007420D4);   // GlobalMapWeather (CCloudNoise)
@@ -155,7 +152,7 @@ public:
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
-        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
+        map_->turn_.Rotate(&turned, &local);
         Vector3 out;
         AddVectors(&out, centre, turned);
         return out;
@@ -182,7 +179,7 @@ public:
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
         Vector3 turned;
-        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
+        map_->turn_.Rotate(&turned, &local);
         Vector3 p;
         p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
                     static_cast<float>(D(centre.z) + D(turned.z)));

@@ -127,16 +127,12 @@ void PartyManager::Destruct() {
     records.records.FreeStorage();
     for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
     entries.FreeStorage();
-    parties.ClearWith([this](PartyMap::Node* node) {   // 004ABA70
-        static_cast<gamehash::PartyAbi*>(static_cast<stlp::hashtable<gamehash::PartyTraits>*>(reinterpret_cast<gamehash::PartyTable*>(&parties)))
-            ->DeleteNode(reinterpret_cast<gamehash::PartyAbi::Node*>(node));
-    });
-    static_cast<stlp::vector<void*>*>(parties.BucketVector())->FreeStorage();
+    parties.Destroy();   // every node deleted (004ABA70), then the buckets freed
 }
 EI_REPLACE_METHOD(0x004A5700, PartyManager::Destruct);
 
 PartyManager* PartyManager::Construct() {
-    parties.InitBuckets(100);
+    parties.InitZeroedBuckets(100);
     new (&entries) stlp::vector<PartyManagerEntry>();
     new (&records.records) stlp::vector<PartyRecord*>();
     new (&records.text0C) mfc::CString();

@@ -88,7 +88,7 @@ void ClientSession::ApplyAwards() {
             InitList(items, gameslots::ItemObjectListClass::Vtable());
             CItem* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             GivenItems::Node* added = items.NewNode(items.tail, nullptr);
-            ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&added->data), nullptr, item);
+            AssignHeld(&added->data, item);
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;
