@@ -5,9 +5,10 @@
 // Each function draws text lines into the panel's surface 0 between Begin (005FDC00) and End
 // (005FDC60): Text (005FDE20, Rebirth-patched, called through its address) for single lines and
 // DrawWrappedText (005FDFA0) for the wrapped title and description. Values the original truncates
-// with the game's _ftol are converted the same way; values computed by original functions are
-// truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
-// in between. Compiled with precise floating point so that products keep the original's order.
+// with the game's _ftol are converted the same way; values of the statistics functions (UnitStats,
+// WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated as they come back in ST0: the ones the
+// original leaves unrounded are declared double there, so no rounding happens in between. Compiled
+// with precise floating point so that products keep the original's order.
 #include "party.h"
 #include "text_reader.h"
 #include "text_split.h"
@@ -72,24 +73,15 @@ int MbsCmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-// What an original __thiscall function leaves in ST0, unrounded (called as __fastcall: the object in
-// ECX, EDX unused, an optional stack argument the callee pops).
-using StatFunction = double(__fastcall*)(const void* self, void* unused);
-using StatArgFunction = double(__fastcall*)(const void* self, void* unused, int arg);
-double Stat(std::uintptr_t fn, const void* self) { return ei::Code<StatFunction>(fn)(self, nullptr); }
-double StatArg(std::uintptr_t fn, const void* self, int arg) { return ei::Code<StatArgFunction>(fn)(self, nullptr, arg); }
+// _ftol of a value as it is in ST0 (a statistic's result, kept unrounded).
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-// _ftol of such a value (optionally with one stack argument and a multiplication by the float at
-// `scale`), the value kept unrounded.
-int StatFtol(std::uintptr_t fn, const void* self) { return Ftol(Stat(fn, self)); }
-int StatFtolScaled(std::uintptr_t fn, const void* self, float scale) { return Ftol(Stat(fn, self) * scale); }
-int StatFtolArg(std::uintptr_t fn, const void* self, int arg) { return Ftol(StatArg(fn, self, arg)); }
-int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, float scale) {
-    return Ftol(StatArg(fn, self, arg) * scale);
-}
-// _ftol(_CIpow(base, exponent - subtrahend) * scale): the base is the double at `base`, the exponent a
-// float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all unrounded.
+constexpr float kPercentScale = 100.0f;   // 0073BAB0
+constexpr float kStatBase = 25.0f;        // 0073E124 (an attribute's neutral value)
+constexpr double kIntelligenceGrowth = 1.04;   // 0073E128
+
+// _ftol(_CIpow(base, exponent - subtrahend) * scale): the exponent a float minus `subtrahend`
+// (FSUB), the product with `scale`, all unrounded.
 int PowFtol(double base, float exponent, float subtrahend, float scale) {
     const double power = libcrt::CiPow(base, static_cast<double>(exponent) - subtrahend);
     return Ftol(power * scale);
@@ -106,11 +98,6 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 }
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
-// An original function returning a float in ST0 with the packed id in ECX (006A2D40 / 006A2D90),
-// truncated.
-int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
-    return Ftol(ei::Code<double(__fastcall*)(std::uint32_t)>(fn)(packedId));
-}
 
 // The surface's drawing (thiscall on the surface).
 struct SurfaceDraw {
@@ -445,11 +432,11 @@ void CItemInfoPanel::DescribeItem() {
             w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
-            w.Number(38, PackedFtol(0x006A2D40, PackedIdOf(item)));
+            w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
             if (static_cast<CItemWeapon*>(item)->GetType() == 5 || static_cast<CItemWeapon*>(item)->GetType() == 6)
                 w.Number(10, FtolOf(Read<float>(item, 0x58)));
             else
-                w.Number(39, PackedFtol(0x006A2D90, PackedIdOf(item)));
+                w.Number(39, Ftol(WeaponStat88(PackedIdOf(item))));
             goto tail;
         }
     }
@@ -791,7 +778,7 @@ EI_REPLACE_METHOD(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 namespace {
 
 // Kind 0, an attribute: two of its derived values (UnitStats methods), percentages where scaled.
-void AttributeLines(Writer& w, const std::uint8_t* stats, int index) {
+void AttributeLines(Writer& w, UnitStats* stats, int index) {
     auto line = [&](const char* format, int label, int value) {
         w.line.Format(format, static_cast<const char*>(w.Skill(label)), value);
         w.Text(w.line);
@@ -799,19 +786,19 @@ void AttributeLines(Writer& w, const std::uint8_t* stats, int index) {
     };
     switch (index) {
     case 0:
-        line("%s %d%%", 0, StatFtolScaled(0x00523CB0, stats, 100.0f /*0073BAB0*/));   // * 100
-        line("%s %d", 1, StatFtol(0x00524280, stats));
+        line("%s %d%%", 0, Ftol(stats->StrengthRatio() * kPercentScale));
+        line("%s %d", 1, Ftol(stats->Value6E8()));
         w.Down();
         break;
     case 1:
-        line("%s %d%%", 2, StatFtolScaled(0x00523CC0, stats, 100.0f /*0073BAB0*/));
-        line("%s %d", 3, StatFtol(0x00524320, stats));
+        line("%s %d%%", 2, Ftol(stats->DexterityRatio() * kPercentScale));
+        line("%s %d", 3, Ftol(stats->RateValue()));
         w.Down();
         break;
     case 2:
         // 1.04 ^ (intelligence - 25) * 100.
-        line("%s %d%%", 4, PowFtol(1.04 /*0073E128*/, Read<float>(stats, 0x20), 25.0f /*0073E124*/, 100.0f /*0073BAB0*/));
-        line("%s %d%%", 24, StatFtolScaled(0x00523CD0, stats, 100.0f /*0073BAB0*/));
+        line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->stat20, kStatBase, kPercentScale));
+        line("%s %d%%", 24, Ftol(stats->Period20() * kPercentScale));
         w.Down();
         break;
     default:
@@ -870,10 +857,9 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         }
         if (drawn) w.Text(w.line);
         w.Down();
-        // The cost (00528050; negative: 0x7FFFFFFF), on a line 15 pixels wider.
+        // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
         w.Rect()->right += 15;
-        using CostFn = int(__thiscall*)(const std::uint8_t*, const char*);
-        int cost = ei::Code<CostFn>(0x00528050)(info->stats, level);
+        int cost = info->stats->SkillPrice(level);
         if (cost < 0) cost = 0x7FFFFFFF;
         w.line.Format(plain, static_cast<const char*>(w.Skill(18)), cost);
         w.Text(w.line);
@@ -886,7 +872,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
 // weapon of type 5 or 6, infoitem_34).
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItem* weapon = info->weapon;
-    const std::uint8_t* stats = info->stats;
+    UnitStats* stats = info->stats;
     int type = static_cast<CItemWeapon*>(weapon)->GetType();
     if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
@@ -899,25 +885,25 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
         w.line.Format("%d", value);
         w.Value(w.line);
     };
-    int base = DifferenceFtol(Read<float>(stats, 0x18), 25.0f /*0073E124*/);   // dexterity - 25
+    int base = DifferenceFtol(stats->stat18, kStatBase);   // dexterity - 25
     part(29, base);
     int sum = base;
     w.Down();
-    int skill = StatFtolArg(0x00526780, stats, type);
+    int skill = Ftol(stats->WeaponSkill(type));
     part(30, skill);
     sum += skill;
     w.Down();
-    int level = StatFtolArg(0x005267E0, stats, type);
+    int level = Ftol(stats->SkillLevelValue(type));
     part(31, level);
     sum += level;
     w.Down();
     w.line.Format("     %s", static_cast<const char*>(w.T(32)));
     w.Text(w.line);
-    int own = StatFtolArg(0x00526860, stats, static_cast<int>(PackedIdOf(weapon)));
+    int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
     if (MbsCmp(info->text, "defense") == 0)
-        own += PackedFtol(0x006A2D90, PackedIdOf(weapon));
+        own += Ftol(WeaponStat88(PackedIdOf(weapon)));
     else
-        own += PackedFtol(0x006A2D40, PackedIdOf(weapon));
+        own += Ftol(WeaponStat84(PackedIdOf(weapon)));
     w.line.Format("%d", own);
     w.Value(w.line);
     sum += own;
@@ -952,7 +938,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     w.Title(title);
     w.Down();
     w.Down();
-    const std::uint8_t* stats = info->stats;
+    UnitStats* stats = info->stats;
     switch (info->kind) {
     case 0:
         AttributeLines(w, stats, info->index);
@@ -961,17 +947,17 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     case 1: {
         // A skill: its level and, for the first three, a derived value.
         int index = info->index;
-        w.line.Format("%s %d", static_cast<const char*>(w.Skill(5)), StatFtolArg(0x00527030, stats, index));
+        w.line.Format("%s %d", static_cast<const char*>(w.Skill(5)), Ftol(stats->SkillBase(index)));
         w.Text(w.line);
         w.Down();
         if (index >= 0) {
             bool drawn = true;
             if (index <= 1)
                 w.line.Format("%s %d", static_cast<const char*>(w.Skill(6)),
-                              StatFtolArg(0x00527050, stats, index));
+                              Ftol(stats->SkillWithBonus(static_cast<std::uint32_t>(index))));
             else if (index == 2)
                 w.line.Format("%s %d%%", static_cast<const char*>(w.Skill(7)),
-                              StatFtolScaled(0x00525CD0, stats, 100.0f /*0073BAB0*/));
+                              Ftol(stats->Value6E9() * kPercentScale));
             else
                 drawn = false;
             if (drawn) {
@@ -986,11 +972,11 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     case 2:
         // A skill school: its level and, for school 0, a second value.
         w.line.Format("%s %d", static_cast<const char*>(w.Skill(5)),
-                      StatFtolArg(0x00525DF0, stats, info->index));
+                      Ftol(stats->AttributeBase(info->index)));
         w.Text(w.line);
         w.Down();
         if (info->index == 0) {
-            w.line.Format("%s %d", static_cast<const char*>(w.Skill(9)), StatFtolArg(0x00525E10, stats, 0));
+            w.line.Format("%s %d", static_cast<const char*>(w.Skill(9)), Ftol(stats->AttributeWithBonus(0)));
             w.Text(w.line);
             w.Down();
         }
@@ -1007,7 +993,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Text(w.T(25));
         w.Down();
         float sums[7];
-        const UnitStatSlot& slot = reinterpret_cast<const UnitStats*>(stats)->slots[info->part];
+        const UnitStatSlot& slot = stats->slots[info->part];
         for (int i = 0; i < 7; ++i) sums[i] = LayerSum(&slot.layers[0].absorb[i]);
         for (int i = 0; i < 6; ++i) {
             w.line.Format("damage_%d", i);
@@ -1035,7 +1021,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
             if (school == 4 || school == 6 || school == 7) continue;
             w.line.Format("     %s", static_cast<const char*>(w.T(label++)));
             w.Text(w.line);
-            w.line.Format("%d", StatFtolArg(0x00527EB0, stats, school));
+            w.line.Format("%d", Ftol(stats->SpellSchoolSkill(school)));
             w.Value(w.line);
             w.Down();
         }
