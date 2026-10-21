@@ -5,4 +5,3 @@
 3.141592653589793 ::ArcCosineOrSine  # the same: acos(-1) = pi
 0.7071067811865476 libcrt::CiPow  # _CIpow (006E81C2) normalises the mantissa to [sqrt(1/2), sqrt(2)): the routine's own bound (our reformulation of FYL2X's 64-bit product), not a fold
 0.001 ::RemoveOutdatedEffects  # the same addon.dll double (100181D5) when the verify build does not inline it into AddEffectImpl
-1.4668330997698233e-9 ::RandomAngle  # the literal of 0073FFD0 (rdata_literals --check), read by the scorch angle FMUL, not a fold; the call graph attributes the helper to 004F7F00 / 004F9FD0 (C17a)
