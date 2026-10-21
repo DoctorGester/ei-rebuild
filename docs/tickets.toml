@@ -3612,7 +3612,7 @@ id = "ST1a"
 title = "Settings file: a check of the import and the game's save"
 group = "standalone"
 depends = ["ST1"]
-note = "ST1's harness runs pin a read-only file, so no run covers the product path: the one-time import from HKCU (both trees, every subkey) and the options save rewriting ei_settings.ini (Flush at CWinRegistry::Close, .tmp then move). Check them without the user's registry: e.g. a harness mode that pins a writable copy and compares the file after the exit save, and a test of Document::Text/Parse round trips (dword, escaped strings, float bits incl. -0 and denormals, hex(7) multi-strings)."
+note = "Done 2026-10-22: Document/Import split to src/game/settings_document.cpp; RegistrySource seam (registry's in settings_file.cpp, DocumentSource stand-in); tests/vectors/replay_settings.cpp (870 checks incl. config/harness/registry.reg as stand-in registry) runs in ei_vectors via build.cmd; harness 'settingsfile writable|import' + scenarios settings_save / settings_import compared by ei_launch with tests/scenarios/settings/*.ini ('# settings-file:'); docs/notes/standalone.md Settings file 'Checks (ST1a)'. Suites: standalone 121 goldens same (new scenarios without golden), --no-hooks --fresh 114 same."
 
 [[ticket]]
 id = "ST1b"
