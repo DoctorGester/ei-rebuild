@@ -22,26 +22,26 @@ const char* TypeCode(const char* const (&codes)[7], int type) {
     return type >= 0 && type < 7 ? codes[type] : "";
 }
 
-const char* const kModelFormat = game::Text(0x007963D0);        // "%s_%.2d.%s.%d"
-const char* const kRecordModelFormat = game::Text(0x007965EC);  // "%s_%.2d.%d"
-const char* const kWeaponPicture = game::Text(0x00796514);      // "initwe%s%dweapon"
-const char* const kArmorPicture = game::Text(0x00796550);       // "initar%s%darmor"
-const char* const kQuickFigure = game::Text(0x0079656C);        // "qitem%04d"
-const char* const kQuickMaterialFigure = game::Text(0x00796578);// "qitem%04d.%s"
-const char* const kQuickPicture = game::Text(0x00796588);       // "initqi%ditem"
-const char* const kSpellPicture = game::Text(0x0079457C);       // "initqi1item"
-const char* const kQuestFigure = game::Text(0x007934D0);        // "quitem%04d"
-const char* const kQuestPicture = game::Text(0x007934DC);       // "initqu%ditem"
-const char* const kSpellFigure = game::Text(0x007945D8);        // "spell%04d"
-const char* const kPrototypeFigure = game::Text(0x007965DC);    // "prototype%04d"
-const char* const kModifierFigure = game::Text(0x007965CC);     // "modifier%04d"
-const char* const kMaterialFigure = game::Text(0x007965BC);     // "material%04d"
-const char* const kLootFigure = game::Text(0x007965B0);         // "litem%04d"
-const char* const kMaterialPicture = game::Text(0x00796608);    // "initlimt%ditem"
-const char* const kLootPicture = game::Text(0x007965F8);        // "initlitr%ditem"
-const char* const kHumanPrefix = game::Text(0x007908C8);        // "unhuma"
-const char* const kNoMaterial = game::Text(0x007846F0);         // "none"
-const char* const kUnknownMaterial = game::Text(0x007963C0);    // "uq"
+const char* const kModelFormat = "%s_%.2d.%s.%d";
+const char* const kRecordModelFormat = "%s_%.2d.%d";
+const char* const kWeaponPicture = "initwe%s%dweapon";
+const char* const kArmorPicture = "initar%s%darmor";
+const char* const kQuickFigure = "qitem%04d";
+const char* const kQuickMaterialFigure = "qitem%04d.%s";
+const char* const kQuickPicture = "initqi%ditem";
+const char* const kSpellPicture = "initqi1item";
+const char* const kQuestFigure = "quitem%04d";
+const char* const kQuestPicture = "initqu%ditem";
+const char* const kSpellFigure = "spell%04d";
+const char* const kPrototypeFigure = "prototype%04d";
+const char* const kModifierFigure = "modifier%04d";
+const char* const kMaterialFigure = "material%04d";
+const char* const kLootFigure = "litem%04d";
+const char* const kMaterialPicture = "initlimt%ditem";
+const char* const kLootPicture = "initlitr%ditem";
+const char* const kHumanPrefix = "unhuma";
+const char* const kNoMaterial = "none";
+const char* const kUnknownMaterial = "uq";
 
 // The records are read without a null check where the original reads them without one.
 const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
@@ -124,25 +124,25 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     char block[0x24];
     char* number = block;
     char* name = block + 4;
-    gamecrt::sprintf(number, game::Text(0x00796454), Head(prototype)->number);   // "%.2d"
-    static const std::uintptr_t kBases[5] = {
-        0x00796448,   // "basesword"
-        0x00796440,   // "baseaxe"
-        0x00796434,   // "basedagger"
-        0x00796428,   // "basepike"
-        0x0079641C,   // "baseclub"
+    gamecrt::sprintf(number, "%.2d", Head(prototype)->number);
+    static const char* const kBases[5] = {
+        "basesword",
+        "baseaxe",
+        "basedagger",
+        "basepike",
+        "baseclub",
     };
     auto copy = [](char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); };
     std::uint32_t type = static_cast<std::uint32_t>(Head(prototype)->type);
     if (type < 5) {
-        copy(name, game::Text(kBases[type]));
+        copy(name, kBases[type]);
         copy(name + std::strlen(name), number);
     } else if (type == 5) {
-        copy(name, game::Text(0x00796410));   // "basearrow00"
+        copy(name, "basearrow00");
     } else if (type == 6) {
-        copy(name, game::Text(0x00796404));   // "basearrow01"
+        copy(name, "basearrow01");
     } else {
-        copy(name, game::Text(0x007963F8));   // "baser_hand3"
+        copy(name, "baser_hand3");
     }
     *out = name;
     return true;

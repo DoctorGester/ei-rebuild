@@ -31,6 +31,13 @@ this / EDX. 534 "types differ" (431 under --loose) and 102 skip-list rows are le
 the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
 plain new / delete; then the image and the read of game.exe go.
 
+String constants of the exe's data need no generated definition: run\vanilla's and run\rebirth's game.exe differ in
+one .text byte (file offset 0x56BB6) and nothing else, and the image runs neither one's code, so a string the code
+passed by address (`game::Text(0x...)`, a table of name addresses) is written as a literal with the same bytes. C11
+batch 15 did that for the options' value names, the console's commands and texts, the menu rectangles, the material
+names, the camp and item-info texts and a few logs; the strings were read from both exes by script, not typed. Keep a
+string by address only where code compares the pointer itself (`game::kEmptyTextAddress`).
+
 ## 2. The image
 
 ### How it runs

@@ -47,15 +47,15 @@ using QueryList = stlp::vector<Query>;
 
 
 // "<text>\n" and a flush.
-void LogLine(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
+void LogLine(const char* text) {
+    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
 }
 // "<text><address>\n" and a flush; the address string is freed again.
-void LogAddressLine(std::uintptr_t text, const NetAddress* address) {
+void LogAddressLine(const char* text, const NetAddress* address) {
     if (!NetLog()) return;
     stlp::string s;
     address->ToString(&s);
-    NetLog()->Put(game::Text(text))->Put(s.data())->PutChar('\n')->Flush();
+    NetLog()->Put(text)->Put(s.data())->PutChar('\n')->Flush();
 }
 
 float GameFloat(std::uintptr_t a) {
@@ -220,7 +220,7 @@ EI_REPLACE_METHOD(0x00441740, ClientBase::SendJoin);
 // 004418F0 (slot 3): updates count only once joined.
 bool ClientBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     if (joinState_ != kJoined) {
-        LogLine(0x0078405C);   // "Normal update when not in game"
+        LogLine("ERROR: Normal update when not in active state");
         return false;
     }
     return SessionBase::OnUpdateImpl(from, cursor);
@@ -232,21 +232,21 @@ void ClientBase::OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor) {
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
     if (!SameAddress(&host_, from)) {
-        LogAddressLine(0x00784100, from);
+        LogAddressLine("ERROR: Accepted msg received from unknown host ", from);
         return;
     }
     if (id != joinId_) {
-        LogLine(0x007840D0);
+        LogLine("ERROR: Accepted msg received with wrong linkID");
         return;
     }
     if (joinState_ == kAsking) {
         joinState_ = kJoined;
         std::uint32_t rate = RateFor(&host_);
         AddClient(&host_, id, static_cast<int>(rate));
-        LogLine(0x007840BC);
+        LogLine("Start connection");
         OnJoined();
     } else {
-        LogAddressLine(0x0078408C, from);
+        LogAddressLine("ERROR: Accept for already started session from ", from);
     }
 }
 
@@ -258,11 +258,11 @@ void ClientBase::OnRejectedImpl(const NetAddress* from, BufferCursor* cursor) {
     p += 4;
     cursor->p = p;
     if (!SameAddress(&host_, from)) {
-        LogAddressLine(0x00784194, from);
+        LogAddressLine("ERROR: Rejected msg received from unknown host ", from);
         return;
     }
     if (id != joinId_) {
-        LogAddressLine(0x0078415C, from);
+        LogAddressLine("ERROR: Rejected msg received with wrong linkID from ", from);
         return;
     }
     if (joinState_ == kAsking) {
@@ -270,7 +270,7 @@ void ClientBase::OnRejectedImpl(const NetAddress* from, BufferCursor* cursor) {
         ++cursor->p;
         joinState_ = kNotJoined;
     } else {
-        LogAddressLine(0x00784130, from);
+        LogAddressLine("ERROR: Reject not during connecting from ", from);
     }
 }
 
@@ -350,7 +350,7 @@ void ClientBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
     SessionBase::RemoveClientImpl(node);
     if (clients_->next != clients_) return;
-    LogLine(0x007841C4);   // "CONNECTION LOST"
+    LogLine("CONNECTION LOST server link is lost, entering idle");
     ei::Log("net: the client lost its connection to the host");   // not the game's (N0c)
     joinState_ = kNotJoined;
 }
@@ -571,7 +571,7 @@ void ClientBase::TickImpl(double dt) {
     retryTimer_ = static_cast<float>(left);
     if (left > 0.0) return;
     if (retryInterval_ > GameFloat(0x0073BAA4)) {
-        LogLine(0x007841F8);
+        LogLine("Connection failed");
         joinState_ = kNotJoined;
         return;
     }
@@ -655,7 +655,7 @@ void ServerBase::TickImpl(double dt) {
         double sum = static_cast<double>(age) + dt;
         age = static_cast<float>(sum);
         if (sum > static_cast<double>(GameFloat(0x0073BF9C))) {
-            LogAddressLine(0x00784298, &node->data.address);
+            LogAddressLine("Accept period elapsed for ", &node->data.address);
             node = joins_.Erase(node);
         } else {
             node = node->next;
@@ -701,7 +701,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* client;
     FindClient(&client, from);
     if (client != clients_) {
-        LogAddressLine(std::uintptr_t(0x00784260), from);   // "ERROR: Ignoring login request for active session from "
+        LogAddressLine("ERROR: Ignoring login request for active session from ", from);
         return;
     }
 
@@ -712,17 +712,17 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
         PendingJoin& join = node->data;
         if (id != join.id) {
             join.id = id;
-            LogAddressLine(std::uintptr_t(0x00784240), from);   // "WARNING: LinkID mismatch from "
+            LogAddressLine("WARNING: LinkID mismatch from ", from);
         }
         join.rate = rate;
-        LogAddressLine(std::uintptr_t(0x00784224), from);   // "Reaccepting client from "
+        LogAddressLine("Reaccepting client from ", from);
         SendAccepted(this, from, id);
         return;
     }
 
     std::uint8_t reason;
     if (Admit(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(from)), reinterpret_cast<const std::uint8_t**>(cursor), &reason)) {
-        LogAddressLine(std::uintptr_t(0x0078420C), from);   // "Accepting client from "
+        LogAddressLine("Accepting client from ", from);
         PendingJoin join;
         join.address = *from;
         join.id = id;

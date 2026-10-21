@@ -47,21 +47,21 @@ void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            AlarmLog()->Write(game::Text(0x0078FDBC))->Write(static_cast<long>(unit->id_))->Write(game::Text(0x007910E0));
-            std::uintptr_t what;
+            AlarmLog()->Write("Unit ")->Write(static_cast<long>(unit->id_))->Write(" acknowledges with ");
+            const char* what;
             switch (state->active) {
-            case 1: world->TellParties(server->unit, 0x31); what = 0x007910CC; break;
-            case 2: world->TellParties(server->unit, 0x32); what = 0x007910CC; break;
-            case 3: what = 0x007910B4; break;   // "back from Suspection"
-            case 4: what = 0x0079109C; break;   // "back from Aggression"
-            case 5: world->TellParties(server->unit, 0x2F); what = 0x0079108C; break;
-            case 6: world->TellParties(server->unit, 0x2E); what = 0x0079107C; break;
-            case 7: what = 0x00791070; break;   // "to Alarm!"
-            case 8: what = 0x0079105C; break;   // "ALARM ALARM ALARM"
-            case 9: world->TellParties(server->unit, 0x30); what = 0x0079104C; break;
-            default: what = 0x00791040; break;  // "error... :)"
+            case 1: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
+            case 2: world->TellParties(server->unit, 0x32); what = "idleSound = AAn4XyU"; break;
+            case 3: what = "back from Suspection"; break;
+            case 4: what = "back from Aggression"; break;
+            case 5: world->TellParties(server->unit, 0x2F); what = "to Suspection"; break;
+            case 6: world->TellParties(server->unit, 0x2E); what = "to Aggression"; break;
+            case 7: what = "to Alarm!"; break;
+            case 8: what = "ALARM ALARM ALARM"; break;
+            case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
+            default: what = "error... :)"; break;
             }
-            AlarmLog()->Write(game::Text(what))->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
+            AlarmLog()->Write(what)->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
         }
         state->pending = 0;
     }

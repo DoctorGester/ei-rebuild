@@ -16,23 +16,23 @@ namespace scene {
 namespace {
 
 
-bool Is(const mfc::CString& s, std::uintptr_t text) {
+bool Is(const mfc::CString& s, const char* text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
-                           reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
+                           reinterpret_cast<const unsigned char*>(text)) == 0;
 }
 
 struct Entry {
-    std::uintptr_t text;
+    const char* text;
     int value;
 };
 // The texture types (second part) and materials (third part), in the order they are tried.
-constexpr Entry kTextures[] = {{0x00784530, 1},  {0x0078452C, 2},  {0x00784528, 3},  {0x00784524, 4},
-                               {0x00784520, 5},  {0x0078451C, 7},  {0x00784518, 6},  {0x00784514, 0xC},
-                               {0x00784510, 8},  {0x0078450C, 9},  {0x00784508, 10}, {0x00784504, 0xD},
-                               {0x00784500, 0xE}, {0x007844FC, 0xF}, {0x007844F8, 0x10}, {0x007844F4, 0}};
-constexpr Entry kMaterials[] = {{0x007844B0, 0x11}, {0x007844AC, 0x12}, {0x007844A8, 0x13},
-                                {0x007844A4, 0x15}, {0x007844A0, 0x14}, {0x0078449C, 0x16},
-                                {0x00784498, 0x17}, {0x00784494, 0x18}, {0x00784490, 0x19}};
+constexpr Entry kTextures[] = {{"um", 1},  {"uw", 2},  {"tm", 3},  {"hm", 4},
+                               {"hs", 5},  {"sm", 7},  {"spm", 6},  {"sps", 0xC},
+                               {"om", 8},  {"wtm", 9},  {"wts", 10}, {"at1", 0xD},
+                               {"at2", 0xE}, {"at3", 0xF}, {"at4", 0x10}, {"nn", 0}};
+constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
+                                {"sk", 0x15}, {"cl", 0x14}, {"st", 0x16},
+                                {"mg", 0x17}, {"wt", 0x18}, {"cr", 0x19}};
 
 } // namespace
 
@@ -65,7 +65,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError(game::Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
+            game::FatalError("ParseMaterialName.\n Unknown texture type \"%s\" in material \"%s\"\n", static_cast<const char*>(parts.data[1]), name);   // unknown texture type
             *texture = 1;
         }
         parts.data[2].MakeLower();
@@ -78,7 +78,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError(game::Text(0x0078444C), static_cast<const char*>(parts.data[2]), name);   // unknown material
+            game::FatalError("ParseMaterialName.\n Unknown material type \"%s\" in material \"%s\"\n", static_cast<const char*>(parts.data[2]), name);   // unknown material
             *material = 0x15;
         }
     }
