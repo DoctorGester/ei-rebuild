@@ -100,6 +100,7 @@ CParty* NamedPartyRecords::Find(const char* name) const {
     }
     return unnamed;
 }
+EI_REWRITTEN(0x004A5E10, NamedPartyRecords::Find);
 
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
@@ -138,6 +139,7 @@ void NamedPartyRecords::Remove(const char* name) {
         RefPtrRelease(reinterpret_cast<RefPtr*>(records.Finish()));   // 004A5D70
     }
 }
+EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);
 
 // ---- The party manager (007AA5A0) -----------------------------------------------------------------
 
@@ -178,14 +180,17 @@ void __fastcall PartyManagerNewGameFour(void* manager) {
 EI_REWRITTEN(0x004A88C0, PartyManagerNewGameFour);
 
 void PartyManager::BeginRedeploy(void* players) { records.BeginRedeploy(static_cast<CParty*>(players)); }
+EI_REWRITTEN(0x004A8890, PartyManager::BeginRedeploy);
 
 void PartyManager::EndRedeploy(void* players) { records.EndRedeploy(static_cast<CParty*>(players)); }
+EI_REWRITTEN(0x004A8880, PartyManager::EndRedeploy);
 
 int __stdcall PartyNextId(int* out) {
     int& counter = ei::GameData<int>(0x0078B0E8);
     *out = counter;
     return ++counter;
 }
+EI_REWRITTEN(0x004A8910, PartyNextId);
 
 bool PartyManager::LoadParty(int, int, const int* key, void* target) const {
     const void* map = this;

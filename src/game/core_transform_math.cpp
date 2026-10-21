@@ -267,6 +267,9 @@ void CTransformObject::SetHeading(const float* dir) {
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
 
+EI_REWRITTEN(0x00401570, CTransformObject::WorldMatrix);
+EI_REWRITTEN(0x00401E50, CTransformObject::Rotate);
+EI_REWRITTEN(0x00402220, CTransformObject::SetHeading);
 EI_REWRITTEN(0x00401680, CTransformObject::TiltTowards);
 EI_REWRITTEN(0x00401940, CTransformObject::TurnTowards);
 EI_REWRITTEN(0x00401B50, CTransformObject::RollTowards);

@@ -91,10 +91,12 @@ void SceneSkin::Rewind() {
     clock[0] = 0;
     clock[1] = 0;
 }
+EI_REWRITTEN(0x00508990, SceneSkin::Rewind);
 
 int SceneSkin::BindMeshes(const lib::AlignedArray<void*>* parts) {
     if (root) root->AttachMeshes(parts);
     return 1;
 }
+EI_REWRITTEN(0x00508BF0, SceneSkin::BindMeshes);
 
 } // namespace scene

@@ -80,5 +80,6 @@ bool ServerSession::PlayerStateIs3(void* connection) {
     }
     return false;
 }
+EI_REWRITTEN(0x00417E40, ServerSession::PlayerStateIs3);
 
 } // namespace net

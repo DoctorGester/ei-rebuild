@@ -93,6 +93,7 @@ void AIEventTable::ForgetUnit(CUnitServer* controller) {
         }
     }
 }
+EI_REWRITTEN(0x005C97B0, AIEventTable::ForgetUnit);
 
 void AIEventTable::Load(CStream* stream) {
     for (;;) {

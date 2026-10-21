@@ -41,6 +41,9 @@ void __fastcall TexturePointerAssign(CEngineObject** pointer, void*, CEngineObje
     if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
+EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
+EI_REWRITTEN(0x004EBE60, TexturePointerAssign);
+EI_REWRITTEN(0x0056F1A0, TexturePointerAssign);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 

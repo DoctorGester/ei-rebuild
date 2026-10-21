@@ -89,3 +89,4 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
     }
     surface->dc_ = nullptr;
 }
+EI_REWRITTEN(0x005FDC60, UiSurfaceReleaseDC);

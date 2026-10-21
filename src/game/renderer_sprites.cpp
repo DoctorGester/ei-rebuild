@@ -315,6 +315,7 @@ void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteS
         for (SpriteSortRecord* r = buckets[ascending ? i : 255 - i]; r; r = r->next) *dst++ = r;
     }
 }
+EI_REWRITTEN(0x00503710, SpriteRadixPass);
 
 // 005037D0. One merge sort pass over `count` record pointers: for each column j below `width`, the
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
@@ -352,6 +353,7 @@ void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteS
         }
     }
 }
+EI_REWRITTEN(0x005037D0, SpriteMergePass);
 
 // 00503680 (thiscall on the device holder, RET 0x1C). DrawIndexedPrimitive under the device's
 // critical section (007AEE78); the result goes to lastLoadResult_; counts vertices, triangles
@@ -371,6 +373,7 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
     drawCount_ += 1;
     return 1;
 }
+EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 
 // --- 00502CA0 ------------------------------------------------------------------------------------
 
@@ -431,3 +434,7 @@ int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const
 }
 EI_REPLACE_METHOD(0x00502CA0, CSceneRenderer::DrawSpritesImpl);
 
+EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
+EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);
+EI_REWRITTEN(0x00505150, lib::AlignedArray<SpriteSortRecord>::SetSize);
+EI_REWRITTEN(0x00505270, lib::AlignedArray<SpriteSortRecord*>::SetSize);

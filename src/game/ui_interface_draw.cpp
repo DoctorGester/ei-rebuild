@@ -134,6 +134,7 @@ int CInterface3D::Draw() {
     fade_->Draw(SceneRenderer());
     return 1;
 }
+EI_REWRITTEN(0x005F5220, CInterface3D::Draw);
 
 void CInterface3D::DrawOverlays() {
     mfc::CString text;

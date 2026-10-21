@@ -41,6 +41,7 @@ int CSoundManager::CreateBody() {
     Reset();
     return 1;
 }
+EI_REWRITTEN(0x006B6D70, CSoundManager::CreateBody);
 
 CSoundManager* CSoundManager::DeletingDestruct(unsigned flags) {
     this->CSoundManager::~CSoundManager();
@@ -86,6 +87,7 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
     }
     return nullptr;
 }
+EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
 // 006B7110 (A-H26; Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body,
 // hooked in the vanilla launch only). From the unit database's sound counts (0053A8E0), on the
@@ -481,6 +483,7 @@ unsigned __cdecl StreamThreadEntry(void* manager) {
     static_cast<CSoundManager*>(manager)->StreamThread();
     return 0;
 }
+EI_REWRITTEN(0x006B6A10, StreamThreadEntry);
 
 // 006B68A0 (kDeviceCallback; no Ghidra function, S16c): DirectSoundEnumerateA's callback in Open. The
 // device's GUID pointer is appended to the aligned array `devices` (its SetSize by one, inlined in the
@@ -678,6 +681,7 @@ EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
 int __fastcall SoundOpenStream(void* stream, void*, void* driver) { return ManagerOf(stream)->OpenStream(driver); }
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
+EI_REWRITTEN(0x006BAAC0, SoundOpenStream);
 EI_REWRITTEN(0x006BAC90, SoundCloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {

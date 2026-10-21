@@ -59,6 +59,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     return created;
 }
 
+EI_REWRITTEN(0x005BD7F0, UnitShapeCache::Get);
 UnitShapeCache* UnitShapeCache::Construct() {
     shapes.InitBuckets(kFirstBuckets);
     ei::SetVtable(this, kVtableAddress);

@@ -56,3 +56,17 @@ CTime* CTime::MinusSpan(CTime* out, long span) const {
 
 using namespace libcontainers;
 
+EI_REWRITTEN(0x00619920, HeroRecordAbi::InsertOverflow);
+EI_REWRITTEN(0x0060AB00, ConstructSpeaker);
+EI_REWRITTEN(0x0060A660, SpeakerAbi::InsertOverflow);
+EI_REWRITTEN(0x005E0550, mfc::impl::CTime::MinusSpan);
+EI_REWRITTEN(0x004F69F0, SetRootVtable);
+EI_REWRITTEN(0x005F9680, DestroyCString);
+EI_REWRITTEN(0x005FBE20, DestroyCString);
+EI_REWRITTEN(0x0060AA80, ConstructRefPtr);
+EI_REWRITTEN(0x004FB680, ConstructHeldObject);
+EI_REWRITTEN(0x00429060, ConstructRefPtr);
+EI_REWRITTEN(0x004298F0, ConstructHeldObject);
+EI_REWRITTEN(0x0060A010, ShownItemNodes::CreateNode);
+EI_REWRITTEN(0x005F9570, KeyedTextsNodes::Destruct);
+EI_REWRITTEN(0x00478F10, StreamQueue::Destruct);

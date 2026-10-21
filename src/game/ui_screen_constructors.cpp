@@ -83,6 +83,7 @@ CObjectivesWindow* CObjectivesWindow::Construct(CInterface3D* ui) {
     inputVtable_ = ObjectivesInputVtable();
     return this;
 }
+EI_REWRITTEN(0x0063B5D0, CObjectivesWindow::Construct);
 
 // --- 0063FE70: the portraits panel ---------------------------------------------------------------
 

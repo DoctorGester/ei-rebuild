@@ -235,12 +235,14 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     }
     return WindowProc(MainWindow(), message, wParam, lParam);
 }
+EI_REWRITTEN(0x00457970, DispatchInput);
 
 void __cdecl PumpMessages() {
     MSG msg;
     while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         WindowProc(MainWindow(), msg.message, msg.wParam, msg.lParam);
 }
+EI_REWRITTEN(0x00458220, PumpMessages);
 
 int __cdecl StartFirstMap() {
     const auto& cmdMap = CommandLineMap();    // map on the command line
@@ -276,6 +278,7 @@ int __cdecl StartFirstMap() {
     static_cast<CScript*>(script)->GetError(&error);
     return game::FatalError("%s, line %i", static_cast<const char*>(error.text), error.line);
 }
+EI_REWRITTEN(0x00456140, StartFirstMap);
 
 // ---- FatalError (00480080) ---------------------------------------------------------------------
 
@@ -297,6 +300,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
     gameapi::SetCursor(cursor);
     return answer;
 }
+EI_REWRITTEN(0x004560D0, ShowMessageBox);
 
 namespace {
 
@@ -349,6 +353,7 @@ int __cdecl FatalErrorCode(long result, const char* format, ...) {
     va_end(args);
     return value;
 }
+EI_REWRITTEN(0x004800E0, FatalErrorCode);
 
 // ---- The operator new handler (00455A30) -------------------------------------------------------
 

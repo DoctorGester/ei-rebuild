@@ -608,6 +608,7 @@ SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
     stringArrays_[1].Construct();
     return Assign(from);
 }
+EI_REWRITTEN(0x00656640, SaveEntry::CopyConstruct);
 
 void SaveEntry::Destruct() {
     stringArrays_[1].Destruct();

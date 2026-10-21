@@ -34,11 +34,13 @@ void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* 
     tables[1].FindOrInsert({id, 0})->value = reinterpret_cast<std::uint32_t>(factory);
     if (prototype && --prototype->refs_ == 0) delete prototype;   // slot 0 with 1
 }
+EI_REWRITTEN(0x00458570, TypeRegistryRegister);
 
 // 00458540 / 00458550 / 004586E0: destructors of WinMain's locals, reached only when an exception
 // unwinds it: two COM pointers (Release) and a counted object (deleted at its last reference).
 void __fastcall ComPointerRelease(void** self) {
     if (void* object = *self) static_cast<IUnknown*>(object)->Release();
 }
+EI_REWRITTEN(0x00458540, ComPointerRelease);
 
 } // namespace app

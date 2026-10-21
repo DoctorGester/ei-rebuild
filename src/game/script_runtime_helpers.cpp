@@ -30,6 +30,7 @@ void ScriptGroup::DestructBody() {
     }
     gamecrt::operator_delete(data);
 }
+EI_REWRITTEN(0x004B5EF0, ScriptGroup::DestructBody);
 
 void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     mfc::CArray<SSCCmd>& commands = block->commands;
@@ -58,10 +59,13 @@ std::uint8_t CAIMap::SetRefreshUnits(int on) {
     flag = static_cast<std::uint8_t>(on);
     return old;
 }
+EI_REWRITTEN(0x004BA090, CAIMap::SetRefreshUnits);
 
 bool CAIMap::AddToSectors(CEngineObject* object) { return Sectors(this)->Add(object); }
+EI_REWRITTEN(0x004BA0A0, CAIMap::AddToSectors);
 
 bool CAIMap::RemoveFromSectors(CEngineObject* object) { return Sectors(this)->Remove(object); }
+EI_REWRITTEN(0x004BA0C0, CAIMap::RemoveFromSectors);
 
 bool CAIMap::MoveInSectors(CEngineObject* object, const Vector3* position) {
     return SectorMapMove(Sectors(this), nullptr, object, position);
@@ -71,6 +75,7 @@ EI_REWRITTEN(0x004BA0E0, CAIMap::MoveInSectors);
 void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     Sectors(this)->FindUnitsInRadius(position, result, radius);
 }
+EI_REWRITTEN(0x004BA100, CAIMap::FindUnitsInRadius);
 
 // ---- Console output -------------------------------------------------------------------------------
 

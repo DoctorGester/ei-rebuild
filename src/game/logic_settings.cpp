@@ -78,6 +78,7 @@ void LogicSettings::Load(const char* path) {
     reg.Destroy();
 }
 
+EI_REWRITTEN(0x005CE0F0, LogicSettings::Load);
 LogicSettings* LogicSettings::Construct() {
     // [Logic]
     guardStayTime = 10.0f;

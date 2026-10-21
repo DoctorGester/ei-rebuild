@@ -115,6 +115,7 @@ void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextur
 } // namespace
 EI_REWRITTEN(0x00691500, TextureManagerCreateHook);
 EI_REWRITTEN(0x00691630, TextureManagerDestroyHook);
+EI_REWRITTEN(0x00691AA0, CTextureManager::CreateObjectImpl);
 
 CEngineObject* CTextureManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
 int CTextureManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }

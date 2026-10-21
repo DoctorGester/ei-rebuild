@@ -47,6 +47,7 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     flags |= 2;
     return flags;
 }
+EI_REWRITTEN(0x004F93A0, ClipBounds::SetBox);
 
 // Clip code of one corner p under matrix m: M * (p, 1), rows x, y and w summed ZXY, z ZYX, each
 // rounded to float as the original stores them. The original keeps the corner coordinates on the
@@ -106,6 +107,7 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     }
     return 1;
 }
+EI_REWRITTEN(0x004F16A0, CTransformPipeline::ClipTest);
 
 int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks,
                                       const ClipBounds* bounds) {
@@ -117,6 +119,7 @@ int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, vo
     if (where == 1) return transform_->ProjectClipped(Top(kClipStack), positions, projected, outcodes, blocks);
     return 2;
 }
+EI_REWRITTEN(0x004F2650, CTransformPipeline::ProjectBlocks);
 
 int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count,
                                        const ClipBounds* bounds) {
@@ -128,6 +131,7 @@ int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, vo
     if (where == 1) return transform_->ProjectTerrainClipped(Top(kClipStack), vertices, projected, outcodes, count);
     return 2;
 }
+EI_REWRITTEN(0x004F29F0, CTransformPipeline::ProjectTerrain);
 
 // ---- Matrices -----------------------------------------------------------------------------------------
 
@@ -143,6 +147,7 @@ Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect) {
     out->m[7] = halfHeight;
     return out;
 }
+EI_REWRITTEN(0x004F1370, ViewportMatrix);
 
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     double half = fov * 0.5;
@@ -159,6 +164,7 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
 }
 EI_REWRITTEN(0x004F0E80, ProjectionMatrix);
 
+EI_REWRITTEN(0x004F57B0, TriangleIndexArray::SetSize);
 // ---- CLinkFigureLoader ---------------------------------------------------------------------------
 
 namespace {

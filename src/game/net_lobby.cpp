@@ -134,6 +134,7 @@ EI_REWRITTEN(0x004413E0, ServerEntryBase::ConstructBase);
 
 // 00441410: the query with `address`, or the end.
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+EI_REWRITTEN(0x00441410, ClientQueries::QueriesFind);
 
 // 00441640: a buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
@@ -141,6 +142,8 @@ std::int32_t __fastcall BufferLength(GameBuffer* b) {
     return b->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->begin)) +
            static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
 }
+EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
+EI_REWRITTEN(0x00441640, BufferLength);
 
 // 00443770 / 00443790 / 00443E90 / 00444270: the query's constructor (a zero address and an empty
 // growing buffer), destructor, deleting destructor and copy constructor.
@@ -149,6 +152,7 @@ Query* __fastcall QueryConstruct(Query* self) {
     static_cast<GameBuffer*>(&self->reply)->ConstructGrowing();
     return self;
 }
+EI_REWRITTEN(0x00443770, QueryConstruct);
 void __fastcall QueryDestruct(Query* self) { GrowingBufferDestruct(&self->reply); }
 EI_REWRITTEN(0x00443790, QueryDestruct);
 Query* Query::QueryDelete(unsigned flags) {
@@ -170,6 +174,7 @@ RefPtr* __fastcall HolderInit(RefPtr* self, CRefObject* raw) {
     self->ptr = raw;
     return self;
 }
+EI_REWRITTEN(0x00443E20, HolderInit);
 
 // ---- Client: sending ------------------------------------------------------------------------------
 
@@ -376,6 +381,7 @@ void ClientBase::Refresh() {
 EI_REWRITTEN(0x00442180, ClientBase::Refresh);
 
 void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address; }
+EI_REWRITTEN(0x004422D0, ClientBase::SetAlwaysAsk);
 
 // Each server not yet listed is listed with an entry read from its saved reply (or an empty
 // entry), as asked.
@@ -500,6 +506,7 @@ void ClientBase::AddServer(ServerEntry* entry) {
     }
     waiting_.Insert(waiting_.End(), entry->address_);
 }
+EI_REWRITTEN(0x004428A0, ClientBase::AddServer);
 
 // Unless already asking that host: a new join id (rand() << 16 | GetTickCount() & 0xFFFF), the
 // first retry at once.
@@ -528,6 +535,7 @@ ServerEntry* ClientBase::ServerAt(int index) {
     if (node == sentinel) return nullptr;
     return EntryOf(node);
 }
+EI_REWRITTEN(0x00442A40, ClientBase::ServerAt);
 
 // 00442AD0 (slot 14): counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while

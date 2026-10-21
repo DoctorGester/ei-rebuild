@@ -40,12 +40,14 @@ CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
     self->owner_ = nullptr;
     return self;
 }
+EI_REWRITTEN(0x0040CB20, EngineObjectConstruct);
 
 // 0040CB70: CTransformObject's destructor body; 0040CB50 its deleting destructor (slot 0).
 void __fastcall TransformDestruct(CTransformObject* self) {
     ei::SetVtable(self, CTransformObject::kVtableAddress);
     self->DestructBase();
 }
+EI_REWRITTEN(0x0040CB70, TransformDestruct);
 CTransformObject* CTransformObject::DeleteScalar(unsigned flags) {
     TransformDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
@@ -164,6 +166,7 @@ int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_
     views_[6].pitch = pitch_;
     return 1;
 }
+EI_REWRITTEN(0x0040D0A0, CCamera::Init);
 
 // 0040D380: the near distance, far distance and field of view (as dwords).
 void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const {
@@ -171,12 +174,14 @@ void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) con
     std::memcpy(b, &farDistance_, 4);
     std::memcpy(c, &fieldOfView_, 4);
 }
+EI_REWRITTEN(0x0040D380, CCamera::GetRange);
 
 // 0040FB20: the point the camera is placed by: its own position when playing a file or placed
 // freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
 }
+EI_REWRITTEN(0x0040FB20, CameraAnchor);
 
 namespace {
 
@@ -231,6 +236,7 @@ int CCamera::OpenFile(const char* name) {
     file.Close();
     return 1;
 }
+EI_REWRITTEN(0x0040E910, CCamera::OpenFile);
 
 // 0040EB60: while recording (flag 0x10), appends a frame {time, -, local position, local rotation}
 // to the file named at +0x2EC. Returns 1 when written, 0 when not recording or the file does not
@@ -249,6 +255,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     file.Close();
     return 1;
 }
+EI_REWRITTEN(0x0040EB60, CCamera::RecordFrame);
 
 // 0040ECB0: closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {
@@ -256,6 +263,7 @@ int __fastcall CameraCloseFile(CCamera* self) {
     self->fileName_.Empty();
     return 1;
 }
+EI_REWRITTEN(0x0040ECB0, CameraCloseFile);
 
 // 00410AB0: loads the camera state saved by SaveState. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).

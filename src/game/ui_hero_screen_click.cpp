@@ -583,6 +583,7 @@ MpHeroRecord* MpHeroRecord::Construct() {
     new (&file) mfc::CString();
     return this;
 }
+EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();

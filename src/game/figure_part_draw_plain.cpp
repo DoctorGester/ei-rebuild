@@ -137,3 +137,4 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     DrawBounds(TheSceneRenderer());
     return 1;
 }
+EI_REWRITTEN(0x005A7640, FigureMeshDrawer::DrawPlain);

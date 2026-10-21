@@ -909,3 +909,4 @@ EI_REWRITTEN(0x005947E0, CWorldServer::AddSharedObject);
 EI_REWRITTEN(0x00596E70, CWorldServer::LoadSave);
 EI_REWRITTEN(0x00597BD0, CWorldServer::SaveWorld);
 EI_REWRITTEN(0x00596900, CWorldServer::LoadSavedMapObjects);
+EI_REWRITTEN(0x0058D280, CWorldServer::UpdatePlayerTimes);

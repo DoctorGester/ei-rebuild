@@ -215,6 +215,7 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
     }
     out->SetBox(&boxMin.x, &boxMax.x);
 }
+EI_REWRITTEN(0x005AAE60, MorphFigureBounds);
 
 void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
     Vector3 c = MorphVector6(data, s, t, u, true);
@@ -230,6 +231,7 @@ void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, f
     Vector3 boxMax{mx.x, mx.y, mx.z};
     out->SetBox(&boxMin.x, &boxMax.x);
 }
+EI_REWRITTEN(0x005AB9A0, MorphFigureBounds6);
 
 namespace {
 
@@ -588,6 +590,7 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
         Extend(*maxZ, *minZ, w.z);
     }
 }
+EI_REWRITTEN(0x0059FDF0, CFigureMesh::ExtendWorldBox);
 
 // ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
 
@@ -626,6 +629,7 @@ EI_REPLACE_METHOD(0x005A4B30, CFigureMesh::MirrorX);
 void CFigureMesh::FitVertexBounds() {
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 }
+EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 
 void CFigureMesh::MirrorY() {
     NegateBlock(vertices_, 1);
@@ -656,6 +660,8 @@ void CFigureMesh::RefreshBuffers() {
     buffers_.indices = indices_.data;
     buffers_.indexCount = indices_.size;
 }
+EI_REWRITTEN(0x005A6D40, CFigureMesh::RefreshBuffers);
+EI_REWRITTEN(0x005EA150, CFigureMesh::RefreshBuffers);
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     // The positions the new renderer keeps on the GPU move with new offsets (R16d): the animation's frame.
@@ -668,6 +674,7 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 }
 
 void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
+EI_REWRITTEN(0x005A0B10, CFigureMesh::SetOffsets);
 
 int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
     void* vertices = buffers_.vertices;
@@ -720,3 +727,4 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                                       bounds);
     return buffers_.vertexCount << 2;
 }
+EI_REWRITTEN(0x005A0CD0, CFigureMesh::DrawOffset);

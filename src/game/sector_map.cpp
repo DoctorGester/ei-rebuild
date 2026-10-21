@@ -62,11 +62,13 @@ int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transpar
     }
     return first;
 }
+EI_REWRITTEN(0x005BFFD0, Sector::RemoveOccluder);
 
 void Sector::FreeOccluder(int index) {
     occluders[index].next = static_cast<std::int16_t>(freeOccluder);
     freeOccluder = index;
 }
+EI_REWRITTEN(0x005C0060, Sector::FreeOccluder);
 
 // 0059DF90: CArray<Sector>'s ConstructElements with the constructor inlined.
 void __stdcall ConstructSectors(Sector* sectors, int count) {
@@ -147,6 +149,7 @@ mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
     return &sectors[width * sy + sx].units;
 }
+EI_REWRITTEN(0x005C0930, CSectorMap::UnitsAt);
 
 bool CSectorMap::Remove(CEngineObject* object) {
     CUnit* unit = AsUnit(object);
@@ -194,6 +197,7 @@ int RadiusTree::Find(float radius) const {
     }
     return node & mask;
 }
+EI_REWRITTEN(0x005BF7D0, RadiusTree::Find);
 
 void RadiusTree::Build(const float* values, int count) {
     depth = 1;

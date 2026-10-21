@@ -243,6 +243,23 @@ int CPlayerClient::SendResume() {
     return static_cast<int>(out_.position_);
 }
 
+EI_REWRITTEN(0x0066A7D0, CPlayerClient::SendWalk);
+EI_REWRITTEN(0x0066A720, CPlayerClient::SendGoTo);
+EI_REWRITTEN(0x0066A880, CPlayerClient::SendAttack);
+EI_REWRITTEN(0x0066AC70, CPlayerClient::SendCastOnUnit);
 EI_REPLACE_METHOD(0x0066ACD0, CPlayerClient::SendCastAtPoint);
+EI_REWRITTEN(0x0066AD40, CPlayerClient::SendItemOnUnit);
 EI_REPLACE_METHOD(0x0066ADD0, CPlayerClient::SendItemAtPoint);
+EI_REWRITTEN(0x0066AE70, CPlayerClient::SetWeapon);
+EI_REWRITTEN(0x0066AED0, CPlayerClient::SetMoveMode);
+EI_REWRITTEN(0x0066AF30, CPlayerClient::SetUnitFlag438);
+EI_REWRITTEN(0x0066AFE0, CPlayerClient::SendFollow);
+EI_REWRITTEN(0x0066B040, CPlayerClient::SendFlag10);
+EI_REWRITTEN(0x0066AA20, CPlayerClient::SendUseOrder);
+EI_REWRITTEN(0x0066AB80, CPlayerClient::SendUseDead);
 EI_REWRITTEN(0x0066B080, CPlayerClient::SendPartyUpdate);
+EI_REWRITTEN(0x0066B140, CPlayerClient::TakeExit);
+EI_REWRITTEN(0x0066B1B0, CPlayerClient::RequestZone);
+EI_REWRITTEN(0x0066B2C0, CPlayerClient::Rejoin);
+EI_REWRITTEN(0x0066B280, CPlayerClient::SendLeave04);
+EI_REWRITTEN(0x0066B300, CPlayerClient::SendResume);

@@ -21,3 +21,4 @@ Quaternion* __fastcall MultiplyQuaternions(Quaternion* out, const Quaternion* a,
     out->z = z;
     return out;
 }
+EI_REWRITTEN(0x00506C70, MultiplyQuaternions);

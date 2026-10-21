@@ -432,6 +432,7 @@ bool SameIds(const IdVector& a, const IdVector& b) {
 bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
+EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
 // --- 00638B30: the battle screen's left button release -----------------------------------------
 
@@ -673,3 +674,4 @@ void CBattleScreen::RefreshSelection() {
     for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);
     actions->selected_ = -1;
 }
+EI_REWRITTEN(0x00637DC0, CBattleScreen::RefreshSelection);

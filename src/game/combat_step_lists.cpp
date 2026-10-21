@@ -74,6 +74,7 @@ void AnimationSteps::AddStep(int animation, int duration) {
     last.animation = static_cast<std::uint8_t>(animation);
     last.duration = duration;
 }
+EI_REWRITTEN(0x00544CE0, AnimationSteps::AddStep);
 
 void AnimationSteps::AddEmote(int emote) {
     if (count == 0 || steps[count - 1].variant != kNone) AppendBlank(this);
@@ -81,10 +82,12 @@ void AnimationSteps::AddEmote(int emote) {
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;
 }
+EI_REWRITTEN(0x00544D50, AnimationSteps::AddEmote);
 
 void AnimationSteps::SetStepFlags(int value) {
     for (int i = 0; i < count; ++i) steps[i].kind = value;
 }
+EI_REWRITTEN(0x00544DD0, AnimationSteps::SetStepFlags);
 
 int AnimationSteps::Duration() const {
     int total = 0;
@@ -94,6 +97,7 @@ int AnimationSteps::Duration() const {
     }
     return total;
 }
+EI_REWRITTEN(0x00544E40, AnimationSteps::Duration);
 
 bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     if (count != other->count) return false;
@@ -106,6 +110,7 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     }
     return true;
 }
+EI_REWRITTEN(0x00544E70, AnimationSteps::SameAs);
 
 void AnimationSteps::Load(CStream* stream) {
     // The original reads the count over its stream argument on the stack.
@@ -144,3 +149,4 @@ void __fastcall OrderPlanReset(OrderPlan* plan) {
     plan->notSkill = 0;
     plan->castKind = 8;
 }
+EI_REWRITTEN(0x00544FD0, OrderPlanReset);

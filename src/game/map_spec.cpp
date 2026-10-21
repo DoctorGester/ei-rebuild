@@ -165,6 +165,7 @@ void ObjectSpec::ObjectSpecDestruct() {
     base.SpecDestruct();
 }
 EI_REPLACE_METHOD(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
+EI_REWRITTEN(0x0058EDF0, ObjectSpec::ObjectSpecDestruct);
 
 // 0046A6F0 (slot 10).
 ObjectSpec* ObjectSpec::ObjectSpecDelete(unsigned flags) {
@@ -421,6 +422,7 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     object.base.kind = 7;
     return this;
 }
+EI_REWRITTEN(0x0046B4A0, TrapSpec::TrapSpecConstruct);
 
 // 0046B570: the destructor body (the arrays' destructors inlined: their blocks freed).
 void TrapSpec::TrapSpecDestruct() {
@@ -518,9 +520,11 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     object.base.kind = 8;
     return this;
 }
+EI_REWRITTEN(0x0046BD40, LeverSpec::LeverSpecConstruct);
 
 // 0046BDC0: the destructor body (the object record's).
 void LeverSpec::LeverSpecDestruct() { object.ObjectSpecDestruct(); }
+EI_REWRITTEN(0x0046BDC0, LeverSpec::LeverSpecDestruct);
 
 // 0046BDA0 (slot 10).
 LeverSpec* LeverSpec::LeverSpecDelete(unsigned flags) {
@@ -577,6 +581,7 @@ Vector3* __fastcall QuaternionRotate(const Quaternion* q, void*, Vector3* out, c
     out->z = (m * v->z + bz) + az;
     return out;
 }
+EI_REWRITTEN(0x0046A4B0, QuaternionRotate);
 
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 

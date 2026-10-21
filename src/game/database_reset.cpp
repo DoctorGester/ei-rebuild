@@ -62,6 +62,7 @@ void UnitDatabase::Reset() {
     ConstructUnitTable(models);
     ConstructUnitTable(levels);
 }
+EI_REWRITTEN(0x0057CBE0, UnitDatabase::Reset);
 
 namespace itemdb {
 
@@ -82,3 +83,5 @@ void ItemDatabase::Reset() {
 
 } // namespace itemdb
 
+EI_REWRITTEN(0x0057CE80, itemdb::SpellDatabase::Reset);
+EI_REWRITTEN(0x0057D340, itemdb::ItemDatabase::Reset);

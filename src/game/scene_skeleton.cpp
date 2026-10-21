@@ -76,6 +76,7 @@ void __fastcall CopyRestPose(SceneNode* node) {
         CopyRestPose(children.data[i]);
     }
 }
+EI_REWRITTEN(0x004491C0, CopyRestPose);
 
 // 00449030: links each node to its children (nodes whose parent name equals its name, _mbscmp),
 // finds the root (the last node with an empty parent name, -1 when none) and copies the rest pose

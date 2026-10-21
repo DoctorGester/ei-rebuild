@@ -70,5 +70,19 @@ EI_REPLACE(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>);       // 
 // of each (A-W12).
 constexpr auto* CountedHolderDelete = &DeletingDestructor<RefPtrRelease>;
 constexpr auto* CountedHolderDelete2 = &DeletingDestructor<&RefPtr::Destroy>;
+EI_REWRITTEN(0x004292A0, *CountedHolderDelete);
+EI_REWRITTEN(0x004292C0, *CountedHolderDelete2);
+EI_REWRITTEN(0x0059DD90, *CountedHolderDelete);
+EI_REWRITTEN(0x005DA270, *CountedHolderDelete2);
+EI_REWRITTEN(0x0042A5D0, DeletingDestructor<&RefPtr::Destroy>);
+EI_REWRITTEN(0x0042A5F0, DeletingDestructor<&RefPtr::Destroy>);
+EI_REWRITTEN(0x0042B880, DeletingDestructor<&RefPtr::Destroy>);
 EI_REPLACE(0x0042D6D0, DeletingDestructor<misc400::ManagerDestruct>);        // 0042D6F0
+EI_REWRITTEN(0x0043DCA0, DeletingDestructor<&RefPtr::Destroy>);
 
+EI_REWRITTEN(0x004054F0, CleanupClear8);
+EI_REWRITTEN(0x00405530, CleanupClear8);
+EI_REWRITTEN(0x00689810, CleanupClear8);
+EI_REWRITTEN(0x00689880, CleanupClear8);
+EI_REWRITTEN(0x0059AF10, CleanupClear8);
+EI_REWRITTEN(0x0059AFE0, CleanupClear8);

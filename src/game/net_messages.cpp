@@ -129,6 +129,7 @@ Message* __fastcall MessageConstructBase(Message* self) {   // 004186E0
     self->version_ = 1;
     return self;
 }
+EI_REWRITTEN(0x004186E0, MessageConstructBase);
 
 // ================================================================================================
 // 0073BBF8 LoginMessage.
@@ -1157,6 +1158,7 @@ EI_REPLACE(0x00414130, FileRequestMessageResetHook);
 EI_REPLACE(0x004140D0, FileRequestMessageCloneHook);
 EI_REPLACE(0x004141F0, FileRequestMessageWriteHook);
 EI_REPLACE(0x00414210, FileRequestMessageReadHook);
+EI_REWRITTEN(0x00414270, FileRequestMessage::Destruct);
 EI_REWRITTEN(0x00417650, PartyMessage::Create);
 EI_REPLACE(0x004177A0, PartyMessageResetHook);
 EI_REPLACE(0x004176A0, PartyMessageCloneHook);
@@ -1192,6 +1194,7 @@ EI_REPLACE(0x004153B0, BindingMessageResetHook);
 EI_REPLACE(0x00415350, BindingMessageCloneHook);
 EI_REPLACE(0x00415450, BindingMessageWriteHook);
 EI_REPLACE(0x00415470, BindingMessageReadHook);
+EI_REWRITTEN(0x004154D0, BindingMessage::Destruct);
 EI_REWRITTEN(0x00415570, ZoneMessage::Create);
 EI_REPLACE(0x00415740, ZoneMessageResetHook);
 EI_REPLACE(0x00415620, ZoneMessageCloneHook);
@@ -1221,6 +1224,7 @@ EI_REPLACE(0x00416780, FileChunkMessageResetHook);
 EI_REPLACE(0x00416720, FileChunkMessageCloneHook);
 EI_REPLACE(0x00416800, FileChunkMessageWriteHook);
 EI_REPLACE(0x00416850, FileChunkMessageReadHook);
+EI_REWRITTEN(0x004168E0, FileChunkMessage::Destruct);
 EI_REWRITTEN(0x00416940, AwardMessage::Create);
 EI_REPLACE(0x00416B30, AwardMessageResetHook);
 EI_REPLACE(0x00416A10, AwardMessageCloneHook);
@@ -1232,6 +1236,7 @@ EI_REPLACE(0x00416EB0, TradeMessageResetHook);
 EI_REPLACE(0x00416E30, TradeMessageCloneHook);
 EI_REPLACE(0x00412C80, TradeMessageWriteHook);
 EI_REPLACE(0x00412CE0, TradeMessageReadHook);
+EI_REWRITTEN(0x00416FC0, TradeMessage::Destruct);
 
 EI_REPLACE(0x00412750, ServerEntryResetHook);
 EI_REPLACE(0x00412590, ServerEntryCloneHook);
@@ -1242,9 +1247,11 @@ EI_REWRITTEN(0x004128E0, ServerEntry::Destruct);
 EI_REWRITTEN(0x00413350, LoginMessage::Construct);
 EI_REWRITTEN(0x004138A0, SayMessage::Construct);
 EI_REWRITTEN(0x00413C90, CommandMessage::Construct);
+EI_REWRITTEN(0x004140B0, FileRequestMessage::Construct);
 EI_REWRITTEN(0x0041C680, PlayerMessage::Construct);
 EI_REWRITTEN(0x0041C740, LineMessage::Construct);
 EI_REWRITTEN(0x0041C7C0, HostMessage::Construct);
+EI_REWRITTEN(0x0041C870, BindingMessage::Construct);
 EI_REWRITTEN(0x00418C30, ZoneMessage::Construct);
 
 } // namespace net

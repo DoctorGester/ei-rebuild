@@ -123,9 +123,11 @@ double ServerSession::GetVariable(const stlp::string* name) {
     return 0.0f /*0073B858*/;
 }
 
+EI_REWRITTEN(0x00419570, ServerSession::FindVariable);
 EI_REWRITTEN(0x004195D0, ServerSession::FindOrAddVariable);
 EI_REWRITTEN(0x00419730, ServerSession::SetVariable);
 EI_REWRITTEN(0x004197D0, ServerSession::RaiseVariable);
 EI_REWRITTEN(0x004198D0, ServerSession::RemoveVariable);
+EI_REWRITTEN(0x00419940, ServerSession::GetVariable);
 
 } // namespace net

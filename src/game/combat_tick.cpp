@@ -166,6 +166,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
     modifier = from->modifier;
     return this;
 }
+EI_REWRITTEN(0x0054B320, UnitAction::Assign);
 
 void UnitAction::Reset() {
     kind = kOrderEmpty;
@@ -175,6 +176,7 @@ void UnitAction::Reset() {
     param = 0;
     modifier = 0;
 }
+EI_REWRITTEN(0x0054B230, UnitAction::Reset);
 
 void CUnitServer::SetUnitMoveMode2(int mode) {
     if (mode == unit->moveMode2) return;
