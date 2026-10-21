@@ -65,21 +65,18 @@ footer { color: var(--muted); font-size: 12px }
 <main>
   <header>
     <h1>Evil Islands Rebuild Progress</h1>
-    <p class="sub">game.exe 1.06 rebuilt as C++ in a hook DLL. Ported share counts game code only: library code and dead code are excluded. <span id="asof" class="mono"></span></p>
+    <p class="sub">game.exe 1.06 rebuilt as C++. The port and the standalone exe are done; what is left is cleaning the C++ up until nothing leans on game.exe's code or data layout. Lower is better unless a chart says otherwise. <span id="asof" class="mono"></span></p>
   </header>
   <div class="summary" id="summary"></div>
   <section>
-    <h2>Ported game code by area</h2>
-    <div class="tablewrap"><table id="areas"><thead><tr><th>Area</th><th class="mono">Range</th><th>Bytes ported</th><th class="r">%</th><th class="r">Functions</th><th class="r">KB left</th></tr></thead><tbody></tbody></table></div>
+    <h2>Cleanup track</h2>
+    <p class="sub">The counts <span class="mono">tools/progress.py</span> prints, and the tables the image still takes from game.exe.</p>
+    <div class="tablewrap"><table id="cleanup"><thead><tr><th>Measure</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
-    <h2>Cleanup</h2>
-    <div class="tablewrap"><table id="cleanup"><thead><tr><th>Pattern</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
-  </section>
-  <section>
-    <h2>Standalone readiness</h2>
-    <p class="sub">What still ties the code to the original exe, and the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md).</p>
-    <div class="tablewrap"><table id="standalone"><thead><tr><th>Tie</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
+    <h2>Runtime and text</h2>
+    <p class="sub">Uses of the original's MFC, STLport and CRT through src/lib, and the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md).</p>
+    <div class="tablewrap"><table id="standalone"><thead><tr><th>Measure</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
     <h2>Over time</h2>
@@ -101,7 +98,11 @@ function stat(label, value, note, lead) {
 
 // Interactive line charts (own SVG code, no library): hover shows every series' value at the nearest
 // commit; dragging across any chart zooms all charts to that period; double-click or "Show all" resets.
-const view = { x0: null, x1: null };   // shared zoom range (ms), null = everything
+// The x axis is commit order (a sampled commit per step), not time: days with hundreds of commits get the room
+// their work needs, and quiet days take none.
+const view = { x0: null, x1: null };   // shared zoom range (point indices), null = everything
+let timeline = [];                      // the points every chart shares, for labels
+const stamp = p => new Date(p.date).toISOString().slice(0, 16).replace('T', ' ');
 const charts = [];                      // { el, points, series, opts } for redraws
 const W = 520, H = 200, L = 52, R = 12, T = 10, B = 26;
 
@@ -118,7 +119,7 @@ function lineChart(points, series, opts) {
 }
 
 function visiblePoints(points) {
-  const all = points.map(p => ({ p, t: new Date(p.date).getTime() }));
+  const all = points.map((p, i) => ({ p, t: i }));
   if (view.x0 == null) return all;
   const inside = all.filter(q => q.t >= view.x0 && q.t <= view.x1);
   return inside.length >= 2 ? inside : all;
@@ -146,11 +147,12 @@ function drawChart(chart) {
     g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css('--line')}" stroke-width="1"/>`;
     g += `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${opts.unit === '%' ? +v.toFixed(2) + '%' : fmtShort(v)}</text>`;
   }
-  const span = x1 - x0, dayMs = 864e5;
-  const tickEvery = span > 20 * dayMs ? 7 * dayMs : span > 3 * dayMs ? dayMs : span > dayMs / 2 ? dayMs / 4 : dayMs / 24;
-  for (let d = Math.ceil(x0 / tickEvery) * tickEvery; d <= x1; d += tickEvery) {
-    const label = tickEvery >= dayMs ? new Date(d).toISOString().slice(5, 10) : new Date(d).toISOString().slice(11, 16);
-    g += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${label}</text>`;
+  // Six date labels at evenly spaced commits; the time of day too when the range is under two weeks.
+  const short = new Date(points[x1].date) - new Date(points[x0].date) < 14 * 864e5;
+  for (let k = 0; k <= 5; k++) {
+    const i = Math.round(x0 + (x1 - x0) * k / 5), when = stamp(points[i]);
+    const label = short ? when.slice(5) : when.slice(5, 10);
+    g += `<text x="${X(i)}" y="${H - 8}" text-anchor="${k === 0 ? 'start' : k === 5 ? 'end' : 'middle'}">${label}</text>`;
   }
   series.forEach(s => {
     const pts = vis.map(q => [X(q.t), s.get(q.p)]).filter(q => q[1] != null).map(q => [q[0], Y(q[1])]);
@@ -200,7 +202,7 @@ function attachEvents(chart) {
       return `<div class="row" style="--c:${s.color}"><i></i><span>${s.name}</span><b>${shown}</b></div>`;
     }).join('');
     plot.querySelector('.hover').innerHTML = marks;
-    const when = new Date(q.t).toISOString().slice(0, 16).replace('T', ' ');
+    const when = stamp(q.p);
     tip.innerHTML = `<div class="t">${when} &middot; ${q.p.commit}</div>${q.p.subject ? `<div>${escapeHtml(q.p.subject)}</div>` : ''}${rows}`;
     tip.hidden = false;
     const pr = plot.getBoundingClientRect(), px = (hx / W) * pr.width;
@@ -226,8 +228,8 @@ function setZoom(x0, x1) {
   const zoomed = x0 != null;
   document.getElementById('zoomreset').hidden = !zoomed;
   document.getElementById('zoomtext').textContent = zoomed
-    ? 'Showing ' + new Date(x0).toISOString().slice(0, 16).replace('T', ' ') + ' to ' + new Date(x1).toISOString().slice(0, 16).replace('T', ' ') + ' UTC.'
-    : 'Hover for values. Drag across a chart to zoom in on a period; double-click to zoom out.';
+    ? 'Showing ' + stamp(timeline[Math.max(0, Math.ceil(x0))]) + ' to ' + stamp(timeline[Math.min(timeline.length - 1, Math.floor(x1))]) + ' UTC. Commits are evenly spaced, not time.'
+    : 'Hover for values. Drag across a chart to zoom in on a period; double-click to zoom out. Commits are evenly spaced, not time.';
 }
 function escapeHtml(s) { return s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]); }
 
@@ -240,29 +242,18 @@ function render(data) {
   const loc = Object.entries(c.loc);
   const src = loc.filter(([k]) => k.startsWith('src/')).reduce((a, [, v]) => a + v, 0);
   const tests = loc.filter(([k]) => k.startsWith('tests/')).reduce((a, [, v]) => a + v, 0);
-  const first = data.history[0];
+  const t = c.track || {};
+  const peakOf = key => Math.max(...h.map(p => (p.track || {})[key]).filter(v => v != null));
+  const down = key => { const pk = peakOf(key), now = t[key]; return isFinite(pk) && pk > now ? `down ${fmt(pk - now)} from ${fmt(pk)}` : 'at its peak'; };
   document.getElementById('summary').innerHTML =
-    stat('Game code ported', pct(c.ported_bytes, c.bytes).toFixed(1) + '%', `${fmt(Math.round(c.ported_bytes / 1024))} of ${fmt(Math.round(c.bytes / 1024))} KB`, true) +
-    stat('Functions ported', fmt(c.ported_functions), `of ${fmt(c.functions)} game functions`) +
+    stat('Code cells', fmt(t.code_cells || 0), `${fmt(t.code_cells_eh || 0)} EH, ${fmt(t.code_cells_vtable || 0)} vtable slots`, true) +
+    stat('Registrations', fmt(t.registrations || 0), 'our functions at game.exe addresses') +
+    stat('Pointer static_casts', fmt(t.pointer_static_casts || 0), down('pointer_static_casts')) +
+    stat('reinterpret_casts', fmt(t.reinterpret_casts || 0), down('reinterpret_casts')) +
+    stat('Game data addresses', fmt(t.data_addresses || 0), `${fmt(t.named_ranges || 0)} ranges named so far`) +
+    stat('Hook shims', fmt(t.fastcall_shims || 0), '__fastcall Fn(T* self, void*)') +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
-    stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in-game scenarios') +
-    stat('Forwarders left', fmt(c.cleanup.forwarder_sites), `${fmt(c.cleanup.forwarded_from_several_files)} duplicated across files`);
-  const tb = document.querySelector('#areas tbody');
-  tb.innerHTML = c.areas.map(a => {
-    const p = pct(a.ported_bytes, a.bytes);
-    return `<tr><td>${a.name}</td><td class="mono">${a.range}</td><td><div class="bar"><i style="width:${p.toFixed(1)}%"></i></div></td>` +
-      `<td class="r num">${p.toFixed(1)}</td><td class="r num">${fmt(a.ported_functions)} / ${fmt(a.functions)}</td>` +
-      `<td class="r num">${fmt(Math.round((a.bytes - a.ported_bytes) / 1024))}</td></tr>`;
-  }).join('');
-  const metrics = [
-    ['Offset accesses (At<>/Field<>)', 'offset_access'], ['VCall slot calls', 'vcall'],
-    ['Byte-offset arithmetic', 'byte_arithmetic'], ['Raw game addresses', 'raw_addresses'],
-    ['Placeholder virtuals (SlotNN)', 'slot_placeholders'], ['*At view structs', 'at_views'],
-    ['Per-file Array / List containers', 'container_structs'], ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
-    ['Hand-written vector maths', 'vector_maths'], ['Unknown fields (unknown_XXX)', 'unknown_fields'],
-    ['Forwarder sites', 'forwarder_sites'],
-    ['Functions forwarded from several files', 'forwarded_from_several_files'],
-    ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']];
+    stat('Scenarios', fmt(c.cleanup.scenarios || 0), `port done: ${fmt(c.ported_functions)} functions`);
   const peakRows = (group, rows) => rows.map(([name, key]) => {
     const vals = h.map(p => p[group] && p[group][key]).filter(v => v != null);
     const peak = vals.length ? Math.max(...vals) : null, now = (c[group] || {})[key];
@@ -270,71 +261,67 @@ function render(data) {
     return `<tr><td>${name}</td><td class="r num">${peak == null ? '' : fmt(peak)}</td><td class="r num">${now == null ? '' : fmt(now)}</td>` +
       `<td class="r num">${peak && now != null ? (change > 0 ? '+' : '') + change + '%' : ''}</td></tr>`;
   }).join('');
-  document.querySelector('#cleanup tbody').innerHTML = peakRows('cleanup', metrics);
+  document.querySelector('#cleanup tbody').innerHTML = peakRows('track', [
+    ['Code cells (game.exe data holding its code addresses)', 'code_cells'], ['of them C++ EH tables', 'code_cells_eh'],
+    ['of them vtable slots', 'code_cells_vtable'], ['of them static initialisers', 'code_cells_static_init'],
+    ['of them other tables', 'code_cells_other'], ['Pointer cells (game.exe data pointing into its data)', 'pointer_cells'],
+    ['EI_REPLACE registrations', 'registrations'], ['__fastcall hook shims', 'fastcall_shims'],
+    ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
+    ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
+    ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
+    ['Forwarder sites (EI_ORIGINAL)', 'forwarder_sites'], ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
+    ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
-    ['Library functions with our code (of ' + fmt((c.standalone || {}).library_functions || 0) + ')', 'library_ours'],
-    ['Unported game functions', 'unported_functions'], ['of them under 5 bytes (cannot be hooked)', 'unported_unhookable'],
-    ['of them Rebirth-patched', 'unported_rebirth_patched'],
-    ['Forwarded addresses', 'forwarder_addresses'], ['to unported game code', 'forwarders_to_unported'],
-    ['to code already rewritten', 'forwarders_to_rewritten'], ['to library code (MFC, STLport, CRT)', 'forwarders_to_library'],
-    ['Game data addresses', 'data_addresses'],
-    ["Image ties to game.exe at run time (fixed base, reserved range, reads of the file)", 'image_ties'],
     ['MFC strings (CString)', 'mfc_strings'], ['MFC arrays', 'mfc_arrays'], ['MFC lists', 'mfc_lists'],
     ['MFC maps', 'mfc_maps'], ['MFC files and archives', 'mfc_files'],
     ['STLport uses', 'stlp_uses'], ['of them hash maps', 'stlp_hash_maps'],
-    ["The exe's allocator (new / delete)", 'crt_allocations'], ["Other calls into the exe's CRT", 'crt_other'],
-    ["Imports through the exe's table", 'import_uses'],
+    ["The original's allocator (new / delete)", 'crt_allocations'], ["Other calls into the original's CRT", 'crt_other'],
+    ["Imports through the original's table", 'import_uses'],
     ['Text: case-insensitive compares and case changes', 'text_case_compares'], ['Text: fixed char buffers', 'text_fixed_buffers'],
     ['Text: direct ANSI system calls', 'text_ansi_calls']]);
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
   const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
-  charts.length = 0; view.x0 = view.x1 = null;
+  charts.length = 0; view.x0 = view.x1 = null; timeline = h;
   const box = document.getElementById('charts'); box.innerHTML = '';
+  const tr = key => p => p.track ? p.track[key] : null;
   [
-    lineChart(h, [{ name: 'Ported', color: accent, area: true, get: p => pct(p.ported_bytes, p.bytes) }],
-      { title: 'Game code ported', note: 'Share of game code bytes with a rewrite hooked in.', unit: '%', max: 100 }),
-    lineChart(h, c.areas.map((a, i) => ({ name: a.name, color: areaColors[i % areaColors.length],
-      get: p => { const x = (p.areas || []).find(q => q.range === a.range); return x ? pct(x.ported_bytes, x.bytes) : null; } })),
-      { title: 'Ported by area', note: 'Share of each address range.', unit: '%', max: 100 }),
-    lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
-                  { name: 'tests/verify', color: good, get: p => p.loc['tests/verify'] },
-                  { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
-      { title: 'Lines of code', note: 'Line counts of the main source trees.' }),
-    lineChart(h, [{ name: 'Offset accesses (At<>/Field<>)', color: '#4a6fa5', get: p => p.cleanup.offset_access },
-                  { name: 'Raw game addresses', color: accent, get: p => p.cleanup.raw_addresses },
-                  { name: 'VCall slot calls', color: good, get: p => p.cleanup.vcall },
-                  { name: 'Byte-offset arithmetic', color: muted, get: p => p.cleanup.byte_arithmetic }],
-      { title: 'Cleanup: member access', note: 'Offsets, slot numbers and literal addresses instead of named members, virtuals and globals. Lower is better.' }),
-    lineChart(h, [{ name: 'Forwarder sites', color: accent, get: p => p.cleanup.forwarder_sites },
-                  { name: 'Duplicated forwarders', color: good, get: p => p.cleanup.forwarded_from_several_files }],
-      { title: 'Cleanup: forwarders', note: 'Calls into original code; they go as the port completes.' }),
-    lineChart(h, [{ name: 'Hand-written vector maths', color: '#8a5aa0', get: p => p.cleanup.vector_maths },
-                  { name: 'Placeholder virtuals', color: accent, get: p => p.cleanup.slot_placeholders },
-                  { name: 'Per-file containers (all kinds)', color: good, get: p => p.cleanup.container_structs == null && p.cleanup.vector_map_set_structs == null ? null : (p.cleanup.container_structs || 0) + (p.cleanup.vector_map_set_structs || 0) },
-                  { name: '*At view structs', color: muted, get: p => p.cleanup.at_views }],
-      { title: 'Cleanup: types', note: 'Vector maths outside vecmath.h, unnamed virtuals and per-file container layouts.' }),
-    lineChart(h, [{ name: 'Unknown fields', color: accent, get: p => p.cleanup.unknown_fields }],
-      { title: 'Cleanup: unknown fields', note: 'Members still named unknown_XXX; each becomes a real name or unused_XXX (tickets F1-F5).' }),
-    lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
-                  { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
-      { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }),
-    lineChart(h, [{ name: 'Functions', color: accent, area: true, get: p => p.standalone && p.standalone.library_functions ? pct(p.standalone.library_ours, p.standalone.library_functions) : null },
-                  { name: 'Bytes', color: good, get: p => p.standalone && p.standalone.library_bytes ? pct(p.standalone.library_ours_bytes, p.standalone.library_bytes) : null }],
-      { title: 'Standalone: library code ours', note: "Share of the exe's MFC, STLport and CRT functions (config/library.csv) with our code at their address, which the standalone image runs instead of the original's.", unit: '%', max: 100 }),
-    lineChart(h, [{ name: 'To library code', color: accent, get: p => p.standalone && p.standalone.forwarders_to_library },
-                  { name: 'To code already rewritten', color: good, get: p => p.standalone && p.standalone.forwarders_to_rewritten },
-                  { name: 'To unported game code', color: '#4a6fa5', get: p => p.standalone && p.standalone.forwarders_to_unported },
-                  { name: 'Game data addresses', color: muted, get: p => p.standalone && p.standalone.data_addresses }],
-      { title: 'Standalone: ties to the exe', note: 'Distinct forwarded addresses by what they reach, and literal data addresses. All go to zero for a standalone exe.' }),
+    lineChart(h, [{ name: 'All code cells', color: accent, area: true, get: tr('code_cells') },
+                  { name: 'C++ EH tables', color: '#4a6fa5', get: tr('code_cells_eh') },
+                  { name: 'Vtable slots', color: good, get: tr('code_cells_vtable') },
+                  { name: 'Static initialisers and other', color: muted, get: p => p.track && p.track.code_cells != null ? (p.track.code_cells_static_init || 0) + (p.track.code_cells_other || 0) : null }],
+      { title: 'Code cells', note: "Slots in game.exe's data holding one of its function addresses, repointed at our code when the image starts (since S18i). C19 retires vtables, C20a the EH tables." }),
+    lineChart(h, [{ name: 'static_cast to a pointer', color: accent, get: tr('pointer_static_casts') },
+                  { name: 'reinterpret_cast', color: '#4a6fa5', get: tr('reinterpret_casts') }],
+      { title: 'Casts', note: 'Typing debt: void* parameters, base-class fields and raw memory views (C15, C21).' }),
+    lineChart(h, [{ name: 'EI_REPLACE registrations', color: accent, get: tr('registrations') }],
+      { title: 'Registrations', note: 'Our functions tied to a game.exe address; they go once nothing reaches game addresses (C20).' }),
+    lineChart(h, [{ name: '__fastcall shims', color: accent, get: tr('fastcall_shims') },
+                  { name: 'Forwarder sites', color: good, get: p => p.cleanup.forwarder_sites },
+                  { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
+      { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11), EI_ORIGINAL forwarders and duplicated layouts.' }),
+    lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],
+      { title: 'Game data addresses', note: "Distinct literal addresses of game.exe's .rdata and .data in src/; C18 turns them into named globals." }),
+    lineChart(h, [{ name: 'Named data ranges', color: accent, get: tr('named_ranges') },
+                  { name: 'Retired vtables', color: good, get: tr('retired_vtables') }],
+      { title: 'Named and retired', note: "Ranges of game.exe's data that are now our own typed globals (C18), and game.exe vtables no class uses any more (C19). Higher is better here." }),
     lineChart(h, [{ name: 'MFC strings', color: accent, get: p => p.standalone && p.standalone.mfc_strings },
                   { name: 'MFC arrays, lists, maps, files', color: good, get: p => p.standalone && (p.standalone.mfc_arrays + p.standalone.mfc_lists + p.standalone.mfc_maps + p.standalone.mfc_files) },
                   { name: 'STLport', color: '#4a6fa5', get: p => p.standalone && p.standalone.stlp_uses },
-                  { name: "The exe's CRT and allocator", color: muted, get: p => p.standalone && (p.standalone.crt_allocations + p.standalone.crt_other) }],
-      { title: 'Standalone: runtime uses', note: 'Uses of the shared MFC, STLport and CRT types. They rise with the port and move to our own classes, then standard types.' }),
+                  { name: "The original's CRT and allocator", color: muted, get: p => p.standalone && (p.standalone.crt_allocations + p.standalone.crt_other) }],
+      { title: 'Runtime uses', note: "Uses of the original's MFC, STLport and CRT types; they move to our own classes, then standard types (C14)." }),
+    lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
+                  { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
+      { title: 'x87', note: 'Inline assembly and precision pragmas kept for bit-exact x87 maths.' }),
+    lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
+                  { name: 'src/standalone', color: good, get: p => p.loc['src/standalone'] },
+                  { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
+      { title: 'Lines of code', note: 'Line counts of the main source trees.' }),
     lineChart(h, [{ name: 'Scenarios', color: accent, get: p => p.cleanup.scenarios || 0 }],
       { title: 'Test coverage', note: 'In-game scenarios (the goldens and the image suite play them).' })
   ].forEach(el => box.appendChild(el));
-  setZoom(null, null);
+  // Open on the last week, where the cleanup track happens; "Show all" goes back to the whole history.
+  const weekAgo = new Date(c.date).getTime() - 7 * 864e5;
+  setZoom(Math.max(0, h.findIndex(p => new Date(p.date).getTime() >= weekAgo)), h.length - 1);
 }
 document.getElementById('zoomreset').addEventListener('click', () => setZoom(null, null));
 
