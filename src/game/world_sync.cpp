@@ -68,10 +68,19 @@ constexpr int kKindNoRangeTest = 3;
 using StaticPtrArray = lib::AlignedArray<CEngineObject*>;
 
 // SyncPlayer's four function statics (their guard bits at 007AFF58) and their atexit destructors.
-StaticPtrArray& Collected() { return ei::GameData<StaticPtrArray>(0x007AFF48); }
-StaticPtrArray& Added() { return ei::GameData<StaticPtrArray>(0x007AFF38); }
-StaticPtrArray& Kept() { return ei::GameData<StaticPtrArray>(0x007AFF28); }
-StaticPtrArray& Removed() { return ei::GameData<StaticPtrArray>(0x007AFF18); }
+constinit lib::AlignedArray<CEngineObject*> g_collected = /*007AFF48*/ {};
+constinit lib::AlignedArray<CEngineObject*> g_added = /*007AFF38*/ {};
+constinit lib::AlignedArray<CEngineObject*> g_kept = /*007AFF28*/ {};
+constinit lib::AlignedArray<CEngineObject*> g_removed = /*007AFF18*/ {};
+StaticPtrArray& Collected() { return g_collected; }
+StaticPtrArray& Added() { return g_added; }
+StaticPtrArray& Kept() { return g_kept; }
+StaticPtrArray& Removed() { return g_removed; }
+// The exit functions: each frees its array's block (the fields stay).
+void __cdecl FreeCollected() { g_collected.FreeData(); }   // 0058C4D0
+void __cdecl FreeAdded() { g_added.FreeData(); }           // 0058C4B0
+void __cdecl FreeKept() { g_kept.FreeData(); }             // 0058C490
+void __cdecl FreeRemoved() { g_removed.FreeData(); }       // 0058C470
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
@@ -369,3 +378,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
 
 EI_REPLACE_METHOD(0x0058B750, CWorldServer::SyncPlayer);
 EI_REWRITTEN(0x0058C890, CWorldServer::SendZone);
+EI_REPLACE(0x0058C4D0, FreeCollected);
+EI_REPLACE(0x0058C4B0, FreeAdded);
+EI_REPLACE(0x0058C490, FreeKept);
+EI_REPLACE(0x0058C470, FreeRemoved);

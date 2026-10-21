@@ -78,6 +78,7 @@ address,size,name,file
 0079BA1C,4,g_cameraFile,src/game/app_main.cpp
 0079BC2C,4,g_protectionChecks,src/game/static_lists.cpp
 0079C1A0,32,g_leverTable,src/game/lever_table.cpp
+007A9738,16,g_scratch,src/game/world_object_sets.cpp
 007A9748,1,g_scratchGuard,src/game/world_object_sets.cpp
 007A9BF4,4,g_arraysConstructed,src/game/particle_render.cpp
 007A9BF8,4,kSpinAngle,src/game/particle_callbacks.cpp
@@ -116,6 +117,7 @@ address,size,name,file
 007AF458,4,g_discFolder,src/game/game_folders.cpp
 007AF45C,4,g_textFolder,src/game/game_folders.cpp
 007AF460,4,g_dataFolder,src/game/game_folders.cpp
+007AF478,16,g_partPoints,src/game/world_client_decals.cpp
 007AF488,124,g_builder,src/game/world_client_decals.cpp
 007AF504,1,g_guards,src/game/world_client_decals.cpp
 007AF5B4,4,g_deferredUnits,src/game/static_lists.cpp
@@ -127,9 +129,15 @@ address,size,name,file
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
 007AFED4,4,g_appliedStamp,src/game/world_game.cpp
 007AFED8,4,kFacingOffset,src/game/world_party.cpp
+007AFEE0,16,g_sleepingIds,src/game/world_tick.cpp
+007AFEF0,16,g_removedIds,src/game/world_tick.cpp
 007AFF00,1,g_updateListGuards,src/game/world_tick.cpp
 007AFF08,8,g_wakeCache,src/game/world_tick.cpp
 007AFF10,1,g_wakeCacheGuard,src/game/world_tick.cpp
+007AFF18,16,g_removed,src/game/world_sync.cpp
+007AFF28,16,g_kept,src/game/world_sync.cpp
+007AFF38,16,g_added,src/game/world_sync.cpp
+007AFF48,16,g_collected,src/game/world_sync.cpp
 007AFF58,1,g_staticsGuard,src/game/world_sync.cpp
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2EF4,1,g_blocksGuard,src/game/ai_region_reach.cpp

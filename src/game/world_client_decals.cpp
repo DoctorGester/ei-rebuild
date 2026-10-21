@@ -27,7 +27,9 @@ namespace {
 
 DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the draw (guard bit 0 of g_guards)
 DecalBuilder& Builder() { return g_builder; }
-lib::AlignedArray<Vector4>& PartPoints() { return ei::GameData<lib::AlignedArray<Vector4>>(0x007AF478); }
+constinit lib::AlignedArray<Vector4> g_partPoints = /*007AF478*/ {};
+lib::AlignedArray<Vector4>& PartPoints() { return g_partPoints; }
+void __cdecl FreePartPoints() { g_partPoints.FreeData(); }   // 0056CE10
 std::uint8_t g_guards = /*007AF504*/ {};
 std::uint8_t& Guards() { return g_guards; }
 void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
@@ -155,3 +157,4 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     render::EndDecalTime(points->size * 4);
 }
 EI_REWRITTEN(0x0056C750, CWorldClient::ProjectDecal);
+EI_REPLACE(0x0056CE10, FreePartPoints);

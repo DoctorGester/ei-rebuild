@@ -232,8 +232,13 @@ namespace {
 using IdArray = lib::AlignedArray<unsigned>;
 // 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
 
-IdArray& RemovedIds() { return ei::GameData<IdArray>(0x007AFEF0); }   // flagged for removal
-IdArray& SleepingIds() { return ei::GameData<IdArray>(0x007AFEE0); }  // leave the update map
+constinit lib::AlignedArray<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
+constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
+IdArray& RemovedIds() { return g_removedIds; }
+IdArray& SleepingIds() { return g_sleepingIds; }
+// The exit functions: each frees its array's block (the fields stay).
+void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }     // 0058DA20
+void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }   // 0058DA00
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
 
@@ -247,12 +252,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        GameAtExit(ei::static_init::Exit0058DA20);
+        GameAtExit(FreeRemovedIds);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        GameAtExit(ei::static_init::Exit0058DA00);
+        GameAtExit(FreeSleepingIds);
     }
     RemovedIds().RemoveAll();
     SleepingIds().RemoveAll();
@@ -320,3 +325,5 @@ EI_REWRITTEN(0x0058D3D0, CWorldServer::WakeUnitsAround);
 EI_REWRITTEN(0x00593FC0, CWorldServer::InvokeAlarm);
 EI_REWRITTEN(0x0058DC90, CWorldServer::SetGameResult);
 EI_REPLACE_METHOD(0x0058D670, CWorldServer::UpdateUnits);
+EI_REPLACE(0x0058DA20, FreeRemovedIds);
+EI_REPLACE(0x0058DA00, FreeSleepingIds);
