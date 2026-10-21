@@ -256,9 +256,29 @@ def main(argv):
 
     callers = call_graph(code, text_va, starts, funcs, skip, md)
 
-    # Every 4 bytes of the image that spell a function's start (at any alignment: x86 immediates), by
-    # the function: ([.text sites], in data).
+    # Every 4 bytes of the image that spell a function's start, by the function: ([.text sites], in
+    # data). In .text a site counts only where it is exactly the imm32 or disp32 field of an instruction
+    # (PUSH OFFSET f, MOV [x], OFFSET f, LEA, MOV reg, OFFSET f): four bytes inside some other instruction
+    # (a float immediate, a displacement's high bytes next to a CALL's) can spell any address, and made
+    # an out-of-line copy nothing calls look address-taken by whichever function held such bytes (C17a).
     start_set = set(starts)
+    mdf = Cs(CS_ARCH_X86, CS_MODE_32)
+    mdf.detail = True
+    fields = {}                                      # function index -> {VA of an imm32 / disp32 field}
+
+    def operand_fields(j):
+        got = fields.get(j)
+        if got is None:
+            got = fields[j] = set()
+            start = starts[j]
+            lim = starts[j + 1] if j + 1 < len(starts) else text_va + len(code)
+            for x in mdf.disasm(code[start - text_va:lim - text_va], start):
+                if x.disp_size == 4 and x.disp_offset:
+                    got.add(x.address + x.disp_offset)
+                if x.imm_size == 4 and x.imm_offset:
+                    got.add(x.address + x.imm_offset)
+        return got
+
     refs = {}
     top = re.escape(bytes([img.base >> 24]))
     for name, sva, vsz, rptr, rsz in img.sections:
@@ -278,7 +298,7 @@ def main(argv):
         inside = set()
         for site in set(sites):
             j = bisect.bisect_right(starts, site) - 1
-            if j >= 0 and j != k and not skip(funcs[j][2]):
+            if j >= 0 and j != k and not skip(funcs[j][2]) and site in operand_fields(j):
                 inside.add(j)
         return inside, data[0]
 
