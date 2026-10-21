@@ -23,7 +23,7 @@ struct FigureBone;
 int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation);
 
 // 005AA8E0 (figure_factory.cpp): the figure object factory, also the figure manager's slot 14.
-void* __fastcall CreateFigureObject(void* self, void* edx, int classId);
+void* __stdcall CreateFigureObject(int classId);
 
 // FigureModel, the cached model, is in model.h.
 

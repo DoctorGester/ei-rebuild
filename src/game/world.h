@@ -1003,8 +1003,8 @@ void __fastcall DestroyHead(DressedUnitRecord* self);
 // 0055D020 (RET 4): equal(first, last, other) of two id ranges (AL).
 bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other);
 // 0051FAD0 (RET 4): the scalar deleting destructor of a CString (the name vector's element loop
-// calls it with 0). Returns this.
-mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags);
+// calls it with 0), ScalarDeleting<&DestructName>::Delete. Returns this.
+void __fastcall DestructName(mfc::CString* name);
 } // namespace unitset
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
@@ -2124,7 +2124,7 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to);
 // controller statistics (0x704 bytes from +0x1E0) are XORed with a new random key (007AFECC),
 // with 1 they are XORed back; also the party records outside a game (007C82B0). Nothing when
 // the state (0079026C) is already `plain`. 005791C0 (RET 4) does one player list.
-void __fastcall GuardPlayerData(void* glue, void*, char plain);
+void __stdcall GuardPlayerData(char plain);
 void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------

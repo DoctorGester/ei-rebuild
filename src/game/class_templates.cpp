@@ -89,12 +89,12 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = stlp::RecordNamed(Weapons(), nullptr, names.data[i]);
+        void* record = Weapons()->Named(names.data[i]);
         if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = stlp::RecordNamed(Armors(), nullptr, names.data[i]);
+        void* record = Armors()->Named(names.data[i]);
         if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);

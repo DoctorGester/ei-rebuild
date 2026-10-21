@@ -895,7 +895,7 @@ namespace {
 // empty element array, bounds, particle list (blocks of 10), frame rectangles and texture holder,
 // then Reset and the type. The original's EH frame only unwinds the member constructors, none of
 // which can throw.
-CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
+CParticleSource* __stdcall NewParticleSource(int type) {
     // The source starts zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98) and
     // the first Tick takes the motion from it, so a source never attached emitted distance / emitSpacing
     // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
@@ -932,7 +932,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
 EI_REWRITTEN(0x004981B0, NewParticleSource);
 
 CEngineObject* CParticleManager::NewObject(int type) {
-    return NewParticleSource(this, nullptr, type);
+    return NewParticleSource(type);
 }
 
 // 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the

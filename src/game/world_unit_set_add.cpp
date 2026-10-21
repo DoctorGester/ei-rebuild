@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
 
@@ -198,11 +199,7 @@ bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, 
     return true;
 }
 
-mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags) {
-    self->~CString();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
+void __fastcall DestructName(mfc::CString* name) { name->~CString(); }
 
 } // namespace unitset
 
@@ -227,4 +224,4 @@ EI_REWRITTEN(0x0055BAC0, gamehash::DressedAbi::InsertEqualNoresize);
 // CString, and the CString's scalar deleting destructor (the names' element loop calls it with 0).
 EI_REWRITTEN(0x0055C260, stlp::ConstructAt<std::uint32_t>);
 EI_REWRITTEN(0x0055C270, stlp::ConstructAt<mfc::CString>);
-EI_REWRITTEN(0x0051FAD0, unitset::DeleteName);
+EI_REWRITTEN(0x0051FAD0, mfc::impl::ScalarDeleting<&unitset::DestructName>::Delete);

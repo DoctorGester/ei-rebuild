@@ -43,9 +43,9 @@ inline void DefaultMember(UnitModelSlot& to) { UnitModelSlotMembers::Default(&to
 namespace recordvec {
 
 // resize(n) of instantiation `Abi` (its default record appended) for a caller that holds the vector
-// untyped: the record tables' serialisers take it as a function of (vector, -, count).
+// untyped: the record tables' serialisers take it as a function of (vector, count).
 template <typename Abi>
-void __fastcall ResizeUntyped(void* vector, void*, unsigned count) {
+void ResizeUntyped(void* vector, unsigned count) {
     static_cast<Abi*>(static_cast<typename Abi::Vector*>(vector))->ResizeDefault(count);
 }
 

@@ -251,7 +251,7 @@ void LoopbackLink::DestroyQueue() {
 
 // The first goes to the player's link (+8); null for a null player. Without memory for the second
 // the original crashes; so does this.
-LoopbackLink* __fastcall LoopbackLink::CreatePair(void*, void*, std::uint8_t* player) {   // 004782E0
+LoopbackLink* __stdcall LoopbackLink::CreatePair(std::uint8_t* player) {   // 004782E0
     if (!player) return nullptr;
     auto*& held = *reinterpret_cast<CRefObject**>(player + 8);
     LoopbackLink* first = New();
@@ -395,7 +395,7 @@ void ReplayLink::ConstructInPlace() {
 
 // modeRead; the stream's ok tells whether it opened. Without memory the original crashes (on the
 // reference count's write before the null check); so does this.
-ReplayLink* __fastcall ReplayLink::Create(void*, void*, const char* path) {   // 00478960
+ReplayLink* __stdcall ReplayLink::Create(const char* path) {   // 00478960
     auto* self = net::NewMessageMemory<ReplayLink>();
     if (self) self->ConstructInPlace();
     self->replay_.Open(path, FileStream::kOpenRead, 1);

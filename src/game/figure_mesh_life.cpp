@@ -257,7 +257,7 @@ CFigureManager* CFigureManager::Construct() { return new (this) CFigureManager()
 EI_REWRITTEN(0x005AA070, CFigureManager::Construct);
 
 CEngineObject* CFigureManager::NewObject(int type) {
-    return static_cast<CEngineObject*>(::CreateFigureObject(this, nullptr, type));
+    return static_cast<CEngineObject*>(::CreateFigureObject(type));
 }
 
 CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {

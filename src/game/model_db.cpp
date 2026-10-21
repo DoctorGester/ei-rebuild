@@ -21,7 +21,7 @@ namespace {
 using RawVector = stlp::vector<char>;
 
 using RecordFn = void (*)(void* record);                                       // destructor body
-using ResizeFn = void(__fastcall*)(void* vector, void*, unsigned count);        // vector::resize
+using ResizeFn = void (*)(void* vector, unsigned count);        // vector::resize
 using SerializeFn = void (*)(void* record, ChunkArchive* ar);
 
 // Element destructors (release the records' strings); vector::resize of each record type is
@@ -53,7 +53,7 @@ void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn d
         for (char* p = v->begin(); p != end; p += size) destroy(p);
         v->Finish() = v->Start();
         count = ar->CountChunks(1);
-        resize(v, nullptr, static_cast<unsigned>(count));
+        resize(v, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(v->size()) / size;
     }

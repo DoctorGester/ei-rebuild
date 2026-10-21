@@ -96,9 +96,14 @@ static_assert(sizeof(Quaternion) == 16);
 // Row-major 4x4 matrix (the transform library's and Direct3D's layout). Two conventions use it:
 // row vectors (v * M, translation in m[12..14]: CTransformObject::WorldMatrix, figures) and column
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
-// The product is MatrixMultiply (004D9880, model.h), which sums each element in its own order.
+// The product is Matrix4::Multiply (004D9880), which sums each element in its own order.
 struct Matrix4 {
     float m[16];
+
+    // 004D9880 (matrix_math.cpp; ECX = this, RET 8). this = a * b (row-major: rows of `a` times columns of `b`). The
+    // elements are written one after the other, each from the inputs as they are then, so `this` may be one of the
+    // inputs as in the original. Not the plain sum: each element adds its four terms in the original's order.
+    void Multiply(const float* a, const float* b);
 };
 static_assert(sizeof(Matrix4) == 64);
 

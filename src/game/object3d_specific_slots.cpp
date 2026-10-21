@@ -126,7 +126,7 @@ constexpr float kNoScale = 1.0f;
 
 // 0051AC30. CObject3DServer's slot 18 (thiscall, RET 0xC; `this` unused): the server draws
 // nothing, so the extra scale is 1, 1, 1.
-void __fastcall ServerExtraScale(void*, void*, float* x, float* y, float* z) {
+void __stdcall ServerExtraScale(float* x, float* y, float* z) {
     *x = kNoScale;
     *y = kNoScale;
     *z = kNoScale;

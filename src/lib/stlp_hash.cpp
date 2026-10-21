@@ -20,11 +20,11 @@ TableWithDword* __fastcall ConstructTableWithDword(TableWithDword* self) {
 
 std::uint32_t __fastcall HashString(const string* s) { return s->Hash(); }
 
-void* __fastcall RecordNamed(RecordsByName* self, void*, const char* name) {
+void* RecordsByName::Named(const char* name) {
     string key(name);
     StringKeyed<4> obj(key);
     void* record;
-    std::memcpy(&record, self->byName.FindOrInsert(obj).mapped, sizeof(record));
+    std::memcpy(&record, byName.FindOrInsert(obj).mapped, sizeof(record));
     return record;
 }
 
@@ -120,15 +120,15 @@ EI_REWRITTEN(0x004A8B70, Map8::Destroy);
 EI_REWRITTEN(0x005984A0, Map8::Destroy);
 EI_REPLACE(0x004DB8A0, Set4::Destroy);
 EI_REPLACE(0x00668B70, Set4::Destroy);
-EI_REWRITTEN(0x004AB720, stlp::RecordNamed);
-EI_REWRITTEN(0x004AB820, stlp::RecordNamed);
-EI_REWRITTEN(0x0052CA40, stlp::RecordNamed);
-EI_REWRITTEN(0x0052CB40, stlp::RecordNamed);
-EI_REWRITTEN(0x0069D290, stlp::RecordNamed);
-EI_REWRITTEN(0x0069D380, stlp::RecordNamed);
-EI_REWRITTEN(0x006AD580, stlp::RecordNamed);
-EI_REWRITTEN(0x00613820, stlp::RecordNamed);
-EI_REWRITTEN(0x00613920, stlp::RecordNamed);
+EI_REWRITTEN(0x004AB720, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x004AB820, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x0052CA40, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x0052CB40, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x0069D290, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x0069D380, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x006AD580, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x00613820, stlp::RecordsByName::Named);
+EI_REWRITTEN(0x00613920, stlp::RecordsByName::Named);
 EI_REWRITTEN(0x004298D0, stlp::HashString);
 EI_REWRITTEN(0x004FB090, Map8::Begin);
 EI_REWRITTEN(0x005E0C00, Map8::Begin);

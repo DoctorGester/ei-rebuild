@@ -167,7 +167,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     key.MakeLower();
     const itemdb::ItemRecordHead* record;
     // The name index's operator[] (0060AC20; an unknown name gets a null entry).
-    record = static_cast<const itemdb::ItemRecordHead*>(stlp::RecordNamed(LootTable(), nullptr, key));
+    record = static_cast<const itemdb::ItemRecordHead*>(LootTable()->Named(key));
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);

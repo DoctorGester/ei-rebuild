@@ -258,18 +258,18 @@ CArchive& __stdcall LoadText(CArchive& ar, CString& text) {
         characters[length] = L'\0';
         CStringData* old = text.GetData();
         text.Init();
-        AssignWide(&text, nullptr, characters);
+        text.AssignWide(characters);
         CString::FreeData(old);
     }
     return ar;
 }
 
-CString* __fastcall AssignWide(CString* self, void*, const wchar_t* text) {
+CString* CString::AssignWide(const wchar_t* text) {
     const int length = text ? static_cast<int>(std::wcslen(text)) : 0;
-    self->AllocBeforeWrite(length * 2);
-    WideToMultiByte(const_cast<char*>(static_cast<const char*>(*self)), text, static_cast<unsigned>(length * 2 + 1));
-    self->ReleaseBuffer(-1);
-    return self;
+    AllocBeforeWrite(length * 2);
+    WideToMultiByte(const_cast<char*>(static_cast<const char*>(*this)), text, static_cast<unsigned>(length * 2 + 1));
+    ReleaseBuffer(-1);
+    return this;
 }
 
 int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
@@ -294,6 +294,6 @@ EI_REWRITTEN(0x006E62E6, CArchive::LoadDword);
 EI_REWRITTEN(0x007084C0, ReadStringLength);
 EI_REWRITTEN(0x00708447, StoreText);
 EI_REWRITTEN(0x00708517, LoadText);
-EI_REWRITTEN(0x00700B20, AssignWide);
+EI_REWRITTEN(0x00700B20, CString::AssignWide);
 EI_REWRITTEN(0x00700F63, WideToMultiByte);
 } // namespace mfc::impl

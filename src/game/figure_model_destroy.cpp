@@ -12,6 +12,7 @@
 #include "ei/vcall.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 #include "originals_world.h"
 
@@ -63,7 +64,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     });
     // clear().
     table.ClearWith([](Node* n) {
-        records::LeadingStringDelete(&n->key, nullptr, 0);
+        n->key.~string();
         if (n) Deallocate(n, sizeof(Node));
     });
 
@@ -75,7 +76,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 
     // The hash_map's destructor.
     table.ClearWith([&table](Node* n) {
-        records::LeadingStringDelete(&n->key, nullptr, 0);
+        n->key.~string();
         stlp::deallocate(n, 20);   // 005AE150
     });
     stlp::vector<Node*>& buckets = Buckets(table);
@@ -83,8 +84,8 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 }
 
 EI_REWRITTEN(0x005A9C90, DestroyFigureModel);
-EI_REWRITTEN(0x005AE5B0, records::LeadingStringDelete);
-EI_REWRITTEN(0x005AE5D0, records::LeadingStringDelete);
+EI_REWRITTEN(0x005AE5B0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
+EI_REWRITTEN(0x005AE5D0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
 // 005AA1C0 (thiscall): the figure manager's destructor: every cached model destroyed and freed,
 // the base's clean-up (00674F40), the model map cleared and its buckets freed (the map's inline
 // destructor), then the base destructor (00674DF0).
@@ -100,7 +101,7 @@ CFigureManager::~CFigureManager() {
     });
     manager->CResourceManager::Destroy();   // 00674F40, the base's clean-up
     table.ClearWith([](Node* n) {
-        records::LeadingStringDelete(&n->key, nullptr, 0);
+        n->key.~string();
         stlp::deallocate(n, 20);   // 004FC080
     });
     stlp::vector<Node*>& buckets = Buckets(table);

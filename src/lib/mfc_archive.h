@@ -66,8 +66,7 @@ CArchive& __stdcall StoreText(CArchive& ar, const CString& text);     // 0070844
 // operator>>(CArchive&, CString&): a wide string is converted to the ANSI code page.
 CArchive& __stdcall LoadText(CArchive& ar, CString& text);            // 00708517
 
-// CString::operator=(LPCWSTR) (thiscall, called as fastcall; returns the string).
-CString* __fastcall AssignWide(CString* self, void* unused, const wchar_t* text);    // 00700B20
+// CString::operator=(LPCWSTR) (00700B20) is CString::AssignWide (mfc_string.h).
 // _wcstombsz: WideCharToMultiByte into `count` bytes, terminated; the bytes written with the
 // terminator (0 for no room).
 int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count);         // 00700F63

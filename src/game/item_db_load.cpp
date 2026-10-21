@@ -52,7 +52,7 @@ void IndexedRecordTable::LoadLoot(CStream* source, int field) {
 
 namespace {
 
-using ResizeFn = void(__fastcall*)(void* records, void*, unsigned count);
+using ResizeFn = void (*)(void* records, unsigned count);
 
 // Per record type: the record's destructor (plain RET), the vector's resize (RET 4: new records
 // default-constructed; 006A83F0, 006A85A0, 006A8790, 006A7F00, 006A8110, 006A8290) and the
@@ -72,7 +72,7 @@ void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int siz
         for (char* p = records.begin; p != end; p += size) (reinterpret_cast<Record*>(p)->*destroy)();
         records.end = records.begin;
         count = ar->CountChunks(1);
-        resize(vector, nullptr, static_cast<unsigned>(count));
+        resize(vector, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(records.end - records.begin) / size;
     }

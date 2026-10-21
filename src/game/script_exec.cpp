@@ -671,13 +671,11 @@ BOOL ScriptRun::Execute(CScript* script) {
             (console::Out() << Text(cmd, 0)).Apply(libcrt::EndlManipulator);
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
-            auto* area = static_cast<mfc::CArray<ScriptAreaPart>*>(script->FindArea(Round(f[0])));
-            ScriptAreaAddRect(area, nullptr, f[1], f[2], f[3], f[4]);
+            script->FindArea(Round(f[0]))->AddRect(f[1], f[2], f[3], f[4]);
             break;
         }
         case 0xC4: {   // AddRoundToArea(area, x, y, radius)
-            auto* area = static_cast<mfc::CArray<ScriptAreaPart>*>(script->FindArea(Round(f[0])));
-            ScriptAreaAddRound(area, nullptr, f[1], f[2], f[3]);
+            script->FindArea(Round(f[0]))->AddRound(f[1], f[2], f[3]);
             break;
         }
         case 0xC6:   // DeleteArea(area)

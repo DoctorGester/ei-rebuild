@@ -101,26 +101,26 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 
 // ---- Areas --------------------------------------------------------------------------------------
 
-void __fastcall ScriptAreaAddRect(mfc::CArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
+void ScriptAreaParts::AddRect(float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
     part.isRect = 1;
     part.x = x1;
     part.y = y1;
     part.x2OrRadiusSquared = x2;
     part.y2 = y2;
-    AddPart(area, part);
+    AddPart(this, part);
 }
-EI_REWRITTEN(0x004B1ED0, ScriptAreaAddRect);
+EI_REWRITTEN(0x004B1ED0, ScriptAreaParts::AddRect);
 
-void __fastcall ScriptAreaAddRound(mfc::CArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
+void ScriptAreaParts::AddRound(float x, float y, float radius) {
     ScriptAreaPart part = {};
     part.isRect = 0;
     part.x = x;
     part.y = y;
     part.x2OrRadiusSquared = radius * radius;
-    AddPart(area, part);
+    AddPart(this, part);
 }
-EI_REWRITTEN(0x004B2070, ScriptAreaAddRound);
+EI_REWRITTEN(0x004B2070, ScriptAreaParts::AddRound);
 
 void CScript::DeleteArea(int id) {
     // CArray of areas at +0x194 (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.

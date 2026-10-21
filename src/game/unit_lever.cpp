@@ -40,7 +40,7 @@ void Lever::SetState(int wanted, float duration) {
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
         // The model's record by name: the table's operator[] (00464750; an unknown name gets a null entry).
-        const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()), nullptr, name));
+        const LeverRecord* record = static_cast<const LeverRecord*>((reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()))->Named(name));
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;
@@ -130,7 +130,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     }
     out->maxSize = 0;
     out->size = 0;
-    const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(LeverTableByName(), nullptr, name));
+    const LeverRecord* record = static_cast<const LeverRecord*>(LeverTableByName()->Named(name));
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).

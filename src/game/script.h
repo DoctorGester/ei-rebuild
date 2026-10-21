@@ -358,6 +358,15 @@ struct ScriptAreaPart {
 };
 static_assert(sizeof(ScriptAreaPart) == 0x14);
 
+// An area's parts (CScript::FindArea), the array with the two appenders (script_exec_helpers.cpp; thiscall on the
+// array, RET 0x10 / 0xC).
+struct ScriptAreaParts : mfc::CArray<ScriptAreaPart> {
+    // 004B1ED0 / 004B2070. Append a rectangle (x1, y1, x2, y2) / a circle (centre, radius; stored squared).
+    void AddRect(float x1, float y1, float x2, float y2);
+    void AddRound(float x, float y, float radius);
+};
+static_assert(sizeof(ScriptAreaParts) == sizeof(mfc::CArray<ScriptAreaPart>));
+
 // The effects a script places in the world (CreatePointLight, CreateParticleSource, CreateFX...,
 // CreateLightning). Each holds a reference on its effect object, which is also a timed object of
 // the world; dropping one removes the timed object and releases the reference.
@@ -502,7 +511,7 @@ public:
     // 004B59F0. Appends an empty object reference to the temporaries list (+0x1D0) and returns it.
     ScriptObjectRef* NewTempObject();
     // 004BCE10. The parts of area `id`, creating an empty area when it does not exist.
-    mfc::CArray<ScriptAreaPart>* FindArea(int id);
+    ScriptAreaParts* FindArea(int id);
 
     ScriptVars* Globals() { return &globals_; }
     // 004BDE40 (script_construct.cpp, A-E1). The constructor: every container empty with its
@@ -892,11 +901,7 @@ void __fastcall ScriptFreeTemporaries(CScript* script);
 // sources (move, expire); finally frees the temporaries.
 void __fastcall ScriptTick(CScript* script);
 
-// Command helpers (script_exec_helpers.cpp), __thiscall on the area / the script.
-// 004B1ED0 / 004B2070. Append a rectangle (x1, y1, x2, y2) / a circle (centre, radius; stored
-// squared) to an area's parts (CScript::FindArea).
-void __fastcall ScriptAreaAddRect(mfc::CArray<ScriptAreaPart>* area, void* edx, float x1, float y1, float x2, float y2);
-void __fastcall ScriptAreaAddRound(mfc::CArray<ScriptAreaPart>* area, void* edx, float x, float y, float radius);
+// Command helpers (script_exec_helpers.cpp): ScriptAreaParts::AddRect / AddRound.
 // 004BAAB0 (QFinish, __fastcall on the script). Builds a script text from the quest under
 // construction (QStart's name at 007AA61C, the objectives at 007AA60C / count 007AA610): one
 // declared script per objective chaining to the next, then loads it with the WorldScript started
@@ -961,7 +966,7 @@ const ScriptNamedValues<T>* NamedValues(const mfc::CArray<T>* values) { return r
 
 // An area of CScript +0x194 (IsInArea): its parts and its id.
 struct ScriptArea {
-    mfc::CArray<ScriptAreaPart> parts;
+    ScriptAreaParts parts;
     int id;     // +0x14
 };
 static_assert(offsetof(ScriptArea, id) == 0x14);

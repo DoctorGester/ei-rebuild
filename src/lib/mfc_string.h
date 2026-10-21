@@ -135,6 +135,10 @@ public:
     void ConcatInPlace(int length, const char* text);                   // 00700CED
     void CopyBeforeWrite();                                             // 00700919
     void AllocBeforeWrite(int length);                                  // 00700947
+    // The constructor from text in place (007009DE) and operator=(LPCWSTR) (00700B20, thiscall, RET 4) as
+    // members, so they register by name; both return this.
+    CString* ConstructText(const char* text);
+    CString* AssignWide(const wchar_t* text);
     void Release();                                                     // 007008A7
     static void __stdcall Release(CStringData* data);                   // 007008D8
     static void __fastcall FreeData(CStringData* data);                 // 0070085F
