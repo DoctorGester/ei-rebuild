@@ -85,18 +85,8 @@ std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::
 // objects' list (counted values; erase 00572270 / 005755E0, end 0056DEC0 / 00572AF0, insert
 // 0056E8A0 / 00572B00).
 using HeldOps = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
-SectorListNode** __fastcall CellEnd(SectorList* list, void*, SectorListNode** out) {
-    *out = list->End();
-    return out;
-}
-SectorListNode** __fastcall CellInsert(SectorList* list, void*, SectorListNode** out, SectorListNode* position,
-                                       CEngineObject* const& value) {
-    return HeldOps::Insert(list, nullptr, out, position, &value);
-}
 struct GridOpsA {
     static constexpr auto Erase = HeldOps::Erase;
-    static constexpr auto End = CellEnd;
-    static constexpr auto Insert = CellInsert;
 };
 using GridOpsB = GridOpsA;
 
@@ -141,9 +131,7 @@ void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) 
         CEngineObject* value = object;
         HoldRef(value);
         SectorList* list = &grid->rows_[newY][newX];
-        SectorListNode* end;
-        SectorListNode* inserted;
-        Ops::Insert(list, nullptr, &inserted, *Ops::End(list, nullptr, &end), value);
+        SectorList::Insert<stlp::HeldObject>(list->End(), value);
         DropRef(value);
     }
 }
@@ -162,24 +150,24 @@ void SectorGrid::Move2(CEngineObject* object, const float* position) {
 
 // ---- Functors ------------------------------------------------------------------------------------
 
-float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::uint8_t* last, float x, float y,
-                                   float scale) {
+RadiusFunctor* RadiusFunctor::Mark(std::uint8_t* first, std::uint8_t* last, float px, float py, float factor) {
     using Node = stlp::list<RadiusMarker>::Node;
     for (Node* node = reinterpret_cast<Node*>(first); node != reinterpret_cast<Node*>(last); node = node->next) {
         RadiusMarker& marker = node->data;
-        double dx = marker.x - x;
-        double dy = marker.y - y;
+        double dx = marker.x - px;
+        double dy = marker.y - py;
         double distance = libcrt::Hypot(dx, dy);
-        float limit = marker.radius * scale;
+        float limit = marker.radius * factor;
         // FCOMPP + TEST AH,0x41: marked unless the distance is greater.
         EI_NAN_AUDIT(distance, limit);
         if (distance <= static_cast<double>(limit)) marker.marked = 1;
     }
-    out[0] = x;
-    out[1] = y;
-    out[2] = scale;
-    return out;
+    x = px;
+    y = py;
+    scale = factor;
+    return this;
 }
+EI_REPLACE_METHOD(0x00571D50, RadiusFunctor::Mark);
 
 
 // 00573350: vector<ScreenEntry>::_M_insert_overflow (plain elements).
@@ -195,8 +183,8 @@ using HitTest = int (CObject3DSpecific::*)(const long* point);
 
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
 // object still exists and answers `test` go to `hits`.
-void** CollectHits(void** out, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x, LONG y,
-                   CBaseManager* manager, HitTest test) {
+HitCollector* CollectHits(HitCollector* out, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x, LONG y,
+                          CBaseManager* manager, HitTest test) {
     ScreenHits* vector = static_cast<ScreenHits*>(hits);
     for (ScreenEntryNode* node = reinterpret_cast<ScreenEntryNode*>(first); node != reinterpret_cast<ScreenEntryNode*>(last);
          node = node->next) {
@@ -210,42 +198,47 @@ void** CollectHits(void** out, std::uint8_t* first, std::uint8_t* last, void* hi
         if (!(half->*test)(point)) continue;
         vector->PushBack(entry);
     }
-    *out = hits;
+    out->hits = hits;
     return out;
 }
 
 } // namespace
 
-void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
-                                   LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
+HitCollector* HitCollector::CollectBounds(std::uint8_t* first, std::uint8_t* last, void* found, LONG x, LONG y,
+                                          CBaseManager* manager) {
+    return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
+EI_REPLACE_METHOD(0x00571800, HitCollector::CollectBounds);
 
-void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
-                                    LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::PartsContainPoint);
+HitCollector* HitCollector::CollectParts(std::uint8_t* first, std::uint8_t* last, void* found, LONG x, LONG y,
+                                         CBaseManager* manager) {
+    return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
+EI_REPLACE_METHOD(0x005718B0, HitCollector::CollectParts);
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
-int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value) {
-    const PendingMap::Node* node = map->Find(*key);
+int PendingIndex::Lookup(const std::uint32_t* key, void** value) const {
+    const Node* node = Find(*key);
     if (!node) return 0;
     *value = node->value;
     return 1;
 }
+EI_REPLACE_METHOD(0x0056FC60, PendingIndex::Lookup);
 
-const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index) {
-    int count = static_cast<int>(records->size() / 0x50);
-    if (index < static_cast<std::uint32_t>(count)) return records->begin() + index * 0x50;
+const std::uint8_t* RecordBytes::At50(std::uint32_t index) const {
+    int count = static_cast<int>(size() / 0x50);
+    if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0x50;
     return nullptr;
 }
+EI_REPLACE_METHOD(0x0056E400, RecordBytes::At50);
 
-const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index) {
-    int count = static_cast<int>(records->size() / 0xB4);
-    if (index < static_cast<std::uint32_t>(count)) return records->begin() + index * 0xB4;
+const std::uint8_t* RecordBytes::AtB4(std::uint32_t index) const {
+    int count = static_cast<int>(size() / 0xB4);
+    if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0xB4;
     return nullptr;
 }
+EI_REPLACE_METHOD(0x0056E440, RecordBytes::AtB4);
 
 // ---- The client's object maps --------------------------------------------------------------------
 
@@ -256,13 +249,7 @@ namespace {
 // plain values).
 using PlainList = SectorList;
 using PlainAbi = stlp::ListAbi<CEngineObject*>;
-SectorListNode** __fastcall PlainInsert(PlainList* list, void*, SectorListNode** out, SectorListNode* position,
-                                        CEngineObject* const& value) {
-    return PlainAbi::Insert(list, nullptr, out, position, &value);
-}
 struct PlainOps {
-    static constexpr auto End = CellEnd;
-    static constexpr auto Insert = PlainInsert;
     static constexpr auto Erase = PlainAbi::Erase;
 };
 
@@ -349,9 +336,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
 
     ++object->refCount_;
-    SectorListNode* end;
-    SectorListNode* inserted;
-    PlainOps::Insert(&objects, nullptr, &inserted, *PlainOps::End(&objects, nullptr, &end), object);
+    SectorList::Insert(objects.End(), object);
 
     SectorGrid& grid = objectGrid_;
     if (SectorList* cell = CellFor(grid, object)) {
@@ -370,8 +355,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         CEngineObject* value = object;
         HoldRef(value);
         SectorList& heroes = heroes_;
-        SectorListNode* heroEnd;
-        GridOpsA::Insert(&heroes, nullptr, &inserted, *GridOpsA::End(&heroes, nullptr, &heroEnd), value);
+        SectorList::Insert<stlp::HeldObject>(heroes.End(), value);
         DropRef(value);
     }
     return 1;
@@ -415,9 +399,9 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
 }
 
 void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
-    Vector3 functor;   // for_each's functor (x, y, range) comes back by value
-    MarkWithinRadius(&functor.x, nullptr, reinterpret_cast<std::uint8_t*>(footprints_.First()),
-                     reinterpret_cast<std::uint8_t*>(footprints_.End()), point[0], point[1], range);
+    RadiusFunctor functor;   // for_each's functor (x, y, range) comes back by value
+    functor.Mark(reinterpret_cast<std::uint8_t*>(footprints_.First()),
+                 reinterpret_cast<std::uint8_t*>(footprints_.End()), point[0], point[1], range);
 }
 
 void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
@@ -542,13 +526,14 @@ void CWorldClient::RemoveObject(int id) {
     object->Release();
 }
 
-bool __fastcall ReleaseIfIdentified(void*, void*, CEngineObject* object) {
+bool ReleaseIdentified::Test(CEngineObject* object) {
     if (object->id_ > 0) {
         object->Release();
         return true;
     }
     return false;
 }
+EI_REPLACE_METHOD(0x005726B0, ReleaseIdentified::Test);
 
 void CWorldClient::ClearMaps() {
     SectorGrid& second = secondGrid_;
@@ -589,10 +574,10 @@ void CWorldClient::ClearMaps() {
     PlainList& objects = objects_;
     SectorListNode* node = objects.head->next;   // begin() (0056DF90)
     SectorListNode* end = objects.head;
-    std::uint8_t functor = 0;
+    ReleaseIdentified functor{};
     while (node != end) {
         SectorListNode* next = node->next;
-        if (ReleaseIfIdentified(&functor, nullptr, node->data)) {
+        if (functor.Test(node->data)) {
             SectorListNode* ignored;
             PlainOps::Erase(&objects, nullptr, &ignored, node);
         }
@@ -607,16 +592,15 @@ void CWorldClient::ClearMaps() {
 
 namespace {
 
-CEngineObject* Pick(CWorldClient* client, const long* point,
-                    void** (__fastcall* collect)(void**, void*, std::uint8_t*, std::uint8_t*, void*, long, long,
-                                                  CBaseManager*)) {
+using Collect = HitCollector* (HitCollector::*)(std::uint8_t*, std::uint8_t*, void*, long, long, CBaseManager*);
+CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.finish = hits.start;   // erase(begin, end): __copy of nothing
     CBaseManager* manager = static_cast<CBaseManager*>(client->MapObjectManager());
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
-    void* functor;
-    collect(&functor, nullptr, reinterpret_cast<std::uint8_t*>(screen.head->next),
-            reinterpret_cast<std::uint8_t*>(screen.head), &hits, point[0], point[1], manager);
+    HitCollector functor;
+    (functor.*collect)(reinterpret_cast<std::uint8_t*>(screen.head->next), reinterpret_cast<std::uint8_t*>(screen.head),
+                       &hits, point[0], point[1], manager);
     if (hits.start == hits.finish) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
@@ -647,8 +631,8 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
 
 } // namespace
 
-CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, CollectWindowsAt); }
-CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, CollectWindowsAt2); }
+CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
 namespace {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
@@ -682,10 +666,7 @@ void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
         CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(node->data.objectId);
         if (!object) continue;
         if (!MapObjectOf(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
-        SectorListNode* end;
-        PlainOps::End(out, nullptr, &end);
-        SectorListNode* inserted;
-        PlainOps::Insert(out, nullptr, &inserted, end, object);
+        SectorList::Insert(out->End(), object);
     }
 }
 
@@ -828,9 +809,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             double limit = reach * reach;
             // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
             if (limit >= distance) {
-                SectorListNode* end;
-                SectorListNode* inserted;
-                PlainOps::Insert(list, nullptr, &inserted, *PlainOps::End(list, nullptr, &end), node->data);
+                SectorList::Insert(list->End(), node->data);
             }
         }
         if (++x > lastX) {
@@ -1742,7 +1721,6 @@ EI_REPLACE_METHOD(0x0056D7E0, CWorldClient::QueueSynchronised);
 EI_REPLACE_METHOD(0x0056D7A0, CWorldClient::DropShadows);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);
 EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
-EI_REPLACE(0x005726B0, ReleaseIfIdentified);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
 EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
@@ -1760,9 +1738,3 @@ EI_REPLACE_METHOD(0x00567400, CWorldClient::RemoveUnitsOf);
 EI_REPLACE_METHOD(0x00566330, CWorldClient::SendFlag10);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
-EI_REPLACE(0x00571D50, MarkWithinRadius);
-EI_REPLACE(0x00571800, CollectWindowsAt);
-EI_REPLACE(0x005718B0, CollectWindowsAt2);
-EI_REPLACE(0x0056FC60, PendingMapLookup);
-EI_REPLACE(0x0056E400, RecordAt50);
-EI_REPLACE(0x0056E440, RecordAtB4);

@@ -133,25 +133,4 @@ struct GroupArrayClass {
     static void* Vtable() { return ei::GamePointer<void>(0x0073D310); }
 };
 
-// 004C1290 (RET 4): SetSize to the source's size, then each reference replaced by a referenced copy
-// of the source's (a temporary from GetAt, released after).
-void __fastcall ObjectRefCopy(ObjectRefs::Array* self, void*, const ObjectRefs::Array* source);
-// 004CC890 / 004C3B00 (RET 8): group `index` copy-constructed into `result` (ScriptGroup's vtable,
-// then ObjectRefCopy); returns `result`.
-ScriptGroup* __fastcall GroupGetAt(const Groups::Array* self, void*, ScriptGroup* result, int index);
-// 004C1BE0 (RET 4): SetSize to the source's size, then each group assigned from a copy (GroupGetAt),
-// the copy destroyed after.
-void __fastcall GroupArrayCopy(Groups::Array* self, void*, const Groups::Array* source);
-
-// 0059E300 / 0059CA40 (RET 8): element `index` into `result` with one more reference; returns
-// `result`.
-CEngineObject** __fastcall ObjectPtrGetAt(const ObjectPtrs::Array* self, void*, CEngineObject** result, int index);
-// 0059B8F0 (RET 4): SetSize to the source's size, then each pointer replaced by the source's (a
-// counted temporary from GetAt; the new one referenced before the old one is released).
-void __fastcall ObjectPtrCopy(ObjectPtrs::Array* self, void*, const ObjectPtrs::Array* source);
-
-// 004CC7A0 (RET 8): element `index` copied into `result` with one more reference; returns `result`.
-// 004C21E0 (RET 8) calls it.
-ScriptObjectRef* __fastcall ObjectRefGetAt(const ObjectRefs::Array* self, void*, ScriptObjectRef* result, int index);
-
 } // namespace gamearrays

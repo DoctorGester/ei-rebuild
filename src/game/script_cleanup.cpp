@@ -60,7 +60,7 @@ void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
 void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     while (script->instances_.count != 0) {
         alignas(ScriptDefinition) unsigned char element[sizeof(ScriptDefinition)];
-        gamelists::InstanceRemoveHead(reinterpret_cast<gamelists::Definitions::List*>(&script->instances_), nullptr, reinterpret_cast<ScriptDefinition*>(element));
+        script->instances_.PopHead(reinterpret_cast<ScriptDefinition*>(element));
         auto* instance = reinterpret_cast<ScriptDefinition*>(element);
         ScriptVars& vars = instance->vars;
         DestroyGroupVariables(vars);
@@ -73,7 +73,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     }
     while (script->runs_.count != 0) {
         alignas(ScriptRun) unsigned char element[sizeof(ScriptRun)];
-        gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
+        script->runs_.PopHead(reinterpret_cast<ScriptRun*>(element));
         ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
         DestroyGroupVariables(vars);
         ScriptNamesDestruct(&vars.objectNames);

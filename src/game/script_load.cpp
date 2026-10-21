@@ -511,7 +511,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         temp.commands.vtable = ei::GamePointer<void>(0x0073D3DC);
         AppendNode(list, NewBlockNode, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
-            recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&block->commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&temp.commands));
+            block->commands.CopyFrom(temp.commands);
             block->id = temp.id;
         });
         // Its destructor frees nothing (no commands).

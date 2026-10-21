@@ -58,11 +58,11 @@ void __fastcall ScriptReset(CScript* script) {
     alignas(4) unsigned char element[sizeof(ScriptDefinition)];
     static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
     while (script->instances_.count != 0) {
-        gamelists::InstanceRemoveHead(reinterpret_cast<gamelists::Definitions::List*>(&script->instances_), nullptr, reinterpret_cast<ScriptDefinition*>(element));
+        script->instances_.PopHead(reinterpret_cast<ScriptDefinition*>(element));
         ScriptDefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (script->runs_.count != 0) {
-        gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
+        script->runs_.PopHead(reinterpret_cast<ScriptRun*>(element));
         ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
@@ -78,15 +78,13 @@ void __fastcall ScriptReset(CScript* script) {
     // Temporaries: every entry but one dropped, the last one emptied.
     auto& groups = script->tempGroups_;
     while (groups.count > 1) {
-        gamelists::GroupRemoveTail(reinterpret_cast<gamelists::Groups::List*>(&groups), nullptr,
-                                   reinterpret_cast<ScriptGroup*>(element));
+        groups.PopTail(reinterpret_cast<ScriptGroup*>(element));
         GroupDestruct(element);
     }
     groups.tail->data.SetSize(0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
-        gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(&objects), nullptr,
-                                       reinterpret_cast<ScriptObjectRef*>(element));
+        objects.PopTail(reinterpret_cast<ScriptObjectRef*>(element));
         reinterpret_cast<ScriptObjectRef*>(element)->Reset();
     }
     objects.tail->data.Assign(nullptr);
@@ -112,8 +110,7 @@ void __fastcall ScriptReset(CScript* script) {
 
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
-        gamelists::DeclRemoveHead(reinterpret_cast<gamelists::Decls::List*>(&script->blocks_), nullptr,   // 004C69B0
-                                  reinterpret_cast<ScriptDecl*>(element));
+        script->blocks_.PopHead(reinterpret_cast<ScriptDecl*>(element));   // 004C69B0
         ScriptDeclDestruct(reinterpret_cast<ScriptDecl*>(element));
     }
 }

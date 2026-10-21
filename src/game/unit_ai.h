@@ -76,6 +76,9 @@ struct AILooks : mfc::CArray<AILook> {
     // 004CDCB0 (RET 8; script_parse_arrays.cpp; the brain's look queue and the patrol looks of
     // UMPatrol). Grown to index + 1 when needed (new looks zeroed, 004CDE10), the look copied.
     void SetAtGrow(int index, const AILook& look);
+    // 005D9DE0 (RET 8; unit_ai_looks.cpp). CArray::GetAt returning by value: element `index` copied into
+    // `out`, which is returned.
+    AILook* CopyAt(AILook* out, int index) const;
 };
 using AILookArray = AILooks;
 void __fastcall LooksDestroyAt(AILookArray* looks);                                  // 004CB770 (base vtable, frees the data)
@@ -85,8 +88,6 @@ AILookArray* __fastcall LooksInit(AILookArray* looks);
 // count, then angle, time and wait of each and (files from version 0x44) the stop flag.
 void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
-// 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
-AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index);
 
 // A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
 struct AIMoveOrder {

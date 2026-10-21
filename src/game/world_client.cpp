@@ -456,7 +456,7 @@ int CWorldClient::Segment() {
             if (done != 0) continue;
             int key = object->id_;
             void* position = nullptr;
-            if (PendingMapLookup(&dynamicNodes_, nullptr, reinterpret_cast<const std::uint32_t*>(&key), &position)) {
+            if (dynamicNodes_.Lookup(reinterpret_cast<const std::uint32_t*>(&key), &position)) {
                 dynamicObjects_.RemoveAt(static_cast<mfc::CList<CEngineObject*>::Node*>(position));   // 005704A0
                 hash400::PositionsRemoveKey(dynamicNodes_, key);
             }

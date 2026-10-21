@@ -68,26 +68,6 @@ EI_REPLACE(0x006B90C0, DestroyWave);
 EI_REPLACE(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REPLACE(0x00558E10, Behaviours::ConstructElements);
 
-// The position and the waypoints are copied as the dwords they are.
-mapspec::Patrol* __fastcall PatrolGetAt(const mfc::CArray<mapspec::Patrol>* self, void*, mapspec::Patrol* result,
-                                        int index) {
-    const mapspec::Patrol& from = self->data[index];
-    std::memcpy(&result->position, &from.position, sizeof(from.position));
-    mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
-    to.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::WaypointArrayClass::Vtable()));
-    int n = from.waypoints.size;
-    if (n) {
-        to.data = static_cast<mapspec::Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(mapspec::Waypoint)));
-        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);   // 0045E130
-    }
-    to.maxSize = n;
-    to.size = n;
-    for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
-    return result;
-}
-EI_REPLACE(0x0046EAB0, PatrolGetAt);
-EI_REPLACE(0x0046EFD0, PatrolGetAt);
-
 mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index) {
     new (result) mfc::CString(self->data[index]);
     return result;
@@ -95,19 +75,6 @@ mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void
 EI_REPLACE(0x004698A0, StringGetAt);
 EI_REPLACE(0x004698C0, StringGetAt);
 
-// The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
-ZoneExit* __fastcall ExitGetAt(const mfc::CArray<ZoneExit>* self, void*, ZoneExit* result, int index) {
-    const ZoneExit& from = self->data[index];
-    std::memcpy(result, &from, offsetof(ZoneExit, target));
-    new (static_cast<void*>(&result->target)) mfc::CString(*reinterpret_cast<const mfc::CString*>(&from.target));
-    result->entrance = from.entrance;
-    result->view = from.view;
-    result->hasDeployAngle = from.hasDeployAngle;
-    result->deployAngle = from.deployAngle;
-    return result;
-}
-EI_REPLACE(0x00584EA0, ExitGetAt);
-EI_REPLACE(0x00587DD0, ExitGetAt);
 
 // The global map's links and quests (the zero fill, then both strings empty).
 void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p) { mfc::impl::DestroyStringsAt<Bytes<0x18>, 0x14, 0x10>(p); }
@@ -125,10 +92,6 @@ EI_REPLACE(0x005FBD30, DestroyGlobalMapZone);
 
 namespace {
 
-// The arrays as the GetAt bodies (script_copy.cpp) take them.
-const ScriptCommands* Plain(const Cmds::Array* a) { return reinterpret_cast<const ScriptCommands*>(a); }
-const ScriptSubCalls* Plain(const SubCalls::Array* a) { return reinterpret_cast<const ScriptSubCalls*>(a); }
-
 // The storage of a copy constructor: exactly `n` elements, built by the instantiation's
 // ConstructElements; none when `n` is 0.
 template <typename Abi>
@@ -144,10 +107,10 @@ void AllocateExact(typename Abi::Array* self, int n) {
 
 // Each nested call of `self` (as many as the source has) assigned from a GetAt copy of the source's:
 // type and argument, the command by SSCCmd's assignment, the copy's command destroyed and deleted.
-void AssignSubCalls(SubCalls::Array* self, const SubCalls::Array* source) {
+void AssignSubCalls(ScriptSubCalls* self, const ScriptSubCalls* source) {
     for (int i = 0; i < source->size; ++i) {
         ScriptSubCall copy;
-        Plain(source)->CopyAt(&copy, i);
+        source->CopyAt(&copy, i);
         ScriptSubCall& to = self->data[i];
         to.type = copy.type;
         to.argIndex = copy.argIndex;
@@ -168,38 +131,6 @@ void InitSubCall(ScriptSubCall* p) {
     p->cmd = cmd ? cmd->Construct() : nullptr;
 }
 
-// The original assigns the commands member by member (the float arguments through SetSize 004C4410
-// and dword copies); SSCCmd's assignment copies them through the FPU, the same values.
-void __fastcall CmdArrayCopy(Cmds::Array* self, void*, const Cmds::Array* source) {
-    self->SetSize(source->size, -1);
-    for (int i = 0; i < source->size; ++i) {
-        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
-        auto* copy = reinterpret_cast<SSCCmd*>(storage);
-        Plain(source)->CopyAt(copy, i);
-        self->data[i].ScriptCmdAssign(copy);
-        ScriptCmdDestruct(copy);
-    }
-}
-
-void __fastcall SubCallArrayCopy(SubCalls::Array* self, void*, const SubCalls::Array* source) {
-    self->SetSize(source->size, -1);
-    AssignSubCalls(self, source);
-}
-
-Bindings::Array* __fastcall BindingsCopyConstruct(Bindings::Array* self, void*, const Bindings::Array* source) {
-    self->Construct(reinterpret_cast<std::uintptr_t>(BindingArrayClass::Vtable()));
-    AllocateExact<Bindings>(self, source->size);
-    for (int i = 0; i < source->size; ++i) self->data[i] = source->data[i];
-    return self;
-}
-
-SubCalls::Array* __fastcall SubCallsCopyConstruct(SubCalls::Array* self, void*, const SubCalls::Array* source) {
-    self->Construct(reinterpret_cast<std::uintptr_t>(SubCallArrayClass::Vtable()));
-    AllocateExact<SubCalls>(self, source->size);
-    AssignSubCalls(self, source);
-    return self;
-}
-
 EI_REPLACE(0x004CD2B0, Cmds::SetSize);
 EI_REPLACE(0x004CE920, Cmds::ConstructElements);
 EI_REPLACE(0x004CD470, Cmds::DestructElements);
@@ -210,10 +141,6 @@ EI_REPLACE(0x004CD770, Definitions::SetSize);
 EI_REPLACE(0x004CD900, Definitions::DestructElements);
 EI_REPLACE(0x004CEC80, Runs::DestructElements);
 EI_REPLACE(0x004CD740, Decls::DestructElements);
-EI_REPLACE(0x004CC0C0, CmdArrayCopy);
-EI_REPLACE(0x004C6D10, SubCallArrayCopy);
-EI_REPLACE(0x004CCCB0, BindingsCopyConstruct);
-EI_REPLACE(0x004CCD90, SubCallsCopyConstruct);
 // The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
 EI_REPLACE_METHOD(0x004CD450, ScriptCommands::CopyAt);
 EI_REPLACE_METHOD(0x004C7510, ScriptSubCalls::CopyAt);
@@ -273,6 +200,78 @@ EI_REPLACE(0x005755C0, DestroyWaterLevel);
 EI_REPLACE(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 } // namespace recordarrays
+
+// ---- Members of the script command arrays (script.h) ----------------------------------------------
+
+// The original assigns the commands member by member (the float arguments through SetSize 004C4410
+// and dword copies); SSCCmd's assignment copies them through the FPU, the same values.
+void ScriptCommands::CopyFrom(const ScriptCommands& source) {
+    mfc::impl::ArrayAs<recordarrays::Cmds>(*this).SetSize(source.size, -1);
+    for (int i = 0; i < source.size; ++i) {
+        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
+        auto* copy = reinterpret_cast<SSCCmd*>(storage);
+        source.CopyAt(copy, i);
+        data[i].ScriptCmdAssign(copy);
+        ScriptCmdDestruct(copy);
+    }
+}
+EI_REPLACE_METHOD(0x004CC0C0, ScriptCommands::CopyFrom);
+
+void ScriptSubCalls::CopyFrom(const ScriptSubCalls& source) {
+    mfc::impl::ArrayAs<recordarrays::SubCalls>(*this).SetSize(source.size, -1);
+    recordarrays::AssignSubCalls(this, &source);
+}
+EI_REPLACE_METHOD(0x004C6D10, ScriptSubCalls::CopyFrom);
+
+ScriptBindings* ScriptBindings::CopyConstruct(const ScriptBindings& source) {
+    Construct(reinterpret_cast<std::uintptr_t>(recordarrays::BindingArrayClass::Vtable()));
+    recordarrays::AllocateExact<recordarrays::Bindings>(&mfc::impl::ArrayAs<recordarrays::Bindings>(*this), source.size);
+    for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
+    return this;
+}
+EI_REPLACE_METHOD(0x004CCCB0, ScriptBindings::CopyConstruct);
+
+ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
+    Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SubCallArrayClass::Vtable()));
+    recordarrays::AllocateExact<recordarrays::SubCalls>(&mfc::impl::ArrayAs<recordarrays::SubCalls>(*this), source.size);
+    recordarrays::AssignSubCalls(this, &source);
+    return this;
+}
+EI_REPLACE_METHOD(0x004CCD90, ScriptSubCalls::CopyConstruct);
+
+// The position and the waypoints are copied as the dwords they are.
+mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
+    const mapspec::Patrol& from = data[index];
+    std::memcpy(&result->position, &from.position, sizeof(from.position));
+    mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
+    to.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::WaypointArrayClass::Vtable()));
+    int n = from.waypoints.size;
+    if (n) {
+        to.data = static_cast<mapspec::Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(mapspec::Waypoint)));
+        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);   // 0045E130
+    }
+    to.maxSize = n;
+    to.size = n;
+    for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
+    return result;
+}
+EI_REPLACE_METHOD(0x0046EAB0, mapspec::Patrols::CopyAt);
+EI_REPLACE_METHOD(0x0046EFD0, mapspec::Patrols::CopyAt);
+
+
+// The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
+ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
+    const ZoneExit& from = data[index];
+    std::memcpy(result, &from, offsetof(ZoneExit, target));
+    new (static_cast<void*>(&result->target)) mfc::CString(*reinterpret_cast<const mfc::CString*>(&from.target));
+    result->entrance = from.entrance;
+    result->view = from.view;
+    result->hasDeployAngle = from.hasDeployAngle;
+    result->deployAngle = from.deployAngle;
+    return result;
+}
+EI_REPLACE_METHOD(0x00584EA0, ZoneExits::CopyAt);
+EI_REPLACE_METHOD(0x00587DD0, ZoneExits::CopyAt);
 
 void DeltaState::SetFieldCount(int count) {
     recordarrays::DeltaFields::SetSize(reinterpret_cast<recordarrays::DeltaFields::Array*>(this), nullptr, count, -1);

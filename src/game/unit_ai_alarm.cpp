@@ -211,7 +211,7 @@ void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
         AIAlarmRecord& to = alarmRecords.data[i];
         const AIAlarmRecord& from = records[i];
         to.type = from.type;
-        mapspec::PatrolsCopy(&to.patrols, nullptr, &from.patrols);
+        to.patrols.CopyFrom(from.patrols);
         std::memcpy(&to.guard, &from.guard, sizeof(AIAlarmRecord) - offsetof(AIAlarmRecord, guard));
     }
     ApplyBehaviour(alarmRecords.data, 0);

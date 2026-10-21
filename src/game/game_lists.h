@@ -76,28 +76,6 @@ using Runs = ListAbi<ScriptRun, RunElements>;
 using Decls = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
 using Groups = ListAbi<ScriptGroup, EachElements<ScriptGroup, gamearrays::InitGroup, gamearrays::DestroyGroup>>;
 
-// The script lists' members with the game's copy semantics (ticket S7a). A RemoveHead / RemoveTail
-// copy-constructs the element into `out` (RET 4, returns out) before the node is freed (the
-// original copies into a temporary first, then into `out`: the same values). An AddHead / AddTail
-// constructs the new node's element, then assigns `value` (RET 4, returns the node).
-// 004C69B0: the command blocks (the commands through GetAt copies assigned into a new array, the id).
-ScriptDecl* __fastcall DeclRemoveHead(Decls::List* self, void*, ScriptDecl* out);
-// 004C7A10: the instances (index, name, parameters, the if-then pairs, the variables' copy constructor).
-ScriptDefinition* __fastcall InstanceRemoveHead(Definitions::List* self, void*, ScriptDefinition* out);
-// 004C82B0: the runs (the first five fields, the variables a value-and-names pair at a time).
-ScriptRun* __fastcall RunRemoveHead(Runs::List* self, void*, ScriptRun* out);
-// 004C7C90: an instance at the head (ScriptDefinition::operator=).
-Definitions::Node* __fastcall InstanceAddHead(Definitions::List* self, void*, const ScriptDefinition* value);
-// 004C9210: a temporary reference at the head (the new slot released, then shares the object).
-ObjectRefs::Node* __fastcall ObjectRefAddHead(ObjectRefs::List* self, void*, const ScriptObjectRef* value);
-// 004C9100: the last temporary reference (the object keeps one reference for `out`).
-ScriptObjectRef* __fastcall ObjectRefRemoveTail(ObjectRefs::List* self, void*, ScriptObjectRef* out);
-// 004C8CE0 / 004C8D80: a temporary group at the head / tail (an empty group, then ObjectRefCopy).
-Groups::Node* __fastcall GroupAddHead(Groups::List* self, void*, const ScriptGroup* value);
-Groups::Node* __fastcall GroupAddTail(Groups::List* self, void*, const ScriptGroup* value);
-// 004C8AF0: the last temporary group (copied as GroupGetAt copies one).
-ScriptGroup* __fastcall GroupRemoveTail(Groups::List* self, void*, ScriptGroup* out);
-
 // 00599FA0 (RET 4): AddTail of a counted engine object (the node's slot zeroed, then assigned:
 // the object gains a reference); returns the node.
 EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*, CEngineObject* object);
