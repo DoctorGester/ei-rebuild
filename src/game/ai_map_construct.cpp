@@ -29,8 +29,8 @@ void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
     libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
 }
 
-constexpr std::uint32_t kArrayVtable = 0x0073C3D0;      // climbLarge, climbSmall
-constexpr std::uint32_t kAreaListVtable = 0x0073F9E0;   // areaLists
+constexpr std::uint32_t kArrayVtable = std::uint32_t(0x0073C3D0);      // climbLarge, climbSmall
+constexpr std::uint32_t kAreaListVtable = std::uint32_t(0x0073F9E0);   // areaLists
 
 void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, std::uintptr_t vtable) {
     layer->Construct();

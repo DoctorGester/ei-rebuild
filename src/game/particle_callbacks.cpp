@@ -1797,9 +1797,8 @@ namespace {
 #define EI_COLUMN_SPEED_UP GameFloat(0x0073CEE0)     // 1.05
 
 // The alpha by remaining life, read backwards from 0078A960.
-std::uint32_t ColumnAlpha(int life) {
-    return static_cast<std::uint32_t>(*reinterpret_cast<const std::int32_t*>(0x0078A960 - 4 * life));
-}
+const std::int32_t* ColumnAlphaEnd() { return reinterpret_cast<const std::int32_t*>(0x0078A960); }
+std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(*(ColumnAlphaEnd() - life)); }
 
 // The ring from the carrier's figure (the first emission). False without a carrier.
 bool SetUpColumn(CParticleSource* s) {
@@ -3033,7 +3032,8 @@ namespace {
 const std::int32_t* ClayAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A734); }
 const float* ClayReach() { return reinterpret_cast<const float*>(0x0078A6F4); }
 // The reach read backwards from 0078A72C (for a positive size).
-float ClayReachBackwards(int t) { return *reinterpret_cast<const float*>(0x0078A72C - 4 * t); }
+const float* ClayReachEnd() { return reinterpret_cast<const float*>(0x0078A72C); }
+float ClayReachBackwards(int t) { return *(ClayReachEnd() - t); }
 
 } // namespace
 
@@ -3382,6 +3382,16 @@ namespace {
 // A running angle kept by the game (007A9BF8); VisionStar's satellites turn by it.
 float SpinAngle() { return *reinterpret_cast<const volatile float*>(0x007A9BF8); }
 
+// The turn per satellite of the star: the rate for the satellite that follows `count` particles (1-4).
+float SpinRate(int count) {
+    switch (count) {
+    case 1: return GameFloat(0x0073CCA0);
+    case 2: return GameFloat(0x0073CF6C);
+    case 3: return GameFloat(0x0073CF68);
+    default: return GameFloat(0x0073CF64);
+    }
+}
+
 } // namespace
 
 // 00494E00. VisionStar: up to five particles. With lifetime 1 they are a star (frame 1) at the
@@ -3401,8 +3411,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
         p->velocity.y = static_cast<float>(x87::fsin(GameDouble(0x0073C340)));
         SetBits(&p->velocity.z, 0);
     } else {
-        static const std::uintptr_t kRates[] = {0x0073CCA0, 0x0073CF6C, 0x0073CF68, 0x0073CF64};
-        double angle = D(SpinAngle()) * D(GameFloat(kRates[count - 1]));
+        double angle = D(SpinAngle()) * D(SpinRate(count));
         p->velocity.x = static_cast<float>(x87::fcos(angle));
         p->velocity.y = static_cast<float>(x87::fsin(angle));
         SetBits(&p->velocity.z, 0);

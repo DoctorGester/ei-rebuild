@@ -51,6 +51,8 @@ Vector3* __fastcall QuaternionRotate(const Quaternion* /*quaternion*/, void*, Ve
 }
 namespace {
 
+constexpr std::uintptr_t kWeatherVtable = std::uintptr_t(0x007420D4);   // GlobalMapWeather (CCloudNoise)
+
 inline double D(float f) { return f; }
 
 float Bits(std::uint32_t bits) {
@@ -533,7 +535,7 @@ void CGlobalMap::Create() {
         auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
         if (weather) {
             weather->Construct(0x100);
-            *reinterpret_cast<std::uintptr_t*>(weather) = 0x007420D4;
+            *reinterpret_cast<std::uintptr_t*>(weather) = kWeatherVtable;
         }
         weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
         weather->Start();

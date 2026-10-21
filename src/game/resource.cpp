@@ -1,6 +1,7 @@
 #include "bink_video.h"
 #include "core_streams.h"
 #include "resource.h"
+#include "resource_stream.h"
 #include "mod_folders.h"
 #include "originals_engine.h"
 
@@ -34,7 +35,7 @@ int CMappedResource::FindEntry(const char* name) const {
 
 CMappedResource* CMappedResource::Construct() {
     // CResourceBase part.
-    *reinterpret_cast<std::uintptr_t*>(this) = 0x00743324;
+    ei::SetVtable(this, CResourceBase::kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -73,7 +74,7 @@ void CMappedResource::Destroy() {
     filesByData_.Destroy();
 
     // ~CResourceBase.
-    *reinterpret_cast<std::uintptr_t*>(this) = 0x00743324;
+    ei::SetVtable(this, CResourceBase::kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;

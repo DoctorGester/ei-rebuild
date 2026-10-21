@@ -3,6 +3,7 @@
 
 #include "ai_alarm.h"
 #include "combat.h"
+#include "game_data.h"
 #include "random.h"
 
 #include "ei/hook.h"
@@ -33,10 +34,8 @@ constexpr float kArrivedDistanceSq = 1.0f;                              // 0073F
 
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
-constexpr std::uintptr_t kGameTime = 0x007AFFC4;
-constexpr std::uintptr_t kConsole = 0x007C54E8;     // the console's ostream*
 
-int GameTicks() { return *reinterpret_cast<const int*>(kGameTime); }
+int GameTicks() { return ei::GameData<const int>(0x007AFFC4); }
 
 // CEngineObject::Release through the object's vtable, then clear the slot (inlined everywhere).
 void ReleaseRef(CEngineObject*& ref) {
@@ -58,6 +57,7 @@ struct GameOstream {
 GameOstream* GameOstream::Write(const char* text) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
 GameOstream* GameOstream::Put(int c) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
 GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
+GameOstream*& ConsoleStream() { return ei::GameData<GameOstream*>(0x007C54E8); }   // the console's ostream*
 
 
 // 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
@@ -202,7 +202,7 @@ void AIBrain::Think() {
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
             text.Format(MotivationFormat(), owner->unit->id_, static_cast<const char*>(name),
                         bestPriority);
-            GameOstream* console = *reinterpret_cast<GameOstream**>(kConsole);
+            GameOstream* console = ConsoleStream();
             console->Write(text)->Put('\n')->Apply(worlddata::FlushManipulator());
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)

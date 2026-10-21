@@ -47,7 +47,7 @@ __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5
 using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
 CursorLock CursorLockAtCallSite() {
     if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
-    constexpr std::uintptr_t kCall = 0x004580D7;
+    constexpr std::uintptr_t kCall = std::uintptr_t(0x004580D7);   // the original CALL of the cursor lock
     const auto direct = reinterpret_cast<CursorLock>(0x005E65F0);
     if (ei::Standalone()) return direct;
     const auto* code = reinterpret_cast<const unsigned char*>(kCall);

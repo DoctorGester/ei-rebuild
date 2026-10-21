@@ -123,11 +123,15 @@ void NamedFloatTable::Save(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x00461260, NamedFloatTable::Save);
 
+// The command table (key_bindings.cpp's Key entries, 0x48 bytes each; the actions' table follows it).
+constexpr std::uintptr_t kCommandTable = std::uintptr_t(0x007857B0);
+constexpr std::uintptr_t kCommandTableEnd = std::uintptr_t(0x00787070);
+
 void* __fastcall FindCommandByKey(int key) {
     const auto* keys = reinterpret_cast<const signed char*>(0x0079BF70);
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;
-        for (std::uintptr_t entry = 0x007857B0; entry < 0x00787070; entry += 0x48)
+        for (std::uintptr_t entry = kCommandTable; entry < kCommandTableEnd; entry += 0x48)
             if (*reinterpret_cast<const int*>(entry) == slot) return reinterpret_cast<void*>(entry + 8);
     }
     return nullptr;

@@ -2,6 +2,7 @@
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
 #include "combat.h"
+#include "game_data.h"
 #include "unit_ai.h"
 #include "at_exit_functions.h"
 
@@ -119,8 +120,8 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 
 // The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4): a CPtrList
 // built by 004C96A0.
-constexpr std::uintptr_t kCandidates = 0x007C54C8;
-constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
+mfc::CList<void*>& Candidates() { return ei::GameData<mfc::CList<void*>>(0x007C54C8); }
+std::uint8_t& CandidatesGuard() { return ei::GameData<std::uint8_t>(0x007C54E4); }
 
 } // namespace
 
@@ -491,15 +492,15 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         return kNoPriority;
     }
     if (!brain->seesEnemy) return kNoPriority;
-    auto* guard = reinterpret_cast<std::uint8_t*>(kCandidatesGuard);
-    if (!(*guard & 1)) {
-        *guard |= 1;
-        mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(reinterpret_cast<mfc::CList<void*>*>(kCandidates), 10);
+    std::uint8_t& guard = CandidatesGuard();
+    if (!(guard & 1)) {
+        guard |= 1;
+        mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);
         GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;
-    brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));
-    brain->ChooseTarget(&enemyPart, reinterpret_cast<void*>(kCandidates), &self->position, 0, 0);
+    brain->CollectEnemies(self, &Candidates());
+    brain->ChooseTarget(&enemyPart, &Candidates(), &self->position, 0, 0);
     CEngineObject* best = chosen;
     if (best != enemy) {
         if (enemy) enemy->Release();

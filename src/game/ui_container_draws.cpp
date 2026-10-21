@@ -41,7 +41,7 @@ T GameValue(std::uintptr_t address) {
 }
 
 constexpr std::uint32_t kAlphaRef = 0x18;
-constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;   // texture x diffuse, colour and alpha
+std::uint32_t StateBlockAlpha() { return GameValue<std::uint32_t>(0x007AEDD8); }   // texture x diffuse, colour and alpha
 
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
@@ -80,7 +80,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 int CUiContainer::DrawContainerImpl(int pass) {
     if (!interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(this);
-    std::uint32_t handle = GameValue<std::uint32_t>(kStateBlockAlpha);
+    std::uint32_t handle = StateBlockAlpha();
     device->result_ = device->device_->ApplyStateBlock(handle);
     render::state::Block(handle);
     DrawBase(pass);

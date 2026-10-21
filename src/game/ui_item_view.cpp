@@ -115,6 +115,9 @@ float RandomPhase(std::uint32_t random) {
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
 // school's colour (00740358, 16 bytes per school) into 0xFFrrggbb. The phase is stored as float
 // but the sine and the colour use the unrounded value, as the original.
+// The spell schools' glow colours (four floats each, 0x10 bytes apart from 00740358).
+const float* SchoolGlow(int school) { return reinterpret_cast<const float*>(0x00740358) + school * 4; }
+
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double advanced = static_cast<double>(dt) * GameDouble(0x007403F0) + turn->glow;
     const double pi = GameDouble(0x007402B8);
@@ -273,7 +276,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         if (spell && (kind == 0x3004 || kind == 0x3005)) {
             int school = Get<int>(reinterpret_cast<CSpell*>(spell)->GetPrototype(), 0x14);
             if (school < 8)
-                Set(model, 0xD8, Glow(dt, turn, reinterpret_cast<const float*>(0x00740358 + school * 0x10)));
+                Set(model, 0xD8, Glow(dt, turn, SchoolGlow(school)));
             else
                 turn->glow = 0.0f;
         }

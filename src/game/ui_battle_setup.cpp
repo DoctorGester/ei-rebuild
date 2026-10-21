@@ -73,6 +73,12 @@ void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(th
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 
+// The vtables (main, input) of the panels Create builds inline.
+constexpr std::uintptr_t kClockVtable = std::uintptr_t(0x007425C8);            // CHudClock
+constexpr std::uintptr_t kClockInputVtable = std::uintptr_t(0x00742594);
+constexpr std::uintptr_t kMovePanelVtable = std::uintptr_t(0x00742530);        // CHudMovePanel
+constexpr std::uintptr_t kMovePanelInputVtable = std::uintptr_t(0x007424FC);
+
 // A panel constructed inline by Create: the window base, the owner (the battle screen, declared
 // apart as CBattleScreen), the two vtables.
 template <typename Panel>
@@ -219,12 +225,12 @@ void CBattleScreen::Create() {
     map_->AddObject(objects_.data[2]);
     Raw(map_)->BuildMap(mapZoom, interface_->hudPanelsIn_[2]);
 
-    clock_ = NewPlainPanel<CHudClock>(interface_, 0x15C, this, 0x007425C8, 0x00742594);
+    clock_ = NewPlainPanel<CHudClock>(interface_, 0x15C, this, kClockVtable, kClockInputVtable);
     AddChild(clock_);
     clock_->AddObject(objects_.data[2]);
     Raw(clock_)->BuildClock(interface_->fastGame_);
 
-    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, 0x154, this, 0x00742530, 0x007424FC);
+    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, 0x154, this, kMovePanelVtable, kMovePanelInputVtable);
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
     using CreateFn = void(__thiscall*)(CUiWindow*);

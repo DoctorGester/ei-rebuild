@@ -15,7 +15,13 @@ namespace {
 
 using PairArray = mfc::CArray<AreaOffset>;
 
-constexpr std::uintptr_t kTables[6] = {0x007912DC, 0x0079130C, 0x0079137C, 0x0079146C, 0x007914BC, 0x0079156C};
+constexpr std::uintptr_t kLevel0Table = std::uintptr_t(0x007912DC);
+constexpr std::uintptr_t kLevel1Table = std::uintptr_t(0x0079130C);
+constexpr std::uintptr_t kLevel2Table = std::uintptr_t(0x0079137C);
+constexpr std::uintptr_t kLevel3Table = std::uintptr_t(0x0079146C);
+constexpr std::uintptr_t kLevel4Table = std::uintptr_t(0x007914BC);
+constexpr std::uintptr_t kLevel5Table = std::uintptr_t(0x0079156C);
+constexpr std::uintptr_t kTables[6] = {kLevel0Table, kLevel1Table, kLevel2Table, kLevel3Table, kLevel4Table, kLevel5Table};
 constexpr int kEnd = 100;
 
 } // namespace

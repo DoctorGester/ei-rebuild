@@ -258,6 +258,9 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 
 // --- Esc menu (0062AB20) ------------------------------------------------------------------------
 
+// The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
+constexpr std::uintptr_t kEscMenuRects = std::uintptr_t(0x007C80A8);
+
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = window.AddModel();
@@ -270,7 +273,7 @@ void CEscMenu::Build() {
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
-    for (std::uintptr_t source = 0x007C80A8; source <= 0x007C80E8; source += sizeof(RECT)) {
+    for (std::uintptr_t source = kEscMenuRects; source < kEscMenuRects + 5 * sizeof(RECT); source += sizeof(RECT)) {
         CUiRegion* region = window.AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
@@ -389,6 +392,17 @@ namespace {
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
 
+// The vtables (main, input) of the windows the clicks build inline: the new game's difficulty question
+// (a message box), the titles, the item screens' base and the multiplayer hero screen.
+constexpr std::uintptr_t kDifficultyBoxVtable = std::uintptr_t(0x0074225C);
+constexpr std::uintptr_t kDifficultyBoxInputVtable = std::uintptr_t(0x00742228);
+constexpr std::uintptr_t kCreditsVtable = std::uintptr_t(0x00740C3C);
+constexpr std::uintptr_t kCreditsInputVtable = std::uintptr_t(0x00740C08);
+constexpr std::uintptr_t kItemScreenVtable = std::uintptr_t(0x00740A2C);
+constexpr std::uintptr_t kItemScreenInputVtable = std::uintptr_t(0x007409F8);
+constexpr std::uintptr_t kMpHeroVtable = std::uintptr_t(0x0074214C);
+constexpr std::uintptr_t kMpHeroInputVtable = std::uintptr_t(0x00742118);
+
 // The empty CString's data pointer (00796E48), stored as a CString member is.
 const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
 } // namespace
@@ -405,7 +419,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (memory) {
             box = ConstructMessageBox(memory, nullptr, ui, "option_difficulty", game::EmptyText(), 0x20000, 3,
                                       1);   // "option_difficulty", ""
-            SetVtables(box, 0x0074225C, 0x00742228);
+            SetVtables(box, kDifficultyBoxVtable, kDifficultyBoxInputVtable);
         }
         ui->PushWindow(box, 1, 1);
         break;
@@ -451,7 +465,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             new (static_cast<void*>(&w->name_)) mfc::CString("Titles");
             Screen8Member1D8(&w->player_);
             w->fromGame_ = true;
-            SetVtables(&w->window, 0x00740C3C, 0x00740C08);
+            SetVtables(&w->window, kCreditsVtable, kCreditsInputVtable);
         }
         ui->PushWindow(&w->window, 0, 1);
         break;
@@ -471,7 +485,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->hoveredItem_ = nullptr;
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);
-            SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
+            SetVtables(&w->window, kItemScreenVtable, kItemScreenInputVtable);   // the item screens' base
             w->defaults_ = nullptr;   // vector<CString>() (0053F4F0)
             w->defaultsEnd_ = nullptr;
             w->defaultsCapacity_ = nullptr;
@@ -479,7 +493,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->text_ = EmptyStringData();
             w->voiceLists_[0].ConstructEmpty();   // 006342A0
             w->voiceLists_[1].ConstructEmpty();
-            SetVtables(&w->window, 0x0074214C, 0x00742118);
+            SetVtables(&w->window, kMpHeroVtable, kMpHeroInputVtable);
         }
         ui->PushWindow(&w->window, 1, 1);
         break;

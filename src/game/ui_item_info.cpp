@@ -203,6 +203,11 @@ const SkillDatabase* Skills() { return reinterpret_cast<const SkillDatabase*>(0x
 const UiRecordTable* SpellRecords() { return reinterpret_cast<const UiRecordTable*>(0x007C8510); }
 const UiRecordTable* ModifierRecords() { return reinterpret_cast<const UiRecordTable*>(0x007C8530); }
 
+// The item record tables of the game's data (weapons, armour, quick items) and their strides.
+constexpr std::uintptr_t kWeaponRecords = std::uintptr_t(0x007C86F8);
+constexpr std::uintptr_t kArmourRecords = std::uintptr_t(0x007C8718);
+constexpr std::uintptr_t kQuickItemRecords = std::uintptr_t(0x007C8738);
+
 // Record tables by stride (item_db.h): materials 0x50, weapons 0xB4, armour 200, quick items 0x8C.
 const char* RecordOf(std::uintptr_t table, std::uint32_t index, int stride) {
     return reinterpret_cast<const RecordTable*>(table)->RecordAt(index, stride);
@@ -538,9 +543,9 @@ void CItemInfoPanel::DescribeBlueprint() {
     const char* record = nullptr;
     std::uint32_t index = Read<std::uint32_t>(item, 0x54);
     switch (Read<int>(item, 0x50)) {
-    case 0: sort = 0; record = RecordOf(0x007C86F8, index, 0xB4); break;
-    case 1: sort = 1; record = RecordOf(0x007C8718, index, 200); break;
-    case 2: sort = 2; record = RecordOf(0x007C8738, index, 0x8C); break;
+    case 0: sort = 0; record = RecordOf(kWeaponRecords, index, 0xB4); break;
+    case 1: sort = 1; record = RecordOf(kArmourRecords, index, 200); break;
+    case 2: sort = 2; record = RecordOf(kQuickItemRecords, index, 0x8C); break;
     default: break;
     }
     mfc::CString name, description, kindText;

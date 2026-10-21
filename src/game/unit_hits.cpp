@@ -60,6 +60,9 @@ const char* const kDead = " HL is dead";
 // Armour slot of the piece covering hit location `location` at layer `layer` (1 or 2): the
 // tables at 0073E09C (first piece), 0073E0A0 (second piece of a limb) and 0073E0A4 (the limbs'
 // outer layer), as the original indexes them.
+constexpr std::uintptr_t kArmourFirstPiece = std::uintptr_t(0x0073E09C);
+constexpr std::uintptr_t kArmourSecondPiece = std::uintptr_t(0x0073E0A0);
+constexpr std::uintptr_t kArmourOuterLayer = std::uintptr_t(0x0073E0A4);
 int ArmourTable(std::uintptr_t address) { return *reinterpret_cast<const int*>(address); }
 
 float& ItemFloat(CEngineObject* item, int offset) {
@@ -122,19 +125,19 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;
     if (location <= 1) {
-        int slot = ArmourTable(0x0073E09C + (outer + location * 2) * 8);
+        int slot = ArmourTable(kArmourFirstPiece + (outer + location * 2) * 8);
         if (slot == 7) return;
         WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
     if (outer == 1) {
-        int slot = ArmourTable(0x0073E0A4 + location * 0x10);
+        int slot = ArmourTable(kArmourOuterLayer + location * 0x10);
         WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
     std::uintptr_t row = static_cast<std::uintptr_t>((outer + location * 2) * 8);
-    WearItem(unit->armor[ArmourTable(0x0073E09C + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
-    WearItem(unit->armor[ArmourTable(0x0073E0A0 + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[ArmourTable(kArmourFirstPiece + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[ArmourTable(kArmourSecondPiece + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
 }
 EI_REPLACE(0x00525720, WearArmour);
 

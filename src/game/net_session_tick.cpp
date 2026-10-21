@@ -227,12 +227,16 @@ EI_REPLACE_METHOD(0x00436C60, GameBuffer::BufferWrite);
 
 namespace net {
 
+// The send rates of a local and of a remote address (two cells of the game's data).
+constexpr std::uintptr_t kLocalRate = std::uintptr_t(0x00783E38);
+constexpr std::uintptr_t kRemoteRate = std::uintptr_t(0x00783E34);
+
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
 EI_REPLACE_METHOD(0x00436F60, SessionBase::Send);
 
 std::uint32_t SessionBase::RateFor(const NetAddress* address) {
     bool local = socket_.IsLocal(address);
-    return *reinterpret_cast<const std::uint32_t*>(local ? 0x00783E38 : 0x00783E34);
+    return *reinterpret_cast<const std::uint32_t*>(local ? kLocalRate : kRemoteRate);
 }
 EI_REPLACE_METHOD(0x00436F80, SessionBase::RateFor);
 

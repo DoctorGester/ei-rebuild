@@ -36,9 +36,11 @@ struct Action {
 };
 static_assert(sizeof(Action) == 0x10);
 
-Key* Keys() { return reinterpret_cast<Key*>(0x007857B0); }
-constexpr int kKeyCount = (0x00787070 - 0x007857B0) / 0x48;   // 88
-Action* Actions() { return reinterpret_cast<Action*>(0x00787070); }
+constexpr std::uintptr_t kKeysAddress = std::uintptr_t(0x007857B0);      // the key table, then the actions' table
+constexpr std::uintptr_t kActionsAddress = std::uintptr_t(0x00787070);
+Key* Keys() { return reinterpret_cast<Key*>(kKeysAddress); }
+constexpr int kKeyCount = (kActionsAddress - kKeysAddress) / 0x48;   // 88
+Action* Actions() { return reinterpret_cast<Action*>(kActionsAddress); }
 constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return reinterpret_cast<signed char*>(0x0079BF70); }
 
