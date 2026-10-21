@@ -24,10 +24,18 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
     pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
     code does not name and no cell points at, nothing reads: the zero bytes are never seen.
 
+A .data or .bss object (C18d) takes the same form; it is constexpr when no code of ours writes it (most .data tables:
+the original's arrays lacked const), plain when the code writes it (`float g_bagSizes[12] = /*007A9BFC*/ {};`).
+Elements the initialiser leaves out are zero, as in C++ (`{}`: all of them; the zero-filled tail's objects). A range
+in .rdata must be const.
+
 --split [KIND ...]: the game data addresses src/ still names (progress.py's count), by kind and by owner area;
 the kinds given also list their addresses.
 
-usage: python tools/named_data.py --check | --update | --split [KIND ...] [--exe game.exe]
+--refs BEGIN [END]: the original's code reaching game.exe's data in [BEGIN, END] (its absolute operands), by function
+and our registration of it: the extent of an object and every function that reads or writes it directly.
+
+usage: python tools/named_data.py --check | --update | --split [KIND ...] | --refs BEGIN [END] [--exe game.exe]
 """
 import argparse, collections, csv, os, re, struct, sys
 
@@ -89,9 +97,9 @@ def braced(text, start):
 
 
 class Definition:
-    def __init__(self, path, line, type_, name, dims, address, body):
-        self.path, self.line, self.type, self.name, self.dims, self.address, self.body = \
-            path, line, type_, name, dims, address, body
+    def __init__(self, path, line, type_, name, dims, address, body, const=True):
+        self.path, self.line, self.type, self.name, self.dims, self.address, self.body, self.const = \
+            path, line, type_, name, dims, address, body, const
         self.size = None
         self.packed = None
         self.problem = None
@@ -127,13 +135,14 @@ class Definition:
             return
         count = len(values) // len(fmt)
         dims = re.findall(r'\[\s*([^\]]*?)\s*\]', self.dims)
-        if dims and all(d.isdigit() for d in dims):
+        if all(d.isdigit() for d in dims):   # no bound: one element
             want = 1
             for d in dims:
                 want *= int(d)
-            if want != count:
-                self.problem = f'{count} element(s) for {self.dims.strip()}'
+            if count > want:
+                self.problem = f'{count} element(s) for {self.dims.strip() or "one"}'
                 return
+            values += [0] * (len(fmt) * (want - count))   # the rest zero, as C++ initialises it (`{}`: all of it)
         out = bytearray()
         for i, v in enumerate(values):
             code = fmt[i % len(fmt)]
@@ -323,8 +332,10 @@ def definitions(sources=None):
                             if e.group() == ';'), None)
                 body = s.raw[m.end() - 1:m.end() - 1 + end] if end is not None else None
             type_ = m.group(1) + ('*' if '*' in m.group(2) else '')
+            start = max(s.code.rfind(c, 0, m.start(1)) for c in ';{}')   # where the declaration begins
+            const = bool(re.search(r'\bconst(?:expr)?\b', s.code[start + 1:m.start(1)] + m.group(2)))
             found.append(Definition(s.path, s.line_of(m.start()), type_, m.group(3), m.group(4),
-                                    int(m.group(5), 16), body or ''))
+                                    int(m.group(5), 16), body or '', const))
     return found
 
 
@@ -372,6 +383,8 @@ def check(img, update):
         if not (RDATA[0] <= lo and hi <= RDATA[1] or DATA[0] <= lo and hi <= DATA[1]):
             problems.append(f'{d.where()}: {d.name} {lo:08X}+{d.size} is not in .rdata past the import table or .data')
             continue
+        if hi <= RDATA[1] and not d.const:
+            problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
         if d.packed != want:
             at = next(i for i in range(d.size) if d.packed[i] != want[i])
@@ -508,11 +521,38 @@ def split(img, wanted):
     return 0
 
 
+TEXT = (0x00401000, 0x0073B000)
+
+
+def refs(img, begin, end):
+    """The dwords of game.exe's code section whose value lies in [begin, end] (end included: a loop's end compare),
+    each with the function it sits in (the nearest start of config/functions.csv or of a registration) and our
+    registration of that function. An instruction's absolute operand shows where the original reads or writes the
+    range: the starts it indexes from, the extent its loops give, and every function that reaches it directly. Some
+    hits are no operand (a call's rel32, an immediate): read the instruction where one looks wrong."""
+    import bisect
+    sources = srcscan.load_sources()
+    registered = collections.defaultdict(list)
+    for s in sources:
+        for m in REGISTRATION.finditer(s.code):
+            registered[int(m.group(1), 16)].append(f'{m.group(2)} ({s.path})')
+    with open(os.path.join(ROOT, 'config', 'functions.csv'), newline='') as f:
+        starts = sorted({int(r['address'], 16) for r in csv.DictReader(f)} | set(registered))
+    for o in range(TEXT[0] - BASE, TEXT[1] - BASE - 3):
+        v = struct.unpack_from('<I', img, o)[0]
+        if begin <= v <= end:
+            fn = starts[bisect.bisect_right(starts, o + BASE) - 1]
+            ours = ', '.join(registered.get(fn, [])) or 'no registration'
+            print(f'{o + BASE:08X} -> {v:08X}  in {fn:08X}: {ours}')
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--update', action='store_true')
     ap.add_argument('--split', nargs='*', metavar='KIND')
+    ap.add_argument('--refs', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the code reaching game.exe\'s data there')
     ap.add_argument('--exe')
     a = ap.parse_args()
     try:
@@ -521,6 +561,8 @@ def main():
         sys.exit(f'named_data: {e}')
     if a.split is not None:
         return split(img, set(a.split))
+    if a.refs:
+        return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
     return check(img, a.update)
 
 

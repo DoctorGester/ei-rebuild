@@ -24,7 +24,7 @@ using namespace particle;
 //
 // Element 0 holds the effect's state: +0x00 1.0 once set up, +0x0C the particle growth, +0x18 the
 // radius, +0x1C the particle size, +0x30 the alpha, +0x34 a countdown (the alpha follows the
-// table at 0078A964 by it). Elements 1..lifetime are swirls: +0x18 a position drifting by +0x24.
+// table kCastAlphaByCountdown by it). Elements 1..lifetime are swirls: +0x18 a position drifting by +0x24.
 
 namespace {
 
@@ -44,9 +44,9 @@ namespace {
 #define EI_POINT_THREE 0.3f /*0073C54C*/        // 0.3
 
 const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
-const std::int32_t* CastAlphaByCountdown() { return ei::GamePointer<const std::int32_t>(0x0078A964); }
-const std::int32_t* CastAlphaByLifeWide() { return ei::GamePointer<const std::int32_t>(0x0078A980); }   // 0x202A
-const std::int32_t* CastAlphaByLife() { return ei::GamePointer<const std::int32_t>(0x0078A9BC); }
+constexpr std::int32_t kCastAlphaByCountdown[7] = /*0078A964*/ {0, 32, 64, 112, 160, 208, 255};
+constexpr std::int32_t kCastAlphaByLifeWide[15] = /*0078A980*/ {0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16};   // 0x202A
+constexpr std::int32_t kCastAlphaByLife[15] = /*0078A9BC*/ {0, 255, 255, 255, 255, 255, 255, 255, 224, 192, 128, 64, 32, 16};
 
 // A random point in the unit ball (ten tries; the last one is kept), as the set-up draws it.
 void RandomInBall(float& x, float& y, float& z) {
@@ -198,7 +198,7 @@ int CParticleSource::UpdateCasting(Particle* p) {
     }
     int life = --p->life;
     if (life == 0) return 0;
-    std::int32_t fade = (type_ == 0x202A ? CastAlphaByLifeWide() : CastAlphaByLife())[life];
+    std::int32_t fade = (type_ == 0x202A ? kCastAlphaByLifeWide : kCastAlphaByLife)[life];
     std::int32_t cap = *ElementInt(elements, 0x30);
     if (cap < fade) fade = cap;
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
@@ -230,7 +230,7 @@ void CParticleSource::TickCasting(ParticleElement* e) {
     if (f[0] != 0.0f) {
         if ((flags_ & 1) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
-        *ElementInt(e, 0x30) = CastAlphaByCountdown()[*ElementInt(elements, 0x34)];
+        *ElementInt(e, 0x30) = kCastAlphaByCountdown[*ElementInt(elements, 0x34)];
         return;
     }
     float* pos = ElementFloat(e, 0x18);
@@ -732,8 +732,10 @@ namespace {
 #define EI_MARKER_SIZE_SCALE 9.313226580990458e-11 /*0073CCB0*/ // ~0.4 * 2^-32
 #define EI_MARKER_SIZE_BASE 0.8f /*0073CCA8*/   // 0.8
 
-const std::int32_t* SwirlMarkerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A918); }
-const std::int32_t* SwirlSparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A914); }
+// Alpha rising and falling: a spark by its life (from the start), a marker one entry on, a column backwards
+// from the last (ColumnAlpha).
+constexpr std::int32_t kRiseFallAlpha[20] = /*0078A914*/ {0, 0, 32, 64, 112, 160, 208, 255, 255, 255, 255, 255, 255, 255, 207, 159, 111,
+                                                 63, 15};
 
 // Adds orbiter `k` (the k-th of `lifetime`, evenly spaced around the carrier) and emits its marker
 // particle (state -1 - k).
@@ -871,13 +873,13 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
         if ((flags_ & 1) && attachedTo) return 1;
         int life = p->life;
         if (life < 0) return 0;
-        p->color = (static_cast<std::uint32_t>(SwirlMarkerAlpha()[life]) << 24) | 0xFFFFFF;
+        p->color = (static_cast<std::uint32_t>(kRiseFallAlpha[life + 1]) << 24) | 0xFFFFFF;
         p->life = life - 1;
         return 1;
     }
     int life = --p->life;
     if (life == 0) return 0;
-    if (life < 7) p->color = (static_cast<std::uint32_t>(SwirlSparkAlpha()[life]) << 24) | 0xFFFFFF;
+    if (life < 7) p->color = (static_cast<std::uint32_t>(kRiseFallAlpha[life]) << 24) | 0xFFFFFF;
     if (++p->frame == 16) p->frame = 12;
     double shrunk = D(p->size) * D(EI_SWIRL_SHRINK);
     std::memcpy(&p->pos, &p->velocity, sizeof(Vector3));
@@ -1113,7 +1115,7 @@ namespace {
 
 constexpr int kBlastCore = -1222;     // the core flash, emitted once at the start
 
-const std::int32_t* BlastAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A5DC); }
+constexpr std::int32_t kBlastAlpha[16] = /*0078A5DC*/ {255, 255, 207, 175, 128, 128, 128, 128, 128, 175, 207, 192, 128, 48};   // by frame
 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(CParticleSource* s, Particle* p) {
@@ -1260,7 +1262,7 @@ int CParticleSource::UpdateBlast(Particle* p) {
     p->velocity.x = static_cast<float>(drag * D(p->velocity.x));
     p->velocity.y = static_cast<float>(drag * D(p->velocity.y));
     p->velocity.z = static_cast<float>(drag * D(p->velocity.z));
-    p->color = (static_cast<std::uint32_t>(BlastAlpha()[p->frame]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kBlastAlpha[p->frame]) << 24) | 0xFFFFFF;
     return 1;
 }
 EI_REPLACE_METHOD(0x0048C590, CParticleSource::UpdateBlast);
@@ -1505,7 +1507,7 @@ namespace {
 #define EI_SHOWER_FAST 1.5f /*0073C51C*/         // 1.5
 #define EI_SHOWER_GRAVITY 0.05f /*0073C52C*/      // 0.05
 
-const std::int32_t* ShowerAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A6B4); }
+constexpr std::int32_t kShowerAlpha[16] = /*0078A6B4*/ {0, 64, 128, 192, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 // alpha * 8 random unit directions (at least one) in the elements.
 void ChooseShowerRays(CParticleSource* s) {
@@ -1583,7 +1585,7 @@ int CParticleSource::UpdateShower(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
     p->pos.x = static_cast<float>(D(p->drift.x) + D(p->pos.x));
-    p->color = (static_cast<std::uint32_t>(ShowerAlpha()[life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kShowerAlpha[life]) << 24) | 0xFFFFFF;
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->pos.z) + D(p->drift.z));
     p->size = static_cast<float>(D(p->velocity.y) * D(p->size));
@@ -1609,7 +1611,7 @@ EI_REPLACE_METHOD(0x0048F380, CParticleSource::TickShower);
 // --- Bag (0x203C): eighty coloured balls bouncing around the carrier ------------------------------
 //
 // Each element is a ball: +0x00 position, +0x0C its last step, +0x18 velocity, +0x30 its age
-// (indexing the size table 007A9BFC and, for the first three, the colour table 0073CBA4),
+// (indexing the size table g_bagSizes and, for the first three, the colour table 0073CBA4),
 // +0x34 the ticks until it is thrown again (-13: no carrier, the ball is gone).
 
 namespace {
@@ -1621,7 +1623,7 @@ namespace {
 #define EI_BAG_BALL_SIZE 0.15f /*0073CD18*/       // 0.15
 #define EI_BAG_KICK 0.05f /*0073C52C*/            // 0.05
 
-float* BagSizes() { return ei::GamePointer<float>(0x007A9BFC); }     // 12 entries
+float g_bagSizes[12] = /*007A9BFC*/ {};   // set by the first emission
 const std::int32_t* BagColours() {   // r, g, b per age
     static const std::int32_t kValues[36] = {
         251 /*0073CBA4*/, 254 /*0073CBA8*/, 143 /*0073CBAC*/, 252 /*0073CBB0*/,
@@ -1669,7 +1671,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
         if (index == 0) {
             double t = D(EI_P_ONE);
             for (int k = 0; k < 12; ++k) {
-                BagSizes()[k] = static_cast<float>(t);
+                g_bagSizes[k] = static_cast<float>(t);
                 t = t * D(EI_BAG_SHRINK);
             }
         }
@@ -1702,7 +1704,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
     p->pos.y = py;
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
-    p->size = static_cast<float>(D(BagSizes()[age]) * D(size) * D(EI_BAG_SPARK_SIZE));
+    p->size = static_cast<float>(D(g_bagSizes[age]) * D(size) * D(EI_BAG_SPARK_SIZE));
     return 1;
 }
 EI_REPLACE_METHOD(0x00493560, CParticleSource::EmitBag);
@@ -1725,7 +1727,7 @@ int CParticleSource::UpdateBag(Particle* p) {
     std::memcpy(&p->pos, &ball->pos, sizeof(Vector3));
     SetBits(&p->size, 0x3F800000);
     int age = *ElementInt(ball, 0x30);
-    p->size = static_cast<float>(D(BagSizes()[age]) * D(size) * D(EI_BAG_BALL_SIZE));
+    p->size = static_cast<float>(D(g_bagSizes[age]) * D(size) * D(EI_BAG_BALL_SIZE));
     int fade = p->life > 9 ? 9 : p->life;
     p->color = (static_cast<std::uint32_t>(BagAlpha()[fade]) << 24) | BagRgb(age);
     const float* step = ElementFloat(ball, 0x0C);
@@ -1826,9 +1828,8 @@ namespace {
 #define EI_COLUMN_SHRINK 0.97f /*0073CEC8*/       // 0.97
 #define EI_COLUMN_SPEED_UP 1.05f /*0073CEE0*/     // 1.05
 
-// The alpha by remaining life, read backwards from 0078A960.
-const std::int32_t* ColumnAlphaEnd() { return ei::GamePointer<const std::int32_t>(0x0078A960); }
-std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(*(ColumnAlphaEnd() - life)); }
+// The alpha by remaining life, read backwards from kRiseFallAlpha's last entry.
+std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(kRiseFallAlpha[19 - life]); }
 
 // The ring from the carrier's figure (the first emission). False without a carrier.
 bool SetUpColumn(CParticleSource* s) {
@@ -2367,7 +2368,7 @@ EI_REPLACE_METHOD(0x00493D50, CParticleSource::UpdatePortalStar);
 // Each element is a star: +0x00 its position (relative to the source), +0x0C its last step,
 // +0x18 / +0x1C the cosine and sine of its turn per tick, +0x24 the inverse of its orbit radius,
 // +0x28 the orbit radius, +0x2C its rise per tick, +0x34 its countdown (also indexing the alpha
-// table 0078AB18).
+// table kCylinderAlpha).
 
 namespace {
 
@@ -2383,7 +2384,9 @@ namespace {
 #define EI_CYL_SPARK_PULL 0.6f /*0073CDE0*/      // 0.6
 #define EI_CYL_SPARK_SHRINK 0.9f /*0073CD70*/    // 0.9
 
-const std::int32_t* CylinderAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB18); }
+constexpr std::int32_t kCylinderAlpha[32] = /*0078AB18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                                                 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                                                 255, 255};
 
 // The stars on the carrier's orbit (the first emission).
 void SetUpCylinder(CParticleSource* s) {
@@ -2477,7 +2480,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
             return 0;
         }
         const ParticleElement& e = elements[state];
-        p->color = (static_cast<std::uint32_t>(CylinderAlpha()[e.ticks]) << 24) | 0xFFFFFF;
+        p->color = (static_cast<std::uint32_t>(kCylinderAlpha[e.ticks]) << 24) | 0xFFFFFF;
         double px = D(origin.x) + D(e.pos.x);
         float py = static_cast<float>(D(origin.y) + D(e.pos.y));
         float pz = static_cast<float>(D(origin.z) + D(e.pos.z));
@@ -2490,7 +2493,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     ++p->frame;
     int life = --p->life;
     if (life <= 0) return 0;
-    p->color = (static_cast<std::uint32_t>(CylinderAlpha()[life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kCylinderAlpha[life]) << 24) | 0xFFFFFF;
     float* step = &p->aux0;
     p->velocity.x = static_cast<float>(D(p->velocity.x) + D(step[0]));
     p->velocity.y = static_cast<float>(D(step[1]) + D(p->velocity.y));
@@ -2903,8 +2906,11 @@ EI_REPLACE_METHOD(0x00494470, CParticleSource::EmitPortal);
 
 namespace {
 
-const float* AcidSpread() { return ei::GamePointer<const float>(0x0078A61C); }    // by age
-const float* AcidSize() { return ei::GamePointer<const float>(0x0078A668); }      // by age
+// By age.
+constexpr float kAcidSpread[19] = /*0078A61C*/ {0.0f, 0.85f, 0.93f, 1.0f, 0.97f, 0.93f, 0.87f, 0.8f, 0.73f, 0.65f, 0.55f, 0.43f,
+                                             0.3f, 0.2f};
+constexpr float kAcidSize[19] = /*0078A668*/ {1.1f, 0.85f, 0.93f, 1.0f, 0.97f, 0.93f, 0.87f, 0.8f, 0.73f, 0.65f, 0.55f, 0.43f,
+                                           0.3f, 0.2f};
 
 // Position: the start (+0x38) plus the velocity scaled by the source's size and the spread table.
 void PlaceAcid(CParticleSource* s, Particle* p, int age, Vector3& out) {
@@ -2912,7 +2918,7 @@ void PlaceAcid(CParticleSource* s, Particle* p, int age, Vector3& out) {
     float sx = static_cast<float>(size * D(p->velocity.x));
     float sy = static_cast<float>(size * D(p->velocity.y));
     double sz = size * D(p->velocity.z);
-    float k = AcidSpread()[age];
+    float k = kAcidSpread[age];
     Vector3 v;
     v.Construct(static_cast<float>(D(sx) * D(k)), static_cast<float>(D(sy) * D(k)), static_cast<float>(sz * D(k)));
     out.Construct(static_cast<float>(D(v.x) + D(p->drift.x)), static_cast<float>(D(v.y) + D(p->drift.y)), static_cast<float>(D(v.z) + D(p->drift.z)));
@@ -2963,7 +2969,7 @@ int CParticleSource::EmitAcidRay(Particle* p, int) {
     Vector3 start;
     PlaceAcid(this, p, lifetime - p->life, start);
     reinterpret_cast<Vector4*>(p)->FromPoint(start);
-    p->size = static_cast<float>(D(AcidSize()[lifetime - p->life]) * D(size));
+    p->size = static_cast<float>(D(kAcidSize[lifetime - p->life]) * D(size));
     return 1;
 }
 EI_REPLACE_METHOD(0x0048D050, CParticleSource::EmitAcidRay);
@@ -2977,7 +2983,7 @@ int CParticleSource::UpdateAcidRay(Particle* p) {
     float sx = static_cast<float>(size_ * D(p->velocity.x));
     float sy = static_cast<float>(size_ * D(p->velocity.y));
     double sz = size_ * D(p->velocity.z);
-    double k = D(AcidSpread()[lifetime - life]);
+    double k = D(kAcidSpread[lifetime - life]);
     float ax = static_cast<float>(D(sx) * k);
     float ay = static_cast<float>(D(sy) * k);
     double az = sz * k;
@@ -2988,7 +2994,7 @@ int CParticleSource::UpdateAcidRay(Particle* p) {
     SetBits(&p->size, 0x3F800000);
     p->pos.x = static_cast<float>(px);
     p->pos.z = pz;
-    p->size = static_cast<float>(D(AcidSize()[lifetime - life]) * D(size));
+    p->size = static_cast<float>(D(kAcidSize[lifetime - life]) * D(size));
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
@@ -3067,18 +3073,18 @@ namespace {
 #define EI_CLAY_COS 0.95f /*0073CD50*/             // 0.95
 #define EI_CLAY_SIN 0.31225f /*0073CE78*/             // 0.31225
 
-const std::int32_t* ClayAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A734); }
-const float* ClayReach() { return ei::GamePointer<const float>(0x0078A6F4); }
-// The reach read backwards from 0078A72C (for a positive size).
-const float* ClayReachEnd() { return ei::GamePointer<const float>(0x0078A72C); }
-float ClayReachBackwards(int t) { return *(ClayReachEnd() - t); }
+constexpr std::int32_t kClayAlpha[16] = /*0078A734*/ {0, 128, 255, 255, 255, 255, 255, 255, 255, 160, 80, 32};
+constexpr float kClayReach[16] = /*0078A6F4*/ {0.0f, 0.025f, 0.056f, 0.092f, 0.136f, 0.188f, 0.251f, 0.326f, 0.417f, 0.525f,
+                                            0.656f, 0.812f, 1.0f, 1.0f, 1.0f, 1.0f};
+// The reach read backwards from entry 14 (for a positive size).
+float ClayReachBackwards(int t) { return kClayReach[14 - t]; }
 
 } // namespace
 
 // 0048F7F0. ClayRing: in the first tick (countdown 13) one marker per point; then clods between a
 // random point's previous and current position, flying off at random.
 int CParticleSource::EmitClayRing(Particle* p, int index) {
-    p->color = (static_cast<std::uint32_t>(ClayAlpha()[elements[0].ticks]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kClayAlpha[elements[0].ticks]) << 24) | 0xFFFFFF;
     p->life = lifetime;
     p->frame = 1;
     p->frameTimer = frameDelay;
@@ -3122,7 +3128,7 @@ EI_REPLACE_METHOD(0x0048F7F0, CParticleSource::EmitClayRing);
 int CParticleSource::UpdateClayRing(Particle* p) {
     if (--p->life == 0) return 0;
     if (p->frame == 0) {
-        p->color = (static_cast<std::uint32_t>(ClayAlpha()[elements[0].ticks]) << 24) | 0xFFFFFF;
+        p->color = (static_cast<std::uint32_t>(kClayAlpha[elements[0].ticks]) << 24) | 0xFFFFFF;
         std::memcpy(&p->pos, &elements[p->state].pos, sizeof(Vector3));
         SetBits(&p->size, 0x3E4CCCCD);     // 0.2
         return 1;
@@ -3164,7 +3170,7 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
     float a = static_cast<float>(s * D(direction[0]));
     float b = static_cast<float>(s * D(direction[1]));
     double c = s * D(direction[2]);
-    double k = size >= 0.0f ? D(ClayReachBackwards(t)) : D(ClayReach()[t]);
+    double k = size >= 0.0f ? D(ClayReachBackwards(t)) : D(kClayReach[t]);
     float ka = static_cast<float>(D(a) * k);
     float kb = static_cast<float>(D(b) * k);
     double kc = c * k;
@@ -3510,15 +3516,15 @@ EI_REPLACE_METHOD(0x00494F30, CParticleSource::UpdateVisionStar);
 
 namespace {
 
-const std::int32_t* ZoneExitAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AA38); }    // by life
+constexpr std::int32_t kZoneExitAlpha[16] = /*0078AA38*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};   // by life
 
 } // namespace
 
-// 00492F40. ZoneExit: alpha by the life left (the table at 0078AA38), dropped past 0; rising 0.05
+// 00492F40. ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05
 // per tick, +0x2C slowing by 0.9, cycling through four frames, sized by +0x20.
 int CParticleSource::UpdateZoneExit(Particle* p) {
     int life = p->life;
-    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ZoneExitAlpha()[life]) << 24);
+    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(kZoneExitAlpha[life]) << 24);
     p->life = --life;
     if (life < 0) return 0;
     p->pos.z = static_cast<float>(D(p->pos.z) + D(0.05f /*0073C52C*/));
@@ -3533,7 +3539,9 @@ EI_REPLACE_METHOD(0x00492F40, CParticleSource::UpdateZoneExit);
 
 namespace {
 
-const std::int32_t* FeebleAlpha() { return ei::GamePointer<const std::int32_t>(0x0078ABB8); }    // by life
+// By life.
+constexpr std::int32_t kFeebleAlpha[24] = /*0078ABB8*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                                               255, 255, 255, 255, 255, 255, 255};
 
 } // namespace
 
@@ -3544,7 +3552,7 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
     float nextSize = *ParticleFloat(p, 0x34);
-    p->color = (static_cast<std::uint32_t>(FeebleAlpha()[life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kFeebleAlpha[life]) << 24) | 0xFFFFFF;
     int frame = (p->frame + 1) & 15;
     p->pos.x = static_cast<float>(D(p->pos.x) - D(p->velocity.x));
     p->pos.y = static_cast<float>(D(p->pos.y) - D(p->velocity.y));
@@ -3571,7 +3579,9 @@ EI_REPLACE_METHOD(0x00495950, CParticleSource::UpdateFeebleMind);
 
 namespace {
 
-const std::int32_t* FeetAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AC18); }    // by life
+// By life.
+constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                                             255, 255, 255, 255, 255, 255, 255};
 
 // Not rewritten (forwarders): the figure part named `name` (00516A80, null if none) and a part's
 // world position (005188B0).
@@ -3602,7 +3612,7 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
         if (life > 8) life = 8;
         p->life = life;
     }
-    p->color = (static_cast<std::uint32_t>(FeetAlpha()[life]) << 24) + static_cast<std::uint32_t>(lifetime);
+    p->color = (static_cast<std::uint32_t>(kFeetAlpha[life]) << 24) + static_cast<std::uint32_t>(lifetime);
     float* offset = &p->aux0;
     offset[0] = static_cast<float>(D(p->drift.x) + D(offset[0]));
     offset[1] = static_cast<float>(D(p->drift.y) + D(offset[1]));
@@ -3792,8 +3802,9 @@ EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
 
 namespace {
 
-const std::int32_t* ModifierAlphaIn() { return ei::GamePointer<const std::int32_t>(0x0078A800); }     // by tick
-const std::int32_t* ModifierAlphaOut() { return ei::GamePointer<const std::int32_t>(0x0078A88C); }    // by tick
+// By tick.
+constexpr std::int32_t kModifierAlphaIn[35] = /*0078A800*/ {0, 128, 255, 255, 255, 255, 255, 255, 192, 128, 64, 32};
+constexpr std::int32_t kModifierAlphaOut[34] = /*0078A88C*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 128};
 
 
 } // namespace
@@ -3812,10 +3823,10 @@ int CParticleSource::UpdateModifier(Particle* p) {
         EI_NAN_AUDIT(size);
         if (size < EI_P_ZERO) {
             p->size = static_cast<float>(oldSize * D(0.9345794f /*0073CEA8*/));    // 1 / 1.07
-            p->color = (static_cast<std::uint32_t>(ModifierAlphaIn()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
+            p->color = (static_cast<std::uint32_t>(kModifierAlphaIn[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         } else {
             p->size = static_cast<float>(oldSize * D(1.07f /*0073CEA4*/));    // 1.07
-            p->color = (static_cast<std::uint32_t>(ModifierAlphaOut()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
+            p->color = (static_cast<std::uint32_t>(kModifierAlphaOut[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         }
         return 1;
     }
@@ -3865,7 +3876,7 @@ EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
 
 namespace {
 
-const std::int32_t* LightningAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A9F8); }    // by life
+constexpr std::int32_t kLightningAlpha[16] = /*0078A9F8*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};   // by life
 
 bool IsZero(float f) {
     EI_NAN_AUDIT(f);
@@ -3895,7 +3906,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
         std::memcpy(&p->size, &p->aux0, sizeof(float));
         return 1;
     }
-    p->color = (static_cast<std::uint32_t>(LightningAlpha()[life]) << 22) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kLightningAlpha[life]) << 22) | 0xFFFFFF;
     if (p->frameTimer != 0) {
         double shrunk = D(p->aux0) * D(0.9f /*0073CD70*/);
         ++p->frame;
@@ -4018,8 +4029,10 @@ EI_REPLACE_METHOD(0x00490110, CParticleSource::TickTeleport);
 
 namespace {
 
-const std::int32_t* CurseAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AC98); }    // by life
-const std::int32_t* TransAlpha() { return ei::GamePointer<const std::int32_t>(0x0078ACF8); }    // by life
+// By life.
+constexpr std::int32_t kCurseAlpha[24] = /*0078AC98*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                                              255, 255, 255, 255, 255, 255, 255};
+constexpr std::int32_t kTransAlpha[16] = /*0078ACF8*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
 // A random point of the unit ball (ten tries, the last one kept), each coordinate rounded.
 void RandomInBall(float& x, float& y, float& z, double& lengthSquared) {
@@ -4084,7 +4097,7 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
         SetBits(&p->size, 0);
         return 0;
     }
-    p->color = (static_cast<std::uint32_t>(CurseAlpha()[life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->size);
     if (p->size == 0.0f) {
         p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
@@ -4160,7 +4173,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
         if (!attachedTo) {
             int life = --p->life;
             if (life < 0) return 0;
-            p->color = (static_cast<std::uint32_t>(TransAlpha()[life]) << 24) | 0xFFFFFF;
+            p->color = (static_cast<std::uint32_t>(kTransAlpha[life]) << 24) | 0xFFFFFF;
             p->size = static_cast<float>(D(p->size) * D(0.6f /*0073CDE0*/));    // 0.6
             return 1;
         }
@@ -4180,7 +4193,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
     p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
     std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));
-    p->color = (static_cast<std::uint32_t>(TransAlpha()[p->life]) << 24) | 0xFFFFFF;
+    p->color = (static_cast<std::uint32_t>(kTransAlpha[p->life]) << 24) | 0xFFFFFF;
     return 1;
 }
 EI_REPLACE_METHOD(0x00496840, CParticleSource::UpdateStartTrans);
@@ -4246,8 +4259,9 @@ EI_REPLACE_METHOD(0x0048ED60, CParticleSource::EmitTendril);
 
 namespace {
 
-const float* DustAxisX() { return ei::GamePointer<const float>(0x0078AAB8); }    // (+-0.707) by quadrant
-const float* DustAxisY() { return ei::GamePointer<const float>(0x0078AAC8); }
+// By quadrant.
+constexpr float kDustAxisX[4] = /*0078AAB8*/ {0.707f, -0.707f, -0.707f, 0.707f};
+constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
 
 } // namespace
 
@@ -4261,8 +4275,8 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
         int diagonal = j / 32;
         double fu = static_cast<double>(j & 31) * D(0.0032258064f /*0073CF3C*/);
         float f = static_cast<float>(fu);
-        a = static_cast<float>(fu * D(DustAxisX()[diagonal]));
-        b = static_cast<float>(D(f) * D(DustAxisY()[diagonal]));
+        a = static_cast<float>(fu * D(kDustAxisX[diagonal]));
+        b = static_cast<float>(D(f) * D(kDustAxisY[diagonal]));
     } else {
         double fu = static_cast<double>(index) * D(0.049140625f /*0073CF38*/);
         float f = static_cast<float>(fu);

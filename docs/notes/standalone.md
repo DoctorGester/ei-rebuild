@@ -300,7 +300,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2. C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
+after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d. C18 turns them into named C++ globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
@@ -377,14 +377,30 @@ kinds given.
     descriptor in .data (a type_info object, whose vtable cell is fixed up): their form is our compiler's own
     `throw`, once the thrown classes are C++ classes with the original's decorated names (our catch handlers match
     by the name), not named data.
-  - .data and .bss objects (written at run time): the same form without constexpr (`int g_x = /*0079xxxx*/ {5};`,
-    `{}` for the zero-filled tail). Before converting, every reader must use the name: the generated static
-    initialisers and exit functions (static_init.cpp / static_exit.cpp store into or destroy it: the definition's
-    initialiser or constructor takes the store's place, in the list's order when it has a constructor), the
-    harness (tests/verify runs in game.exe too, where a name is our copy and not the original's object: it keeps
-    the address there), the vectors' stand-ins (tests/vectors fill recorded values by address), and game.exe's
-    data pointing at it (a cell keeps it at its address). Saves and messages carry values, not addresses: the
-    goldens catch a changed value.
+  - .data and .bss objects (C18d did particle*: 25 .data tables for 29 addresses, the bag's ball sizes 007A9BFC and the draw
+    arrays' guard 007A9BF4). The form is the same; **const follows our code, not the section**: a .data table no
+    code of ours writes is `constexpr` like an .rdata one (most are: the original's arrays lacked const;
+    particle_callbacks' alpha tables), an object the code writes is plain (`float g_bagSizes[12] = /*007A9BFC*/ {};`,
+    `g_` prefix). The check fills elements the initialiser leaves out with zeros, as C++ does (`{}`: the
+    zero-filled tail's objects, which take all of it; a table's trailing zeros are left out), and refuses a
+    non-const range in .rdata.
+    Before converting, read `python tools/named_data.py --refs BEGIN END` (the original's absolute operands into
+    the range, by function and our registration): the starts the code indexes from (a read backwards from an end
+    or one entry on is the same table: kRiseFallAlpha 0078A914 serves 0078A914 / 0078A918 / 0078A960, kClayReach
+    0078A6F4 / 0078A72C), the extent a loop's end compare gives (EmitBag's 007A9C2C: 12 sizes), and every function
+    that reaches it; our port of each must use the name. Some hits are no operand (a call's rel32: read the bytes).
+    The extent is otherwise the next referenced start. It shows no access through a pointer: an object inside a
+    larger one that the code reaches by its base (the camera 0079B2DC, written by the briefing and view screens
+    through the camera block; the world's wind 007AF5DC, inside the world's block) stays at its address until
+    its whole enclosing object is named.
+    Every reader must use the name: the generated static initialisers and exit functions (static_init.cpp /
+    static_exit.cpp store into or destroy it: the definition's initialiser or constructor takes the store's place,
+    in the list's order when it has a constructor; not done yet, the objects with stores stay), the harness
+    (tests/verify runs in game.exe too, where a name is our copy and not the original's object: it keeps the
+    address there), the vectors' stand-ins (tests/vectors fill recorded values by address), and game.exe's data
+    pointing at it (a cell keeps it at its address). The check's literal and cell scans cover src/, tests/ and
+    the cells; config/ and the vector data name none of these. Saves and messages carry values, not addresses:
+    the goldens catch a changed value.
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)
