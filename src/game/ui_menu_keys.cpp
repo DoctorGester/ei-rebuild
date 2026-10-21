@@ -4,6 +4,7 @@
 // Both key handlers live on the window's input side (`this` = window + 0x94, ui_screens.h). They
 // pass the key to the base handler first (00601820), set the input side's handled flag for the
 // keys they use, and ignore keys while the window slides in.
+#include "asset_text.h"
 #include "ui.h"
 #include "game_strings.h"
 #include "ui_screens.h"
@@ -134,6 +135,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         if (editable) {
             nameTyped_ = true;
             name = entriesBegin_[selected_].title_;
+            text::ToAssetText(&name);   // EI_UTF8: the name is edited in 8 bits until U4
             cursor_ = name.GetLength();
         }
         if (key == kKeyEnd)

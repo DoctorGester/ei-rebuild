@@ -1,5 +1,6 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
+#include "asset_text.h"
 #include "model.h"
 #include "options.h"
 #include <bit>
@@ -88,6 +89,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     nameTyped_ = false;
     name_ = entriesBegin_[selected].title_;
+    text::ToAssetText(&name_);   // EI_UTF8: the name is edited in 8 bits until U4
     cursor_ = name_.GetLength();
 }
 EI_REWRITTEN(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);

@@ -53,11 +53,15 @@ struct TextSources : stlp::list<TextSource> {
     // 005628E0 (plain RET; the list's owner unwinding). Clear, then the list's own destructor.
     void DestructList();
     // A-S11. 004DEBC0 (RET 8): the data of file `key` from the first archive that has it (GetFile:
-    // its size written to `size`), or null. 004DEC40 (RET 8): `out` emptied, then the names matching
+    // its size written to `size`, which must not be null), or null: the file's bytes as they are.
+    // FindText (ours): the same, as text: with EI_UTF8 its UTF-8 copy (asset_text.h), the size that
+    // copy's. CTextManager::Open reads through FindText, OpenData through Find (the archives also hold
+    // binary files: the quest registries). 004DEC40 (RET 8): `out` emptied, then the names matching
     // `pattern` of every archive appended in list order (ListFiles; a name in two archives is listed
     // twice). Rebirth patches 004DEC40 (ResOverride redirects the ListFiles call): ours is the vanilla
     // function and installs in the vanilla launch only.
     void* Find(const char* key, std::uint32_t* size);
+    void* FindText(const char* key, std::uint32_t* size);
     void ListKeys(mfc::CStringArray* out, const char* pattern);
 };
 static_assert(sizeof(TextSources::Node) == 0x18);
@@ -90,6 +94,9 @@ public:
     // 004DEFC0. Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
     BOOL Open(const char* key);
+    // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
+    // are, never converted (EI_UTF8). Without EI_UTF8 the same as Open.
+    BOOL OpenData(const char* key);
     // 004DF8D0. The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
     BOOL ReadLine(mfc::CString* out, BOOL advance);

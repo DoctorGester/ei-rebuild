@@ -1,5 +1,6 @@
 // CFileRegistry: lookups in the game's binary registry files (see registry.h for the format).
 #include "registry.h"
+#include "asset_text.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -208,6 +209,7 @@ EI_REWRITTEN(0x00694C80, CFileRegistry::GetFloat);
 mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc::CString defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
         mfc::CString text(reinterpret_cast<const char*>(value + 2), U16(value));
+        text::FromAssetText(&text);
         mfc::CString result(text);
         return result;
     }
@@ -218,9 +220,11 @@ EI_REWRITTEN(0x00694D20, CFileRegistry::GetString);
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        std::uint16_t count = U16(value);
+        // EI_UTF8: the UTF-8 text is cut to the buffer by bytes (docs/notes/standalone.md section 4, U5).
+        const std::string string = text::FromAssetText(std::string_view(reinterpret_cast<const char*>(value + 2), U16(value)));
+        std::uint16_t count = static_cast<std::uint16_t>(string.size());
         if (static_cast<int>(count) >= *length) count = static_cast<std::uint16_t>(*length - 1);
-        gamecrt::strncpy(buffer, reinterpret_cast<const char*>(value + 2), count);
+        gamecrt::strncpy(buffer, string.data(), count);
         buffer[count] = '\0';
         *length = count;
         return;
@@ -257,7 +261,9 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
     out->SetSize(count, -1);
     for (int i = 0; i < count; ++i) {
         std::uint16_t length = U16(value);
-        (*out)[i] = mfc::CString(reinterpret_cast<const char*>(value + 2), length);
+        mfc::CString text(reinterpret_cast<const char*>(value + 2), length);
+        text::FromAssetText(&text);
+        (*out)[i] = text;
         value += length + 2;
     }
     return 1;

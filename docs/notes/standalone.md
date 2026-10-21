@@ -1187,6 +1187,51 @@ charset comes from the "Font CharSet" option; typed characters arrive as WM_CHAR
 
 Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
+### U1: the switch and the asset boundary (2026-10-21)
+
+- **Switch**: CMake option `EI_UTF8` (off by default) and cache string `EI_ASSET_CODEPAGE` (1251), both compile
+  definitions; `build.cmd <config> utf8` builds it into `build\<config>-utf8`. Code tests `text::kUtf8` with
+  `if constexpr`; with the switch off nothing changes a byte (the gallery's frames and goldens are the same as
+  main's).
+- **Helpers** (src/game/asset_text.h): `text::FromAssetText` (asset bytes to UTF-8; a `std::string` overload and an
+  in-place `CString*` one), `text::ToAssetText` (back to the asset code page, false for ASCII or text that is not
+  valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
+  bytes by its bytes) and `text::ForAnsiCall`, the one boundary helper U2-U4 remove: at an ANSI call it turns
+  valid UTF-8 back into the asset code page (the original's bytes, so drawing and measuring do not change) and
+  passes anything else (8-bit text not converted yet: typed characters, file names, resource strings).
+- **Sites converted**: the text database (`TextSources::FindText`, which `CTextManager::Open` reads through; the
+  copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
+  and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
+  `GetStringBuffer`, `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob); credits.scr
+  (`CCreditsScreen::Build`). The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's
+  quest.reg from the text cursor, so it opens it with `CTextManager::OpenData` (bytes as they are), and
+  `TextSources::Find` (004DEBC0) stays the raw lookup.
+- **ANSI boundaries with `ForAnsiCall`**: `GameDC::DrawText` (ui_gdi.h, every interface text draw),
+  `CInterface3D::TextExtent` (005F8340), the console prompt's width (`PromptWidth`), `ShowMessageBox` (until U2).
+  Until U4 the save window's name editor works in 8 bits: `ToAssetText` when a title is taken into it
+  (ui_menus.cpp, ui_menu_keys.cpp), `FromAssetText` when the typed name is saved (ui_saveload.cpp).
+- **Behaviour by length**: a briefing phrase lasts 0.05 s per character (`CBriefingScreen::NextPhrase`): counted
+  with `CharacterCount`.
+- **Check** (repeat for U2-U5): build `build.cmd verify` and `build.cmd verify utf8`; run the gallery on each,
+  `python tools/work.py test <ID> ui_gallery_menus ui_gallery_game ui_gallery_camp ui_gallery_mp ui_gallery_base
+  ui_gallery_deals render_titles_present --golden --jobs 4`, the second time with
+  `EI_BUILD_DIR=<worktree>\build\verify-utf8`; copy the first run's `build\verify\runs\<scenario>-standalone\frames`
+  away and compare each scenario with `python tools/compare_frames.py <off frames> <on frames> --tolerance 0
+  --max-fraction 0`. U1's result: 51 of the 54 frames identical (menus, in-game HUD and dialogue, camp, base,
+  trade, titles and credits). The 3 others are ui_gallery_mp's briefing, chat_typed and chat_sent: the base
+  screen's player list (the face and "На базе", top right) is missing. That is not the text: with the switch off,
+  a few leaked game-heap allocations during the run (`gamecrt::operator_new` of 16, 64 or 100 bytes on every other
+  text lookup) lose the same face and status (the same 27249 pixels), so the chat window's drawing depends on the
+  heap's layout and the UTF-8 copies only move it. Goldens with the switch on differ only in ui_gallery_game's
+  saves (the save title and the top panel text are UTF-8 now), which is allowed.
+- **Found for U2-U5**: the save name editor edits bytes (U4); `GetStringBuffer` cuts UTF-8 by bytes at the
+  buffer size (U5); the clipboard copy converts with CP_ACP and `CharUpperA` in script_addon_strings upper-cases
+  bytes (U2/U5); network player names pass an `isprint` filter byte by byte (multiplayer, U5); the script string
+  length (script_addon_strings) counts bytes (U5); the CRT's LC_CTYPE is "english" (1252) from the Font CharSet
+  option, so `tolower`/`MakeLower` and the `_ismbc*` classes treat UTF-8 bytes as 1252 letters (U5: a UTF-8-aware
+  case table); the system ANSI code page here is 1252, so ANSI file and window calls of Cyrillic need U2's wide
+  calls.
+
 ## 5. The hook retirement (S21-S21e, 2026-10-16)
 
 User 2026-10-15: the standalone image is the only product, checked by the goldens and the function vectors.

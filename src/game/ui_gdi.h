@@ -4,6 +4,7 @@
 // on its off-screen surfaces: CUiSurface's GetDC (005FDC00) returns a CDC, ReleaseDC (005FDC60)
 // gives it back. The CDC members the original calls through the vtable go through the same slot.
 
+#include "asset_text.h"
 #include "ei/hook.h"
 #include "lib/mfc_gdi.h"
 #include "originals_ui.h"
@@ -33,8 +34,11 @@ R CallSlot(void* object, int slot, A... args) {
 struct GameDC : mfc::impl::CDC {
     void* SelectFont(void* font) { return CallSlot<void*>(this, 10, font); }
     COLORREF SetTextColor(COLORREF colour) { return CallSlot<COLORREF>(this, 12, colour); }
+    // The interface's, the console's and the debug panel's text (EI_UTF8: back in the assets' code page
+    // for the ANSI call until U3).
     int DrawText(const char* text, int length, RECT* rect, UINT format) {
-        return CallSlot<int>(this, 26, text, length, rect, format);
+        const ::text::ForAnsiCall ansi(text, length);
+        return CallSlot<int>(this, 26, ansi.data(), ansi.length(), rect, format);
     }
 };
 static_assert(sizeof(GameDC) == sizeof(mfc::impl::CDC));
