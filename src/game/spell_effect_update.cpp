@@ -47,11 +47,11 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseSound();
     e->ReleaseLight();
 
-    CEngineObject* target = e->target;   // no null check
-    std::memcpy(&e->targetPoint, &static_cast<CUnit*>(target)->position, 12);
+    auto* target = static_cast<CUnit*>(e->target);   // no null check
+    std::memcpy(&e->targetPoint, &target->position, 12);
     Vector3 at;
-    std::memcpy(&at, &static_cast<CUnit*>(target)->position, 12);
-    at.z = static_cast<float>(static_cast<CUnit*>(target)->ModeSpeed());
+    std::memcpy(&at, &target->position, 12);
+    at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
