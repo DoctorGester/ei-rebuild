@@ -677,10 +677,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   split by reader (code cells by kind, forwarders, code literals, static init, named data, harness, vectors,
   scenarios / goldens, the short-function and exit-function generators, check_fp_fold's links from
   `check_fp_fold.py --linked` on the built DLL), `--unread` / `--files` what nothing reads, `--drop` removes those
-  (with `--exclude` / `--exclude-name` for files another worker holds). After C20c (2026-10-21): 5,257 left of
-  9,347, first reader: vtable cells 2,281, check_fp_fold only 1,718, static init 324, forwarders 270, code literals
-  143, harness / vectors / other 72, unread 452 (65 short functions the generator would write again, 387 in C19's
-  managers and the map objects, left for C19). A dropped function is called by name; one whose registration was the
+  (with `--exclude` / `--exclude-name` for files another worker holds). After C20c (2026-10-21): 5,258 left of
+  9,347, first reader: vtable cells 2,202, check_fp_fold only 1,754, static init 325, forwarders 270, code literals
+  143, harness / vectors / other 69, unread 495 (65 short functions the generator would write again, 430 in C19's
+  managers and the map objects, left for C19). Code literals include static_init.cpp's six-digit ones (0x5C4210). A dropped function is called by name; one whose registration was the
   only instantiation of a template needs an explicit instantiation (AckTable<ExtraAcks>::RecordAt).
 - check_fp_fold compares a function's x87 constants with its original through the function's own registration, or
   a helper's through its registered callers: dropping those reported folds that were none (24 at C20c's first try),
