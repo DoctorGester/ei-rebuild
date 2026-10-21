@@ -57,7 +57,7 @@ inline void DestroyRun(ScriptRun* p) { ScriptRunDestruct(p); }
 // A command block (CScript +0x70 / +0x178): 004C54A0, the body of ScriptDeclDestruct.
 inline void DestroyDecl(ScriptDecl* p) { ScriptDeclDestruct(p); }
 // After the zero fill (ConstructElements 004CEB80 / 004CECB0): a definition's name and parameters
-// empty, its if-then array (vtable 0073D430) and variables constructed, index 0; a run's variables.
+// empty, its if-then array (ScriptIfThenPairsClass) and variables constructed, index 0; a run's variables.
 void InitDefinition(ScriptDefinition* p);
 void InitRun(ScriptRun* p);
 using DefinitionElements = EachElements<ScriptDefinition, InitDefinition, DestroyDefinition>;

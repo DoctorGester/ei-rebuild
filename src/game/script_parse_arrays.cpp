@@ -8,6 +8,7 @@
 #include "script_array.h"
 #include "game_lists.h"
 #include "record_arrays.h"
+#include "game_arrays.h"
 
 #include "lib/crt.h"
 
@@ -129,7 +130,7 @@ ScriptIfThens* ScriptIfThens::ConstructEmpty() {
     growBy = 0;
     maxSize = 0;
     size = 0;
-    vtable = scriptvtable::kIfThen;
+    vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
     return this;
 }
 EI_REWRITTEN(0x004D5A30, ScriptIfThens::ConstructEmpty);

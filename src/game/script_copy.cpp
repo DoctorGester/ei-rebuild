@@ -134,7 +134,7 @@ void InitArray(mfc::CArray<T>* a, void* vtable) {
 
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
-    InitArray(to, scriptvtable::kStrings);
+    InitArray(to, gamearrays::ScriptStringValuesClass::Vtable());
     to->SetSize(from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
@@ -206,7 +206,7 @@ void ScriptStrings::CopyFrom(const ScriptStrings& source) {
 EI_REWRITTEN(0x004C14A0, ScriptStrings::CopyFrom);
 
 ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
-    InitArray(this, scriptvtable::kStrings);
+    InitArray(this, gamearrays::ScriptStringValuesClass::Vtable());
     int n = other->size;
     if (n == 0) {
         maxSize = 0;
@@ -249,7 +249,7 @@ EI_REWRITTEN(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct);
 // Group values: each group sized to the GetAt copy's and its members copied in place; the copy's
 // destructor inlined (vtable 0073D11C, each reference destroyed, the array freed).
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other) {
-    InitArray(&values, scriptvtable::kGroups);
+    InitArray(&values, gamearrays::ScriptGroupValuesClass::Vtable());
     mfc::impl::ArrayAs<gamearrays::Groups>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
@@ -277,7 +277,7 @@ EI_REWRITTEN(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 // ScriptVars' copy constructor: names through 004CBA00, string values through 004C2510 / GetAt,
 // objects through the reference helpers, groups assigned (004C1290) from GetAt copies.
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
-    InitArray(&floats, scriptvtable::kFloats);
+    InitArray(&floats, mfc::impl::ScriptFloatValuesClass::Vtable());
     CopyFloats(&floats, &other->floats);
     floatNames.CopyConstruct(&other->floatNames);
     CopyConstructStrings(&strings, &other->strings);
@@ -295,7 +295,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     }
     objectNames.CopyConstruct(&other->objectNames);
 
-    InitArray(&groups, scriptvtable::kGroups);
+    InitArray(&groups, gamearrays::ScriptGroupValuesClass::Vtable());
     mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
@@ -311,14 +311,14 @@ EI_REWRITTEN(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 // ScriptVars' default constructor (004C00D0): each array's base constructor (004C24F0 / 004C2030 /
 // 004C3960: fields 0, base vtable) then its derived vtable, in member order; returns the set.
 ScriptVars* ScriptVars::ScriptVarsConstruct() {
-    InitArray(&floats, scriptvtable::kFloats);
-    InitArray(&floatNames, scriptvtable::kStrings);
-    InitArray(&strings, scriptvtable::kStrings);
-    InitArray(&stringNames, scriptvtable::kStrings);
+    InitArray(&floats, mfc::impl::ScriptFloatValuesClass::Vtable());
+    InitArray(&floatNames, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&strings, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&stringNames, gamearrays::ScriptStringValuesClass::Vtable());
     InitArray(&objects, mfc::impl::ScriptGroupClass::Vtable());
-    InitArray(&objectNames, scriptvtable::kStrings);
-    InitArray(&groups, scriptvtable::kGroups);
-    InitArray(&groupNames, scriptvtable::kStrings);
+    InitArray(&objectNames, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&groups, gamearrays::ScriptGroupValuesClass::Vtable());
+    InitArray(&groupNames, gamearrays::ScriptStringValuesClass::Vtable());
     return this;
 }
 EI_REWRITTEN(0x004C00D0, ScriptVars::ScriptVarsConstruct);
@@ -326,7 +326,7 @@ EI_REWRITTEN(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 // Float values: the values through their SetSize (004C2880) and the FPU, then the names as
 // ScriptNamesCopyConstruct builds them (inlined in the original).
 template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other) {
-    InitArray(&values, scriptvtable::kFloats);
+    InitArray(&values, mfc::impl::ScriptFloatValuesClass::Vtable());
     CopyFloats(&values, &other->values);
     names.CopyConstruct(&other->names);
     return this;
