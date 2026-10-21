@@ -6,7 +6,8 @@
 # steps beside the new frame went with R11.) R16c: the image's frame with its terrain pages kept on the
 # GPU must match the frame with every page built and uploaded again (world_fresh), and no kept page
 # checked against a fresh build may have been stale. R16d: the same for its figure meshes kept on the
-# GPU (world_meshfresh: every mesh built into the frame's stream).
+# GPU (world_meshfresh: every mesh built into the frame's stream). R16b: the same for the textures in
+# the renderer's memory updated in place (world_remade: made again as new images, as before R16b).
 render new
 reject Script error
 waitmenu
@@ -27,10 +28,14 @@ terraincache on
 meshcache off
 capture world_meshfresh
 meshcache on
+memorytextures remake
+capture world_remade
+memorytextures inplace
 unfreeze
 samecapture world world_again
 samecapture world world_fresh
 samecapture world world_meshfresh 8 0.001
+samecapture world world_remade 8 0.005
 terraincache check
 meshcache check
 report

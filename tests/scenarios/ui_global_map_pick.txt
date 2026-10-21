@@ -2,7 +2,9 @@
 # mouse move off its regions reads the zone under the mouse from the pick picture (CGlobalMap's
 # backdrop, drawn by RefreshSelection) with CUiSurface::PixelAt 005FD240 (ui_global_map_input.cpp);
 # "fps on" (a public console command) makes the interface's frame rate surface (ShowFps 005F5700),
-# redrawn every 400 ms by DrawOverlays 005F5320 ("FPS:" and the rate), "fps off" frees it.
+# redrawn every 400 ms by DrawOverlays 005F5320 ("FPS:" and the rate), "fps off" frees it. R16b: the
+# map's frame with its texture (the renderer's memory) updated in place matches the one with it made
+# again as a new image (memorytextures remake, as before R16b) at 8 / 0.5%.
 reject Script error
 waitmenu
 console fps on
@@ -14,6 +16,14 @@ waitwindow 15 battle
 wait 500
 screen 4
 waitwindow 15 map
+frames 5
+freeze
+capture map
+memorytextures remake
+capture map_remade
+memorytextures inplace
+unfreeze
+samecapture map map_remade 8 0.005
 move 300 250
 frames 5
 move 400 300

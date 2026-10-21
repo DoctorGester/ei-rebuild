@@ -181,8 +181,8 @@ memory unless the caller only reads (`reads`: PixelAt, the copies' sources, Swap
 holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
 to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
 build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
-the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) are still
-compared once a frame (R16b).
+the run (`render::MissedSurfaceWrites`; its time counts as "counting"). Memory textures (section 7) use the same
+marks, once a frame (R16b).
 
 **Holders without a surface**: no holder has a DirectDraw surface (`CDXSurface::surface` is always null; R11b removed
 the code for one): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
@@ -231,6 +231,26 @@ capture of the same frozen moment as 8x8 block averages; the original's: at most
 
 CPU-written textures (00691D80), shadow textures and .bmp textures have only the renderer's memory; .mmp textures only
 its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
+
+**Memory textures updated in place (R16b, `render_textures.cpp`).** A texture whose holder has the renderer's memory
+(the classic shadows' 64 x 64 4:4:4:4 textures, the global map's 256 x 256, the item and save pictures) is checked at
+its first bind of a frame (`SurfaceView`): read again when the game marked its memory written since
+(`render::SurfaceWritten`, the marks of section 6: 0051CE60's copy into the shadow's texture goes through
+`DirectPixels`, so it marks it) and the memory differs from the copy the texture was made from; also when there is
+no copy (the memory was made again) or the size changed. Read means level 0 converted to RGBA8 (16-bit layouts
+through a 64 K-entry table per mask layout, `Lookup16`: the per-channel mask loop cost more than the rest) and
+written with `UpdateSubresource` into the holder's own Direct3D 11 texture (default usage, every level, made once and
+handed to sokol), the other levels made by the GPU (`GenerateMips`). No image or view is made per change any more
+(before: 4-16 new images a frame in a fight or town with the classic shadows, their levels box-filtered on the CPU,
+the old ones destroyed at the present). A frame's draws happen at its end (DrawPending), after every hand-over's
+update, and a texture is read at most once a frame, so a draw never sees a later write. The harness build compares
+the memory of every unmarked memory texture at that check: a change is logged ("MISSED WRITE: texture holder") and
+fails the run like a window surface's. `memorytextures remake` (harness) makes them again as new images with CPU
+levels as before, for frame comparisons: render_scene, render_shadows (start, fight, town, classic),
+render_options_shadows (each moment classic too) and ui_global_map_pick capture both at one frozen moment, 8 / 0.5%
+(the GPU's levels round differently from the CPU box filter). The plan's texture array of shadow slices was not
+needed for the CPU gain (each holder keeps its texture; objects that go free theirs through HolderGone); R16e can put
+the shadows into one when its instanced decal draw wants them in one binding.
 
 | Address | Name / change |
 |---|---|
@@ -789,11 +809,23 @@ across runs; the goldens check the game state.
    What is still compared is the surfaces the game redraws every frame (the HUD unit panel, the item strip, the camp
    page: GDI's bounds cover them whole, and 91-99% of the redraws change nothing, ui-census.md); the native interface
    (ui-native.md, P1-P8) removes those. Checked by the ui_* and render_* scenarios (captures, 0 missed writes).
-2. **R16b Shadow and memory textures updated in place.** The shadow textures (0051CE60 marks the changed one,
-   `TextureChanged`) go into one texture array of 64 x 64 slices updated with UpdateSubresource, mips made on the GPU;
-   other memory textures (the global map's 341 KB one) are updated in place instead of made again. Gain: 4-15 image and
-   view creations a frame to none, 0.5-1.5 ms CPU in fights and towns. Risk: low (slice reuse when objects go). Check:
-   render_scene, render_options_shadows, ui_global_map_pick frames at 8 / 0.5% (GPU mips differ slightly).
+2. **R16b Shadow and memory textures updated in place (done).** How it works: section 7, "Memory textures updated in
+   place" (each holder's own texture written with UpdateSubresource, levels by GenerateMips, read again only when
+   marked written; no texture array: not needed for the gain). Measured with render_stats (vanilla, 4K; per frame;
+   "textures" CPU ms, of it window surfaces in brackets; the machine shared with other workers' runs, so noisy):
+   main's last run before / after / the same run with `memorytextures remake` (new images with CPU levels as before,
+   but already with the 16-bit table): fight classic 20.2 (1.4; an outlier: Rebirth's run 3.2) / 0.59 (0.25) / 1.04
+   (0.23), town classic 2.27 / 0.32 / 0.71, global map 1.00 / 0.08 / 0.22. The renderer's CPU per frame (terrain,
+   hand-over, textures, end of frame and the shadow map's), before / after: fight classic 23.1 (Rebirth's run 4.9) /
+   2.53, town classic 3.68 / 1.42, global map 1.24 / 0.28; with the shadow map (no memory textures drawn; the
+   differences are the machine's load) fight 5.27 / 2.51, town 1.42 / 1.34. GPU frame ms before / after: fight
+   classic 0.81 / 0.78, town classic 0.63 / 0.72, fight 1.28 / 1.25, town 0.97 / 0.95, map 0.78 / 1.56 (noisy;
+   GenerateMips of 12-17 small textures is not measurable). Images made a frame: 12-17 classic shadows to none (after
+   the first use of each holder), the map's 341 KB to none (renderstats' "memory textures" count stays: it counts
+   uploads, made or in place; ei_hook.log's `render: images` lines tell them apart). In place with CPU levels (UpdateSubresource per level)
+   was tried: 0.76-0.89 of remake's time against GenerateMips' 0.33-0.45. Check: render_scene, render_shadows,
+   render_options_shadows, ui_global_map_pick capture in place and `memorytextures remake` at one frozen moment, 8 /
+   0.5% (largest channel difference 2); no texture change without a mark (the harness build's check) in the suite.
 3. **R16c Terrain pages resident on the GPU (done).** `render_terrain.cpp`. Each sector page at a level of detail and
    seam variant is built once, all four quarters, into a pool of default-usage buffers written with UpdateSubresource
    (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a

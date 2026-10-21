@@ -4,7 +4,9 @@
 # "classicshadows") draws the game's 64 x 64 decals instead. At frozen moments of zone1 (the start,
 # then a fight of creatures around the hero) and of the base bz1g (a town): the frame with the map,
 # the classic one and the map again. The two with the map match; the classic one differs from them
-# only where shadows fall; shadowcheck requires the map made with casters and receivers.
+# only where shadows fall; shadowcheck requires the map made with casters and receivers. R16b: the
+# classic frame matches the one with the shadow textures made again as new images with their levels
+# made on the CPU (memorytextures remake, as before R16b) at 8 / 0.5% (the GPU's levels differ a little).
 # no original: vanilla rebirth (the shadow map is our renderer's)
 render new,present
 timeout 120
@@ -24,10 +26,14 @@ capture start_map
 shadowcheck 1
 shadows classic
 capture start_classic
+memorytextures remake
+capture start_classic_remade
+memorytextures inplace
 shadows map
 capture start_map2
 unfreeze
 samecapture start_map start_map2
+samecapture start_classic start_classic_remade 8 0.005
 diffcapture start_map start_classic 0.0005 0.2
 
 # A fight: creatures around the hero, who cannot die.
@@ -60,10 +66,14 @@ capture fight_map
 shadowcheck 4
 shadows classic
 capture fight_classic
+memorytextures remake
+capture fight_classic_remade
+memorytextures inplace
 shadows map
 capture fight_map2
 unfreeze
 samecapture fight_map fight_map2
+samecapture fight_classic fight_classic_remade 8 0.005
 diffcapture fight_map fight_classic 0.0005 0.3
 console @RemoveUnitFromServer(GetObjectByName("F1"))
 console @RemoveUnitFromServer(GetObjectByName("F2"))
@@ -112,10 +122,14 @@ capture town_map
 shadowcheck 4
 shadows classic
 capture town_classic
+memorytextures remake
+capture town_classic_remade
+memorytextures inplace
 shadows map
 capture town_map2
 unfreeze
 samecapture town_map town_map2
+samecapture town_classic town_classic_remade 8 0.005
 diffcapture town_map town_classic 0.0005 0.3
 report
 quit

@@ -266,6 +266,13 @@
 //                             draw; check requires that no check of a kept mesh against a fresh build
 //                             (every 16th frame, render::MeshCacheState) found it stale. Ignored in a
 //                             run of the original code
+//   memorytextures inplace|remake
+//                             the image's textures in the renderer's memory (shadow textures, the global
+//                             map's, the CPU-written ones) updated in place with their levels made on
+//                             the GPU (render::SetMemoryTexturesInPlace, R16b; the default) or made
+//                             again as new images with their levels made on the CPU (remake: as before
+//                             R16b); every one is read again at its next use. Ignored in a run of the
+//                             original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time); "-" only starts a new
@@ -1209,8 +1216,8 @@ void WriteReport() {
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
     const char* missed = "";
-    if (const int count = render::MissedSurfaceWrites(&missed))   // a window surface's writer without a mark (R16a)
-        failures.push_back(std::to_string(count) + " window surface change(s) without a SurfaceWritten mark, the first: " + missed);
+    if (const int count = render::MissedSurfaceWrites(&missed))   // a writer without a mark (R16a, R16b)
+        failures.push_back(std::to_string(count) + " window surface or memory texture change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -3225,6 +3232,13 @@ void RunSteps() {
             } else {
                 g_failures.push_back("meshcache needs on, off or check");
             }
+        } else if (s.verb == "memorytextures") {
+            if (!render::Active()) {
+                Log("harness: memorytextures %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "inplace" || s.argument == "remake") render::SetMemoryTexturesInPlace(s.argument == "inplace");
+            else g_failures.push_back("memorytextures needs inplace or remake");
         } else if (s.verb == "shadowcheck") {
             int least = 1;
             if (sscanf_s(s.argument.c_str(), "%d", &least) < 1) {
