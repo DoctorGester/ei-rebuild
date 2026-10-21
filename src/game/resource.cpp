@@ -186,7 +186,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     // An archive image in memory hands out pointers into the image (size is not reported).
     if (image_) return const_cast<char*>(static_cast<const char*>(image_)) + entry.offset;
 
-    auto* file = static_cast<LoadedFile*>(gamecrt::operator_new(sizeof(LoadedFile)));
+    auto* file = gamecrt::operator_new_as<LoadedFile>();
     new (&file->name) stlp::string();
     stlp::string::Reserve(file->name, 8);
     {

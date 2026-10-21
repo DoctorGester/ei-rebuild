@@ -90,7 +90,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    auto* helper = static_cast<CWorldHandle*>(gamecrt::operator_new(sizeof(CWorldHandle)));
+    auto* helper = gamecrt::operator_new_as<CWorldHandle>();
     // The count and both flag bytes as one dword, written before the test as the original does.
     const std::uint32_t noReferences = 0;
     std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));

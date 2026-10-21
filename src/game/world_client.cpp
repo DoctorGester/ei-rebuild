@@ -267,7 +267,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 
 void CWorldClient::SummonBird() {
     if (!owned1B0_) {
-        auto* memory = static_cast<CEffectMoshka*>(gamecrt::operator_new(sizeof(CEffectMoshka)));
+        auto* memory = gamecrt::operator_new_as<CEffectMoshka>();
         owned1B0_ = memory ? memory->Construct() : nullptr;
     }
     TimedSlots(owned1B0_)->Reset();

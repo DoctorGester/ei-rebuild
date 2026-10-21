@@ -469,7 +469,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         TheInterface()->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
-        auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
+        auto* w = gamecrt::operator_new_as<CMpHeroScreen>();
         if (w) {
             w->window.Construct(ui);
             w->hoveredItem_ = nullptr;

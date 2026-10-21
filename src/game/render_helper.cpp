@@ -283,7 +283,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
         blocks[i - stages + 1] = block;
     }
 
-    auto* preset = static_cast<CRenderPreset*>(gamecrt::operator_new(sizeof(CRenderPreset)));
+    auto* preset = gamecrt::operator_new_as<CRenderPreset>();
     preset->refs_ = 0;
     CopyConstruct(&preset->blocks_, blocks);
     preset->stages_ = stages;

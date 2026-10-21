@@ -82,7 +82,7 @@ CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
 // `flags` is the handler's first argument: the original hands its stack slot to the model cache
 // as the allocator and keeps its low byte as the trees' (empty) compare objects.
 CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
-    auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
+    auto* camp = gamecrt::operator_new_as<CCampPages>();
     if (!camp) return nullptr;
     camp->CUiContainer::Construct(ui);
     camp->hoveredItem_ = nullptr;
@@ -473,7 +473,7 @@ const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
 void* MpHeroesObject() { return &TheSavedParties(); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
-    auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
+    auto* screen = gamecrt::operator_new_as<CMpConnectScreen>();
     if (!screen) return nullptr;
     screen->CUiContainer::Construct(ui);
     screen->entries_.Start() = nullptr;

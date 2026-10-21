@@ -108,7 +108,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     TextureManager()->SetDevice(static_cast<CTextureDevice*>(device));
     LoadSky();
     static_assert(sizeof(CFlyingHitPoints) == 8);
-    auto* numbers = static_cast<CFlyingHitPoints*>(gamecrt::operator_new(sizeof(CFlyingHitPoints)));
+    auto* numbers = gamecrt::operator_new_as<CFlyingHitPoints>();
     numbers_ = numbers ? numbers->Construct() : nullptr;
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
@@ -117,7 +117,7 @@ void CWorldClient::SetUpGraphics(void* device) {
         numbers_->object_ = texture;
         texture->flags_ |= kTextureKeep;
     }
-    auto* loader = static_cast<CLinkFigureLoader*>(gamecrt::operator_new(sizeof(CLinkFigureLoader)));
+    auto* loader = gamecrt::operator_new_as<CLinkFigureLoader>();
     if (loader) {
         stlp::string resource(FiguresResource());
         loader = ConstructFigureLoader(loader, nullptr, TheRenderDevice(), &resource);
@@ -152,7 +152,7 @@ void AssignCounted(T*& slot, T* object) {
 
 void CWorldClient::LoadSky() {
     if (skyDome_) return;
-    auto* sky = static_cast<CSky*>(gamecrt::operator_new(sizeof(CSky)));
+    auto* sky = gamecrt::operator_new_as<CSky>();
     skyDome_ = sky ? sky->Construct() : nullptr;
     auto* figures = FigureManager();
     auto* object = static_cast<CSkyObject*>(figures->CreateObject(kSkyFigureClass, kSkyObjectId));

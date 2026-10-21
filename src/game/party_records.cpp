@@ -43,7 +43,7 @@ constexpr std::uint32_t kSix = 0x40C00000;                                     /
 // The record's inlined constructor (operator new's result may be null; the caller then writes
 // through null as the original does).
 PartyRecord* NewRecord() {
-    auto* record = static_cast<PartyRecord*>(gamecrt::operator_new(sizeof(PartyRecord)));
+    auto* record = gamecrt::operator_new_as<PartyRecord>();
     *reinterpret_cast<std::uint32_t*>(&record->refCount) = 0;
     if (!record) return nullptr;
     record->vtable = ei::GamePointer<void>(0x0073BB68);

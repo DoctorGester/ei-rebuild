@@ -148,7 +148,7 @@ void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::
 // engine object's constructor inlined, the bounds cleared, the main segment's points empty, the
 // branches constructed), reset like slot 3.
 CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
-    auto* bolt = static_cast<CLightning*>(gamecrt::operator_new(sizeof(CLightning)));
+    auto* bolt = gamecrt::operator_new_as<CLightning>();
     if (!bolt) return nullptr;
     auto* bytes = reinterpret_cast<std::uint8_t*>(bolt);
     SetVtable(bolt, CEngineObject::kVtableAddress);

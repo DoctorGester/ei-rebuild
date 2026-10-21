@@ -159,7 +159,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 // vtable stored after it, instead of 0058FBB0.
 CItem* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
     auto* item = static_cast<CItem*>(world->DuplicateItem(itemRecord));
-    auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
+    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
     memory->refs = 0;   // written before the null test
     ItemSourceRef* record = nullptr;
     if (memory) {

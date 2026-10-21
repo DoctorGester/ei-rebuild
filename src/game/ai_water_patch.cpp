@@ -30,7 +30,7 @@ std::uint8_t& Guard() { return g_guard; }
 // An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count
 // and flags) is cleared with one dword store, as the original does.
 CUnitShape* NewPatch() {
-    auto* shape = static_cast<CUnitShape*>(gamecrt::operator_new(sizeof(CUnitShape)));
+    auto* shape = gamecrt::operator_new_as<CUnitShape>();
     if (!shape) return nullptr;
     const std::uint32_t noReferences = 0;
     std::memcpy(&shape->refs_, &noReferences, sizeof(noReferences));

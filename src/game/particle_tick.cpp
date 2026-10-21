@@ -88,7 +88,7 @@ void RestorePrevious(Particle* p) {
 
 // 00498870. The head of the free list, or a fresh 0x64-byte particle when it is empty.
 Particle* CParticleManager::AcquireParticle() {
-    if (freeParticles.count == 0) return static_cast<Particle*>(gamecrt::operator_new(sizeof(Particle)));
+    if (freeParticles.count == 0) return gamecrt::operator_new_as<Particle>();
     mfc::CTypedPtrList<Particle>::Node* node = freeParticles.head;
     Particle* p = node->data;
     freeParticles.head = node->next;

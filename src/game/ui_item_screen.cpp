@@ -242,7 +242,7 @@ void* TurnVtable() { return ei::GamePointer<void>(0x007403F8); }
 // --- 005ED710 / 005ED780: the turning state's Clone and deleting destructor -----------------------
 
 ItemTurn* ItemTurn::Clone() const {
-    auto* copy = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
+    auto* copy = gamecrt::operator_new_as<ItemTurn>();
     // The original writes the count before checking the allocation.
     reinterpret_cast<volatile int*>(copy)[1] = 0;
     if (!copy) return nullptr;
@@ -281,7 +281,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     if (static_cast<std::uint8_t>(turning)) {
         ItemTurn*& slot = ItemTurnOf(moved);   // a null result faults here, as in the original
         if (!slot) {
-            auto* turn = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
+            auto* turn = gamecrt::operator_new_as<ItemTurn>();
             // The original writes the count before checking the allocation (and the rest after).
             reinterpret_cast<volatile int*>(turn)[1] = 0;
             if (turn) turn->vtable = TurnVtable();

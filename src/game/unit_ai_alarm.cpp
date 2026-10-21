@@ -49,7 +49,7 @@ Mode* NewCounted() {
 // allocate inline).
 template <typename Mode>
 Mode* NewInline() {
-    auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
+    auto* mode = gamecrt::operator_new_as<Mode>();
     if (mode) {
         mode->refs = 0;
         mode->refsHigh = 0;

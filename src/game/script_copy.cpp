@@ -177,7 +177,7 @@ ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
     const ScriptSubCall* from = &data[index];
     out->type = from->type;
     out->argIndex = from->argIndex;
-    auto* cmd = static_cast<SSCCmd*>(gamecrt::operator_new(sizeof(SSCCmd)));
+    auto* cmd = gamecrt::operator_new_as<SSCCmd>();
     if (!cmd) {
         out->cmd = nullptr;
         return out;

@@ -33,7 +33,7 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 
 // 006D49E0: the runtime class's CreateObject.
 void* __stdcall CreateDib() {
-    auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
+    auto* dib = gamecrt::operator_new_as<CDib>();
     return dib ? dib->Construct() : nullptr;
 }
 EI_REPLACE(0x006D49E0, CreateDib);

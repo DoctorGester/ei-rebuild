@@ -66,7 +66,7 @@ struct OneUnit {
 
 void CViewScreen::Build() {
     static_assert(sizeof(UiInputSide) == 0x0C);
-    auto* inert = static_cast<UiInputSide*>(gamecrt::operator_new(sizeof(UiInputSide)));
+    auto* inert = gamecrt::operator_new_as<UiInputSide>();
     if (inert) {
         inert->vtable_ = InertInputVtable();
         inert->owner_ = interface_;

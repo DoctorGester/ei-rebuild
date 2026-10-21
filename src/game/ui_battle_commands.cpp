@@ -299,7 +299,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             auto post = [this](const char* part) {
                 CHudTopPanel* top = topPanel_;
                 top->PageText(0) += part;
-                if (top->page_ == 0) static_cast<CUiScrollText*>((void*)top->owner_->children_.data[9])->AddText(part);
+                if (top->page_ == 0) top->owner_->MessageLog()->AddText(part);
             };
             post(line);
             post(text);

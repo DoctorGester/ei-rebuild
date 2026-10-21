@@ -52,7 +52,7 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     DDPIXELFORMAT format;
     device::ScreenFormat(self->bitsPerPixel == 16 ? 16 : 32, &format);
     const int width = rect->right - rect->left, height = rect->bottom - rect->top;
-    auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
+    auto* dib = gamecrt::operator_new_as<CDib>();
     if (dib) {
         dib->ConstructSized(width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask,
                          format.dwBBitMask);

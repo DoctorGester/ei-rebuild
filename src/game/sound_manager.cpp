@@ -1058,7 +1058,7 @@ int CSoundManager::AllocateVoice(int priority) {
     SoundSlot* slot = &slots[index];
     if (slot->looping != 0) {
         // The stolen looping sound waits in the deferred map with its state and sample position.
-        auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+        auto* rec = gamecrt::operator_new_as<DeferredSound>();
         if (rec) stlp::string::Reserve(rec->name, 8);
         rec->name.AssignFrom(slot->name);
         rec->volume = slot->volume;
@@ -1103,7 +1103,7 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
 
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
 int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
-    auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+    auto* rec = gamecrt::operator_new_as<DeferredSound>();
     if (rec) stlp::string::Reserve(rec->name, 8);
     rec->name.Assign(name);
     rec->baseVolume = volume;
@@ -1176,7 +1176,7 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
     int index = AllocateVoice(priority);
     if (index == -1) {
         if (loop == 0) return -1;
-        auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+        auto* rec = gamecrt::operator_new_as<DeferredSound>();
         if (rec) stlp::string::Reserve(rec->name, 8);
         rec->name.Assign(name);
         std::memcpy(&rec->position, position, sizeof(rec->position));

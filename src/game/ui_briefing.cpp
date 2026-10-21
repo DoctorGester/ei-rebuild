@@ -87,7 +87,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
         GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
-        auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
+        auto* window = gamecrt::operator_new_as<CSaveLoadWindow>();
         if (window) {
             window->CUiContainer::Construct(interface_);
             window->entriesBegin_ = nullptr;

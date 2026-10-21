@@ -148,7 +148,7 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // and weights set, filled, then appended to the vector through a temporary counted pointer.
 void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
                  const std::uint32_t (&weights)[9]) {
-    auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
+    auto* memory = gamecrt::operator_new_as<ClassTemplate>();
     memory->refCount = 0;
     memory->refsHigh = 0;
     std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved

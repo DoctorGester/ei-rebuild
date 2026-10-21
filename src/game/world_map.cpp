@@ -156,7 +156,7 @@ void CWorldServer::ResetZone() {
     counted_.RemoveAll();
 
     if (PlayerList()) {
-        auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
+        auto* it = gamecrt::operator_new_as<PlayerIterator>();
         if (it) it->manager = nullptr;
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
             PlayerClearOriginal((void*)player);

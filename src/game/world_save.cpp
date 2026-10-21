@@ -319,7 +319,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
 // The players' part of the save (in the player list's order).
 void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
-    auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
+    auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->Server();
@@ -510,7 +510,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
                     CEngineObject* object = ItemFactory()->FindObject(id);
                     if (!object) continue;
-                    auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
+                    auto* record = gamecrt::operator_new_as<CItemLink>();
                     // The count's whole dword is cleared, before the null test.
                     record->references = 0;
                     record->refsHigh = 0;
@@ -587,7 +587,7 @@ namespace {
 // The players' part of the save (what LoadPlayers reads).
 void SavePlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
-    auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
+    auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         stream->Write(&player->partyId_, 4);

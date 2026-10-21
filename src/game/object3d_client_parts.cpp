@@ -55,7 +55,7 @@ bool IsPrimaryKind(int kind) {
 // through null, as the original does).
 template <typename T>
 T* NewZeroed() {
-    auto* p = static_cast<T*>(gamecrt::operator_new(sizeof(T)));
+    auto* p = gamecrt::operator_new_as<T>();
     if (p) std::memset(p, 0, sizeof(T));
     return p;
 }

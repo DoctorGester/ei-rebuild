@@ -48,7 +48,7 @@ void ReleaseCounted(T* object) {
 // ---- The registry's creators ----------------------------------------------------------------------
 
 PartyRecord* __cdecl CreatePartyRecord() {
-    auto* record = static_cast<PartyRecord*>(gamecrt::operator_new(sizeof(PartyRecord)));
+    auto* record = gamecrt::operator_new_as<PartyRecord>();
     // The count's dword is cleared before the null check, as the original does.
     record->refCount = 0;
     record->refsHigh = 0;
@@ -63,7 +63,7 @@ PartyRecord* __cdecl CreatePartyRecord() {
 EI_REPLACE(0x00457740, CreatePartyRecord);
 
 ClassTemplate* __cdecl CreateClassTemplate() {
-    auto* created = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
+    auto* created = gamecrt::operator_new_as<ClassTemplate>();
     created->refCount = 0;
     created->refsHigh = 0;
     if (!created) return nullptr;
