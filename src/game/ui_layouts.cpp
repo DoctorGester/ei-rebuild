@@ -35,6 +35,7 @@
 #include "record_lists.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_string.h"
 
 #include <cstdint>
 #include <cstring>
@@ -405,8 +406,6 @@ constexpr std::uintptr_t kItemScreenInputVtable = std::uintptr_t(0x007409F8);
 constexpr std::uintptr_t kMpHeroVtable = std::uintptr_t(0x0074214C);
 constexpr std::uintptr_t kMpHeroInputVtable = std::uintptr_t(0x00742118);
 
-// The empty CString's data pointer (00796E48), stored as a CString member is.
-const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 } // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
@@ -492,7 +491,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->defaultsEnd_ = nullptr;
             w->defaultsCapacity_ = nullptr;
             w->names_.ConstructEmpty();
-            w->text_ = EmptyStringData();
+            w->text_ = mfc::impl::PchNil();
             w->voiceLists_[0].ConstructEmpty();   // 006342A0
             w->voiceLists_[1].ConstructEmpty();
             SetVtables(&w->window, kMpHeroVtable, kMpHeroInputVtable);
@@ -723,7 +722,7 @@ void CCreditsScreen::Build() {
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record = {};
-            record.text = EmptyStringData();
+            record.text = mfc::impl::PchNil();
             record.style = record.text;
             {
                 mfc::CString first(words.WordOrNull());

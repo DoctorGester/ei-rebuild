@@ -298,7 +298,6 @@ inline const Vector3& ZeroVector() { return ei::GameData<const Vector3>(0x0079B5
 inline const Quaternion& IdentityRotation() { return ei::GameData<const Quaternion>(0x0079B5B8); }
 inline void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // free list of the 12-byte nodes
 inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF5C0); }   // bit 0x10: camera file made
-inline const char* EmptyStringData() { return ei::GameData<const char* const>(0x00796E48); }
 
 // Constants (addresses in the exe in the comments).
 #define CAM_PI 3.141592653589793 /*0073B9A0*/

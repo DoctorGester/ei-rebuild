@@ -75,7 +75,7 @@ double CItemWeapon::RollDamage() {
     if (damageSpread_ == kZero) return damage_;
     float high = damageSpread_ + damage_;   // stored as float in the original
     float low = damage_;                     // read back from memory for the subtraction and the add
-    std::uint32_t roll = (&IsaacRandom::Global())->Next();
+    std::uint32_t roll = IsaacRandom::Global().Next();
     volatile std::int64_t roll64 = roll;               // FILD qword: exact
     // 0073C468: the double 0x3DF0000000100000, about 1 / (2^32 - 1).
     constexpr double kRollScale = 0x1.0000000100000p-32;

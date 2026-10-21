@@ -52,7 +52,7 @@ void CInterface3D::Shutdown() {
     console::CStdioFile file;
     bool opened;
     {
-        mfc::CString path = GameDataPath() + game::TutorialIniText();
+        mfc::CString path = TheDataFolder() + game::TutorialIniText();
         opened = file.Open(path, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
     }
     if (opened) {

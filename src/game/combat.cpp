@@ -85,7 +85,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 float Global7C5488() { return ei::GameData<const float>(0x007C5488); }
 float Global7C548C() { return ei::GameData<const float>(0x007C548C); }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
@@ -507,7 +506,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     float spread = theirs.attackSpread;
     if (spread > kZero) {
         int sides = x87::fistp(spread);
-        std::uint32_t random = GlobalRandom().Next();
+        std::uint32_t random = IsaacRandom::Global().Next();
         double drawn = Unsigned(random % static_cast<std::uint32_t>(sides + 1));
         roll = (drawn + drawn) - (static_cast<double>(spread) + kOne);
     }
@@ -568,7 +567,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         if (spread != kZero) {
             float scaled = spread * kHundred;
             int sides = x87::fistp(scaled);
-            std::uint32_t random = GlobalRandom().Next();
+            std::uint32_t random = IsaacRandom::Global().Next();
             extra = Unsigned(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;
         }
         out->amount = static_cast<float>(extra + Combat().damage);

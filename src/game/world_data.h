@@ -74,7 +74,6 @@ inline float TorchLightScale() { return 10.0f /*0073BAAC*/; }  // the flame's ra
 // ---- The client world's Setup (00561E50) --------------------------------------------------------
 
 // The game's folders (CStrings): the data folder and the text resources' folder.
-inline const void* DataPathString() { return ei::GamePointer<const void>(0x007AF460); }
 inline const void* TextPathString() { return ei::GamePointer<const void>(0x007AF45C); }
 inline const char* TexturesFolderText() { return "textures\\"; }
 inline const char* LightsTableText() { return "LightsGipat.ini"; }
@@ -126,7 +125,6 @@ constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   
 // The game's folders (CStrings 007AF460 data, 007AF45C text resources, 007AF458 the base folder)
 // and the configured paths they are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their
 // text pointers).
-inline void* DataFolderString() { return ei::GamePointer<void>(0x007AF460); }
 inline void* TextFolderString() { return ei::GamePointer<void>(0x007AF45C); }
 inline void* BaseFolderString() { return ei::GamePointer<void>(0x007AF458); }
 inline const char* ConfiguredDataPath() { return ei::GameData<const char* const>(0x0079BC90); }

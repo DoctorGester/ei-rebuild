@@ -46,6 +46,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
+#include "lib/mfc_string.h"
 
 #include <cstdint>
 #include <cstring>
@@ -56,7 +57,6 @@ namespace {
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
 // The game's folder (the CString 007AF460 that 00578DB0 returns).
-const char* GameFolder() { return ei::GameData<char* const>(0x007AF460); }
 
 
 
@@ -123,7 +123,7 @@ struct LocalFileStream {
 struct LocalEntry {
     SaveEntry e;
     LocalEntry() {
-        char* empty = ei::GameData<char*>(0x00796E48);   // afxEmptyString
+        char* empty = mfc::impl::PchNil();   // afxEmptyString
         e.title_ = empty;
         e.folder_ = empty;
         e.map_ = empty;
@@ -187,7 +187,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
+    folder.Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     mfc::CFileFind find;
     BOOL found;
     {
@@ -257,7 +257,7 @@ void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entriesBegin_ + selected;
-    double space = app::DiskFreeSpace(GameFolder());
+    double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
@@ -272,7 +272,7 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(flowdata::kSlotFolder, GameFolder(), entry->folder_);
+    folder.Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     mfc::CString notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     static_cast<CInterface3D*>(TheInterface())->ShowStatusText(notice);
@@ -332,7 +332,7 @@ EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
 
 void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
-    pattern.Format(game::savewords::SavePattern(), GameFolder());
+    pattern.Format(game::savewords::SavePattern(), DataFolderText());
     mfc::CFileFind find;
     recordvec::SaveEntryVector::EraseRange(Entries(EntryVector(this)), nullptr, entriesBegin_, entriesEnd_);
     int highest = 0;     // the highest number after "save" in the folder names
@@ -476,14 +476,14 @@ GameFlow* Flow() { return static_cast<GameFlow*>(TheGameFlow()); }
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
     mfc::CString folder;
-    folder.Format(flowdata::kSlotFolder, GameFolder(), slot);
+    folder.Format(flowdata::kSlotFolder, DataFolderText(), slot);
     return folder;
 }
 } // namespace
 
 void __fastcall QuickSave(const char* slot, char stepFrame) {
     if (IsMultiplayerClient()) return;
-    double space = app::DiskFreeSpace(GameFolder());
+    double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(TheGameFlow())) > space) return;
@@ -673,7 +673,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     mfc::CString folder;
-    folder.Format(kFolderFormat, GameFolder(), entriesBegin_[selected].folder_);
+    folder.Format(kFolderFormat, DataFolderText(), entriesBegin_[selected].folder_);
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {

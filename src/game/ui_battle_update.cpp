@@ -542,12 +542,8 @@ EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
 
 namespace {
 
-// 00578E20 (thiscall on 007AFEA4): the text manager. 004E0020 (thiscall on it, RET 8): the text of
-// a key. 004DBE40 (__fastcall, RET 4): splits a text at a separator.
-struct TextGlue {
-    CTextManager* Table();
-};
-CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
+// 004E0020 (thiscall on the text manager, RET 8): the text of a key. 004DBE40 (__fastcall, RET 4): splits a text
+// at a separator.
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
@@ -560,7 +556,7 @@ bool Equal(float a, float b) {
 } // namespace
 
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
-    CTextManager* texts = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
+    CTextManager* texts = (CTextManager*)GameClientTexts();
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;

@@ -3,10 +3,12 @@
 // The game's global objects and tick counters, named once (they were per-file copies): the game flow (007AFE20),
 // the interface manager (007C7D50), the world tick (007AFFC4), the client and server worlds, the managers
 // (texts, objects, textures, sounds, music), the render device and its lock, the cursor, the map database, the
-// mission script, the sector map, the scene renderer, the camera and the client tick (007AF61C).
+// mission script, the sector map, the scene renderer, the camera, the party manager, the data folder and the
+// client tick (007AF61C). The shared empty string (00796E48) is mfc::impl::PchNil() (lib/mfc_string.h).
 // The global random generator is IsaacRandom::Global() (random.h).
 
 #include "game_data.h"
+#include "lib/mfc.h"
 
 struct GameFlow;      // world.h
 class CInterface3D;   // ui.h
@@ -24,6 +26,7 @@ class CScript;   // script.h
 class CSectorMap;   // sector_map.h
 class CSceneRenderer;   // model.h
 class CCamera;   // camera.h
+struct PartyManager;   // party_manager.h
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
 // 007AFE20: the game flow object (its state machine, sessions and requests).
@@ -65,3 +68,11 @@ inline CMapDatabase* TheMapDatabase() { return ei::GamePointer<CMapDatabase>(0x0
 inline CScript* TheMissionScript() { return ei::GamePointer<CScript>(0x007C27D4); }
 inline CSectorMap* TheSectorMap() { return ei::GamePointer<CSectorMap>(0x007B01F4); }
 inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
+
+// 007AA5A0: the party manager (the parties by key, the named records and the class templates).
+inline PartyManager* ThePartyManager() { return ei::GamePointer<PartyManager>(0x007AA5A0); }
+
+// 007AF460: the game's data folder (a CString, with its trailing backslash); DataFolderText() is its characters
+// for printf-style arguments.
+inline mfc::CString& TheDataFolder() { return ei::GameData<mfc::CString>(0x007AF460); }
+inline const char* DataFolderText() { return TheDataFolder(); }

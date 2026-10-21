@@ -61,10 +61,6 @@ __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGI
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
-struct TextGlue {
-    void* Table();   // 00578E20
-};
-void* TextGlue::Table() { return GameClientTexts(); }
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
@@ -107,7 +103,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
-    TextsGetString(ei::GamePointer<TextGlue>(0x007AFEA4)->Table(), nullptr, "reserved_04", &text);
+    TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
     TheInterface()->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     TheGameFlow()->EndSession();

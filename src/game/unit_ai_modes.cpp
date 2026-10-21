@@ -80,7 +80,7 @@ constexpr int kRemarkIdle = 1;
 
 // The idle remark every mode's Execute starts with (1 in 1001).
 void MaybeRemark(AIBrain* brain, int what) {
-    if ((&IsaacRandom::Global())->Next() % 1001 == 1) brain->owner->voice.Raise(what);
+    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
@@ -134,7 +134,7 @@ EI_REPLACE_METHOD(0x005D0A80, AIMode::Priority50);
 void AIMode::EnterIdle(AIBrain* brain) {
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
-    std::uint32_t roll = (&IsaacRandom::Global())->Next();
+    std::uint32_t roll = IsaacRandom::Global().Next();
     volatile std::int64_t wide = roll;             // FILD qword of the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
@@ -203,7 +203,7 @@ void GuardMode::Execute(AIBrain* brain) {
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);
     }
-    bool farLook = (&IsaacRandom::Global())->Next() % 11 == 0;
+    bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     brain->PlanLooks(&order, &direction, wander, farLook);
     StartMove(brain, &order);
     DestroyLooks(&order);
@@ -324,7 +324,7 @@ void SentryMode::Execute(AIBrain* brain) {
     ConstructOrder(&order);
     order.looks.SetSize(0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
-    bool farLook = (&IsaacRandom::Global())->Next() % 11 == 0;
+    bool farLook = IsaacRandom::Global().Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
     float wanderRadius = farLook ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
@@ -516,7 +516,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if ((&IsaacRandom::Global())->Next() % 1001 == 1) brain->owner->voice.Raise(2);
+    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen) return;
     brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
     int attack[2] = {-1, 0};        // {part, object} the brain is attacking now

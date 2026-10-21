@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <ddraw.h>
 
@@ -17,7 +18,6 @@
 namespace {
 // Game-wide paths set at startup. Names provisional.
 const mfc::CString& GameRoot() { return ei::GameData<const mfc::CString>(0x0079BC90); }
-const char* DataPath() { return ei::GameData<const char* const>(0x007AF460); }
 
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {
@@ -71,7 +71,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
 
     // Not in any archive: look in the data directory.
     mfc::CFile file;
-    path.Format("%stextures\\%s.mmp", DataPath(), texture->GetName());
+    path.Format("%stextures\\%s.mmp", DataFolderText(), texture->GetName());
     if (!file.Open(path, mfc::CFile::modeRead, nullptr)) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;

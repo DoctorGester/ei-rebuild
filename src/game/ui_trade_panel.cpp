@@ -27,6 +27,7 @@
 #include "record_vectors.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_string.h"
 
 namespace {
 
@@ -39,12 +40,8 @@ const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cas
 __declspec(naked) int __fastcall SkillPrice(std::uint8_t* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
 __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
-// The text table (00578E20 on 007AFEA4 returns [007AF788]): 004DEFC0 whether it has a key (RET 4),
-// 004DF8D0 the found text into a CString (RET 8), 004E0020 the text of a key (RET 8).
-struct TextGlue {
-    void* Table();   // 00578E20
-};
-void* TextGlue::Table() { return GameClientTexts(); }
+// The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
+// CString (RET 8), 004E0020 the text of a key (RET 8).
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
@@ -69,7 +66,7 @@ int SkillCount() {
 // level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours
 // are 0.
 TradeRow BlankRow() {
-    char* empty = ei::GameData<char* const>(0x00796E48);
+    char* empty = mfc::impl::PchNil();
     TradeRow row{};
     row.name = row.key = row.nextKey = empty;
     return row;
@@ -153,7 +150,7 @@ void CTradePanel::BuildLists() {
     std::uint8_t* stats = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_) + 0x20;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     reinterpret_cast<RefreshFn>(owner_->vtable_[47])(owner_);
-    void* table = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
+    void* table = GameClientTexts();
     Clear(&perks_);
     Clear(&learnable_);
     Clear(&schools_);
@@ -410,7 +407,7 @@ void CTradePanel::Build() {
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     // The titles.
-    void* table = ei::GamePointer<TextGlue>(0x007AFEA4)->Table();
+    void* table = GameClientTexts();
     {
         mfc::CString text;
         void* titles = &texts_;

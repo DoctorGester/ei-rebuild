@@ -11,6 +11,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/nan_audit.h"
+#include "game_singletons.h"
 
 namespace {
 // The gap in the keys' time (0073BAB4) that ends the lead-in.
@@ -21,7 +22,7 @@ int CCamera::LoadPath(const char* name, int settle) {
     mfc::CFile file;
     int opened;
     {
-        mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::DataFolderString()));
+        mfc::CString folder(TheDataFolder());
         mfc::CString path = folder + "camera\\" + name;
         if (modfolders::Active(ei::rebirth::Patch::CameraPatch)) {
             // Rebirth's CameraPatch (0040ED42): the mod's Camera\ copy when there is one.

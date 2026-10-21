@@ -13,6 +13,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 
@@ -27,14 +28,13 @@ constexpr std::uint32_t kCacheable = 0x38;
 // --- 006916F0 ----------------------------------------------------------------------------------------
 
 namespace {
-const mfc::CString& DataPathString() { return ei::GameData<const mfc::CString>(0x007AF460); }
 const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
 const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 } // namespace
 
 void __cdecl DeleteComposedTextures() {
     mfc::CFileFind find;
-    mfc::CString pattern = mfc::CString(DataPathString()) + ComposedTexturePattern();
+    mfc::CString pattern = mfc::CString(TheDataFolder()) + ComposedTexturePattern();
     if (!find.FindFile(pattern, 0)) return;
     int more;
     do {

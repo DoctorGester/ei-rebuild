@@ -234,16 +234,16 @@ void CHudPortraits::Update() {
         // a turn towards a random target.
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
-            std::uint32_t roll = (&IsaacRandom::Global())->Next();
+            std::uint32_t roll = IsaacRandom::Global().Next();
             if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * RandomScale32()) {
-                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned((&IsaacRandom::Global())->Next()) * RandomDelayScale());
+                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * RandomDelayScale());
                 slot.wobbleKind_ = 3;
-                std::uint32_t r1 = (&IsaacRandom::Global())->Next();
-                std::uint32_t r2 = (&IsaacRandom::Global())->Next();
+                std::uint32_t r1 = IsaacRandom::Global().Next();
+                std::uint32_t r2 = IsaacRandom::Global().Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned((&IsaacRandom::Global())->Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * RandomScale31() + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {

@@ -64,7 +64,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     float high = roll.maximum;
     int amount = x87::fistp(low);
     if (high > low) {
-        double random = x87::FromUnsigned((&IsaacRandom::Global())->Next());
+        double random = x87::FromUnsigned(IsaacRandom::Global().Next());
         double scale;
         std::memcpy(&scale, ei::GamePointer<const void>(0x0073C468), sizeof(scale));
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);

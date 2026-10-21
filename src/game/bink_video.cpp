@@ -40,6 +40,7 @@
 #include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -89,21 +90,13 @@ static_assert(offsetof(LoadingMovie, bink) == 0x34);
 static_assert(offsetof(LoadingMovie, surfaceType) == 0x38);
 
 // Game globals.
-template <typename T>
-T& Global(std::uintptr_t address) {
-    return ei::GameData<T>(address);
-}
-CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
-void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }
-CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
-int MoviesMode() { return Global<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
-int MovieSound() { return Global<int>(0x0079BCC0); }
-int MovieVolume() { return Global<int>(0x0079BCC4); }          // percent
-const char* GameFolder() { return Global<const char*>(0x007AF460); }   // a CString
-const char* LoadingMovieName() { return Global<const char*>(0x00791EE0); }
-LoadingMovie& Loading() { return Global<LoadingMovie>(0x007C551C); }
+int MoviesMode() { return ei::GameData<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
+int MovieSound() { return ei::GameData<int>(0x0079BCC0); }
+int MovieVolume() { return ei::GameData<int>(0x0079BCC4); }          // percent
+const char* LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
+LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C551C); }
 // 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
-void SetFlag784751(std::uint8_t value) { Global<std::uint8_t>(0x00784751) = value; }
+void SetFlag784751(std::uint8_t value) { ei::GameData<std::uint8_t>(0x00784751) = value; }
 
 // The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
 void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
@@ -162,7 +155,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the
 // present (004EF610).
-void PresentMovieFrame() { DevicePresent(DeviceObject()); }
+void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 
@@ -178,21 +171,21 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // the original copies it into a CString
-    if (loadingStep) Sound()->StopAll(1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
+    if (loadingStep) TheSoundManager()->StopAll(1);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), TheSoundManager()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);   // "Can't open (or bad format) video file %s."
         return 1;
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
-    CursorShowOriginal(Cursor(), nullptr, 0);
+    CursorShowOriginal(TheCursor(), nullptr, 0);
     // (The original fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &DeviceObject()->screen_);
-    CDXSurface* holder = NewMovieHolder(DeviceObject(), width, height);
+    gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
+    CDXSurface* holder = NewMovieHolder(TheRenderDevice(), width, height);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
@@ -258,8 +251,8 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     BinkClose()(bink);
     if (holder) holder->Release();
     SetFlag784751(1);
-    static_cast<CCursor*>(Cursor())->SaveBackground(1);
-    CursorShowOriginal(Cursor(), nullptr, 1);
+    TheCursor()->SaveBackground(1);
+    CursorShowOriginal(TheCursor(), nullptr, 1);
     return escaped ? 0 : 1;
 }
 EI_REPLACE(0x005DB3F0, PlayMovie);
@@ -272,10 +265,10 @@ void __fastcall ShowLoadingMovie(int progress) {
     net::Pump();   // 004122D0
     LoadingMovie& movie = Loading();
     if (movie.off) return;
-    CursorShowOriginal(Cursor(), nullptr, 0);
+    CursorShowOriginal(TheCursor(), nullptr, 0);
     if (!movie.holder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
-        std::string path = GameFolder();
+        std::string path = DataFolderText();
         path += "Movies\\";
         path += LoadingMovieName();  // progres.bik, or the zone's
         if (movie.bink) {
@@ -288,15 +281,15 @@ void __fastcall ShowLoadingMovie(int progress) {
             return;
         }
         RECT screen;
-        gameapi::CopyRect(&screen, &DeviceObject()->screen_);
+        gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
         CDXSurface* holder =
-            NewMovieHolder(DeviceObject(), static_cast<int>(movie.bink->width), static_cast<int>(movie.bink->height));
+            NewMovieHolder(TheRenderDevice(), static_cast<int>(movie.bink->width), static_cast<int>(movie.bink->height));
         CDXSurface* old = movie.holder;
         movie.holder = holder;
         if (old) old->Release();
         movie.surfaceType = SurfaceType();
         movie.screen = screen;
-        static_cast<CCursor*>(Cursor())->SaveBackground(1);
+        TheCursor()->SaveBackground(1);
     }
     BinkHeader* bink = movie.bink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -315,7 +308,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         bink = movie.bink;
         if (bink->frames == bink->lastFrame) break;
     }
-    static_cast<CCursor*>(Cursor())->TakeLock();
+    TheCursor()->TakeLock();
     bink = movie.bink;
     CDXSurface* holder = movie.holder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
@@ -326,8 +319,8 @@ void __fastcall ShowLoadingMovie(int progress) {
         render::MovieBlit(key, ToRender(movie.screen));
         PresentMovieFrame();
     }
-    static_cast<CCursor*>(Cursor())->SaveBackground(1);
-    static_cast<CCursor*>(Cursor())->ReleaseLock();
+    TheCursor()->SaveBackground(1);
+    TheCursor()->ReleaseLock();
 }
 EI_REPLACE(0x005DA400, ShowLoadingMovie);
 
@@ -345,18 +338,18 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;
-    if (loadingStep) Sound()->StopAll(1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
+    if (loadingStep) TheSoundManager()->StopAll(1);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), TheSoundManager()->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);   // "Can't open (or bad format) video file %s."
         return 0;
     }
-    CursorShowOriginal(Cursor(), nullptr, 0);
+    CursorShowOriginal(TheCursor(), nullptr, 0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &DeviceObject()->screen_);
-    CDXSurface* made = NewMovieHolder(DeviceObject(), width, height);
+    gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
+    CDXSurface* made = NewMovieHolder(TheRenderDevice(), width, height);
     CDXSurface* previous = holder;
     holder = made;
     if (previous) previous->Release();
@@ -386,7 +379,7 @@ void CloseLoadingMovie() {
     movie.bink = nullptr;
     movie.holder = nullptr;
     if (holder) holder->Release();
-    CursorShowOriginal(Cursor(), nullptr, 1);
+    CursorShowOriginal(TheCursor(), nullptr, 1);
 }
 EI_REPLACE(0x005DA3C0, CloseLoadingMovie);
 
@@ -405,8 +398,8 @@ void CBinkVideo::Close() {
     CDXSurface* old = holder;
     holder = nullptr;
     if (old) old->Release();
-    static_cast<CCursor*>(Cursor())->SaveBackground(1);
-    CursorShowOriginal(Cursor(), nullptr, 1);
+    TheCursor()->SaveBackground(1);
+    CursorShowOriginal(TheCursor(), nullptr, 1);
 }
 EI_REPLACE_METHOD(0x005DBF70, CBinkVideo::Close);
 

@@ -39,13 +39,9 @@
 namespace app {
 namespace {
 
-template <typename T>
-T& Global(std::uintptr_t address) {
-    return ei::GameData<T>(address);
-}
 
-HWND MainWindow() { return Global<HWND>(0x0079BC28); }
-bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4 / WM_DESTROY quit
+HWND MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
+bool QuitOnClose() { return ei::GameData<std::uint8_t>(0x00784751) != 0; }   // Alt+F4 / WM_DESTROY quit
 
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
@@ -56,10 +52,10 @@ libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8)
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
 // (pointer at 007AF784).
-CDirectInputMouse* TheMouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
+CDirectInputMouse* TheMouse() { return ei::GameData<CDirectInputMouse*>(0x0079BA08); }
 
-std::uint8_t& ActiveFlag() { return Global<std::uint8_t>(0x0079BC5C); }
-std::uint8_t& ActivationSeen() { return Global<std::uint8_t>(0x0079BC5D); }
+std::uint8_t& ActiveFlag() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
+std::uint8_t& ActivationSeen() { return ei::GameData<std::uint8_t>(0x0079BC5D); }
 
 LRESULT OnActivate(WPARAM wParam) {
     if ((wParam >> 16) != 0) {   // minimised
@@ -67,7 +63,7 @@ LRESULT OnActivate(WPARAM wParam) {
         ActiveFlag() = 0;
         return 1;
     }
-    auto* sounds = Global<CSoundManager*>(0x007AF784);
+    auto* sounds = TheSoundManager();
     unsigned state = wParam & 0xFFFF;
     if (state == 0) {   // WA_INACTIVE
         ActiveFlag() = 0;
@@ -94,8 +90,8 @@ LRESULT OnActivate(WPARAM wParam) {
             // argument from EAX after loading only AL, so its upper bytes are those of the device
             // pointer; the value below rebuilds them. The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
-                                  (Global<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
-            ResetCursors(Global<int>(0x0079BCF0) != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
+                                  (ei::GameData<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
+            ResetCursors(ei::GameData<int>(0x0079BCF0) != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
                          static_cast<int>(flags));
         }
     }
@@ -118,12 +114,12 @@ LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
 // The "QueryCancelAutoPlay" message id, registered on first use (function-local static of the
 // original: guard bit 0 of 0079BA04, id 0079BA00).
 UINT AutoPlayMessage() {
-    auto& guard = Global<std::uint8_t>(0x0079BA04);
+    auto& guard = ei::GameData<std::uint8_t>(0x0079BA04);
     if (!(guard & 1)) {
         guard |= 1;
-        Global<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
+        ei::GameData<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA("QueryCancelAutoPlay");
     }
-    return Global<UINT>(0x0079BA00);
+    return ei::GameData<UINT>(0x0079BA00);
 }
 
 LRESULT Handled() {
@@ -248,11 +244,11 @@ void __cdecl PumpMessages() {
 EI_REPLACE(0x00458220, PumpMessages);
 
 int __cdecl StartFirstMap() {
-    const auto& cmdMap = Global<mfc::CString>(0x0079BA10);    // map on the command line
-    const auto& cmdMode = Global<mfc::CString>(0x0079BA14);   // empty: main menu
-    const auto& cmdScript = Global<mfc::CString>(0x0079BA18);
+    const auto& cmdMap = ei::GameData<mfc::CString>(0x0079BA10);    // map on the command line
+    const auto& cmdMode = ei::GameData<mfc::CString>(0x0079BA14);   // empty: main menu
+    const auto& cmdScript = ei::GameData<mfc::CString>(0x0079BA18);
     mfc::CString map;
-    map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
+    map = Length(cmdMap) != 0 ? cmdMap : ei::GameData<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
         TheGameFlow()->CloseSessions();
@@ -264,14 +260,14 @@ int __cdecl StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
     static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = TheClientWorld();
-    static_cast<CWorldClient*>(client)->SetPlayer(Global<std::uint8_t*>(0x007AFFBC));
+    static_cast<CWorldClient*>(client)->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
     static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
-    Global<int>(0x007C2CC4) = 7;
+    ei::GameData<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = TheMissionScript();
     BOOL loaded;
     {
-        mfc::CString root(Global<mfc::CString>(0x007AF460));
+        mfc::CString root(TheDataFolder());
         mfc::CString dir = root + "Scripts\\";
         mfc::CString path = dir + cmdScript;
         loaded = static_cast<CScript*>(script)->LoadFile(path);
@@ -309,8 +305,8 @@ namespace {
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 using ErrorHook = void(__fastcall*)(const char* text);
-ErrorHook& FatalErrorHook() { return Global<ErrorHook>(0x007A9BA0); }   // set by the console (null here)
-int& FatalErrorCount() { return Global<int>(0x007A9B9C); }
+ErrorHook& FatalErrorHook() { return ei::GameData<ErrorHook>(0x007A9BA0); }   // set by the console (null here)
+int& FatalErrorCount() { return ei::GameData<int>(0x007A9B9C); }
 
 } // namespace
 

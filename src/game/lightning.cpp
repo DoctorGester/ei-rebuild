@@ -63,8 +63,8 @@ template <std::floating_point T> float FromBits(T) = delete;
 void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
     for (int i = 0; i < 2; ++i) {
-        key.index[i] = (&IsaacRandom::Global())->Next() & 0xF;
-        double v = Unsigned((&IsaacRandom::Global())->Next()) * kNoiseScale - 1.0;
+        key.index[i] = IsaacRandom::Global().Next() & 0xF;
+        double v = Unsigned(IsaacRandom::Global().Next()) * kNoiseScale - 1.0;
         key.weight[i] = static_cast<float>(v);
         sum = static_cast<float>(v * v + sum);
     }
@@ -408,9 +408,9 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             double reachExt = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
             float reach = static_cast<float>(reachExt);
             float low = static_cast<float>(-reachExt);
-            std::uint32_t r1 = (&IsaacRandom::Global())->Next();
-            std::uint32_t r2 = (&IsaacRandom::Global())->Next();
-            std::uint32_t r3 = (&IsaacRandom::Global())->Next();
+            std::uint32_t r1 = IsaacRandom::Global().Next();
+            std::uint32_t r2 = IsaacRandom::Global().Next();
+            std::uint32_t r3 = IsaacRandom::Global().Next();
             float ox = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r3) * kRandomScale + low);
             float oy = static_cast<float>((static_cast<double>(reach) - low) * Unsigned(r2) * kRandomScale + low);
             double ozExt = (static_cast<double>(reach) - low) * Unsigned(r1) * kRandomScale + low;

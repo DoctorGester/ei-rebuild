@@ -46,11 +46,10 @@ inline std::uint32_t Bits(const void* field) {
     return bits;
 }
 
-inline IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
-inline std::uint32_t Next() { return GlobalRandom().Next(); }
+inline std::uint32_t Next() { return IsaacRandom::Global().Next(); }
 
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
-inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
+inline double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), nullptr, min, max); }
 
 // 00564070 CWorldClient::ClientRawSurfaceHeight(x, y) on the client world 007AF5B8 (ST0).
 inline double GroundHeight(float x, float y) { return TheClientWorld()->ClientRawSurfaceHeight(x, y); }
