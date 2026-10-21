@@ -44,9 +44,6 @@ const UiKeyName* KeyNamesEnd() { return ei::GamePointer<const UiKeyName>(0x00787
 
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
-// 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten
-// elsewhere; called through its address as the other windows do).
-CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 } // namespace
 
 // --- Save/load window ----------------------------------------------------------------------------
@@ -250,8 +247,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::menukeytexts::KeyMapped(),
-                                                          game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
+            CUiWindow* box = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
                                     : nullptr;
             mfc::CString format;
             mfc::CString message;

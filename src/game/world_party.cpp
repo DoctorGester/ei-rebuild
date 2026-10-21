@@ -248,9 +248,6 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
 
 namespace {
 
-// 006AD000 (RET 0x10). The item factory (world slot 18) makes an item: type, record index, the
-// two halves of the item's +0x18, -1.
-CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)static_cast<CItemManager*>(a0)->MakeItem(a2, a3, a4, a5); }
 // 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (gamelists::CountedAddTail).
 void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
     gamelists::CountedAddTail(mfc::impl::ListAs<gamelists::EngineObjects>(list), nullptr, object);
@@ -264,8 +261,7 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     std::uint32_t packed = source->prototypeId_;
     int type = source->type_;
     CEngineObject* factory = ItemFactory();
-    CEngineObject* copy = FactoryMakeItem(factory, nullptr, type, static_cast<int>(packed >> 16),
-                                          static_cast<int>(packed & 0xFFFF), -1);
+    CEngineObject* copy = (CEngineObject*)static_cast<CItemManager*>(factory)->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
     source->CopyTo(static_cast<CItem*>(copy), SpellManager());
     std::memcpy(&static_cast<CItem*>(copy)->charge_, &source->charge_, 4);
     // An item below its maximum is kept on the counted list (once).

@@ -232,8 +232,6 @@ QuestObjective* QuestObjectives() { return ei::GameData<QuestObjective*>(0x007AA
 int QuestObjectiveCount() { return ei::GameData<int>(0x007AA610); }
 mfc::CString& QuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }   // QStart's name
 
-// 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
-BOOL __fastcall LoadOrig(CScript* a0, void*, mfc::CString* a2, BOOL a3) { return (BOOL)ScriptLoadLine((void*)a0, nullptr, (const mfc::CString*)a2, (int)a3); }
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
@@ -320,7 +318,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
-    LoadOrig(script, nullptr, &text, 1);
+    ScriptLoadLine((void*)script, nullptr, (const mfc::CString*)&text, 1);
     QuestName() = game::EmptyText();   // the empty string constant
 }
 EI_REPLACE(0x004BAAB0, ScriptQuestFinish);

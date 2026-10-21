@@ -51,10 +51,6 @@ inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerC
 // CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 
-// 0063B920 (thiscall on the battle screen, RET 8): the unit's name line into a CString.
-void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { a0->UnitName(a2, a3); }
-// 0065CF30 (thiscall on the message log, RET 4): adds a line.
-void __fastcall LogAddLine(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
 using SlotEvent = void(__thiscall*)(void*, int, int, int);
 
@@ -287,7 +283,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         // The original keeps the phrase's text in its `extra` argument slot.
         mfc::CString text;
         mfc::CString line;
-        UnitNameLine(this, nullptr, unit, &line);
+        UnitName(unit, &line);
         line += ":\n";
         CTextManager* texts = (CTextManager*)GameClientTexts();
         const char* name = phrase->name.data();
@@ -305,7 +301,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             auto post = [this](const char* part) {
                 CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
                 top->PageText(0) += part;
-                if (top->page_ == 0) LogAddLine(top->owner_->children_.data[9], nullptr, part);
+                if (top->page_ == 0) static_cast<CUiScrollText*>((void*)top->owner_->children_.data[9])->AddText(part);
             };
             post(line);
             post(text);

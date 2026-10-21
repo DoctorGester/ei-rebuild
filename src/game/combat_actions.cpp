@@ -108,7 +108,6 @@ void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
-void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->Raise(a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
@@ -392,7 +391,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(reinterpret_cast<WorldPlayer*>(killer->player)->server, nullptr, killer, kMessageKilled);
         } else if (unit->player) {
-            VoiceSay(&ControllerOf(attacker)->voice, nullptr, 9);
+            static_cast<AIAlarm*>(&ControllerOf(attacker)->voice)->Raise(9);
         }
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();

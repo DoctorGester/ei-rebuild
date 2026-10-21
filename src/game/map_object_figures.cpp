@@ -42,7 +42,6 @@ template <std::floating_point T> float Float(T) = delete;
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 0059F3D0. Part: remembers its owner.
-void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { a0->SetObject(a2); }
 // 0050D0E0. Animation state: a part was added.
 void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
 // 0050D7C0. Animation state: rescale to x, y, z.
@@ -186,7 +185,7 @@ int CObject3D::AddPart(CFigureMesh* part) {
         if (parts.data[k] == part) return 1;
     parts.SetAtGrow(parts.size, part);   // inlined in the original (allocating through 0051A170)
     ++part->refCount_;
-    SetPartOwner(part, nullptr, this);
+    part->SetObject(this);
     if (animation) AnimationAddPart(animation, nullptr, part);
     if (!attached) return 1;
     return Specific()->OnPartAdded(part);
@@ -213,7 +212,7 @@ int CObject3D::LoadFigures() {
         if (known) continue;
         parts.SetAtGrow(parts.size, part);
         ++part->refCount_;
-        SetPartOwner(part, nullptr, this);
+        part->SetObject(this);
         if (animation) AnimationAddPart(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }

@@ -19,9 +19,6 @@ namespace {
 // Sprite builders through their original addresses (005E70E0 and 005E7680 are Rebirth-patched):
 // 005E70E0 a textured rectangle (RET 0x28), 005E8450 a framed rectangle (RET 0x2C), 005E7680 a
 // rectangle of `count` repeated cells (RET 0x30).
-void __fastcall StripRectangle(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11) { UiMeshRectangleOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
-void __fastcall StripFrame(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, float a8, int a9, int a10, int a11, int a12) { UiMeshFramedOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12); }
-void __fastcall StripCells(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11, int a12, int a13) { UiMeshCellsOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13); }
 
 
 
@@ -90,9 +87,9 @@ void CUiItemStrip::Build(char top) {
     const float hundred = 100.0f /*0073BAB0*/;   // 100.0
     // The ends' faces.
     float depth = scale_ * 0.8f /*0073CCA8*/;  // 0.8
-    StripRectangle(window.AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
+    UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale_ * 0.8f /*0073CCA8*/;
-    StripRectangle(window.AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
+    UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
     const float y5 = 5.0f /*0073BF34*/, y35 = 35.0f /*007403E0*/, y65 = 65.0f /*00741350*/,
                 y95 = 95.0f /*00741F08*/;
@@ -107,27 +104,23 @@ void CUiItemStrip::Build(char top) {
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
             depth = scale_ * 0.6f /*0073CDE0*/;   // 0.6
-            StripRectangle(window.AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i],
-                           tab.u0, kV[i][0], tab.u1, kV[i][1]);
+            UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = window.AddSprite(0);
-    StripFrame(frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100,
-               0x100);
+    UiMeshFramedOriginal((void*)frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
-    StripCells(window.AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72,
-               8, 1);
+    UiMeshCellsOriginal((void*)window.AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f /*0074023C*/, hundredFifty = 150.0f /*0073D618*/;
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = window.AddSprite(0);
         const float fx = static_cast<float>(x);
-        StripFrame(cell, nullptr, scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72,
-                   0x72);
+        UiMeshFramedOriginal((void*)cell, nullptr, scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
     tab_ = 5;
     SetTab(5);

@@ -82,7 +82,6 @@ constexpr int kRemarkBored = 0x29;
 // (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
-inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<CUnit*>(a0)->SetPlayer(a2); }
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 // The AI: 005C9770 AIViewer::StepNoise (world + 0x2838; the step noise, returns 0; unit_ai_hearing),
@@ -281,7 +280,7 @@ int CUnitServer::UpdateServer() {
         reported = 1;
         static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
         char* player = unit->player;
-        UnitSetPlayer(unit, nullptr, nullptr);
+        static_cast<CUnit*>(unit)->SetPlayer(nullptr);
         if (player && reinterpret_cast<CPlayer*>(player)->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {

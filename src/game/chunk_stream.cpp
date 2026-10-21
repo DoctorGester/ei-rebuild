@@ -54,8 +54,6 @@ struct TextDecoder {
     ByteVector text;    // +0x00
     ByteVector input;   // +0x0C
 };
-// 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
-void __fastcall DecodeText(TextDecoder* a0, void*, mfc::CString* a2) { reinterpret_cast<MobScriptDecoder*>(a0)->Decode(a2); }   // same layout
 
 } // namespace
 
@@ -296,7 +294,7 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     consumed_ += static_cast<int>(length);
     {
         mfc::CString text;
-        DecodeText(&decoder, nullptr, &text);
+        reinterpret_cast<MobScriptDecoder*>(&decoder)->Decode(&text);
         new (out) mfc::CString(text);
     }
     stlp::deallocate(decoder.input.Start(), static_cast<std::size_t>(decoder.input.EndOfStorage() - decoder.input.Start()));

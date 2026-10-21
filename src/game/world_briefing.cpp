@@ -40,9 +40,6 @@ namespace {
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
 
-// 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
-inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-
 // A CString constructed by a callee into raw storage, destroyed explicitly.
 struct StringSlot {
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -107,7 +104,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
             mfc::CString left = zone.Left(reinterpret_cast<const int*>(static_cast<const char*>(zone))[-2] - 2);
             zone = left;
         }
-        FlowLoadQuests(this, nullptr, zone);
+        FlowLoadQuestsOriginal(zone);
     }
     StringSlot variable;
     BriefingVariableInto(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
@@ -266,10 +263,6 @@ void GameFlow::OnVariableChanged(const void* event) {
 namespace {
 
 
-// 005809D0 (RET 4, AL; patched by Rebirth). The flow loads the quests of a folder.
-inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { return FlowLoadQuestsOriginal(a2); }
-// 004DF8D0 (RET 8). The texts read the current line into a CString.
-void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
 // The quest folders registered so far (007AFDC0: an STLport vector of strings).
 using StringVector = stlp::vector<stlp::string>;
@@ -287,7 +280,7 @@ bool ActiveSession(const std::uint8_t* s) { return s && !(*reinterpret_cast<cons
 void GameFlow::RegisterQuests(const char* folder) {
     void* texts = TheTextManager();
     if (!texts) return;
-    if (!FlowLoadQuestFolder(this, nullptr, folder)) return;
+    if (!FlowLoadQuestsOriginal(folder)) return;
     StringVector& folders = QuestFolders();
     for (stlp::string* s = folders.begin(); s != folders.end(); ++s)
         if (Equal(*s, folder)) return;
@@ -335,7 +328,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         mfc::CString section = prefix + name;
         found = TextsOpenSection(texts, nullptr, section);
     }
-    if (found) TextsReadLine(texts, nullptr, &name, 1);
+    if (found) static_cast<CTextManager*>(texts)->ReadLine(&name, 1);
     return new (out) mfc::CString(name);
 }
 

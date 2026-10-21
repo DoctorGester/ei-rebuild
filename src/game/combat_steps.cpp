@@ -125,7 +125,6 @@ __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINA
 inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
 // AddStep(animation, duration), 00544DD0 set every step's +8.
-void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ActionSpeed, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 
@@ -341,7 +340,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
 
     if (value <= EntryTicks(unit, index, 0x20)) {
         // The cast fits in the animation.
-        StepsAddStep(steps, nullptr, index, AnimationDuration(index));
+        static_cast<AnimationSteps*>((void*)steps)->AddStep(index, AnimationDuration(index));
         *duration = AnimationMoment(index);
         return;
     }

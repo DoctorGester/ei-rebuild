@@ -636,10 +636,6 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 // The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
-inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
-}
 
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
@@ -721,7 +717,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             (*result)->SetSize(0, -1);
             break;
         }
-        GroupAssign(*result, nullptr, &player->server->group50F8_);
+        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(*result), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&player->server->group50F8_));
         const auto& units = player->units.map;
         for (auto* node = units.First(); node; node = units.After(node)) {
             CEngineObject* unit = node->value;

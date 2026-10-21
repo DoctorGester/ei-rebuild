@@ -89,7 +89,6 @@ EI_REPLACE_METHOD(0x005B2F40, FootprintCellSet::GetBounds);
 
 namespace {
 // Object model helpers not rewritten yet.
-void __fastcall QuaternionToMatrix(const void* a0, void*, void* a2) { QuaternionToMatrixOriginal(a0, nullptr, (float*)a2); }
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (004698A0: a CString constructed into `out`).
@@ -123,7 +122,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The object's transform: rotation from its orientation, translation from its position.
     CMapObject* mapObject = MapObject(object);
     float* matrix = mapObject->worldMatrix.m;
-    QuaternionToMatrix(&mapObject->orientation, nullptr, matrix);
+    QuaternionToMatrixOriginal(&mapObject->orientation, nullptr, (float*)matrix);
     std::memcpy(&matrix[11], &mapObject->position.z, 4);
     std::memcpy(&matrix[3], &mapObject->position.x, 4);
     std::memcpy(&matrix[7], &mapObject->position.y, 4);

@@ -231,7 +231,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
 void CEffectSoundSeq::LoadState(void* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &velocity_, 12);
-    ReadStreamCString(stream, nullptr, &name_);
+    static_cast<CStream*>(stream)->ReadInto(static_cast<mfc::CString*>(&name_));
     ReadSavedStrings(&names_, static_cast<CStream*>(stream));
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);

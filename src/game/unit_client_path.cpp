@@ -33,7 +33,6 @@ namespace {
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
 inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
-Vector3* __fastcall FacingAxis(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 
 constexpr float kCellScale = 1.0f;            // 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
@@ -76,7 +75,7 @@ void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, 
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
-        FacingAxis(&unit->orientation, nullptr, &axis);
+        QuaternionAxisY(&unit->orientation, nullptr, &axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.

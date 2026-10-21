@@ -91,7 +91,7 @@ void* CInterface3D::MessageText(void* out, int id, const char* value) {
         text.Format(key, value);
     else
         text = key;
-    CStringCopyConstructOriginal(out, nullptr, &text);
+    new (out) mfc::CString(text);
     return out;
 }
 

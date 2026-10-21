@@ -30,11 +30,9 @@ constexpr int kStatTaming = 2;
 // Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<CUnit*>(a0)->SetPlayer(a2); }
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
 // bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
 void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
-void __fastcall BrainRemoveMode(void* a0, void*, int a2) { static_cast<AIBrain*>(a0)->RemoveModesOfType(a2); }
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -94,7 +92,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         if (!tamerPlayer) break;
         reinterpret_cast<CPlayer*>(tamerPlayer)->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
-        UnitSetPlayer(unit, nullptr, tamerPlayer);
+        static_cast<CUnit*>(unit)->SetPlayer(tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
         mode->refs = 0;   // written before the test, as the original does (one dword)
         mode->refsHigh = 0;
@@ -132,8 +130,8 @@ EI_REPLACE_METHOD(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
-    BrainRemoveMode(&brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
-    UnitSetPlayer(unit, nullptr, nullptr);
+    static_cast<AIBrain*>(&brain)->RemoveModesOfType(kModeTamed);   // unit_ai.h: the tamed mode (8)
+    static_cast<CUnit*>(unit)->SetPlayer(nullptr);
     unit->SetRelationsB(0xFFFFFFFFu);
     if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;

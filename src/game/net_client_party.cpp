@@ -32,7 +32,6 @@ namespace {
 // vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
-inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
 
 // The received offers (+0x2610): an STLport list of counted PartyMessages.
 using OfferNode = stlp::list<RefPtr>::Node;
@@ -208,7 +207,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         }
         if (held) held->Release();
     }
-    for (std::uint32_t i = 0; i < count(); ++i) PartyAdd(party, nullptr, items[i], 1, 1);
+    for (std::uint32_t i = 0; i < count(); ++i) static_cast<CParty*>(party)->AddItem(static_cast<CItem*>(items[i]), 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
     TradeRecordNode* sentinel = self->tradeRecords_.End();

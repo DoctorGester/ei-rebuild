@@ -144,15 +144,12 @@ void WriteCopy(WorldStream* stream, const T& value) {
 __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
-// 00665200. Empties a player before it is loaded.
-void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
 // FindFreeCellNear (ai_map.cpp).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
-void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 // 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's
 // (Projectile is the missile's view of it).
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
@@ -176,7 +173,6 @@ __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, 
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
-void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
 
 } // namespace
 
@@ -247,7 +243,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         ++object->refCount_;
         static_cast<CMapObject*>(object)->MarkChanged(-1);
         if (object->type_ != 0x3B) {
-            MapObjectSetupFigure(object, nullptr, mapObject->name);
+            static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(mapObject->name);
             SectorMapAdd(Sectors(), nullptr, object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
@@ -390,7 +386,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
         for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             scriptsActive_ = 1;
-            PlayerClear(player, nullptr);
+            PlayerClearOriginal((void*)player);
         }
     }
     AIMap()->BeginRefresh();
@@ -461,7 +457,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id == -1) break;
                 CEngineObject* object = static_cast<CBaseManager*>(manager48_)->FindObject(id);
                 ++object->refCount_;
-                MarkNew(object, nullptr);
+                static_cast<CEffect*>((void*)object)->MarkChanged();
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
             }
 

@@ -56,10 +56,6 @@ std::uint32_t AnimatedDrawerFlags() { return ei::GameData<const std::uint32_t>(0
 void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient) {
     light->SetLitColors(reinterpret_cast<const float*>(material), std::bit_cast<float>(ambient));
 }
-// 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
-void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const stlp::string* a3) {
-    *a2 = lib_trees::FindLinkHeader(a0, a3);
-}
 
 // The mesh's name: its slot 7, CEngineObject::GetName (the mesh is an engine object; CFigureMesh
 // keeps its vtable as a plain field).
@@ -351,7 +347,7 @@ void DrawThroughFigure(Part& part) {
     if (part.rect) {
         stlp::string key(MeshName(part.Mesh()));
         LinkHeaderMap::Node* node = nullptr;
-        FindPiece(&part.figure->headers_, nullptr, &node, &key);
+        node = lib_trees::FindLinkHeader(&part.figure->headers_, &key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);
         *part.rect = *own;

@@ -35,7 +35,6 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The world (0x7AFF60) and its players (outside this range).
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { static_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
-void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<CPlayer*>(player)->TakeItem(index); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
 
@@ -110,7 +109,7 @@ void ClientSession::ApplyAwards() {
                 auto* owned = static_cast<CItem*>(current->data);
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id_;
-                    if (id >= 0) PlayerRemoveItem(player, nullptr, id);
+                    if (id >= 0) static_cast<CPlayer*>(player)->TakeItem(id);
                     break;
                 }
             }
@@ -123,7 +122,7 @@ void ClientSession::ApplyAwards() {
                 ObjectList::Node* current = position;
                 position = position->next;
                 CEngineObject* owned = current->data;
-                if (owned->GetClassId() == kClassQuestItem) PlayerRemoveItem(player, nullptr, owned->id_);
+                if (owned->GetClassId() == kClassQuestItem) static_cast<CPlayer*>(player)->TakeItem(owned->id_);
             }
             break;
         default:

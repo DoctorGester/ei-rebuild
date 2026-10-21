@@ -293,7 +293,6 @@ namespace {
 // Not rewritten: the container window constructor, the STLport vector constructors of the two
 // windows' members, the message box constructor and the interface's window activation. Thiscall
 // methods are declared __fastcall with the unused EDX.
-CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
     window->vtable_ = ei::GamePointer<void*>(main);
@@ -360,8 +359,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     case 3: { // quit: the message box
         void* memory = gamecrt::operator_new(0x180);
-        opened = memory ? ConstructMessageBox(memory, nullptr, ui, "quit", "quit_msg",
-                                              0x10000, 3, 1)   // "quit_msg"
+        opened = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, "quit", "quit_msg", 0x10000, 3, 1)   // "quit_msg"
                         : nullptr;
         break;
     }
@@ -418,8 +416,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         void* memory = gamecrt::operator_new(0x184);
         CUiWindow* box = nullptr;
         if (memory) {
-            box = ConstructMessageBox(memory, nullptr, ui, "option_difficulty", game::EmptyText(), 0x20000, 3,
-                                      1);   // "option_difficulty", ""
+            box = (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1);   // "option_difficulty", ""
             SetVtables(box, kDifficultyBoxVtable, kDifficultyBoxInputVtable);
         }
         ui->PushWindow(box, 1, 1);

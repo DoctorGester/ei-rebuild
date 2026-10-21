@@ -30,8 +30,6 @@ constexpr int kManagerWorld = 0xAC;         // the manager's map object context 
 // item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
 // EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
 // spell by name (with world slot 22), is not rewritten.
-CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)static_cast<CUnit*>(a0)->EquipArmour(a2); }
-int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return static_cast<CUnit*>(a0)->AddWeapon(a2); }
 
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
 
@@ -63,16 +61,16 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CEngineObject* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
-            if (armour) EquipArmourAt(unit, nullptr, armour);
+            if (armour) static_cast<CUnit*>(unit)->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
-            int slot = AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->weaponName, name));
+            int slot = static_cast<CUnit*>(unit)->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
             if (slot != -1) unit->pendingWeapon = slot;
         }
         if (Named(prototype->secondWeaponName))
-            AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));
+            static_cast<CUnit*>(unit)->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = (CEngineObject*)static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));

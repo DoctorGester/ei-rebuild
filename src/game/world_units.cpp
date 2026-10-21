@@ -75,11 +75,9 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // Placement on the maps.
 // The unit's setup.
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
-void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { static_cast<CUnit*>(a0)->AddWeapon(static_cast<CEngineObject*>(a2)); }
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
-int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 CBaseManager* Manager(CEngineObject* manager) { return static_cast<CBaseManager*>(manager); }
 CUnit* AsUnit(CEngineObject* object) { return static_cast<CUnit*>(object); }
@@ -282,7 +280,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
-            UnitGiveItem(unit, nullptr, MakeItem(this, record->weapons[n], false));
+            static_cast<CUnit*>(unit)->AddWeapon(static_cast<CEngineObject*>(MakeItem(this, record->weapons[n], false)));
         AsUnit(unit)->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
             static_cast<CUnit*>(unit)->EquipArmour(MakeItem(this, record->armor[n], true));
@@ -329,7 +327,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
     if (atStart && gameResult_ != kGameResultLost) script += worlddata::HeroArrivalText();
     script += worlddata::ScriptEndText();
-    if (player) CommandQueueAdd(commandsA_, nullptr, &script, 1);
+    if (player) ScriptLoadLine(commandsA_, nullptr, &script, 1);
 }
 
 // ---- UseQuickItem -------------------------------------------------------------------------------
@@ -367,13 +365,9 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
 namespace {
 
 // Object setup, through the original addresses (thiscall as fastcall).
-void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
-void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { static_cast<CMapObject*>(a0)->WriteChangedState(); }
-void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask((std::uint32_t)a2); }
-void __fastcall MarkNewObject(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
@@ -421,7 +415,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         const char* prototype = spec->base.kind == 5 ? static_cast<const char*>(reinterpret_cast<UnitSpec*>(spec)->prototype)
                                                      : static_cast<const char*>(spec->primaryTexture);
         ObjectSlots(object)->TakePrototype(prototype);
-        ObjectMarkNew(object, nullptr);
+        static_cast<CMapObject*>((void*)object)->WriteFullState();
     };
     auto place = [spec](CMapObject* object) {
         ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
@@ -433,7 +427,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
         ++object->refCount_;
-        MarkNewObject(object, nullptr);
+        static_cast<CEffect*>((void*)object)->MarkChanged();
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
     };
@@ -484,7 +478,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
         if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
-        ObjectSetName(object, nullptr, spec->texture);
+        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -493,7 +487,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
-        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
@@ -504,7 +498,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         ++object->refCount_;
-        ObjectMarkNew(object, nullptr);
+        static_cast<CMapObject*>((void*)object)->WriteFullState();
         static_cast<CMapObject*>(object)->MarkChanged(2);
         object->flags_ |= 8;
         objects_.Set(static_cast<unsigned>(object->id_), object);
@@ -513,7 +507,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
-        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
         static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&reinterpret_cast<mapspec::TrapSpec*>(message)->diplomacy));
         return result;
     }
@@ -587,7 +581,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         static_cast<CMapObject*>(object)->MarkChanged(7);
         static_cast<CMapObject*>(object)->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
-        ObjectSetName(object, nullptr, spec->texture);
+        static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
         if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
@@ -595,7 +589,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
-        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        if (object->flags_ & 2) static_cast<CMapObject*>(object)->WriteChangedState();
         if (type >= 8 && type <= 9) {
             object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);

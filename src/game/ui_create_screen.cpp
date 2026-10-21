@@ -267,7 +267,7 @@ void CInterface3D::ShowMessage(int force) {
         if (node == header) return;
         alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
         auto* text = reinterpret_cast<mfc::CString*>(storage);
-        CStringCopyConstructOriginal(text, nullptr, &node->data);
+        new (text) mfc::CString(node->data);
         messages_.Erase(node);   // 005F8E50
         messageText_ = *text;
         messageFlag_ = 0;
@@ -282,7 +282,7 @@ void CInterface3D::ShowMessage(int force) {
         static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = true;
-        CStringConstructTextOriginal(&win->text_, nullptr, messageText_);
+        new (&win->text_) mfc::CString(messageText_);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
         StringArrayConstruct(&win->lines_);
         win->page_ = value;
@@ -330,7 +330,7 @@ void CInterface3D::OpenHelp(int flag) {
         static_cast<CUiContainer*>(memory)->Construct(this);
         auto* win = static_cast<CHelpWindow*>(memory);
         win->message_ = false;
-        CStringConstructTextOriginal(&win->text_, nullptr, topic);
+        new (&win->text_) mfc::CString(topic);
         ::new (&win->title_) mfc::CString;   // afxEmptyString
         StringArrayConstruct(&win->lines_);
         win->page_ = seen;
@@ -407,7 +407,7 @@ void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag,
     SetDword(list, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
     SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // next
     SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // prev
-    CStringConstructTextOriginal(Bytes(self) + 0x1D4, nullptr, text);
+    new (Bytes(self) + 0x1D4) mfc::CString(text);
     Screen8Member1D8(Bytes(self) + 0x1D8);
     ei::SetVtable(self, 0x00740C3C);
     Bytes(self)[0x1F4] = static_cast<std::uint8_t>(flag);

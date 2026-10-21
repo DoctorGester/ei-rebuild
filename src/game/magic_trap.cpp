@@ -61,7 +61,6 @@ constexpr int kPtrListBlockSize = 10;
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
-void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -115,7 +114,7 @@ void MagicTrap::UpdateVictims() {
         while (known && known->data != unit) known = known->next;
         if (!known) {
             VictimNode* added = victims->NewNode(victims->tail, nullptr);
-            ReferenceSet(&added->data, nullptr, unit);
+            AIRef::Of(&added->data)->Assign(unit);
             if (victims->tail) victims->tail->next = added;
             else victims->head = added;
             victims->tail = added;
@@ -260,7 +259,6 @@ namespace {
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
-void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { AIRef::Of(a0)->Save(a2); }
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
@@ -353,7 +351,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
     stream->Write(&value, 4);
     for (VictimNode* node = inside.head; node;) {
         VictimNode* next = node->next;
-        CountedRefSave(&node->data, nullptr, stream);
+        AIRef::Of(&node->data)->Save(stream);
         node = next;
     }
     value = points.size;

@@ -20,7 +20,6 @@ namespace {
 // cost of a cell (RET 8; 0x7FFFFFFF unreached), the path to a cell into a list (RET 0xC), reset.
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
-void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellsRemoveRepeats(a0); }
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
 
@@ -69,7 +68,7 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         PathCellList reversed;
         PathCellsAppend(path, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
         DestroyList(reversed);
-        ListFixUp(path, nullptr);
+        PathCellsRemoveRepeats(path);
         // The original's cells keep the stack word under SearchPathTo's local cell (SearchBest's
         // saved ESI, the forward search's address); ours get the plain words.
         SetPlainCellWords(path);

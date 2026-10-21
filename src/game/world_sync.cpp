@@ -84,8 +84,6 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The game's atexit (006E727B).
 // 0055FBD0 (RET 8). The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
-void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
-void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
 // 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
 // fills `added`, `kept` and `removed`.
 void DiffSets(void* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept, StaticPtrArray* removed) {
@@ -285,7 +283,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         SetSize(collected, static_cast<int>(end - Collected().data));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
-        StateObjectsAdded(state, nullptr, &Added());
+        static_cast<CPlayerServer*>(state)->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
         // Timed objects.
@@ -299,7 +297,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
 
         if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;
-            if (--timer <= 0 && state->refreshPending_ == 0) StateRefresh(state, nullptr);
+            if (--timer <= 0 && state->refreshPending_ == 0) static_cast<CPlayerServer*>(state)->ResendParty();
         }
     }
 

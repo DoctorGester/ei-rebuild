@@ -133,11 +133,6 @@ int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std
     return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
 }
 
-// 0065CC00 (not rewritten): the scrolling text window (a scroll bar subclass) over `rect`.
-CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, const void* font, RECT rect, float lineHeight) {
-    return static_cast<CUiScrollText*>(memory)->Construct(ui, static_cast<const char*>(font), rect, lineHeight);
-}
-
 // Sprite fields the builder sets directly.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
 void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
@@ -536,8 +531,7 @@ void CObjectivesWindow::Build() {
 
     // The quest log (left, below the list) and the list's scroll bar.
     void* memory = gamecrt::operator_new(0x1C8);
-    AddChild(memory ? ConstructTextLog(memory, nullptr, interface_, game::EmptyText(),
-                                       RECT{60, 190, 384, 510}, 10.0f)
+    AddChild(memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, static_cast<const char*>(game::EmptyText()), RECT{60, 190, 384, 510}, 10.0f)
                     : nullptr);
     memory = gamecrt::operator_new(0x18C);
     bar_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f)

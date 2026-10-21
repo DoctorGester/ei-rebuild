@@ -73,7 +73,6 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // 0067AC70 (not rewritten): the missile's target object id.
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
 // CPtrList constructor (block size) and destructor.
-inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(a0, a2); }
 // The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
@@ -305,7 +304,7 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 // effect's damage (a CPtrList of blocks of 10 on the stack, walked node by node).
 inline void HitAreaTargets(CSpellEffect* e) {
     mfc::CTypedPtrList<CEngineObject> units;
-    PtrListConstruct(&units, nullptr, kPtrListBlockSize);
+    mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, kPtrListBlockSize);
     DamageInfo hit;
     e->GetDamage(&hit);
     e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);

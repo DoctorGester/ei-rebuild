@@ -140,9 +140,6 @@ namespace {
 // Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
 // message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (005F7350: window, 1, 1).
-void __fastcall MenuSet578920(void*, void*, int a2) { GameStopSounds(a2); }
-void __fastcall MenuCall578940(void*, void*) { GameStopAmbience(); }
-void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 int Compare(const mfc::CString& word, const char* text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(word)),
@@ -162,14 +159,13 @@ void CInterface3D::OnStringEvent(const char* event) {
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data[0], "gameover") == 0) {
-        void* menu = ei::GamePointer<void>(0x007AFEA5);
-        MenuSet578920(menu, nullptr, 1);
-        MenuCall578940(menu, nullptr);
+        GameStopSounds(1);
+        GameStopAmbience();
         PlaySound("buttons\\gameover.wav", 0);
         const char* title = words.size > 1 ? static_cast<const char*>(words.data[1]) : "game_over";
         const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
         void* memory = gamecrt::operator_new(0x180);
-        void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
+        void* window = memory ? static_cast<CMessageBox*>(memory)->Construct(this, title, message, 0x20000, 3, 1) : nullptr;
         PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         return;
     }

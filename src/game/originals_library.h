@@ -77,9 +77,6 @@ inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, cons
     return destination;
 }
 // MFC CString::Find(LPCTSTR) 006FDBD9 (RET 4, index or -1).
-inline int __fastcall CStringFindTextOriginal(const void* string, void*, const char* text) {
-    return static_cast<const mfc::CString*>(string)->Find(text);
-}
 // CPlex::FreeDataChain 006FE90F (plain RET, ECX = chain head; mfc::PlexFreeDataChain is the forwarder).
 inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
 
@@ -106,25 +103,13 @@ inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, cons
     return ::new (out) mfc::CString(*left + right);
 }
 // MFC CFileFind: mfc::CFileFind's members (lib/mfc.h). GetFilePath (006E6722) into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
-inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, mfc::CString* out) {
-    return ::new (out) mfc::CString(static_cast<const mfc::CFileFind*>(find)->GetFilePath());
-}
 // 00700D4C: CString::operator+=(const char*) (RET 4, returns
 // this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
 inline void* __fastcall CStringAppendTextOriginal(void* string, void*, const char* text) {
     *static_cast<mfc::CString*>(string) += text;
     return string;
 }
-inline char* __fastcall CStringGetBufferSetLengthOriginal(void* string, void*, int length) {
-    return static_cast<mfc::CString*>(string)->GetBufferSetLength(length);
-}
 // MFC CString::CString(const CString&) 007006E5 / CString::CString(const char*) 007009DE on raw memory (RET 4).
-inline void __fastcall CStringCopyConstructOriginal(void* where, void*, const mfc::CString* from) {
-    new (where) mfc::CString(*from);
-}
-inline void __fastcall CStringConstructTextOriginal(void* where, void*, const char* text) {
-    new (where) mfc::CString(text);
-}
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }
 

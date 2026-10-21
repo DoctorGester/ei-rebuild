@@ -43,12 +43,6 @@ void Erase(QueueNode** queue, QueueNode* pos) {
 }
 inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
-// 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
-// stream in ECX.
-void __fastcall StreamWriteSized(CStream* a0, void*, CStream* a2) { a0->WriteSized(a2); }
-// 004A51C0 (RET 4): reads a stream written by 004A5250 (size prefix, then the bytes) from the
-// stream in ECX into `to`, which is emptied first (its slot 6).
-void __fastcall StreamReadSized(CStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
 // The game's memmove (006E79A0).
 
 bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
@@ -201,7 +195,7 @@ void NetLink::Record(CStream* stream) {
         skipNext_ = 0;
         return;
     }
-    StreamWriteSized(&record_, nullptr, stream);
+    record_.WriteSized(stream);
 }
 
 // modeCreate | modeWrite; the stream's ok tells whether the file opened.
@@ -454,7 +448,7 @@ bool ReplayLink::HasIncoming() { return ReplayLink::Alive(); }   // 00478C50
 
 // The next recorded message into `stream`; the replay stream's ok.
 bool ReplayLink::ReceiveImpl(CStream* stream) {   // 00478C70
-    StreamReadSized(&replay_, nullptr, stream);
+    replay_.ReadSized(stream);
     return replay_.ok_ != 0;
 }
 
