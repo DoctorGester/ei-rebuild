@@ -25,9 +25,6 @@ class ChunkArchive;
 using CStringVector = stlp::vector<mfc::CString>;
 static_assert(sizeof(CStringVector) == 0xC);
 
-// 0052D6A0 (thiscall on the values, RET 4; unit_db.cpp, A-U11). Four dwords as fields 0..3.
-void __fastcall SerializeFourDwords(std::uint32_t* values, void*, ChunkArchive* ar);
-
 // unit_db.cpp. A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC
 // and quest briefing serialisers inline it: loading empties the vector (0052E010; 0052DF40
 // erases the range through 0051F970 instead, with the same result) and resizes it to the count
@@ -44,6 +41,9 @@ struct UnitGoldRoll {
     std::uint32_t field1;               // +0x04 field 1 (nothing reads it)
     float minimum;                  // +0x08
     float maximum;                  // +0x0C
+
+    // 0052D6A0 (RET 4; unit_db.cpp, A-U11). The four dwords as fields 0..3 (the prototype's second roll, chunk 0x1C).
+    void Serialize(ChunkArchive* ar);
 };
 static_assert(sizeof(UnitGoldRoll) == 0x10);
 

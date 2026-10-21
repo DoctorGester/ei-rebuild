@@ -74,7 +74,7 @@ EI_REWRITTEN(0x004BF900, CScript::NewWorldScript);
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
 // slot gets the id.
-mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
+ScriptAreaParts* CScript::FindArea(int id) {
     auto& areas = areas_;
     for (int i = 0; i < areas.size; ++i) {
         if (areas.data[i].id == id) return &areas.data[i].parts;

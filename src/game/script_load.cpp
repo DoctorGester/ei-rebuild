@@ -139,25 +139,12 @@ using namespace scriptarray;
 using ListNode = ScriptListNode;
 using RawList = ScriptList;
 
-// CList::NewNode instantiations (__thiscall (prev, next); the element is default-constructed).
-using NewNodeFn = ListNode*(__fastcall*)(RawList*, void*, ListNode* prev, ListNode* next);
-// 004CD540 particle sources, 004CD5B0 FX sources, 004CD620 lightning, 004CD6D0 command blocks,
-// 004CD930 instances, 004CDA30 runs.
-template <typename Abi>
-ListNode* __fastcall NewNode(RawList* list, void*, ListNode* prev, ListNode* next) {
-    return mfc::impl::NewNodeAs<Abi>(list, prev, next);
-}
-constexpr NewNodeFn NewParticleNode = NewNode<mfc::impl::ParticleSourceList>;
-constexpr NewNodeFn NewFxNode = NewNode<mfc::impl::FxSourceList>;
-constexpr NewNodeFn NewLightningNode = NewNode<mfc::impl::LightningList>;
-constexpr NewNodeFn NewBlockNode = NewNode<mfc::impl::CommandBlockList>;
-constexpr NewNodeFn NewInstanceNode = NewNode<gamelists::Definitions>;
-constexpr NewNodeFn NewRunNode = NewNode<gamelists::Runs>;
-
-// CList::AddTail as inlined: a new node after the tail, its element filled by `fill`, then linked.
-template <typename Fill>
-void AppendNode(RawList* list, NewNodeFn newNode, Fill fill) {
-    ListNode* node = newNode(list, nullptr, list->tail, nullptr);
+// CList::NewNode instantiations (004CD540 particle sources, 004CD5B0 FX sources, 004CD620 lightning, 004CD6D0
+// command blocks, 004CD930 instances, 004CDA30 runs): mfc::impl::NewNodeAs<Abi>. AddTail as inlined: a new node
+// after the tail, its element filled by `fill`, then linked.
+template <typename Abi, typename Fill>
+void AppendNode(RawList* list, Fill fill) {
+    ListNode* node = mfc::impl::NewNodeAs<Abi>(list, list->tail, nullptr);
     fill(node->data.bytes);
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -440,7 +427,7 @@ EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        AppendNode(list, NewParticleNode, [](char* data) {
+        AppendNode<mfc::impl::ParticleSourceList>(list, [](char* data) {
             std::memset(data, 0, 0x24);   // the original copies a stack temporary: +0 = 0, the rest unset
         });
     }
@@ -465,7 +452,7 @@ void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
         // The original builds a temporary element (effect 0, empty name, the rest unset), copies it
         // into the node and destroys it (releasing its effect, which is always null).
         mfc::CString emptyName;
-        AppendNode(list, NewFxNode, [&](char* data) {
+        AppendNode<mfc::impl::FxSourceList>(list, [&](char* data) {
             auto* source = reinterpret_cast<ScriptFxSource*>(data);
             source->object = nullptr;
             source->id = 0;
@@ -485,7 +472,7 @@ EI_REWRITTEN(0x004CA5D0, ScriptFxSourcesLoad);
 void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        AppendNode(list, NewLightningNode, [](char* data) {
+        AppendNode<mfc::impl::LightningList>(list, [](char* data) {
             auto* bolt = reinterpret_cast<ScriptLightning*>(data);
             bolt->object = nullptr;
             bolt->id = -1;
@@ -507,7 +494,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
         ScriptDecl temp{};
         temp.commands.vtable = mfc::impl::ScriptCommandsClass::Vtable();
-        AppendNode(list, NewBlockNode, [&](char* data) {
+        AppendNode<mfc::impl::CommandBlockList>(list, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
             block->commands.CopyFrom(temp.commands);
             block->id = temp.id;
@@ -540,7 +527,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         } temp{};
         temp.ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         temp.vars.ScriptVarsConstruct();
-        AppendNode(list, NewInstanceNode, [&](char* data) {
+        AppendNode<gamelists::Definitions>(list, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);
             instance->index = temp.index;
             instance->name = temp.name;
@@ -573,7 +560,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         // A temporary run (sleep start unset) is copied into the node, then destroyed.
         ScriptRun temp{};
         temp.vars.ScriptVarsConstruct();
-        AppendNode(list, NewRunNode, [&](char* data) {
+        AppendNode<gamelists::Runs>(list, [&](char* data) {
             auto* run = reinterpret_cast<ScriptRun*>(data);
             run->block = temp.block;
             run->index = temp.index;

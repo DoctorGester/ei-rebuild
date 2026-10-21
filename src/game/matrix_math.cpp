@@ -38,8 +38,8 @@ void Multiply(float* out, const float* a, const float* b, const SumOrder& order)
 
 } // namespace
 
-void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b) { Multiply(out, a, b, kProductOrder); }
-EI_REPLACE(0x004D9880, MatrixMultiply);
+void Matrix4::Multiply(const float* a, const float* b) { ::Multiply(m, a, b, kProductOrder); }
+EI_REPLACE_METHOD(0x004D9880, Matrix4::Multiply);
 
 void Quaternion::ToMatrix(float* out) const {
     // Twice the vector part; the products the original stores as floats are rounded to float.

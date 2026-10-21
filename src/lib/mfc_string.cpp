@@ -710,8 +710,9 @@ void __stdcall DestructStrings(CString* elements, int count) {
 //
 // Constructors and the destructor are registered through shims (a member pointer cannot name them).
 
+CString* CString::ConstructText(const char* text) { return ::new (this) CString(text); }
+
 namespace shim {
-CString* __fastcall TextConstruct(CString* self, void*, const char* text) { return ::new (self) CString(text); }
 void __fastcall Destruct(CString* self) { self->~CString(); }
 } // namespace shim
 
@@ -721,7 +722,7 @@ EI_REWRITTEN(0x006E6C09, CFixedAlloc::FreeAll);
 EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
 EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
 
-EI_REWRITTEN(0x007009DE, shim::TextConstruct);
+EI_REWRITTEN(0x007009DE, CString::ConstructText);
 EI_REPLACE(0x00700970, shim::Destruct);
 EI_REWRITTEN(0x007007DD, CString::AllocBuffer);
 EI_REWRITTEN(0x0070085F, CString::FreeData);

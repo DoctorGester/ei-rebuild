@@ -1003,8 +1003,8 @@ void __fastcall DestroyHead(DressedUnitRecord* self);
 // 0055D020 (RET 4): equal(first, last, other) of two id ranges (AL).
 bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other);
 // 0051FAD0 (RET 4): the scalar deleting destructor of a CString (the name vector's element loop
-// calls it with 0). Returns this.
-mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags);
+// calls it with 0), ScalarDeleting<&DestructName>::Delete. Returns this.
+void __fastcall DestructName(mfc::CString* name);
 } // namespace unitset
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads

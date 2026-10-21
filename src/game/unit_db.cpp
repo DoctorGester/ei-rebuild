@@ -84,7 +84,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         ar->LeaveChunk();
     }
     if (ar->EnterChunk(0x1C)) {
-        SerializeFourDwords(reinterpret_cast<unsigned int*>(&secondGold), nullptr, ar);
+        secondGold.Serialize(ar);
         ar->LeaveChunk();
     }
     ar->SerializeCStrings(0x1D, &lootItems, ar);
@@ -169,10 +169,13 @@ EI_REWRITTEN(0x0052DA60, UnitNpcRecord::Serialize);
 
 // --- A-U11: the unit database's pieces and vectors -----------------------------------------------
 
-void __fastcall SerializeFourDwords(std::uint32_t* values, void*, ChunkArchive* ar) {
-    for (int i = 0; i < 4; ++i) Dword(ar, i, &values[i]);
+void UnitGoldRoll::Serialize(ChunkArchive* ar) {
+    Dword(ar, 0, &chance);
+    Dword(ar, 1, &field1);
+    Dword(ar, 2, &minimum);
+    Dword(ar, 3, &maximum);
 }
-EI_REWRITTEN(0x0052D6A0, SerializeFourDwords);
+EI_REWRITTEN(0x0052D6A0, UnitGoldRoll::Serialize);
 
 void UnitModelSlot::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &levelName);

@@ -42,11 +42,6 @@ struct MatrixStack {
 };
 static_assert(sizeof(MatrixStack) == 8);
 
-// 004D9880 (matrix_math.cpp; ECX = out, RET 8). out = a * b (row-major: rows of `a` times columns
-// of `b`). The elements are written one after the other, each from the inputs as they are then, so
-// `out` may be one of the inputs as in the original.
-void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b);
-
 struct VertexPacket;   // figure_mesh.h
 struct TLVertex;       // clip.h
 class CLight;          // spell.h
@@ -173,7 +168,7 @@ public:
     void* DeleteScalar(unsigned flags);
     // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
     // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
-    // the new top is computed by MatrixMultiply (004D9880), whose elements sum in another order.
+    // the new top is computed by Matrix4::Multiply (004D9880), whose elements sum in another order.
     void PushMatrixProduct(const Matrix4& m, int index) {
         MatrixStack& stack = stacks_[index];
         if (stack.count == 0) {
@@ -182,7 +177,7 @@ public:
             return;
         }
         const int depth = ++stack.count;
-        MatrixMultiply(stack.matrices[depth - 1].m, nullptr, stack.matrices[depth - 2].m, m.m);
+        stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, m.m);
     }
     // 005019D0 (RET 4; also inlined). The top of stack `index` (matrices[count - 1], as the original
     // computes it even when empty).

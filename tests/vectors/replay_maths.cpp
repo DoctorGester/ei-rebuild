@@ -165,7 +165,7 @@ bool CheckMultiply(const MatrixMultiplyCall& v, char* d, std::size_t n) {
         po = a;
     else if (v.alias & 2)
         po = b;
-    MatrixMultiply(po, nullptr, pa, pb);
+    reinterpret_cast<Matrix4*>(po)->Multiply(pa, pb);
     for (int i = 0; i < 16; ++i)
         if (!Same(po[i], v.out[i]))
             return Fail(d, n, "alias %u element %d: ours %.9g, original %.9g", v.alias, i, po[i], v.out[i]);

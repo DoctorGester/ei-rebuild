@@ -26,6 +26,8 @@
 #include <cstring>
 
 class CUnit;
+template <typename T>
+struct AIRefTo;
 struct AIBrain;
 struct AIOrder;
 class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
@@ -34,6 +36,10 @@ struct CountedUnits : mfc::CTypedPtrList<CUnit> {
     // 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
     // holding a reference; returns the node.
     Node* AddCountedTail(CUnit* object);
+    // 005D8D50 (RET 4, unit_ai.cpp; the brain's corpse list at +0x148, CorpseWatcherMode::Evaluate through
+    // AIBrain::PopCorpse): RemoveHead, the head's object handed to `out` with a reference (the list's own
+    // reference released). Returns `out`.
+    AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 using AIObjectList = CountedUnits;
 
@@ -654,12 +660,6 @@ static_assert(sizeof(PlayerMode) == 0x24);
 // 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
 // references appended to `list`, each loaded in `context` (the trap's units, the brain's lists).
 void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context);
-
-// The brain's corpse list (+0x148; its elements are counted references). 005D8D50 (RET 4,
-// unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's
-// object handed to `out` with a reference (the list's own reference released). Returns `out`.
-using CorpseList = mfc::CTypedPtrList<CUnit>;
-AIRefTo<CUnit>* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRefTo<CUnit>* out);
 
 class CSpell;
 namespace console {

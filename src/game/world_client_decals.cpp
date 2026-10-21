@@ -60,7 +60,7 @@ void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
         return;
     }
     ++stack.count;
-    MatrixMultiply(stack.matrices[stack.count - 1].m, nullptr, stack.matrices[stack.count - 2].m, m);
+    stack.matrices[stack.count - 1].Multiply(stack.matrices[stack.count - 2].m, m);
 }
 
 Matrix4 Transposed(const Matrix4& m) {
