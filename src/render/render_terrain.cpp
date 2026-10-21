@@ -10,10 +10,10 @@
 // detail and seam variant is built once into a pool of vertex and index buffers (positions and
 // texture coordinates in one stream, the lit colours in another) and built again only when what it
 // was built from changes (the sector's tile lists and records: SectorData::Build, render::
-// TerrainChanged). When the game only moved vertices or texture coordinates (the waves, the water
-// levels, the animated tiles: TerrainChanged) the page reads them again and uploads those that
-// changed. The colours of the page's visible quarters are compared with the records every frame and
-// only the changed ones uploaded. A frame keeps the visible quarters of each page handed over (TerrainPiece).
+// TerrainChanged). When the game only moved vertices or texture coordinates (the animated tiles: the
+// pages holding one; the waves and the water levels, which move only the water layer: the pages
+// reading it) the page reads them again and uploads those that changed. The colours of the page's
+// visible quarters are compared with the records every frame and only the changed ones uploaded. A frame keeps the visible quarters of each page handed over (TerrainPiece).
 #include "render.h"
 #include "render_internal.h"
 
@@ -85,10 +85,13 @@ const void* PageTexture(const SectorData* s, int page) {
 }
 
 // The game's changes to a sector (render::TerrainChanged): how often it was built again (tile lists,
-// records) and how often vertices or texture coordinates moved.
+// records), how often vertices or texture coordinates moved, and how often only the water layer's
+// positions moved.
 struct SectorChanges {
-    std::uint32_t rebuilt = 0, moved = 0;
+    std::uint32_t rebuilt = 0, moved = 0, waterMoved = 0;
 };
+// The records of a sector's water layer start here (33 x 33 per layer).
+constexpr int kWaterRecords = 33 * 33;
 std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // --- Pages kept on the GPU (R16c) ----------------------------------------------------------------------
@@ -109,6 +112,8 @@ struct PageSource {
     const TileVertex* lists[4] = {};
     int listSizes[4] = {};
     const std::uint8_t* edges[4] = {};
+    const terrain::AnimatedTile* animated = nullptr;
+    int animatedCount = 0;
     SectorChanges changes;
 
     // The same tiles of the same records: at most vertices and texture coordinates moved.
@@ -116,7 +121,8 @@ struct PageSource {
         for (int q = 0; q < 4; ++q)
             if (lists[q] != o.lists[q] || listSizes[q] != o.listSizes[q] || edges[q] != o.edges[q]) return false;
         return records == o.records && recordCount == o.recordCount && positions == o.positions &&
-               positionCount == o.positionCount && changes.rebuilt == o.changes.rebuilt;
+               positionCount == o.positionCount && animated == o.animated && animatedCount == o.animatedCount &&
+               changes.rebuilt == o.changes.rebuilt;
     }
 };
 
@@ -133,6 +139,8 @@ PageSource SourceOf(const SectorData* s, int page) {
         }
         if (s->tileFlags[q].data && page < s->tileFlags[q].size) src.edges[q] = s->tileFlags[q].data[page].data;
     }
+    src.animated = s->animated.data;
+    src.animatedCount = s->animated.size;
     auto it = g_changes.find(s);
     if (it != g_changes.end()) src.changes = it->second;
     return src;
@@ -155,6 +163,8 @@ struct CachedPage {
     std::vector<std::uint16_t> records;    // the record each vertex reads its position and colours from
     std::vector<const TileVertex*> entries;   // the tile entry each vertex reads its texture coordinates from
     std::vector<std::uint32_t> indices;    // relative to the page's first vertex
+    bool readsWater = false;               // a vertex reads a water layer record
+    bool animatedTiles = false;            // a tile is one of the sector's animated tiles
     QuarterRange quarters[4];
     PoolPlace place;                                 // in the pool
     bool geometryDirty = true;                       // all of it to upload
@@ -177,6 +187,12 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
     out.records.clear();
     out.entries.clear();
     out.indices.clear();
+    out.animatedTiles = false;
+    // The sector's animated tiles (their 9 entries in the tile lists), for animatedTiles.
+    static std::vector<const TileVertex*> animated;
+    animated.clear();
+    for (int i = 0; i < s->animated.size; ++i) animated.push_back(s->animated.data[i].vertices);
+    std::sort(animated.begin(), animated.end());
     const int* entries = lod == 0 ? kLod0Entries : lod == 1 ? kLod1Entries : kLod2Entries;
     int perTile = lod == 0 ? 9 : lod == 1 ? 6 : 4;
     for (int quarter = 0; quarter < 4; ++quarter) {
@@ -192,6 +208,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
                 edges = s->tileFlags[quarter].data[page].data;
             for (int t = 0; t < tiles; ++t) {
                 const TileVertex* tile = list.data + t * 9;
+                if (std::binary_search(animated.begin(), animated.end(), tile)) out.animatedTiles = true;
                 auto base = static_cast<std::uint32_t>(out.vertices.size());
                 bool ok = true;
                 for (int k = 0; k < perTile; ++k) {
@@ -218,6 +235,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.vertexCount = static_cast<std::uint32_t>(out.vertices.size()) - range.firstVertex;
         range.indexCount = static_cast<std::uint32_t>(out.indices.size()) - range.firstIndex;
     }
+    out.readsWater = std::any_of(out.records.begin(), out.records.end(), [](std::uint16_t r) { return r >= kWaterRecords; });
 }
 
 bool SameGeometry(const CachedPage& a, const CachedPage& b) {
@@ -479,6 +497,8 @@ bool BuildAgain(const SectorData* s, int page, int lod, bool seams, CachedPage& 
     p.records.swap(g_scratch.records);
     p.entries.swap(g_scratch.entries);
     p.indices.swap(g_scratch.indices);
+    p.readsWater = g_scratch.readsWater;
+    p.animatedTiles = g_scratch.animatedTiles;
     for (int q = 0; q < 4; ++q) p.quarters[q] = g_scratch.quarters[q];
     return true;
 }
@@ -654,10 +674,10 @@ void TerrainLevels(TerrainLevelMode mode) {
 }
 #endif
 
-void TerrainChanged(const terrain::SectorData* sector, bool rebuilt) {
+void TerrainChanged(const terrain::SectorData* sector, TerrainChange change) {
     if (!sector) return;
     SectorChanges& c = g_changes[sector];
-    ++(rebuilt ? c.rebuilt : c.moved);
+    ++(change == TerrainChange::Rebuilt ? c.rebuilt : change == TerrainChange::Moved ? c.moved : c.waterMoved);
 }
 
 #if defined(EI_RENDER_VALIDATION)
@@ -715,14 +735,17 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (made) {
         BuildPage(s, page, lod, seams, p);
         upload = true;
-    } else if (!p.source.SameTiles(source)) {
-        moved = upload = BuildAgain(s, page, lod, seams, p);
-    } else if (p.source.changes.moved != source.changes.moved) {
-        moved = ReadVertices(s, p);
 #if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
         moved = BuildAgain(s, page, lod, seams, p);   // off: all of it uploaded again, as before R16c
         upload = true;
+#endif
+    } else if (!p.source.SameTiles(source)) {
+        moved = upload = BuildAgain(s, page, lod, seams, p);
+    } else if ((p.animatedTiles && p.source.changes.moved != source.changes.moved) ||
+               (p.readsWater && p.source.changes.waterMoved != source.changes.waterMoved)) {
+        moved = ReadVertices(s, p);
+#if defined(EI_RENDER_VALIDATION)
     } else if (FrameNumber() % kCheckEvery == 0) {
         ++g_checks;
         if (BuildAgain(s, page, lod, seams, p)) {

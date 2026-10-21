@@ -847,22 +847,43 @@ across runs; the goldens check the game state.
    (sokol has no partial update): positions and texture coordinates (20 bytes a vertex), the lit colours (8 bytes, a
    stream of their own) and absolute indices. A frame keeps the visible quarters of each page handed over
    (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is built again when its tile
-   lists, records or edge flags moved (pointers, sizes) or the game rebuilt the sector (`render::TerrainChanged(s,
-   true)` from Build and Clear). When the game only moves vertices or texture coordinates (Animate's waves and
-   animated tiles, ApplyWaterLevels: `TerrainChanged(s, false)`) the page reads them again through its vertices'
-   records and tile entries and uploads the changed range; the visible quarters' colours are compared with the
-   records every frame, the changed range uploaded. The pool (at least 128 K vertices) starts again with the frame's
+   lists, records, edge flags or animated tiles moved (pointers, sizes) or the game rebuilt the sector
+   (`render::TerrainChanged(s, Rebuilt)` from Build and Clear). When the game only moves texture coordinates
+   (Animate's animated tiles: `Moved`; only the pages holding one of the sector's animated tiles) or the water
+   layer's positions (Animate's waves, ApplyWaterLevels: `WaterMoved`; only the pages reading a water record) the
+   page reads them again through its vertices' records and tile entries and uploads the changed range; the visible
+   quarters' colours are compared with the records every frame, the changed range uploaded. The pool (at least 128 K vertices) starts again with the frame's
    pages when full (made larger when they need more than half of it); pages not drawn for 600 frames are dropped.
    The shadow map's fit reads the pieces' positions (`TerrainPositions`, the same vertices in the same order).
    Measured (render_stats, vanilla 4K, per frame): terrain upload before / after menu 268 / 51 KB, zone1 808 / 229,
    fight 808 / 211, town 372 / 74 (indices only when a page is built: none in these scenes); terrain CPU (`renderstats`
    "terrain": hand-over and uploads) zone1 0.44-0.61 ms with every page built and uploaded every frame / 0.24 kept,
-   town 0.15 kept (Rebirth's wider view: zone1 1046 / 289 KB, 0.67 / 0.44-0.56 ms; the times are noisy). What zone1 still uploads is mostly its water pages
-   (the waves move every water vertex each tick, Animate on the CPU) and relit colours; waves in the vertex shader
-   would take the rest (R16c2). Check: the harness's `terraincache off` builds and uploads every page every frame as
-   before; render_scene, render_terrain_seams and render_smooth capture the frozen frame both ways (0 pixels differ),
+   town 0.15 kept (Rebirth's wider view: zone1 1046 / 289 KB, 0.67 / 0.44-0.56 ms; the times are noisy). What zone1
+   still uploads is its water pages' texture coordinates (R16c2 below) and relit colours. Check: the harness's
+   `terraincache off` builds and uploads every page every frame as before (since R16c2 also the pages the game
+   moved, which it read again instead before); render_scene, render_terrain_seams and render_smooth capture the frozen frame both ways (0 pixels differ),
    and the harness build compares every kept page with a fresh build every 16th frame (`terraincache check`, 0 stale
    in the render_* scenarios and render_stats).
+   **R16c2 Water waves in the vertex shader (measured, not built: about 0.03 ms a frame to gain).** The water
+   option is off in the harness's settings (`EnableWaterWaves` 0, config/harness/registry.reg; WorldClient clears
+   landscape flag 1 then, and Animate 006C3E80 skips the waves), so in render_stats' scenes the water pages move
+   by their animated tiles' texture coordinates (the animated water textures, a step every third tick), not by
+   waves. Measured with temporary timers (harness build, 4K, per frame, the 60 frames of each scene; vanilla /
+   Rebirth): zone1 6 water pages (9.3 K vertices in view), 174 / 221 KB of their texture coordinates uploaded,
+   writes 0.03 / 0.04 ms; the page re-reads 0.11 / 0.13 ms, because `TerrainChanged(s, false)` was per sector and
+   the ground pages of every sector with animated tiles read their vertices again too (34 / 43 pages, 21.9 / 26.7
+   K vertices, nothing changed in the ground ones); Animate itself 0.03 ms. With the waves option on (a temporary
+   harness step setting it before newgame): Animate 1.0 / 1.2 ms in zone1 and 0.35 ms in the town (33 / 25
+   sectors: three sine lookups, three conversions and the specular per water vertex), uploads 332 / 377 KB, the
+   water pages' writes 0.05-0.06 ms. GPU waves would leave Animate on the CPU (the game reads the water heights:
+   HeightAt through VertexAt's layer 1, the digest) and would still re-read and upload the same water pages for
+   their animated texture coordinates, so what they could take is the waves' share of the writes and the crests'
+   specular: about 0.02-0.03 ms. Built instead (R16c2): the changes say which layer moved (`TerrainChange`), and a
+   page reads its vertices again only for its own kind (pages with animated tiles, pages reading water records):
+   zone1 34 -> 4.7 pages a frame, 21.9 -> 8.9 K vertices read, 0.11 -> 0.05 ms (Rebirth 43 -> 5.7, 0.13 -> 0.06;
+   town 25 -> 2.7 pages, 0.046 -> 0.016 ms); uploads unchanged. Check: `terraincache check` 0 stale in render_stats
+   and the render_* scenarios, and with the waves on in zone1 and the town (721 / 872 checks); render_scene's
+   world_fresh 0 pixels differ; goldens. What is left with the waves on is Animate on the CPU (R16c3).
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
    `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh

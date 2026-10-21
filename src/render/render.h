@@ -389,9 +389,11 @@ void ClearDepth(float z, const Rect* rects, int count);
 // 0..pages+1, water pages after them).
 void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
 // The game changed what the sector's pages are built from (R16c: the renderer keeps them on the GPU):
-// `rebuilt` its tile lists and records (SectorData::Build, Clear), else it moved vertices or texture
-// coordinates (Animate's waves and animated tiles, ApplyWaterLevels).
-void TerrainChanged(const terrain::SectorData* sector, bool rebuilt);
+// Rebuilt its tile lists and records (SectorData::Build, Clear); Moved vertices or texture coordinates
+// (Animate's animated tiles); WaterMoved only the water layer's positions (Animate's waves,
+// ApplyWaterLevels: only the pages reading that layer read their vertices again).
+enum class TerrainChange { Rebuilt, Moved, WaterMoved };
+void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 // Harness build only (the harness's "terraincache", R16c): the terrain pages kept on the GPU (on, the
 // default) or built and uploaded again every frame (off: as before R16c, for frame comparisons); the
 // pages kept, and the checks of kept pages against a fresh build (every 16th frame) with how many

@@ -427,7 +427,7 @@ id = "R16c2"
 title = "Water waves in the terrain vertex shader"
 group = "renderer"
 depends = ["R16c"]
-note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%."
+note = "docs/notes/renderer.md section 13 item 3. After R16c zone1 still uploads about 0.2 MB of terrain a frame, mostly its water pages: SectorData::Animate (006C3E80) moves every water vertex and sets the crests' specular on the CPU each tick. Base positions and the wave parameters (phase, direction, height, material priority and kind, the sine table) on the GPU and the lift in the vertex shader would leave only relit colours. Risk: float differences against the CPU waves (x87 sine table lookups); the game still reads heights on the CPU (HeightAt). Check: render_scene, terrain_water_load frames with the cache on / off; zone1 frames at 8 / 0.5%. Measured (R16c2): GPU waves not built, about 0.03 ms a frame to gain. The waves option is off in the harness (EnableWaterWaves 0): zone1's water uploads are animated tiles' texture coordinates (174 / 221 KB vanilla / Rebirth, writes 0.03-0.04 ms). With the option on Animate costs 1.0-1.2 ms in zone1, which stays on the CPU (the game reads the heights); GPU waves would take only the waves' share of the writes and the crests' specular. Built instead: TerrainChange (Rebuilt / Moved / WaterMoved), a page re-reads only for its own kind: zone1 34 -> 4.7 pages, 0.11 -> 0.05 ms a frame (Rebirth 0.13 -> 0.06); terraincache off now builds every page. Follow-up R16c3 (Animate's loop)."
 
 [[ticket]]
 id = "R16d2"
@@ -503,6 +503,12 @@ model = "opus"
 depends = ["R16e1"]
 files = ["src/game/map_object_shadow.cpp", "src/game/world_client_decals.cpp"]
 note = "Found by R16e (renderer.md section 13 item 5). With the shadow map the object shadows' ProjectDecal 0056C750 (0.34 / 0.60 / 0.48-0.63 ms a frame in zone1 / the fight / the town, render_stats vanilla 4K) is read only for its mesh's bounds: the shadow's sphere (FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (CollectVisible 0056A990 then lists them for shadows and updates their pose) and vertices.size (DrawShadow's early return). A sphere around the decal's prism (the quad through the plane at the point minus depth * 0.33, clamped to the terrain's and platforms' heights under it) is conservative: more objects out of view listed for shadows (more casters in the map, which also helps the open 'casters off screen cast nothing'), more pose updates. Changes the shadow lists, so it waits for the user's call; check goldens 0 differ, render_shadows, renderstats' shadow projections gone with the map."
+
+[[ticket]]
+id = "R16c3"
+title = "Water waves' CPU loop (Animate) faster, bit-exact"
+group = "renderer"
+note = "R16c2 measured SectorData::Animate 006C3E80 at 1.0 ms a frame in zone1 (1.2 Rebirth, 0.35 in the town) with the water waves option on (EnableWaterWaves; off in the harness's registry, so no scenario reaches the waves now). The circling waves' sineX / sineY depend only on the column / row and the world time (read per vertex): 33 values each per call; the time once per call. Same float expressions, so bit-exact; needs a scenario with the option on (a harness step setting enableWaterWaves_ before newgame) and a golden or vectors for Animate. docs/notes/renderer.md section 13 item 3 (R16c2)."
 
 # ---------------------------------------------------------------- native interface drawing
 
