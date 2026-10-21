@@ -1,0 +1,12 @@
+{
+  "scenario": "net_pair_master",
+  "install": "vanilla",
+  "recorded": "2026-10-21",
+  "commit": "790539fb",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "SV5d4: the master's server list (bad size, short record, the list) joined through it, and a bad update",
+  "side": "peer"
+}

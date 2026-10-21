@@ -32,8 +32,10 @@ function does; this file keeps what is not visible in the code.
   `net_pair_leave.txt` (SV5d2): shared files (the peer lacks a quest file), the peer lost in the game zone
   (its network cut), the host back out to the base and the map's reject topic (LeaveZone, the award).
   `net_pair_quest.txt` (SV5d3): a quest finished in the zone and CompleteZone with its awards, in a public
-  game whose (fake) master answers. Not reached by any scenario: `GameInfoRecord::Read`, bad updates,
-  recording and replay (no `.apl` file exists).
+  game whose (fake) master answers. `net_pair_master.txt` (SV5d4): the master's server list (0041D600,
+  `GameInfoRecord::Read`; bad size, short record, the host's game joined from it) and a bad update (the host's
+  server drops the client, then updates from an unknown host). Not reached by any scenario: recording and
+  replay (no `.apl` file exists).
 
 ## The multiplayer base and the zone switch (SV5d1)
 

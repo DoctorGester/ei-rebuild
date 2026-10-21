@@ -20,6 +20,8 @@ constexpr int kSignals = 32;
 constexpr int kTagBytes = 56;
 constexpr std::uint16_t kOwnPorts = 30000;   // + 1000 * side + n: a socket that sends before any bind
 constexpr DWORD kSilentMs = 90000;           // the other game gives no turn for this long: go on alone (a failure)
+constexpr int kRecords = 16;                 // the fake master's announcements (one every ~75 frames per server)
+constexpr int kRecordBytes = 0x240;          // an announcement: 18 bytes and two strings of at most 0x100
 
 struct Datagram {
     LONG full;
@@ -41,6 +43,16 @@ struct SignalTag {
     char tag[kTagBytes];
 };
 
+// An announcement the fake master keeps (SV5d4): listed from segment `stamp` on.
+struct MasterRecord {
+    LONG used;
+    std::uint32_t seq;
+    std::int32_t stamp;
+    std::uint16_t master, from;   // the master's port, the announcer's
+    std::int32_t length;
+    char data[kRecordBytes];
+};
+
 // The pair's shared memory (a named mapping, zeroed by Windows when the first side creates it: the
 // zero state is the start).
 struct Shared {
@@ -52,6 +64,8 @@ struct Shared {
     Claim claims[kClaims];
     SignalTag signals[kSignals];
     Datagram slots[kSlots];
+    std::uint32_t nextRecord;
+    MasterRecord records[kRecords];   // a ring: the last announcements
 };
 
 Shared* g_shared;
@@ -67,7 +81,25 @@ bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here 
 std::uint16_t g_fakeMaster = 0;   // "fakemaster": the virtual port this game's master answers on
 unsigned g_masterAnswers = 0;
 std::uint32_t g_lastToken = 0;    // the token the last announcement carried back
+enum class Reply { kList, kBadSize, kShort };
+Reply g_reply = Reply::kList;     // the fake master's next list replies
+const char* const kReplyNames[] = {"list", "badsize", "short"};
+unsigned g_lists = 0, g_lastListed = 0;   // list requests answered, the servers in the last
+bool g_noLan = false;             // "nolan": broadcasts are lost
+unsigned g_broadcastsLost = 0;
+bool g_badArmed = false;          // "badupdate": the next update to the other game is made bad
+unsigned g_badSent = 0;
 char g_name[96];
+
+// The fake master's TCP links (main thread; select may come from others).
+struct MasterLinkState {
+    std::uintptr_t socket;
+    bool asked;                        // the request came: the reply is ready
+    std::vector<std::uint8_t> reply;
+    std::size_t taken;
+};
+SRWLOCK g_linksLock = SRWLOCK_INIT;
+std::vector<MasterLinkState> g_links;
 
 // This process's sockets and their virtual ports, and the next port of its own.
 SRWLOCK g_socketsLock = SRWLOCK_INIT;
@@ -320,7 +352,89 @@ bool Bind(std::uintptr_t s, std::uint16_t port) {
     return true;
 }
 
-int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
+namespace {
+
+// The fake master keeps an announcement (the shared lock held): listed from this segment on, or from the
+// next when sent in the frame step after the hand-off (beside the other game's turn).
+void KeepAnnouncement(std::uint16_t master, std::uint16_t from, const char* data, int length) {
+    if (length > kRecordBytes) {
+        g_failures.push_back("pair: an announcement too long for the fake master");
+        return;
+    }
+    MasterRecord& r = g_shared->records[g_shared->nextRecord % kRecords];
+    r.seq = g_shared->nextRecord++;
+    r.stamp = OutsideTurn() ? g_stamp + 2 : g_stamp;
+    r.master = master;
+    r.from = from;
+    r.length = length;
+    std::memcpy(r.data, data, static_cast<std::size_t>(length));
+    r.used = 1;
+}
+
+// The list as the fake master sends it: per announcing port (in port order) its newest announcement listed
+// by now, after the announcer's address (a sockaddr_in on 127.0.0.1). Then the reply: its size, the
+// uncompressed size and the LZ coder's stream of literals (a flag byte of eight 0 bits before every eight
+// bytes: CoderState::Decompress 00430960).
+std::vector<std::uint8_t> MakeList(unsigned* servers) {
+    std::vector<std::uint8_t> list;
+    *servers = 0;
+    {
+        Locked lock;   // the records are copied while it is held (the other game may announce meanwhile)
+        std::vector<const MasterRecord*> newest;
+        for (const MasterRecord& r : g_shared->records) {
+            if (!r.used || r.master != g_fakeMaster || r.stamp > g_stamp) continue;
+            bool replaced = false;
+            for (const MasterRecord*& n : newest)
+                if (n->from == r.from) {
+                    if (static_cast<std::int32_t>(r.seq - n->seq) > 0) n = &r;
+                    replaced = true;
+                }
+            if (!replaced) newest.push_back(&r);
+        }
+        for (std::size_t i = 1; i < newest.size(); ++i)
+            for (std::size_t j = i; j > 0 && newest[j]->from < newest[j - 1]->from; --j) std::swap(newest[j], newest[j - 1]);
+        for (const MasterRecord* r : newest) {
+            sockaddr_in address{};
+            address.sin_family = AF_INET;
+            address.sin_port = htons(r->from);
+            address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            const auto* a = reinterpret_cast<const std::uint8_t*>(&address);
+            list.insert(list.end(), a, a + sizeof(address));
+            list.insert(list.end(), r->data, r->data + r->length);
+        }
+        *servers = static_cast<unsigned>(newest.size());
+    }
+    if (g_reply == Reply::kShort && list.size() >= 3) list.resize(list.size() - 3);
+    std::vector<std::uint8_t> reply(8);
+    const auto plain = static_cast<std::uint32_t>(list.size());
+    std::memcpy(reply.data() + 4, &plain, 4);
+    for (std::size_t i = 0; i < list.size(); ++i) {
+        if (i % 8 == 0) reply.push_back(0);
+        reply.push_back(list[i]);
+    }
+    const auto size = static_cast<std::uint32_t>(reply.size() + (g_reply == Reply::kBadSize ? 1 : 0));
+    std::memcpy(reply.data(), &size, 4);
+    return reply;
+}
+
+// "badupdate": an update (kind 0; Connection::SendUpdate 00435A00: the sequence, the acknowledgements, the
+// reliable chunk of 3 + its size bytes, the record count, the records) with one record of type 0xFF instead
+// of its records. Its length, or 0 when the datagram is too short to be an update.
+int MakeBad(const char* data, int length, char* out) {
+    constexpr int kChunkAt = 1 + 2 + 2 + 4;
+    if (length < kChunkAt + 3) return 0;
+    const int countAt = kChunkAt + 3 + static_cast<std::uint8_t>(data[kChunkAt + 2]);
+    if (countAt >= length) return 0;
+    std::memcpy(out, data, static_cast<std::size_t>(countAt));
+    // One record: the created bit (a bit byte of its own), the type, the id (Connection::ReadRecord).
+    const char record[] = {1, 1, static_cast<char>(0xFF), 0, 0};
+    std::memcpy(out + countAt, record, sizeof(record));
+    return countAt + static_cast<int>(sizeof(record));
+}
+
+} // namespace
+
+int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port, bool broadcast) {
     if (length < 0 || length > kDatagramBytes) {
         WSASetLastError(WSAEMSGSIZE);
         return SOCKET_ERROR;
@@ -346,8 +460,13 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
         ++g_lost;
         return length;
     }
+    if (g_noLan && broadcast) {
+        ++g_broadcastsLost;
+        return length;
+    }
     if (g_fakeMaster && port == g_fakeMaster && length >= 8) {
         // The master's answer: kind -1, the announcement's master key, a token (numbered answers).
+        KeepAnnouncement(port, from, data, length);
         std::uint32_t key = 0;
         std::memcpy(&key, data, 4);
         std::memcpy(&g_lastToken, data + 4, 4);
@@ -374,14 +493,25 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
         ++g_unheard;   // nobody holds the port: gone, as a datagram to a closed port is
         return length;
     }
+    char bad[kDatagramBytes + 8];   // MakeBad's datagram is at most 4 bytes longer
+    int badLength = 0;
+    if (g_badArmed && length > 0 && length + 4 <= kDatagramBytes && data[0] == 0 && !ClaimedHere(port) &&
+        (badLength = MakeBad(data, length, bad)) > 0) {
+        g_badArmed = false;
+        ++g_badSent;
+        Log("harness: pair: a bad update %u -> %u (%d bytes instead of %d: one record of type 0xFF)", from, port,
+            badLength, length);
+        data = bad;
+    }
+    const int sentLength = badLength > 0 ? badLength : length;
     for (Datagram& d : g_shared->slots) {
         if (d.full) continue;
         d.seq = g_shared->nextSeq++;
         d.stamp = g_stamp;
         d.to = port;
         d.from = from;
-        d.length = length;
-        std::memcpy(d.data, data, static_cast<std::size_t>(length));
+        d.length = sentLength;
+        std::memcpy(d.data, data, static_cast<std::size_t>(sentLength));
         d.full = 1;
         return length;
     }
@@ -435,6 +565,13 @@ int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* from
 
 void Close(std::uintptr_t s) {
     InTurn("Close");
+    AcquireSRWLockExclusive(&g_linksLock);
+    for (std::size_t i = 0; i < g_links.size(); ++i)
+        if (g_links[i].socket == s) {
+            g_links.erase(g_links.begin() + static_cast<std::ptrdiff_t>(i));
+            break;
+        }
+    ReleaseSRWLockExclusive(&g_linksLock);
     const std::uint16_t port = PortOf(s);
     if (!port) return;
     AcquireSRWLockExclusive(&g_socketsLock);
@@ -456,9 +593,106 @@ void Cut() {
     Log("harness: pair: this game's network is cut");
 }
 
-void FakeMaster(std::uint16_t port) {
+bool FakeMaster(std::uint16_t port, const char* reply) {
+    int found = -1;
+    for (int i = 0; i < 3; ++i)
+        if (std::strcmp(reply, kReplyNames[i]) == 0) found = i;
+    if (found < 0) return false;
     g_fakeMaster = port;
-    Log("harness: pair: a fake master answers on virtual port %u", port);
+    g_reply = static_cast<Reply>(found);
+    Log("harness: pair: a fake master answers on virtual port %u (list replies: %s)", port, reply);
+    return true;
+}
+
+bool MasterConnect(std::uintptr_t s, std::uint16_t port) {
+    if (!g_shared || !g_fakeMaster || port != g_fakeMaster) return false;
+    AcquireSRWLockExclusive(&g_linksLock);
+    g_links.push_back({s, false, {}, 0});
+    ReleaseSRWLockExclusive(&g_linksLock);
+    Log("harness: pair: socket %u links to the fake master %u", static_cast<unsigned>(s), port);
+    return true;
+}
+
+bool MasterSelect(fd_set* read, fd_set* write, fd_set* except, int* ready) {
+    if (!g_shared) return false;
+    AcquireSRWLockShared(&g_linksLock);
+    auto link = [](SOCKET s) -> const MasterLinkState* {
+        for (const MasterLinkState& l : g_links)
+            if (l.socket == s) return &l;
+        return nullptr;
+    };
+    bool any = false;
+    for (fd_set* set : {read, write, except})
+        if (set)
+            for (u_int i = 0; i < set->fd_count; ++i) any = any || link(set->fd_array[i]);
+    if (any) {
+        *ready = 0;
+        int which = 0;
+        for (fd_set* set : {read, write, except}) {
+            ++which;
+            if (!set) continue;
+            u_int kept = 0;
+            for (u_int i = 0; i < set->fd_count; ++i) {
+                const MasterLinkState* l = link(set->fd_array[i]);
+                if (!l) Log("harness: pair: select of a master link with socket %u beside it: left out", static_cast<unsigned>(set->fd_array[i]));
+                const bool on = l && (which == 1 ? l->asked : which == 2);
+                if (on) set->fd_array[kept++] = set->fd_array[i];
+            }
+            set->fd_count = kept;
+            *ready += static_cast<int>(kept);
+        }
+    }
+    ReleaseSRWLockShared(&g_linksLock);
+    return any;
+}
+
+bool MasterSend(std::uintptr_t s, const char* data, int length) {
+    if (!g_shared) return false;
+    AcquireSRWLockExclusive(&g_linksLock);
+    MasterLinkState* found = nullptr;
+    for (MasterLinkState& l : g_links)
+        if (l.socket == s) found = &l;
+    if (found && !found->asked) {
+        unsigned servers = 0;
+        found->reply = MakeList(&servers);
+        found->asked = true;
+        ++g_lists;
+        g_lastListed = servers;
+        std::uint32_t extra = 0;
+        if (length >= 4) std::memcpy(&extra, data, 4);
+        Log("harness: pair: fake master %u asked for its list (%d bytes, extra %08X): %s of %u servers, %u bytes",
+            g_fakeMaster, length, extra, kReplyNames[static_cast<int>(g_reply)], servers,
+            static_cast<unsigned>(found->reply.size()));
+    }
+    ReleaseSRWLockExclusive(&g_linksLock);
+    return found != nullptr;
+}
+
+bool MasterRecv(std::uintptr_t s, char* data, int length, int* received) {
+    if (!g_shared) return false;
+    AcquireSRWLockExclusive(&g_linksLock);
+    MasterLinkState* found = nullptr;
+    for (MasterLinkState& l : g_links)
+        if (l.socket == s) found = &l;
+    if (found) {
+        const std::size_t left = found->reply.size() - found->taken;
+        const std::size_t n = length > 0 && static_cast<std::size_t>(length) < left ? static_cast<std::size_t>(length) : left;
+        if (n) std::memcpy(data, found->reply.data() + found->taken, n);
+        found->taken += n;
+        *received = static_cast<int>(n);   // 0 once all is taken: the master closed the link
+    }
+    ReleaseSRWLockExclusive(&g_linksLock);
+    return found != nullptr;
+}
+
+void NoLan() {
+    g_noLan = true;
+    Log("harness: pair: this game's broadcasts are lost from now on");
+}
+
+void BadUpdate() {
+    g_badArmed = true;
+    Log("harness: pair: the next update to the other game is made bad");
 }
 
 void Report(FILE* f) {
@@ -467,8 +701,11 @@ void Report(FILE* f) {
     char cut[64] = "";
     if (g_cut) std::snprintf(cut, sizeof(cut), "; cut by netcut (%u datagrams lost)", g_lost);
     if (g_fakeMaster)
-        std::fprintf(f, "\nMASTER: the fake master on port %u answered %u announcements; the last carried token %08X back\n",
-                     g_fakeMaster, g_masterAnswers, g_lastToken);
+        std::fprintf(f, "\nMASTER: the fake master on port %u answered %u announcements; the last carried token %08X back; "
+                     "%u list requests (the last: %u servers)\n",
+                     g_fakeMaster, g_masterAnswers, g_lastToken, g_lists, g_lastListed);
+    if (g_noLan) std::fprintf(f, "PAIR: nolan: %u broadcasts lost\n", g_broadcastsLost);
+    if (g_badSent) std::fprintf(f, "PAIR: badupdate: %u bad updates sent\n", g_badSent);
     if (g_peerEndedAt >= 0) std::snprintf(ended, sizeof(ended), "ended at this game's frame %ld", g_peerEndedAt);
     std::fprintf(f, "\nPAIR: side %d (%s): %u turns in lockstep, %llu ms waiting for the other game; %u datagrams sent "
                  "(%u to no one), %u received; the other game %s\n",
@@ -485,6 +722,10 @@ void Report(FILE* f) {
 }
 
 std::string Failure() {
+    if (g_badArmed) {
+        g_badArmed = false;
+        g_failures.push_back("pair: badupdate: no update went to the other game after it");
+    }
     std::string text;
     for (const std::string& f : g_failures) text += (text.empty() ? "" : "; ") + f;
     return text;
