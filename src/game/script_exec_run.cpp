@@ -271,7 +271,8 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
 }
 EI_REPLACE_METHOD(0x004BC420, CScript::RunCommands);
 
-void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) {
+void CScript::RunWorldScript(ScriptDecl* block) {
+    CScript* script = this;
     alignas(4) unsigned char storage[sizeof(ScriptRun)];
     auto* run = reinterpret_cast<ScriptRun*>(storage);
     run->block = nullptr;
@@ -298,7 +299,7 @@ void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) 
     runs.head = node;
     ScriptVarsDestruct(&run->vars);
 }
-EI_REPLACE(0x004BCC60, ScriptRunWorldScript);
+EI_REPLACE_METHOD(0x004BCC60, CScript::RunWorldScript);
 
 void __fastcall ScriptFreeTemporaries(CScript* script) {
     if (script->forDepth_ > 0) return;

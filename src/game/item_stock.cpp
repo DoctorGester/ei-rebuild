@@ -529,13 +529,11 @@ namespace {
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
 // 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
 // they insert a null for a new name).
-char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
-char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
-char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
+char* FindNamed(const RecordTable& table, const char* name) {
+    return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(table)), nullptr, name);
+}
 // push_back of the pointer vectors: 0069BD30 (the three item lists), 0069BDC0 (spells), 0069BDF0
 // (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20.
-
-using FindNamedFn = char*(__fastcall*)(void*, void*, const char*);
 
 // The counts and the material values are read into locals the original reuses for every section,
 // so a failed read leaves the previous value.
@@ -557,13 +555,12 @@ void AddUnique(StockPtrVector& list, char* record) {
 }
 
 // A record section: a count, then names lower-cased and looked up in `table`.
-void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const RecordTable& table, FindNamedFn find,
-                 StockPtrVector& list) {
+void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const RecordTable& table, StockPtrVector& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         name.MakeLower();
-        char* record = find(TableObject(table), nullptr, name);
+        char* record = FindNamed(table, name);
         if (record) AddUnique(list, record);
     }
 }
@@ -591,9 +588,9 @@ void ItemStock::LoadLists(void* stream) {
     PartyOf(this)->ItemManager();
     mfc::CString name;
     unsigned count = 0;
-    LoadRecords(stream, name, count, itemdb::Armors(), &FindArmorNamed, armors);
-    LoadRecords(stream, name, count, itemdb::Weapons(), &FindWeaponNamed, weapons);
-    LoadRecords(stream, name, count, itemdb::QuickItems(), &FindQuickItemNamed, quickItems);
+    LoadRecords(stream, name, count, itemdb::Armors(), armors);
+    LoadRecords(stream, name, count, itemdb::Weapons(), weapons);
+    LoadRecords(stream, name, count, itemdb::QuickItems(), quickItems);
 
     ReadInt(stream, &count);
     int values[3] = {0, 0, 0};
@@ -763,7 +760,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
         if (count >= static_cast<unsigned>(spells.size())) break;
         if (++tries >= kScrollTries) break;
     }
-    char* prototype = FindQuickItemNamed(TableObject(itemdb::QuickItems()), nullptr, game::SpellContainerText());
+    char* prototype = FindNamed(itemdb::QuickItems(), game::SpellContainerText());
     for (StockListNode* n = list.head->next; n != list.head; n = n->next) {
         ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(0x3008, -1);

@@ -1958,6 +1958,10 @@ public:
     // Base drawing (slot 20); returns 1.
     BOOL DrawContainer(int pass);
     int DrawContainerImpl(int pass);   // body of the slot above (registered by member pointer)
+    // 0062EFC0 / 0065A6D0 (ui_alpha_draws.cpp; slot 20 of windows that only set alpha states around
+    // DrawContainerImpl). Blending on with alpha reference 1; alpha reference 1 for the draw. Return 1.
+    int DrawBlendedImpl(int pass);
+    int DrawAlphaRefImpl(int pass);
     // 00601040 (ui_container.cpp). Base slot 22, only while the interface draws (+0x30): the
     // window's own (005FECC0), then every enabled child's slot 22.
     void RedrawContainer();

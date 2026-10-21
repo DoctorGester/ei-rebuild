@@ -478,6 +478,9 @@ static_assert(sizeof(BlockRecord) == 24);
 struct BlockSearch {
     // 005AED60 (RET 8). Attaches to the region map: one record per block, all unreached.
     void Attach(CRegionMap* regionMap, bool fromTarget);
+    // 005AF1C0 (RET 0xC; ai_region_reach.cpp). The path from the search's start to block (x, y) into
+    // `path` (emptied first).
+    void PathTo(int x, int y, PathCellList* path);
     // 005AEE30 (RET 4). Moves `record` to its place in its bucket (a bucket head stays).
     void Requeue(BlockRecord* record);
     // 005AEEC0 (RET 8). Relaxes the neighbour of `best` in `direction` (1..8) through the open edge,
@@ -504,9 +507,6 @@ static_assert(offsetof(BlockSearch, map) == 0x10);
 static_assert(offsetof(BlockSearch, open) == 0x1C);
 static_assert(offsetof(BlockSearch, bestCost) == 0x40);
 static_assert(sizeof(BlockSearch) == 0x4C);
-// 005AF1C0 (thiscall on the search, RET 0xC; ai_region_reach.cpp): the path from the search's start to
-// block (x, y) into `path` (emptied first).
-void __fastcall BlockSearchPathTo(BlockSearch* search, void*, int x, int y, PathCellList* path);
 
 // The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
 struct CRegionMap {
@@ -636,7 +636,19 @@ struct SmoothEdge {
     int index;
 };
 static_assert(sizeof(SmoothEdge) == 0x14);
-using SmoothEdgeArray = mfc::CArray<SmoothEdge>;     // vtable 0073FE28
+// CArray<SmoothEdge> (vtable 0073FE28): the states of one cell.
+struct SmoothEdges : mfc::CArray<SmoothEdge> {
+    // 005C3840 (RET 0x10; ai_path_smooth.cpp). The seven states of a cell crossed by the straight step
+    // (mx, my), with (sx, sy) the step to its side.
+    void AddStraightEdges(int mx, int my, int sx, int sy);
+    // 005C3A00 (RET 0x10). The nine states of a cell crossed by the diagonal step (mx, my), with
+    // (sx, sy) one of its two straight halves.
+    void AddDiagonalEdges(int mx, int my, int sx, int sy);
+    // 005C3690 (RET 8). Emptied, then the states of a cell the path crosses in `direction` (1..8):
+    // seven moves for a straight step, nine for a diagonal one. Direction 0 (the path's ends) gives the
+    // eight moves from the cell to its neighbours, or from the neighbours to it when `incoming`.
+    void BuildEdges(int direction, bool incoming);
+};
 
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end),
 // built by the static initialiser 005C42B0 at 007C3058.
@@ -650,7 +662,7 @@ struct SmoothTable {
     // 005C3E10 (RET 8). The table between a cell with the states `from` and the next one with the
     // states `to`: a copy for every state both have, a step from every `from` state to every `to`
     // state that starts where it ends, and the same between the `to` states themselves.
-    void Build(const SmoothEdgeArray* from, const SmoothEdgeArray* to);
+    void Build(const SmoothEdges* from, const SmoothEdges* to);
 
     mfc::CArray<SmoothCopy> copies;       // +0x00
     mfc::CArray<SmoothStep> steps;        // +0x14 from the previous cell's states
@@ -672,11 +684,6 @@ inline const SmoothTable* SmoothTables() { return ei::GameData<const SmoothTable
 // The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx], the
 // middle of the nine words at 00791978.
 inline const int* DirectionSteps() { return ei::GameData<const int[9]>(0x00791978) + 4; }
-// 005C3690 (thiscall on the array, RET 8; ai_path_smooth.cpp). The states of a cell the path crosses
-// in `direction` (1..8): seven moves for a straight step, nine for a diagonal one. Direction 0 (the
-// path's ends) gives the eight moves from the cell to its neighbours, or from the neighbours to it
-// when `incoming`.
-void __fastcall BuildSmoothEdges(SmoothEdgeArray* edges, void*, int direction, bool incoming);
 // What 005C42B0 does, on any 81 constructed tables: for every pair of directions the states of the
 // previous step (moved back by that step) against those of the next.
 void BuildSmoothTablesAt(SmoothTable* tables);

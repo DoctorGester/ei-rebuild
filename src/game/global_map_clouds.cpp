@@ -64,12 +64,13 @@ EI_REPLACE_METHOD(0x00499E90, CCloudNoise::DestructBody);
 // code at them): the same replacement, so their calls skip its check.
 EI_REPLACE_METHOD(0x0062EDC0, CCloudNoise::DestructBody);
 
-CCloudNoise* __fastcall CloudNoiseBaseDeletingDestruct(CCloudNoise* self, void*, unsigned flags) {
-    self->DestructBody();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+// 00499E30 (base slot 2, RET 4): DestructBody, freed when bit 0 of `flags` is set. Returns this.
+CCloudNoise* CCloudNoise::DeletingDestructImpl(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00499E30, CloudNoiseBaseDeletingDestruct);
+EI_REPLACE_METHOD(0x00499E30, CCloudNoise::DeletingDestructImpl);
 
 void CCloudNoise::Start() {
     for (int step = 0; step < kSteps; ++step) Generate(frames_[0], step);

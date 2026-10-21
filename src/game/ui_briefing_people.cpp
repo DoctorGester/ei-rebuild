@@ -140,7 +140,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
-            libcontainers::InsertSpeakersOverflow(reinterpret_cast<libcontainers::Speakers*>(&speakers_), nullptr,
+            libcontainers::SpeakerAbi::InsertOverflow(reinterpret_cast<libcontainers::Speakers*>(&speakers_), nullptr,
                                                   speakersEnd_, &added, 1);
         }
         speakersEnd_[-1].unit = unit;

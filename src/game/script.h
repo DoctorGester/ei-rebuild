@@ -603,6 +603,11 @@ public:
 
     // Not rewritten (forwarders).
     struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
+    // 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
+    struct ScriptDecl* NewWorldScript();
+    // 004BCC60 (RET 4). Adds a run of `block` (empty variables, no kill flag) at the head of the run
+    // list; it first executes on the next tick.
+    void RunWorldScript(struct ScriptDecl* block);
 
     // Fields used by the loader.
     ScriptDefinitions& Scripts() { return definitions_; }
@@ -892,9 +897,6 @@ struct ScriptRun {
 };
 static_assert(sizeof(ScriptRun) == 0xB4);
 
-// 004BCC60 (CScript::RunWorldScript). Adds a run of `block` (empty variables, no kill flag) at
-// the head of the run list; it first executes on the next tick.
-void __fastcall ScriptRunWorldScript(CScript* script, void* edx, ScriptDecl* block);
 // 004BEC80. Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
 // group (+0x1B0 list) and one released object reference (+0x1CC list).
 void __fastcall ScriptFreeTemporaries(CScript* script);
@@ -1008,8 +1010,6 @@ void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);
 
-// 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
-ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void* edx);
 // 004B5F70 (SSCCmd::Clear). id 0, every argument / binding / nested-call array emptied (nested
 // commands deleted; growBy kept), called script null.
 void __fastcall ScriptCmdClear(SSCCmd* cmd);

@@ -73,7 +73,15 @@ static_assert(offsetof(ClassTemplate, magic) == 0x1D4);
 static_assert(sizeof(ItemStock) == 0xB8);
 
 // STLport vector of counted pointers (start, finish, end of storage).
-using ClassTemplateVector = stlp::vector<ClassTemplate*>;
+struct TemplateTable : stlp::vector<ClassTemplate*> {
+    // 004A7630 (__thiscall, RET 4). Releases the templates, then builds new ones: four (classes 1, 3, 4,
+    // 5) when `fourClasses` (low byte) is set (004A88C0, called from 0057F280), else five (1 to 5, the
+    // fifth with zero weights; 004A88A0).
+    void Build(unsigned fourClasses);
+    // 004A74F0 (__thiscall, RET 4). The first template of class `type`, null if none.
+    ClassTemplate* Find(int type) const;
+};
+using ClassTemplateVector = TemplateTable;
 static_assert(sizeof(ClassTemplateVector) == 12);
 
 // 004A7080 (__thiscall). Adds to the template's lists every weapon, armor, quick item, fourth-kind
@@ -81,13 +89,6 @@ static_assert(sizeof(ClassTemplateVector) == 12);
 // both lists).
 void __fastcall ClassTemplateFill(ClassTemplate* t);
 
-// 004A7630 (__thiscall). Releases the vector's templates, then builds new ones: four (classes 1, 3,
-// 4, 5) when `fourClasses` (low byte) is set (004A88C0, called from 0057F280), else five (1 to 5,
-// the fifth with zero weights; 004A88A0).
-void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void* edx, unsigned fourClasses);
-
-// 004A74F0 (__thiscall). The first template of class `type`, null if none.
-ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void* edx, int type);
 // 004A88E0 (__thiscall on the party manager 007AA5A0, the script's quest completion): sets byte
 // +0x38 of every template (+0x38 vector). Leaves the template count in EAX.
 unsigned __fastcall ClassTemplatesQuestCompleted(void* manager);

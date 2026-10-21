@@ -118,13 +118,8 @@ struct AckDatabase {
 };
 inline AckDatabase& Database() { return ei::GameData<AckDatabase>(0x007C8A60); }
 
-// The archive's helpers for the records (acks_db.cpp; thiscall on the archive): 006E4F40 a speech
-// as chunk `id` (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id`
-// (RET 0xC; the last argument, the archive again, is unused).
-void __fastcall SpeechField(ChunkArchive* ar, void*, int id, SpeechRecord* speech);
-void __fastcall SpeechListField(ChunkArchive* ar, void*, int id, SpeechList* list, ChunkArchive*);
-void __fastcall EnvironmentSpeechListField(ChunkArchive* ar, void*, int id, stlp::vector<EnvironmentSpeech>* list,
-                                           ChunkArchive*);
+// (The archive's helpers for the records are ChunkArchive::SerializeSpeech / SerializeSpeechList /
+// SerializeEnvironmentSpeeches, acks_db.cpp.)
 
 // 006D8780 (thiscall on the list, RET 4): a random speech among those whose chance is at least
 // `roll` (the game's rand()); null, without drawing, when there is none.

@@ -217,27 +217,36 @@ void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list,
 
 } // namespace
 
+} // namespace acks
+
+using namespace acks;
+
 // The archive's helpers for the records (thiscall on the archive): 006E4F40 a speech as chunk `id`
 // (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id` (RET 0xC; the
 // third argument is the archive again, unused). The records inline the same code for some lists.
-void __fastcall SpeechField(ChunkArchive* ar, void*, int id, SpeechRecord* speech) {
+void ChunkArchive::SerializeSpeech(int id, void* speech) {
+    ChunkArchive* ar = this;
     if (!ar->EnterChunk(id)) return;
-    SpeechFields(ar, speech);
+    SpeechFields(ar, static_cast<SpeechRecord*>(speech));
     ar->LeaveChunk();
 }
-void __fastcall SpeechListField(ChunkArchive* ar, void*, int id, SpeechList* list, ChunkArchive*) {
-    ListField(ar, id, list, recordvec::SpeechVector::ResizeDefault, [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
+void ChunkArchive::SerializeSpeechList(int id, void* list, void*) {
+    ChunkArchive* ar = this;
+    ListField(ar, id, static_cast<SpeechList*>(list), recordvec::SpeechVector::ResizeDefault,
+              [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
 }
-void __fastcall EnvironmentSpeechListField(ChunkArchive* ar, void*, int id, stlp::vector<EnvironmentSpeech>* list,
-                                           ChunkArchive*) {
-    ListField(ar, id, list, recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
+void ChunkArchive::SerializeEnvironmentSpeeches(int id, void* list, void*) {
+    ChunkArchive* ar = this;
+    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
         SpeechFields(ar, &speech->speech);
         ar->Field(10, &speech->environment, 4);
     });
 }
-EI_REPLACE(0x006E4F40, SpeechField);
-EI_REPLACE(0x006E42F0, SpeechListField);
-EI_REPLACE(0x006E4410, EnvironmentSpeechListField);
+EI_REPLACE_METHOD(0x006E4F40, ChunkArchive::SerializeSpeech);
+EI_REPLACE_METHOD(0x006E42F0, ChunkArchive::SerializeSpeechList);
+EI_REPLACE_METHOD(0x006E4410, ChunkArchive::SerializeEnvironmentSpeeches);
+
+namespace acks {
 
 namespace {
 
@@ -258,7 +267,7 @@ constexpr ListChunk kUnitChunks[] = {
 // The lists of a record as chunks 10, 11, ... in order.
 template <std::size_t N>
 void Lists(ChunkArchive* ar, SpeechList (&lists)[N]) {
-    for (std::size_t i = 0; i < N; ++i) SpeechListField(ar, nullptr, static_cast<int>(10 + i), &lists[i], ar);
+    for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i], ar);
 }
 
 } // namespace
@@ -266,9 +275,9 @@ void Lists(ChunkArchive* ar, SpeechList (&lists)[N]) {
 void UnitAcks::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &head.name);
     for (const ListChunk& chunk : kUnitChunks) {
-        if (chunk.list == kEnvironment) EnvironmentSpeechListField(ar, nullptr, chunk.id, &environmentSpeeches, ar);
-        else if (chunk.list == kNamed) SpeechListField(ar, nullptr, chunk.id, &namedSpeeches, ar);
-        else SpeechListField(ar, nullptr, chunk.id, &lists[chunk.list], ar);
+        if (chunk.list == kEnvironment) ar->SerializeEnvironmentSpeeches(chunk.id, &environmentSpeeches, ar);
+        else if (chunk.list == kNamed) ar->SerializeSpeechList(chunk.id, &namedSpeeches, ar);
+        else ar->SerializeSpeechList(chunk.id, &lists[chunk.list], ar);
     }
 }
 

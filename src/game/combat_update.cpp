@@ -247,7 +247,7 @@ int CUnitServer::UpdateServer() {
                 }
             }
         }
-        StepAlarm(&voice, nullptr, this);
+        voice.Step(this);
         brain.Think();
         unit->flags_ &= ~kFlagSeen8000;
         PropagateHostility();

@@ -178,7 +178,7 @@ void CCampPages::BuildPages() {
     constructor_ = nullptr;
     int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable("constr.current")));
     if (constructor > 0) {
-        constructor_ = ClassTemplatesFind(ClassTemplates(), nullptr, constructor);
+        constructor_ = ClassTemplates()->Find(constructor);
         if (!constructor_) {
             GameRejoin();
             return;

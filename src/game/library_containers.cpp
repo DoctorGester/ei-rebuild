@@ -65,10 +65,6 @@ void __fastcall DestroyPointerVectors(PointerVectorsPair* self) {
 
 void __fastcall SetRootVtable(void* self) { ei::SetVtable(self, CLinkMesh::kRootVtableAddress); }
 
-mfc::impl::CTime* __fastcall TimeMinusSpan(const mfc::impl::CTime* self, void*, mfc::impl::CTime* out, long span) {
-    out->time = static_cast<long>(static_cast<unsigned long>(self->time) - static_cast<unsigned long>(span));   // wraps, as SUB
-    return out;
-}
 
 void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self) {
     self->description.~string();
@@ -82,11 +78,6 @@ void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
     new (&to->file) mfc::CString(from.file);
 }
 
-void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord* pos, const MpHeroRecord* x,
-                                          std::size_t n) {
-    self->InsertOverflow<HeroRecordElement>(pos, *x, n);
-}
-
 void SpeakerElement::Construct(BriefingSpeaker* to, const BriefingSpeaker& from) {
     to->unit = from.unit;
     new (&to->name) mfc::CString(from.name);
@@ -95,11 +86,6 @@ void SpeakerElement::Construct(BriefingSpeaker* to, const BriefingSpeaker& from)
 
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value) {
     if (p) SpeakerElement::Construct(p, *value);
-}
-
-void __fastcall InsertSpeakersOverflow(Speakers* self, void*, BriefingSpeaker* pos, const BriefingSpeaker* x,
-                                       std::size_t n) {
-    self->InsertOverflow<SpeakerElement>(pos, *x, n);
 }
 
 void __fastcall DestroyTradeRecord(net::TradeRecord* self) {
@@ -116,6 +102,13 @@ AddressList::Node** __fastcall FindAddressByHost(AddressList::Node** out, void*,
 }
 
 } // namespace libcontainers
+
+namespace mfc::impl {
+CTime* CTime::MinusSpan(CTime* out, long span) const {
+    out->time = static_cast<long>(static_cast<unsigned long>(time) - static_cast<unsigned long>(span));   // wraps, as SUB
+    return out;
+}
+} // namespace mfc::impl
 
 using namespace libcontainers;
 
@@ -144,13 +137,13 @@ EI_REPLACE(0x00482E90, ClearLoaderLocal);
 EI_REPLACE(0x005F60B0, DestroyPointerVectors);
 EI_REPLACE(0x004F69F0, SetRootVtable);
 
-EI_REPLACE(0x005E0550, TimeMinusSpan);
+EI_REPLACE_METHOD(0x005E0550, mfc::impl::CTime::MinusSpan);
 
 EI_REPLACE(0x0041AC30, DestroyGameInfoRecord);   // the server list's records (S12e)
 EI_REPLACE(0x006D29A0, DestroyPrintName);        // the print records' arrays (S12e)
 EI_REPLACE(0x006D29E0, DestroyPrintName);
-EI_REPLACE(0x00619920, InsertHeroRecordsOverflow);   // the heroes and saved parties (S12f)
+EI_REPLACE(0x00619920, HeroRecordAbi::InsertOverflow);   // the heroes and saved parties (S12f)
 EI_REPLACE(0x0060AB00, ConstructSpeaker);             // S12g: the briefing's speakers
-EI_REPLACE(0x0060A660, InsertSpeakersOverflow);
+EI_REPLACE(0x0060A660, SpeakerAbi::InsertOverflow);
 EI_REPLACE(0x00424DB0, DestroyTradeRecord);           // S12g: the client's trade records
 EI_REPLACE(0x00427FF0, FindAddressByHost);            // S12g: the server's banned addresses

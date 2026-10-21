@@ -385,10 +385,7 @@ void CHeroEquipPanel::Build(bool body) {
     }
     selected_ = -1;
 }
-namespace {
-void __fastcall EquipBuild(CHeroEquipPanel* self, void*, int body) { self->Build(static_cast<std::uint8_t>(body) != 0); }
-} // namespace
-EI_REPLACE(0x00622000, EquipBuild);
+EI_REPLACE_METHOD(0x00622000, CHeroEquipPanel::Build);
 
 // --- 00622DB0: the statistics panel's Build (slot 18) ---------------------------------------------
 
@@ -509,10 +506,7 @@ void CHeroQuickStrip::Build(bool top) {
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
-namespace {
-void __fastcall QuickStripBuild(CHeroQuickStrip* self, void*, int top) { self->Build(static_cast<std::uint8_t>(top) != 0); }
-} // namespace
-EI_REPLACE(0x00622A80, QuickStripBuild);
+EI_REPLACE_METHOD(0x00622A80, CHeroQuickStrip::Build);
 
 // --- 006280C0 / 00628CC0: the constructors' second pages ---------------------------------------------
 

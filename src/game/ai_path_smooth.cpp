@@ -190,35 +190,39 @@ namespace {
 // The direction opposite to `direction` (1..8).
 int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direction + 4; }
 
+} // namespace
+
 // 005C3840 (thiscall on the array, RET 0x10). The seven states of a cell crossed by the straight
 // step (mx, my), with (sx, sy) the step to its side: the step itself, the same step one cell to
 // either side, the diagonal moves into and out of the cell on either side.
-void __fastcall AddStraightEdges(SmoothEdgeArray* edges, void*, int mx, int my, int sx, int sy) {
-    edges->Add(SmoothEdge{0, 0, mx, my, 0});
-    edges->Add(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
-    edges->Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    edges->Add(SmoothEdge{-sx, -sy, mx, my, 0});
-    edges->Add(SmoothEdge{0, 0, mx + sx, my + sy, 0});
-    edges->Add(SmoothEdge{sx, sy, mx, my, 0});
-    edges->Add(SmoothEdge{0, 0, mx - sx, my - sy, 0});
+void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
+    Add(SmoothEdge{0, 0, mx, my, 0});
+    Add(SmoothEdge{-sx, -sy, mx - sx, my - sy, 0});
+    Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
+    Add(SmoothEdge{-sx, -sy, mx, my, 0});
+    Add(SmoothEdge{0, 0, mx + sx, my + sy, 0});
+    Add(SmoothEdge{sx, sy, mx, my, 0});
+    Add(SmoothEdge{0, 0, mx - sx, my - sy, 0});
 }
-EI_REPLACE(0x005C3840, AddStraightEdges);
+EI_REPLACE_METHOD(0x005C3840, SmoothEdges::AddStraightEdges);
 
 // 005C3A00 (thiscall on the array, RET 0x10). The nine states of a cell crossed by the diagonal
 // step (mx, my), with (sx, sy) one of its two straight halves and (ox, oy) the other.
-void __fastcall AddDiagonalEdges(SmoothEdgeArray* edges, void*, int mx, int my, int sx, int sy) {
+void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
     const int ox = mx - sx, oy = my - sy;
-    edges->Add(SmoothEdge{0, 0, mx, my, 0});
-    edges->Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
-    edges->Add(SmoothEdge{sx - mx, sy - my, sx, sy, 0});
-    edges->Add(SmoothEdge{ox, oy, mx + ox, my + oy, 0});
-    edges->Add(SmoothEdge{ox - mx, oy - my, ox, oy, 0});
-    edges->Add(SmoothEdge{0, 0, sx, sy, 0});
-    edges->Add(SmoothEdge{0, 0, ox, oy, 0});
-    edges->Add(SmoothEdge{sx, sy, mx, my, 0});
-    edges->Add(SmoothEdge{ox, oy, mx, my, 0});
+    Add(SmoothEdge{0, 0, mx, my, 0});
+    Add(SmoothEdge{sx, sy, mx + sx, my + sy, 0});
+    Add(SmoothEdge{sx - mx, sy - my, sx, sy, 0});
+    Add(SmoothEdge{ox, oy, mx + ox, my + oy, 0});
+    Add(SmoothEdge{ox - mx, oy - my, ox, oy, 0});
+    Add(SmoothEdge{0, 0, sx, sy, 0});
+    Add(SmoothEdge{0, 0, ox, oy, 0});
+    Add(SmoothEdge{sx, sy, mx, my, 0});
+    Add(SmoothEdge{ox, oy, mx, my, 0});
 }
-EI_REPLACE(0x005C3A00, AddDiagonalEdges);
+EI_REPLACE_METHOD(0x005C3A00, SmoothEdges::AddDiagonalEdges);
+
+namespace {
 
 // 005C4050 (fastcall: the step in ECX, `from` in EDX; RET 4). The step from the state `from` to the
 // state `to` that starts where it ends: the move `to` makes, the turn between the two moves less
@@ -248,7 +252,8 @@ EI_REPLACE(0x005C4050, MakeSmoothStep);
 
 } // namespace
 
-void __fastcall BuildSmoothEdges(SmoothEdgeArray* edges, void*, int direction, bool incoming) {
+void SmoothEdges::BuildEdges(int direction, bool incoming) {
+    SmoothEdges* edges = this;
     edges->SetSize(0, -1);
     switch (direction) {
     case 0:
@@ -259,19 +264,19 @@ void __fastcall BuildSmoothEdges(SmoothEdgeArray* edges, void*, int direction, b
             else edges->Add(SmoothEdge{0, 0, neighbour.x, neighbour.y, 0});
         }
         break;
-    case 1: AddStraightEdges(edges, nullptr, 0, -1, 1, 0); break;
-    case 2: AddDiagonalEdges(edges, nullptr, -1, -1, 0, -1); break;
-    case 3: AddStraightEdges(edges, nullptr, -1, 0, 0, -1); break;
-    case 4: AddDiagonalEdges(edges, nullptr, -1, 1, -1, 0); break;
-    case 5: AddStraightEdges(edges, nullptr, 0, 1, -1, 0); break;
-    case 6: AddDiagonalEdges(edges, nullptr, 1, 1, 0, 1); break;
-    case 7: AddStraightEdges(edges, nullptr, 1, 0, 0, 1); break;
-    case 8: AddDiagonalEdges(edges, nullptr, 1, -1, 1, 0); break;
+    case 1: edges->AddStraightEdges(0, -1, 1, 0); break;
+    case 2: edges->AddDiagonalEdges(-1, -1, 0, -1); break;
+    case 3: edges->AddStraightEdges(-1, 0, 0, -1); break;
+    case 4: edges->AddDiagonalEdges(-1, 1, -1, 0); break;
+    case 5: edges->AddStraightEdges(0, 1, -1, 0); break;
+    case 6: edges->AddDiagonalEdges(1, 1, 0, 1); break;
+    case 7: edges->AddStraightEdges(1, 0, 0, 1); break;
+    case 8: edges->AddDiagonalEdges(1, -1, 1, 0); break;
     default: break;
     }
     for (int i = 0; i < edges->size; ++i) edges->data[i].index = i;
 }
-EI_REPLACE(0x005C3690, BuildSmoothEdges);
+EI_REPLACE_METHOD(0x005C3690, SmoothEdges::BuildEdges);
 
 SmoothTable* SmoothTable::Construct() {
     copies.Construct(kCopyArrayVtable);
@@ -291,7 +296,7 @@ void SmoothTable::Destruct() {
 }
 EI_REPLACE_METHOD(0x005C4250, SmoothTable::Destruct);
 
-void SmoothTable::Build(const SmoothEdgeArray* from, const SmoothEdgeArray* to) {
+void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     copies.SetSize(0, -1);
     steps.SetSize(0, -1);
     chained.SetSize(0, -1);
@@ -328,11 +333,11 @@ EI_REPLACE_METHOD(0x005C3E10, SmoothTable::Build);
 void BuildSmoothTablesAt(SmoothTable* tables) {
     for (int previous = 0; previous < kStates; ++previous) {
         for (int next = 0; next < kStates; ++next) {
-            SmoothEdgeArray from, to;
+            SmoothEdges from, to;
             from.Construct(kEdgeArrayVtable);
             to.Construct(kEdgeArrayVtable);
-            BuildSmoothEdges(&from, nullptr, previous, false);
-            BuildSmoothEdges(&to, nullptr, next, true);
+            from.BuildEdges(previous, false);
+            to.BuildEdges(next, true);
             if (previous != 0) {
                 // The previous step's states are relative to the cell it left.
                 PathCell origin{0, 0, 0, 0}, back{0, 0, 0, 0};

@@ -49,7 +49,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
 
     CRefObject* created = CreateShape(handle);
     // 005BE090: the map's value slot for a handle, inserted (empty) when missing.
-    RefPtr* slot = gamehash::ShapeSlot(gamehash::ShapesOf(this), nullptr, handle);
+    RefPtr* slot = gamehash::ShapesOf(this)->At(handle);
     if (created != slot->ptr) {
         slot->Destroy();
         slot->Share(created);

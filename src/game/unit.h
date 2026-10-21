@@ -426,6 +426,10 @@ public:
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
     void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
+    // 0052FCC0 / 0052FDF0 (RET 8 / RET 4; unit_points.cpp). Slots 52 (PositionAt) and 53 (AimPoint):
+    // the position predicted along the path at world time `time`, the point the animation acts on.
+    float* PositionAtImpl(float* out, int time);
+    float* AimPointImpl(float* out);
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 

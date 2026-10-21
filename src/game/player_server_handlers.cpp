@@ -12,6 +12,7 @@
 #include "originals_ai.h"
 #include "originals_world.h"
 #include "party.h"
+#include "party_manager.h"
 #include "party_records.h"
 #include "registry.h"
 #include "unit.h"
@@ -416,7 +417,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     party->zone_ = zone;
     int mode = GameMode();
     if (mode == 1) {
-        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
+        ThePartyManager()->BeginRedeploy(party);
     } else if (mode == 2) {
         if (party->members_.size == 1) party->members_.data[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -510,7 +511,7 @@ int CPlayerServer::OnNewParty() {
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    PartyMapStore(ThePartyManager(), nullptr, key, party);
+    ThePartyManager()->StoreParty(key, party);
     return 1;
 }
 
@@ -600,13 +601,13 @@ int CPlayerServer::OnLogin() {
     CParty* party = player->Party();
     switch (GameMode()) {
     case 1:
-        PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
+        ThePartyManager()->EndRedeploy(party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
         // The two strings are passed but not read.
-        if (!PartyMapLoad(ThePartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
+        if (!ThePartyManager()->LoadParty(static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
                           static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
                           reinterpret_cast<const int*>(&player->partyId_), party))
             return 0;

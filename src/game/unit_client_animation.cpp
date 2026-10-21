@@ -88,7 +88,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     lastTime = time;
     if (ObjectSlots(unit)->InvisibleSlot()) ClientHalf(unit)->InvisiblePulse(step);
     if (unit->MapObject()->IsStunned()) ClientHalf(unit)->StunnedPulse(step);
-    if (unit->pathTimeShift == 0) ClientPlaceOnPath(this, nullptr, time, step);
+    if (unit->pathTimeShift == 0) PlaceOnPath(time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {
         float scaled = step * unit->animationSpeed;

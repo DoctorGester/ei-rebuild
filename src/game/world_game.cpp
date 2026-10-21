@@ -51,6 +51,7 @@
 #include "originals_script.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "party_manager.h"
 #include "party_records.h"
 #include "game_lists.h"
 #include "record_vectors.h"
@@ -208,15 +209,15 @@ int GameFlow::SaveGame(const char* slot) {
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0)))
-            PartyManagerBeginRedeploy(ThePartyManager(), nullptr, player->Party());
+            ThePartyManager()->BeginRedeploy(player->Party());
     }
     LocalRecords records;
-    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
+    ThePartyManager()->EndRedeploy(&records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.party.variables);
-    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
+    ThePartyManager()->BeginRedeploy(&records.party);
 
     bool opened;
     {
@@ -727,7 +728,7 @@ void GameFlow::BeginMultiplayerGame() {
         zone->~CString();
     }
     VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
-    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, GlobalParty());
+    ThePartyManager()->BeginRedeploy(GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
@@ -759,7 +760,7 @@ void GameFlow::ReturnLocalParty() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(TheClientWorld()->LocalView())->player;
     CParty* party = player->Party();
     AsParty(GlobalParty())->Assign(party);
-    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
+    ThePartyManager()->BeginRedeploy(party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
     reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(ei::GameData<const char* const>(0x007C82A0));
     FlowUpdateFromServerOriginal(this);
@@ -1419,9 +1420,9 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         LocalRecords records;
-        PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
+        ThePartyManager()->EndRedeploy(&records.party);
         EnterZoneAt(&records.party);
-        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
+        ThePartyManager()->BeginRedeploy(&records.party);
         TheServerWorld()->SetTimeImpl(HoursOfDay(VariableGet(&records.party.variables, kGTime)));
         if (zoneRecord) {
             TheServerWorld()->SetClimate(zoneRecord->setting2C);
@@ -1457,7 +1458,7 @@ void GameFlow::StartNewGame() {
     folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
     LocalRecords records;
-    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
+    ThePartyManager()->EndRedeploy(&records.party);
     StartZoneAt(this, nullptr, records.party.zone, 0);
 }
 
@@ -1536,9 +1537,9 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
         LocalRecords records;
-        PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
+        ThePartyManager()->EndRedeploy(&records.party);
         LeaveZoneAt(&records.party);
-        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
+        ThePartyManager()->BeginRedeploy(&records.party);
     }
     if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
         LocalRecords records;
@@ -1690,7 +1691,7 @@ int GameFlow::LoadGame(const char* slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
-    PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
+    ThePartyManager()->EndRedeploy(&records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
     NamedFloatTable* variables = &records.party.variables;
@@ -1724,7 +1725,7 @@ int GameFlow::LoadGame(const char* slot) {
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, variable, 0.0f);
     }
-    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
+    ThePartyManager()->BeginRedeploy(&records.party);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = FindZone(records.party.zone);
@@ -2062,7 +2063,7 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    libcontainers::InsertHeroRecordsOverflow(   // 00619920
+                    libcontainers::HeroRecordAbi::InsertOverflow(   // 00619920
                         reinterpret_cast<libcontainers::HeroRecords*>(&entries_), nullptr, reinterpret_cast<MpHeroRecord*>(finish),
                         reinterpret_cast<const MpHeroRecord*>(entry), 1);
                 }

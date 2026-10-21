@@ -33,7 +33,6 @@ namespace {
 // 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
-char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0040A3A0. CRefObject::Release (the missiles).
 
 // The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
@@ -66,7 +65,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         bool failed;
         {
             char* path = nullptr;
-            ServerMapPath(this, nullptr, &path, map);
+            ServerMapPathOriginal(this, nullptr, &path, map);
             failed = AIMapLoad(aiMap, nullptr, path) == 0;
             reinterpret_cast<mfc::CString*>(&path)->~CString();
         }
