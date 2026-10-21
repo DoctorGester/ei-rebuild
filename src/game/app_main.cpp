@@ -241,8 +241,8 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(arguments[i])),
-                                reinterpret_cast<const unsigned char*>("-nocam")) == 0) {
+            if (gamecrt::mbsicmp(static_cast<const char*>(arguments[i]),
+                                "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
             }

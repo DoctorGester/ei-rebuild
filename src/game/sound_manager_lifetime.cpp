@@ -27,7 +27,7 @@ constexpr std::size_t kArchiveBytes = sizeof(CMappedResource);
 const char* const kBackslash = "\\";
 
 int CompareText(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL_SECTION*>(storage); }
 } // namespace

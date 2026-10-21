@@ -195,8 +195,8 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
     mfc::CString zone(GameExitTarget(exit_));
-    if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                        reinterpret_cast<const unsigned char*>(NoZone())) == 0)
+    if (gamecrt::mbsicmp(static_cast<const char*>(zone),
+                        NoZone()) == 0)
         return;
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;

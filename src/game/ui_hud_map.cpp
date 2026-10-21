@@ -192,8 +192,8 @@ std::int16_t UnitFrame(const CUnit* unit) {
     if (unit->id_ == kSpecialUnitId) {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-        bool special = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(*zone)),
-                                       reinterpret_cast<const unsigned char*>("gz20g")) == 0;
+        bool special = gamecrt::mbscmp(static_cast<const char*>(*zone),
+                                       "gz20g") == 0;
         zone->~CString();
         if (special) return kFrameHostile;
     }

@@ -33,8 +33,8 @@ void Reload(CTexture* texture, const mfc::CString& name) {
 bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(texture->GetName())) != 0;
+    return gamecrt::mbscmp(static_cast<const char*>(name),
+                           texture->GetName()) != 0;
 }
 
 CUnitController* AsController(CUnitClientSpecific* self) { return reinterpret_cast<CUnitController*>(self); }

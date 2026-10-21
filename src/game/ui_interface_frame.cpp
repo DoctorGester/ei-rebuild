@@ -142,8 +142,8 @@ namespace {
 // the interface's ShowWindow (005F7350: window, 1, 1).
 
 int Compare(const mfc::CString& word, const char* text) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(word)),
-                           reinterpret_cast<const unsigned char*>(text));
+    return gamecrt::mbscmp(static_cast<const char*>(word),
+                           text);
 }
 
 } // namespace

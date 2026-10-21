@@ -99,8 +99,8 @@ EI_REPLACE(0x004C5480, ScriptSubCallDestruct);
 template <typename T>
 int ScriptNamedValues<T>::FindName(const char* name) const {
     for (int i = 0; i < names.size; ++i) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(names.data[i])),
-                            reinterpret_cast<const unsigned char*>(name)) == 0)
+        if (gamecrt::mbscmp(static_cast<const char*>(names.data[i]),
+                            name) == 0)
             return i;
     }
     return -1;

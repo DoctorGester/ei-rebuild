@@ -51,7 +51,7 @@ float& Arrival(Arrivals& arrivals, int exit) {
 }
 
 bool SameName(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+    return gamecrt::mbscmp(a, b) == 0;
 }
 
 // --- The click (0062F950) ---

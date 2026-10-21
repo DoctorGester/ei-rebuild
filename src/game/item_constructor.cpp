@@ -476,8 +476,8 @@ CItem* CItemManager::CreateItem(const char* name) {
     for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data[0])),
-                        reinterpret_cast<const unsigned char*>(kSpellContainer)) == 0) {
+    if (gamecrt::mbscmp(static_cast<const char*>(parts.data[0]),
+                        kSpellContainer) == 0) {
         const char* spellText = extra;
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
         CItem* item = nullptr;
@@ -510,11 +510,11 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
-    auto* type = reinterpret_cast<const unsigned char*>(static_cast<const char*>(reinterpret_cast<ItemRecordHead*>(prototype)->text04));
-    if (console::Length(extra) != 0 && gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) != 0) {
+    const char* type = reinterpret_cast<ItemRecordHead*>(prototype)->text04;
+    if (console::Length(extra) != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
-    } else if (gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) == 0 &&
+    } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
                console::Length(extra) != 0) {
         constructor->count_ = libcrt::Atoi(extra);
     }

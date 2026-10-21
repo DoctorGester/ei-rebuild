@@ -516,8 +516,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 9: {   // map objects, units (5) and levers (8)
         CMapObject* object = created();
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(spec->model)),
-                            reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0)
+        if (gamecrt::mbscmp(static_cast<const char*>(spec->model),
+                            game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);
         int id = object->id_;

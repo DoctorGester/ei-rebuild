@@ -557,8 +557,8 @@ namespace {
 // A CString field of a record: is it set, and not "none"?
 bool NamesRequirement(const mfc::CString& text) {
     if (text.GetLength() == 0) return false;
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(text)),
-                           reinterpret_cast<const unsigned char*>("none")) != 0;
+    return gamecrt::mbscmp(static_cast<const char*>(text),
+                           "none") != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
     return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));

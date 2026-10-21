@@ -60,7 +60,7 @@ void ClearMissiles(CWorldServer* world) {
 
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     void* aiMap = aiMap_;
-    if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(mapName_), reinterpret_cast<const unsigned char*>(map)) != 0) {
+    if (gamecrt::mbsicmp(mapName_, map) != 0) {
         ResetAIMap(static_cast<CAIMap*>(aiMap));   // 005B5E10
         static_cast<CAIMap*>(aiMap)->BeginRefresh();
         bool failed;
@@ -77,7 +77,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     graph->Seek(0);
     if (graph->Size() != 0 && !reinterpret_cast<CRegionMap*>(aiLayer_)->LoadBlocks(graph)) return 0;
 
-    if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(mobName_), reinterpret_cast<const unsigned char*>(mob)) == 0) {
+    if (gamecrt::mbsicmp(mobName_, mob) == 0) {
         // The same zone again: start over.
         ScriptReset(MainScript());
         ScriptReset(SecondScript());

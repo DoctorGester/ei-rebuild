@@ -1591,8 +1591,8 @@ MapRecord* LocalZoneRecord() {
 bool InFinalZone() {
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
     mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    const bool final = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(*zone)),
-                                       reinterpret_cast<const unsigned char*>(worlddata::FinalZoneText())) == 0;
+    const bool final = gamecrt::mbscmp(static_cast<const char*>(*zone),
+                                       worlddata::FinalZoneText()) == 0;
     zone->~CString();
     return final;
 }

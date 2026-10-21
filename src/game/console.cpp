@@ -64,7 +64,7 @@ namespace {
 // Game CRT.
 
 int Mbscmp(const char* a, const char* b) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return gamecrt::mbscmp(a, b);
 }
 
 // 007C7D50: the interface manager (ConsoleAddText hands a line to its console window, if any).

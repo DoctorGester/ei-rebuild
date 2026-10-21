@@ -51,10 +51,10 @@ mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field
 // --- 00657820 ------------------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
-    const unsigned char* folder = reinterpret_cast<const unsigned char*>(entriesBegin_[index].folder_);
-    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
-    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
-    return libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
+    const char* folder = entriesBegin_[index].folder_;
+    if (gamecrt::mbsicmp(folder, game::menukeytexts::QuickSave()) == 0) return true;
+    if (gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
+    return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
 // --- 00655430 ------------------------------------------------------------------------------------

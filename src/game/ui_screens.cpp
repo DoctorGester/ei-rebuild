@@ -74,7 +74,6 @@ namespace {
 const CItemLoot* AsLoot(const CItem* item) {
     return item->type_ == kTypeQuick ? static_cast<const CItemLoot*>(item) : nullptr;
 }
-const unsigned char* NoMaterial() { return reinterpret_cast<const unsigned char*>(game::NoneText()); }
 } // namespace
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
@@ -117,7 +116,7 @@ bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     if (type != kTypeArmor) return false;
     prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
     return prototype &&
-           libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
+           gamecrt::mbsicmp(prototype->materialClass_, game::NoneText()) != 0;
 }
 EI_REPLACE(0x005EE130, UiItemKinds::IsBuildable);
 

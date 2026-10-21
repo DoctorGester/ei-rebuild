@@ -35,8 +35,8 @@ std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const mfc::CString& name) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(game::NoneText())) != 0 &&
+    return gamecrt::mbscmp(static_cast<const char*>(name),
+                           game::NoneText()) != 0 &&
            name.GetLength() != 0;
 }
 

@@ -88,8 +88,8 @@ int __fastcall FindRootNode(VtArray* nodeArray) {
         if (nodes.data[i].parent.GetLength() == 0) root = i;
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* child = &nodes.data[j];
-            if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(child->parent)),
-                                reinterpret_cast<const unsigned char*>(static_cast<const char*>(nodes.data[i].name))) != 0)
+            if (gamecrt::mbscmp(static_cast<const char*>(child->parent),
+                                static_cast<const char*>(nodes.data[i].name)) != 0)
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
             int n = children.size;
@@ -141,8 +141,8 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* candidate = &nodes.data[j];
             const char* meshName = mesh->GetName();
-            if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(candidate->name)),
-                                reinterpret_cast<const unsigned char*>(meshName)) == 0) {
+            if (gamecrt::mbscmp(static_cast<const char*>(candidate->name),
+                                meshName) == 0) {
                 node = candidate;
                 break;
             }

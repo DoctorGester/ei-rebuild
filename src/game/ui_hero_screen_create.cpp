@@ -341,8 +341,8 @@ void CMpHeroScreen::Create() {
         }
         figureModel = *reinterpret_cast<const mfc::CString*>(&figure->model);
         auto isModel = [&figureModel](const char* name) {
-            return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
-                                   reinterpret_cast<const unsigned char*>(name)) == 0;
+            return gamecrt::mbsicmp(static_cast<const char*>(figureModel),
+                                   name) == 0;
         };
         bool isMale = isModel("unhuma");
         bool isFemale = !isMale && isModel("unhufe");

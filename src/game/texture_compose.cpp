@@ -190,8 +190,8 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(*name)),
-                               reinterpret_cast<const unsigned char*>(static_cast<const char*>(*fallback))) != 0) {
+    } else if (gamecrt::mbscmp(static_cast<const char*>(*name),
+                               static_cast<const char*>(*fallback)) != 0) {
         *out = *fallback;
         path = CachePath(*fallback);
         if (file.Open(path, mfc::CFile::modeRead, nullptr)) {

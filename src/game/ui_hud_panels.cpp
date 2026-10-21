@@ -126,8 +126,8 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         mfc::CString name;
         name = reinterpret_cast<UnitModelRecord*>(unit->GetPrototypeModel())->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
-            if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                                reinterpret_cast<const unsigned char*>(kPartNames[k])) == 0) {
+            if (gamecrt::mbscmp(static_cast<const char*>(name),
+                                kPartNames[k]) == 0) {
                 name = partLabels_[k];
                 break;
             }
