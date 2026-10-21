@@ -17,7 +17,7 @@ def main():
     for r in rows:
         # A site in .data is an id of the data seam (src/game/game_data.h), resolved by the reader.
         site = f'0x{r["site"]}'
-        if 0x00783000 <= int(r['site'], 16) < 0x0079BF70:
+        if 0x00783000 <= int(r['site'], 16) < 0x007CD000:
             site = f'ei::DataId({site})'
         lines.append(f'{{Patch::{r["patch"]}, {site}, {int(r["size"])}}},')
     with open(os.path.join(ROOT, 'tests', 'verify', 'addon_sites.inc'), 'w', encoding='utf-8', newline='\n') as f:
