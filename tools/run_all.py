@@ -431,14 +431,19 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if game_env is not None:
         env = {k: v for k, v in os.environ.items() if k not in game_environment()}
         env.update(game_env)
+    if install in STANDALONE_INSTALLS:
+        copy = 'vanilla' if install == 'standalone' else 'rebirth'   # the install copy whose game.exe it lays out
+        try:
+            exe = os.path.join(clean_run_dir(root, copy), 'game.exe')
+        except OSError as e:
+            return 'FAIL', 0.0, [f'cannot bring run\\{copy}-clean up to date: {e}'], {}, []
     if install == 'standalone':
         # Never the display mode: our renderer whatever the environment says.
-        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(clean_run_dir(root, 'vanilla'), 'game.exe'),
-                '--standalone']
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', exe, '--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=renderer)
     elif install == 'standalone-rebirth':
         # ei_launch's default game folder is the Rebirth install's.
-        cmd += ['--exe', os.path.join(clean_run_dir(root, 'rebirth'), 'game.exe'), '--standalone']
+        cmd += ['--exe', exe, '--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=renderer, EI_REBIRTH=standalone_rebirth_flags(root))
     else:
         # The original code only (S21c: no tool runs ours inside game.exe), drawn by dgVoodoo. On the vanilla data
