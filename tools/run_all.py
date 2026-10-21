@@ -34,8 +34,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    cache (build\\reference in the main checkout: a passed run of the original code,
                    kept by scenario commit, install files, clock and EI_* settings; reference_key)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"): the
-                   scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud and
-                   ui_widescreen_screens; they set the desktop's mode and WideScreen with the harness's
+                   scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud,
+                   ui_widescreen_screens and ui_widescreen_dialogue; they set the desktop's mode and WideScreen with the harness's
                    "resolution" / "widescreen" steps) on the image on the Rebirth install
                    (<scenario>-standalone-rebirth), then each frame against addon's recorded frames
                    (compare_widescreen: tools/compare_frames.py with WIDESCREEN_COMPARE). No addon game is
@@ -69,7 +69,8 @@ import argparse, functools, collections, concurrent.futures, contextlib, glob, h
 import frame_store, prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
+WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens',
+                        'ui_widescreen_dialogue']   # --widescreen without scenario names
 STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')   # the image (our code)
 ORIGINAL_INSTALLS = ('vanilla', 'rebirth')                    # game.exe with the original code only (--no-hooks)
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)

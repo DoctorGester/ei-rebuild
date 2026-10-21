@@ -1,0 +1,63 @@
+# Rebirth's WideScreen, part five (ticket W5; docs/notes/rebirth.md "WideScreen"): a base's dialogue
+# (the briefing / base screen 006024B0 / 00604130, ui_briefing_create.cpp), for comparison with
+# Rebirth's own frames:
+#   python tools\run_all.py --widescreen
+# runs this with the other ui_widescreen scenarios on the image on the Rebirth install and compares
+# the frames with addon's recorded ones (as part one). Same settings as part one (the desktop's mode,
+# WideScreen on, the virtual clock); a frame with a "_later" twin is compared without what moved
+# between the two.
+# The screen has two framed backdrops: the topics' (meshes 0, 1) and the text's (2, 3). While the
+# phrases and the rewards show (states 3 and 4) only the text's are shown; the topics' frame drawn
+# inside the text's was W5 (the image showed every mesh), seen with WideScreen and without.
+# The steps are ui_gallery_base's (Smith's topic "M4" opened with its script variable).
+deterministic
+# 4K captures beside 15 other games.
+timeout 90
+resolution desktop
+widescreen 1
+rebirthflags WideScreen
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("Smith"))
+console @GSSetVar(0,"b.Smith.M4",1)
+console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
+waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
+waitunit 10 Smith
+
+# Smith's topics and "goodbye" (the topics' backdrop and frame). Not captured: the base's scene (its
+# shadows) differed from addon's run there, as did the people's poses in the rewards' close-up.
+clickunit Smith
+frames 10
+move 400 20
+wait 1000
+
+# The topic (region 0): the people walk to their places, then the first phrase: the text's backdrop
+# and frame only (ui_gallery_base's base_phrase / base_rewards show it without WideScreen).
+clickregion 0
+wait 4000
+freeze
+capture phrase
+unfreeze
+wait 300
+freeze
+capture phrase_later
+unfreeze
+click 400 300
+wait 800
+click 400 300
+wait 800
+# Esc: the rest of the phrases, then the rewards; Esc again finishes the topic.
+key esc
+wait 800
+key esc
+wait 800
+check IsAlive(GetLeader())
+report
+quit

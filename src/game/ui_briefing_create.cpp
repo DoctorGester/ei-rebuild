@@ -71,6 +71,7 @@ constexpr int kTextChild = 1;
 constexpr int kTopicsSurface = 0;
 constexpr int kTopicBackdrop = 0;
 constexpr int kTopicFrame = 1;
+constexpr int kTextBackdropMesh = 2;   // the text's backdrop, its frame and the people's slots after it
 
 // The states (CBriefingScreen::state_).
 constexpr int kWalking = 0;
@@ -162,8 +163,9 @@ void StepTurning(BriefingMover* node) {
     node->state = BriefingMover::kDone;
 }
 
-void SetMeshesVisible(CUiWindow* window, int visible) {
-    for (int i = 0; i < window->sceneObjects_.size; ++i)
+// Meshes `first` onwards shown or hidden.
+void SetMeshesVisible(CUiWindow* window, int visible, int first = 0) {
+    for (int i = first; i < window->sceneObjects_.size; ++i)
         window->SceneMesh(i)->visible_ = visible;
 }
 
@@ -348,7 +350,8 @@ void CBriefingScreen::Update() {
         if (state_ == kPhrases) StartPhrases();
         break;
     case kPhrases:
-        SetMeshesVisible(this, 1);
+        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) NextPhrase(0);
@@ -359,7 +362,8 @@ void CBriefingScreen::Update() {
         }
         break;
     case kRewards:
-        SetMeshesVisible(this, 1);
+        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);

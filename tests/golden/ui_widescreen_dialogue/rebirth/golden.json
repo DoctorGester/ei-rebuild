@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_widescreen_dialogue",
+  "install": "rebirth",
+  "recorded": "2026-10-22",
+  "commit": "e954b213",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "W5: the base dialogue with WideScreen; two agreeing plain --no-hooks --fresh passes",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
