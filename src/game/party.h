@@ -39,7 +39,7 @@ using PartyItemArray = lib::AlignedArray<CItem*>;
 inline PartyItemArray& ItemList(CItem**& data) { return *reinterpret_cast<PartyItemArray*>(&data); }
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
-inline CParty*& LoadingParty() { return ei::GameData<CParty*>(0x007C8344); }
+inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 
 // 00664880 (__stdcall, RET 8; party_lifetime.cpp). MFC ConstructElements for the records: the
 // memory zeroed, then each record constructed.

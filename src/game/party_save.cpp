@@ -104,10 +104,10 @@ void PartyUnitRecord::Load(CStream* stream) {
     stream->Read(&unitId, sizeof(unitId));
     reinterpret_cast<UnitStats*>(stats)->LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x724, +0x728 and the height
-    ReadItemIds(stream, ItemList(weapons), LoadingParty()->ItemManager());
-    ReadItemIds(stream, ItemList(quickItems), LoadingParty()->ItemManager());
-    ReadItemIds(stream, ItemList(armor), LoadingParty()->ItemManager());
-    ReadItemIds(stream, ItemList(spells), LoadingParty()->ItemManager());
+    ReadItemIds(stream, ItemList(weapons), g_loadingParty->ItemManager());
+    ReadItemIds(stream, ItemList(quickItems), g_loadingParty->ItemManager());
+    ReadItemIds(stream, ItemList(armor), g_loadingParty->ItemManager());
+    ReadItemIds(stream, ItemList(spells), g_loadingParty->ItemManager());
     ReadText(stream, texts[1]);
     if (Version(stream) < kVersionRecordFlags) return;
     stream->Read(&moveMode2, 4);
@@ -149,7 +149,7 @@ EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
 
 void CParty::LoadParty(CStream* stream, int loadVariables) {
     if (itemManager_ == nullptr) Create();
-    LoadingParty() = this;
+    g_loadingParty = this;
     Clear(loadVariables, 0);
     ReadText(stream, zone_);
     stream->Read(&entrance_, 4);
@@ -163,7 +163,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     members_.SetSize(records, -1);
     for (int i = 0; i < records; ++i) members_.data[i].Load(stream);
     if (loadVariables != 0) variables_.Load(stream);
-    LoadingParty() = nullptr;
+    g_loadingParty = nullptr;
     money_ = 0;
     stream->Read(&money_, 4);
     if (Version(stream) > kVersionPartyKey) {

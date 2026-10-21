@@ -15,7 +15,8 @@ namespace {
 
 constexpr int kNoObject = -1;
 
-AIRef& Ref(CEngineObject*& object) { return *reinterpret_cast<AIRef*>(&object); }
+template <class T>
+AIRef& Ref(T*& object) { return *reinterpret_cast<AIRef*>(&object); }
 
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed
 // object manager; `id` keeps what the previous read left (the original's one stack slot).

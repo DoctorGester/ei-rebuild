@@ -47,11 +47,11 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseSound();
     e->ReleaseLight();
 
-    CEngineObject* target = e->target;   // no null check
-    std::memcpy(&e->targetPoint, &static_cast<CUnit*>(target)->position, 12);
+    auto* target = static_cast<CUnit*>(e->target);   // no null check
+    std::memcpy(&e->targetPoint, &target->position, 12);
     Vector3 at;
-    std::memcpy(&at, &static_cast<CUnit*>(target)->position, 12);
-    at.z = static_cast<float>(static_cast<CUnit*>(target)->ModeSpeed());
+    std::memcpy(&at, &target->position, 12);
+    at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
@@ -268,7 +268,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (IsUnit(e->caster)) {
-        auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
+        auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
             e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
@@ -297,7 +297,7 @@ void Possession(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
+    auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
@@ -359,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
     std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
-    if (!e->world->AIMap()->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
+    if (!e->world->AIMap()->IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }

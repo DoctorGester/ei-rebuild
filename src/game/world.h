@@ -724,12 +724,12 @@ public:
     // `to`, or, for a spell with several targets (+0x38) or area flags, at the nearest living units
     // within its radius (+0x34) the caster may hit (its heroes group, friends or diplomacy), the
     // requested target first. Network clients cast nothing with a caster.
-    void CastSpell(const void* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target,
+    void CastSpell(const void* spell, CUnit* caster, const Vector3* from, CEngineObject* target,
                    const Vector3* to, int extra);
     // 0058E670 (RET 0x20). One missile of `spell` from the caster (or `from`) to the target (or
     // `to`, on the ground there); kept on the missile list unless its first update ends it. A
     // hostile spell turns the target unit against the caster.
-    void CreateMissile(const void* spell, CEngineObject* caster, Vector3 from, CEngineObject* target, const Vector3* to,
+    void CreateMissile(const void* spell, CUnit* caster, Vector3 from, CEngineObject* target, const Vector3* to,
                        int extra);
 
     // world_loot.cpp
@@ -2089,15 +2089,15 @@ void __stdcall PickZones(void* out, int id, const char* exclude);
 // 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
 // restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
 // state (< 0x47). 0 when the file does not read.
-int __stdcall LoadMission(void* file);
+int __stdcall LoadMission(CStream* file);
 
 // world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
 // (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
 // decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory
 // stream, EDX = magic; RET 0xC; AL): reads one back (versions up to 00790264 uncompressed);
 // false on a bad header or checksum.
-void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
-bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
+void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
+bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
 // The newest save version stored uncompressed (SaveFileRead reads those as they are).
 inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 

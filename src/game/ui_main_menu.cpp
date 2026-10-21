@@ -43,7 +43,7 @@ const RECT* MenuRects() { return ei::GamePointer<const RECT>(0x007C8048); }
 // Interface options (bit 0: the menu's lightning).
 std::uint32_t InterfaceOptions() { return ei::GameData<const volatile std::uint32_t>(0x007AF064); }
 // The tick count of the menu's next lightning chance.
-std::uint32_t& NextLightningTick() { return ei::GameData<std::uint32_t>(0x007C811C); }
+std::uint32_t g_nextLightningTick = /*007C811C*/ {};
 
 // An input side whose every slot does nothing.
 void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
@@ -156,8 +156,8 @@ void CMainMenu::Update() {
     }
     if (!daylight_ && rain_ && hour < kLightningBeforeHour && (InterfaceOptions() & 1) != 0) {
         std::uint32_t now = gameapi::GetTickCount();
-        if (now > NextLightningTick()) {
-            NextLightningTick() = now + 100;
+        if (now > g_nextLightningTick) {
+            g_nextLightningTick = now + 100;
             if (IsaacRandom::Global().Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.

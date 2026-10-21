@@ -81,6 +81,9 @@ int IndexInPage(int texture, int perPage, int pages) {
     return (texture - perPage * pages) % 8;
 }
 
+// The animation speed of a texture class (the exe's table of 16).
+constexpr int kAnimationSpeeds[16] = /*00796960*/ {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 5, 9};
+
 int ClassOf(const Terrain* owner, int texture) {
     int cls = owner->textureClass[texture];
     if (cls >= owner->perPage * owner->pages) cls = 0xF;
@@ -345,7 +348,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         std::uint32_t r = IsaacRandom::Global().Next();
                         a.frames = frames;
                         a.frame = static_cast<int>(r % static_cast<std::uint32_t>(frames));
-                        a.speed = ei::GamePointer<const int>(0x00796960)[ClassOf(owner, texture)];
+                        a.speed = kAnimationSpeeds[ClassOf(owner, texture)];
                         uv = owner->TileUv(rotation, a.frame + index, 0);
                     }
                 }

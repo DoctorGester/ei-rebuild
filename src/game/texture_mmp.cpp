@@ -22,6 +22,7 @@
 #include "../hook/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <cstring>
 
@@ -31,7 +32,7 @@ namespace {
 
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
-int MipmapsEnabled() { return ei::GameData<const int>(0x0079BCE0); }
+int MipmapsEnabled() { return options::TheOptions()->mipmapping_; }
 
 // The alpha kind from the file (texture flags 0x4000..0x20000), and the texture loaded.
 void MarkLoaded(CTexture* texture, const MmpHeader* header) {

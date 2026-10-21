@@ -27,6 +27,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <cstring>
 
@@ -162,8 +163,8 @@ constexpr float kLightHeight = 2.0f;             // 0073DBE8
 constexpr int kUnitClassId = 0x50;
 
 // The default light of slot 19's mode 1 (0079BEB0: r, g, b; 0079BEBC: radius).
-const float* DefaultLightColour() { return ei::GamePointer<const float>(0x0079BEB0); }
-float DefaultLightRadius() { return ei::GameData<const float>(0x0079BEBC); }
+const float* DefaultLightColour() { return &options::TheOptions()->questLight_.red; }
+float DefaultLightRadius() { return options::TheOptions()->questLight_.radius; }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
     return owner->Specific();

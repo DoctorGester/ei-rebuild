@@ -15,26 +15,22 @@
 
 namespace {
 
-// The save stream (thiscall): slot 1 reads `size` bytes; +0x08 is the save's version.
-void Read(void* stream, void* to, int size) {
-    using Fn = void(__thiscall*)(void*, void*, int);
-    ei::ObjectSlot<Fn>(stream, 1)(stream, to, size);
-}
-int Version(const void* stream) { return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8); }
-
+// The save stream: slot 1 reads `size` bytes; version_ is the save's version.
+void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
+int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 
 // A string read into a temporary (ReadString constructs it), assigned to `field`
 // (CString::operator=, 00700AA9), then destroyed.
-void ReadInto(void* stream, mfc::CString* field) {
+void ReadInto(CStream* stream, mfc::CString* field) {
     alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
     auto* text = reinterpret_cast<mfc::CString*>(storage);
-    *field = *static_cast<CStream*>(stream)->ReadString(text);
+    *field = *stream->ReadString(text);
     text->~CString();
 }
 
 } // namespace
 
-void CInterface3D::LoadState(void* stream) {
+void CInterface3D::LoadState(CStream* stream) {
     Read(stream, &hudPanelsIn_[0], 1);
     Read(stream, &hudPanelsIn_[1], 1);
     Read(stream, &hudPanelsIn_[2], 1);

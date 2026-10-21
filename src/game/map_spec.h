@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;   // core_streams.h
+
 namespace mapspec {
 
 // An MFC CArray of plain elements (0x14 bytes).
@@ -55,8 +57,8 @@ struct Patrols : mfc::CArray<Patrol> {
 // A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
 struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
-    void Read(void* stream);
-    void Write(void* stream) const;
+    void Read(CStream* stream);
+    void Write(CStream* stream) const;
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     Patrols patrols;       // +0x04 (vtable 0073C37C)
     Vector3 guard;               // +0x18 the unit's position when saved

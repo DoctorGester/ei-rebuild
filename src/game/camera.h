@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "options.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -292,7 +293,7 @@ inline double D(float f) { return f; }
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 inline Terrain* TheTerrain() { return ei::GameData<Terrain* const>(0x007AF738); }   // width / height
-inline float CellSize() { return ei::GameData<const float>(0x0079BDB4); }
+inline float CellSize() { return options::TheOptions()->cameraTerrainArea_; }
 // What static initialisers leave (0040C840, 0040C7E0, 0040C800): pi * 0.5 (the shake's wave runs at this rate), the
 // zero vector and the identity rotation the camera copies.
 inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;

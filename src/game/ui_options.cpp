@@ -19,6 +19,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <cstdint>
 #include <cstring>
@@ -101,7 +102,37 @@ float& Opt20() { return ei::GameData<float>(0x0079BE80); }        // setting 20
 int& Opt21() { return ei::GameData<int>(0x0079BE84); }
 float& OptSign22() { return ei::GameData<float>(0x0079BD64); }    // setting 22 (-1 for 1, else +1)
 float& OptSign23() { return ei::GameData<float>(0x0079BD68); }    // setting 23 (likewise)
-int& Opt24() { return ei::GameData<int>(0x0079BD08); }
+// The settings of the options window (the exe's table of 26), by the window's rows.
+constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
+    {0, "volume_sfx", 0, 100, 1, 0},
+    {1, "volume_stream", 0, 100, 1, 1},
+    {2, "volume_voice", 0, 100, 1, 2},
+    {3, "power_kbd", 0, 100, 2, 0},
+    {4, "power_mouse", 0, 100, 2, 1},
+    {5, "scroll_border", 0, 10, 2, 2},
+    {6, "rubber_select", 0, 10, 2, 3},
+    {7, "shadow_units", 1, 2, 0, 0},
+    {8, "shadow_buildings", 1, 2, 0, 1},
+    {9, "shadow_flora", 1, 2, 0, 2},
+    {10, "marks", 1, 2, 0, 4},
+    {11, "footprints", 1, 2, 0, 5},
+    {12, "select_type", 1, 2, 0, 6},
+    {13, "show_path", 1, 2, 0, 7},
+    {14, "brightness", 0, 100, 0, 10},
+    {15, "contrast", 0, 100, 0, 11},
+    {16, "gamma", 0, 100, 0, 12},
+    {17, "show_flying_hp", 1, 2, 0, 8},
+    {18, "show_tutorial", 1, 2, 10, 11},
+    {19, "autosave", 1, 2, 3, 11},
+    {20, "tooltip_time", 0, 20, 2, 4},
+    {21, "switch_filters", 1, 2, 3, 12},
+    {22, "camera_reverse_x", 1, 2, 2, 6},
+    {23, "camera_reverse_y", 1, 2, 2, 7},
+    {24, "reverse_stereo", 1, 2, 1, 4},
+    {25, "difficulty", 1, 2, 3, 0},
+};
+
+int& Opt24() { return options::TheOptions()->reverseStereo_; }
 int& OptDifficultyCopy() { return ei::GameData<int>(0x0079BEC4); } // setting 25 (with GameDifficulty 0079BEC0)
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
@@ -198,7 +229,7 @@ void COptionsWindow::ShowGroup(int group) {
         regions_.data[kFirstRowRegion + row]->SetTip(0, 1, 0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
-        const OptionDefinition& definition = OptionDefinitions()[i];
+        const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group_ != group) continue;
         rows_[definition.row_].setting_ = &settings_[i];
         tip.Format(TextTipOption(), definition.name_);
@@ -206,7 +237,7 @@ void COptionsWindow::ShowGroup(int group) {
         regions_.data[kFirstRowRegion + definition.row_]->SetTipString(tip, 1, 0);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
-        const ActionDefinition& action = ActionDefinitions()[i];
+        const ActionDefinition& action = kActionDefinitions[i + 1];
         if (action.group_ != group) continue;
         rows_[action.row_].binding_ = &bindings_[i];
         tip.Format(TextTipAction(), action.name_);
@@ -250,7 +281,7 @@ void COptionsWindow::BuildSettings() {
         OptionSetting blank{};
         settings_.push_back(blank);
         OptionSetting& setting = settings_.back();
-        const OptionDefinition* definition = &OptionDefinitions()[i];
+        const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.value_ = 0;
         setting.definition_ = definition;
         ShownName(&setting.text_, TextOptionPrefix(), definition->name_);
@@ -294,7 +325,7 @@ void COptionsWindow::BuildBindings() {
     bindings_.Finish() = bindings_.Start();
 
     for (int i = 0; i < kActionDefinitionCount; ++i) {
-        const ActionDefinition* action = &ActionDefinitions()[i];
+        const ActionDefinition* action = &kActionDefinitions[i + 1];
         AppendBlankBinding(bindings_);
         OptionBinding& binding = bindings_.back();
         binding.action_ = action;

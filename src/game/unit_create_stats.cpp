@@ -24,6 +24,7 @@
 #include "originals_units.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <bit>
 #include <cstring>
@@ -399,12 +400,10 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-float Global(std::uintptr_t address) { return ei::GameData<const float>(address); }
-
 // 007C5460 ^ (ln(experience / 007C545C) / ln(007C5464)): FYL2X with FLDLN2 and the CRT's
 // _CIpow (006E81A0), as the original computes it. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
-    return libcrt::CiPow(Global(0x007C5460), x87::flog(static_cast<double>(*experience) / Global(0x007C545C)) / x87::flog(Global(0x007C5464)));
+    return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
 }
 
 // A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.
@@ -442,7 +441,7 @@ void UnitStats::ResetToBase(float newLoad) {
     // The slot maxima from the hit point curve; current values clamped to them.
     double curve = HitPointExperienceCurve(&experience);
     float hitPoints = static_cast<float>(
-        curve * (static_cast<double>(stat10) / Global(0x007C5454) * Global(0x007C5458)));
+        curve * (static_cast<double>(stat10) / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
     float perShare = static_cast<float>(
         (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share);
     for (UnitStatSlot& slot : slots) {
@@ -475,7 +474,7 @@ __declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGIN
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {
     double curve = HitPointExperienceCurve(&stats->experience);
-    double scaled = curve * (static_cast<double>(stats->stat10) / Global(0x007C5454) * Global(0x007C5458));
+    double scaled = curve * (static_cast<double>(stats->stat10) / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
     return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
 }
 } // namespace

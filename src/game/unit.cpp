@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <bit>
 #include <cstring>
@@ -36,8 +37,8 @@ constexpr std::uint32_t kFlagSideChanged = 0x80000;
 constexpr int kClassQuickItem = 0x13;
 
 // Globals read by the formulas.
-float BackwardSpeedScale() { return ei::GameData<const float>(0x007C5438); }
-float HeroTransitionSpeed() { return ei::GameData<const float>(0x007C542C); }
+float BackwardSpeedScale() { return GameLogicSettings().rotateSpeedMult; }
+float HeroTransitionSpeed() { return GameLogicSettings().humanCrossAnimationSpeed; }
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 

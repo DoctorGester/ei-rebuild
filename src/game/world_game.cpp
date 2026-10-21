@@ -1258,7 +1258,7 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C
 
 } // namespace
 
-int __stdcall LoadMission(void* file) {
+int __stdcall LoadMission(CStream* file) {
     TheSoundManager()->StopAll(1);
     LocalMemoryStream mission;
     if (!SaveFileRead(&mission.s, kMagicMissionFile, ei::GameData<const int>(0x00790260),

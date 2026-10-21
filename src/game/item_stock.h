@@ -16,6 +16,8 @@
 #include "item_db.h"
 #include "game_data.h"
 
+class CStream;   // core_streams.h
+
 // STLport vector of record pointers.
 using StockPtrVector = stlp::vector<char*>;
 
@@ -206,16 +208,16 @@ struct ItemStock {
     void GenerateSpells(StockList* out, const float* levels, unsigned threshold);
 
     // 0069B5B0 (RET 4; from the class template serializer 004A6C40 when loading). Reads five
-    // counted name lists from `stream` (a CStream) and appends the records they name, unless
+    // counted name lists from `stream` and appends the records they name, unless
     // already listed: armors (+8, 004AB820), weapons (+0x14, 004AB720), quick items (+0x20,
     // 00613820), names lower-cased, unknown ones skipped; then material entries (+0x2C: name
     // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
     // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
-    void LoadLists(void* stream);
+    void LoadLists(CStream* stream);
     // 0069BAC0 (RET 4; A-H17; from the class template serializer 004A6C40 when saving). Writes
     // what LoadLists reads: the armor, weapon and quick item counts and names (each text with its
     // zero), the material entries (name, the three ints), the spells' and modifiers' codes.
-    void SaveLists(void* stream);
+    void SaveLists(CStream* stream);
     // The destructor as the class template's (004A6A90) inlines it: context cleared, the modifier
     // and spell maps destroyed (their own instantiations, 004A9010 / 004A8E60), each vector's storage
     // freed from the last to the first.

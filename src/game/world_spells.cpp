@@ -76,14 +76,14 @@ void Unlink(UnitList& list, UnitList::Node* node) {
 
 } // namespace
 
-void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vector3 from, CEngineObject* target,
+void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from, CEngineObject* target,
                                  const Vector3* to, int extra) {
     const Vector3* aim = target ? &static_cast<CUnit*>(target)->position : to;
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
-    if (caster) std::memcpy(&from, &static_cast<CUnit*>(caster)->position, sizeof(from));
+    if (caster) std::memcpy(&from, &caster->position, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
@@ -106,14 +106,14 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
         CEngineObject* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
             reinterpret_cast<CUnitServer*>(controller)->Brain()->SetSeen(caster);
-            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(static_cast<CUnit*>(caster), static_cast<CUnit*>(target), 10);
+            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(caster, static_cast<CUnit*>(target), 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }
     }
 }
 
-void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target,
+void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* from, CEngineObject* target,
                              const Vector3* to, int extra) {
     if (!spell) return;
     if (sessionKind_ != kKindSinglePlayer && caster) return;
@@ -137,14 +137,14 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.blocks = nullptr;
     units.blockSize = 10;
     if (caster) {
-        if (char* owner = static_cast<CUnit*>(caster)->player) heroes = reinterpret_cast<WorldPlayer*>(owner)->server;
+        if (char* owner = caster->player) heroes = reinterpret_cast<WorldPlayer*>(owner)->server;
     }
     if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
         --targets;
         CreateMissile(spell, caster, *from, target, to, extra);
     }
     Vector3 center;
-    std::memcpy(&center, caster ? &static_cast<CUnit*>(caster)->position : from, sizeof(center));
+    std::memcpy(&center, caster ? &caster->position : from, sizeof(center));
     float radius = std::bit_cast<float>(AsSpell(spell)->range_);
     Sectors()->FindUnitsInRadius(&center, &units, radius);
     if (target && target->GetClassId() == world::kClassUnit) {
@@ -205,19 +205,19 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
             UnitList::Node* friends =
-                reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(caster)->controller)->Brain()->memory.visible.head;
+                caster->ServerController()->Brain()->memory.visible.head;
             while (friends && friends->data != best) friends = friends->next;
             if (friends) {
                 hit = true;
             } else {
-                int casterSide = static_cast<CUnit*>(caster)->side;
+                int casterSide = caster->side;
                 int bestSide = best->side;
                 hit = (diplomacy_.allied_[bestSide] & (1u << (casterSide & 31))) != 0;
             }
         }
         if (!hit) continue;
         Vector3* at = &best->position;
-        if (!SpellHasLineOfSight(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), static_cast<CUnit*>(caster),
+        if (!SpellHasLineOfSight(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), caster,
                                  from, best, at))
             continue;
         if (!static_cast<const CSpell*>(spell)->CanAffect(caster, best)) continue;

@@ -41,7 +41,7 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 // The work buffer 0079B668: a CWordArray (SetSize is MFC's, 006FEEFA).
 mfc::CArray<std::uint16_t>& WorkWords() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x0079B668); }
 
-void Emit(std::uint16_t index) { clip::Buffer()[clip::BufferCount()++] = index; }
+void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }
 
 template <std::size_t Axis>
 float Coord(const TLVertex& v) {
@@ -53,7 +53,7 @@ float Coord(const TLVertex& v) {
 // intersection, or the edge's end vertex when t is above 1, below 0 or NaN.
 template <std::size_t Axis, bool KeepAbove>
 int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
-    clip::BufferCount() = 0;
+    clip::g_bufferCount = 0;
     for (int i = 0; i < *count; ++i) {
         std::uint16_t cur = indices[i];
         std::uint16_t next = indices[(i + 1) % *count];
@@ -62,18 +62,18 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
         bool curOver = Coord<Axis>(a) > limit;
         if (KeepAbove ? curOver : !curOver) Emit(cur);
         if (curOver == (Coord<Axis>(b) > limit)) continue;
-        bool aboveOne = StoreRatio(limit, Coord<Axis>(a), Coord<Axis>(b), &clip::LastRatio()) != 0;
-        if (!aboveOne && clip::LastRatio() >= 0.0f) {
-            clip::LerpVertex(&a, &b, clip::LastRatio(), &vertices[*vertexCount]);
+        bool aboveOne = StoreRatio(limit, Coord<Axis>(a), Coord<Axis>(b), &clip::g_lastRatio) != 0;
+        if (!aboveOne && clip::g_lastRatio >= 0.0f) {
+            clip::LerpVertex(&a, &b, clip::g_lastRatio, &vertices[*vertexCount]);
             Emit(static_cast<std::uint16_t>(*vertexCount));
             ++*vertexCount;
         } else {   // also a NaN ratio
             Emit(next);
         }
     }
-    std::memcpy(indices, clip::Buffer(), static_cast<std::size_t>(clip::BufferCount()) * 2);
-    *count = clip::BufferCount();
-    return clip::BufferCount();
+    std::memcpy(indices, clip::Buffer(), static_cast<std::size_t>(clip::g_bufferCount) * 2);
+    *count = clip::g_bufferCount;
+    return clip::g_bufferCount;
 }
 
 } // namespace
@@ -141,7 +141,7 @@ int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, st
     ClipZAbove(combined, vertices, vertexCount, tri, indexCount, 0.0f);
     // Fan: (0, i - 1, i) for every further vertex of the clipped polygon.
     *indexCount = 0;
-    for (int i = 2; i < BufferCount(); ++i) {
+    for (int i = 2; i < g_bufferCount; ++i) {
         tri[(*indexCount)++] = Buffer()[0];
         tri[(*indexCount)++] = Buffer()[i - 1];
         tri[(*indexCount)++] = Buffer()[i];

@@ -21,6 +21,7 @@
 #include "lib/crt_iostream.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
@@ -101,7 +102,7 @@ void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int bro
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= kZero) return;
     float before = ItemFloat(item, kItemCondition);
-    float threshold = ItemFloat(item, kItemMaxCondition) * ei::GameData<const float>(0x007C549C);
+    float threshold = ItemFloat(item, kItemMaxCondition) * GameLogicSettings().itemDurabilityCritical;
     int pieces = *reinterpret_cast<int*>(reinterpret_cast<char*>(item) + kItemPieces);
     if (pieces > 0) {
         ItemFloat(item, kItemCondition) =
@@ -208,7 +209,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (copy.amount == kZero) return 0;
     float difficulty = unit->player ? kOne
-                                    : ei::GamePointer<const float>(0x007C54A0)[ei::GameData<const int>(0x0079BEC0)];
+                                    : GameLogicSettings().absorption[ei::GameData<const int>(0x0079BEC0)];
     float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -

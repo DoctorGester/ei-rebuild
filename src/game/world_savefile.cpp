@@ -69,9 +69,7 @@ struct LocalBuffer {
 
 } // namespace
 
-void __fastcall SaveFileWrite(void* fileStream, unsigned magic, int version, void* dataStream) {
-    auto* file = static_cast<CStream*>(fileStream);
-    auto* data = static_cast<CMemoryStream*>(dataStream);
+void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
     LocalCoder coder;
     // A view over the data (vtable 0073CA64, flags 2).
     std::uint8_t* begin = data->data_;
@@ -118,9 +116,7 @@ void __fastcall SaveFileWrite(void* fileStream, unsigned magic, int version, voi
     ei::SetVtable(&view, GameBuffer::kViewBaseVtableAddress);
 }
 
-bool __fastcall SaveFileRead(void* outStream, unsigned magic, int minimum, int maximum, void* fileStream) {
-    auto* out = static_cast<CMemoryStream*>(outStream);
-    auto* file = static_cast<CStream*>(fileStream);
+bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {
     // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
     // newest version accepted (LoadMission passes 00790260, then 00790268).
     if (!file->ReadHeader(magic, minimum, maximum)) return false;
