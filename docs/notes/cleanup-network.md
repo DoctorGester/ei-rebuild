@@ -36,7 +36,7 @@ qualified member).
 
 ## C2n: the remaining network files and the players
 
-- `ClientSession::parties_` are `PartyStorage` (a CParty's 0x70 bytes with `Party()`, as `CPlayer::party_`; the class is abstract in C++);
+- `ClientSession::parties_` are `PartyStorage` (party_storage.h: a CParty's 0x70 bytes with `Party()`, the one cast; every embedded party uses it);
   `TradeRecordNode` (three parties) is in `net_classes.h` and `tradeRecords_` is typed. The party publish / apply (`net_client_party.cpp`)
   read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id, `Save` / `Load` slots 10 / 9) and the partner
   party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23); `PartyMessage::partyValue_` is `money_`
