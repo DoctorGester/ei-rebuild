@@ -50,6 +50,18 @@ std::string Step(const std::string& argument);
 // "dump <name>": the full state now into dump_<name>.txt. "" on success, else the error.
 std::string Dump(const std::string& name);
 
+// For the harness's waits on the world ("waitidle", "waitdead", "waitaward"; SV5d5): a server world unit now,
+// read as the digest reads it.
+struct UnitNow {
+    bool found = false;     // the server world holds a unit with that id
+    bool dead = false;
+    bool idle = false;      // its controller has no action (no walk, no attack) and it has no path
+    float experience = 0;
+};
+UnitNow Unit(int id);
+// Player 0's (the local player's) first party member's unit id, or -1; `money` its party's money.
+int LocalLeader(unsigned* money = nullptr);
+
 // The digest's line for the report ("" when none was taken), and the file flushed.
 std::string Summary();
 void Flush();

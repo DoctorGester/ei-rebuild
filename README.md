@@ -72,7 +72,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   vtable in hex. A new game's battle screen comes seconds after the leader has HP, so input for it
   waits on `waitwindow 15 battle` first. `waitunit <seconds> <name>` waits until `clickunit` would
   find the unit on screen. `frames <n>` lets the game run <n> frames (input posted before it has been
-  handled after one). Plain `wait <ms>` is left for "let the world run this long".
+  handled after one). Plain `wait <ms>` is left for "let the world run this long". On the server world:
+  `waitidle <seconds> [frames]` waits until the leader has stood idle (no walk, no fight) for that many frames
+  (default 10), `waitdead <seconds> <id>...` until those units are dead, `waitaward <seconds>` until the
+  leader's experience or money changes (from an earlier `awardfrom`; `net_pair_quest.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/dblclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
