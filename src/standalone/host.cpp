@@ -37,21 +37,27 @@ constexpr std::uintptr_t kCodeBegin = kImageBegin + 0x1000;
 
 // Reserves, with no access, every free part of game.exe's range (each from its first allocation granule: the
 // rest of a granule after another allocation cannot be allocated anyway, and is free memory, which faults too).
-void ReserveGameRange() {
+// Returns the bytes of the range that were taken already (by the loader, before main) or could not be reserved.
+std::uint32_t ReserveGameRange() {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
     const std::uintptr_t granule = info.dwAllocationGranularity;
+    std::uint32_t taken = 0;
     for (std::uintptr_t a = kImageBegin; a < kImageEnd;) {
         MEMORY_BASIC_INFORMATION mbi;
         if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) break;
         const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+        const std::uintptr_t to = end < kImageEnd ? end : kImageEnd;
         if (mbi.State == MEM_FREE) {
             const std::uintptr_t from = (a + granule - 1) & ~(granule - 1);
-            const std::uintptr_t to = end < kImageEnd ? end : kImageEnd;
-            if (from < to) VirtualAlloc(reinterpret_cast<void*>(from), to - from, MEM_RESERVE, PAGE_NOACCESS);
+            if (from < to && !VirtualAlloc(reinterpret_cast<void*>(from), to - from, MEM_RESERVE, PAGE_NOACCESS))
+                taken += static_cast<std::uint32_t>(to - from);
+        } else {
+            taken += static_cast<std::uint32_t>(to - a);
         }
         a = end;
     }
+    return taken;
 }
 
 // An access to game.exe's range before ei_hook.dll's own reports are in place (its static constructors run at
@@ -107,9 +113,11 @@ std::string GameArguments() {
 
 // Marks this process as the standalone image for ei_hook.dll (ei::Standalone): game.exe exports nothing.
 extern "C" __declspec(dllexport) int EiStandaloneHost = 1;
+// The bytes of game.exe's range already taken when main started (or not reservable): ei_hook.dll's guard log.
+extern "C" __declspec(dllexport) std::uint32_t EiStandaloneRangeTaken = 0;
 
 int main(int argc, char** argv) {
-    ReserveGameRange();
+    EiStandaloneRangeTaken = ReserveGameRange();
     AddVectoredExceptionHandler(1, OnGameRange);
     // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on a missing-code report
     // (TerminateProcess) loses none of it.

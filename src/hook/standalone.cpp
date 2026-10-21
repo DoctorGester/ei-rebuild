@@ -299,8 +299,10 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     FixCodeCells();
     // Informational: what the loader put in game.exe's range before the host ran is not ours to move.
     const std::size_t open = CheckGuard();
-    Log("standalone: game.exe's range %08X-%08X %s (%zu byte(s) open)", static_cast<unsigned>(kImageBegin),
-        static_cast<unsigned>(kImageEnd), open ? "NOT all guarded" : "guarded", open);
+    const auto* taken = reinterpret_cast<const std::uint32_t*>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneRangeTaken"));
+    Log("standalone: game.exe's range %08X-%08X %s (%zu byte(s) open; %u taken before the host's main; the host at %p)",
+        static_cast<unsigned>(kImageBegin), static_cast<unsigned>(kImageEnd), open ? "NOT all guarded" : "guarded", open,
+        taken ? *taken : 0u, static_cast<void*>(GetModuleHandleA(nullptr)));
     const bool routed = RouteImageCalls();
     Log("standalone: game.exe's resources in the host, its command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);

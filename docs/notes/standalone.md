@@ -61,9 +61,12 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   part of game.exe's range 0x400000-0x7D7000 (game_data.h's `kImageBegin`-`kImageEnd`) with no access, so nothing is
   allocated there later and a stray game address faults and is named: the host's `OnGameRange` (`ei_standalone: read
   of game.exe's headers|code|data|.rsrc at ... by ...`, or `no code at ... before ei_hook.dll's missing-code report`),
-  then ei_hook.dll's OnOldCode / OnOldData with the detailed reports. What the loader put there before main (this exe
-  or a heap, by ASLR's choice) stays: EiStandaloneMain logs each open part and the total (`game.exe's range
-  00400000-007D7000 guarded|NOT all guarded`), informational, not a check failure. The seam itself never hands out such
+  then ei_hook.dll's OnOldCode / OnOldData with the detailed reports. What was there before main stays: EiStandaloneMain logs
+  each open part and the total (`game.exe's range 00400000-007D7000 guarded|NOT all guarded (N byte(s) open; M taken
+  before the host's main; the host at ...)`, the host's export `EiStandaloneRangeTaken`), informational, not a check
+  failure. Measured on the suite (2026-10-21): about half the runs 0 open, the rest 30 KB-1.9 MB of private memory
+  (heap / stack segments the loader placed there by ASLR's choice, always within what was taken before main); the host
+  itself lands outside the range (00980000). The seam itself never hands out such
   an address: in the image `GameAddress` of a game address outside the moved range (headers, code, .rsrc) is
   `StrayGameAddress`'s report (`the data seam was asked for game.exe's code at ...`); a game address is itself only in
   game.exe, an address outside game.exe's range (a resolved pointer, null) is itself in both. `ei::Standalone()` is
