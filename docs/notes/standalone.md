@@ -315,12 +315,16 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
-2,095 after C18j's unread objects and 2,068 after its particle and weather names). C18 turns them into named C++
+2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
 kinds given.
+- **Blocks**: an address that looks like a lone object can sit inside a larger one the code reaches by its base: C18f's
+  0079BCF0 and 0079BEC8 are GameOptions members (0079BC70 +0x80, +0x258), read as `options::TheOptions()->...`, not named.
+  A `char` buffer is `char g_x[256] = /*addr*/ {""};` (the tool packs char arrays as names), a function pointer
+  `void* g_hook = /*addr*/ {nullptr};` cast at the call.
 - **The harness in game.exe**: the original suite (`--no-hooks`) runs game.exe's own code, which never touches our
   named globals. A harness step there must read game.exe's copy (`ei::OriginalGameData<T>(address)`, tests/ only)
   or call game.exe's function by address instead of ours (the zone step's LeaveToZone, modfile's text folder, the

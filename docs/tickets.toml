@@ -2546,7 +2546,7 @@ title = "Named data: app* .data and .bss objects"
 group = "cleanup"
 model = "sonnet"
 depends = ["C18d"]
-note = "C18d's pattern (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): app_main / app / app_frame / app_helpers' objects only one hand-written file names (named_data.py --split 'data object' 'bss object': app* 16 data, 3 bss), most written (LastTime 0079B9F8, its guard 0079B9FC, window class atom 0079BA20, client speed 00784758, ...): plain g_ globals, {} or the original's value. Run --refs per object first; skip any the static initialisers store into or that sits inside a larger block the code reaches by its base."
+note = "C18d's pattern (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): app_main / app / app_frame / app_helpers' objects only one hand-written file names (named_data.py --split 'data object' 'bss object': app* 16 data, 3 bss), most written (LastTime 0079B9F8, its guard 0079B9FC, window class atom 0079BA20, client speed 00784758, ...): plain g_ globals, {} or the original's value. Run --refs per object first; skip any the static initialisers store into or that sits inside a larger block the code reaches by its base. 14 app* objects named (app_main 8, app 4, app_frame 1, app_helpers 1: movie mode byte extern in app_helpers.h); 0079BCF0 / 0079BEC8 are GameOptions members, read as members; the three others in the list (several files) left. Game data addresses 1,878 -> 1,859. Both suites the same (image 121, original 114)."
 
 [[ticket]]
 id = "C18g"
