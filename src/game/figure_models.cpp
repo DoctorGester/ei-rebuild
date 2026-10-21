@@ -32,12 +32,12 @@ using AnimationMap = FigureModel::AnimationMap;
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 
 // The data of "<name><suffix>" (the manager's GetFile), or null.
-void* OpenPart(CFigureManager* manager, const stlp::string* name, std::uintptr_t suffix) {
+void* OpenPart(CFigureManager* manager, const stlp::string* name, const char* suffix) {
     char path[0x200];
     // The inlined strcpy and strcat (no bounds check, as in the original).
     std::size_t length = std::strlen(name->data());
     std::memcpy(path, name->data(), length);
-    const char* tail = reinterpret_cast<const char*>(suffix);
+    const char* tail = suffix;
     std::memcpy(path + length, tail, std::strlen(tail) + 1);
     return manager->GetFile(path, nullptr);
 }
@@ -52,9 +52,9 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     ModelMap* map = &models_;
     if (const ModelMap::Node* found = map->Find(*name)) return found->value;
 
-    void* mesh = OpenPart(this, name, 0x0078EC88);        // ".mod"
-    void* bones = OpenPart(this, name, 0x00784640);       // ".bon"
-    void* animation = OpenPart(this, name, 0x0078EC80);   // ".anm"
+    void* mesh = OpenPart(this, name, ".mod");
+    void* bones = OpenPart(this, name, ".bon");
+    void* animation = OpenPart(this, name, ".anm");
     if (!mesh) return nullptr;
 
     void* memory = gamecrt::operator_new(sizeof(FigureModel));

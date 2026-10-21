@@ -41,7 +41,7 @@ constexpr int kCategoryWand = 8;     // quick item category whose spell comes fr
 constexpr std::uint32_t kFlagConstructing = 8;
 
 // "CItemConstructor::BeginCreateItem.\n", passed by its game address.
-const char* const kCantCreateItem = reinterpret_cast<const char*>(0x00796638);
+const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
 // The charge rate every item starts with (0x3A83126F).
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
@@ -396,10 +396,10 @@ namespace {
 constexpr int kKindSpellContainer = 0x3008;
 constexpr int kLootKindTable = 2;             // a loot item (class 0x15) whose +0x50 names a table
 
-const char* const kSpellContainer = reinterpret_cast<const char*>(0x007938A0);   // "spell container"
-const char* const kMaterialType = reinterpret_cast<const char*>(0x007938C4);     // "material"
-const char* const kNoPrototype = reinterpret_cast<const char*>(0x007966BC);      // "Can't find prototype for item \"%s\".\n"
-const char* const kCantCreate = reinterpret_cast<const char*>(0x00796684);       // "Can't create item \"%s\".\nCheck shape and material"
+const char* const kSpellContainer = "spell container";
+const char* const kMaterialType = "material";
+const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
+const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {

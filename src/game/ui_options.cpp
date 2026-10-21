@@ -28,18 +28,18 @@ __declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
 namespace {
 
 // Strings of the exe.
-const char* TextOptionPrefix() { return reinterpret_cast<const char*>(0x007948C8); }    // "option_"
-const char* TextActionPrefix() { return reinterpret_cast<const char*>(0x007948A0); }    // "action_"
-const char* TextTipOption() { return reinterpret_cast<const char*>(0x007948E0); }       // "tip option_%s"
-const char* TextTipAction() { return reinterpret_cast<const char*>(0x007948D0); }       // "tip action_%s"
-const char* TextOptionOff() { return reinterpret_cast<const char*>(0x007948B8); }       // "option_off"
-const char* TextOptionOn() { return reinterpret_cast<const char*>(0x007948A8); }        // "option_on"
-const char* TextOffDefault() { return reinterpret_cast<const char*>(0x007948C4); }      // "OFF"
-const char* TextOnDefault() { return reinterpret_cast<const char*>(0x007948B4); }       // "ON"
-const char* TextDifficultyHard() { return reinterpret_cast<const char*>(0x0079427C); }  // "difficulty_hard"
-const char* TextDifficultyEasy() { return reinterpret_cast<const char*>(0x0079428C); }  // "difficulty_easy"
-const char* TextKeySeparator() { return reinterpret_cast<const char*>(0x00794830); }    // "  |  " after each key name
-const char* TextKeyTrim() { return reinterpret_cast<const char*>(0x0079482C); }         // " |" trimmed from the right
+const char* TextOptionPrefix() { return "option_"; }
+const char* TextActionPrefix() { return "action_"; }
+const char* TextTipOption() { return "tip option_%s"; }
+const char* TextTipAction() { return "tip action_%s"; }
+const char* TextOptionOff() { return "option_off"; }
+const char* TextOptionOn() { return "option_on"; }
+const char* TextOffDefault() { return "OFF"; }
+const char* TextOnDefault() { return "ON"; }
+const char* TextDifficultyHard() { return "difficulty_hard"; }
+const char* TextDifficultyEasy() { return "difficulty_easy"; }
+const char* TextKeySeparator() { return "  |  "; }    // after each key name
+const char* TextKeyTrim() { return " |"; }         // trimmed from the right
 
 constexpr int kOptionGroups = 11;
 constexpr int kOptionRows = 14;

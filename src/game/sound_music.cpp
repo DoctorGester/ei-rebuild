@@ -298,7 +298,7 @@ void ThemesDestruct(void* themes) {
 }
 constexpr int kMusicClassId = 0xE;
 // "CMusicSystem" (007967F4).
-const char* MusicClassNameText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007967F4)); }
+const char* MusicClassNameText() { return "CMusicSystem"; }
 } // namespace
 
 CMusicSystem* CMusicSystem::Construct() {

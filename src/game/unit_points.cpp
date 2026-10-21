@@ -30,7 +30,7 @@ Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return Qua
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
-const char* const kNoEntry = reinterpret_cast<const char*>(0x0078F918);   // "Can't find animation entry index..."
+const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
 // The unit's virtual slot 55 (IsDead: +0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }

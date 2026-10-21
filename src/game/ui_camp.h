@@ -51,10 +51,17 @@ inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     return reinterpret_cast<Fn>(screen->vtable_[51])(screen);
 }
-// The statistics' names (pointer tables in the exe, also their text keys): the six skill schools
-// ("Melee", ...) followed by "Science"; the attributes ("Strength", ..., index 7 "Encumbrance").
-inline const char* const* SkillNames() { return reinterpret_cast<const char* const*>(0x00793BD4); }
-inline const char* const* AttributeNames() { return reinterpret_cast<const char* const*>(0x00793BF0); }
+// The statistics' names, also their text keys: the six skill schools followed by "Science"; the
+// attributes (index 7 "Encumbrance").
+inline const char* const* SkillNames() {
+    static constexpr const char* kNames[7] = {"Melee", "Archery", "Backstab", "Elemental", "Sense", "Astral", "Science"};
+    return kNames;
+}
+inline const char* const* AttributeNames() {
+    static constexpr const char* kNames[8] = {"Strength", "Dexterity", "Intelligence", "Health",
+                                              "Mana",     "Actions",   "Experience",   "Encumbrance"};
+    return kNames;
+}
 
 // --- Global map -----------------------------------------------------------------------------
 //

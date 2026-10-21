@@ -19,7 +19,7 @@
 
 namespace {
 
-const char* const kHeroName = reinterpret_cast<const char*>(0x0078B0F4);   // "Hero"
+const char* const kHeroName = "Hero";
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
 

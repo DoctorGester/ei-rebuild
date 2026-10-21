@@ -194,7 +194,7 @@ namespace {
 void* ErrorVtable() { return reinterpret_cast<void*>(0x0073CAB4); }
 void* ErrorBaseVtable() { return reinterpret_cast<void*>(0x0073CAB0); }
 // 00787EE4: "%s (0x%.8X) %s".
-const char* ResultFormat() { return reinterpret_cast<const char*>(0x00787EE4); }
+const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
 // The original's stack buffers (wvsprintf writes at most 1024 characters; the sprintf of 00480300
 // can run past its 1024 bytes, as in the original).

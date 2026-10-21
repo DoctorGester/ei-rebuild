@@ -10,20 +10,20 @@
 namespace {
 
 // The class and folder names in the exe's .data (the callers compare and print them).
-constexpr std::uintptr_t kWorldClientName = std::uintptr_t(0x0078FF8C);            // "CWorldClient"
-constexpr std::uintptr_t kWorldServerName = std::uintptr_t(0x00790814);            // "CWorldServer"
-constexpr std::uintptr_t kBridgeManagerName = std::uintptr_t(0x0078FF7C);          // "CBridgeManager"
-constexpr std::uintptr_t kParticleManagerName = std::uintptr_t(0x0078FFF0);        // "CParticleManager"
-constexpr std::uintptr_t kTextManagerName = std::uintptr_t(0x00790004);            // "CTextManager"
-constexpr std::uintptr_t kTerrainName = std::uintptr_t(0x00790014);                // "CTerrain"
-constexpr std::uintptr_t kLightningManagerName = std::uintptr_t(0x00790020);       // "CLightningManager"
-constexpr std::uintptr_t kVisFogManagerName = std::uintptr_t(0x00790034);          // "CVisFogManager"
-constexpr std::uintptr_t kFigureManagerName = std::uintptr_t(0x00790C50);          // "CFigureManager"
-constexpr std::uintptr_t kI3DFigureName = std::uintptr_t(0x00790C60);              // "CI3DFigure"
-constexpr std::uintptr_t kFigureClientSpecificName = std::uintptr_t(0x00790C14);   // "CFigureClientSpecific"
-constexpr std::uintptr_t kUiObjectName = std::uintptr_t(0x007904F8);               // "Sorry, no other way."
-constexpr std::uintptr_t kItemsFolderName = std::uintptr_t(0x0078FF08);            // "items"
-constexpr std::uintptr_t kFiguresFolderName = std::uintptr_t(0x00790C48);          // "figures"
+constexpr const char* kWorldClientName = "CWorldClient";
+constexpr const char* kWorldServerName = "CWorldServer";
+constexpr const char* kBridgeManagerName = "CBridgeManager";
+constexpr const char* kParticleManagerName = "CParticleManager";
+constexpr const char* kTextManagerName = "CTextManager";
+constexpr const char* kTerrainName = "CTerrain";
+constexpr const char* kLightningManagerName = "CLightningManager";
+constexpr const char* kVisFogManagerName = "CVisFogManager";
+constexpr const char* kFigureManagerName = "CFigureManager";
+constexpr const char* kI3DFigureName = "CI3DFigure";
+constexpr const char* kFigureClientSpecificName = "CFigureClientSpecific";
+constexpr const char* kUiObjectName = "Sorry, no other way.";
+constexpr const char* kItemsFolderName = "items";
+constexpr const char* kFiguresFolderName = "figures";
 
 constexpr int kWorldClientId = 7;
 constexpr int kWorldServerId = 8;
@@ -40,70 +40,70 @@ constexpr int kUiObjectId = 0x45;
 
 } // namespace
 
-const char* __fastcall WorldClientClassName(CWorldClient*) { return game::Text(kWorldClientName); }
+const char* __fastcall WorldClientClassName(CWorldClient*) { return kWorldClientName; }
 int __fastcall WorldClientClassId(CWorldClient*) { return kWorldClientId; }
 EI_REPLACE(0x005619E0, WorldClientClassName);
 EI_REPLACE(0x005619F0, WorldClientClassId);
 
-const char* __fastcall WorldServerClassName(CWorldServer*) { return game::Text(kWorldServerName); }
+const char* __fastcall WorldServerClassName(CWorldServer*) { return kWorldServerName; }
 int __fastcall WorldServerClassId(CWorldServer*) { return kWorldServerId; }
 EI_REPLACE(0x0058A410, WorldServerClassName);
 EI_REPLACE(0x0058A420, WorldServerClassId);
 
-const char* __fastcall BridgeManagerClassName(PlatformSet*) { return game::Text(kBridgeManagerName); }
+const char* __fastcall BridgeManagerClassName(PlatformSet*) { return kBridgeManagerName; }
 int __fastcall BridgeManagerClassId(PlatformSet*) { return kBridgeManagerId; }
 EI_REPLACE(0x00561870, BridgeManagerClassName);
 EI_REPLACE(0x00561880, BridgeManagerClassId);
 
-const char* __fastcall ParticleManagerClassName(CParticleManager*) { return game::Text(kParticleManagerName); }
+const char* __fastcall ParticleManagerClassName(CParticleManager*) { return kParticleManagerName; }
 int __fastcall ParticleManagerClassId(CParticleManager*) { return kParticleManagerId; }
 EI_REPLACE(0x00562780, ParticleManagerClassName);
 EI_REPLACE(0x00562790, ParticleManagerClassId);
 
-const char* __fastcall TextManagerClassName(ClientTexts*) { return game::Text(kTextManagerName); }
+const char* __fastcall TextManagerClassName(ClientTexts*) { return kTextManagerName; }
 int __fastcall TextManagerClassId(ClientTexts*) { return kTextManagerId; }
 EI_REPLACE(0x00562970, TextManagerClassName);
 EI_REPLACE(0x00562980, TextManagerClassId);
 
-const char* __fastcall TerrainClassName(Terrain*) { return game::Text(kTerrainName); }
+const char* __fastcall TerrainClassName(Terrain*) { return kTerrainName; }
 int __fastcall TerrainClassId(Terrain*) { return kTerrainId; }
 EI_REPLACE(0x00562B40, TerrainClassName);
 EI_REPLACE(0x00562B50, TerrainClassId);
 
-const char* __fastcall LightningManagerClassName(ClientListManager*) { return game::Text(kLightningManagerName); }
+const char* __fastcall LightningManagerClassName(ClientListManager*) { return kLightningManagerName; }
 int __fastcall LightningManagerClassId(ClientListManager*) { return kLightningManagerId; }
 EI_REPLACE(0x00562D80, LightningManagerClassName);
 EI_REPLACE(0x00562D90, LightningManagerClassId);
 
-const char* __fastcall VisFogManagerClassName(ClientArrayManager*) { return game::Text(kVisFogManagerName); }
+const char* __fastcall VisFogManagerClassName(ClientArrayManager*) { return kVisFogManagerName; }
 int __fastcall VisFogManagerClassId(ClientArrayManager*) { return kVisFogManagerId; }
 EI_REPLACE(0x00562DB0, VisFogManagerClassName);
 EI_REPLACE(0x00562DC0, VisFogManagerClassId);
 
-const char* __fastcall FigureManagerClassName(CFigureManager*) { return game::Text(kFigureManagerName); }
+const char* __fastcall FigureManagerClassName(CFigureManager*) { return kFigureManagerName; }
 int __fastcall FigureManagerClassId(CFigureManager*) { return kFigureManagerId; }
 EI_REPLACE(0x005AA180, FigureManagerClassName);
 EI_REPLACE(0x005AA190, FigureManagerClassId);
 
-const char* __fastcall I3DFigureClassName(CEngineObject*) { return game::Text(kI3DFigureName); }
+const char* __fastcall I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
 int __fastcall I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
 EI_REPLACE(0x005AACC0, I3DFigureClassName);
 EI_REPLACE(0x005AACD0, I3DFigureClassId);
 
-const char* __fastcall FigureClientSpecificClassName(CEngineObject*) { return game::Text(kFigureClientSpecificName); }
+const char* __fastcall FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
 int __fastcall FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }
 EI_REPLACE(0x005A7040, FigureClientSpecificClassName);
 EI_REPLACE(0x005A7050, FigureClientSpecificClassId);
 
 int __fastcall UiObjectCreate(CEngineObject*) { return 1; }
-const char* __fastcall UiObjectClassName(CEngineObject*) { return game::Text(kUiObjectName); }
+const char* __fastcall UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 int __fastcall UiObjectClassId(CEngineObject*) { return kUiObjectId; }
 EI_REPLACE(0x00579560, UiObjectCreate);
 EI_REPLACE(0x00579580, UiObjectClassName);
 EI_REPLACE(0x00579590, UiObjectClassId);
 
-const char* __fastcall ItemManagerResourceName(CItemManager*) { return game::Text(kItemsFolderName); }
-const char* __fastcall FigureManagerResourceName(CFigureManager*) { return game::Text(kFiguresFolderName); }
+const char* __fastcall ItemManagerResourceName(CItemManager*) { return kItemsFolderName; }
+const char* __fastcall FigureManagerResourceName(CFigureManager*) { return kFiguresFolderName; }
 EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
 EI_REPLACE(0x005AA170, FigureManagerResourceName);
 

@@ -38,7 +38,7 @@ constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
 constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObject)
 
 // 0078EDF8: "Final loading data to NULL texture!" and a newline.
-const char* NullTextureText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078EDF8)); }
+const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
 
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 

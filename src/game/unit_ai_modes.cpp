@@ -230,7 +230,7 @@ void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
     // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
-    game::FatalError(reinterpret_cast<const char*>(0x00791DEC), brain->owner->unit->id_);
+    game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->position);
     return kNoPriority;
 }

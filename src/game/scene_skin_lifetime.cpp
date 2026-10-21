@@ -13,7 +13,7 @@ using scene::SceneSkin;
 
 namespace {
 constexpr std::uint32_t kClockUnsetHigh = 0xBFF00000u;   // the clock as a double: -1.0
-constexpr std::uintptr_t kNoneText = std::uintptr_t(0x007846F0);   // "none"
+constexpr const char* kNoneText = "none";
 
 // The root bone destroyed (its children with it) and deleted. True when there was one.
 bool DropRoot(SceneSkin* skin) {
@@ -70,7 +70,7 @@ int SceneSkin::Create() {
     }
     clock[0] = 0;
     clock[1] = 0;
-    name = reinterpret_cast<const char*>(kNoneText);
+    name = kNoneText;
     names.SetSize(0, -1);
     spare4C = 0;
     return 1;

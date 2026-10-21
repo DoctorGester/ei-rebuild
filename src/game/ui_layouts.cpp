@@ -190,10 +190,13 @@ EI_REPLACE_METHOD(0x00653DD0, CSaveLoadWindow::Build);
 // --- Options window (006503C0) ------------------------------------------------------------------
 
 namespace {
-// The option groups (names at 007947A8): video, sound, sens, game, select, actions, camera,
-// items, spells, cshots, windows.
+// The option groups' names.
 constexpr int kOptionGroups = 11;
-const char* OptionGroupName(int index) { return reinterpret_cast<const char* const*>(0x007947A8)[index]; }
+const char* OptionGroupName(int index) {
+    static constexpr const char* kNames[12] = {"video",  "sound", "sens",   "game",   "select",  "actions",
+                                               "camera", "items", "spells", "cshots", "windows", "debug1"};
+    return kNames[index];
+}
 } // namespace
 
 void COptionsWindow::Build() {

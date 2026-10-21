@@ -354,8 +354,8 @@ void CBattleScreen::Update() {
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
-                                                     reinterpret_cast<const char*>(0x007943FC),    // "leave_zone"
-                                                     reinterpret_cast<const char*>(0x00794408),    // "leave_zone_msg"
+                                                     "leave_zone",
+                                                     "leave_zone_msg",
                                                      0x10000, 3, 1)
                                : nullptr;
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
@@ -415,9 +415,9 @@ void CBattleScreen::Update() {
     if (questSound_ != 0) {
         const char* sound = nullptr;
         switch (questSound_) {
-        case 1: sound = reinterpret_cast<const char*>(0x007943B8); break;   // buttons\quest.wav
-        case 2: sound = reinterpret_cast<const char*>(0x007943CC); break;   // buttons\subcomplete.wav
-        case 3: sound = reinterpret_cast<const char*>(0x007943E4); break;   // buttons\complete.wav
+        case 1: sound = "buttons\\quest.wav"; break;
+        case 2: sound = "buttons\\subcomplete.wav"; break;
+        case 3: sound = "buttons\\complete.wav"; break;
         }
         if (sound) interface_->PlaySound(sound, 0);
         questSound_ = 0;

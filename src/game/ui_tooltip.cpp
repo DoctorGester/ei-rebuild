@@ -36,9 +36,9 @@ constexpr COLORREF kTitleColour = 0x31B3FF;   // also the frame
 constexpr COLORREF kTextColour = 0xA7D7E4;
 
 // The exe's texts: "w" (an empty line's height is measured on it), "  ( " and " )" around the key.
-const char* EmptyLineSample() { return reinterpret_cast<const char*>(std::uintptr_t(0x00794B60)); }
-const char* KeyOpen() { return reinterpret_cast<const char*>(std::uintptr_t(0x00794B68)); }
-const char* KeyClose() { return reinterpret_cast<const char*>(std::uintptr_t(0x00794B64)); }
+const char* EmptyLineSample() { return "w"; }
+const char* KeyOpen() { return "  ( "; }
+const char* KeyClose() { return " )"; }
 
 // Showing (0065E580).
 constexpr int kIdle = 0;

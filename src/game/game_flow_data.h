@@ -9,92 +9,90 @@
 namespace flowdata {
 
 // ---- SaveGame (0057B3B0) -----------------------------------------------------------------------
-constexpr std::uintptr_t kSlotFolder = std::uintptr_t(0x007905E4);      // "%ssaves\\%s\\"
-constexpr std::uintptr_t kCurrentFolder = std::uintptr_t(0x00790534);   // "%ssaves\\current\\"
-constexpr std::uintptr_t kCurrentFiles = std::uintptr_t(0x0079060C);    // "%ssaves\\current\\*.*"
-constexpr std::uintptr_t kVisitedPrefix = std::uintptr_t(0x00790548);   // "zs.": the "zone visited" variable
-constexpr std::uintptr_t kAlwaysCopied = std::uintptr_t(0x007905CC);    // "bz7g"
-constexpr std::uintptr_t kSaveExtension = std::uintptr_t(0x0079052C);   // ".sav"
-constexpr std::uintptr_t kScenarioFile = std::uintptr_t(0x007905D4);    // "scenario.sav"
-constexpr std::uintptr_t kMissionFile = std::uintptr_t(0x007905C0);     // "mission.sav"
-constexpr std::uintptr_t kMainMenu = std::uintptr_t(0x007904EC);        // "MainMenu"
-constexpr std::uintptr_t kSaved = std::uintptr_t(0x00790604);           // "Saved "
+constexpr const char* kSlotFolder = "%ssaves\\%s\\";
+constexpr const char* kCurrentFolder = "%ssaves\\current\\";
+constexpr const char* kCurrentFiles = "%ssaves\\current\\*.*";
+constexpr const char* kVisitedPrefix = "zs.";   // the "zone visited" variable
+constexpr const char* kAlwaysCopied = "bz7g";
+constexpr const char* kSaveExtension = ".sav";
+constexpr const char* kScenarioFile = "scenario.sav";
+constexpr const char* kMissionFile = "mission.sav";
+constexpr const char* kMainMenu = "MainMenu";
+constexpr const char* kSaved = "Saved ";
 
 // ---- EnterZone ---------------------------------------------------------------------------------
-constexpr std::uintptr_t kMovieVariable = std::uintptr_t(0x00790598);   // "movie"
-constexpr std::uintptr_t kMovieZone = std::uintptr_t(0x00790590);       // "bz3g": no movie there
-constexpr std::uintptr_t kMovieFile = std::uintptr_t(0x0079057C);       // "Movies\\dcity.bik"
-constexpr std::uintptr_t kFrozenZone = std::uintptr_t(0x00790574);      // "gz6g"
-constexpr std::uintptr_t kFrozenVariable = std::uintptr_t(0x00790564);  // "z.gz6g.frozen"
-constexpr std::uintptr_t kFrozenMap = std::uintptr_t(0x00790558);       // "zone6_2.mpr"
-constexpr std::uintptr_t kThawedMap = std::uintptr_t(0x0079054C);       // "zone6.mpr"
-constexpr std::uintptr_t kCorruptSave = std::uintptr_t(0x00790514);     // "Save file %s is corrupt"
-constexpr std::uintptr_t kLeftPrefix = std::uintptr_t(0x00790510);      // "zt.": the time the zone was left
-constexpr std::uintptr_t kGTime = std::uintptr_t(0x0073F798);           // "gtime"
-constexpr std::uintptr_t kMapExtension = std::uintptr_t(0x007848EC);    // ".mpr"
-constexpr std::uintptr_t kMobExtension = std::uintptr_t(0x007848F4);    // ".mob"
+constexpr const char* kMovieVariable = "movie";
+constexpr const char* kMovieZone = "bz3g";       // no movie there
+constexpr const char* kMovieFile = "Movies\\dcity.bik";
+constexpr const char* kFrozenZone = "gz6g";
+constexpr const char* kFrozenVariable = "z.gz6g.frozen";
+constexpr const char* kFrozenMap = "zone6_2.mpr";
+constexpr const char* kThawedMap = "zone6.mpr";
+constexpr const char* kCorruptSave = "Save file %s is corrupt";
+constexpr const char* kLeftPrefix = "zt.";      // the time the zone was left
+constexpr const char* kGTime = "gtime";
+constexpr const char* kMapExtension = ".mpr";
+constexpr const char* kMobExtension = ".mob";
 constexpr std::uintptr_t kTicksPerTime = std::uintptr_t(0x0073BAB0);    // world ticks per unit of "gtime"
 constexpr std::uintptr_t kHalf = std::uintptr_t(0x0073B86C);            // 0.5f
 
 // ---- StartNetworkZone --------------------------------------------------------------------------
-constexpr std::uintptr_t kNetworkExitTarget = std::uintptr_t(0x00790620);   // "MPGame1": where every exit leads
+constexpr const char* kNetworkExitTarget = "MPGame1";   // where every exit leads
 constexpr std::uintptr_t kExitArrayVtable = std::uintptr_t(0x0073C400);      // CArray<ZoneExit> (after 0056FFE0)
 constexpr std::uintptr_t kExitArrayBaseVtable = std::uintptr_t(0x0073C3F4);
 
 // ---- LeaveZone ---------------------------------------------------------------------------------
-constexpr std::uintptr_t kCantWrite = std::uintptr_t(0x007905A0);   // "Can`t write to %s"
+constexpr const char* kCantWrite = "Can`t write to %s";
 
 // ---- The multiplayer flag and game --------------------------------------------------------------
-constexpr std::uintptr_t kMultiplayerVariable = std::uintptr_t(0x007906C8);   // "z.MPGame1"
-// "bz1mpg".."bz4mpg" by the client session's game type.
-constexpr std::uintptr_t kMultiplayerZones[] = {std::uintptr_t(0x00790690), std::uintptr_t(0x007906A8),
-                                                std::uintptr_t(0x007906A0), std::uintptr_t(0x00790698)};
+constexpr const char* kMultiplayerVariable = "z.MPGame1";
+// By the client session's game type.
+constexpr const char* kMultiplayerZones[] = {"bz1mpg", "bz2mpg", "bz3mpg", "bz4mpg"};
 
 // ---- ReadAIGraph -------------------------------------------------------------------------------
-constexpr std::uintptr_t kGraphExtension = std::uintptr_t(0x00790BB0);   // ".grp"
+constexpr const char* kGraphExtension = ".grp";
 
 // ---- StartServer / AcceptPlayers ---------------------------------------------------------------
-constexpr std::uintptr_t kLocalHost = std::uintptr_t(0x007906B8);     // "127.0.0.1"
-constexpr std::uintptr_t kServerName = std::uintptr_t(0x007906B0);    // "Server"
+constexpr const char* kLocalHost = "127.0.0.1";
+constexpr const char* kServerName = "Server";
 constexpr std::uintptr_t kNetLogStream = std::uintptr_t(0x007C56B0);  // the network log's ostream
-constexpr std::uintptr_t kAcceptedPlayer = std::uintptr_t(0x007908AC);   // "Accepted player "
+constexpr const char* kAcceptedPlayer = "Accepted player ";
 constexpr std::uintptr_t kSessionListVtable = std::uintptr_t(0x0073FA4C);
 
 // ---- ClearSaveFolder ---------------------------------------------------------------------------
-constexpr std::uintptr_t kAllFiles = std::uintptr_t(0x007905B4);   // "*.*"
+constexpr const char* kAllFiles = "*.*";
 
 // ---- StartZone ---------------------------------------------------------------------------------
-constexpr std::uintptr_t kEndOfGame = std::uintptr_t(0x00790664);       // "endofgame"
-constexpr std::uintptr_t kZoneNotFound = std::uintptr_t(0x00790650);    // "Zone %s not found"
-constexpr std::uintptr_t kMenuMap = std::uintptr_t(0x00790628);         // "ZoneMainMenuNew.mpr"
-constexpr std::uintptr_t kMenuMob = std::uintptr_t(0x0079063C);         // "ZoneMainMenuNew.mob"
+constexpr const char* kEndOfGame = "endofgame";
+constexpr const char* kZoneNotFound = "Zone %s not found";
+constexpr const char* kMenuMap = "ZoneMainMenuNew.mpr";
+constexpr const char* kMenuMob = "ZoneMainMenuNew.mob";
 constexpr std::uintptr_t kMinuteHours = std::uintptr_t(0x0073F8A0);     // 1/60 (float)
 
 // ---- New game, requests, LoadGame ---------------------------------------------------------------
-constexpr std::uintptr_t kExecAutoexec = std::uintptr_t(0x007905F0);   // "exec autoexec.cfg"
-constexpr std::uintptr_t kResourcesSingle = std::uintptr_t(0x00784818);   // "database.res"
-constexpr std::uintptr_t kResourcesNetwork = std::uintptr_t(0x00790680);  // "databaseLMP.res"
-constexpr std::uintptr_t kAutoplay = std::uintptr_t(0x00790670);          // "autoplay.apl"
-constexpr std::uintptr_t kLoadedText = std::uintptr_t(0x007905B8);   // "Loaded "
+constexpr const char* kExecAutoexec = "exec autoexec.cfg";
+constexpr const char* kResourcesSingle = "database.res";
+constexpr const char* kResourcesNetwork = "databaseLMP.res";
+constexpr const char* kAutoplay = "autoplay.apl";
+constexpr const char* kLoadedText = "Loaded ";
 
 // ---- After starting the sessions ---------------------------------------------------------------
-constexpr std::uintptr_t kDefaultHeroName = std::uintptr_t(0x0078B0FC);   // "Human Hero"
-constexpr std::uintptr_t kDefaultPartyName = std::uintptr_t(0x007906C4);  // "Bug"
+constexpr const char* kDefaultHeroName = "Human Hero";
+constexpr const char* kDefaultPartyName = "Bug";
 
 // ---- The client's update from the server -------------------------------------------------------
-constexpr std::uintptr_t kConstructionVariable = std::uintptr_t(0x00790384);   // "constr.current"
-constexpr std::uintptr_t kBriefingSuffixQuest = std::uintptr_t(0x00790704);    // "q"
-constexpr std::uintptr_t kBriefingSuffixK = std::uintptr_t(0x00790700);        // "k"
-constexpr std::uintptr_t kQuestVariablePrefix = std::uintptr_t(0x00783D7C);    // "q."
-constexpr std::uintptr_t kDot = std::uintptr_t(0x00783D78);                    // "."
-// "b.smith.constr_1"... and "intro_1".."intro_4" by construction type.
-constexpr std::uintptr_t kTypeVariables[4] = {std::uintptr_t(0x00790760), std::uintptr_t(0x00790744),
-                                              std::uintptr_t(0x0079072C), std::uintptr_t(0x00790710)};
-constexpr std::uintptr_t kTypeBriefings[4] = {std::uintptr_t(0x00790758), std::uintptr_t(0x0079073C),
-                                              std::uintptr_t(0x00790724), std::uintptr_t(0x00790708)};
+constexpr const char* kConstructionVariable = "constr.current";
+constexpr const char* kBriefingSuffixQuest = "q";
+constexpr const char* kBriefingSuffixK = "k";
+constexpr const char* kQuestVariablePrefix = "q.";
+constexpr const char* kDot = ".";
+// By construction type.
+constexpr const char* kTypeVariables[4] = {"b.smith.constr_1", "b.Shopper.constr_3", "b.kuzn.constr_4",
+                                           "b.golem.constr_5"};
+constexpr const char* kTypeBriefings[4] = {"intro_1", "intro_2", "intro_3", "intro_4"};
 
 // ---- The saved multiplayer parties -------------------------------------------------------------
-constexpr std::uintptr_t kPartyFilePattern = std::uintptr_t(0x00794C88);   // "\*.mp"
+constexpr const char* kPartyFilePattern = "\\*.mp";
 constexpr std::uintptr_t kRecordsVtable = std::uintptr_t(0x00743000);
 
 } // namespace flowdata

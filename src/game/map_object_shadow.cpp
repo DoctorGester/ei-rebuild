@@ -323,7 +323,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
     SurfacePixels description;
     if (!static_cast<CTexture*>(surface)->LockPixels(&description)) {
-        *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());
+        *failure = game::FatalError("Can't lock render surface for texture \"%s\"\n", self->GetName());
         if (lights.manager) --lights.manager->refCount_;
         return false;
     }
@@ -470,9 +470,9 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
 
     if (!texture) {
         AssignTexture(&texture, static_cast<CTextureManager*>(TextureManager())->NewShadowTexture());
-        if (!texture) return game::FatalError(reinterpret_cast<const char*>(0x0078F5B8));
+        if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
-        gamecrt::sprintf(name, reinterpret_cast<const char*>(0x0078F5B0), object->id_);   // "SR%d"
+        gamecrt::sprintf(name, "SR%d", object->id_);
         *static_cast<CTexture*>(texture)->Name() = name;
         flags_ |= kFlagRefresh;
     }

@@ -184,7 +184,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         rect.bottom = 0x14;
         return rect;
     };
-    const char* const kNumber = reinterpret_cast<const char*>(0x0078EEEC);   // "%d"
+    const char* const kNumber = "%d";
     mfc::CString text;
     auto* counts = reinterpret_cast<StripSurface*>(window.surfaces_.data[0]);
     counts->GetDC();

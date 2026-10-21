@@ -13,8 +13,8 @@
 #include "world.h"
 
 namespace {
-constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x0078EF9C);   // "CMapObjectClientSpecific"
-constexpr std::uintptr_t kServerClassName = std::uintptr_t(0x0078F360);   // "CMapObjectServer"
+constexpr const char* kClientClassName = "CMapObjectClientSpecific";
+constexpr const char* kServerClassName = "CMapObjectServer";
 constexpr int kClientClassId = 0x3A;
 constexpr int kServerClassId = 0x39;
 constexpr std::uint32_t kShowsNumbers = 0x400000;   // CMapObject::flags_: hits show their number
@@ -83,7 +83,7 @@ EI_REPLACE_METHOD(0x005117F0, CMapObjectClientSpecific::ShowHit);
 
 // 00510520 / 00510530 (slots 11 / 12).
 const char* __fastcall ClientCompanionClassName(CMapObjectClientSpecific*) {
-    return reinterpret_cast<const char*>(kClientClassName);
+    return kClientClassName;
 }
 EI_REPLACE(0x00510520, ClientCompanionClassName);
 int __fastcall ClientCompanionClassId(CMapObjectClientSpecific*) { return kClientClassId; }
@@ -98,7 +98,7 @@ EI_REPLACE_METHOD(0x00515700, CMapObjectServer::DeleteServer);
 
 // 005156E0 / 005156F0 (slots 11 / 12).
 const char* __fastcall ServerCompanionClassName(CMapObjectServer*) {
-    return reinterpret_cast<const char*>(kServerClassName);
+    return kServerClassName;
 }
 EI_REPLACE(0x005156E0, ServerCompanionClassName);
 int __fastcall ServerCompanionClassId(CMapObjectServer*) { return kServerClassId; }

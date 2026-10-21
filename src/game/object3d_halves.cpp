@@ -24,7 +24,7 @@ namespace {
 
 constexpr std::uintptr_t kSpecificBaseVtable = std::uintptr_t(0x0073DEFC);
 constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073DFBC);
-constexpr std::uintptr_t kServerClassName = std::uintptr_t(0x0078F5F8);   // "CObject3DServer"
+constexpr const char* kServerClassName = "CObject3DServer";
 constexpr int kServerClassId = 0x38;
 // The shadow switches by the object's class: units (0x50), class 0x52, any other.
 constexpr std::uintptr_t kUnitShadows = std::uintptr_t(0x0079BD14);
@@ -169,7 +169,7 @@ EI_REPLACE(0x0051F330, Object3DServerDestroy);
 
 // 0051F2C0 / 0051F2D0 (slots 11 / 12).
 const char* __fastcall Object3DServerClassName(CObject3DSpecific*) {
-    return reinterpret_cast<const char*>(kServerClassName);
+    return kServerClassName;
 }
 EI_REPLACE(0x0051F2C0, Object3DServerClassName);
 int __fastcall Object3DServerClassId(CObject3DSpecific*) { return kServerClassId; }

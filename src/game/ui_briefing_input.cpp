@@ -25,10 +25,10 @@ namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-const char* ClickSound() { return reinterpret_cast<const char*>(0x00793394); }    // "buttons\base\click1.wav"
-const char* TopicPrefixKey() { return reinterpret_cast<const char*>(0x007934F4); }   // "topic_prefix"
-const char* GoodbyeTopic() { return reinterpret_cast<const char*>(0x007934EC); }     // "goodbye"
-const char* TopicSeparator() { return reinterpret_cast<const char*>(0x0078DA40); }   // " "
+const char* ClickSound() { return "buttons\\base\\click1.wav"; }
+const char* TopicPrefixKey() { return "topic_prefix"; }
+const char* GoodbyeTopic() { return "goodbye"; }
+const char* TopicSeparator() { return " "; }
 
 constexpr std::uint32_t kUnitBlocked = 0x800000;   // CEngineObject::flags_: script BlockUnit
 constexpr int kCommandIdle = 0;
@@ -63,8 +63,8 @@ constexpr int kLabelOffsetX = 0x7D;
 constexpr int kLabelOffsetY = 0x14;
 constexpr std::uint32_t kLabelColour = 0xA7D7E4;
 
-const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }         // "none"
-const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
+const char* NoZone() { return "none"; }
+const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }

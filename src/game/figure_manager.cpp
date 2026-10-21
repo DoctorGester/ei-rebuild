@@ -24,8 +24,8 @@ namespace {
 constexpr int kFigureClass = 0x43;
 constexpr std::uint32_t kLoaded = 0x20;            // CFigureMesh::flags_
 constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
-constexpr std::uintptr_t kFiguresArchive = std::uintptr_t(0x0078EC24);   // "figures.res"
-constexpr std::uintptr_t kMenusArchive = std::uintptr_t(0x0078EC18);     // "menus.res"
+constexpr const char* kFiguresArchive = "figures.res";
+constexpr const char* kMenusArchive = "menus.res";
 constexpr std::uintptr_t kMenuRects = std::uintptr_t(0x007C8048);        // the menus' rectangles (menu_rects.cpp)
 constexpr int kSharedPartClass = 0x41;             // a part whose buffers point into the file data; 0x42 owns them
 
@@ -51,8 +51,8 @@ int CFigureManager::CreateWithArchives() {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
     }
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
-    AddArchive(folder + game::Text(kFiguresArchive));
-    AddArchive(folder + game::Text(kMenusArchive));
+    AddArchive(folder + kFiguresArchive);
+    AddArchive(folder + kMenusArchive);
     LoadMenuRects(this, nullptr, reinterpret_cast<std::uint8_t*>(kMenuRects));
     return 1;
 }

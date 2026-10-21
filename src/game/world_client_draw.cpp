@@ -153,7 +153,7 @@ int LightEffects1BC() { return LightEffectsSetting(std::uintptr_t(0x0079BD4C)); 
 int LightEffects1C0() { return LightEffectsSetting(std::uintptr_t(0x0079BD54)); }
 int GameMode() { return *reinterpret_cast<const int*>(0x0079BE64); }
 // 007900E4: the part a selection marker sits on.
-const char* MarkerPartName() { return reinterpret_cast<const char*>(0x007900E4); }
+const char* MarkerPartName() { return "hp"; }
 
 // FLD a; FADD/FSUB b; FSTP: the result rounded to float.
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }

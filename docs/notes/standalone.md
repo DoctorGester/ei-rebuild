@@ -35,8 +35,16 @@ String constants of the exe's data need no generated definition: run\vanilla's a
 one .text byte (file offset 0x56BB6) and nothing else, and the image runs neither one's code, so a string the code
 passed by address (`game::Text(0x...)`, a table of name addresses) is written as a literal with the same bytes. C11
 batch 15 did that for the options' value names, the console's commands and texts, the menu rectangles, the material
-names, the camp and item-info texts and a few logs; the strings were read from both exes by script, not typed. Keep a
-string by address only where code compares the pointer itself (`game::kEmptyTextAddress`).
+names, the camp and item-info texts and a few logs; batch 16 the `reinterpret_cast<const char*>(0x...)` helpers
+(`game_strings.h` and per-file ones), the `constexpr std::uintptr_t kXxx` string constants (now `constexpr const char*`),
+their tables (game flow's zone names, the hero part names, the attribute and skill names, the option groups, the mercenary
+zones), options_defaults' value names and the lexer's comment tokens. The strings were read from both exes by script
+(`tools/exe_strings.py`; `--wrap X` takes `X(0x...)` and `X(std::uintptr_t(0x...))`, `--before RE` a parameter position,
+`--skip` leaves addresses), not typed. Keep a string by address only where code compares the pointer itself
+(`game::kEmptyTextAddress` and the per-file `EmptyText()` copies of 0079B298), where the game writes into the string
+(the window title 0079BB24, the digit at 007930F6, the pointer cells LoadingMovieName 00791EE0), and in the CRT
+(`crt_locale` compares its locale names by pointer; `_iob` is not a string). A pointer-sized cell read as
+`const char* const*` holds the address of the text, not the text: read the cell's pointer first.
 
 ## 2. The image
 
@@ -65,7 +73,9 @@ string by address only where code compares the pointer itself (`game::kEmptyText
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (run\vanilla's game.exe laid
   out, vanilla data) and `standalone-rebirth` (run\rebirth's game.exe, the Rebirth data, the flags of
   `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth launch with addon turns on; refresh it when
-  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change).
+  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change). Both from run\<install>-clean
+  (run_all.clean_run_dir: hard links of run\<install>'s files but dgVoodoo's), so the imports come from the system
+  as in a player's clean folder (SV10f); run\<install> keeps dgVoodoo for the original's runs.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 

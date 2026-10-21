@@ -106,7 +106,7 @@ int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, st
 EI_REPLACE(0x00664B70, PlayerMessageError);
 
 // 00664DE0 / 00664DF0: slots 11 and 12.
-const char* __fastcall PlayerClassName(CPlayer*) { return reinterpret_cast<const char*>(0x00794CA4); }
+const char* __fastcall PlayerClassName(CPlayer*) { return "CPlayer"; }
 EI_REPLACE(0x00664DE0, PlayerClassName);
 int __fastcall PlayerClassId(CPlayer*) { return 0xF; }
 EI_REPLACE(0x00664DF0, PlayerClassId);

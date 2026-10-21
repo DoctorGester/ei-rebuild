@@ -12,8 +12,8 @@
 namespace {
 
 constexpr int kListBlockSize = 10;
-constexpr std::uintptr_t kClassName = std::uintptr_t(0x00795D08);   // "CTextureManager"
-constexpr std::uintptr_t kFolder = std::uintptr_t(0x00795CFC);      // "textures"
+constexpr const char* kClassName = "CTextureManager";
+constexpr const char* kFolder = "textures";
 
 // The flag CreateObject gives a new texture of `type` (0x3D and unknown types 0x40).
 std::uint32_t CreateFlag(int type) {
@@ -113,9 +113,9 @@ EI_REPLACE(0x00691500, TextureManagerCreateHook);
 EI_REPLACE(0x00691630, TextureManagerDestroyHook);
 EI_REPLACE_METHOD(0x00691AA0, CTextureManager::CreateObjectImpl);
 
-const char* __fastcall TextureManagerClassName(CTextureManager*) { return reinterpret_cast<const char*>(kClassName); }
+const char* __fastcall TextureManagerClassName(CTextureManager*) { return kClassName; }
 int __fastcall TextureManagerClassId(CTextureManager*) { return 0x26; }
-const char* __fastcall TextureManagerFolder(CTextureManager*) { return reinterpret_cast<const char*>(kFolder); }
+const char* __fastcall TextureManagerFolder(CTextureManager*) { return kFolder; }
 EI_REPLACE(0x00691210, TextureManagerClassName);
 EI_REPLACE(0x00691220, TextureManagerClassId);
 EI_REPLACE(0x00691200, TextureManagerFolder);

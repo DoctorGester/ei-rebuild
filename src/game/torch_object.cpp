@@ -14,7 +14,7 @@
 
 namespace {
 void* const kTorchVtable = reinterpret_cast<void*>(0x0073E834);
-const char* const kTorchClassName = reinterpret_cast<const char*>(0x0078F798);   // "CTorchObject"
+const char* const kTorchClassName = "CTorchObject";
 constexpr int kClassTorch = 0x57;
 constexpr int kTypeTorchSpec = 0x4B;
 constexpr int kTorchField = 4;

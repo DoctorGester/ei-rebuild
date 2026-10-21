@@ -28,13 +28,13 @@
 
 namespace {
 
-constexpr std::uintptr_t kQuickFolder = std::uintptr_t(0x007933AC);    // "saveq"
-constexpr std::uintptr_t kAutoFolderA = std::uintptr_t(0x007942E8);    // "savea"
-constexpr std::uintptr_t kAutoFolderB = std::uintptr_t(0x007940F0);    // "saveb"
-constexpr std::uintptr_t kDateFormat = std::uintptr_t(0x00794A44);     // "%d/%m, %H:%M"
-constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);    // "%s"
-constexpr std::uintptr_t kDayText = std::uintptr_t(0x00794134);        // "save_day"
-constexpr std::uintptr_t kGameTimeFormat = std::uintptr_t(0x00794120); // "%s  %d,  %d:%02d"
+constexpr const char* kQuickFolder = "saveq";
+constexpr const char* kAutoFolderA = "savea";
+constexpr const char* kAutoFolderB = "saveb";
+constexpr const char* kDateFormat = "%d/%m, %H:%M";
+constexpr const char* kPlainFormat = "%s";
+constexpr const char* kDayText = "save_day";
+constexpr const char* kGameTimeFormat = "%s  %d,  %d:%02d";
 float MinutesPerHour() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0073F090)); }   // 60
 
 constexpr int kFont = 1;
@@ -60,9 +60,9 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     return size.cx;
 }
 
-bool SameFolder(const char* folder, std::uintptr_t name) {
+bool SameFolder(const char* folder, const char* name) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder),
-                           reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
+                           reinterpret_cast<const unsigned char*>(name)) == 0;
 }
 
 } // namespace
@@ -114,7 +114,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
         }
         if (!isSave_ || index != 0) {
             // 006FE795: CTime::Format.
-            const mfc::CString date = reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(game::Text(kDateFormat));
+            const mfc::CString date = reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat);
             SurfaceDrawText(surface, nullptr, date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);
@@ -132,10 +132,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const SaveEntry& entry = entriesBegin_[selected_];
     RECT detailRect{340, 260, 590, 284};
     mfc::CString line;
-    line.Format(game::Text(kPlainFormat), static_cast<const char*>(entry.AllodTitle()));
+    line.Format(kPlainFormat, static_cast<const char*>(entry.AllodTitle()));
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line.Format(game::Text(kPlainFormat), static_cast<const char*>(entry.ZoneTitle()));
+    line.Format(kPlainFormat, static_cast<const char*>(entry.ZoneTitle()));
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
@@ -145,8 +145,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
     mfc::CString dayText;
-    reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(game::Text(kDayText), &dayText);
-    line.Format(game::Text(kGameTimeFormat), static_cast<const char*>(dayText), day + 1, hour, minute);
+    reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(kDayText, &dayText);
+    line.Format(kGameTimeFormat, static_cast<const char*>(dayText), day + 1, hour, minute);
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};

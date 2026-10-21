@@ -334,7 +334,7 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     self->field0A = 0;
     ei::SetVtable(self, worlddata::kUnitSpecVtable);
     self->object.base.kind = 5;
-    self->prototype = reinterpret_cast<const char*>(0x007846F0);   // "none"
+    self->prototype = "none";
     self->behaviours = 0;
     self->behaviour[0].enabled = 1;
     std::memset(self->stats, 0, sizeof(self->stats));

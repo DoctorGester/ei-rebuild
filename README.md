@@ -206,7 +206,9 @@ change, so none of its runs needs the machine to itself); dgVoodoo draws the ori
 `build\reference` by scenario commit and install (`--fresh` plays them again; the key leaves out the harness).
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
 `standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch
---standalone`) and on the Rebirth install (`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and
+--standalone`; from run\vanilla-clean, run\vanilla's files without dgVoodoo's, which run_all links before each image
+run: the image has no dgVoodoo dependency, SV10f) and on the Rebirth install (`standalone-rebirth`: run\rebirth's
+game.exe from run\rebirth-clean, the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
 `--all-rebirth` every scenario); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).

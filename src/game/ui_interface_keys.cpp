@@ -62,7 +62,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         CDib* picture = CaptureSurface(capturer);
         if (!picture) return;
         mfc::CString name;
-        name.Format(reinterpret_cast<const char*>(0x007930B4), ShotCounter());   // "shot%.4d.bmp"
+        name.Format("shot%.4d.bmp", ShotCounter());
         ++ShotCounter();
         alignas(4) std::uint8_t storage[sizeof(mfc::CFile)];
         auto* file = reinterpret_cast<mfc::CFile*>(storage);

@@ -23,8 +23,8 @@ namespace app {
 namespace {
 
 // 00784788 "kernel32.dll", 00784798 "GetDiskFreeSpaceExA".
-const char* Kernel32Text() { return reinterpret_cast<const char*>(0x00784788); }
-const char* GetDiskFreeSpaceExText() { return reinterpret_cast<const char*>(0x00784798); }
+const char* Kernel32Text() { return "kernel32.dll"; }
+const char* GetDiskFreeSpaceExText() { return "GetDiskFreeSpaceExA"; }
 
 using GetDiskFreeSpaceExFn = BOOL(__stdcall*)(const char*, ULARGE_INTEGER*, ULARGE_INTEGER*, ULARGE_INTEGER*);
 

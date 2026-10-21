@@ -45,17 +45,17 @@ constexpr int kItemPieces = 0x48;           // int: the wear is shared between t
 
 // The damage type names of the slot log (0078F6D8 ... 0078F694; 0078F68C for others).
 const char* const kTypeNames[kDamageTypes] = {
-    reinterpret_cast<const char*>(0x0078F6D8),   // "impaling"
-    reinterpret_cast<const char*>(0x0078F6CC),   // "slashing"
-    reinterpret_cast<const char*>(0x0078F6C0),   // "crushing"
-    reinterpret_cast<const char*>(0x0078F6B4),   // "termical"
-    reinterpret_cast<const char*>(0x0078F6A8),   // "chemical"
-    reinterpret_cast<const char*>(0x0078F69C),   // "electrical"
-    reinterpret_cast<const char*>(0x0078F694),   // "general"
+    "impaling",
+    "slashing",
+    "crushing",
+    "termical",
+    "chemical",
+    "electrical",
+    "general",
 };
-const char* const kPassedDamage = reinterpret_cast<const char*>(0x0078F678);   // " passed damage = "
-const char* const kCrippled = reinterpret_cast<const char*>(0x0078F664);       // " HL was crippled"
-const char* const kDead = reinterpret_cast<const char*>(0x0078F658);           // " HL is dead"
+const char* const kPassedDamage = " passed damage = ";
+const char* const kCrippled = " HL was crippled";
+const char* const kDead = " HL is dead";
 
 // Armour slot of the piece covering hit location `location` at layer `layer` (1 or 2): the
 // tables at 0073E09C (first piece), 0073E0A0 (second piece of a limb) and 0073E0A4 (the limbs'

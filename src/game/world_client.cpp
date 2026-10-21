@@ -192,8 +192,8 @@ namespace {
 constexpr int kExitParticles = 0x2038;   // "ZoneExit" (particle_emitters.cpp EmitZoneExit)
 constexpr int kExitWarmUpTicks = 20;
 constexpr float kOneHalf = 0.5f;          // 0073B86C
-const char* DotText() { return reinterpret_cast<const char*>(0x00783D78); }   // "."
-const char* QuestPrefixText() { return reinterpret_cast<const char*>(0x00783D7C); }   // "q."
+const char* DotText() { return "."; }
+const char* QuestPrefixText() { return "q."; }
 
 // 0056F1A0 (library: counted pointer assignment, ECX the slot): references `object`, then
 // releases the slot's old one.

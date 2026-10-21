@@ -161,10 +161,10 @@ EI_REPLACE_METHOD(0x005CAFA0, AIEventTable::Save);
 namespace {
 
 constexpr std::uintptr_t kMinusCellScale = std::uintptr_t(0x0073FEB0);       // -0.125
-constexpr std::uintptr_t kAiInfoArchive = std::uintptr_t(0x0079185C);        // "aiinfo.res"
-constexpr std::uintptr_t kCantReadAiInfo = std::uintptr_t(0x0079183C);       // "Unable to read file aiinfo.res"
-constexpr std::uintptr_t kNormalFile = std::uintptr_t(0x007919F0);           // "normal.dat"
-constexpr std::uintptr_t kCantOpenNormal = std::uintptr_t(0x007919C4);       // "CAIMap::Load.\n Can't open file ..."
+constexpr const char* kAiInfoArchive = "aiinfo.res";
+constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
+constexpr const char* kNormalFile = "normal.dat";
+constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
 constexpr std::uintptr_t kNormalTable = std::uintptr_t(0x007C43C4);          // the 4096 bytes of normal.dat
 constexpr std::size_t kNormalTableSize = 0x1000;
 
@@ -196,14 +196,14 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     bool failed;
     {
         mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
-        mfc::CString path = folder + game::Text(kAiInfoArchive);
+        mfc::CString path = folder + kAiInfoArchive;
         failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
     }
     void* data = nullptr;
-    const char* error = game::Text(kCantReadAiInfo);
+    const char* error = kCantReadAiInfo;
     if (!failed) {
-        data = archive->CMappedResource::GetFileImpl(game::Text(kNormalFile), nullptr);
-        error = game::Text(kCantOpenNormal);
+        data = archive->CMappedResource::GetFileImpl(kNormalFile, nullptr);
+        error = kCantOpenNormal;
     }
     if (!data) {
         const int result = game::FatalError(error);

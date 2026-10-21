@@ -23,7 +23,7 @@ constexpr unsigned kPartyFileMagic = 0x114;
 
 int SaveVersion() { return *reinterpret_cast<const int*>(0x00790260); }
 int NewestReadVersion() { return *reinterpret_cast<const int*>(0x00790268); }
-const char* TempFileName() { return reinterpret_cast<const char*>(0x00794C80); }   // "temp.mp"
+const char* TempFileName() { return "temp.mp"; }
 const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }      // ""
 
 mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }

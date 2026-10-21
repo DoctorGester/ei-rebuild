@@ -27,8 +27,8 @@ constexpr std::uint32_t kCacheable = 0x38;
 
 namespace {
 const mfc::CString& DataPathString() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
-const char* ComposedTexturePattern() { return reinterpret_cast<const char*>(0x00795D58); }   // "textures\*.mmp"
-const char* CantDeleteText() { return reinterpret_cast<const char*>(0x00795D34); }   // "Can't delete file \"%s\" due to %d"
+const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
+const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 } // namespace
 
 void __cdecl DeleteComposedTextures() {

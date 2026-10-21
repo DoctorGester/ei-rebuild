@@ -1222,7 +1222,7 @@ MemAllocFn AilMemAllocLock() { return *reinterpret_cast<MemAllocFn*>(0x0073B758)
 MemFreeFn AilMemFreeLock() { return *reinterpret_cast<MemFreeFn*>(0x0073B7FC); }
 DecompressFn AilDecompressAsi() { return *reinterpret_cast<DecompressFn*>(0x0073B804); }
 void* DecompressCallback() { return reinterpret_cast<void*>(0x006B89B0); }   // SoundDecompressCallback
-const char* Mp3Suffix() { return reinterpret_cast<const char*>(0x007967CC); }   // ".mp3"
+const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
 
@@ -1380,9 +1380,9 @@ EI_REPLACE_METHOD(0x006BD1B0, WaveRecord::Assign);
 
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
     if (state == 1) {
-        set(reinterpret_cast<const char*>(0x00796900), 16);      // "Requested bit width"
-        set(reinterpret_cast<const char*>(0x007968E8), 44100);   // "Requested sample rate"
-        set(reinterpret_cast<const char*>(0x007968D0), 2);       // "Requested # of channels"
+        set("Requested bit width", 16);
+        set("Requested sample rate", 44100);
+        set("Requested # of channels", 2);
     }
     return 1;
 }

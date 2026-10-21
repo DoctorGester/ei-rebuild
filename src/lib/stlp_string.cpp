@@ -177,7 +177,7 @@ static_assert(sizeof(OutOfRange) == 0x10C);
 const void* NamedExceptionVtable() { return reinterpret_cast<const void*>(0x0073B994); }
 const void* OutOfRangeVtable() { return reinterpret_cast<const void*>(0x0073BE8C); }
 const void* OutOfRangeThrowInfo() { return reinterpret_cast<const void*>(0x0074C640); }
-const char* BasicStringText() { return reinterpret_cast<const char*>(0x00783CCC); }   // "basic_string"
+const char* BasicStringText() { return "basic_string"; }
 
 } // namespace
 

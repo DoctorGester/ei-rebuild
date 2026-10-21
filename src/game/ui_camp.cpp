@@ -1201,7 +1201,7 @@ int FindHero(int start, Step step) {
     for (int tries = 0;;) {
         int count = party->members_.size;
         if (tries > count) {
-            game::FatalError(reinterpret_cast<const char*>(0x0079377C));
+            game::FatalError("ERROR: no human personages in the party.\n");
             break;
         }
         i = step(i, count);

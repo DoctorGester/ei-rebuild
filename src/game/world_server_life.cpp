@@ -27,8 +27,8 @@ namespace {
 // 0073F918: a pointer to the messages registry's file name ("SMessBase.reg", 00790804).
 const char* MessagesFileName() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0073F918)); }
 // FatalError texts.
-const char* CantCreateText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790860)); }   // "CWorldServer::Create.\n Can't create base world.\n"
-const char* CantOpenText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790824)); }     // "...Can't opent message base resource.\n"
+const char* CantCreateText() { return "CWorldServer::Create.\n Can't create base world.\n"; }
+const char* CantOpenText() { return "CWorldServer::Create.\n Can't opent message base resource.\n"; }
 
 constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
 

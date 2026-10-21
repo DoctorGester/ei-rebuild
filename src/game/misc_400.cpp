@@ -33,7 +33,7 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
 }
 
 // 0042D6B0 / 0042D6C0: the class name ("CClientSpecificManager", 00783DD8) and class id (0x30).
-const char* __fastcall ManagerClassName(const CBaseManager*) { return reinterpret_cast<const char*>(0x00783DD8); }
+const char* __fastcall ManagerClassName(const CBaseManager*) { return "CClientSpecificManager"; }
 int __fastcall ManagerClassId(const CBaseManager*) { return 0x30; }
 
 } // namespace misc400

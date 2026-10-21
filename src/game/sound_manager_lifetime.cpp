@@ -21,7 +21,7 @@
 
 namespace {
 constexpr int kSoundManagerClassId = 0xE;
-constexpr std::uintptr_t kSoundManagerClassNameAddress = std::uintptr_t(0x007968C0);   // "CSoundManager"
+constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 constexpr std::size_t kArchiveBytes = sizeof(CMappedResource);
 const char* const kBackslash = "\\";
 
@@ -32,7 +32,7 @@ CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL
 } // namespace
 
 const char* __fastcall SoundManagerClassName(CSoundManager*) {
-    return reinterpret_cast<const char*>(kSoundManagerClassNameAddress);
+    return kSoundManagerClassNameAddress;
 }
 int __fastcall SoundManagerClassId(CSoundManager*) { return kSoundManagerClassId; }
 EI_REPLACE(0x006B6290, SoundManagerClassName);

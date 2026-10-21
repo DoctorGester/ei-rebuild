@@ -400,7 +400,7 @@ size = 1
 model = "opus"
 depends = ["R16", "R16d"]
 files = ["src/render/render_mesh.cpp", "src/game/figure_part_draw.cpp"]
-note = "docs/notes/renderer.md section 13, item 8. The game morphs figure positions on the CPU every frame; key frames on the GPU with the blend in the vertex shader remove the moved meshes uploads and the CPU morph. Bounds for picking and culling stay on the CPU. Check: models, units at 8 / 0.5%; goldens (picking). Outcome: measured, not built. Creatures animate by their bones (a matrix per part, already on the GPU); the per-vertex morph moves 0.6 of the fight's 331 mesh draws a frame (12 corners), none in zone1 / town / menu, no profile samples, and its result is read by game code (projection: visibility and screen rectangles; the shadow raster). Delivered: renderstats' morphed meshes and main-thread CPU / wall per frame; follow-ups R16k (device per-corner work) and SV10g (libcrt control word)."
+note = "docs/notes/renderer.md section 13, item 8. The game morphs figure positions on the CPU every frame; key frames on the GPU with the blend in the vertex shader remove the moved meshes uploads and the CPU morph. Bounds for picking and culling stay on the CPU. Check: models, units at 8 / 0.5%; goldens (picking). Outcome: measured, not built. Creatures animate by their bones (a matrix per part, already on the GPU); the per-vertex morph moves 0.6 of the fight's 331 mesh draws a frame (12 corners), none in zone1 / town / menu, no profile samples, and its result is read by game code (projection: visibility and screen rectangles; the shadow raster). Delivered: renderstats' morphed meshes and main-thread CPU / wall per frame; follow-ups R16k (device per-corner work) and SV10i (libcrt control word)."
 
 [[ticket]]
 id = "R16i"
@@ -1629,6 +1629,22 @@ note = "User 2026-10-21 (\"Yeah\", after: the standalone has no dgVoodoo depende
 
 [[ticket]]
 id = "SV10g"
+title = "launch-vanilla.cmd plays the image from a clean folder too"
+group = "verification"
+depends = ["SV10f"]
+note = "SV10f moved the harness's image runs to run\\vanilla-clean (no dgVoodoo DLLs, the DirectX check's native path), but launch-vanilla.cmd still starts the image with run\\vanilla's game.exe, so a played session loads dgVoodoo's DDraw.dll and runs the DirectX probe. Point it at run\\vanilla-clean (run_all.clean_run_dir makes it; the script can call that or link the files itself)."
+
+[[ticket]]
+id = "SV10h"
+title = "A slot is free when its game exits: frame packing and other after-game work outside the slot"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tools/run_all.py tools/work_sched.py tools/frame_store.py"]
+note = "User 2026-10-21: fewer than 16 games run within a batch (C11's #2798). Measured from build/live/scheduler.log since 03:00: a run's slot is held on average ~5 s longer than its game (13,276 slot-seconds over 2,515 runs; median 1 s, p90 10 s; render_shadows 29 s and ui_widescreen_screens 27 s against 7-8 s games; some Rebirth runs 30-48 s). In batch #2798 the slots were full but the time with fewer than 16 slots taken was 70 of 127 s. Causes to confirm: run_all.run() packs the run's 4K frames (frame_store.pack_folder, WB11) and stores the reference after run_once() returns, inside the slot; set-up before the game (clean_run_dir for the -clean folders, saves, starter) also counts; and all 16 runner threads share one Python process (GIL), so pure-Python after-game work in one thread slows the others' set-up and reporting. Do: give the slot back when the game process ends (the 16 limit is about games on the GPU), then pack and store from a worker pool (processes, not threads, if Python work dominates; bounded so the CPU stays free for the games). Keep the results identical: a run is reported only after its packing. Measure: the lag (log time minus start minus game seconds) and games running per second over a full suite, before (this note) and after. Unit tests in tools/test_work_sched.py. The running scheduler hands over on a code change, so test on main only after merge; in the worktree run run_all / the scheduler class directly."
+
+[[ticket]]
+id = "SV10i"
 title = "libcrt math without a control-word switch per call when the word is already right"
 group = "verification"
 size = 0.5
@@ -2032,7 +2048,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Batch 15: raw game addresses 540 -> 223 (distinct data addresses 5,114 -> 4,713): game.exe strings passed by address became literals (options, console commands and texts, menus, materials, camp, item info, logs; both exes hold the same data, standalone.md section 1; tools/exe_strings.py). Left: shims 590 (wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies); raw addresses 223: particle callbacks by code address (particle_create 85: emitFn/updateFn/elementFn are void* to thiscall members), deleting destructors' template arguments (33), item-info stat functions and float constants by address (23), net_session_base's handler table (17), unit_create_stats' creators (13), then small tables; per-file copies of the world tick 007AFFC4, interface 007C7D50 and game flow 007AFE20 accessors to merge into one header each. The 782 uncounted game::Text(0x...) calls: C11a."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Batch 15: raw game addresses 540 -> 223 (distinct data addresses 5,114 -> 4,713): game.exe strings passed by address became literals (options, console commands and texts, menus, materials, camp, item info, logs; both exes hold the same data, standalone.md section 1; tools/exe_strings.py). Left: shims 590 (wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies); raw addresses 223: particle callbacks by code address (particle_create 85: emitFn/updateFn/elementFn are void* to thiscall members), deleting destructors' template arguments (33), item-info stat functions and float constants by address (23), net_session_base's handler table (17), unit_create_stats' creators (13), then small tables; per-file copies of the world tick 007AFFC4, interface 007C7D50 and game flow 007AFE20 accessors to merge into one header each. Batch 16: string constants held as raw addresses became literals. The check's count of 223 does not see them (its pattern skips any address followed by ')', so every `(0x...)` string form was invisible) and did not change; by a scan of src for addresses that read as strings in both exes: 681 occurrences (569 distinct) -> 41 (15 distinct, none a string). Done: reinterpret_cast<const char*> helpers (game_strings.h and ~70 files), `constexpr std::uintptr_t kXxx` strings -> `constexpr const char*` with their users (flowdata, class names, folders, saveload, help page, renderer logs), options_defaults' Text(), the Compare / Same / SameFolder / OpenPart parameters, the zone / body part / attribute / skill / option group / mercenary tables, the lexer's comment tokens. Kept by address: kEmptyTextAddress and the per-file EmptyText() of 0079B298 (pointer compared), crt_locale's \"C\" names (compared), _iob, the window title 0079BB24 and the digit at 007930F6 (written), the LoadingMovieName cell 00791EE0 (pointer cell, written). Raw counted addresses left: 223, none a string (list in the batch 15 text above). game::Text(0x...) calls: 0 left (C11a)."
 
 [[ticket]]
 id = "C12"

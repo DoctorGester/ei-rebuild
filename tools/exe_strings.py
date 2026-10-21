@@ -14,6 +14,7 @@ usage: python tools/exe_strings.py <source file> [--apply] [--lines 10-20,31]
   --wrap X      only `X(0x...)`; the call is replaced by the literal
   --before RE   only addresses that RE matches right before (e.g. "LogLine\\(")
   --lines       only these lines
+  --skip A,B    leave these addresses alone (e.g. the empty string 0079B298, whose pointer is compared)
   --exe PATH    the exes to read (default run\\vanilla and run\\rebirth's game.exe; repeatable)
 """
 import os
@@ -84,13 +85,16 @@ def main(argv):
     exes = [argv[i + 1] for i, a in enumerate(argv) if a == '--exe'] or DEFAULT_EXES
     images = [load(p) for p in exes]
     wrap, before = option(argv, '--wrap'), option(argv, '--before')
+    skip = {int(a, 16) for a in option(argv, '--skip', '').split(',') if a}
     lines = None
     if '--lines' in argv:
         lines = set()
         for part in option(argv, '--lines').split(','):
             a, _, b = part.partition('-')
             lines.update(range(int(a), int(b or a) + 1))
-    rx = re.compile((re.escape(wrap) + r'\(\s*' if wrap else r'\b') + ADDRESS + (r'\s*\)' if wrap else ''))
+    # `X(0x...)` and `X(std::uintptr_t(0x...))` (the inner cast goes with the call)
+    rx = re.compile((re.escape(wrap) + r'\(\s*(?:std::uintptr_t\(\s*)?' if wrap else r'\b') + ADDRESS
+                    + (r'(?:\s*\))?\s*\)' if wrap else ''))
     source = open(path, encoding='utf-8').read().split('\n')
     for number, line in enumerate(source, 1):
         if lines and number not in lines:
@@ -100,6 +104,9 @@ def main(argv):
             if before and not re.search('(?:' + before + r')\s*$', line[:m.start()]):
                 return m.group(0)
             address = int(m.group(1), 16)
+            if address in skip:
+                print(f'{number}: {address:08X} kept (--skip)')
+                return m.group(0)
             found = [read_string(image, address) for image in images]
             text, starts = found[0]
             if text is None:

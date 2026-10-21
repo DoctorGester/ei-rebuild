@@ -121,7 +121,7 @@ void CInterface3D::Update() {
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));
         void* memory = gamecrt::operator_new(0x180);
-        void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(this, reinterpret_cast<const char*>(0x0079242C), reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
+        void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(this, "disconnect", "disconnect_msg", 0x990000, 1, 1)
                            : nullptr;
         PushWindow(static_cast<CUiWindow*>(box), 1, 1);
     } else if (stackBegin_ != stackEnd_) {
@@ -143,7 +143,7 @@ void __fastcall MenuSet578920(void*, void*, int a2) { GameStopSounds(a2); }
 void __fastcall MenuCall578940(void*, void*) { GameStopAmbience(); }
 void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
-int Compare(const mfc::CString& word, std::uintptr_t text) {
+int Compare(const mfc::CString& word, const char* text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(word)),
                            reinterpret_cast<const unsigned char*>(text));
 }
@@ -173,22 +173,22 @@ void CInterface3D::OnStringEvent(const char* event) {
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };
-    if (Compare(words.data[0], 0x007930E8) == 0 || Compare(words.data[0], 0x007930DC) == 0) {
+    if (Compare(words.data[0], "say") == 0 || Compare(words.data[0], "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size < 2) return;
         int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
-        int kind = Compare(words.data[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
+        int kind = Compare(words.data[0], "say_block") != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
             top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(static_cast<const char*>(words.data[1])));
-    } else if (Compare(words.data[0], 0x007930D0) == 0) {   // "tutorial" name: queued
+    } else if (Compare(words.data[0], "tutorial") == 0) {   // queued
         if (words.size < 2) return;
         stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
-    } else if (Compare(words.data[0], 0x007930C4) == 0) {   // "briefing" name
+    } else if (Compare(words.data[0], "briefing") == 0) {
         if (words.size < 2 || stackBegin_ == stackEnd_) return;
         top()->VirtualShowBriefing(static_cast<const char*>(words.data[1]));
-    } else if (Compare(words.data[0], 0x00787704) == 0) {   // "autosave"
+    } else if (Compare(words.data[0], "autosave") == 0) {
         pollTop_ = true;
-    } else if (Compare(words.data[0], 0x00790664) == 0) {   // "endofgame"
+    } else if (Compare(words.data[0], "endofgame") == 0) {
         if (stackBegin_ != stackEnd_) top()->VirtualGameOver(1);
     }
 }

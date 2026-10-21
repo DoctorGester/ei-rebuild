@@ -31,33 +31,36 @@
 
 namespace {
 
-const char* NoLipsCommand() { return reinterpret_cast<const char*>(0x007934C8); }      // "#nolips"
-const char* ShowCommand() { return reinterpret_cast<const char*>(0x007906DC); }        // "#show"
-const char* WeaponWord() { return reinterpret_cast<const char*>(0x007934C0); }         // "weapon"
-const char* HideCommand() { return reinterpret_cast<const char*>(0x007934B8); }        // "#hide"
-const char* AnimationCommand() { return reinterpret_cast<const char*>(0x007934AC); }   // "#animation"
-const char* CameraCommand() { return reinterpret_cast<const char*>(0x00785738); }      // "#camera"
-const char* PhraseCommand() { return reinterpret_cast<const char*>(0x007934A4); }      // "#phrase"
+const char* NoLipsCommand() { return "#nolips"; }
+const char* ShowCommand() { return "#show"; }
+const char* WeaponWord() { return "weapon"; }
+const char* HideCommand() { return "#hide"; }
+const char* AnimationCommand() { return "#animation"; }
+const char* CameraCommand() { return "#camera"; }
+const char* PhraseCommand() { return "#phrase"; }
 // The phrase: "\x07C<colour> " name, ":\n\x07C<colour> " (light, or grey with "#nolips"), the text, "\n".
-const char* PhraseHead() { return reinterpret_cast<const char*>(0x0079349C); }
-const char* PhraseBodyLips() { return reinterpret_cast<const char*>(0x00793490); }
-const char* PhraseBodyNoLips() { return reinterpret_cast<const char*>(0x00793484); }
-const char* LineEnd() { return reinterpret_cast<const char*>(0x00784340); }            // "\n"
-const char* VoiceFormat() { return reinterpret_cast<const char*>(0x0079346C); }        // "%s\briefing\%s\%d.mp3"
-const char* const* VoiceFolders() { return reinterpret_cast<const char* const*>(0x00793378); }   // "t", "s"
+const char* PhraseHead() { return "\007C\377" "\263" "1 "; }
+const char* PhraseBodyLips() { return ":\n\007C\344\327\247 "; }
+const char* PhraseBodyNoLips() { return ":\n\007C\250\250\250 "; }
+const char* LineEnd() { return "\n"; }
+const char* VoiceFormat() { return "%s\\briefing\\%s\\%d.mp3"; }
+const char* const* VoiceFolders() {
+    static constexpr const char* kFolders[2] = {"t", "s"};
+    return kFolders;
+}
 // The reward lines.
-const char* ExperienceLabel() { return reinterpret_cast<const char*>(0x0079345C); }    // "brief_get_exp"
-const char* GoldLabel() { return reinterpret_cast<const char*>(0x0079343C); }          // "brief_get_money"
-const char* ItemLabel() { return reinterpret_cast<const char*>(0x0079342C); }          // "brief_get_item"
-const char* LostItemLabel() { return reinterpret_cast<const char*>(0x0079340C); }      // "brief_lost_item"
-const char* QuestLabel() { return reinterpret_cast<const char*>(0x007933F8); }         // "brief_get_quest"
-const char* QuestDoneLabel() { return reinterpret_cast<const char*>(0x007933E0); }     // "brief_complete_quest"
-const char* SpecialsLabel() { return reinterpret_cast<const char*>(0x007933C8); }      // "brief_get_specials_%d"
-const char* NumberLine() { return reinterpret_cast<const char*>(0x0079344C); }         // "\x07C... %s %d\n"
-const char* NameLine() { return reinterpret_cast<const char*>(0x0079341C); }           // "\x07C... %s %s\n"
-const char* TextLine() { return reinterpret_cast<const char*>(0x007933BC); }           // "\x07C... %s\n"
-const char* ZonePrefix() { return reinterpret_cast<const char*>(0x00793408); }         // "z"
-const char* QuestSection() { return reinterpret_cast<const char*>(0x00790790); }       // "quest "
+const char* ExperienceLabel() { return "brief_get_exp"; }
+const char* GoldLabel() { return "brief_get_money"; }
+const char* ItemLabel() { return "brief_get_item"; }
+const char* LostItemLabel() { return "brief_lost_item"; }
+const char* QuestLabel() { return "brief_get_quest"; }
+const char* QuestDoneLabel() { return "brief_complete_quest"; }
+const char* SpecialsLabel() { return "brief_get_specials_%d"; }
+const char* NumberLine() { return "\007C\377\377\377 %s %d\n"; }
+const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
+const char* TextLine() { return "\007C\377\377\377 %s\n"; }
+const char* ZonePrefix() { return "z"; }
+const char* QuestSection() { return "quest "; }
 stlp::NameMap& BriefingRecords() { return *reinterpret_cast<stlp::NameMap*>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
 void* ItemManager() { return *reinterpret_cast<void* const*>(0x007AF60C); }
 

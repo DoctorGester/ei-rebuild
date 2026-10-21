@@ -158,8 +158,8 @@ void CTradePanel::BuildLists() {
     Clear(&science_);
 
     const TradeRow blank = BlankRow();
-    // The schools: the names are read through the pointer table 00793BD4 (six, then science).
-    const char* const* names = reinterpret_cast<const char* const*>(0x00793BD4);
+    // The schools: six, then science.
+    const char* const* names = SkillNames();
     for (int i = 0; i < 6; ++i) {
         TradeRow* row = PushBack(&schools_, blank);
         if (HasPerkText(table, names[i]))

@@ -22,13 +22,13 @@
 
 namespace {
 // The game's own messages (passed by address, as the original does).
-const char* const kInvalidRune = reinterpret_cast<const char*>(0x007959F0);          // "Invalid rune"
-const char* const kNoSpellManager = reinterpret_cast<const char*>(0x00795858);
-const char* const kNoSpellPrototype = reinterpret_cast<const char*>(0x0079583C);
-const char* const kNoManagerOrContainer = reinterpret_cast<const char*>(0x007958A4);
-const char* const kNoSpellConstructor = reinterpret_cast<const char*>(0x00795990);
-const char* const kCantBegin = reinterpret_cast<const char*>(0x0079595C);           // ... "%s"
-const char* const kCantEnd = reinterpret_cast<const char*>(0x0079593C);
+const char* const kInvalidRune = "Invalid rune";
+const char* const kNoSpellManager = "CSpellConstructor::BeginConstructSpell.\n There is no valid spell manager.\n";
+const char* const kNoSpellPrototype = "No valid spell prototype\n";
+const char* const kNoManagerOrContainer = "No valid spell manager or spell container.\n";
+const char* const kNoSpellConstructor = "No valid spell constructor\n";
+const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
+const char* const kCantEnd = "Can't end spell construction\n";
 
 constexpr int kClassSpellContainer = 0x3003;
 
@@ -354,8 +354,8 @@ CSpellConstructor* CSpellConstructor::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00684080, CSpellConstructor::DeletingDestruct);
 
-constexpr std::uintptr_t kSpellConstructorClassName = std::uintptr_t(0x00795828);   // "CSpellConstructor"
-const char* __fastcall SpellConstructorClassName(CSpellConstructor*) { return reinterpret_cast<const char*>(kSpellConstructorClassName); }
+constexpr const char* kSpellConstructorClassName = "CSpellConstructor";
+const char* __fastcall SpellConstructorClassName(CSpellConstructor*) { return kSpellConstructorClassName; }
 int __fastcall SpellConstructorClassId(CSpellConstructor*) { return 0x1B; }
 EI_REPLACE(0x00684060, SpellConstructorClassName);
 EI_REPLACE(0x00684070, SpellConstructorClassId);

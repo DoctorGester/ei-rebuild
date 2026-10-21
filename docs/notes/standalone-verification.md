@@ -404,11 +404,27 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   scheduler's 16 slots full, the image's 121 runs: start-up median 3.0 s, mean 2.9 s, 10-90% 1.9-3.9 s before (main,
   2026-10-21 03:05); median 1.9 s, mean 2.0 s, 10-90% 1.0-2.8 s after (124 runs in 134 s, goldens the same):
   ~0.9 s a run, ~110 s of slot time a suite. Boot alone, few games on the machine: first frame 0.9-1.7 s.
-- **What start-up is now** (boot, profiled): ~25 ms to the hook DLL, ~35 ms hook set-up, then GetDxVersion's probe
-  0.45-1.3 s (the most of it, and the most sensitive to load: it runs through run\vanilla's dgVoodoo DDraw.dll,
-  because the image runs in the vanilla install's folder, where PF3's native-run skip does not apply; the game's
-  code, kept), the sound open 0.15-0.3 s (kept), the device swap chain and loading. The exe check through imagehlp
-  did not show in boot's profile (the FUN_00640060 named for it is CHudPortraits::AddPortrait).
+- **A clean run folder (SV10f, user 2026-10-21: the image has no dgVoodoo dependency).** The image ran from
+  run\vanilla / run\rebirth, the copies the original game.exe runs from, with dgVoodoo's DDraw.dll, D3D8.dll,
+  D3D9.dll and D3DImm.dll beside game.exe; the host loads game.exe's imports from its folder first, so
+  GetDxVersion's probe (0045E310) went through dgVoodoo: 0.45-1.3 s, the most of the image's start-up then, and the
+  most sensitive to load. Now run_all runs the image from run\vanilla-clean / run\rebirth-clean
+  (run_all.clean_run_dir, before each image run: hard links of run\<install>'s files but dgVoodoo's, a link made again
+  when the source changes), as a player's clean folder: DirectDraw is the system's, PF3's native path takes DirectX 7
+  as given (ei_hook.log: "app: native run"), in every image run. run\<install> is untouched (the original's runs,
+  dgVoodoo). The install's other files load as before: mss32, binkw32, mp3dec.asi (the clean folder or the install
+  root, the working directory); Rebirth's dinput.dll stays in the clean folder and the host never loads it. How it
+  was checked before the merge: `work.py test` games run main's run_all (the scheduler's code), so the worktree's
+  run\ was a folder of its own whose vanilla and rebirth were junctions to run\vanilla-clean / run\rebirth-clean for
+  the image suite, and the usual junction to the main checkout's run\ for the original's suite. Goldens the same (248 runs, --all-rebirth). Start-up, suites with the scheduler's 16 slots full: vanilla
+  median 2.2 s, mean 2.35 s, 10-90% 1.6-3.4 s before (main, 106 runs, 2026-10-21); median 1.1 s, mean 1.47 s, 10-90%
+  0.7-2.2 s after (121 runs); Rebirth after median 1.5 s, mean 1.74 s (no TIMING lines on main's Rebirth runs to
+  compare). For a scenario: boot 1.9 -> 0.7 s, world_load 1.9 -> 1.1, ui_widescreen 2.9 -> 1.1, net_pair_quest
+  4.2 -> 0.9.
+- **What start-up is now** (boot): ~25 ms to the hook DLL, ~35 ms hook set-up, the DirectX check skipped (native
+  run), the Direct3D 11 device (made on its own thread from the image's start; with four games starting at once
+  its first use still waited ~350 ms), the sound open 0.15-0.3 s (kept), the swap chain and loading. The exe check
+  through imagehlp did not show in boot's profile (the FUN_00640060 named for it is CHudPortraits::AddPortrait).
 - **A frame** (four games, machine otherwise idle): median 6-8 ms (image), 7-9 ms (original); with 16 games
   1.3-1.6x that (the main thread's own CPU per frame grows too: shared cores and memory). Per frame: server
   0.2-0.4 ms (render_stats' fights 2.5-3), client 1-4, digest 0.3-0.8 (every 20 updates, about every 4th

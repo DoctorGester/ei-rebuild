@@ -14,7 +14,7 @@
 
 namespace {
 
-const char* PersonPattern() { return reinterpret_cast<const char*>(0x00793504); }   // "pers *"
+const char* PersonPattern() { return "pers *"; }
 constexpr int kPersonPrefixLength = 5;                                               // "pers "
 
 // What 00609E70 inserts: the key and the text.

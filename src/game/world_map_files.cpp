@@ -15,7 +15,7 @@
 namespace {
 
 const mfc::CString& DataFolder() { return *static_cast<const mfc::CString*>(worlddata::DataPathString()); }
-const char* MapsFolderName() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FEE0)); }   // "maps\"
+const char* MapsFolderName() { return "maps\\"; }
 
 // Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
 bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }

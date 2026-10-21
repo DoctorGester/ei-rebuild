@@ -121,11 +121,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     auto** glow = reinterpret_cast<CTexture**>(&glowTexture_);
     auto** main = reinterpret_cast<CTexture**>(&texture_);
     if (demon) {
-        TextureHolderLoad(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CE4));   // "DemonLight"
-        TextureHolderLoad(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CD4));   // "DemonLightning"
+        TextureHolderLoad(glow, nullptr, 6, "DemonLight");
+        TextureHolderLoad(main, nullptr, 6, "DemonLightning");
     } else {
-        TextureHolderLoad(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CC8));   // "SmtgLight"
-        TextureHolderLoad(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
+        TextureHolderLoad(glow, nullptr, 6, "SmtgLight");
+        TextureHolderLoad(main, nullptr, 6, "Lightning");
     }
 }
 

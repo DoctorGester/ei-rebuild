@@ -99,16 +99,16 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
     {
-        stlp::string prefix(game::Text(flowdata::kQuestVariablePrefix));
+        stlp::string prefix(flowdata::kQuestVariablePrefix);
         stlp::string a = stlp::Plus(prefix, *name);
-        stlp::string b = stlp::Plus(a, game::Text(flowdata::kDot));
+        stlp::string b = stlp::Plus(a, flowdata::kDot);
         stlp::string path = stlp::Plus(b, *name);
         SetVariable(&path, 1.0f);
     }
     {
-        stlp::string prefix(game::Text(flowdata::kQuestVariablePrefix));
+        stlp::string prefix(flowdata::kQuestVariablePrefix);
         stlp::string a = stlp::Plus(prefix, *name);
-        stlp::string b = stlp::Plus(a, game::Text(flowdata::kDot));
+        stlp::string b = stlp::Plus(a, flowdata::kDot);
         stlp::string c = stlp::Plus(b, *name);
         stlp::string path = stlp::Plus(c, game::PathSuffixText());
         SetVariable(&path, 1.0f);

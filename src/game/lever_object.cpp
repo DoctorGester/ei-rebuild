@@ -31,7 +31,7 @@ constexpr float kNextStateDuration = -10.0f;   // SetState(-1, -10): the model's
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 
-const char* const kLeverClassName = reinterpret_cast<const char*>(0x0078F788);   // "CLeverObject"
+const char* const kLeverClassName = "CLeverObject";
 int GameTick() { return *reinterpret_cast<const int*>(0x007AF61C); }
 
 void SetVtable(Lever* lever) { *reinterpret_cast<void**>(lever) = kLeverVtable; }

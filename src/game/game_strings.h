@@ -18,92 +18,81 @@ inline const char* Text(std::uintptr_t address) { return &ei::GameData<const cha
 constexpr std::uintptr_t kEmptyTextAddress = 0x0079B298;
 inline const char* EmptyText() { return &ei::GameData<const char>(kEmptyTextAddress); }
 
-// 00795D74: "Can't find texture format %d.\n" (the texture manager's FatalError, 00691D80).
-inline const char* CantFindTextureFormatText() { return reinterpret_cast<const char*>(0x00795D74); }
+// The texture manager's FatalError (00691D80).
+inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }
 
-// 0078E6C4: "Can't get surface description" (the window surfaces' FatalDirectX, 005FCC00 / 005FD120).
-inline const char* CantGetSurfaceDescriptionText() { return reinterpret_cast<const char*>(0x0078E6C4); }
-// 0078FB4C: ".mmp" (005FCF80's picture file name).
-inline const char* MmpExtensionText() { return reinterpret_cast<const char*>(0x0078FB4C); }
+// The window surfaces' FatalDirectX (005FCC00 / 005FD120).
+inline const char* CantGetSurfaceDescriptionText() { return "Can't get surface description.\n"; }
+// 005FCF80's picture file name.
+inline const char* MmpExtensionText() { return ".mmp"; }
 
-// The battle screen's (ui_hud.cpp): 007935BC "buttons\battle\on_off.wav" (a portrait's unit
-// clicked), 00794418 "Terrain Coords " and 0078DA40 " " (the console line of a click on the
-// ground), 007900E8 "z." (a zone exit's player variable prefix).
-inline const char* SoundOnOffText() { return reinterpret_cast<const char*>(0x007935BC); }
-inline const char* TerrainCoordsText() { return reinterpret_cast<const char*>(0x00794418); }
-inline const char* SpaceText() { return reinterpret_cast<const char*>(0x0078DA40); }
-inline const char* ZoneVariablePrefixText() { return reinterpret_cast<const char*>(0x007900E8); }
+// The battle screen's (ui_hud.cpp): the sound of a portrait's unit clicked, the console line of a
+// click on the ground ("Terrain Coords", space), a zone exit's player variable prefix.
+inline const char* SoundOnOffText() { return "buttons\\battle\\on_off.wav"; }
+inline const char* TerrainCoordsText() { return "Terrain Coords "; }
+inline const char* SpaceText() { return " "; }
+inline const char* ZoneVariablePrefixText() { return "z."; }
 
-// 007846F0: "none" (a prototype's weapon name that gives no weapon).
-inline const char* NoneText() { return reinterpret_cast<const char*>(0x007846F0); }
+// A prototype's weapon name that gives no weapon.
+inline const char* NoneText() { return "none"; }
 
-// The bow shot's figure (CEffectArrowFigure): model 0079543C "efar1", texture 00795434 "arrow01",
-// and the class name 00795420 "CEffectArrowFigure".
-inline const char* ArrowFigureModelText() { return reinterpret_cast<const char*>(0x0079543C); }
-inline const char* ArrowFigureTextureText() { return reinterpret_cast<const char*>(0x00795434); }
+// The bow shot's figure (CEffectArrowFigure): model and texture.
+inline const char* ArrowFigureModelText() { return "efar1"; }
+inline const char* ArrowFigureTextureText() { return "arrow01"; }
 
-// The bird circling the followed hero (CEffectMoshka): model 00795474 "unmobi", texture 0079546C
-// "bird00".
-inline const char* MoshkaModelText() { return reinterpret_cast<const char*>(0x00795474); }
-inline const char* MoshkaTextureText() { return reinterpret_cast<const char*>(0x0079546C); }
+// The bird circling the followed hero (CEffectMoshka): model and texture.
+inline const char* MoshkaModelText() { return "unmobi"; }
+inline const char* MoshkaTextureText() { return "bird00"; }
 
-// 0079548C: the tornado's looping sound "nature\tornado\circle.wav" (CEffectTornado).
-inline const char* TornadoSoundText() { return reinterpret_cast<const char*>(0x0079548C); }
+// The tornado's looping sound (CEffectTornado).
+inline const char* TornadoSoundText() { return "nature\\tornado\\circle.wav"; }
 
-// 0073F920: "gtime" (a player's game-time variable; CWorldServer::UpdatePlayerTimes).
-inline const char* GTimeText() { return reinterpret_cast<const char*>(0x0073F920); }
-// 00790BB8: "CWorldServer::LoadSave(): Can't load map..." (LoadSave's FatalError).
-inline const char* CantLoadSaveMapText() { return reinterpret_cast<const char*>(0x00790BB8); }
+// A player's game-time variable (CWorldServer::UpdatePlayerTimes).
+inline const char* GTimeText() { return "gtime"; }
+// LoadSave's FatalError.
+inline const char* CantLoadSaveMapText() { return "CWorldServer::LoadSave()\n Can't load map.\n"; }
 
-// The trader stock's prototype names (item_stock.cpp): 0079391C "wand" (skipped), 007938C4
-// "material", 00796370 "instruction weapon", 0079635C "instruction armor", 0079638C "instruction
-// quick item", 00796384 "scroll" (no instruction), 00793924 "prototype", 007963A4 "rune", 007938A0
-// "spell container".
-inline const char* WandText() { return reinterpret_cast<const char*>(0x0079391C); }
-inline const char* MaterialText() { return reinterpret_cast<const char*>(0x007938C4); }
-inline const char* InstructionWeaponText() { return reinterpret_cast<const char*>(0x00796370); }
-inline const char* InstructionArmorText() { return reinterpret_cast<const char*>(0x0079635C); }
-inline const char* InstructionQuickItemText() { return reinterpret_cast<const char*>(0x0079638C); }
-inline const char* ScrollText() { return reinterpret_cast<const char*>(0x00796384); }
-inline const char* PrototypeText() { return reinterpret_cast<const char*>(0x00793924); }
-inline const char* RuneText() { return reinterpret_cast<const char*>(0x007963A4); }
-inline const char* SpellContainerText() { return reinterpret_cast<const char*>(0x007938A0); }
+// The trader stock's prototype names (item_stock.cpp); "wand" is skipped, "scroll" has no instruction.
+inline const char* WandText() { return "wand"; }
+inline const char* MaterialText() { return "material"; }
+inline const char* InstructionWeaponText() { return "instruction weapon"; }
+inline const char* InstructionArmorText() { return "instruction armor"; }
+inline const char* InstructionQuickItemText() { return "instruction quick item"; }
+inline const char* ScrollText() { return "scroll"; }
+inline const char* PrototypeText() { return "prototype"; }
+inline const char* RuneText() { return "rune"; }
+inline const char* SpellContainerText() { return "spell container"; }
 
-// The interface's help topics file (CInterface3D, Create 005F4990 / Shutdown 005F4F90): 00792FF0
-// "config\tutorial.ini" (after the data path), 00793044 "%s %d\n" (a topic and its count).
-inline const char* TutorialIniText() { return reinterpret_cast<const char*>(0x00792FF0); }
-inline const char* TutorialLineFormat() { return reinterpret_cast<const char*>(0x00793044); }
+// The interface's help topics file (CInterface3D, Create 005F4990 / Shutdown 005F4F90): the name
+// (after the data path) and the line format (a topic and its count).
+inline const char* TutorialIniText() { return "config\\tutorial.ini"; }
+inline const char* TutorialLineFormat() { return "%s %d\n"; }
 
-// The flying hit points' draw (005E18E0): 0078EEEC "%d" (the amount), 00792D84
-// "CFlyingHitPoints::Draw.\n SetTexture failed.\n" (its FatalError).
-inline const char* DecimalFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }
-inline const char* FlyingHitPointsTextureText() { return reinterpret_cast<const char*>(0x00792D84); }
+// The flying hit points' draw (005E18E0): the amount's format and its FatalError.
+inline const char* DecimalFormat() { return "%d"; }
+inline const char* FlyingHitPointsTextureText() { return "CFlyingHitPoints::Draw.\n SetTexture failed.\n"; }
 
-// The figure manager's file names (figure_manager.cpp): 00790C6C "%s.fig", 00790C90 "%s%s.fig",
-// 00790C74 "Can't open file \"%s%s.fig\"\n" (its FatalError), 00784630 ".ast" (a bone's animation).
-inline const char* FigFileFormat() { return reinterpret_cast<const char*>(0x00790C6C); }
-inline const char* FigPathFormat() { return reinterpret_cast<const char*>(0x00790C90); }
-inline const char* CantOpenFigText() { return reinterpret_cast<const char*>(0x00790C74); }
-inline const char* AstExtensionText() { return reinterpret_cast<const char*>(0x00784630); }
+// The figure manager's file names (figure_manager.cpp), its FatalError and a bone's animation extension.
+inline const char* FigFileFormat() { return "%s.fig"; }
+inline const char* FigPathFormat() { return "%s%s.fig"; }
+inline const char* CantOpenFigText() { return "Can't open file \"%s%s.fig\"\n"; }
+inline const char* AstExtensionText() { return ".ast"; }
 
-// 00783D6C: "?" (the server's and the client's lists show it for a name that is missing).
-inline const char* QuestionMarkText() { return reinterpret_cast<const char*>(0x00783D6C); }
+// The server's and the client's lists show it for a name that is missing.
+inline const char* QuestionMarkText() { return "?"; }
 
-// The suffixes of the zone messages and the quest registry keys: 00783D70 "_1" (enter), 00783D80 "_2"
-// (leave), 00783D84 "_3" (finish).
-inline const char* ZoneSuffix1Text() { return reinterpret_cast<const char*>(0x00783D70); }
-inline const char* ZoneSuffix2Text() { return reinterpret_cast<const char*>(0x00783D80); }
-inline const char* ZoneSuffix3Text() { return reinterpret_cast<const char*>(0x00783D84); }
+// The suffixes of the zone messages and the quest registry keys: enter, leave, finish.
+inline const char* ZoneSuffix1Text() { return "_1"; }
+inline const char* ZoneSuffix2Text() { return "_2"; }
+inline const char* ZoneSuffix3Text() { return "_3"; }
 
-// The interface sounds: 007937E4 "buttons\messbox\cancel.wav", 00793A88 "buttons\messbox\ok.wav",
-// 00793A60 "buttons\save\select.wav", 007937B0 "buttons\camp\put_on.wav", 007937C8
-// "buttons\camp\put_off.wav", 00793764 (the hero screen's rotate arrows).
-inline const char* CancelSoundText() { return reinterpret_cast<const char*>(0x007937E4); }
-inline const char* OkSoundText() { return reinterpret_cast<const char*>(0x00793A88); }
-inline const char* SelectSoundText() { return reinterpret_cast<const char*>(0x00793A60); }
-inline const char* PutOnSoundText() { return reinterpret_cast<const char*>(0x007937B0); }
-inline const char* PutOffSoundText() { return reinterpret_cast<const char*>(0x007937C8); }
-inline const char* RotateSoundText() { return reinterpret_cast<const char*>(0x00793764); }
+// The interface sounds (RotateSoundText: the hero screen's rotate arrows).
+inline const char* CancelSoundText() { return "buttons\\messbox\\cancel.wav"; }
+inline const char* OkSoundText() { return "buttons\\messbox\\ok.wav"; }
+inline const char* SelectSoundText() { return "buttons\\save\\select.wav"; }
+inline const char* PutOnSoundText() { return "buttons\\camp\\put_on.wav"; }
+inline const char* PutOffSoundText() { return "buttons\\camp\\put_off.wav"; }
+inline const char* RotateSoundText() { return "buttons\\camp\\move.wav"; }
 
 // The map files' keywords (map_database.cpp: the words of a map's .ini lines).
 namespace mapwords {

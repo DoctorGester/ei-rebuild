@@ -18,9 +18,9 @@
 
 namespace {
 
-const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }       // "b."
-const char* ConstructorTopic() { return reinterpret_cast<const char*>(0x007933B4); }  // "constr"
-const char* BriefingSection() { return reinterpret_cast<const char*>(0x007906E4); }   // "briefing "
+const char* TopicPrefix() { return "b."; }
+const char* ConstructorTopic() { return "constr"; }
+const char* BriefingSection() { return "briefing "; }
 
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 constexpr int kTopicNameParts = 3;               // "b", person, topic

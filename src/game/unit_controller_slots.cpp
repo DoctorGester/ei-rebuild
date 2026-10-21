@@ -13,7 +13,7 @@
 
 namespace {
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
-constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x0078F9C4);   // "CUnitClientSpecific"
+constexpr const char* kClientClassName = "CUnitClientSpecific";
 constexpr int kClientClassId = 0x3D;
 
 // A particle source as the counted engine object it is (effects.h declares only its own members).
@@ -132,7 +132,7 @@ EI_REPLACE(0x00533DF0, ClientControllerPath);
 
 // 00533E00 / 00533E10 (slots 11 / 12).
 const char* __fastcall ClientControllerClassName(CUnitClientSpecific*) {
-    return reinterpret_cast<const char*>(kClientClassName);
+    return kClientClassName;
 }
 EI_REPLACE(0x00533E00, ClientControllerClassName);
 int __fastcall ClientControllerClassId(CUnitClientSpecific*) { return kClientClassId; }
