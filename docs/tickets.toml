@@ -540,6 +540,45 @@ group = "renderer"
 depends = ["R9b3"]
 note = "R9b3 (2026-10-21) left FlushBatch / FlushBatch2 (004E7840 / 004E7A40) as empty ports and UiRenderer::FlushBatchA/B: remove them with their ~35 call sites in renderer_*, device_draw, ui_hud, ui_alpha_draws, ui_container_draws, ui_hero_preview and world_client_draw once C11's shim batches have merged (the Flush helpers in the ui_ and world_client_draw files go with them), then dead_code.csv rows for both addresses."
 
+[[ticket]]
+id = "R17"
+title = "Visual upgrades plan: water, ambient occlusion, weather on surfaces, cloud shadows"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-21 asked to plan these for later: nicer water, ambient occlusion, weather that interacts with water and objects, cloud shadows on the ground. All are new-renderer features (src/render, sokol D3D11) behind options, off in the golden and capture runs so the suites keep comparing the classic look; each gets a frame-capture check of its own. Start after R16i (per-pixel sun and point lights), which most of them build on. Sub-tickets R17a-R17d; order to be picked with the user."
+
+[[ticket]]
+id = "R17a"
+title = "Nicer water: normal-mapped waves, Fresnel reflection of the sky, depth-based colour and shore foam"
+group = "renderer"
+model = "opus"
+depends = ["R16i"]
+note = "Keeps R16c2's vertex waves and the game's water levels (height queries read them). Adds in the water pass: scrolling normal maps for small waves, Fresnel blend of a sky / environment reflection (screen-space reflection of objects as a later option), colour and opacity from the water depth (terrain height under the water page vs the water level, both already resident from R16c), foam where the depth goes to zero, sun specular from R16i's lighting. Fog as now."
+
+[[ticket]]
+id = "R17b"
+title = "Ambient occlusion: baked terrain AO plus screen-space AO for objects and units"
+group = "renderer"
+model = "opus"
+depends = ["R16i"]
+note = "Two parts: (1) static AO per terrain page from the height field (computed once when a page goes resident, R16c), cheap and stable; (2) screen-space AO (GTAO or HBAO-style) from the depth buffer for meshes, figures and their contact with the ground, at reduced resolution with a bilateral blur. Applied to ambient light only (needs R16i's split of ambient and direct light). Option with quality levels."
+
+[[ticket]]
+id = "R17c"
+title = "Weather on surfaces: rain ripples and splashes on water, wet ground and objects, snow cover"
+group = "renderer"
+model = "opus"
+depends = ["R17a"]
+note = "Driven by the game's weather state (weather_particles.cpp: rain / snow intensity, wind) without changing it: rain ripples (animated normal map) and splash particles on water pages, a wetness term (darker albedo, stronger specular, puddles in low terrain) building up and drying over time on ground and meshes, snow cover on up-facing surfaces (normal and height based) for snow maps. Purely visual: nothing in the simulation reads it."
+
+[[ticket]]
+id = "R17d"
+title = "Cloud shadows: a moving cloud mask projected from the sun onto ground and objects"
+group = "renderer"
+model = "sonnet"
+depends = ["R16j"]
+note = "A tiling cloud noise texture scrolled with the wind, projected along the sun direction (the same projection as R16j's shadow map) and multiplied into direct sunlight for terrain, meshes and water. Density from the weather state (more cover in rain); off indoors / in caves and at night. Option, off in captures."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
