@@ -143,10 +143,10 @@ struct PartDraw {
 void KeepScreen(CLinkMesh* mesh, const stlp::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
         const RECT& drawn = mesh->loader_->renderer_->drawnRect_;
-        lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = drawn;
+        static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name)->screen = drawn;
         return;
     }
-    lib_trees::LinkHeaders::Subscript(&mesh->headers_, nullptr, name)->screen = kNoScreen;
+    static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name)->screen = kNoScreen;
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without

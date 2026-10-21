@@ -45,7 +45,7 @@ float& Arrival(Arrivals& arrivals, int exit) {
     Arrivals::Node* at = arrivals.lower_bound(exit);
     if (at == arrivals.end() || exit < at->first) {
         ArrivalPair value = {exit, 0.0f};
-        lib_trees::Arrivals::InsertHint(&arrivals, nullptr, &at, at, reinterpret_cast<const Arrivals::Value*>(&value));
+        static_cast<lib_trees::Arrivals*>(&arrivals)->InsertHint(&at, at, *reinterpret_cast<const Arrivals::Value*>(&value));
     }
     return at->second;
 }

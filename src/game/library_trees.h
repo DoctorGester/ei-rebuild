@@ -52,7 +52,7 @@ static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkH
 // header for none.
 inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) {
     LinkHeaders::Node* node;
-    LinkHeaders::Find(reinterpret_cast<LinkHeaders::Tree*>(map), nullptr, &node, key);
+    static_cast<LinkHeaders*>(reinterpret_cast<LinkHeaders::Tree*>(map))->Find(&node, *key);
     return reinterpret_cast<LinkHeaderMap::Node*>(node);
 }
 // A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
