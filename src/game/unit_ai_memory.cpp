@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/nan_audit.h"
 #include "lib/crt_iostream.h"
 
 #include <bit>
@@ -155,14 +156,10 @@ EI_REPLACE(0x005CBE90, SeeCorpseHook);
 namespace {
 constexpr float kMaxExposure = 3.0f;            // 0073FE90
 
-bool IsNaN(double v) {
-    auto bits = std::bit_cast<std::uint64_t>(v);
-    return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
-}
-
-// distance / range, at most 3 (NaN kept); 3 for a zero (or NaN) range.
+// distance / range, at most 3 (NaN kept); 3 for a zero range.
 float Exposure(float distance, double range) {
-    if (range == 0.0 || IsNaN(range)) return kMaxExposure;
+    EI_NAN_AUDIT(range);
+    if (range == 0.0) return kMaxExposure;
     float ratio = static_cast<float>(distance / range);
     return !(ratio >= kMaxExposure) ? ratio : kMaxExposure;
 }

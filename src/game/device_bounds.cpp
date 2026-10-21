@@ -16,9 +16,6 @@
 
 namespace {
 
-// FCOMP, then the C0 bit as a mask: "less, or unordered".
-bool LessOrUnordered(float a, float b) { return a < b || x87::IsNaN(a) || x87::IsNaN(b); }
-
 // The bounds so far: they start inside out, and a coordinate replaces a bound it is not inside of
 // (a NaN never does).
 struct ScreenBounds {
@@ -28,10 +25,10 @@ struct ScreenBounds {
     float maxY = -FLT_MAX;
 
     void Include(float x, float y) {
-        minX = LessOrUnordered(minX, x) ? minX : x;
-        maxX = LessOrUnordered(x, maxX) ? maxX : x;
-        minY = LessOrUnordered(minY, y) ? minY : y;
-        maxY = LessOrUnordered(y, maxY) ? maxY : y;
+        minX = x < minX ? x : minX;
+        maxX = maxX < x ? x : maxX;
+        minY = y < minY ? y : minY;
+        maxY = maxY < y ? y : maxY;
     }
 
     // The bounds rounded (FISTP) into the device's rectangle; SetRect's result.

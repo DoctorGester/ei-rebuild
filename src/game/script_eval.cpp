@@ -1,9 +1,9 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
 // script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
 //
-// Floating point: the comparisons keep FCOM's status bits (x87::CompareStatus), so NaN arguments
-// behave as in the original; the multi-step computations keep their intermediates unrounded
-// (double locals) as the original keeps them in registers.
+// Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
+// original's FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
+// computations keep their intermediates unrounded (double locals) as the original keeps them in registers.
 #include "script.h"
 #include "game_arrays.h"
 #include "world_glue.h"
@@ -28,6 +28,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 #include "lib/stlp.h"
 #include "random.h"
 #include "originals_library.h"
@@ -45,14 +46,6 @@ namespace {
 
 // ---- x87 helpers --------------------------------------------------------------------------------
 
-// FCOM status bits (from FNSTSW AX, in AH): C0 = 0x01 "less or unordered", C3 = 0x40 "equal or
-// unordered". The original tests these directly, so NaN arguments behave like the original.
-constexpr int kLess = x87::kC0;
-constexpr int kEqual = x87::kC3;
-constexpr int kLessOrEqual = x87::kC0 | x87::kC3;
-
-int Compare(float a, float b) { return x87::CompareStatus(a, b); }
-
 // sqrt(dy * dy + dx * dx) with dx = x0 - x1 and dy = y0 - y1 kept unrounded (in registers).
 float Distance(float x0, float y0, float x1, float y1) {
     const double dx = static_cast<double>(x0) - x1;
@@ -60,11 +53,11 @@ float Distance(float x0, float y0, float x1, float y1) {
     return static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx)));
 }
 
-// FCOM status of (dy * dy + dx * dx) against r2, as IsInArea tests circles.
-int CompareSquaredDistance(float x, float y, float centreX, float centreY, float r2) {
+// (dy * dy + dx * dx) unrounded, as IsInArea tests circles.
+double SquaredDistance(float x, float y, float centreX, float centreY) {
     const double dx = static_cast<double>(x) - centreX;
     const double dy = static_cast<double>(y) - centreY;
-    return x87::CompareStatus(LengthSquared2DUnrounded(dy, dx), r2);
+    return LengthSquared2DUnrounded(dy, dx);
 }
 
 // 0073C468: 1 / (2^32 - 1).
@@ -193,13 +186,15 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     const float* f = floatArgs.data;
     switch (id) {
     case 0x45:   // IsEqual
-        *result = FromBool((Compare(f[0], f[1]) & kEqual) != 0);
+        EI_NAN_AUDIT(f[0], f[1]);
+        *result = FromBool(f[0] == f[1]);
         return;
     case 0x46:   // IsLess
-        *result = FromBool((Compare(f[0], f[1]) & kLess) != 0);
+        EI_NAN_AUDIT(f[0], f[1]);
+        *result = FromBool(f[0] < f[1]);
         return;
     case 0x47:   // IsGreater
-        *result = FromBool((Compare(f[0], f[1]) & kLessOrEqual) == 0);
+        *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
         *result = FromBool(GameMbscmp(stringArgs.data[0], stringArgs.data[1]) == 0);
@@ -217,7 +212,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = f[0] / f[1];
         return;
     case 0x4D:   // Not
-        *result = FromBool((Compare(f[0], 0.0f) & kEqual) != 0);
+        EI_NAN_AUDIT(f[0]);
+        *result = FromBool(f[0] == 0.0f);
         return;
 
     case 0x4F:   // HP
@@ -404,7 +400,10 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             }
         if (!condition) {
             if (id == 0x68) std::memcpy(result, &floatArgs.data[0], 4);
-            else if (id == 0x69) *result = FromBool((Compare(floatArgs.data[0], 0.0f) & kEqual) == 0);
+            else if (id == 0x69) {
+                EI_NAN_AUDIT(floatArgs.data[0]);
+                *result = FromBool(floatArgs.data[0] != 0.0f);
+            }
             else *result = static_cast<float>(groupArgs.data[0]->size) * floatArgs.data[0];
             return;
         }
@@ -426,12 +425,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             }
             CalcParameters(script, vars, condition);
             if (id == 0x68) {
-                if (Compare(floatArgs.data[0], 0.0f) & kEqual) {
+                EI_NAN_AUDIT(floatArgs.data[0]);
+                if (floatArgs.data[0] == 0.0f) {
                     StoreBits(result, kZero);
                     return;
                 }
             } else if (id == 0x69) {
-                if (!(Compare(floatArgs.data[0], 0.0f) & kEqual)) {
+                EI_NAN_AUDIT(floatArgs.data[0]);
+                if (floatArgs.data[0] != 0.0f) {
                     StoreBits(result, kOne);
                     return;
                 }
@@ -486,8 +487,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = WorldTimeOfDay();
         return;
     case 0xBB: { // IsInSquare(x, y, x1, y1, x2, y2)
-        bool inside = !(Compare(f[0], f[2]) & kLess) && (Compare(f[0], f[4]) & kLessOrEqual) &&
-                      !(Compare(f[1], f[3]) & kLess) && (Compare(f[1], f[5]) & kLessOrEqual);
+        EI_NAN_AUDIT(f[0], f[1], f[2], f[3], f[4], f[5]);
+        bool inside = f[0] >= f[2] && f[0] <= f[4] && f[1] >= f[3] && f[1] <= f[5];
         *result = static_cast<float>(inside ? 1 : 0);
         return;
     }
@@ -496,8 +497,8 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         StoreBits(result, kZero);
         if (!o) return;
         float x = MapObject(o)->position.x, y = MapObject(o)->position.y;
-        bool inside = !(Compare(x, f[0]) & kLess) && (Compare(x, f[2]) & kLessOrEqual) &&
-                      !(Compare(y, f[1]) & kLess) && (Compare(y, f[3]) & kLessOrEqual);
+        EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
+        bool inside = x >= f[0] && x <= f[2] && y >= f[1] && y <= f[3];
         *result = static_cast<float>(inside ? 1 : 0);
         return;
     }
@@ -530,15 +531,16 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         bool inside = false;
         for (int i = 0, n = parts->size; i < n; ++i) {
             const ScriptAreaPart& part = parts->data[i];
+            EI_NAN_AUDIT(x, y, part.x, part.y, part.x2OrRadiusSquared);
             if (part.isRect) {
-                if (Compare(x, part.x) & kLess) continue;
-                if (!(Compare(x, part.x2OrRadiusSquared) & kLessOrEqual)) continue;
-                if (Compare(y, part.y) & kLess) continue;
-                if (Compare(y, part.y2) & kLessOrEqual) {
+                if (x < part.x) continue;
+                if (x > part.x2OrRadiusSquared) continue;
+                if (y < part.y) continue;
+                if (y <= part.y2) {
                     inside = true;
                     break;
                 }
-            } else if (CompareSquaredDistance(x, y, part.x, part.y, part.x2OrRadiusSquared) & kLess) {
+            } else if (SquaredDistance(x, y, part.x, part.y) < part.x2OrRadiusSquared) {
                 inside = true;
                 break;
             }
@@ -638,8 +640,6 @@ inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
 }
 
-// FNSTSW after FILD a, FCOMP b (AH).
-int CompareIntFloat(int a, float b) { return x87::CompareStatus(static_cast<double>(a), b); }
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).
@@ -706,10 +706,11 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         }
         break;
     }
-    case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (or NaN)
+    case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (FILD, FCOMP)
+        EI_NAN_AUDIT(floatArgs.data[0]);
         for (CEngineObject* o = objects.First(WorldObjectManager()); o; o = objects.Next()) {
             if (o->GetClassId() != kClassUnit) continue;
-            if (CompareIntFloat(static_cast<CUnit*>(o)->side, floatArgs.data[0]) & kEqual) (*result)->Insert(o);
+            if (static_cast<double>(static_cast<CUnit*>(o)->side) == floatArgs.data[0]) (*result)->Insert(o);
         }
         break;
     }

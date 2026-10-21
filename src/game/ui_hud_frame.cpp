@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 #include <cstdint>
@@ -195,7 +196,8 @@ void CHudTopPanel::Update() {
             eased = 1.0f - (r2 + r2);
         }
         offset_ = static_cast<int>(gamecrt::Ftol(static_cast<double>(travel_) * eased));
-        if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f || x87::IsNaN(slide_)) sliding_ = 0;
+        EI_NAN_AUDIT(slide_);
+        if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f) sliding_ = 0;
         Layout();
         CEngineObject* sling = sceneObjects_.data[2];
         float y;

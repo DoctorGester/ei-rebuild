@@ -145,9 +145,9 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
   the expression so the compiler takes ST0 as it is: checked in the object code for `ClampPow`, `CircleScaled`, `WallScorchShape`).
   `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` / `CiFmod` the bodies of `_CIpow` / `_CIfmod`, `x87::FromUnsigned` the FILD of
   an unsigned.
-- FCOM status: `x87::CompareStatus` gives AH's C0 / C2 / C3 (`kC0`, `kC2`, `kC3`), or write the NaN-aware comparison directly
-  (`!(x <= 1.0f)` for "C0 of FCOM 1.0, x", `a >= b ? b : a` for TEST AH,1). An FLD / FSTP copy of a float quiets a signalling NaN; the
-  rebuild's copies are plain (`std::memcpy` of the four bytes, `std::bit_cast` for the bits): see "SSE2 build".
+- FCOM status: write the plain comparison the source had (rewrite guide rule 8; the NaN audit in "SSE2 build"); `x87::CompareStatus`
+  is gone. An FLD / FSTP copy of a float quiets a signalling NaN; the rebuild's copies are plain (`std::memcpy` of the four bytes,
+  `std::bit_cast` for the bits): see "SSE2 build".
 - An original returning in ST0 is called through a `double(__fastcall*)(self, void*, ...)` pointer (the value stays unrounded).
 - Sums over vector components use the `lib/vecmath.h` Unrounded helpers (`LengthSquared2DUnrounded`, `DotUnrounded<Sum3::...>`), which
   `check_cleanup` asks for.
@@ -197,7 +197,38 @@ default `-nan(ind)`). The cause is not the helpers but the doubles:
 | `fexp` (7) | `std::exp` | **97 differ** | VC6's inline exp rounds its FMUL / FSUB / FADD at PC24 (about 24 bits accurate): 64% of float arguments give another float, up to 3.6e-7 relative. One site does it all: `unit_client_path`'s heading weight `x87::fexp(rate * kDecay)` (checked alone: the same 43 records as the whole family); cunit702's `rot.w` 0.112546213 / 0.112546332 at world update 45 in gz1g, then its place |
 | `FromUnsigned` (85) | `static_cast<double>` | not run | rejected by check_x87 on IA32 (the FADD 2^32 rounds at PC24); exact under SSE2 (check_x87 would need an SSE2 mode: SSE2 code also loads 2^32) |
 | `CopyFloat` / `LoadStoreBits` (57) | the bits as they are (`memcpy` / `bit_cast`) | same | no signalling NaN is copied in the suite (converted, C16b, the helpers are gone). Behaviour change: a signalling NaN float copied at those sites keeps its bits, where the original's FLD / FSTP set the quiet bit (0x00400000); only a NaN with a clear quiet bit read from a file or a message is affected |
-| `IsNaN` / `CompareStatus` (116) | `IsNaN` false (the plain comparison) | same | no NaN reaches those sites in the suite: the NaN audit (cleanup plan) can write plain comparisons, a behaviour change only for NaN |
+| `IsNaN` / `CompareStatus` (116) | `IsNaN` false (the plain comparison) | same | no NaN reaches those sites in the suite (converted, C16c: the NaN audit below) |
+
+**NaN audit (C16c).** The rule: a comparison is the plain C++ one the source had (VC6's TEST AH,0x40 `==`, TEST AH,1 `<`,
+TEST AH,0x41 `<=` / `>`, a C0 mask `a < b ? x : y`); where an `x87::IsNaN` / `CompareStatus` term only reproduced how FCOM counted an
+unordered result (equal and less), it is gone, and a NaN compares as IEEE says. Where detecting NaN is the code's purpose (data
+checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNaN` is left only in `lib/nan_audit.h`, and
+`CompareStatus` / `kC0`-`kC3` are gone from `x87.h`. Per site:
+- **Plain, NaN result changes (84 `EI_NAN_AUDIT` sites, 46 files):** zero tests (`ZeroOrNaN` helpers renamed `IsZero`, the
+  particle sizes / bends / alphas, lengths before a normalise, the script `Not` / flag tests / `PowerFactor`), equality (`Same`,
+  `Equal`, `Differs`, zone variables against 1, quest states, hash key heights), less-than selects (`MinOf`, `MaxZero`, `AtMost`,
+  the larger of two extents or reaches), the script comparisons (`IsEqual`, `IsLess`, `IsInSquare`, `IsInArea`, `GetPlayerUnits`:
+  `static_cast<double>(side) == f`, the FILD compare). Each has `EI_NAN_AUDIT(values...)` (`src/lib/nan_audit.h`): in the verify and
+  debug builds (`EI_NAN_AUDIT_LOG`, CMake) the first NaN per site writes `NaN audit: a NaN compared at <file>:<line>` to ei_hook.log;
+  in release it is nothing.
+- **Plain, NaN result the same (about 25):** where an equally plain form keeps the original's result: the ordered tests (`a > b` for
+  TEST AH,0x41 jump-if-clear: `Exceeds`, the HP drop, `rate > 0`, `duration > 0`, `IsGreater`), `h >= kHeightSilent`, `limit >= distance`,
+  the bounds a NaN never replaces (device_bounds `x < minX ? x : minX`, terrain_sector `z <= minZ`, ui_stats_rows `s >= largest`),
+  `SetDiplomacy` (`> 0` allied, `< 0` enemies, else neutral), the client turn loop (`if (!(gap > kHalfTurn)) break;`: the plain
+  `gap <= kHalfTurn` would never end on a NaN), and all of addon.dll's status tests (an IEEE compiler; they read C2:
+  `Max` `!(f < m)`, `Min` `!(f > m)`, `Abs` / `Round` `x < 0`, `Random` `high > low`, `NearestUnit` `distance < radius`, `Equals` `==`).
+  Four selects on integer-sourced floats (ui_objectives' map sizes, ui_hud_portraits' mana) cannot see a NaN and carry no audit.
+  `CAIMap`'s free-cell search (ai_path.cpp) sees a NaN in the suite (net_pair_quest, zone_gz15h_tornado: the step is 0 / 0 when
+  the unit stands on the target cell, the original's behaviour); its select is exact because p and q are NaN together, so it has
+  no audit (the audit fired there in the first suite run).
+- **Behaviour change** (NaN only): every audited comparison now takes the IEEE branch: e.g. a NaN length is normalised (a NaN vector)
+  instead of left alone, a NaN zone variable counts as "not visited", a NaN script argument is "not zero" and "not equal", a NaN
+  height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `CCamera::StopMotion` keeps
+  a NaN turn / tilt rate where the inlined SetTurnRate(0) replaced it. The suite has none: goldens identical (110), and the audit
+  line appears in no run's ei_hook.log.
+- Not converted (follow-up C16e): the NaN-aware `!(a >= b)` helpers of the earlier port (`LessOrUnordered`, `ZeroOrUnordered`,
+  `EqualOrNaN` in ui_item_strip / unit_record, `NonZero`, `AtMostOne`, ... in about 30 files), which keep the original's NaN results
+  without `IsNaN`.
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
 menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in

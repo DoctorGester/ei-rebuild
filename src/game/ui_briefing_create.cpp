@@ -21,6 +21,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
@@ -102,11 +103,12 @@ WorldPlayer* LocalViewPlayer() {
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
-// A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
+// A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
     Vector3 out{v.x, v.y, v.z};
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
-    if (length == 0.0f || x87::IsNaN(length)) return out;
+    EI_NAN_AUDIT(length);
+    if (length == 0.0f) return out;
     float inverse = 1.0f / length;
     out.x = static_cast<float>(out.x * inverse);
     out.y = static_cast<float>(out.y * inverse);
@@ -414,7 +416,8 @@ void CBriefingScreen::LeaveIfExitOpen() {
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;
     float visited = PlayerZeroVariable(variable);
-    if (visited == 1.0f || x87::IsNaN(visited)) return;
+    EI_NAN_AUDIT(visited);
+    if (visited == 1.0f) return;
     mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
     mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);

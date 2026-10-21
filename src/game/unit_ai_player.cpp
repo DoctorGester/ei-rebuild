@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -117,7 +118,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         CUnitServer* control = ControllerOf(other);
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
-        float reach = (sight < hearing || x87::IsNaN(sight) || x87::IsNaN(hearing)) ? hearing : sight;
+        EI_NAN_AUDIT(sight, hearing);
+        float reach = sight < hearing ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dx = static_cast<double>(other->position.x) - unit->position.x;

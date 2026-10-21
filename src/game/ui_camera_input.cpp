@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
 #include "originals_ui.h"
@@ -49,8 +50,11 @@ int EdgeMargin() { return ei::GameData<const volatile int>(0x0079BDAC); }
 float PerWidth() { return 0.0025f /*0074015C*/; }
 float PerHeight() { return 0.0033333334f /*00740204*/; }
 
-// FCOMP; TEST AH,0x40: unordered counts as equal.
-bool Differs(float a, float b) { return a != b && !x87::IsNaN(a) && !x87::IsNaN(b); }
+// FCOMP; TEST AH,0x40.
+bool Differs(float a, float b) {
+    EI_NAN_AUDIT(a, b);
+    return a != b;
+}
 
 constexpr int kDragCursor = 0x16;
 enum Edge : unsigned { kLeft = 1, kRight = 0x10, kTop = 0x100, kBottom = 0x1000 };

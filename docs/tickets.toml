@@ -2346,6 +2346,13 @@ group = "cleanup"
 depends = ["C16"]
 note = "C16: an /arch:SSE2 image parts all 110 goldens from the first record because double expressions stand for the x87 register at 24-bit precision (now 53 bits). Before switching: decide the oracle (C16 recommends re-recording the goldens from the SSE2 image after behaviour-level checks against the x87 image); set MXCSR with the x87 word in libcrt::Controlfp (terrain lighting's chop); FromUnsigned -> plain cast and an SSE2 mode for check_x87; fexp; NaN payloads; check multiplayer against original clients (delta-coded floats). Switches on branch c16-sse2-experiment."
 
+[[ticket]]
+id = "C16e"
+title = "NaN audit, part 2: the !(a >= b)-style NaN-aware helpers"
+group = "cleanup"
+depends = ["C16c"]
+note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)'. C16c made the x87::IsNaN / CompareStatus sites plain comparisons with EI_NAN_AUDIT; left are the helpers that keep the original's NaN results without IsNaN: LessOrUnordered (combat*, effects*, particle_*, quaternion, terrain, unit_vitals, world_client SelectLess), ZeroOrUnordered, NonZero, EqualOrNaN (ui_item_strip, unit_record), IsZeroOrNaN (unit_stats, world_effect_sequence), AtMostOne / AtLeastZero / AtMostZero, ClampToMap, the ZeroOrNaN bit tests in device_mesh / object_tables / scene_bones, about 30 files. Same rule (rewrite guide 8): the plain comparison the source had, EI_NAN_AUDIT where the NaN result changes, the NaN-keeping plain form where it reads as naturally; check a NaN can never hang a loop. Goldens --golden 0 differ and no 'NaN audit' line in the runs' logs. Opus (judgement per site)."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]

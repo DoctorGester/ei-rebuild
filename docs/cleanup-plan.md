@@ -139,17 +139,14 @@ for objects our code fully owns, and finishes after phase 3.
 Two rules in the rewrite guide come from how VC6's x87 code behaves, not from Nival's intent. In
 the standalone build they turn into review items:
 
-- **NaN in comparisons (30 sites, `x87::IsNaN`).** VC6 compiled `a == 0.0f`, `a < b` etc. as
+- **NaN in comparisons (done, C16c; `docs/notes/cleanup-tooling.md` "NaN audit").** VC6 compiled `a == 0.0f`, `a < b` etc. as
   FCOMP / FNSTSW / TEST AH, where a NaN operand sets the "unordered" flags and so counts as
-  *equal* (or *less*, depending on the test). Our rewrites reproduce that with explicit
-  `|| x87::IsNaN(...)` terms. In the source the programmer simply wrote the comparison; NaN was
-  never meant to reach these places. Sites today: `ai_map.cpp` (line-step length),
-  `ai_motion.cpp` (turn sign, 2), `ai_movement.cpp` (radius test), `particle_callbacks.cpp`
-  (13: zero tests on sizes, bends, alphas, lengths), `sound_manager.cpp` (silent height),
-  `terrain_sector.cpp` (min/max height), `ui_hud.cpp`, `ui_hud_frame.cpp`, `ui_hud_portraits.cpp`,
-  `ui_item_info.cpp`, `ui_item_view.cpp`, `ui_objectives.cpp` (4), `world_units.cpp` (water level).
-  Standalone: write the plain comparison, and in debug builds log when a NaN shows up there; each
-  NaN that does show up is a real bug upstream (see the next item).
+  *equal* (or *less*, depending on the test). The rewrites reproduced that with explicit
+  `|| x87::IsNaN(...)` and `x87::CompareStatus` terms (about 116 sites); in the source the programmer
+  simply wrote the comparison, and NaN was never meant to reach these places. They are plain
+  comparisons now (a behaviour change for NaN only), with `EI_NAN_AUDIT` (`src/lib/nan_audit.h`)
+  logging the first NaN per site in the verify and debug builds; each NaN that does show up is a
+  real bug upstream (see the next item). Left: the `!(a >= b)`-style NaN-aware helpers (C16e).
 - **NaN that actually happens (an original bug).** An object with a NaN view depth makes the unit
   sort's comparator treat `Less(x, x)` as true, and STLport's unguarded partition then walks off
   the array: the rare Rebirth crash in `docs/open-questions.md`. Fix candidate for the fixes

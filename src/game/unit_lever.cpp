@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
@@ -36,8 +37,9 @@ CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineOb
 } // namespace
 
 void Lever::SetState(int wanted, float duration) {
-    // FCOMP + TEST AH,1: a negative (or NaN) duration takes the model's default.
-    if (x87::IsNaN(duration) || duration < 0.0f) {
+    // FCOMP + TEST AH,1: a negative duration takes the model's default.
+    EI_NAN_AUDIT(duration);
+    if (duration < 0.0f) {
         // The model's record by name: the table's operator[] (00464750; an unknown name gets a null entry).
         const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(LeverTable()), nullptr, name));
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
@@ -76,7 +78,7 @@ void Lever::SetState(int wanted, float duration) {
     states = stateCount;
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
     // FCOMP + TEST AH,0x41: timed only for a duration above zero.
-    if (!x87::IsNaN(duration) && duration > 0.0f) {
+    if (duration > 0.0f) {
         to = travel;
         std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
         endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
