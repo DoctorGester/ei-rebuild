@@ -225,12 +225,8 @@ EI_REPLACE_METHOD(0x00661190, CParty::DeletingDestruct);
 
 BOOL CParty::CreateParty() {
     // The base class's slot 2 (0055E930) only returns 1.
-    void* memory = gamecrt::operator_new(CItemManager::kSize);
-    if (memory != nullptr) {
-        static_cast<CResourceManager*>(memory)->Construct();
-        ei::SetVtable(memory, CItemManager::kVtableAddress);
-    }
-    itemManager_ = static_cast<CResourceManager*>(memory);
+    void* memory = gamecrt::operator_new(sizeof(CItemManager));
+    itemManager_ = memory != nullptr ? static_cast<CItemManager*>(memory)->Construct() : nullptr;
     ++itemManager_->refCount_;   // not tested for null, as in the original
     itemManager_->Init(this);
 

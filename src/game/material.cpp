@@ -118,23 +118,18 @@ CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table
 
 } // namespace
 
-CMaterialManager* CMaterialManager::Construct() {
-    CResourceManager::Construct();
-    colors_.InitBuckets(kColorTableHint);
-    ei::SetVtable(this, kVtableAddress);
-    return this;
-}
+CMaterialManager::CMaterialManager() { colors_.InitBuckets(kColorTableHint); }
+
+CMaterialManager* CMaterialManager::Construct() { return new (this) CMaterialManager(); }
 EI_REPLACE_METHOD(0x0068E3F0, CMaterialManager::Construct);
 
-void CMaterialManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
-    colors_.Destroy();
-    CResourceManager::Destruct();
-}
+CMaterialManager::~CMaterialManager() { colors_.Destroy(); }
+
+void CMaterialManager::Destruct() { this->CMaterialManager::~CMaterialManager(); }
 EI_REPLACE_METHOD(0x0068E540, CMaterialManager::Destruct);
 
 CMaterialManager* CMaterialManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CMaterialManager::~CMaterialManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -191,11 +186,14 @@ int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
 }
 EI_REPLACE_METHOD(0x0068EAF0, CMaterialManager::FillMaterial);
 
-const char* __fastcall MaterialManagerFolder(CMaterialManager*) { return kManagerFolder; }
-const char* __fastcall MaterialManagerClassName(CMaterialManager*) {
-    return kManagerClassName;
-}
-int __fastcall MaterialManagerClassId(CMaterialManager*) { return 0x27; }
+CEngineObject* CMaterialManager::NewObject(int type) { return NewObjectImpl(type); }
+const char* CMaterialManager::GetClassName() { return kManagerClassName; }
+int CMaterialManager::GetClassId() { return 0x27; }
+const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
+
+const char* __fastcall MaterialManagerFolder(CMaterialManager* self) { return self->CMaterialManager::GetFolderName(); }
+const char* __fastcall MaterialManagerClassName(CMaterialManager* self) { return self->CMaterialManager::GetClassName(); }
+int __fastcall MaterialManagerClassId(CMaterialManager* self) { return self->CMaterialManager::GetClassId(); }
 EI_REPLACE(0x0068E4F0, MaterialManagerFolder);
 EI_REPLACE(0x0068E500, MaterialManagerClassName);
 EI_REPLACE(0x0068E510, MaterialManagerClassId);

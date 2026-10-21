@@ -1,7 +1,8 @@
 #pragma once
 
 // Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, vtable 0073C550, 0x514 bytes) and
-// the manager that owns and draws them (CLightningManager, vtable 0073F5B8). A bolt is a main
+// the manager that owns and draws them (CLightningManager; a real virtual class: the compiler makes
+// its vtable, C19, game.exe's 0073F5B8 is retired). A bolt is a main
 // segment from one end point to the other plus six branches that start at points along it; every
 // segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
@@ -15,6 +16,8 @@
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // One polyline point (16 bytes: the fourth float is never written here).
 struct LightningPoint {
@@ -134,8 +137,23 @@ inline float* LightningNoiseTable() { return ei::GamePointer<float>(0x0079CE78);
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
 int __cdecl LoadLightningNoise();
 
+// The client world's +0x1A0 (*007AF758). Built by the client world's Setup (world_client_maps.cpp,
+// the constructor inlined there), which also holds its lifetime and slots.
 class CLightningManager : public CBaseManager {
 public:
+    // CBaseManager's constructor, then the list of new bolts (vtable 0073F61C, block size 10).
+    CLightningManager();
+    // 00562EC0. Every listed bolt released, the list emptied, then CBaseManager's destructor.
+    ~CLightningManager() override;
+    const char* GetClassName() override;           // 11: 00562D80 "CLightningManager"
+    int GetClassId() override;                     // 12: 00562D90 (0x35)
+    // 13: 00562D70, CBaseManager's Init (the same code at its own address).
+    // 14: 00468680. A new bolt.
+    CEngineObject* NewObject(int type) override;
+    // The registrations (C20 retires them): 00562EC0 the destructor, 00562EA0 (slot 0, RET 4) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    void Destruct();
+    CLightningManager* DeletingDestruct(unsigned flags);
     // Body of the slot at 00468680 (registered by member pointer).
     CLightning* NewObjectImpl(int /*type*/);
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
@@ -147,4 +165,4 @@ public:
 
     mfc::CTypedPtrList<CLightning> newBolts_;   // +0xB0 (each entry holds a reference)
 };
-static_assert(offsetof(CLightningManager, newBolts_) == 0xB0);
+static_assert(offsetof(CLightningManager, newBolts_) == 0xB0 && sizeof(CLightningManager) == 0xCC);

@@ -13,6 +13,9 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -145,8 +148,7 @@ EI_REPLACE(0x0068CFB0, LightClassId);
 
 // --- CLightFactory -------------------------------------------------------------------------------
 
-CLightFactory* CLightFactory::Construct() {
-    ConstructBase();
+CLightFactory::CLightFactory() {
     held_ = nullptr;
     unused_CC = 0;
     auto* sentinel = static_cast<stlp::list<int>::Node*>(stlp::allocate(sizeof(stlp::list<int>::Node)));
@@ -154,24 +156,24 @@ CLightFactory* CLightFactory::Construct() {
     sentinel->prev = sentinel;
     litIds_.head = sentinel;
     std::memset(unused_B0, 0, sizeof(unused_B0));
-    ei::SetVtable(this, kVtableAddress);
     unused_D0 = 1;
-    return this;
 }
+
+CLightFactory* CLightFactory::Construct() { return new (this) CLightFactory(); }
 EI_REPLACE_METHOD(0x0068D850, CLightFactory::Construct);
 
-void CLightFactory::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+CLightFactory::~CLightFactory() {
     litIds_.ClearWith([](int*) {});
     stlp::deallocate(litIds_.head, sizeof(stlp::list<int>::Node));
     unused_CC = 0;
     if (held_) held_->Release();
-    DestructBody();
 }
+
+void CLightFactory::Destruct() { this->CLightFactory::~CLightFactory(); }
 EI_REPLACE_METHOD(0x0068D990, CLightFactory::Destruct);
 
 CLightFactory* CLightFactory::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CLightFactory::~CLightFactory();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -203,9 +205,12 @@ namespace {
 EI_REPLACE_METHOD(0x0068DA40, CLightFactory::NewObjectImpl);
 EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
 
-const char* __fastcall LightManagerClassName(CLightFactory*) {
-    return kLightManagerClassName;
-}
-int __fastcall LightManagerClassId(CLightFactory*) { return 0x29; }
+CEngineObject* CLightFactory::NewObject(int type) { return NewObjectImpl(type); }
+CEngineObject* CLightFactory::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
+const char* CLightFactory::GetClassName() { return kLightManagerClassName; }
+int CLightFactory::GetClassId() { return 0x29; }
+
+const char* __fastcall LightManagerClassName(CLightFactory* self) { return self->CLightFactory::GetClassName(); }
+int __fastcall LightManagerClassId(CLightFactory* self) { return self->CLightFactory::GetClassId(); }
 EI_REPLACE(0x0068D950, LightManagerClassName);
 EI_REPLACE(0x0068D960, LightManagerClassId);

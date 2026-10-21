@@ -16,6 +16,9 @@
 
 #include <cstdint>
 #include <cstring>
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace misc400 {
 
@@ -26,23 +29,24 @@ CEngineObject* New(std::size_t size, void* (__fastcall* construct)(void*)) {
 }
 
 
-// 0042D6F0: the destructor body: this class's vtable, then the base manager's body (a tail call).
+// 0042D6F0: the destructor.
 void __fastcall ManagerDestruct(CBaseManager* self) {
-    ei::SetVtable(self, CClientSpecificManager::kVtableAddress);
-    self->DestructBody();
+    auto* manager = static_cast<CClientSpecificManager*>(self);
+    manager->CClientSpecificManager::~CClientSpecificManager();
 }
 
-// 0042D6B0 / 0042D6C0: the class name ("CClientSpecificManager", 00783DD8) and class id (0x30).
-const char* __fastcall ManagerClassName(const CBaseManager*) { return "CClientSpecificManager"; }
-int __fastcall ManagerClassId(const CBaseManager*) { return 0x30; }
+// 0042D6B0 / 0042D6C0: slots 11 and 12.
+const char* __fastcall ManagerClassName(CClientSpecificManager* self) { return self->CClientSpecificManager::GetClassName(); }
+int __fastcall ManagerClassId(CClientSpecificManager* self) { return self->CClientSpecificManager::GetClassId(); }
 
 } // namespace misc400
 
-CClientSpecificManager* CClientSpecificManager::Construct() {
-    ConstructBase();
-    ei::SetVtable(this, kVtableAddress);
-    return this;
-}
+CClientSpecificManager::CClientSpecificManager() {}
+CClientSpecificManager::~CClientSpecificManager() {}
+CClientSpecificManager* CClientSpecificManager::Construct() { return new (this) CClientSpecificManager(); }
+const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
+int CClientSpecificManager::GetClassId() { return 0x30; }
+CEngineObject* CClientSpecificManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
 // failed allocation. The constructors (005A7010 the figure drawer, 0051AB00, 00510450, 00533AD0,

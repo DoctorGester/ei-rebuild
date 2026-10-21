@@ -1,9 +1,9 @@
 #pragma once
 
 // The world server's manager of server-side state objects (A-S7): CServerSpecificManager
-// (004D6900-004D6BA0, vtable 0073D4F4, class id 0x31; created by 0058AE10) and the torch state
-// object it makes for type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42; a real virtual class:
-// the compiler makes its vtable, C19, game.exe's 0073D558 is retired).
+// (004D6900-004D6BA0, class id 0x31; created by 0058AE10) and the torch state object it makes for
+// type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
+// compiler makes their vtables (C19; game.exe's 0073D4F4 and 0073D558 are retired).
 // server_specific_manager.cpp. Names from the classes' own GetClassName strings.
 
 #include "base_manager.h"
@@ -22,7 +22,10 @@ struct DeltaField;  // net_delta.h
 
 class CServerSpecificManager : public CBaseManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D4F4);
+    // 004D6900. CBaseManager's constructor.
+    CServerSpecificManager();
+    // 004D6960. CBaseManager's destructor.
+    ~CServerSpecificManager() override;
 
     // 11: 004D6920 "CServerSpecificManager" (the exe's string, 0078DAD0).
     const char* GetClassName() override;
@@ -35,8 +38,9 @@ public:
     CEngineObject* NewObject(int type) override;
     CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
 
-    // 004D6900 constructor body (returns this), 004D6960 destructor body, 004D6940 slot 0's scalar
-    // deleting destructor (returns this).
+    // The registrations (C20 retires them): 004D6900 the constructor in place (returns this),
+    // 004D6960 the destructor, 004D6940 (slot 0) the destructor, then operator delete when bit 0 of
+    // `flags` is set (returns this).
     CServerSpecificManager* Construct();
     void Destruct();
     CServerSpecificManager* DeletingDestruct(unsigned flags);

@@ -4,12 +4,16 @@
 // server controller's statistics hand-over. Names provisional. See docs/notes/units.md ("Creation,
 // databases, save").
 
+#include "resource_manager.h"
+
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CEngineObject;
 struct FigureAnimation;   // map_object_figures.h
@@ -83,12 +87,25 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 // prototype or model.
 int __stdcall PrototypeObjectClass(const char* name);
 
-// The map object manager ("map_objects", vtable 0073DCD8). Only its object factory and the
-// starting equipment; +0xAC is its map object context (the world).
-struct CMapObjectManager {
-    // 00512730. Virtual slot 14: a new object of class id `classId` (0x32..0x34 units, 0x35..0x3C
-    // the other map objects, 0x300D, 0x3010), constructed; null for other ids.
-    CEngineObject* CreateObject(int classId);
+// The map object manager ("map objects", class id 0x2D, 0xBC bytes; a real virtual class: the
+// compiler makes its vtable, C19, game.exe's 0073DCD8 is retired). +0xAC is its map object context
+// (the world).
+struct CMapObjectManager : CResourceManager {
+    // 005125E0. CResourceManager's constructor.
+    CMapObjectManager();
+    // 00512650. CResourceManager's destructor.
+    ~CMapObjectManager() override;
+    int Create() override;                                  // 2: CreateManager
+    const char* GetClassName() override;                    // 11: 00512610 "CMapObjectManager"
+    int GetClassId() override;                              // 12: 00512620 (0x2D)
+    CEngineObject* NewObject(int classId) override;         // 14: NewObjectImpl
+    CEngineObject* CreateObject(int classId, int id) override;   // 23: CreateMapObject
+    const char* GetFolderName() override;                   // 25: 00512600 "map objects"
+
+    // 00512730 (unit_create_stats.cpp). Slot 14's body: a new object of class id `classId`
+    // (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
+    // other ids.
+    CEngineObject* NewObjectImpl(int classId);
     // 005141F0 (RET 8; unit_equipment.cpp). Gives `unit` the starting equipment of prototype
     // `name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
     // slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
@@ -98,13 +115,11 @@ struct CMapObjectManager {
     // prototype a FatalError message and 0; else 1.
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
-    // map_object_manager.cpp (A-U12).
-    // 005125E0. The constructor: the resource manager's (00674D90), then the vtable 0073DCD8.
-    // Returns this.
+    // map_object_manager.cpp (A-U12). The registrations (C20 retires them): 005125E0 the
+    // constructor in place (returns this), 00512650 the destructor, 00512630 (slot 0, RET 4) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     CMapObjectManager* Construct();
-    // 00512650. The destructor body: the vtable, then the resource manager's (00674DF0).
     void Destruct();
-    // 00512630 (slot 0, RET 4). Destruct, then operator delete with flags bit 0. Returns this.
     CMapObjectManager* DeletingDestruct(unsigned flags);
     // 00512660 (slot 2). The base manager's Create (00403020; 0 when it fails), then the archive
     // "<text folder>database.res" added (slot 16). Returns 1.
@@ -128,6 +143,7 @@ struct CMapObjectManager {
     int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                            mfc::CString* secondWeapon, mfc::CStringArray* spells);
 };
+static_assert(sizeof(CMapObjectManager) == 0xBC);
 
 namespace unitdb {
 inline UnitPrototypeTable& PrototypeTable() { return ei::GameData<UnitPrototypeTable>(0x007AF358); }

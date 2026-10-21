@@ -187,7 +187,7 @@ public:
     // The money (+0x50; the camp's deals and the trade read it).
     int& Money() { return reinterpret_cast<int&>(money_); }
 
-    CResourceManager* itemManager_;         // +0x1C (CItemManager's vtable; slot 18 returns it)
+    CResourceManager* itemManager_;         // +0x1C a CItemManager (slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
     CSpellManager* spellManager_;           // +0x24 (slot 22)
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)

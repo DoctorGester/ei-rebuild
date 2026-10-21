@@ -552,10 +552,32 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **addon.dll sites**: CMappedResource's table holds addon.dll's ResOverride site 007432F4. addon.dll runs in game.exe
     only (harness_addon.cpp), so named_data.py exempts the sites in `RETIRED_ADDON_SITES` from the "no addon site
     inside a retired vtable" rule and does not count tests/verify/addon_sites.inc as naming an address inside one.
-  - **Next**: CMaterialManager (00743C38; material.h, after C18c's pointer tables there), the item manager
-    (CItemManager::kVtableAddress, built by world_create.cpp as a CResourceManager with its vtable stored after),
-    CSkyObject, the other CBaseManager families (the server / client specific managers, particles, lightning, the
-    light factory, the player manager), then CUnit's tables over CMapObject.
+- **Batch 4's families**: every class derived from CBaseManager / CResourceManager (CMaterialManager 00743C38,
+  CItemManager 0073F25C, CServerSpecificManager 0073D4F4, CClientSpecificManager 0073BECC + its tail 0073BF08,
+  CLightFactory 00743B50, CPlayerManager 0073F328, CEffectManager 0073F2C4, CParticleManager 0073F644,
+  CLightningManager 0073F5B8, CMapObjectManager 0073DCD8, the visibility fog's ClientArrayManager 0073F554) and the
+  plain map objects (CTree 0073E178, CBuilding 0073E26C, CStone 0073E360, CStuffObject 0073E454): 19 rows,
+  7,526 -> 7,004 code cells.
+  - **Managers the original builds inline** (the item, player, effect, particle, lightning and fog managers: the base
+    constructor, then members and the vtable in the caller) get a public C++ constructor and a `Construct()` that
+    constructs in place (unregistered when the original has no function of its own), for `ConstructOn` and the
+    callers (`Make<CBaseManager>(size, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr)`).
+  - **Slots a manager inherits as a thunk** (slot 3 of the item, material, map object, player and effect managers:
+    `thunk_FUN_00674f40` / `thunk_FUN_004031e0`) and slot 13's copies of CBaseManager::Init at their own address
+    (00562D70 lightning, 00562DA0 fog) are the base's virtual in the compiled table; their registrations stay.
+  - **Two classes for one table**: world.h's ClientListManager was CLightningManager (the client world's +0x1A0, the
+    same 0xCC bytes; its list is the new bolts); it is gone and the world holds a CLightningManager*. The map object
+    manager was a plain struct reached through casts; it is now a CResourceManager (slot 14's body is NewObjectImpl,
+    CreateObject is slot 23's override).
+  - **A template keyed by its vtable** (PlainMapObject<kTreeVtable>) is keyed by the class id; gen_image_cells.py's
+    check wants the csv's class to be one the file declares (`PlainMapObject`, the instance in the note).
+  - **Left in game.exe's tables**: the bases' own 0073B870 (CBaseManager) and 00743338 (CResourceManager), stored only
+    by the registered bodies ConstructBase / DestructBody / Construct / Destruct, which no code of ours calls any more
+    (they go with their registrations, C20); CSkyObject (0073D5B8; its slots 15-23 are the figure mesh's, whose
+    signatures 22 / 23 and CFigure's 15-17 overrides are not declared yet, and its constructor runs CFigure's body
+    with 0073C224); CUnit (0073EA8C + its tail 0073EAA0: 42 overrides of CMapObject's slots to declare, a 0x4DC-byte
+    constructor 0052E110 with members holding the 3-slot tables 0073EB84 / 90 / 9C / A8 / B4, and CFakeUnit 0073BFE8
+    reusing its slot bodies).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
