@@ -525,6 +525,14 @@ group = "renderer"
 depends = ["R16c4"]
 note = "Done (2026-10-21): /Ob2 (EI_INLINE in CMakeLists). render_stats vanilla, Ob1/Ob2 builds concurrently, 3 rounds, main thread CPU ms/frame: fight 17.1/18.0/26.7 -> 16.0/17.1/23.5, town 5.3/5.5/5.8 -> 4.6/5.0/5.0, zone1 5.3/8.8/5.3 -> 4.4/7.5/4.3. Five folds through inlined constant helpers fixed (HUD clock x2, portraits, unit panel, cylinder particles); addon's 0.001 allow-listed. Goldens 134 the same, ei_vectors 0. /Ob3 vs /Ob2: no gain beyond noise, one more fold (SetTimeSpeedImpl 1/15): stays /Ob2."
 
+[[ticket]]
+id = "R9b3"
+title = "Dead old-device and game.exe code-byte paths out"
+group = "renderer"
+model = "sonnet"
+depends = ["R9b2"]
+note = "R9b2 (2026-10-21) leftovers: the dead game.exe code-byte reads (app_frame.cpp 004580D7, script_parse 004CF69B; game.exe runs only the original since S21), the vertex-buffer batch code in device_binds.cpp / device_object.cpp (no batch ever gets a vertex buffer; DrawIndexedPrimitiveVB at device_binds.cpp:32 would now end the run), and device.h's interface-forwarding branch if only the harness uses it (keep what game.exe runs need). Checks: goldens both installs, the original suite, build checks at 0."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
