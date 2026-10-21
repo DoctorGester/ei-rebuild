@@ -60,7 +60,7 @@ Rewritten (grep the address): `RendererCreate` 00500B70 (slot 2, RET 8), `DrawRi
 00502B90, `DrawSprites` 00502CA0 (slot 17, RET 0xC), `SpriteRadixPass` / `SpriteMergePass` 00503710 / 005037D0, `DeviceDrawMesh`
 004E9010 (device thiscall, RET 0x48), `DeviceDrawMesh2` 004E9A50 (two textures, RET 0x50), `DeviceDrawFlat` 004EA4A0 (RET 0x24),
 `DeviceDrawIndexed` 004EB550 (RET 0x1C), `DeviceDrawTwoTextures` 004EB370 (RET 0x24), `DrawFigurePart` 005A7A70 (node thiscall, RET
-0x1C) and the plain variant 005A7640 (RET 0x18), the clip-box lines 005A7290 (finishing call of both draws), `RasteriseFigureMesh`
+0x1C) and the plain variant 005A7640 (RET 0x18), the clip-box lines 005A7290 (finishing call of both draws), `CFigureMesh::Rasterise`
 005A0E80, `BuildUnitSkins` 00568800 (zone client thiscall, RET 8).
 
 Facts not in the code comments:

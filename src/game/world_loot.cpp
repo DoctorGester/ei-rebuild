@@ -4,6 +4,7 @@
 #include "world.h"
 
 #include "map_object.h"
+#include "object.h"
 #include "player_messages.h"
 #include "party.h"
 
@@ -106,7 +107,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
         return true;
     }
 
-    if (!HooverCollectLoot(hoover_, nullptr, this, unit, &items, &second, &third, &gold)) {   // 00461CB0
+    if (!hoover_->CollectLoot(this, unit, &items, &second, &third, &gold)) {   // 00461CB0
         destroy();
         return false;
     }

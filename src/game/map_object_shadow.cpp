@@ -117,8 +117,7 @@ volatile double g_minimumTilt = 20.0;
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
 // 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
-// 00501AF0. Texture stages: binds a texture.
-void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_cast<CSceneRenderer*>(a0)->SetTextureImpl(a2, (void*)a3); }
+// 00501AF0 (CSceneRenderer::SetTextureImpl). Texture stages: binds a texture.
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
 // 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
@@ -273,8 +272,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
             stlp::string key(name);
             count += figure->RasterisePart(&key, &Pixels()[count], &target);
         } else {
-            count += RasteriseFigureMesh(part, nullptr, static_cast<CPixelConverter*>(device), &Pixels()[count],
-                                         &target);   // 005A0E80
+            count += part->Rasterise(static_cast<CPixelConverter*>(device), &Pixels()[count], &target);   // 005A0E80
         }
     }
     if (ShadowMode() == 2) {
@@ -550,7 +548,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
-    SetTexture(TheSceneRenderer(), nullptr, 0, texture);
+    TheSceneRenderer()->SetTextureImpl(0, texture);
     std::uint8_t lit = LightManager()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)

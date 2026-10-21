@@ -118,7 +118,7 @@ namespace {
 
 // The clients list (STLport list<RefPtr<Connection>>, +0x28): end 00438830, begin 00438820,
 // erase (00438840, list<RefPtr>'s with SharedRef); the find by peer address (0043D780, an instantiation of find_if over the nodes) is
-// FindClientByAddress (library_net_lists.h, over its ClientsNode of the same layout).
+// ClientsIterator::FindByAddress (library_net_lists.h, over its ClientsNode of the same layout).
 
 
 // "<text>\n" and a flush, when there is a network log.
@@ -141,8 +141,8 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
     ClientNode* last = clients_;
     ClientNode* first = clients_->next;
     using netlists::ClientsNode;
-    netlists::FindClientByAddress(reinterpret_cast<ClientsNode**>(out), nullptr, reinterpret_cast<ClientsNode*>(first),
-                                  reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
+    reinterpret_cast<netlists::ClientsIterator*>(out)->FindByAddress(reinterpret_cast<ClientsNode*>(first),
+                                                                      reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
     return out;
 }
 EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);

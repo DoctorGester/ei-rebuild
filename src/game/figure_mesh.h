@@ -7,6 +7,7 @@
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"
+#include "raster_target.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -62,6 +63,7 @@ static_assert(sizeof(MeshBuffers) == 0x30);
 class CObject3D;   // map_object_figures.h
 class CBaseManager;   // base_manager.h
 class CFigureMesh;
+class CPixelConverter;   // texture.h
 
 struct FigureMeshDrawer;   // link_figure.h
 
@@ -152,6 +154,10 @@ public:
     // there are any (into the shared buffer at 007C2E18). Returns the vertex count (4 per packet).
     // RET 0x10.
     int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
+    // 005A0E80 (RET 0xC; figure_rasterise.cpp; the shadow pass): the projected `points` rasterised
+    // into `target` through `rasteriser`, each triangle with its texture coordinates scaled to 0..255
+    // (keyed when the target has key texels); returns the number of points used (4 per vertex).
+    int Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Point* points, RasterTarget* target);
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
     void CopyFigureImpl(const CFigureMesh* other);

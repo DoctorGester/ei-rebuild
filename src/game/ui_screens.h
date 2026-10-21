@@ -928,6 +928,10 @@ static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
 class CCreditsScreen : public CUiContainer {
 public:
+    // 005F6D50 (RET 0xC; ui_create_screen.cpp; screen 8 of CInterface3D::CreateScreen). The
+    // container, the archive, the list at +0x1C8 with its header node, +0x1D4 the text, the player
+    // (+0x1D8), the flag's low byte at +0x1F4; vtables 00740C3C / 00740C08. Returns this.
+    CCreditsScreen* Construct(CInterface3D* ui, int flag, const char* text);
     void OnLButtonDown(int flags, int x, int y);   // 0062BFE0
     void OnKeyDown(int key, int repeat, int flags);   // 0062C010
     // Ends the titles: back to where they were opened from.
@@ -1042,6 +1046,9 @@ class CParty;
 class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
+    // 005F6F30 (RET 4; ui_create_screen.cpp; screen 9 of CInterface3D::CreateScreen). The
+    // container, the two item caches; vtables 00740D18 / 00740CE4. Returns this.
+    CExchangeScreen* Construct(CInterface3D* ui);
     // 0062C250 (slot 25; ui_exchange.cpp). Builds the window: texture "campinfo", regions 0 accept,
     // 1 take back, 2 leave (tips 0xA028, 0xA029, 0xA02B), their four button sprites (the third
     // hidden, the leave button shaded 0.5), the item screens' base (005EDD80) with the icon
