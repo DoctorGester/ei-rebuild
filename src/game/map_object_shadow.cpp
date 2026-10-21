@@ -59,9 +59,27 @@ const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230
 using ShadowPoints = lib::AlignedArray<Vector2>;
 using ShadowPixels = lib::AlignedArray<RasterTriangle::Point>;
 using ShadowQuads = lib::AlignedArray<VertexPacket>;
-ShadowPoints& Points() { return ei::GameData<ShadowPoints>(0x007AF1F8); }
-ShadowPixels& Pixels() { return ei::GameData<ShadowPixels>(0x007AF1E0); }
-ShadowQuads& Quads() { return ei::GameData<ShadowQuads>(0x007AF208); }
+constinit lib::AlignedArray<Vector2> g_points = /*007AF1F8*/ {};
+constinit lib::AlignedArray<RasterTriangle::Point> g_pixels = /*007AF1E0*/ {};
+constinit lib::AlignedArray<VertexPacket> g_quads = /*007AF208*/ {};
+ShadowPoints& Points() { return g_points; }
+ShadowPixels& Pixels() { return g_pixels; }
+ShadowQuads& Quads() { return g_quads; }
+
+// The exit functions their static initialisers (0051CBD0, 0051CDA0, 0051CE00) register: each frees its array's block.
+// The points' and the pixels' are guarded: a guard bit each in 007AF1F0, so a second run frees nothing.
+constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
+void __cdecl FreeQuads() { g_quads.FreeData(); }   // 0051CC00
+void __cdecl FreePoints() {   // 0051CDD0
+    if (g_freed & 1) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 1);
+    g_points.FreeData();
+}
+void __cdecl FreePixels() {   // 0051CE30
+    if (g_freed & 2) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 2);
+    g_pixels.FreeData();
+}
 
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: render the texture again
@@ -543,3 +561,6 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0051CE60, CObject3DClientSpecific::DrawShadow);
+EI_REPLACE(0x0051CC00, FreeQuads);
+EI_REPLACE(0x0051CDD0, FreePoints);
+EI_REPLACE(0x0051CE30, FreePixels);

@@ -614,9 +614,14 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
     }
 }
 
-// The shared buffer DrawOffset moves the vertices into (a function-less global at 007C2E18).
-lib::AlignedArray<VertexPacket>& OffsetVertices() { return ei::GameData<lib::AlignedArray<VertexPacket>>(0x007C2E18); }
+// The shared buffer DrawOffset moves the vertices into (007C2E18), and the exit function its static initialiser
+// (005A0C80) registers: it frees the block.
+constinit lib::AlignedArray<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
+lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
+void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }   // 005A0CB0
 } // namespace
+
+EI_REPLACE(0x005A0CB0, FreeOffsetVertices);
 
 void CPlainFigureMesh::MirrorXImpl() {
     NegateBlock(vertices_, 0);

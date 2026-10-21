@@ -178,6 +178,10 @@ address,size,name,file
 007AEE60,1,g_driversDestroyed,src/game/static_lists.cpp
 007AEE64,4,g_directDrawDrivers,src/game/static_lists.cpp
 007AEED0,16,g_movedPackets,src/game/link_mesh_draw.cpp
+007AF1E0,16,g_pixels,src/game/map_object_shadow.cpp
+007AF1F0,1,g_freed,src/game/map_object_shadow.cpp
+007AF1F8,16,g_points,src/game/map_object_shadow.cpp
+007AF208,16,g_quads,src/game/map_object_shadow.cpp
 007AF268,24,g_skillDatabase,src/game/unit_db_globals.cpp
 007AF358,128,g_unitDatabase,src/game/unit_db_globals.cpp
 007AF438,1,g_destroyed,src/game/game_folders.cpp
@@ -211,6 +215,7 @@ address,size,name,file
 007AFF58,1,g_staticsGuard,src/game/world_sync.cpp
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2E10,1,g_texturePointsGuard,src/game/figure_rasterise.cpp
+007C2E18,16,g_offsetVertices,src/game/figure_mesh.cpp
 007C2E58,1,g_movedPositionsGuard,src/game/figure_part_draw.cpp
 007C2EF4,1,g_blocksGuard,src/game/ai_region_reach.cpp
 007C2F24,1,g_floodGuard,src/game/ai_region_reach.cpp
@@ -246,6 +251,8 @@ address,size,name,file
 007C8808,4,kHalfPi,src/game/sound_manager.cpp
 007C8840,4,g_blocksWithFree,src/game/terrain_lights.cpp
 007C8844,4,g_fullBlocks,src/game/terrain_lights.cpp
+007C88E8,16,g_projectionOutput,src/game/terrain_sector.cpp
+007C88F8,16,g_projectionInput,src/game/terrain_sector.cpp
 007C8908,4,kWaterFalloff,src/game/terrain_lighting.cpp
 007C8930,4,kHalfPi,src/game/terrain_ambience.cpp
 007C8948,1,g_sortedSectorsGuard,src/game/terrain_animation.cpp

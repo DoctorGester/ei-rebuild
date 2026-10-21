@@ -557,8 +557,25 @@ namespace {
 using ProjectionVertex = Vector4;
 static_assert(sizeof(ProjectionVertex) == 16);
 using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
-ProjectionBuffer& ProjectionInput() { return ei::GameData<ProjectionBuffer>(0x007C88F8); }
-ProjectionBuffer& ProjectionOutput() { return ei::GameData<ProjectionBuffer>(0x007C88E8); }
+constinit lib::AlignedArray<ProjectionVertex> g_projectionInput = /*007C88F8*/ {};
+constinit lib::AlignedArray<ProjectionVertex> g_projectionOutput = /*007C88E8*/ {};
+ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
+ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
+
+// The exit functions their static initialisers (006BFA00, 006BFA60) register: each frees its buffer, once (a guard
+// bit each in 007C88C9; bit 4 is the outcodes' destructor's, 006BFAE0, which the generated static_exit.cpp still
+// runs, so the byte keeps its address until the outcodes array 007C88D0 is named, C19).
+std::uint8_t& Freed() { return ei::GameData<std::uint8_t>(0x007C88C9); }
+void __cdecl FreeProjectionInput() {   // 006BFA30
+    if (Freed() & 1) return;
+    Freed() = static_cast<std::uint8_t>(Freed() | 1);
+    g_projectionInput.FreeData();
+}
+void __cdecl FreeProjectionOutput() {   // 006BFA90
+    if (Freed() & 2) return;
+    Freed() = static_cast<std::uint8_t>(Freed() | 2);
+    g_projectionOutput.FreeData();
+}
 FlagArray& ProjectionOutcodes() { return ei::GameData<FlagArray>(0x007C88D0); }
 constexpr int kProjectionVertices = 0x330;
 
@@ -675,3 +692,5 @@ EI_REWRITTEN(0x006BFC80, SectorData::Project);
 
 } // namespace terrain
 
+EI_REPLACE(0x006BFA30, terrain::FreeProjectionInput);
+EI_REPLACE(0x006BFA90, terrain::FreeProjectionOutput);

@@ -968,26 +968,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0051A2C0);
     // 0051A2F0: float fold; 1 left out
     d.Begin(0x0051A2F0);
-    // 0051CBD0: stores + atexit
+    // 0051CBD0: stores + atexit; 4 left out
     d.Begin(0x0051CBD0);
-    d.Store(0x007AF208, 0);
-    d.Store(0x007AF214, 0);
-    d.Store(0x007AF210, 0);
-    d.Store(0x007AF20C, 0);
     d.AtExit(0x0051CC00);
-    // 0051CDA0: stores + atexit
+    // 0051CDA0: stores + atexit; 4 left out
     d.Begin(0x0051CDA0);
-    d.Store(0x007AF1F8, 0);
-    d.Store(0x007AF204, 0);
-    d.Store(0x007AF200, 0);
-    d.Store(0x007AF1FC, 0);
     d.AtExit(0x0051CDD0);
-    // 0051CE00: stores + atexit
+    // 0051CE00: stores + atexit; 4 left out
     d.Begin(0x0051CE00);
-    d.Store(0x007AF1E0, 0);
-    d.Store(0x007AF1EC, 0);
-    d.Store(0x007AF1E8, 0);
-    d.Store(0x007AF1E4, 0);
     d.AtExit(0x0051CE30);
     // 0051EFB0: guarded atexit
     d.Begin(0x0051EFB0);
@@ -1299,12 +1287,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0059EFE0);
     // 0059F000: stores; 4 left out
     d.Begin(0x0059F000);
-    // 005A0C80: stores + atexit
+    // 005A0C80: stores + atexit; 4 left out
     d.Begin(0x005A0C80);
-    d.Store(0x007C2E18, 0);
-    d.Store(0x007C2E24, 0);
-    d.Store(0x007C2E20, 0);
-    d.Store(0x007C2E1C, 0);
     d.AtExit(0x005A0CB0);
     // 005A6FA0: guarded atexit
     d.Begin(0x005A6FA0);
@@ -2378,19 +2362,11 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BF460);
     // 006BF480: float fold; 1 left out
     d.Begin(0x006BF480);
-    // 006BFA00: stores + atexit
+    // 006BFA00: stores + atexit; 4 left out
     d.Begin(0x006BFA00);
-    d.Store(0x007C88F8, 0);
-    d.Store(0x007C8904, 0);
-    d.Store(0x007C8900, 0);
-    d.Store(0x007C88FC, 0);
     d.AtExit(0x006BFA30);
-    // 006BFA60: stores + atexit
+    // 006BFA60: stores + atexit; 4 left out
     d.Begin(0x006BFA60);
-    d.Store(0x007C88E8, 0);
-    d.Store(0x007C88F4, 0);
-    d.Store(0x007C88F0, 0);
-    d.Store(0x007C88EC, 0);
     d.AtExit(0x006BFA90);
     // 006BFAC0: constructor + atexit
     d.Begin(0x006BFAC0);
