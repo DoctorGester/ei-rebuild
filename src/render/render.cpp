@@ -3,6 +3,7 @@
 #include "render.h"
 #include "render_game.h"
 #include "render_internal.h"
+#include "render_perf.h"
 #include "render_ui.h"
 
 #include "../hook/log.h"
@@ -473,6 +474,7 @@ bool RecreateDevice() {
     DropCanvases();
     DestroySmooth();
     DestroyShadows();
+    perf::Release();
     DropTextures(&kept, &keptBytes);
     sg_shutdown();
     g_context->ClearState();
@@ -1186,6 +1188,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     for (std::size_t k = from; k < to; ++k) {
         const Command& c = g_frame.commands[k];
         auto i = static_cast<std::size_t>(c.index);
+        if (perf::On()) perf::WorldCommand(InWorld(k));
         switch (c.kind) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
         case Command::Mesh: {
@@ -1210,6 +1213,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // (CopyFrameTo), and with the smooth option one pass per run of world and other commands (the
 // world's into the multisampled target). The interface canvases' queued drawing goes first (render_ui.cpp).
 bool DrawPending() {
+    perf::BeginGpuFrame();   // R21's GPU time (nothing unless the overlay is on)
     RunCanvasCommands();
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
@@ -1218,8 +1222,11 @@ bool DrawPending() {
     UploadMeshes(g_frame);
     // The sun's shadow map, once a frame before its first pass (R16j; the classic option: none).
     if (!g_frame.shadow.prepared) {
+        perf::CpuTimer shadowTime(perf::Cpu::Shadow);
+        perf::Stamp(perf::Mark::ShadowBegin);
         PrepareShadows(g_frame);
         DrawShadowMap(g_frame);
+        perf::Stamp(perf::Mark::ShadowEnd);
     }
     // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
     // the 3D draws move their positions by half a pixel (Frame::pixelShift). (A viewport moved by
@@ -1412,6 +1419,7 @@ void EndFrame() {
     g_frameDrawn = true;
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
+    perf::CpuTimer submitTime(perf::Cpu::Submit);
     // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
     // turn with the cursor thread's presents (render_cursor.cpp), which draw the frame as it is (the
     // frame target never holds the cursor: the present draws it over the frame).
@@ -1422,13 +1430,17 @@ void EndFrame() {
             EndWindowPresent(false);
             return;
         }
+        perf::Stamp(perf::Mark::FrameEnd);
         toWindow = DrawToWindow(g_frame.haveCursor ? &g_frame.cursor : nullptr);
+        perf::Stamp(perf::Mark::PresentEnd);
         g_frame.haveCursor = false;
     } else if (!DrawPending()) {
         return;
     }
     ShadowFrameEnd();
+    perf::EndGpuFrame();
     sg_commit();
+    submitTime.Stop();   // the present's wait for the display is not the renderer's work
     ++g_commits;
     if (toWindow) PresentWindow();
     if (g_presentsItself) EndWindowPresent(toWindow && !g_deviceLost);
@@ -1438,6 +1450,7 @@ void EndFrame() {
 void Present() {
     if (!Active()) return;
     EndFrame();
+    perf::FrameDone(g_stats.draws, g_stats.shadowDraws);
     AddFrameStats();
     g_drawnCommands = 0;
     g_passes = 0;

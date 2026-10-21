@@ -61,4 +61,6 @@ rem Function vectors recorded from the original, replayed against our code witho
 "%OUT%\ei_vectors.exe" || exit /b 1
 rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).
 "%OUT%\ei_ui_check.exe" || exit /b 1
+rem The performance overlay (src/render/render_perf) on a WARP device: text, pixels, GPU timestamps (tools/perf_check).
+"%OUT%\ei_perf_check.exe" || exit /b 1
 echo Built: %OUT%
