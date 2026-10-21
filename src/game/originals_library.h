@@ -57,16 +57,8 @@ inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 // result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
 // C3n batch 5: the CString calls below are the lib members (src/lib/mfc.cpp holds the one forwarder per address).
 // MFC CString::operator=(const CString&) 00700AA9 (RET 4, returns this).
-inline void* __fastcall CStringAssignOriginal(void* destination, void*, const void* source) {
-    *static_cast<mfc::CString*>(destination) = *static_cast<const mfc::CString*>(source);
-    return destination;
-}
 // MFC CString::operator=(const char*) 00700AF9 (RET 4, returns this); CString::Find(char) 00700E91 (RET 4, index or
 // -1; the character is the low byte of the argument).
-inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, const char* text) {
-    *static_cast<mfc::CString*>(destination) = text;
-    return destination;
-}
 // MFC CString::Find(LPCTSTR) 006FDBD9 (RET 4, index or -1).
 // CPlex::FreeDataChain 006FE90F (plain RET, ECX = chain head; mfc::PlexFreeDataChain is the forwarder).
 inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
@@ -93,10 +85,6 @@ inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, cons
 // MFC CFileFind: mfc::CFileFind's members (lib/mfc.h). GetFilePath (006E6722) into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
 // 00700D4C: CString::operator+=(const char*) (RET 4, returns
 // this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
-inline void* __fastcall CStringAppendTextOriginal(void* string, void*, const char* text) {
-    *static_cast<mfc::CString*>(string) += text;
-    return string;
-}
 // MFC CString::CString(const CString&) 007006E5 / CString::CString(const char*) 007009DE on raw memory (RET 4).
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }

@@ -1224,7 +1224,7 @@ int CWorldClient::Setup() {
     WorldCreateManagers(this);
     void* path;
     CStringConcat(&path, &TheDataFolder(), worlddata::TexturesFolderText());
-    CStringAssignOriginal(&texturePath_, nullptr, &path);
+    *reinterpret_cast<mfc::CString*>(&texturePath_) = *reinterpret_cast<const mfc::CString*>(&path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
     lightingMark_ = 0;
@@ -1276,7 +1276,7 @@ int CWorldClient::Setup() {
     }
     terrain_ = terrain;
     ++terrain->refCount_;
-    CStringAssignTextOriginal(&zoneName_, nullptr, worlddata::GipathText());
+    *reinterpret_cast<mfc::CString*>(&zoneName_) = worlddata::GipathText();
 
     manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
     static_cast<CBaseManager*>(manager44_)->Init(this);

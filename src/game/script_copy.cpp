@@ -98,7 +98,7 @@ void* __fastcall ScriptFxSourceAssign(void* self, void*, const void* other) {
     auto* from = static_cast<const std::uint32_t*>(other);
     to[0] = from[0];
     to[1] = from[1];
-    CStringAssignOriginal(&to[2], nullptr, &from[2]);
+    *reinterpret_cast<mfc::CString*>(&to[2]) = *reinterpret_cast<const mfc::CString*>(&from[2]);
     for (int i = 3; i < 0x34 / 4; ++i) to[i] = from[i];
     return self;
 }

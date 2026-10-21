@@ -71,8 +71,8 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
         stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));   // 004AB910
     for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);   // 004AB960
     list->records.Finish() = newEnd;
-    CStringAssignTextOriginal(&list->text0C, nullptr, game::EmptyText());
-    CStringAssignTextOriginal(&list->text10, nullptr, game::EmptyText());
+    list->text0C = game::EmptyText();
+    list->text10 = game::EmptyText();
 
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refCount;
@@ -86,7 +86,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
 
     char* party = (*list->records.Start())->party;
     reinterpret_cast<CParty*>(party)->AddMember(kHero, kHumanHero, game::EmptyText());
-    CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
+    *reinterpret_cast<mfc::CString*>(party + 0x68) = kFirstZone;
     *reinterpret_cast<int*>(party + 0x6C) = 0;
     reinterpret_cast<NamedFloatTable*>(party + 0x54)->Set(kGameTime, std::bit_cast<float>(kSix));
 }
@@ -104,7 +104,7 @@ EI_REPLACE_METHOD(0x004A5E10, NamedPartyRecords::Find);
 
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
-    CStringAssignTextOriginal(&record->name, nullptr, name);
+    record->name = name;
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
     if (records.Finish() == records.EndOfStorage()) {

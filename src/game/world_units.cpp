@@ -405,8 +405,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         return -1;
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
-        CStringAssignOriginal(&companion->name78, nullptr, &spec->parentIname);
-        CStringAssignOriginal(&companion->name7C, nullptr, &spec->skinTexture);
+        companion->name78 = spec->parentIname;
+        companion->name7C = spec->skinTexture;
         reinterpret_cast<mfc::CStringArray*>(&companion->stringsVtable)->Copy(*reinterpret_cast<const mfc::CStringArray*>(&spec->parts));
     };
     auto race = [spec](CMapObject* object) {
@@ -463,7 +463,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         base.object = object;
         CTorchObjectSpecSlots* torch = TorchSpecSlots(static_cast<CTorchObject*>(object)->spec);
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
+        *NameString(object) = spec->texture;
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
@@ -525,7 +525,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
+        *NameString(object) = spec->texture;
         object->SetSecondName(spec->model);
         companionTexts(companion);
         race(object);
