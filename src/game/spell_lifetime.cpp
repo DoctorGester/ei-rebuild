@@ -3,6 +3,7 @@
 #include "spell.h"
 
 #include "map_object.h"
+#include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -121,7 +122,8 @@ EI_REPLACE_METHOD(0x0067E5B0, CSpellEffect::DeletingDestruct);
 namespace {
 // A counted pointer takes `object`: nothing when it holds it already; else the held one released,
 // the new one counted.
-void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
+template <class T>
+void AssignCounted(T*& slot, T* object) {
     if (object == slot) return;
     if (slot) slot->Release();
     slot = nullptr;
@@ -130,7 +132,7 @@ void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
 }
 } // namespace
 
-void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CEngineObject* newCaster, const Vector3* newPosition,
+void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
                         CEngineObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
     spell->CopyTo(Spell());   // 0068B370
     world = newWorld;

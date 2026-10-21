@@ -319,7 +319,7 @@ Next StartLink(CSpellEffect* e) {
 
 // 0x1C: teleport: a particle where the caster stands and an inverted one at the target point.
 Next StartTeleport(CSpellEffect* e) {
-    const Vector3* source = e->caster ? &static_cast<CUnit*>(e->caster)->position : &e->position;
+    const Vector3* source = e->caster ? &e->caster->position : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
@@ -345,7 +345,7 @@ Next StartCharm(CSpellEffect* e) {
     float skill = tamer->stats.stat20 + e->damage;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
-        if (tamed->TryTame(reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
+        if (tamed->TryTame(e->caster, skill) == 0) {
             if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x1A);
             return Next::Done;
         }

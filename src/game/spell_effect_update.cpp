@@ -268,7 +268,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (IsUnit(e->caster)) {
-        auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
+        auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
             e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
@@ -297,7 +297,7 @@ void Possession(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
+    auto* player = reinterpret_cast<CPlayer*>(e->caster->player);
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
@@ -359,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
     std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
-    if (!e->world->AIMap()->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
+    if (!e->world->AIMap()->IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }

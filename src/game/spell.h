@@ -15,6 +15,7 @@
 
 class CStream;              // core_streams.h
 class CWorldServer;         // world.h
+class CUnit;                // unit.h
 struct MapEffect;           // map_object.h
 
 // A spell instance (vtable 00743A94). prototypeId_ of CEngineObject is the packed id: spell
@@ -210,7 +211,7 @@ struct CSpellEffect {
     // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
     // world, the position, the caster and the target (each counted; the one held before released),
     // the target point, state 0 and the byte +0xA4.
-    void Init(CWorldServer* world, CSpell* spell, CEngineObject* caster, const Vector3* position, CEngineObject* target,
+    void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* position, CEngineObject* target,
               const Vector3* targetPoint, std::uint8_t flagA4);
     // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
     // drops the effect); else 1, the caster released and cleared when it is `object`.
@@ -231,7 +232,7 @@ struct CSpellEffect {
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
     CEngineObject* target;      // +0x1C
-    CEngineObject* caster;      // +0x20
+    CUnit* caster;              // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     std::uint8_t spell_[0x18];  // +0x34 the CSpell (vtable .. +0x17 of it)
