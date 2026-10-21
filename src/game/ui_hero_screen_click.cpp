@@ -27,6 +27,7 @@
 #include "world_glue.h"
 #include "library_containers.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -551,8 +552,8 @@ void CMpHeroScreen::CreateHero() {
     auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float points = AttributePoints();
-    // FCOMP; TEST AH,0x40: equal or unordered.
-    if (sum < points || sum > points || name.GetLength() == 0) {
+    EI_NAN_AUDIT(sum, points);
+    if (sum != points || name.GetLength() == 0) {
         window.interface_->PlaySound(SoundCancel(), 0);
         return;
     }

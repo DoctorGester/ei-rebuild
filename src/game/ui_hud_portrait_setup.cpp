@@ -22,6 +22,7 @@
 #include "originals_world.h"
 #include "record_vectors.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -203,7 +204,8 @@ void CHudPortraits::Rebuild(int wide) {
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
         build = "me";
-        if (!(figureBuild >= Thin()))
+        EI_NAN_AUDIT(figureBuild);
+        if (figureBuild < Thin())
             build = "th";
         else if (figureBuild > Fat())
             build = "fa";

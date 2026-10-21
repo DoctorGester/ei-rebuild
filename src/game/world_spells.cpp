@@ -25,6 +25,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -182,7 +183,8 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
-                if (!(distance >= bestDistance)) {
+                EI_NAN_AUDIT(distance, bestDistance);
+                if (distance < bestDistance) {
                     float stored = static_cast<float>(distance);
                     std::memcpy(&bestBits, &stored, 4);
                     best = unit;

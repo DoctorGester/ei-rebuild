@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 
@@ -75,7 +76,8 @@ EI_REPLACE_METHOD(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
 void CUnitClientSpecific::AdvanceTime(float time) {
     float stored = time - lastTime;   // FST to a float local
     float step = stored;
-    if (!(step >= 0.0f)) {   // back in time (or NaN): only put back on the ground
+    EI_NAN_AUDIT(step);
+    if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
         position.z = static_cast<float>(static_cast<CUnit*>(unit)->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);

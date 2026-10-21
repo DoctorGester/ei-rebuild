@@ -7,6 +7,7 @@
 #include "unit_db.h"
 
 #include "ei/hook.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstdint>
@@ -68,11 +69,13 @@ int UnitStats::SkillPrice(const char* record) {
     // The power of ten of the first digit (FLDLG2; FYL2X, the CRT's floor and _CIpow).
     float power = static_cast<float>(std::pow(10.0, std::floor(x87::flog10(static_cast<double>(price)))));
     float leading = price / power;
-    if (!(leading >= kTwoDigitsBelow)) {   // below 4, or NaN (a price of 0)
-        if (!(power > kRoundUpTo)) return static_cast<int>(std::ceil(static_cast<double>(price)));
-        power = power * kTenth;
-        leading = price / power;
-    }
+    if (leading >= kTwoDigitsBelow) return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);
+    // Below 4, or NaN: a price of 0 gives power 0 and 0 / 0, which this branch returns as 0 (it
+    // occurs; the plain leading < 4 would return the NaN's integer conversion).
+    EI_NAN_AUDIT(power);
+    if (power <= kRoundUpTo) return static_cast<int>(std::ceil(static_cast<double>(price)));
+    power = power * kTenth;
+    leading = price / power;
     return static_cast<int>(std::floor(static_cast<double>(leading + kHalf)) * power);
 }
 EI_REPLACE_METHOD(0x00528050, UnitStats::SkillPrice);

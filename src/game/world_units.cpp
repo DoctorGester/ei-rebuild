@@ -128,14 +128,16 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     std::memcpy(&rw, &rotation.z, 4);
     double axis = LengthSquaredUnrounded<Sum3::XYZ, double>(ry, rz, rw);
     double angle;
-    if (!(axis > worlddata::AxisEpsilon())) {
+    EI_NAN_AUDIT(axis);
+    if (axis <= worlddata::AxisEpsilon()) {
         angle = worlddata::Zero();
     } else {
         float axisStored = static_cast<float>(axis);
         angle = gamecrt::acos(rx);
         angle = angle + angle;
         double sign = worlddata::One() / std::sqrt(axisStored) * rw;
-        if (!(sign >= worlddata::Zero())) angle = -angle;
+        EI_NAN_AUDIT(sign);
+        if (sign < worlddata::Zero()) angle = -angle;
     }
     angle = angle + worlddata::LineAngleOffset();
 
@@ -207,7 +209,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         double dy = static_cast<double>(position->y) - worlddata::HeroStartY();
         double dx = static_cast<double>(position->x) - worlddata::HeroStartX();
         double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
-        atStart = !(distance >= worlddata::HeroStartRadius2());
+        EI_NAN_AUDIT(distance);
+        atStart = distance < worlddata::HeroStartRadius2();
     }
     script = worlddata::ScriptBeginText();
 

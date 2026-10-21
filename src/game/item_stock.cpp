@@ -23,6 +23,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -133,7 +134,8 @@ StockMaterial* DrawMaterial(char* prototype) {
     for (StockMaterial** q = c.begin(); q != c.end(); ++q) {
         int chance = 10;
         float quality = Material(*q)->unitPrice;
-        if (quality >= low && !(quality > fifth)) {
+        EI_NAN_AUDIT(fifth);
+        if (quality >= low && quality <= fifth) {
             float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
             std::uint32_t bits;
             std::memcpy(&bits, &t, 4);
@@ -190,7 +192,8 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
     void* spell = node->data;
     float spellPower;   // CSpell +0x40, the prototype's +0x18 as float bits
     std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_, 4);
-    if (!(spellPower > power)) ctor->SetSpellObject(static_cast<CSpell*>(spell));
+    EI_NAN_AUDIT(spellPower, power);
+    if (spellPower <= power) ctor->SetSpellObject(static_cast<CSpell*>(spell));
 }
 
 } // namespace
@@ -435,8 +438,9 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
             stlp::string key(letters, letters + 1);
             char* held = ModifierSlot(this, key);
-            // FCOMP held+0x14 with m+0x14, TEST AH,1: replaced when less or unordered.
-            if (!held || !(ModifierFactor(held) >= ModifierFactor(m))) ModifierSlot(this, key) = m;
+            // Replaced when the held one's factor (+0x14) is less.
+            if (held) EI_NAN_AUDIT(ModifierFactor(held), ModifierFactor(m));
+            if (!held || ModifierFactor(held) < ModifierFactor(m)) ModifierSlot(this, key) = m;
             break;
         }
         case 'f': case 'i': {
@@ -495,7 +499,8 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                     reached += ModifierLevel(repeated);
                     if (ModifierKind(repeated) == 'm') {
                         cost = static_cast<float>(ModifierFactor(repeated) * prototype->mana + cost + ModifierCost(repeated));
-                        if (!(cost > prototype->mana)) break;
+                        EI_NAN_AUDIT(cost, prototype->mana);
+                        if (cost <= prototype->mana) break;
                     } else {
                         cost = static_cast<float>(cost + ModifierCost(repeated));
                     }

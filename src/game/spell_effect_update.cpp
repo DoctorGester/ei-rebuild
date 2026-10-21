@@ -91,7 +91,7 @@ void FireballFlight(CSpellEffect* e) {
         float power = Power(e);
         float curve;
         AreaCurve(&e->radius, reinterpret_cast<const float*>(Prototype(e) + 0x28), &curve);
-        float size = !(curve >= power) ? power : curve;
+        float size = curve >= power ? curve : power;
         CEngineObject* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
         float radius = e->radius;
         float alpha = Power(e);
@@ -310,7 +310,7 @@ void Possession(CSpellEffect* e) {
         target->flags_ |= 0x2000000;
         float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;
         float floor = server->stats.valuesB0[2].current;
-        float reach = !(sight >= floor) ? floor : sight;
+        float reach = sight >= floor ? sight : floor;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
         e->world->WakeUnitsAround(&static_cast<CUnit*>(target)->position, wake);

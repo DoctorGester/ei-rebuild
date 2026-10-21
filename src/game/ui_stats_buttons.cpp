@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "originals_ui.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -57,18 +58,21 @@ bool CHeroStatsPanel::StepPoint(int region) {
     UnitStats* stats = StatsOf(hero);
     int total = static_cast<int>(stats->stat10Base) + static_cast<int>(stats->stat20Base) +
                 static_cast<int>(stats->stat18Base);
-    bool roomLeft = !(static_cast<float>(total) >= kMaxTotal);
+    bool roomLeft = static_cast<float>(total) < kMaxTotal;
     switch (region - kFirstButton) {
     case 0:
-        if (!(stats->stat10Base > kMinAttribute)) return false;
+        EI_NAN_AUDIT(stats->stat10Base);
+        if (stats->stat10Base <= kMinAttribute) return false;
         SetAttribute(stats->stat10Base, stats->stat10, stats->stat10Base - kStep);
         return true;
     case 1:
-        if (!(stats->stat18Base > kMinAttribute)) return false;
+        EI_NAN_AUDIT(stats->stat18Base);
+        if (stats->stat18Base <= kMinAttribute) return false;
         SetAttribute(stats->stat18Base, stats->stat18, stats->stat18Base - kStep);
         return true;
     case 2:
-        if (!(stats->stat20Base > kMinAttribute)) return false;
+        EI_NAN_AUDIT(stats->stat20Base);
+        if (stats->stat20Base <= kMinAttribute) return false;
         SetAttribute(stats->stat20Base, stats->stat20, stats->stat20Base - kStep);
         return true;
     case 3:

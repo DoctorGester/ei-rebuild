@@ -173,14 +173,13 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     else
         value.Format("%.1f", D(threshold));
     for (int i = 0; i < 6; ++i) {
-        // FCOMP; TEST AH,0x41: above (ordered); else TEST AH,1: below or unordered.
         mfc::CString* list;
         if (values[i] > threshold)
             list = &above;
-        else if (!(values[i] >= threshold))
-            list = &below;
-        else
+        else if (values[i] == threshold)
             continue;
+        else
+            list = &below;   // also NaN
         key.Format("dmg_%d", i);
         texts->GetString(key, &text);
         *list += text;
@@ -631,7 +630,8 @@ void CItemInfoPanel::DescribeSpellRecord() {
     const std::uint32_t* values = record->effectValues;
     SpellLevelLine(w, known, known ? FtolOf(FloatOf(values[4])) : 0);
     float power = FloatOf(values[1]);
-    if (!(power >= 1.0f))   // FCOMP; TEST AH,1: below 1 or unordered
+    EI_NAN_AUDIT(power);
+    if (power < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
     else
         w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));
@@ -642,7 +642,8 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Text(w.line);
     w.Down();
     float radius = FloatOf(values[3]);
-    if (!(radius >= 1.0f))
+    EI_NAN_AUDIT(radius);
+    if (radius < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
     else
         w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(11)), D(radius),
@@ -728,7 +729,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
     float power = Read<float>(spell, 0x30);
-    if (!(power >= 1.0f))
+    EI_NAN_AUDIT(power);
+    if (power < 1.0f)
         w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
     else
         w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));

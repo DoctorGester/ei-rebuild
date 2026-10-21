@@ -26,6 +26,7 @@
 #include "world_glue.h"
 #include "record_vectors.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -502,9 +503,10 @@ void CTradePanel::RestoreRecord() {
     std::memcpy(&stats->spentExperience, &record.spentExperience, sizeof(float));
     record.bought = 0;
     const float newMaximum = static_cast<float>(stats->HitPointCurve());
-    // Only when both maxima are above 1 (a NaN does nothing): the slots are healed by what keeps
-    // the hit points in the old proportion to the new maximum.
-    if (!(oldMaximum > 1.0f) || !(newMaximum > 1.0f)) return;
+    // Only when both maxima are above 1: the slots are healed by what keeps the hit points in the
+    // old proportion to the new maximum.
+    EI_NAN_AUDIT(oldMaximum, newMaximum);
+    if (oldMaximum <= 1.0f || newMaximum <= 1.0f) return;
     const double hitPoints = stats->Reduce(newMaximum);
     stats->HealSlots(newMaximum, static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints));
 }

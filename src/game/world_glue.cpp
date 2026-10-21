@@ -27,6 +27,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 const mfc::CString* GameDataPathString() {
     return static_cast<const mfc::CString*>(worlddata::DataFolderString());
@@ -139,8 +140,9 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     CWorldServer* world = WorldServer();
     auto* unit = static_cast<CUnit*>(world->FindUnit(id));
     if (!unit) return;
-    // FCOMP with TEST AH,0x40: nothing when the heights are equal or unordered.
-    if (!(unit->position.z < z) && !(unit->position.z > z)) return;
+    // Nothing when the heights are equal.
+    EI_NAN_AUDIT(unit->position.z, z);
+    if (unit->position.z == z) return;
     Vector3 target = {unit->position.x, unit->position.y, z};
     SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
     unit->MarkChanged(2);

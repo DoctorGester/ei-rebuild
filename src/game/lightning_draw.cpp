@@ -22,6 +22,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -97,7 +98,8 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     const Vector3& camera = ei::GameData<const Vector3>(0x0079B2C4);
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
-    if (length > 0.0f || length < 0.0f) towards /= length;
+    EI_NAN_AUDIT(length);
+    if (length != 0.0f) towards /= length;
     float scaled = position->x * 15.0f /*0073C518*/;   // 15
     int shift = x87::fistp(scaled);
     int frame = (static_cast<CWorld*>(ObjectWorld(this))->tick_ + shift) % 15;
@@ -129,7 +131,8 @@ int CLightning::DrawImpl(void* device) {
     const float zero = 0.0f /*0073B858*/;
     if (power_ >= zero) Animate();
     const float slant = 0.25f /*0073C3B0*/;   // 0.25
-    if (!(power_ >= zero)) {   // negative (or NaN): untextured lengthwise
+    EI_NAN_AUDIT(power_);
+    if (power_ < zero) {   // negative: untextured lengthwise
         renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
         for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
@@ -154,11 +157,11 @@ int CLightning::DrawImpl(void* device) {
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
-        size = !(low >= size) ? size : low;
-        size = !(size >= high) ? size : high;
+        size = low >= size ? low : size;
+        size = size >= high ? high : size;
     }
     if (power_ >= zero) DrawGlow(device, &end, phase, size);
-    if (!(power_ < zero) && !(power_ > zero)) DrawGlow(device, &start, phase, size);   // zero (or NaN)
+    if (power_ == zero) DrawGlow(device, &start, phase, size);
     return 1;
 }
 EI_REPLACE_METHOD(0x00467AD0, CLightning::DrawImpl);

@@ -59,7 +59,8 @@ float ClampToMap(float v, float last) {
 // step is tiny or the rate's magnitude passes the target's.
 void Approach(float* rate, const float* target, float response, float dt) {
     float step = static_cast<float>((D(*target) - *rate) * response);
-    if (!(D(AbsBits(step)) >= 0.001)) {
+    EI_NAN_AUDIT(step);
+    if (D(AbsBits(step)) < 0.001) {
         CopyFloat(rate, target);
         return;
     }
@@ -68,7 +69,8 @@ void Approach(float* rate, const float* target, float response, float dt) {
     *rate = static_cast<float>(after);
     float after2 = static_cast<float>(after * after);
     float target2 = static_cast<float>(D(*target) * *target);
-    if ((!(before >= target2) && after2 > target2) || (before > target2 && !(after2 >= target2)))
+    EI_NAN_AUDIT(before, after2, target2);
+    if ((before < target2 && after2 > target2) || (before > target2 && after2 < target2))
         CopyFloat(rate, target);
 }
 
@@ -101,9 +103,9 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
                 if (y >= 0.0f && camera::TheTerrain()->height > y) {
                     float h = static_cast<float>(WorldClient()->ClientRawSurfaceHeight(x, y));
                     float low = *minimum;
-                    *minimum = !(h >= low) ? h : low;
+                    *minimum = h >= low ? low : h;
                     float high = *maximum;
-                    *maximum = !(high >= h) ? h : high;
+                    *maximum = high >= h ? high : h;
                     ++count;
                     *average = static_cast<float>(D(h) + *average);
                 }
@@ -336,7 +338,8 @@ void CCamera::Update(float dt) {
         velocity.AddInPlace(step);
         float after = static_cast<float>(Dot(velocity, velocity));
         float goal = static_cast<float>(Dot(wanted, wanted));
-        snap = (!(before >= goal) && after > goal) || (before > goal && !(after >= goal));
+        EI_NAN_AUDIT(before, after, goal);
+        snap = (before < goal && after > goal) || (before > goal && after < goal);
     }
     if (snap) std::memcpy(&velocity, &wanted, sizeof(Vector3));
 
@@ -417,9 +420,10 @@ void CCamera::Update(float dt) {
     if (zoomRate_ != 0.0f) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);
 
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
-    if (!(distance_ >= limits.hardMin)) {
+    EI_NAN_AUDIT(distance_, limits.hardMin, limits.min);
+    if (distance_ < limits.hardMin) {
         CopyFloat(&distance_, &limits.hardMin);
-    } else if (!(distance_ >= limits.min)) {
+    } else if (distance_ < limits.min) {
         distance_ = static_cast<float>((D(limits.min) - distance_) * dt * kEase / (D(limits.min) - limits.hardMin) + distance_);
     } else if (distance_ > limits.hardMax) {
         CopyFloat(&distance_, &limits.hardMax);
@@ -440,10 +444,10 @@ void CCamera::Update(float dt) {
         offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
         s->elapsed = static_cast<float>(elapsed);
-        if (!(elapsed >= s->duration))
-            node = node->next;
-        else
+        if (elapsed >= s->duration)
             node = ShakeList::Erase(node);
+        else
+            node = node->next;   // also NaN
     }
     localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }
@@ -454,7 +458,8 @@ void CCamera::ZoomBy(float steps) {
     distance_ = static_cast<float>(d);
     if (!settings_) return;
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
-    if (!(d >= limits.min)) {
+    EI_NAN_AUDIT(d, limits.min);
+    if (d < limits.min) {
         CopyFloat(&distance_, &limits.min);
         return;
     }

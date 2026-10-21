@@ -20,6 +20,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "library_trees.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -105,8 +106,9 @@ void CGlobalMap::FindPaths(MapRecord* from) {
             float time = path_.size() == 0 ? -1.0f : pathTime_;
             if (arrivals_.find(exit) == arrivals_.end()) {
                 Arrival(arrivals_, exit) = time;
-            } else if (!(pathTime_ >= Arrival(arrivals_, exit))) {   // smaller, or unordered
-                Arrival(arrivals_, exit) = time;
+            } else {
+                EI_NAN_AUDIT(pathTime_, Arrival(arrivals_, exit));
+                if (pathTime_ < Arrival(arrivals_, exit)) Arrival(arrivals_, exit) = time;   // smaller
             }
             if (beyondTarget_) continue;
             goesBeyond = true;

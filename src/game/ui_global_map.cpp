@@ -38,6 +38,7 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "ei/vcall.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 
@@ -384,10 +385,11 @@ void CGlobalMap::Create() {
             if (!way) continue;
             variable.Format("z.%s", way->name);
             if (way->kind != 2) continue;
-            // FCOMP / TEST AH,0x40: equal to 2, or unordered.
+            // Only at state 2.
             double state = D(LocalPlayerVariable(variable));
             double two = D(2.0f /*0073CDB8*/);
-            if (state < two || state > two) continue;
+            EI_NAN_AUDIT(state);
+            if (state != two) continue;
             if (!NonEmpty(way->figure)) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
@@ -621,7 +623,8 @@ void CGlobalMap::Update() {
         tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f /*00742098*/) * D(0.8f /*0073CCA8*/)));
         Quaternion turn = TurnProduct(spin, tilt);
         std::memcpy(&turn_, &turn, 16);
-        if (!(D(turn_.w) >= D(0.0f /*0073B858*/))) {   // FCOMP; TEST AH,1: below 0 or unordered
+        EI_NAN_AUDIT(turn_.w);
+        if (D(turn_.w) < D(0.0f /*0073B858*/)) {
             turn_.w = -turn_.w;
             turn_.x = -turn_.x;
             turn_.y = -turn_.y;

@@ -32,6 +32,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -123,7 +124,7 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     layer.particleCount = 0;
     layer.positions.SetSize(kMaxPackets);
     const float below = static_cast<float>(eye.z - HalfHeight());
-    frame.low = !(below <= 0.0f) ? below : 0.0f;
+    frame.low = below <= 0.0f ? 0.0f : below;
     frame.high = static_cast<float>(HalfHeight() + eye.z);
     return frame;
 }
@@ -202,10 +203,11 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
                 do z -= band;
                 while (z > frame.high);
             }
-            if (!(z >= frame.low)) {
+            EI_NAN_AUDIT(z, frame.low);
+            if (z < frame.low) {
                 const float band = HalfHeight() + HalfHeight();
                 do z += band;
-                while (!(z >= frame.low));
+                while (z < frame.low);   // ends on a NaN (the original's did not)
             }
             const float cell = CellSize();
             const float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +
@@ -238,7 +240,8 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
         const std::uint8_t* codes = outcodes.data + first;
         if (codes[0] != 0 || codes[1] != 0 || codes[2] != 0) continue;
         const Vector4* corners = projected.data + first;
-        if (!(corners[0].z >= kNearDepth)) continue;
+        EI_NAN_AUDIT(corners[0].z);
+        if (corners[0].z < kNearDepth) continue;
         TLVertex* triangle = vertices.data + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], corners[corner]);
         SetFrame(triangle, *frameOf, kRainTop, kRainBottom);
@@ -263,7 +266,8 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
             if ((cycle & kDensitySteps) >= density) continue;
             const float fall = static_cast<float>(phase - static_cast<float>(cycle) * kSnowCycle);
             float z = static_cast<float>(fall * frame.wind.z + SnowRise());
-            if (!(z >= frame.low)) continue;
+            EI_NAN_AUDIT(z);
+            if (z < frame.low) continue;
             if (z > frame.high) continue;
             const float cell = CellSize();
             float x = static_cast<float>(static_cast<float>(col) * cell + fall * frame.wind.x +

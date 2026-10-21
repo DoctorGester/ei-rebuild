@@ -96,10 +96,10 @@ inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, cons
 inline double ClampPow(float ratio) {
     std::uint32_t bits;
     std::memcpy(&bits, &ratio, sizeof(bits));
-    const std::uint32_t lowBits = !(ratio <= 1.0f) ? bits : 0x3F800000u;
+    const std::uint32_t lowBits = ratio <= 1.0f ? 0x3F800000u : bits;
     float low;
     std::memcpy(&low, &lowBits, sizeof(low));
-    const float clamped = !(low >= 8.0f) ? low : 8.0f;
+    const float clamped = low >= 8.0f ? 8.0f : low;
     return x87::fexp(x87::flog(clamped) * 0.33000001311302185 /*007439A8*/) - 0.20000000298023224 /*0073CCD0*/;
 }
 
@@ -286,7 +286,7 @@ inline float LightRise(CSpellEffect* e) {
     float value;
     std::memcpy(&value, Prototype(e) + 0x74, 4);
     float range = PrototypeRange(e);
-    float divisor = !(value <= 1.0f) ? value : 1.0f;
+    float divisor = value <= 1.0f ? 1.0f : value;
     return range / divisor;
 }
 
@@ -295,7 +295,7 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
     float value;
     std::memcpy(&value, Prototype(e) + 0x74, 4);
     float range = PrototypeRange(e);
-    float divisor = !(value <= 1.0f) ? value : 1.0f;
+    float divisor = value <= 1.0f ? 1.0f : value;
     float out;
     DivideMultiply(&range, &divisor, ConstPtr(scale), &out);
     return out;

@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/nan_audit.h"
 
 namespace {
 // The gap in the keys' time (0073BAB4) that ends the lead-in.
@@ -40,7 +41,8 @@ int CCamera::LoadPath(const char* name, int settle) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
         // before it takes its position and rotation (the times stay).
         for (int first = 1; first < settle; ++first) {
-            if (!(keys_[first].time - keys_[first - 1].time > kLeadInGap)) continue;
+            EI_NAN_AUDIT(keys_[first].time, keys_[first - 1].time);
+            if (keys_[first].time - keys_[first - 1].time <= kLeadInGap) continue;
             for (int i = 0; i < first; ++i) {
                 keys_[i].position = keys_[first].position;
                 keys_[i].rotation = keys_[first].rotation;

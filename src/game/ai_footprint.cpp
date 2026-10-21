@@ -232,8 +232,8 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
                     int z = x87::fistp(sz * heightScale);
                     if (z > 0x3FC) z = 0x3FC;
                     else if (z < 0) z = 0;
-                    if (!(normal[k].z > 0.0f)) set->AddBottom(x, y, z, kind, transparency);
-                    else set->AddTop(x, y, z, kind, transparency);
+                    if (normal[k].z > 0.0f) set->AddTop(x, y, z, kind, transparency);
+                    else set->AddBottom(x, y, z, kind, transparency);   // also NaN
                     if (i == 0 || j == 0 || i == stepsA - 1 || j == stepsB - 1) {
                         if (FootprintCell* cell = FindCell(set, x, y)) cell->edge = 1;
                     }

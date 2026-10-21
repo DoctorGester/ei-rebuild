@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
@@ -64,7 +65,8 @@ std::uint32_t GroupExcess(const AIAttackOption* option, AIObjectList* group, CUn
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto* node = group->head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
-        if (!(AIDistance2(PositionOf(member), PositionOf(candidate)) > radius2)) sum += Excess(option, member);
+        EI_NAN_AUDIT(AIDistance2(PositionOf(member), PositionOf(candidate)), radius2);
+        if (AIDistance2(PositionOf(member), PositionOf(candidate)) <= radius2) sum += Excess(option, member);
     }
     return sum;
 }
@@ -181,21 +183,24 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     const AIAttackOption* option = FindOption(partAndObject[0]);
     if (!option) return false;
     if (option->kind < 2 || option->kind > 3) return true;
-    if (self->sizeClass == 0 && !(PrototypeSize(self) < kHalf)) return true;
+    EI_NAN_AUDIT(PrototypeSize(self));
+    if (self->sizeClass == 0 && PrototypeSize(self) >= kHalf) return true;
     Vector3 at = *PositionOf(target);
     for (auto* node = brain->nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         double dy = static_cast<double>(at.y) - other->position.y;
         double dx = static_cast<double>(at.x) - other->position.x;
-        if (!(LengthSquared2DUnrounded(dx, dy) >= kAllyNear2) && Allied(other->side, self->side)) {
+        EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
+        if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && Allied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
-            if (!(PrototypeSize(other) >= kHalf)) return false;
+            if (PrototypeSize(other) < kHalf) return false;
         }
     }
     double dy = static_cast<double>(self->position.y) - at.y;
     double dx = static_cast<double>(self->position.x) - at.x;
     double radius = option->radius;
-    return !(radius * radius >= LengthSquared2DUnrounded(dx, dy));
+    EI_NAN_AUDIT(radius, dx, dy);
+    return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
 
 EI_REPLACE_METHOD(0x005CF7F0, AIAttention::IsUsable);
@@ -257,7 +262,8 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     default:
         break;
     }
-    if (!(score >= threshold)) return score;
+    EI_NAN_AUDIT(score, threshold);
+    if (score < threshold) return score;
     double reach = kZero;
     float scale = kOne;
     if (option->kind < 0 || option->kind > 4) {
@@ -265,9 +271,10 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         scale = 10.0f;
     }
     float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
-    float penalty = !(kZero >= beyond) ? beyond : kZero;
+    float penalty = kZero >= beyond ? kZero : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
-    if (!(result >= threshold)) return result;
+    EI_NAN_AUDIT(result);
+    if (result < threshold) return result;
     if (option->kind >= 0 && option->kind <= 3) {
         int hits = (damage & 0xFFFF) == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / static_cast<int>(damage & 0xFFFF);
         result -= static_cast<double>(hits) * kHitWeight;
@@ -300,7 +307,8 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
             current[1] = 0;
         } else {
             best = static_cast<float>(Score(from, self, candidates, held, static_cast<CUnit*>(held), kFloorScore, option));
-            if (!(best >= kFloorScore)) {
+            EI_NAN_AUDIT(best);
+            if (best < kFloorScore) {
                 current[1] = 0;
                 best = kFloorScore;
             }
@@ -346,7 +354,8 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
         int chosen = -1;
         float top = kNoScore;
         for (int i = 0; i < static_cast<int>(scored.size()); ++i) {
-            if (!(top >= scored[i].score)) {
+            EI_NAN_AUDIT(top, scored[i].score);
+            if (top < scored[i].score) {
                 partAndObject[0] = scored[i].part;
                 partAndObject[1] = reinterpret_cast<int>(scored[i].object);
                 chosen = i;

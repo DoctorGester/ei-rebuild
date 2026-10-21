@@ -82,7 +82,8 @@ void FaceAngle(float angle, float* direction) {
 // when the turn takes no longer than that. Used by the order kinds 1 and 4.
 double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
     float ratio = AbsBits(static_cast<float>(static_cast<double>(m->turn) / m->turnRate));
-    if (!(ratio >= elapsed)) {
+    EI_NAN_AUDIT(ratio, elapsed);
+    if (ratio < elapsed) {
         *final = true;
         return static_cast<double>(m->startAngle) + m->turn;
     }
@@ -265,7 +266,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
     direction[2] = 0.0f;
     *turning = false;
     double start = order->startTime;
-    if (!(time >= start)) time = static_cast<float>(start);
+    time = time >= start ? time : static_cast<float>(start);
     CopyBits(&position[0], &order->x);
     CopyBits(&position[1], &order->y);
 
@@ -305,7 +306,8 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
             const double twoPi = static_cast<double>(kPi) + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
-            while (!(angleTo >= negPi)) angleTo = angleTo + twoPi;
+            EI_NAN_AUDIT(angleTo);
+            while (angleTo < negPi) angleTo = angleTo + twoPi;   // ends on a NaN (the original's did not)
             double angle = (time - start) * angleTo / static_cast<double>(to - order->startTime) + order->angle;
             direction[0] = static_cast<float>(x87::fcos(angle));
             direction[1] = static_cast<float>(x87::fsin(angle));
@@ -342,10 +344,11 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     double end = 0.0;
     int index = 0;
     bool found = false;
-    if (segment != -1 && time >= segmentStart && !(time > segmentEnd)) {
+    EI_NAN_AUDIT(time, segmentStart, segmentEnd);
+    if (segment != -1 && time >= segmentStart && time <= segmentEnd) {
         found = true;   // still in the cached segment
         index = segment;
-    } else if (segment != -1 && !(segmentStart > time)) {
+    } else if (segment != -1 && segmentStart <= time) {
         end = segmentStart;     // later: walk on from the cached segment
         index = segment;
     } else {
@@ -353,10 +356,12 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         *turning = true;
         turnRate = baseTurnRate;
         float turnTime = AbsBits(static_cast<float>(static_cast<double>(turn) / baseTurnRate));
-        if (!(time > turnTime)) {
+        EI_NAN_AUDIT(time, turnTime);
+        if (time <= turnTime) {
             float ratio = AbsBits(static_cast<float>(static_cast<double>(turn) / turnRate));
             double angle;
-            if (!(ratio >= time)) {
+            EI_NAN_AUDIT(ratio);
+            if (ratio < time) {
                 angle = static_cast<double>(startAngle) + turn;
             } else {
                 EI_NAN_AUDIT(turn);
@@ -386,7 +391,8 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             length = static_cast<float>(distance);
             CopyBits(&speed, &from.speed);
             end = end + distance / speed;
-            if (!(time > end)) {
+            EI_NAN_AUDIT(end);
+            if (time <= end) {
                 found = true;
                 break;
             }
@@ -443,7 +449,8 @@ void NormalizeTurn(UnitMotion* m, double turn) {
         do {
             v = twoPi + m->turn;
             m->turn = static_cast<float>(v);
-        } while (!(v >= negPi));
+            EI_NAN_AUDIT(v);
+        } while (v < negPi);   // ends on a NaN (the original's did not)
     }
 }
 

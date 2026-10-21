@@ -130,7 +130,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
     float distance = kPerchRadius;
     Vector3 perch;
     for (;;) {
-        float radius = !(distance >= kPerchMinRadius) ? kPerchMinRadius : distance;
+        float radius = distance >= kPerchMinRadius ? distance : kPerchMinRadius;
         double angle = x87::FromUnsigned(IsaacRandom::Global().Next()) * kRandomAngle;
         perch.z = static_cast<float>(from->z + height);
         perch.x = static_cast<float>(x87::fcos(angle) * radius + from->x);
@@ -157,7 +157,8 @@ void CEffectMoshka::Update(float now) {
     float step = 0.0f < elapsed ? elapsed : 0.0f;
     float frames = step < kMaxStep ? step : kMaxStep;
     timer_ = timer_ - frames;
-    bool timeUp = !(timer_ >= 0.0f);
+    EI_NAN_AUDIT(timer_);
+    bool timeUp = timer_ < 0.0f;
 
     Vector3 target{};   // the original leaves it unset for other states (Follow sets 0, so none occur)
     if (state_ == kFlyingOff) {
@@ -200,7 +201,8 @@ void CEffectMoshka::Update(float now) {
                            static_cast<float>(target.z - birdAt.z)};
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
-        if (!(LengthSquared2DUnrounded(dy, dx) >= kNearSquared)) {   // close (or NaN): start circling from here
+        EI_NAN_AUDIT(dy, dx);
+        if (LengthSquared2DUnrounded(dy, dx) < kNearSquared) {   // close: start circling from here
             double heading = x87::fpatan(-toFollowed.x, static_cast<double>(toFollowed.y));
             state_ = kCircling;
             timer_ = kCirclingFrames;
@@ -220,7 +222,7 @@ void CEffectMoshka::Update(float now) {
     Vector3 ground{target.x, target.y, 0.0f};
     double raw = WorldClient()->RawSurfaceHeightAt(target.x, target.y);
     float floor = static_cast<float>(WorldClient()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
-    float z = !(target.z >= floor) ? floor : target.z;
+    float z = target.z >= floor ? target.z : floor;
     Vector3 move{static_cast<float>(target.x - birdAt.x), static_cast<float>(target.y - birdAt.y), static_cast<float>(z - birdAt.z)};
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
     if (!Same(distance, 0.0f)) {

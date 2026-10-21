@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -285,7 +286,8 @@ int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
     double needed = Params()->Period() * cost;
-    return !(available >= needed) ? 1 : 0;
+    EI_NAN_AUDIT(needed);
+    return available < needed ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x0052F820, CUnit::CanCastSpell);
 
@@ -294,7 +296,10 @@ int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
     if (!object || object->GetClassId() != kClassQuickItem) return 3;
     CItem* item = static_cast<CItem*>(object);
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return 3;
-    if (item->GetCategory() == 5 && !(item->charge_ >= SpellCost(item->spell_))) return 1;
+    if (item->GetCategory() == 5) {
+        EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
+        if (item->charge_ < SpellCost(item->spell_)) return 1;
+    }
     return 0;
 }
 EI_REPLACE_METHOD(0x0052F8B0, CUnit::CanUseQuickItem);
@@ -353,7 +358,7 @@ EI_REPLACE_METHOD(0x0052FAF0, CUnit::MoveSpeedFor);
 double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
     if (flags_ & 0x4000000) {
-        float capped = !(value >= kTen) ? value : kTen;   // NaN is kept
+        float capped = value >= kTen ? kTen : value;   // NaN is kept
         return capped * kThree + kTen;
     }
     return kNoPlayerValue;

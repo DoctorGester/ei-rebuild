@@ -33,6 +33,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <d3d.h>
 
@@ -303,8 +304,9 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
         float worn = WornFraction(item);
         repair = static_cast<float>(ItemPrice(item) * multipliers[8] * worn);
         if (kind == 8) {
-            if (!(worn < kPriceZero || worn > kPriceZero)) return 0;                // FCOMP; TEST AH,0x40
-            if (!(multipliers[8] < kPriceZero || multipliers[8] > kPriceZero)) return 0;
+            EI_NAN_AUDIT(worn, multipliers[8]);
+            if (worn == kPriceZero) return 0;
+            if (multipliers[8] == kPriceZero) return 0;
             int price = static_cast<int>(gamecrt::Ftol(D(repair)));
             return price > 0 ? price : 1;
         }
@@ -419,10 +421,11 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
         if (!spell) return false;
         if (ItemType(itemMade_) != 0x3006 && !AsItem(item)->spell_->HasCastFlagModifier()) return false;
         if (Read<std::uint32_t>(spell, 0x50) > Read<std::uint32_t>(itemMade_, 0x40)) return false;
-        // FCOMPP / TEST AH,1: the container's +0x2C below the spell's +0x40 (or unordered) fails.
+        // The container's +0x2C below the spell's +0x40 fails.
         float need = Read<float>(spell, 0x40);
         float room = Read<float>(itemMade_, 0x2C);
-        if (!(room >= need)) return false;
+        EI_NAN_AUDIT(room, need);
+        if (room < need) return false;
         for (int i = 0; i < CountOf(itemResults_); ++i)
             if (IsSpellContainer(ItemOf(itemResults_, i))) return false;
         return true;

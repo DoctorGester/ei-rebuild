@@ -183,10 +183,10 @@ void CHudTopPanel::Update() {
         double slide = WindowFrameTime(this) * D(slideDirection_) / SlideTime() + D(slide_);
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) slide_ = 1.0f;
-        if (!(slide_ >= 0.0f)) slide_ = 0.0f;
+        slide_ = slide_ >= 0.0f ? slide_ : 0.0f;   // NaN too
         // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.
         double eased;
-        if (!(slide_ >= 0.5f)) {
+        if (slide_ < 0.5f) {
             double s = D(slide_);
             eased = s * s;
             eased = eased + eased;

@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -153,12 +154,13 @@ bool __fastcall TweenTick(TweenArray* tweens) {
     bool moving = false;
     for (int i = 0; i < a.size; ++i) {
         TweenEntry* e = &a.data[i];
+        EI_NAN_AUDIT(e->value);
         if (e->steps > 0) {
             --e->steps;
             moving = true;
             e->value = e->step + e->value;
-        } else if (!(e->value < 0.0f) && !(e->value > 0.0f)) {
-            // Finished and back at zero (or NaN): remove it.
+        } else if (e->value == 0.0f) {
+            // Finished and back at zero: remove it.
             int after = a.size - i - 1;
             if (after != 0) std::memmove(e, e + 1, static_cast<unsigned>(after) << 4);
             --a.size;

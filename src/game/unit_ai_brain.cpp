@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstddef>
@@ -654,9 +655,10 @@ void AIBrain::Load(CStream* stream) {
     alarmRecords.SetSize(count, -1);
     for (int i = 0; i < alarmRecords.size; ++i) static_cast<mapspec::Behaviour*>(&alarmRecords.data[i])->Read(stream);
     stream->Read(&alarmCountdown, 4);
-    // A radius saved as the default one becomes the configured one (equal, or NaN: FCOMP's C3).
+    // A radius saved as the default one becomes the configured one.
     LogicSettings& settings = GameLogicSettings();
-    if (!(callRadius < settings.callForHelpRadiusDefault) && !(callRadius > settings.callForHelpRadiusDefault))
+    EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
+    if (callRadius == settings.callForHelpRadiusDefault)
         std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
     stream->Read(&alwaysUpdated, 1);
     if (stream->version_ < 0x4B) return;

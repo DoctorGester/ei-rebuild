@@ -24,6 +24,7 @@
 #include "originals_library.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -70,7 +71,8 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }
     int percent = gamecrt::rand() * 100 / 0x7FFF % 100 + 1;
-    if (!(static_cast<float>(percent) > roll.chance)) *gold += amount;
+    EI_NAN_AUDIT(roll.chance);
+    if (static_cast<float>(percent) <= roll.chance) *gold += amount;
 }
 
 } // namespace

@@ -28,6 +28,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -115,7 +116,7 @@ void CPlayerServer::OnLeaderDied() {
         auto* npc = reinterpret_cast<UnitNpcRecord*>(unitdb::NpcTable().FindByName(record.texts[5]));
         if (npc) {
             float above = static_cast<float>(experience - npc->experienceFloor);
-            experience = !(above <= 0.0f) ? above : 0.0f;   // FCOMP 0 with it: a NaN is kept
+            experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept
         }
         stats->TakePendingExperience(ExperiencePenalty() * experience);
     }
@@ -229,7 +230,8 @@ int CPlayerServer::OnUseOrder() {
             int nearestIndex = 0;
             for (int i = 0; i < units.size; ++i) {
                 double distance = UseOrderDistanceSquared(&aim, PositionOf(units[i]));
-                if (!(distance >= best)) {
+                EI_NAN_AUDIT(distance, best);
+                if (distance < best) {
                     best = static_cast<float>(distance);
                     nearest = units[i];
                     nearestIndex = i;

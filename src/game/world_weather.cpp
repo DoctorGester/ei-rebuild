@@ -73,7 +73,7 @@ void TryLightningStrike(CWorldServer* world) {
     float dx = static_cast<float>(x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre());
     double dyRaw = x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre();
     float dy = static_cast<float>(dyRaw);
-    if (!(dyRaw * dy + static_cast<double>(dx) * dx > MinDistance2())) return;
+    if (dyRaw * dy + static_cast<double>(dx) * dx <= MinDistance2()) return;   // random: never NaN
 
     Vector3 sky;
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);

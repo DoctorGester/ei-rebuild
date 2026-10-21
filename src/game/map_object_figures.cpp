@@ -14,6 +14,7 @@
 #include "originals_units.h"
 #include "originals_library.h"
 #include "library_trees.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 #include <bit>
@@ -56,9 +57,6 @@ std::uint32_t KeepHigher(std::uint32_t bound, float v) { return Float(bound) >= 
 
 // a + b + c in that order, stored to a float.
 float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<double>(a) + b) + c); }
-
-// Ordered and different (FCOMP; TEST AH,0x40 clear).
-bool Differs(float a, float b) { return a < b || a > b; }
 
 } // namespace
 
@@ -152,7 +150,8 @@ EI_REPLACE_METHOD(0x00518310, CObject3D::ComputeBounds);
 // --- Scale ------------------------------------------------------------------------------------
 
 std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
-    if (!Differs(scale.x, newScale[0]) && !Differs(scale.y, newScale[1]) && !Differs(scale.z, newScale[2]))
+    EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
+    if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
         return 0;   // the original leaves the FPU status word in AX here
     std::memcpy(&scale, newScale, sizeof(scale));
     if (CLinkMesh* current = figure) {

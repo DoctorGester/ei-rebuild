@@ -208,7 +208,8 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     // Point count and the length the displacement axes are scaled to.
     int count;
     float scale = length;
-    if (!(length >= 10.0f)) {   // also NaN
+    EI_NAN_AUDIT(length);
+    if (length < 10.0f) {
         count = 48;             // FISTP(50.0) & ~3
     } else if (length > 15.0f) {
         scale = 15.0f;
@@ -279,12 +280,12 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < segment->points.size; ++i) {
         const LightningPoint& p = segment->points.data[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        if (!(p.x >= boundsMin_.x)) boundsMin_.x = p.x;
-        if (!(p.y >= boundsMin_.y)) boundsMin_.y = p.y;
-        if (!(p.z >= boundsMin_.z)) boundsMin_.z = p.z;
-        if (!(boundsMax_.x >= p.x)) boundsMax_.x = p.x;
-        if (!(boundsMax_.y >= p.y)) boundsMax_.y = p.y;
-        if (!(boundsMax_.z >= p.z)) boundsMax_.z = p.z;
+        boundsMin_.x = p.x >= boundsMin_.x ? boundsMin_.x : p.x;
+        boundsMin_.y = p.y >= boundsMin_.y ? boundsMin_.y : p.y;
+        boundsMin_.z = p.z >= boundsMin_.z ? boundsMin_.z : p.z;
+        boundsMax_.x = boundsMax_.x >= p.x ? boundsMax_.x : p.x;
+        boundsMax_.y = boundsMax_.y >= p.y ? boundsMax_.y : p.y;
+        boundsMax_.z = boundsMax_.z >= p.z ? boundsMax_.z : p.z;
     }
 }
 EI_REPLACE_METHOD(0x00466FD0, CLightning::ExpandBounds);
@@ -426,7 +427,8 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             branches_[i].Init(&shiftedFrom, &shiftedTo);
         }
     }
-    if (!(power_ >= 0.0f)) Animate();   // negative (or NaN)
+    EI_NAN_AUDIT(power_);
+    if (power_ < 0.0f) Animate();
     UpdateBounds();
 }
 EI_REPLACE_METHOD(0x00467E10, CLightning::SetEndpoints);

@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -126,7 +127,8 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
     float lowest = kOne;
     for (const UnitStatSlot& slot : stats->slots) {
         if (slot.kind == 0 || slot.type != type) continue;
-        if (!(slot.current < slot.maximum || slot.current > slot.maximum)) continue;   // equal or NaN
+        EI_NAN_AUDIT(slot.current, slot.maximum);
+        if (slot.current == slot.maximum) continue;
         float ratio = slot.current / slot.maximum;
         float r = ratio;
         lowest = SelectLess(r, lowest, r, lowest);
@@ -135,8 +137,9 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
 }
 
 float RatioFactor(float lowest) {
-    if (!(lowest > GameLogicSettings().damageLevel2)) return GameLogicSettings().damageLevel2Value;
-    if (!(lowest > GameLogicSettings().damageLevel1)) return GameLogicSettings().damageLevel1Value;
+    EI_NAN_AUDIT(lowest);
+    if (lowest <= GameLogicSettings().damageLevel2) return GameLogicSettings().damageLevel2Value;
+    if (lowest <= GameLogicSettings().damageLevel1) return GameLogicSettings().damageLevel1Value;
     return kOne;
 }
 } // namespace
@@ -148,7 +151,8 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     if (ticks < kRegenPeriod && ticks > 0) return false;
     bool changed = false;
     regenTicks = 0;
-    if (inCombat == 0 && !(mana >= maxMana)) {
+    EI_NAN_AUDIT(mana, maxMana);
+    if (inCombat == 0 && mana < maxMana) {
         double regen = manaRegen;
         float raised = static_cast<float>(
             (LevelValueOf(stats, kSkillManaRegen) * kPercent + kOne) * regen * maxMana + mana);
@@ -157,7 +161,8 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
         mana = SelectLess(limit, r, limit, r);
         changed = true;
     }
-    if (!(hitPoints >= maxHitPoints)) {
+    EI_NAN_AUDIT(hitPoints, maxHitPoints);
+    if (hitPoints < maxHitPoints) {
         double regen = hitPointRegen;
         float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + kOne) * regen);
         if (unit) {
@@ -177,12 +182,16 @@ EI_REPLACE_METHOD(0x00523740, UnitVitals::Regenerate);
 
 bool UnitStats::HealSlots(float scale, float amount) {
     float magnitude = std::bit_cast<float>(std::bit_cast<std::uint32_t>(amount) & 0x7FFFFFFFu);
+    // Kept as the original's test: a NaN amount heals nothing. It occurs in every run: LearnSkill's
+    // heal (the default NaN) while a new unit's stats are being set up (C16f's NaN audit).
     if (!(magnitude > kMinHeal)) return true;
     double total = kZero;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
-        if (slot.kind > 1 && !(slot.current >= slot.maximum)) total += slot.factor;
+        if (slot.kind > 1) EI_NAN_AUDIT(slot.current, slot.maximum);
+        if (slot.kind > 1 && slot.current < slot.maximum) total += slot.factor;
     }
-    if (!(total < kZero || total > kZero)) return true;   // zero or NaN
+    EI_NAN_AUDIT(total);
+    if (total == kZero) return true;
     float share = static_cast<float>(amount / (total * scale));
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 1 || slot.current >= slot.maximum) continue;
@@ -275,7 +284,8 @@ EI_REPLACE_METHOD(0x00524110, UnitStats::ArmsFactor);
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
     if (checkLoad != 0 && load > capacity) return 2;
-    if (!(lowest >= GameLogicSettings().damageLevelRunLimit)) return 1;
+    EI_NAN_AUDIT(lowest);
+    if (lowest < GameLogicSettings().damageLevelRunLimit) return 1;
     return 0;
 }
 EI_REPLACE_METHOD(0x005241C0, UnitStats::MovementState);
@@ -344,7 +354,8 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     double bonus = kZero;
     if (const char* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = RecordValue(record);
-        if (level < kZero || level > kZero) bonus = level * valuesB0[1].current * kPercentB;
+        EI_NAN_AUDIT(level);
+        if (level != kZero) bonus = level * valuesB0[1].current * kPercentB;
     }
     valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
     const char* record = SkillLevelRecord(kSkillStat10);

@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "ei/x87.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -64,8 +65,9 @@ Vector3& LightPosition(CLight* light) { return light->position_; }
 int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
     const double speed = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
     const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
-    // FCOM 0073B858; TEST AH,0x41: on only when above.
-    if (!(dist > 0.0f /*0073B858*/)) return 0;
+    // On only when above.
+    EI_NAN_AUDIT(dist);
+    if (dist <= 0.0f /*0073B858*/) return 0;
     // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
     const double divisor = dist >= speed ? dist : speed;
     *t = static_cast<float>(speed / divisor);
@@ -176,7 +178,8 @@ void CEffectPointLight::Start(int update) {
         float shownRange;
         std::memcpy(&shownRange, &light_->range_, 4);
         float change = FromBits(Bits(static_cast<float>(shownRange - range)) & 0x7FFFFFFFu);
-        if (!(change >= ConstAt(worlddata::RangeEpsilon()))) {
+        EI_NAN_AUDIT(change);
+        if (change < ConstAt(worlddata::RangeEpsilon())) {
             // The range is (nearly) the same: move the light.
             Vector3& at = LightPosition(light_);
             Vector3 delta;
@@ -193,10 +196,10 @@ void CEffectPointLight::Start(int update) {
         }
     }
     // A negative range (or NaN) sets flag 0x400.
-    if (!(range_ >= ConstAt(worlddata::ZeroRef())))
-        LightFlags(light_) |= 0x400;
-    else
+    if (range_ >= ConstAt(worlddata::ZeroRef()))
         LightFlags(light_) &= ~0x400u;
+    else
+        LightFlags(light_) |= 0x400;
 }
 
 int CEffectPointLight::Unpack(int update, DeltaField* field) {
@@ -468,7 +471,7 @@ int CEffectParticle::Tick() {
             float y = static_cast<float>(stepY + localPosition_.y);
             float z = static_cast<float>(stepZ + localPosition_.z);
             float floor = static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround);
-            std::uint32_t zBits = !(z >= floor) ? Bits(floor) : Bits(z);
+            std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition_.x = x;
             localPosition_.y = y;
             std::memcpy(&localPosition_.z, &zBits, 4);

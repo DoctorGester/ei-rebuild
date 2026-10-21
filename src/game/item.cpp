@@ -41,7 +41,8 @@ EI_REPLACE_METHOD(0x006A4230, CItem::GetCategory);
 int CItem::RunTick() {
     EI_NAN_AUDIT(charge_, chargeMax_);
     if (charge_ == chargeMax_) return 0;
-    if (!(chargeRate_ > kZero)) {
+    EI_NAN_AUDIT(chargeRate_);
+    if (chargeRate_ <= kZero) {
         std::memcpy(&charge_, &chargeMax_, sizeof(float));
         return 1;
     }

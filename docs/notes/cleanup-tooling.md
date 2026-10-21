@@ -236,7 +236,21 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   that NaN; `1 / plane[8]`) or cannot occur (integer-sourced draws). Loops: the modifier ring's rejection loop (particle_emitters
   `PlaceModifierPoints`) now ends on a NaN length (the original drew again for ever); the others are bounded (tries, iteration
   counts). Left: the shadow / decal files (device_shadow `OneOrNaN`, terrain_shadow `AtMostZero`, terrain_decal `Lower` /
-  `Raised`: R16e1's area at the time) and the inline `!(a >= b)` / `!(a < b) && !(a > b)` forms (C16f).
+  `Raised`: R16e1's area at the time) and the inline forms (C16f, C16g).
+- **The inline forms (C16f).** The earlier port's inline `!(a >= b)` tests and its equal-or-NaN tests (`!(a < b) && !(a > b)`,
+  `!(a < 0 || a > 0)`, and the "differs" form `a < 0 || a > 0`) in the gameplay, AI, UI, camera and effects files (about 330
+  sites, 110 files; the equal / differs forms everywhere but terrain, device and render) follow the same rule: `a < b` /
+  `==` / `!=` with `EI_NAN_AUDIT`, or the exact plain form: clamps and min / max folds as selects (`t = t >= 0 ? t : 0`), an
+  if / else with its branches swapped (`if (a >= b) B else A`), a ladder reordered (`world_time`'s `hours >= 8 ? 0 : 1`,
+  `KeyAmplitude`'s `power < 0 ? 1 : 2` after the `> 0` test, `ui_item_info`'s `== threshold` before the below list).
+  No audit for random draws (the particle rejection loops) and integer-sourced values. Loops: the angle wraps (ai_motion),
+  the weather band step and the scrollbar's negative steps now end on a NaN (the original looped for ever); the rejection
+  loops are bounded. Integer `!(a > b)` tests stay. Kept as the original's test, with the reason in a comment: `ai_path`'s
+  `!(scale >= 1)` (the NaN step of the free-cell search occurs in the suite and must scale both components),
+  `UnitStats::HealSlots`'s `!(magnitude > kMinHeal)` (the audit fired in every run: `LearnSkill` passes a NaN heal while a
+  new unit's stats are set up), `unit_skill_price`'s below-4 branch (a price of 0 gives 0 / 0; written as `if (leading >= 4) return ...` first),
+  `unit_client_path`'s turn loop (C16c) and addon's `Max` / `Min`. Left for C16g: the engine, network, terrain, device and
+  render files (about 100 lines, `tickets.py show C16g`).
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
 menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in

@@ -165,8 +165,8 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     list.tail = node;
 
     const float* f = cmd->floatArgs.data;
-    if (!(f[0] >= 0.0f)) node->data.id = nextParticleId_--;
-    else node->data.id = static_cast<int>(f[0]);
+    if (f[0] >= 0.0f) node->data.id = static_cast<int>(f[0]);
+    else node->data.id = nextParticleId_--;   // also NaN
 
     auto* bolt = static_cast<CEffectLightning*>(EffectManager()->CreateObject(kClassLightning, -1));
     node->data.object = bolt;

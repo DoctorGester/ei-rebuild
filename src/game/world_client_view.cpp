@@ -21,6 +21,7 @@
 #include "originals_world.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -220,8 +221,8 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
 
 namespace {
 
-// Clamp used by the picking: negative or NaN becomes +0 (a branch-free select on FCOM's C0).
-__forceinline float NonNegative(float v) { return !(v >= 0.0f) ? 0.0f : v; }
+// Clamp used by the picking: negative or NaN becomes +0 (the original's branch-free select).
+__forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 
 // 0056BF30 / 0056C350 share everything but the height function (which returns ST0 unrounded).
 template <typename Height>
@@ -248,8 +249,9 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
     double sy = screenY;
     float outX = 0.0f, outY = 0.0f, pz = 0.0f;
     double det = ((m[4] * m[13] - m[5] * m[12]) * sx + (m[1] * m[12] - m[0] * m[13]) * sy) + (m[0] * m[5] - m[4] * m[1]);
-    // FCOM + TEST AH,0x40: skipped when zero or unordered.
-    if (det < 0.0 || det > 0.0) {
+    // Skipped when zero.
+    EI_NAN_AUDIT(det);
+    if (det != 0.0) {
         // The screen ray as x = a z + b, y = c z + d.
         float a = static_cast<float>(
             (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det);
@@ -277,7 +279,8 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
             pz = static_cast<float>(height(outX, outY));
             float diff = std::fabs(static_cast<float>(pz - previous));
             ++steps;
-            if (!(diff > 0.01)) {
+            EI_NAN_AUDIT(diff);
+            if (diff <= 0.01) {
                 converged = steps < 100;
                 break;
             }
@@ -293,7 +296,8 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
                 pz = static_cast<float>(height(outX, outY));
                 float diff = std::fabs(static_cast<float>(pz - previous));
                 ++steps;
-                if (!(diff > 0.01)) break;
+                EI_NAN_AUDIT(diff);
+                if (diff <= 0.01) break;
             } while (steps < 100);
         }
     }

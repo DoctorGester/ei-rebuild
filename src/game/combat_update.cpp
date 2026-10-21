@@ -38,6 +38,7 @@
 #include "originals_core.h"
 #include "originals_gameplay.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -271,7 +272,7 @@ int CUnitServer::UpdateServer() {
         sinking += SinkAcceleration();
         self->position.z = self->position.z - sinking;
         float z = unit->position.z;
-        unit->position.z = !(z <= 0.0f) ? z : 0.0f;   // FCOMP 0, z: z kept above 0 and when NaN
+        unit->position.z = z <= 0.0f ? 0.0f : z;   // a NaN z is kept
         static_cast<CMapObject*>(unit)->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
@@ -650,7 +651,8 @@ bool CUnitServer::ActionInReach() {
     float dx = at[0] - unit->position.x;
     float dy = at[1] - unit->position.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);
-    return !(distanceSq >= Plan(this).rangeSq);   // C0: closer, or unordered
+    EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
+    return distanceSq < Plan(this).rangeSq;   // closer
 }
 EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
 

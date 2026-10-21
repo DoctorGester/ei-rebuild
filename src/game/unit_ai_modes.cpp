@@ -152,15 +152,15 @@ EI_REPLACE_METHOD(0x005D0A50, AIMode::ClearAction);
 void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     std::memcpy(&point, p, sizeof(Vector3));
     failures = 0;
-    // FCOMP 0; TEST AH,1: below zero (or NaN) takes the default.
-    if (!(newRadius >= kZero))
-        std::memcpy(&radius, ei::GamePointer<const void>(0x007C540C), 4);
-    else
+    // Below zero (or NaN) takes the default.
+    if (newRadius >= kZero)
         std::memcpy(&radius, &newRadius, 4);
-    if (!(newWander >= kZero))
-        std::memcpy(&wander, ei::GamePointer<const void>(0x007C53FC), 4);
     else
+        std::memcpy(&radius, ei::GamePointer<const void>(0x007C540C), 4);
+    if (newWander >= kZero)
         std::memcpy(&wander, &newWander, 4);
+    else
+        std::memcpy(&wander, ei::GamePointer<const void>(0x007C53FC), 4);
 }
 EI_REPLACE_METHOD(0x005D0B70, GuardMode::Set);
 
@@ -195,8 +195,9 @@ void GuardMode::Execute(AIBrain* brain) {
     direction.x = dx;
     direction.y = dy;
     direction.z = dz;
-    // FCOMP 0; TEST AH,0x40: a radius equal to 0 (or unordered) leaves the direction unscaled.
-    if (radius < kZero || radius > kZero) {
+    // A radius of 0 leaves the direction unscaled.
+    EI_NAN_AUDIT(radius);
+    if (radius != kZero) {
         double scale = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)) / radius * kHalf;
         direction.x = static_cast<float>(dx * scale);
         direction.y = static_cast<float>(direction.y * scale);
@@ -403,13 +404,15 @@ void SuspectionMode::Execute(AIBrain* brain) {
         double dy = point.y - going.y;      // kept on the FPU stack
         double dx = point.x - going.x;
         // TEST AH,0x41: jump to a new move only when the distance is greater.
-        if (!(LengthSquared2DUnrounded(dx, dy) > kArrivedSq)) {
+        EI_NAN_AUDIT(dx, dy);
+        if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
             // Still going to this point: near it, the interest fades.
             const float* unit = &brain->owner->unit->position.x;
             double ux = unit[0] - point.x;
             double uy = unit[1] - point.y;
             double uz = unit[2] - point.z;
-            if (!(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz) >= kCloseSq)) level -= 5;
+            EI_NAN_AUDIT(ux, uy, uz);
+            if (LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz) < kCloseSq) level -= 5;
             return;
         }
     }

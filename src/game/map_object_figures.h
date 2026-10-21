@@ -12,6 +12,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/nan_audit.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -70,9 +71,10 @@ struct AnimationDatabase {
         return reinterpret_cast<const AnimationDatabase*>(reinterpret_cast<const char*>(first) -
                                                           offsetof(AnimationDatabase, animations));
     }
-    // (start + (end - start) * t) / length, unrounded; 1 for a length of 0 or NaN (00518D30, 0050C230).
+    // (start + (end - start) * t) / length, unrounded; 1 for a length of 0 (00518D30, 0050C230).
     double TimeFactor(float t) const {
-        if (!(length < 0.0f || length > 0.0f)) return 1.0;
+        EI_NAN_AUDIT(length);
+        if (length == 0.0f) return 1.0;
         return ((static_cast<double>(end) - start) * t + start) / length;
     }
 };

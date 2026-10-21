@@ -3,6 +3,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -191,7 +192,8 @@ float CLight::GetIntensityAt(const Vector3* point) {
     float dy = point->y - position_.y;
     float dz = point->z - position_.z;
     float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
-    if (!(distanceSquared >= rangeSquared_)) {
+    EI_NAN_AUDIT(distanceSquared, rangeSquared_);
+    if (distanceSquared < rangeSquared_) {
         return (color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed) *
                (kOne - distanceSquared * inverseRangeSquared_);
     }

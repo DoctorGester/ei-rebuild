@@ -81,7 +81,7 @@ float GetFloat(const std::uint32_t& field) {
 void AddScaledPositive(std::uint32_t& field, float strength, float base) {
     SetFloat(field, strength * base + GetFloat(field));
     float stored = GetFloat(field);
-    if (!(0.0f < stored) && stored == stored) field = 0;
+    if (stored <= 0.0f) field = 0;
 }
 
 // Returns every node of the list (sentinel `*list`) to the node allocator's free list and leaves

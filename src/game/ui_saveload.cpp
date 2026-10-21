@@ -44,6 +44,7 @@
 #include "world_glue.h"
 #include "record_vectors.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -262,8 +263,9 @@ void CSaveLoadWindow::SaveGame() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entriesBegin_ + selected;
     double space = app::DiskFreeSpace(GameFolder());
-    // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
-    if (space < 0.0 || space > 0.0) {
+    // 0 means unknown: no check.
+    EI_NAN_AUDIT(space);
+    if (space != 0.0) {
         int needed = SaveSpaceNeeded(kFlow);
         if (static_cast<double>(needed) > space) {
             void* memory = gamecrt::operator_new(0x180);
@@ -487,8 +489,9 @@ mfc::CString SlotFolder(const char* slot) {
 void __fastcall QuickSave(const char* slot, char stepFrame) {
     if (IsMultiplayerClient()) return;
     double space = app::DiskFreeSpace(GameFolder());
-    // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
-    if ((space < 0.0 || space > 0.0) && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
+    // 0 means unknown: no check.
+    EI_NAN_AUDIT(space);
+    if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));

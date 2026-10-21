@@ -731,7 +731,8 @@ void CUnitServer::ApproachTarget() {
         Vector3 goal;
         std::memcpy(&goal, &action.point, sizeof(goal));
         if (state == kStateIdle) {
-            if (!(DistanceSquaredXYUnrounded<double>(goal, motion.goal) > kNearPoint)) return;
+            EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
+            if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(&goal.x, std::bit_cast<float>(kFarBits))) {
             double h = HalfScale();
@@ -741,7 +742,8 @@ void CUnitServer::ApproachTarget() {
             heading.z = 0.0f;
             double dx = static_cast<double>(heading.x) - goal.x;
             double dy = static_cast<double>(heading.y) - goal.y;
-            if (!(LengthSquared2DUnrounded(dy, dx) > kNearPoint)) return;
+            EI_NAN_AUDIT(dy, dx);
+            if (LengthSquared2DUnrounded(dy, dx) <= kNearPoint) return;
             if (CanReachTarget(&action)) {
                 Vector3 saved;
                 std::memcpy(&saved, &unit->position.x, sizeof(saved));
@@ -864,7 +866,8 @@ void CUnitServer::ApproachTarget() {
     CAIMap* aiMap = WorldServer()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    if (!(DistanceSquaredXYUnrounded<double>(unit->position, goal) > kPointOne)) return;   // (sic: the path flag stays cleared)
+    EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->position, goal));
+    if (DistanceSquaredXYUnrounded<double>(unit->position, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
     float far = static_cast<float>(static_cast<double>(goal.y) * kShort);

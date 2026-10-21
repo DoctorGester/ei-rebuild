@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "world_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -84,8 +85,9 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
         for (int x = b.x0; x <= b.x1; ++x) {
             float fy = static_cast<float>(cy - static_cast<double>(y));
             double fx = cx - static_cast<double>(x);
-            if (!(LengthSquared2DUnrounded<double>(fy, fx) < r2)) continue;
-            if (!(Dot2DUnrounded<double>(fy, fx, ny, nx) < static_cast<double>(worlddata::One()))) continue;
+            EI_NAN_AUDIT(fy, fx, r2, ny, nx);
+            if (LengthSquared2DUnrounded<double>(fy, fx) >= r2) continue;
+            if (Dot2DUnrounded<double>(fy, fx, ny, nx) >= static_cast<double>(worlddata::One())) continue;
             AddCell(this, x, y);
         }
 }
@@ -107,7 +109,8 @@ void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius
             double fy = cy - static_cast<double>(y);
             float fy2 = static_cast<float>(fy * fy);
             double fx = cx - static_cast<double>(x);
-            if (!(fx * fx + fy2 < r2)) continue;
+            EI_NAN_AUDIT(fx, fy2, r2);
+            if (fx * fx + fy2 >= r2) continue;
             AddCell(this, x, y);
         }
 }

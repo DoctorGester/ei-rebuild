@@ -57,6 +57,7 @@
 #include "library_containers.h"
 #include "bink_video.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 #include <new>
@@ -163,9 +164,9 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
         {
             mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + name;
-            // The original tests C3 alone (equal or unordered): a NaN counts as not visited.
             double value = VariableGet(variables, variable);
-            visited = value < 0.0f || value > 0.0f;
+            EI_NAN_AUDIT(value);
+            visited = value != 0.0f;
         }
         bool keep = false;
         if (visited) {
@@ -416,14 +417,16 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
                             reinterpret_cast<const unsigned char*>(kFrozenZone)) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
-            if (!(frozen < 0.0f || frozen > 0.0f)) mapOverride = kThawedMap;   // C3: equal or unordered
+            EI_NAN_AUDIT(frozen);
+            if (frozen == 0.0f) mapOverride = kThawedMap;
         }
         bool visited;
         {
             mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + zone;
             double value = VariableGet(variables, variable);
-            visited = value < 0.0f || value > 0.0f;
+            EI_NAN_AUDIT(value);
+            visited = value != 0.0f;
         }
         if (visited) {
             bool failed = false;
@@ -1717,9 +1720,9 @@ int GameFlow::LoadGame(const char* slot) {
         {
             mfc::CString prefix(kVisitedPrefix);
             mfc::CString variable = prefix + record->name;
-            // FCOMP with 0 and C3: zero or NaN counts as not visited.
             double value = VariableGet(variables, variable);
-            visited = value < 0.0f || value > 0.0f;
+            EI_NAN_AUDIT(value);
+            visited = value != 0.0f;
         }
         bool restored = false;
         if (visited) {

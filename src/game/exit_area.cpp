@@ -11,17 +11,19 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 
 bool ZoneExit::Contains(float x, float y) const {
-    if (!(angle < 0.0f) && !(angle > 0.0f)) {
+    EI_NAN_AUDIT(angle, y, y2);
+    if (angle == 0.0f) {
         if (x1 > x) return false;
         if (x > x2) return false;
         if (y1 > y) return false;
-        return !(y > y2);
+        return y <= y2;
     }
     double centerX = (x2 + x1) * 0.5f;
     float centerY = static_cast<float>((y2 + y1) * 0.5f);
@@ -32,10 +34,11 @@ bool ZoneExit::Contains(float x, float y) const {
     float dx = static_cast<float>(dxExact);
     double turnedX = dxExact * c + dy * s + centerX;
     float turnedY = static_cast<float>(centerY - dx * s + dy * c);
-    if (!(turnedX >= x1)) return false;
+    EI_NAN_AUDIT(turnedX, x1, turnedY, y2);
+    if (turnedX < x1) return false;
     if (turnedX > x2) return false;
     if (y1 > turnedY) return false;
-    return !(turnedY > y2);
+    return turnedY <= y2;
 }
 EI_REPLACE_METHOD(0x004E59F0, ZoneExit::Contains);
 

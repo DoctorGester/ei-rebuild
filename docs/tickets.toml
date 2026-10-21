@@ -2366,6 +2366,14 @@ group = "cleanup"
 depends = ["C16e"]
 note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)' and its C16e item. C16e converted the named helpers; left are the inline NaN-keeping forms of the earlier port: about 380 lines with a negated comparison (!(a >= b), !(x > y): ai_footprint, ai_map, ai_motion, camera, camera_motion, lightning*, figure_mesh, ui_item_strip, ...; some are integer tests and stay) and about 35 equal-or-NaN tests written !(a < b) && !(a > b) or !(a < 0 || a > 0) (effects_weather, exit_area, lightning_draw, model_db, party_members, ui_camp, unit_vitals, world_game, ...), plus the shadow / decal helpers C16e left for R16e1 (device_shadow OneOrNaN, terrain_shadow AtMostZero, terrain_decal Lower / Raised). Same rule (rewrite guide 8): plain comparison with EI_NAN_AUDIT where the NaN result changes, the exact plain form (a >= b ? x : y) where it reads as naturally, loops must end on a NaN. Goldens --golden 0 differ, no 'NaN audit' line in the runs' logs. Opus; split by area if large."
 
+[[ticket]]
+id = "C16g"
+title = "NaN audit, part 4: the inline forms in engine, network, terrain, device and render files"
+group = "cleanup"
+model = "Opus"
+depends = ["C16f"]
+note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)' and its C16e / C16f items; build/C16f/scan.py-style scan (C16f's worktree) or grep '!(' for negated comparisons. Left after C16f: about 100 negated comparisons (many integer, which stay) in app_main, buffered_file, clip, core_maths, core_memory_stream, core_transform, core_transform_math, figure_mesh, figure_part_draw, game_buffer, global_map_clouds, ground_decal, ground_print, light, link_figure, link_loader, map_object, mob_reader, model, net_client_awards, net_coder, net_connection, net_connection_tick, net_lobby, net_server_tick, net_server_vars, persistent_globals, quaternion, renderer_strip, scene_bone_frames, scene_normals, scene_weld, sector_map, sky_object, stl_sorts, terrain, terrain_ambience, terrain_decal, terrain_landscape, terrain_passes, terrain_sector, terrain_shadow, view_matrices, lib/crt_x87, lib/stlp_algo.h, render/render_shadows; the equal-or-NaN / differs tests in figure_part_draw, map_object_shadow (2), renderer_init, renderer_strip, terrain_ambience, terrain_decal, terrain_sector; and the shadow / decal helpers (device_shadow OneOrNaN, terrain_shadow AtMostZero, terrain_decal Lower / Raised). Same rule as C16f (rewrite guide 8). Check with R16* workers in terrain / renderer files first. Goldens --golden 0 differ, no 'NaN audit' line in the runs' logs."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]

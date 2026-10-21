@@ -65,7 +65,8 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         ShapeHandle handle;
         gamehash::InitShapeHandle(&handle);
         const CUnitShape* shape = nullptr;
-        if (!(otherHeight > kShapeMinHeight)) {
+        EI_NAN_AUDIT(otherHeight);
+        if (otherHeight <= kShapeMinHeight) {
             if (handle.ref) handle.ref->Release();
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
@@ -217,8 +218,9 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
     int eyeY = CellOf(eye->y);
     int reach = CellOf(radius) + 1;
     grid->Grow(eyeX, eyeY, reach);
-    bool anyDirection = !(cosLimit > -1.0f);
-    bool noLineOfSight = !(targetHeight >= -100.0f);    // 0073FDC4
+    EI_NAN_AUDIT(cosLimit, targetHeight);
+    bool anyDirection = cosLimit <= -1.0f;
+    bool noLineOfSight = targetHeight < -100.0f;    // 0073FDC4
 
     const double half = 1.0f * 0.5f;    // cell size * 0.5
     for (int y = eyeY - reach; y < eyeY + reach; ++y) {
@@ -243,7 +245,8 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             if (!noLineOfSight) {
                 cell.z = static_cast<float>(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
                 double seen = LineOfSight(eye, &cell) * radius;
-                if (!(seen >= distance)) continue;
+                EI_NAN_AUDIT(seen, distance);
+                if (seen < distance) continue;
             }
             grid->rows[gy][gx] = 1;
         }
@@ -287,7 +290,8 @@ void* CAIMap::UnitShape(float standingHeight) {
     handle.cache = nullptr;
     handle.ref = nullptr;
     handle.key = 0xFFFFFFFF;
-    if (!(standingHeight > kShapeMinHeight)) return nullptr;
+    EI_NAN_AUDIT(standingHeight);
+    if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
     std::memcpy(&handle.key, &handle.height, sizeof(handle.key));

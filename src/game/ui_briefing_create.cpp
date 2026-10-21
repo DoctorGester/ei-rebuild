@@ -357,7 +357,8 @@ void CBriefingScreen::Update() {
             if (VoiceEnded(voice_)) NextPhrase(0);
         } else {
             phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
-            if (!(phraseTime_ >= 0.0f)) NextPhrase(0);
+            EI_NAN_AUDIT(phraseTime_);
+            if (phraseTime_ < 0.0f) NextPhrase(0);
         }
         break;
     case kRewards:
@@ -367,7 +368,8 @@ void CBriefingScreen::Update() {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {
             phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
-            if (speaking_ && !(phraseTime_ >= 0.0f)) StopTalking(speaking_);
+            EI_NAN_AUDIT(phraseTime_);
+            if (speaking_ && phraseTime_ < 0.0f) StopTalking(speaking_);
         }
         break;
     default:

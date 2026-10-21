@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_ui.h"
+#include "lib/nan_audit.h"
 
 namespace {
 constexpr int kInterfacePriority = 1000;
@@ -74,8 +75,8 @@ EI_REPLACE_METHOD(0x005F5700, CInterface3D::ShowFps);
 void CInterface3D::OnQuestVariable(const char* name, float value) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->OnQuestVariable(name, value);
     console::CStringArray parts;
-    // FCOMP; TEST AH,0x40: equal, or unordered.
-    if (value < 1.0f || value > 1.0f) return;
+    EI_NAN_AUDIT(value);
+    if (value != 1.0f) return;
     text::SplitWords(name, &parts, '.');
     if (parts.GetSize() > kQuestPart) savedText_ = parts[kQuestPart];
 }
