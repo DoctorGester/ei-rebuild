@@ -302,8 +302,8 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = ControllerOf(other);
-        AIEventsOf(world)->Update(controller, &controller->brain);   // 005CAA00
-        auto* watched = reinterpret_cast<UnitList*>(&controller->brain.visible);
+        AIEventsOf(world)->Update(controller, &controller->brain.memory);   // 005CAA00
+        auto* watched = reinterpret_cast<UnitList*>(&controller->brain.memory.visible);
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
             UnitListNode* added = watched->NewNode(watched->tail, nullptr);
@@ -340,7 +340,7 @@ void CUnitServer::PropagateHostility() {
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.nearby)->head;
+    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.memory.nearby)->head;
     while (node) {
         CUnit* other = node->data;
         node = node->next;
@@ -392,8 +392,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            WitnessMurder(&brain.nearby, unit, attacker);
-            WitnessMurder(&theirs->brain.nearby, attacker, attacker);
+            WitnessMurder(&brain.memory.nearby, unit, attacker);
+            WitnessMurder(&theirs->brain.memory.nearby, attacker, attacker);
         }
     }
     unit->ClearEffects();
@@ -414,7 +414,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AIEventsOf(world)->ForgetUnit(this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
-            ControllerOf(member)->brain.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
+            ControllerOf(member)->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = kAnimationStepsBaseVtable;

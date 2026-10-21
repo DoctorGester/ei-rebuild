@@ -67,11 +67,11 @@ const InlineSite kInlineSites[] = {
     // ItemStock::SaveLists: MOV byte [ESP+0x1D],0 -> MOV word [ESP+0x1C],0 (the code copy's fifth byte too).
     {0x0069BCD3, 5, {0xC6, 0x44, 0x24, 0x1D, 0x00}, 7, {0x66, 0xC7, 0x44, 0x24, 0x1C, 0x00, 0x00},
      "a stock modifier code's fifth byte zeroed (SaveLists), SV7b2a"},
-    // CallsAddClaim 005CCEA0 never sets its stack record's point: the three loads MOV EDX,[ESP+d] of the
+    // AIHeardCalls::AddClaim 005CCEA0 never sets its stack record's point: the three loads MOV EDX,[ESP+d] of the
     // copy become XOR EDX,EDX (a claim's point 0,0,0, as ours writes it; `memory.callN.point`), S20d.
-    {0x005CCF04, 4, {0x8B, 0x54, 0x24, 0x08}, 2, {0x33, 0xD2}, "a heard claim's point.x zeroed (CallsAddClaim), S20d"},
-    {0x005CCF0C, 4, {0x8B, 0x54, 0x24, 0x0C}, 2, {0x33, 0xD2}, "a heard claim's point.y zeroed (CallsAddClaim), S20d"},
-    {0x005CCF13, 4, {0x8B, 0x54, 0x24, 0x10}, 2, {0x33, 0xD2}, "a heard claim's point.z zeroed (CallsAddClaim), S20d"},
+    {0x005CCF04, 4, {0x8B, 0x54, 0x24, 0x08}, 2, {0x33, 0xD2}, "a heard claim's point.x zeroed (AIHeardCalls::AddClaim), S20d"},
+    {0x005CCF0C, 4, {0x8B, 0x54, 0x24, 0x0C}, 2, {0x33, 0xD2}, "a heard claim's point.y zeroed (AIHeardCalls::AddClaim), S20d"},
+    {0x005CCF13, 4, {0x8B, 0x54, 0x24, 0x10}, 2, {0x33, 0xD2}, "a heard claim's point.z zeroed (AIHeardCalls::AddClaim), S20d"},
 };
 
 #undef EI_STEP_FLAGS

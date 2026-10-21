@@ -1,5 +1,5 @@
 // What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims (005CCD40, 005CCEA0,
-// 005CCBF0), the perception memory's two entry points (005CBBA0, 005CBBC0) and the AI events'
+// 005CCBF0), the perception memory's HearCall / AddClaim (005CBBA0, 005CBBC0) and the AI events'
 // Noise (005C98C0). See unit_ai.h and docs/notes/unit_ai.md.
 #include "unit_ai.h"
 #include "combat.h"
@@ -32,7 +32,7 @@ const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";   //
 mfc::CString& TextOf(AICallRecord& call) { return *reinterpret_cast<mfc::CString*>(&call.text); }
 
 // The inlined RemoveAt(index, 1): the record's text freed, the tail moved down.
-void RemoveCall(AICallArray* calls, int index) {
+void RemoveCall(AIHeardCalls* calls, int index) {
     calls->data[index].Destruct();
     int after = calls->size - index - 1;
     if (after != 0) libcrt::Memmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
@@ -40,7 +40,7 @@ void RemoveCall(AICallArray* calls, int index) {
 }
 
 // The inlined Add: SetSize through its address, then the record assigned (the text shared).
-void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_t mask, const mfc::CString& text) {
+void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const mfc::CString& text) {
     int index = calls->size;
     calls->SetSize(index + 1, -1);
     AICallRecord& added = calls->data[index];
@@ -51,45 +51,39 @@ void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_
 }
 
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
-AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
 } // namespace
 
-void __fastcall CallsHear(AICallArray* calls, void*, const Vector3* point, int kind, const char* text) {
-    for (int i = 0; i < calls->size; ++i) {
-        const AICallRecord& call = calls->data[i];
-        if (call.hostileMask == 0 && call.kind >= kind) RemoveCall(calls, i--);
+void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
+    for (int i = 0; i < size; ++i) {
+        const AICallRecord& call = data[i];
+        if (call.hostileMask == 0 && call.kind >= kind) RemoveCall(this, i--);
     }
     const Vector3 at = *point;
     mfc::CString copy(text);
-    AppendCall(calls, at, kind, 0, copy);
+    AppendCall(this, at, kind, 0, copy);
 }
-EI_REPLACE(0x005CCD40, CallsHear);
+EI_REPLACE_METHOD(0x005CCD40, AIHeardCalls::Hear);
 
-void __fastcall CallsAddClaim(AICallArray* calls, void*, std::uint32_t mask, int kind, const char* text) {
+void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     mfc::CString copy;
     copy = text;
     // The original leaves the point as its stack held it (saved as memory.callN.point); 0,0,0 is the
     // canonical value, which the harness gives the original too (harness_save_leftovers.cpp, S20d).
-    AppendCall(calls, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
+    AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
-EI_REPLACE(0x005CCEA0, CallsAddClaim);
+EI_REPLACE_METHOD(0x005CCEA0, AIHeardCalls::AddClaim);
 
-void __fastcall CallsRemoveClaims(AICallArray* calls) {
-    for (int i = 0; i < calls->size; ++i)
-        if (calls->data[i].hostileMask != 0) RemoveCall(calls, i--);
+void AIHeardCalls::RemoveClaims() {
+    for (int i = 0; i < size; ++i)
+        if (data[i].hostileMask != 0) RemoveCall(this, i--);
 }
-EI_REPLACE(0x005CCBF0, CallsRemoveClaims);
+EI_REPLACE_METHOD(0x005CCBF0, AIHeardCalls::RemoveClaims);
 
-// 005CBBA0 / 005CBBC0 (RET 0xC, thiscall on the memory, brain + 0xD0): its calls (+0xA8) hear.
-void __fastcall MemoryHearCall(std::uint8_t* memory, void*, const Vector3* point, int kind, const char* text) {
-    CallsHear(&BrainOfMemory(memory)->calls, nullptr, point, kind, text);
-}
-EI_REPLACE(0x005CBBA0, MemoryHearCall);
-void __fastcall MemoryAddClaim(std::uint8_t* memory, void*, std::uint32_t mask, int kind, const char* text) {
-    CallsAddClaim(&BrainOfMemory(memory)->calls, nullptr, mask, kind, text);
-}
-EI_REPLACE(0x005CBBC0, MemoryAddClaim);
+void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }
+EI_REPLACE_METHOD(0x005CBBA0, AIMemory::HearCall);
+void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.AddClaim(mask, kind, text); }
+EI_REPLACE_METHOD(0x005CBBC0, AIMemory::AddClaim);
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     mfc::CTypedPtrList<CEngineObject> units{};
@@ -104,7 +98,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         if (!other->IsHostileTo(unit)) continue;
         CUnitServer* control = ControllerOf(other);
         AIBrain* brain = control->Brain();
-        if (brain->noticedLevel >= kAlertedLevel) continue;
+        if (brain->memory.noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
         const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->position);
         EI_NAN_AUDIT(hearing, loudness, distance);
@@ -114,7 +108,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
             const double between = vecmath::Distance<Sum3::XYZ>(other->position, unit->position);
             text.Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        CallsHear(&brain->calls, nullptr, &unit->position, kind, text);
+        brain->memory.calls.Hear(&unit->position, kind, text);
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();

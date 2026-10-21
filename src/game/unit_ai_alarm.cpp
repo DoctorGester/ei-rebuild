@@ -228,7 +228,7 @@ void AIBrain::HearAlarm(int slot) {
 EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);
 
 void AIBrain::ResetBehaviour() {
-    ResetMemory();
+    memory.Reset();
     int slot = alarmSlot;
     ApplyBehaviour(&alarmRecords.data[slot], slot);
 }

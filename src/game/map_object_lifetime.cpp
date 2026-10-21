@@ -452,7 +452,7 @@ void CUnitServer::DestructBody() {
     ResetController();
     AIBrain* b = Brain();
     static_cast<AIBrain*>(b)->Init();
-    b->DestructMemory();   // 00545CB0
+    b->memory.Destruct();
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));

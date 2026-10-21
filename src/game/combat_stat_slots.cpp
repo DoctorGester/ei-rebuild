@@ -93,7 +93,7 @@ EI_REPLACE_METHOD(0x005535F0, CUnitServer::RefreshEquipment);
 
 void CUnitServer::ForgetClaims() {
     claimedHostile = 0;
-    CallsRemoveClaims(&BrainOf(this)->calls);
+    BrainOf(this)->memory.calls.RemoveClaims();
 }
 EI_REPLACE_METHOD(0x00552CD0, CUnitServer::ForgetClaims);
 

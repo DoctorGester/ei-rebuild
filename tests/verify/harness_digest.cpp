@@ -281,16 +281,16 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Float("ai.decay", brain.decay);
     b.Int("ai.standCooldown", brain.standCooldown);
     b.Int("ai.followTimer", brain.followTimer);
-    b.Float("ai.noticed.x", brain.noticedX);
-    b.Float("ai.noticed.y", brain.noticedY);
-    b.Int("ai.noticedLevel", brain.noticedLevel);
-    b.Int("ai.noticedKind", brain.noticedKind);
-    b.Int("ai.nearby", brain.nearby.GetCount());
-    b.Int("ai.visible", brain.visible.GetCount());
-    b.Int("ai.corpses", brain.corpses.GetCount());
-    b.Int("ai.reports", brain.reports.GetSize());
-    b.Int("ai.calls", brain.calls.GetSize());
-    b.Unsigned("ai.seesEnemy", brain.seesEnemy);
+    b.Float("ai.noticed.x", brain.memory.noticedX);
+    b.Float("ai.noticed.y", brain.memory.noticedY);
+    b.Int("ai.noticedLevel", brain.memory.noticedLevel);
+    b.Int("ai.noticedKind", brain.memory.noticedKind);
+    b.Int("ai.nearby", brain.memory.nearby.GetCount());
+    b.Int("ai.visible", brain.memory.visible.GetCount());
+    b.Int("ai.corpses", brain.memory.corpses.GetCount());
+    b.Int("ai.reports", brain.memory.reports.GetSize());
+    b.Int("ai.calls", brain.memory.calls.GetSize());
+    b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
     // The modes by their vtables (game.exe's addresses; ModeName lists the known ones).
     auto modeBits = [](const AIMode* mode) { return mode ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(mode->vtable)) : 0u; };
     b.Mode("ai.mode", modeBits(brain.current));

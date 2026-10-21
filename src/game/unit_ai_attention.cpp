@@ -19,67 +19,57 @@ using AttackOrder = AIOrder;
 void Hold(CEngineObject*& ref, CEngineObject* object) { reinterpret_cast<AIRef*>(&ref)->Assign(object); }
 } // namespace
 
-void AIBrain::CurrentAttack(int* partAndObject) {
+void AIAttention::CurrentAttack(AIBrain* brain, int* partAndObject) {
     auto*& object = reinterpret_cast<CEngineObject*&>(partAndObject[1]);
-    if (action == kActionAttack) {
+    if (brain->action == AIBrain::kActionAttack) {
         partAndObject[0] = -1;
-    } else if (action == kActionCast) {
-        partAndObject[0] = actionTime;     // the spell being cast
+    } else if (brain->action == AIBrain::kActionCast) {
+        partAndObject[0] = brain->actionTime;     // the spell being cast
     } else {
         object = nullptr;
         return;
     }
-    object = target;
+    object = brain->target;
     if (object && object->GetClassId() != kClassUnit) object = nullptr;
 }
+EI_REPLACE_METHOD(0x005CF220, AIAttention::CurrentAttack);
 
-void __fastcall CurrentAttackHook(std::uint8_t* attention, void*, AIBrain* brain, int* partAndObject) {
-    (void)attention;    // always the brain's +0xA4
-    brain->CurrentAttack(partAndObject);
-}
-EI_REPLACE(0x005CF220, CurrentAttackHook);
-
-void AIBrain::LookAround(int unused) {
+void AIAttention::LookAround(AIBrain* brain, int unused) {
     mfc::CTypedPtrList<CEngineObject> candidates{};
     candidates.vtable = mfc::PtrListVtable();
     candidates.blockSize = 10;
     int best[2] = {-1, 0};          // {part, object}
-    Vector3 from = *&owner->unit->position;
-    ChooseTarget(best, &candidates, &from, 1, unused);
+    Vector3 from = *&brain->owner->unit->position;
+    brain->ChooseTarget(best, &candidates, &from, 1, unused);
     auto* chosen = reinterpret_cast<CEngineObject*>(best[1]);
     if (chosen) {
         int now[2] = {-1, 0};
-        CurrentAttack(now);
+        CurrentAttack(brain, now);
         if (best[1] != now[1] || best[0] != now[0]) {
             int part = best[0];
             if (part == -1) {
-                action = kActionAttack;
-                Hold(target, chosen);
+                brain->action = AIBrain::kActionAttack;
+                Hold(brain->target, chosen);
                 int flags = 0x1C;
-                if (owner->unit->player) {
+                if (brain->owner->unit->player) {
                     AttackOrder order{};
                     order.kind = 3;
                     order.what = 6;
                     ++chosen->refCount_;
                     order.object = chosen;
-                    if (owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
+                    if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
                     reinterpret_cast<AIRef*>(&order.object)->Reset();
                 }
-                owner->OrderAttack(target, 6, 0, flags);
+                brain->owner->OrderAttack(brain->target, 6, 0, flags);
             } else {
-                if (!owner->IsScrollSource(part)) action = kActionCast;
-                Hold(target, chosen);
-                actionTime = part;
-                owner->OrderCast(part, chosen, 0);
+                if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
+                Hold(brain->target, chosen);
+                brain->actionTime = part;
+                brain->owner->OrderCast(part, chosen, 0);
             }
         }
     }
     // The list's RemoveAll: no element destruction.
     candidates.RemoveAll();
 }
-
-void __fastcall LookAroundHook(std::uint8_t* attention, void*, AIBrain* brain, int unused) {
-    (void)attention;    // always the brain's +0xA4
-    brain->LookAround(unused);
-}
-EI_REPLACE(0x005CFE40, LookAroundHook);
+EI_REPLACE_METHOD(0x005CFE40, AIAttention::LookAround);

@@ -130,8 +130,8 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    mfc::CTypedPtrList<CEngineObject>& known = ControllerOf(revived)->Brain()->seenCorpses;
-    for (auto* node = ControllerOf(dead)->Brain()->seenCorpses.head; node;) {
+    mfc::CTypedPtrList<CEngineObject>& known = ControllerOf(revived)->Brain()->memory.seenCorpses;
+    for (auto* node = ControllerOf(dead)->Brain()->memory.seenCorpses.head; node;) {
         CEngineObject* object = node->data;
         node = node->next;
         if (object && object->GetClassId() == kClassUnit && !known.Find(object)) AddCounted(known, object);

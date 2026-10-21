@@ -103,21 +103,10 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
-// The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
-// separate objects; these forwarders pass the sub-object as `this`.
-namespace {
-} // namespace
-
-void AIBrain::Perceive(CUnitServer* who) { UpdateMemory(who); }   // 005CB700 on the memory (+0xD0)
-void AIBrain::Report(CEngineObject* object, int what) { ReportsAdd(&reports, nullptr, object, what); }
-AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&corpses, nullptr, out); }
-bool AIBrain::IsReported(CEngineObject* object) { return ReportsContains(&reports, nullptr, object); }
+AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&memory.corpses, nullptr, out); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
     // 005D0030 reads `a` as a byte.
     attention.Choose(this, partAndObject, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
-}
-void AIBrain::CollectEnemies(CUnit* self, void* list) {
-    FindEnemies(self, static_cast<AIObjectList*>(list));   // 005CB260 on the memory (+0xD0)
 }
 
 // --- The corpse list (005D8D50) ---------------------------------------------------------------
@@ -159,21 +148,21 @@ void AIBrain::Think() {
         }
     }
     decay = (decay * kDecayScale + kOne) * kDecayDivisor;
-    Perceive(owner);
+    memory.Update(owner);
 
     CUnit* unit = owner->unit;
-    seesEnemy = 0;
-    for (auto* node = visible.head; node;) {
+    memory.seesEnemy = 0;
+    for (auto* node = memory.visible.head; node;) {
         CEngineObject* other = node->data;
         node = node->next;
         if (unit->IsHostileTo(reinterpret_cast<CUnit*>(other)) && IsGone(other) == 0) {
-            seesEnemy = 1;
+            memory.seesEnemy = 1;
             break;
         }
     }
 
     if (owner && owner->state == kControllerStateInactive) return;
-    if (seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = 1;
+    if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = 1;
 
     // Choose the mode: the one in charge keeps it with a bonus of 100.
     AIMode* best = nullptr;
@@ -226,13 +215,13 @@ void AIBrain::Think() {
     ReleaseRef(seen);
 
     // The corpses seen this tick are forgotten (RemoveAll with element destruction).
-    for (auto* node = corpses.head; node; node = node->next) DestructRefs(&node->data, 1);
-    corpses.count = 0;
-    corpses.free = nullptr;
-    corpses.tail = nullptr;
-    corpses.head = nullptr;
-    mfc::PlexFreeDataChain(corpses.blocks);
-    corpses.blocks = nullptr;
+    for (auto* node = memory.corpses.head; node; node = node->next) DestructRefs(&node->data, 1);
+    memory.corpses.count = 0;
+    memory.corpses.free = nullptr;
+    memory.corpses.tail = nullptr;
+    memory.corpses.head = nullptr;
+    mfc::PlexFreeDataChain(memory.corpses.blocks);
+    memory.corpses.blocks = nullptr;
 
     switch (action) {
     case kActionNone:
@@ -253,7 +242,7 @@ void AIBrain::Think() {
         return;
     case kActionCast:
         if (owner->action.kind == 4 || owner->action.kind == 5 || owner->action2.kind == 4 || owner->action2.kind == 5) return;
-        if (target && owner->orderStopped) Report(target, 0xF);
+        if (target && owner->orderStopped) memory.reports.Report(target, 0xF);
         ReleaseRef(target);
         action = kActionNone;
         return;
@@ -394,7 +383,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
     }
     if (target == object && target) ReleaseRef(target);
     if (seen == object && seen) ReleaseRef(seen);
-    Forget(object);   // 005CC020 on the memory (+0xD0)
+    memory.Forget(object);
 }
 EI_REPLACE_METHOD(0x005D58D0, AIBrain::OnObjectDeleted);
 
@@ -461,11 +450,11 @@ void AIBrain::UpdateAttack() {
         }
     } else if (IsGone(target) != 0) {
         giveUp = true;
-    } else if (target->GetClassId() == kClassUnit && IsEnemy(owner->unit, target) == 0) {
+    } else if (target->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, target) == 0) {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) Notice(&static_cast<CMapObject*>(target)->position, 1000, -2);
+        if (IsGone(target) == 0) memory.Notice(&static_cast<CMapObject*>(target)->position, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -519,7 +508,7 @@ void AIBrain::AttackTarget(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005D7B50, AIBrain::AttackTarget);
 
 void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
-    if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && IsEnemy(owner->unit, object) == 0) return;
+    if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, object) == 0) return;
     action = kActionAttack;
     HoldRef(target, object);
     owner->OrderAttack(target, how, unknown, 2);
@@ -578,10 +567,6 @@ namespace {
 const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
 } // namespace
 
-void AIBrain::Remember(CUnit* self, CEngineObject* object) {
-    ForceSee(self, object);   // 005CBC80 on the memory (+0xD0)
-}
-
 void AIBrain::SetSeen(CEngineObject* object) {
     HoldRef(seen, object);
     if (object) {
@@ -595,6 +580,6 @@ void AIBrain::SetSeen(CEngineObject* object) {
         CallAllies(&owner->unit->position);
     }
     if (!alerted && alertMode == 1) alerted = 1;
-    if (object && object->GetClassId() == kClassUnit) Remember(owner->unit, object);
+    if (object && object->GetClassId() == kClassUnit) memory.ForceSee(owner->unit, object);
 }
 EI_REPLACE_METHOD(0x005D7E90, AIBrain::SetSeen);

@@ -251,7 +251,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
             node = node->next;
             int duration = e->targetCount;
             int level = FrightLevel(&e->timer, &duration);
-            ControllerOf(unit)->Brain()->Notice(&e->position, level, -1);   // 005CBBE0 on the memory
+            ControllerOf(unit)->Brain()->memory.Notice(&e->position, level, -1);
         }
         return;
     }
@@ -303,8 +303,8 @@ void Possession(CSpellEffect* e) {
         CUnitServer* server = ControllerOf(target);
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         static_cast<ScriptGroup*>(group)->Insert(target);
-        group->InsertAll(&server->Brain()->visible);   // 004B31D0
-        group->InsertAll(&server->Brain()->seenCorpses);
+        group->InsertAll(&server->Brain()->memory.visible);   // 004B31D0
+        group->InsertAll(&server->Brain()->memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
         target->flags_ |= 0x2000000;
         float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;

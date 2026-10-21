@@ -23,9 +23,10 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
 - Entry: the unit controller (CUnit + 0x240) embeds the brain at +0x980; its tick 00552300 calls `AIBrain::Think`
   (005D53B0). Modes are 16-bit-refcounted (+4 INC word, released through 0040A3A0; a 32-bit increment would corrupt the
   padding). The script's UM* commands (SSCCmd::Execute cases 0x24-0x31, 0xC7-0xCA) build modes and add them with 005D5F60.
-- The brain's perception memory is the sub-object at +0xD0 (005CB0F0 and 005CB700.. take it as `this`): lists of counted
-  object references at +0xF4, +0x110 (visible), +0x12C, +0x148 (corpses), CArrays at +0x164 (reports) and +0x178 (heard
-  calls); brain + 0xD8 `sightCells`, + 0xF0 `nearbyCountdown`; the alarm records (`AIAlarmRecordArray` of 0x4C bytes, the
+- The brain's perception memory is the sub-object at +0xD0, `AIMemory` (005CB0F0 and 005CB700.. take it as `this`;
+  registered as its members): lists of counted object references at memory + 0x24 (nearby), +0x40 (visible), +0x5C (seen
+  corpses), +0x78 (corpses), `AIReports` +0x94 (reports) and `AIHeardCalls` +0xA8 (heard calls; both CArrays with their
+  own members), + 0x08 `sightCells`, + 0x20 `nearbyCountdown`; the alarm records (`AIAlarmRecordArray` of 0x4C bytes, the
   map spec's behaviour record) are at +0x90. +0x38 `callRadius` (10 after Init; equal to [Logic]
   CallForHelpRadiusDefault becomes CallForHelpRadius on load, NaN too); +0x68 FindStandPoint's cooldown (after a failure, a
   third of the distance in calls, at most 10, fail at once); +0x6C UpdateFollow's timer (acts from 8; an order sets 0 or 6);
@@ -57,22 +58,23 @@ address in its source comment; the per-function table that used to be here is go
   Patrol (LastPoint, Evaluate), Suspection (Evaluate 005D1E90, Execute, Enter, Leave), Aggression Evaluate (10000 with chosen = enemy,
   or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_fear.cpp`: FearMode 005D2850-005D3680 (script UMFear /
   UMAg, alarm assembly; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)),
-  AIBrain::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
+  AIAttention::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
   (every tick for party units), CommandWalk, GoTo, Attack, Use, Cast, CastAt, PathClear, SetLeader (a leader chain back to the unit stops
   the unit's own Player mode following first), UpdateCombat 005D4170, AddPartyTargets 005D3F50, CollectParty 005D4600, StaysWithParty 005D4860.
-- `unit_ai_brain.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, ResetMemory 005CB0F0; the script's StandardGuard
+- `unit_ai_brain.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, AIMemory::Reset 005CB0F0; the script's StandardGuard
   005D6230 / StandardSentry 005D64E0 (exactly the five modes in order) with AddGuardMode, AddSuspectionMode, AddAggressionMode,
   AddCorpseWatcherMode, AddFearMode, AddSentryMode (only those two call them); `unit_ai_alarm.cpp` ApplyBehaviour 005D6630,
-  SetAlarmRecords 005D6D20 (the .mob loader), the records' SetSize (every zone load, an alarm heard); heard calls: AICallArray::Update
+  SetAlarmRecords 005D6D20 (the .mob loader), the records' SetSize (every zone load, an alarm heard); heard calls: AIHeardCalls::Update
   005CC9D0 (each tick), AICallRecord::Destruct 00558D00, UnitController::AddHostileMask 00552CF0, SetSize / Add on the template.
-- `unit_ai_memory.cpp`: CallAllies 005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReportArray Add / Contains
-  (+0x164), UpdateMemory 005CB700 (each Think), IsEnemy 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
+- `unit_ai_memory.cpp` (`AIMemory`; Notice, Forget, Update, IsEnemy and AIReports in `unit_ai_brain.cpp`): CallAllies
+  005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReports Report / Contains (+0x94), Update 005CB700
+  (each Think), IsEnemy 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
   forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse
   005CBE90 (OnDamaged). `unit_ai_sight.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
   show-visibility effect). `unit_ai_hearing.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
   hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
-  memory's two entry points 005CBBA0 / 005CBBC0.
-- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: CurrentAttack 005CF220, LookAround 005CFE40 (`this` the attention +0xA4, brain passed),
+  memory's HearCall / AddClaim 005CBBA0 / 005CBBC0.
+- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: AIAttention::CurrentAttack 005CF220, LookAround 005CFE40 (`this` the attention +0xA4, brain passed),
   AIAttention::Choose 005D0030, Score, IsUsable, AIDistance2, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
   no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
   lifted). `unit_ai_options.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
@@ -85,7 +87,7 @@ address in its source comment; the per-function table that used to be here is go
   `RefPtr::ShareAssign` (`core_refcount.cpp`); slots 11 / 12 are the modes' Load / Save (Guard, Sentry, Suspection, Fear; Save only:
   Follow, Aggression, Player).
 
-FearMode's unset x is -1313.0f (0xC4A42000). UpdateMemory's callees take over a noticed point inline (005CC9D0: a delayed
+FearMode's unset x is -1313.0f (0xC4A42000). AIMemory::Update's callees take over a noticed point inline (005CC9D0: a delayed
 sound, level 900, kind -3; 005CAA00: a corpse seen, 800 / -3, an enemy lost from sight, 1000 / -2), so the final add uses the
 new level and kind (the check counts CopyPoint2 005CA050 calls to tell the cases apart; a copy-based comparison is impossible:
 the callees use rand(), release objects and share buffers).
@@ -100,7 +102,7 @@ the callees use rand(), release objects and share buffers).
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
   mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.
 - `IsEnemy` (the name is the old guess) answers 1 for the same side, the same player, or an object in the +0x110 list, so
-  UpdateAttack gives up only on a unit of another side and player that is not listed. UpdateMemory adds the noticed kind
+  UpdateAttack gives up only on a unit of another side and player that is not listed. AIMemory::Update adds the noticed kind
   (negative: decay) to the noticed level every tick. LookAround's order for the player check leaves the point uninitialised
   (ours zero), like AttackTarget's order for 0054C8B0 (+0x0C..+0x17).
 - Notice measures the distance with the new point's own z (the memory keeps no z); Forget compares the report entries with

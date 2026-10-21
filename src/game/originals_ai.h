@@ -19,8 +19,6 @@ struct AIPath;
 struct DeltaField;
 struct Vector3;
 
-// 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
-// mask (+0x10), destroying each (00558D00). Plain RET.
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
     EI_ORIGINAL(0x005B9C90)
 __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)

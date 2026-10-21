@@ -183,22 +183,22 @@ AIBrain* AIBrain::Construct() {
     attention.spells = {};
     attention.spells.vtable = kAttackOptionsVtable;
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
-    std::memcpy(memory, &kEmptySightCache, sizeof(kEmptySightCache));
-    sightCells = kEmptySightCache;
-    InitObjectList(nearby);
-    InitObjectList(visible);
-    InitObjectList(seenCorpses);
-    InitObjectList(corpses);
-    reports = {};
-    reports.vtable = kReportsVtable;
-    calls = {};
-    calls.vtable = kCallsVtable;
+    memory.spareCells = kEmptySightCache;
+    memory.sightCells = kEmptySightCache;
+    InitObjectList(memory.nearby);
+    InitObjectList(memory.visible);
+    InitObjectList(memory.seenCorpses);
+    InitObjectList(memory.corpses);
+    memory.reports = {};
+    memory.reports.vtable = kReportsVtable;
+    memory.calls = {};
+    memory.calls.vtable = kCallsVtable;
     Init();
     return this;
 }
 EI_REPLACE_METHOD(0x00545990, AIBrain::Construct);
 
-void AIBrain::DestructMemory() {
+void AIMemory::Destruct() {
     calls.vtable = kCallsBaseVtable;
     if (calls.data) {
         for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // 00558CC0(0)
@@ -217,18 +217,11 @@ void AIBrain::DestructMemory() {
     DestroyObjectList(visible);
     DestroyObjectList(nearby);
 }
-
-namespace {
-// The original's `this` is the memory at +0xD0.
-void __fastcall DestructMemoryHook(std::uint8_t* memory) {
-    reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory))->DestructMemory();
-}
-} // namespace
-EI_REPLACE(0x00545CB0, DestructMemoryHook);
+EI_REPLACE_METHOD(0x00545CB0, AIMemory::Destruct);
 
 void AIBrain::Destruct() {
     Init();
-    DestructMemory();
+    memory.Destruct();
     DestroyAttackOptions(attention.spells);
     DestroyAttackOptions(attention.weapons);
     alarmRecords.vtable = kAlarmRecordsBaseVtable;
