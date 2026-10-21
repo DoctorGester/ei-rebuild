@@ -24,17 +24,10 @@ const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook
 std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
 
 namespace {
-
-char g_exePath[MAX_PATH];
-std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
-std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
-HMODULE g_resources;            // game.exe loaded as an image resource
-void (*g_missingCodeHandler)(const char* what);
-
 // game.exe's code section (.text, 0x401000-0x73A670).
 constexpr std::uintptr_t kTextBegin = 0x00401000;
 constexpr std::uintptr_t kTextEnd = 0x0073A670;
-constexpr std::uintptr_t kWinMain = 0x00456440;
+} // namespace
 
 // A code address as the log names it: inside game.exe's code plainly, elsewhere as module+offset.
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
@@ -56,6 +49,20 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
     std::snprintf(out, size, "%08X", static_cast<unsigned>(address));
 }
 
+// A failure of the image (no code at an address, a use of moved data): logged, and handed to the
+// harness's handler (its report) before the process ends.
+void ReportImageFailure(const char* what);
+
+namespace {
+
+char g_exePath[MAX_PATH];
+std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
+std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
+HMODULE g_resources;            // game.exe loaded as an image resource
+void (*g_missingCodeHandler)(const char* what);
+
+constexpr std::uintptr_t kWinMain = 0x00456440;
+
 // Execution reached an address of game.exe's code with no rewrite: the INT3 filling the image there.
 // Its caller is the return address on the stack when the hit is a function's first byte (a call).
 LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* e) {
@@ -68,8 +75,7 @@ LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* e) {
     else strcpy_s(where, "library code");
     DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
     std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(at), where, caller);
-    Log("standalone: %s", what);
-    if (g_missingCodeHandler) g_missingCodeHandler(what);
+    ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -249,6 +255,11 @@ bool Standalone() {
 const char* StandaloneExePath() { return g_exePath; }
 
 void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
+
+void ReportImageFailure(const char* what) {
+    Log("standalone: %s", what);
+    if (g_missingCodeHandler) g_missingCodeHandler(what);
+}
 
 } // namespace ei
 

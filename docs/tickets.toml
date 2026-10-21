@@ -2992,7 +2992,7 @@ group = "standalone"
 size = 2
 model = "opus"
 depends = ["S18a"]
-note = "The image keeps 0079C000-007CD000 in storage of ours (low 16 bits of each address kept), GameAddress's shift set before any static constructor (init_seg(compiler)); the pointer cells of the image's .data / .rdata that point into .bss (15 real ones from a scan of aligned dwords, string tails excluded; a generated, reviewed list) fixed up; the old range PAGE_NOACCESS so a missed use faults with its address. Checked: goldens both installs, the guard. Tie: the image's .bss."
+note = "The image keeps 0079C000-007CD000 in storage of ours (low 16 bits of each address kept), GameAddress's shift set before any static constructor (init_seg(compiler)); the pointer cells of the image's .data / .rdata that point into .bss (15 real ones from a scan of aligned dwords, string tails excluded; a generated, reviewed list) fixed up; the old range PAGE_NOACCESS so a missed use faults with its address. Checked: goldens both installs, the guard. Tie: the image's .bss. Done: the moved range is 0079BF70-007CD000 (the key bindings' action table runs across the file's 0079C000; the guard caught its memset when the move started at 0079C000); 16 reviewed cells (tools/gen_image_cells.py, checked in build.cmd); goldens 110/104 the same, 0 differ; guard named a deliberate raw read in a scratch build."
 
 [[ticket]]
 id = "S18c"

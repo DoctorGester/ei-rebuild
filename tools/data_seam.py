@@ -32,9 +32,10 @@ TOPS = ('src', 'tests', 'include')
 
 # game.exe 1.06's data sections (tools/pe.py): .rdata 0073B000 (its first 0x820 bytes the import
 # address table), .data 00783000 with its zero-filled tail from 0079C000, .rsrc 007CD000; SizeOfImage
-# ends at 007D7000.
-SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), ('data', 0x00783000, 0x0079C000),
-            ('bss', 0x0079C000, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
+# ends at 007D7000. "bss" is what the standalone image moves (game_data.h's kBssBegin): from 0079BF70,
+# the key bindings' action table (0x200 bytes), the object that runs across the file's 0079C000.
+SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), ('data', 0x00783000, 0x0079BF70),
+            ('bss', 0x0079BF70, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
 OPENERS = {'GameAddress', 'GameData', 'GamePointer', 'DataId'}
 # The visitor operations of the generated static initialisers and exit functions whose first argument is
 # a data address, and At (any argument).
