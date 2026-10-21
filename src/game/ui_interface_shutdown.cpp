@@ -35,6 +35,7 @@ void CInterface3D::ResetInput() {
     doubleClick_ = false;
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
 }
+EI_REWRITTEN(0x005F8C50, CInterface3D::ResetInput);
 
 void CInterface3D::Shutdown() {
     TheCursor()->SetShape(kCursorWait);

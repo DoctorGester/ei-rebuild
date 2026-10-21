@@ -45,6 +45,8 @@ int __cdecl DefaultNewHandler(std::size_t) {
     ThrowMemoryException();
 }
 
+EI_REWRITTEN(0x0070061B, CRuntimeClass::CreateObject);
+EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
 EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
 EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);   // what libcrt::OperatorNew calls through 00796E14
 
@@ -166,7 +168,17 @@ BOOL CMapPtrToPtr::RemoveKey(void* key) {
     return FALSE;
 }
 
+EI_REWRITTEN(0x007002C2, CMapPtrToPtr::Construct);
+EI_REWRITTEN(0x00700375, CMapPtrToPtr::Destruct);
 EI_REPLACE_METHOD(0x007002E9, CMapPtrToPtr::DeletingDestructor);
+EI_REWRITTEN(0x00700305, CMapPtrToPtr::InitHashTable);
+EI_REWRITTEN(0x0070034A, CMapPtrToPtr::RemoveAll);
+EI_REWRITTEN(0x0070039E, CMapPtrToPtr::NewAssoc);
+EI_REWRITTEN(0x007003EB, CMapPtrToPtr::FreeAssoc);
+EI_REWRITTEN(0x00700404, CMapPtrToPtr::GetAssocAt);
+EI_REWRITTEN(0x00700436, CMapPtrToPtr::GetValueAt);
+EI_REWRITTEN(0x0070048B, CMapPtrToPtr::At);
+EI_REWRITTEN(0x007004DB, CMapPtrToPtr::RemoveKey);
 
 // ---- CHandleMap -----------------------------------------------------------------------------------
 
@@ -209,6 +221,7 @@ void* CHandleMap::FromHandle(HANDLE handle) {
     return object;
 }
 
+EI_REWRITTEN(0x00703617, CHandleMap::Construct);
 EI_REPLACE_METHOD(0x0070367C, CHandleMap::FromHandle);
 
 } // namespace mfc::impl

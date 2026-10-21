@@ -82,6 +82,9 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     DeallocatePointers(buckets.Start(), static_cast<int>(buckets.EndOfStorage() - buckets.Start()));
 }
 
+EI_REWRITTEN(0x005A9C90, DestroyFigureModel);
+EI_REWRITTEN(0x005AE5B0, records::LeadingStringDelete);
+EI_REWRITTEN(0x005AE5D0, records::LeadingStringDelete);
 // 005AA1C0 (thiscall): the figure manager's destructor: every cached model destroyed and freed,
 // the base's clean-up (00674F40), the model map cleared and its buckets freed (the map's inline
 // destructor), then the base destructor (00674DF0).
@@ -111,3 +114,4 @@ void __fastcall DestroyFigureManager(char* object) {
     auto* manager = reinterpret_cast<CFigureManager*>(object);
     manager->CFigureManager::~CFigureManager();
 }
+EI_REWRITTEN(0x005AA1C0, DestroyFigureManager);

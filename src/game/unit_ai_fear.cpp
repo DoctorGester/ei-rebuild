@@ -342,3 +342,4 @@ void AIAttention::ApplyAttack(AIBrain* brain, const int* partAndObject) {
     brain->actionTime = part;
     brain->owner->OrderCast(part, object, 0);
 }
+EI_REWRITTEN(0x005CF170, AIAttention::ApplyAttack);

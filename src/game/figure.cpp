@@ -35,3 +35,4 @@ void CAnimationNode::SetMorph(const BoneMorphBox* box, float s, float t, float u
     position_.y = d.y * u + lower.y;
     position_.z = d.z * u + lower.z;
 }
+EI_REWRITTEN(0x005064C0, CAnimationNode::SetMorph);

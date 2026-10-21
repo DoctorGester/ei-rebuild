@@ -347,6 +347,7 @@ float* __fastcall CopyPoint2(float* out, const float* point) {
     out[1] = y;
     return out;
 }
+EI_REWRITTEN(0x005CA050, CopyPoint2);
 
 int AIMemory::Notice(const Vector3* point, int level, int kind) {
     if (level <= noticedLevel) return 0;
@@ -401,6 +402,8 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
 }
 
 // 005CDD60 (RET 8): SetSize. 005CD880 (RET 4): Add, returning the new index.
+EI_REWRITTEN(0x005CDD60, AIHeardCalls::SetSize);
+EI_REWRITTEN(0x005CD880, AIHeardCalls::Add);
 EI_REWRITTEN(0x00558D00, AICallRecord::Destruct);
 
 void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
@@ -415,6 +418,9 @@ void AIReportElements::Destruct(AIReport* reports, int count) {
     }
 }
 
+EI_REWRITTEN(0x005CD670, AIReports::SetSize);
+EI_REWRITTEN(0x005CD800, AIReports::RemoveAt);
+EI_REWRITTEN(0x00558D10, AIReportElements::Construct);
 std::uintptr_t CUnitServer::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
 EI_REPLACE_METHOD(0x00552CF0, CUnitServer::AddHostileMask);
 
@@ -480,6 +486,7 @@ int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
     return visible.Find(other) ? 1 : 0;
 }
 
+EI_REWRITTEN(0x005CB7F0, AIMemory::IsEnemy);
 void AIReports::Report(CEngineObject* object, int what) {
     if (!object) return;
     for (int i = 0; i < size; ++i) {
@@ -508,6 +515,7 @@ bool AIReports::Contains(CEngineObject* object) const {
         if (data[i].object == object) return true;
     return false;
 }
+EI_REWRITTEN(0x005CC560, AIReports::Contains);
 
 // --- Save games -----------------------------------------------------------------------------------
 
@@ -685,3 +693,4 @@ void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, attention.healWeight);
     WriteCopy(stream, alarmSlot);
 }
+EI_REWRITTEN(0x005D8860, AIBrain::Save);

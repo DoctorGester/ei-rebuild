@@ -133,6 +133,7 @@ EI_REWRITTEN(0x006C5150, SectorVertex::ReleaseLights);
 void __stdcall DestroyRecords(SectorVertex* records, int count) {
     for (int i = 0; i < count; ++i) records[i].ReleaseLights();
 }
+EI_REWRITTEN(0x006C4EE0, DestroyRecords);
 
 void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove) {
@@ -191,6 +192,7 @@ void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int s
     area->lastX = x1 % kSectorCells;
     area->lastY = y1 % kSectorCells;
 }
+EI_REWRITTEN(0x006BF4A0, SetLightArea);
 
 void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area) {
@@ -229,6 +231,7 @@ void Terrain::RelightArea(const LightArea* area) {
         }
     }
 }
+EI_REWRITTEN(0x006CAB50, Terrain::RelightArea);
 
 // ---- The light table -----------------------------------------------------------------------------
 
@@ -279,6 +282,7 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     LightAreaOf(light, nullptr, area);
     light->position_ = old;
 }
+EI_REWRITTEN(0x006CA830, Terrain::MoveLight);
 
 void Terrain::LightSector(SectorData* sector) {
     for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) {
@@ -288,3 +292,4 @@ void Terrain::LightSector(SectorData* sector) {
             terrain::UpdateVertexLights(sector, node->value.light, &node->value.light->position_, &area, 0);
     }
 }
+EI_REWRITTEN(0x006CA9C0, Terrain::LightSector);

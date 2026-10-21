@@ -65,6 +65,7 @@ MEMORYSTATUS* CSysInfo::QueryMemory() {
     gameapi::GlobalMemoryStatus(&memory_);
     return &memory_;
 }
+EI_REWRITTEN(0x004DE687, CSysInfo::QueryMemory);
 
 // 004DE6C2.
 SYSTEM_INFO* CSysInfo::QuerySystem() {
@@ -72,6 +73,7 @@ SYSTEM_INFO* CSysInfo::QuerySystem() {
     gameapi::GetSystemInfo(&system_);
     return &system_;
 }
+EI_REWRITTEN(0x004DE6C2, CSysInfo::QuerySystem);
 
 // 004DE6F3.
 OSVERSIONINFOA* CSysInfo::QueryVersion() {
@@ -102,6 +104,7 @@ void CSysInfo::QueryProcessor() {
     else
         flags_ &= ~kSse;
 }
+EI_REWRITTEN(0x004DE789, CSysInfo::QueryProcessor);
 
 // 004DDF28. (The original's two unused locals, a registry key holder that is never opened and an
 // empty string, are left out.) The report built at the end goes nowhere: it is a local.
@@ -176,6 +179,7 @@ CSysInfo* CSysInfo::Construct() {
     Collect();   // Create (004DDF05), called directly
     return this;
 }
+EI_REWRITTEN(0x004DDD6F, CSysInfo::Construct);
 
 // 004DDF05 (slot 2, Create): everything collected; returns 1. The constructor calls it directly.
 int __fastcall SysInfoCreate(CSysInfo* self) {
@@ -245,6 +249,7 @@ EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 // 004DDD3F: the global constructed. 004DDD4E: its destructor registered with atexit. 004DDD30: the
 // table's entry: both.
 void __cdecl SysInfoStaticConstruct() { TheSysInfo()->Construct(); }
+EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
 void __cdecl SysInfoStaticRegisterExit() { GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004DDD60)); }
 EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {

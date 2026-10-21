@@ -41,3 +41,4 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
                                                                        reinterpret_cast<const FigureAnimation*>(animation));
 }
 
+EI_REWRITTEN(0x005ACCF0, SetFigureAnimation);

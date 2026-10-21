@@ -73,6 +73,7 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
     Position();
     PutByte(this, 0);
 }
+EI_REWRITTEN(0x004A4DA0, CStream::WriteDiff);
 
 void CStream::ApplyDiff(CStream* base, CStream* diff) {
     std::uint32_t length = 0;   // one byte is read into it at a time
@@ -94,3 +95,4 @@ void CStream::ApplyDiff(CStream* base, CStream* diff) {
         done += static_cast<int>(length);
     } while (done < size);
 }
+EI_REWRITTEN(0x004A50D0, CStream::ApplyDiff);

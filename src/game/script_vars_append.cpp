@@ -57,6 +57,7 @@ template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>
         std::memcpy(&values.data[old + i], &other->values.data[i], sizeof(float));
     }
 }
+EI_REWRITTEN(0x004C2B70, ScriptNamedValues<float>::Append);
 
 template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues<mfc::CString>* other) {
     int old = values.size;
@@ -69,6 +70,7 @@ template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues
         values.data[old + i] = value.Get();
     }
 }
+EI_REWRITTEN(0x004C2FE0, ScriptNamedValues<mfc::CString>::Append);
 
 // The new slot drops its (null) object, then takes the other's object with a reference of its own.
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
@@ -87,6 +89,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedVal
         Release(value.object);
     }
 }
+EI_REWRITTEN(0x004C3450, ScriptNamedValues<ScriptObjectRef>::Append);
 
 // The new group is sized to the other's and each member reference copied in place.
 template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other) {
@@ -114,6 +117,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         }
     }
 }
+EI_REWRITTEN(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 
 // ---- Emptying a variable set ---------------------------------------------------------------------
 

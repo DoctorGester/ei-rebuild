@@ -359,6 +359,7 @@ int CScript::FindScript(const char* name) {
         ++name;
     }
 }
+EI_REWRITTEN(0x004D3780, CScript::FindScript);
 
 // ---- #define ------------------------------------------------------------------------------------
 

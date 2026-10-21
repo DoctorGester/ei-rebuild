@@ -65,6 +65,7 @@ void* UnitVitals::Pack(UnitVitalsPacked* out) {
     for (int i = 0; i < 7; ++i) out->protection[i] = static_cast<std::int16_t>(RoundStored(protection[i].current));
     return reinterpret_cast<char*>(out) + sizeof(UnitVitalsPacked);
 }
+EI_REWRITTEN(0x00522C50, UnitVitals::Pack);
 
 int UnitVitalsPacked::Reset() {
     spare00 = 0;
@@ -75,6 +76,7 @@ int UnitVitalsPacked::Reset() {
     for (std::int16_t& p : protection) p = 0;
     return 0;
 }
+EI_REWRITTEN(0x005233B0, UnitVitalsPacked::Reset);
 
 // --- UnitParams ------------------------------------------------------------------------------
 
@@ -84,6 +86,7 @@ int UnitParams::Reset() {
     for (UnitParamsSlot& slot : slots) slot.type = kResetSlotType;
     return 0;
 }
+EI_REWRITTEN(0x00523550, UnitParams::Reset);
 
 void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->experience = RoundStored(experience);
@@ -132,6 +135,7 @@ int UnitStatLayer::Reset() {
     ResetLayerExceptUnknown20(*this);
     return 0;
 }
+EI_REWRITTEN(0x005236A0, UnitStatLayer::Reset);
 
 int UnitStatSlot::Reset() {
     type = kResetSlotType;
@@ -142,6 +146,7 @@ int UnitStatSlot::Reset() {
     for (UnitStatLayer& layer : layers) ResetLayerExceptUnknown20(layer);
     return 0;
 }
+EI_REWRITTEN(0x00523600, UnitStatSlot::Reset);
 
 int UnitStats::Reset() {
     experience = kZero;
@@ -188,3 +193,4 @@ int UnitStats::ClearOuterLayers() {
     }
     return 0;
 }
+EI_REWRITTEN(0x005232B0, UnitStats::ClearOuterLayers);

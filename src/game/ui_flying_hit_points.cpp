@@ -35,6 +35,7 @@ CFlyingHitPoints* CFlyingHitPoints::Construct() {
     object_ = nullptr;
     return this;
 }
+EI_REWRITTEN(0x005E1710, CFlyingHitPoints::Construct);
 
 void CFlyingHitPoints::Destruct() {
     if (object_) object_->Release();
@@ -55,6 +56,7 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     head->prev->next = node;
     head->prev = node;
 }
+EI_REWRITTEN(0x005E1870, CFlyingHitPoints::Add);
 
 // --- 005E18E0: drawing ------------------------------------------------------------------------------
 

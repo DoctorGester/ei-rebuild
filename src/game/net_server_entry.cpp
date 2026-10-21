@@ -70,5 +70,6 @@ void ServerSession::SetPublic(bool announce) {
 }
 
 EI_REPLACE_METHOD(0x0041A7E0, ServerSession::DescribeImpl);
+EI_REWRITTEN(0x00417E10, ServerSession::SetPublic);
 
 } // namespace net

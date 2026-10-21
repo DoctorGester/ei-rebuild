@@ -109,6 +109,10 @@ template int ScriptNamedValues<float>::FindName(const char*) const;
 template int ScriptNamedValues<mfc::CString>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
+EI_REWRITTEN(0x004D5A50, ScriptNamedValues<float>::FindName);
+EI_REWRITTEN(0x004D5A90, ScriptNamedValues<mfc::CString>::FindName);
+EI_REWRITTEN(0x004D5AD0, ScriptNamedValues<ScriptObjectRef>::FindName);
+EI_REWRITTEN(0x004D5B10, ScriptNamedValues<ScriptGroup>::FindName);
 
 ScriptCommands* ScriptCommands::ConstructEmpty() {
     data = nullptr;
@@ -118,6 +122,7 @@ ScriptCommands* ScriptCommands::ConstructEmpty() {
     vtable = scriptvtable::kCmds;
     return this;
 }
+EI_REWRITTEN(0x004D5A10, ScriptCommands::ConstructEmpty);
 
 ScriptIfThens* ScriptIfThens::ConstructEmpty() {
     data = nullptr;
@@ -127,6 +132,7 @@ ScriptIfThens* ScriptIfThens::ConstructEmpty() {
     vtable = scriptvtable::kIfThen;
     return this;
 }
+EI_REWRITTEN(0x004D5A30, ScriptIfThens::ConstructEmpty);
 
 void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kStrings);

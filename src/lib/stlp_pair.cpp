@@ -60,3 +60,13 @@ StringPair* __fastcall PairAbi::DeletingDestructor(StringPair* self, void*, unsi
 
 using stlp::PairAbi;
 
+EI_REWRITTEN(0x00407DE0, PairAbi::ConstructDwords);
+EI_REWRITTEN(0x0040A9D0, PairAbi::ConstructDwords);
+EI_REWRITTEN(0x005729D0, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x00689950, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x006BC140, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x0064F880, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x006A7710, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x004FB170, PairAbi::ConstructStringDword);
+EI_REWRITTEN(0x0069C1C0, PairAbi::ConstructStringList);
+EI_REWRITTEN(0x004AD640, PairAbi::DestroyStringList);

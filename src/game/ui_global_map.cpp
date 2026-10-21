@@ -697,6 +697,7 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     inputVtable_ = ei::GamePointer<void*>(0x00740B08);
     return this;
 }
+EI_REWRITTEN(0x005F67A0, CGlobalMap::Construct);
 
 // --- 005F6920: the destructor body ---------------------------------------------------------------
 

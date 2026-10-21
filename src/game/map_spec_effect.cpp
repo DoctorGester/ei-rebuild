@@ -75,8 +75,11 @@ void MakeEffect(EffectSpec* self) {
 
 // 0046D370 / 0046D5A0 / 0046DA20: the destructor bodies (the base record's).
 void EffectSpec::EffectSpecDestruct() { base.SpecDestruct(); }
+EI_REWRITTEN(0x0046D370, EffectSpec::EffectSpecDestruct);
 void ParticleSpec::ParticleSpecDestruct() { effect.base.SpecDestruct(); }
+EI_REWRITTEN(0x0046D5A0, ParticleSpec::ParticleSpecDestruct);
 void LightSpec::LightSpecDestruct() { effect.base.SpecDestruct(); }
+EI_REWRITTEN(0x0046DA20, LightSpec::LightSpecDestruct);
 
 // 0046D350 / 0046D580 / 0046DA00 (slot 10).
 EffectSpec* EffectSpec::EffectSpecDelete(unsigned flags) {
@@ -147,6 +150,7 @@ ParticleSpec* ParticleSpec::ParticleSpecConstruct() {
     scale = 1.0f;
     return this;
 }
+EI_REWRITTEN(0x0046D520, ParticleSpec::ParticleSpecConstruct);
 
 // 0046D550 (slot 4): "Particle source".
 mfc::CString* ParticleSpec::ParticleSpecTypeName(mfc::CString* out) {

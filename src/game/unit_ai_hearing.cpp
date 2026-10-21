@@ -75,9 +75,12 @@ void AIHeardCalls::RemoveClaims() {
     for (int i = 0; i < size; ++i)
         if (data[i].hostileMask != 0) RemoveCall(this, i--);
 }
+EI_REWRITTEN(0x005CCBF0, AIHeardCalls::RemoveClaims);
 
 void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }
+EI_REWRITTEN(0x005CBBA0, AIMemory::HearCall);
 void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.AddClaim(mask, kind, text); }
+EI_REWRITTEN(0x005CBBC0, AIMemory::AddClaim);
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     mfc::CTypedPtrList<CUnit> units{};

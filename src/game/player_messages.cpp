@@ -451,6 +451,7 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, void* path, const float
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
+EI_REWRITTEN(0x0066C540, CPlayerServer::Construct);
 EI_REWRITTEN(0x0066C770, CPlayerServer::DestructBody);
 EI_REPLACE_METHOD(0x0066C750, CPlayerServer::DeletingDestruct);
 EI_REPLACE(0x0066C730, PlayerServerClassName);
@@ -463,9 +464,33 @@ EI_REWRITTEN(0x0066D490, CPlayerServer::SendPathMessage);
 
 EI_REPLACE_METHOD(0x0066C9A0, CPlayerServer::CreateServer);
 
+EI_REWRITTEN(0x0066EE10, CPlayerServer::SetVariable);
 EI_REPLACE_METHOD(0x0066EE80, CPlayerServer::SetVariableMax);
+EI_REWRITTEN(0x0066EF30, CPlayerServer::DeleteVariable);
+EI_REWRITTEN(0x0066F180, CPlayerServer::SendGameTime);
+EI_REWRITTEN(0x0066EBD0, CPlayerServer::SendState02);
+EI_REWRITTEN(0x0066EC10, CPlayerServer::SendState70);
+EI_REWRITTEN(0x0066EC70, CPlayerServer::SendState71);
+EI_REWRITTEN(0x0066ECD0, CPlayerServer::SendState72);
+EI_REWRITTEN(0x0066F240, CPlayerServer::SendState73);
+EI_REWRITTEN(0x0066ED30, CPlayerServer::SendPosition04);
+EI_REWRITTEN(0x0066EDA0, CPlayerServer::SendPosition0F);
 EI_REPLACE_METHOD(0x0066EA10, CPlayerServer::Send17);
 EI_REPLACE_METHOD(0x0066EA30, CPlayerServer::SendObject0A);
+EI_REWRITTEN(0x0066EA70, CPlayerServer::SendPair16);
+EI_REWRITTEN(0x0066EAC0, CPlayerServer::SendObjects0C);
 EI_REPLACE_METHOD(0x0066EB40, CPlayerServer::SendObject14);
+EI_REWRITTEN(0x0066EB90, CPlayerServer::SendText0D);
+EI_REWRITTEN(0x0066F1F0, CPlayerServer::SendText08);
+EI_REWRITTEN(0x0066F280, CPlayerServer::SendValue15);
+EI_REWRITTEN(0x0066F2C0, CPlayerServer::SendPair18);
+EI_REWRITTEN(0x0066D6A0, CPlayerServer::SendObject43);
 EI_REPLACE_METHOD(0x0066D6E0, CPlayerServer::SendObject0B);
+EI_REWRITTEN(0x0066D730, CPlayerServer::SendValue12);
+EI_REWRITTEN(0x0066D770, CPlayerServer::SendText13);
+EI_REWRITTEN(0x0066D7B0, CPlayerServer::SendText);
+EI_REWRITTEN(0x0066D230, CPlayerServer::WriteTo);
+EI_REWRITTEN(0x0066D250, CPlayerServer::SetDisconnect);
+EI_REWRITTEN(0x0066D260, CPlayerServer::SetFlag70);
+EI_REWRITTEN(0x006621B0, PartyRecords::Find);
 EI_REPLACE_METHOD(0x00665DE0, CPlayer::Tick);

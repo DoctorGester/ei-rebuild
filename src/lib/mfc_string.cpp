@@ -720,8 +720,34 @@ void __fastcall Destruct(CString* self) { self->~CString(); }
 
 EI_REPLACE(0x006E6BCD, shim::FixedAllocConstruct);
 EI_REPLACE_METHOD(0x006E6BF5, CFixedAlloc::Destruct);
+EI_REWRITTEN(0x006E6C09, CFixedAlloc::FreeAll);
+EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
+EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
 
 EI_REWRITTEN(0x007009DE, shim::TextConstruct);
 EI_REPLACE(0x00700970, shim::Destruct);
+EI_REWRITTEN(0x007007DD, CString::AllocBuffer);
+EI_REWRITTEN(0x0070085F, CString::FreeData);
+EI_REWRITTEN(0x00700919, CString::CopyBeforeWrite);
+EI_REWRITTEN(0x00700947, CString::AllocBeforeWrite);
+EI_REWRITTEN(0x0070099A, CString::AllocCopy);
+EI_REWRITTEN(0x00700A7C, CString::AssignCopy);
+EI_REWRITTEN(0x00700B61, CString::ConcatCopy);
+EI_REWRITTEN(0x00700CED, CString::ConcatInPlace);
+EI_REWRITTEN(0x007008FB, CString::Empty);
+EI_REWRITTEN(0x00702B0E, CString::LoadResourceString);
+EI_REWRITTEN(0x00700DA0, CString::GetBuffer);
+EI_REWRITTEN(0x00700DEF, CString::ReleaseBuffer);
+EI_REWRITTEN(0x00700E17, CString::GetBufferSetLength);
+EI_REWRITTEN(0x00700E6A, CString::LockBuffer);
+EI_REWRITTEN(0x00700E7C, CString::UnlockBuffer);
+EI_REWRITTEN(0x006FDBB7, CString::ReverseFind);
+EI_REWRITTEN(0x00700ECC, CString::FindOneOf);
+EI_REWRITTEN(0x00700EFE, CString::MakeLower);
+EI_REWRITTEN(0x006FD963, CString::Remove);
+EI_REWRITTEN(0x006FDF5F, CString::Format);
+EI_REWRITTEN(0x006FDC12, CString::FormatV);
+EI_REWRITTEN(0x006FE268, ConstructStrings);
+EI_REWRITTEN(0x006FE296, DestructStrings);
 
 } // namespace mfc::impl

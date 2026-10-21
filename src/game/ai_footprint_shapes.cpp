@@ -115,3 +115,5 @@ void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius
         }
 }
 
+EI_REWRITTEN(0x005B2A00, FootprintCellSet::AlongDirection);
+EI_REWRITTEN(0x005B2760, FootprintCellSet::DiscAt);

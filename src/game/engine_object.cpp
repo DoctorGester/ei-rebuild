@@ -67,11 +67,14 @@ CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
     owner_ = owner;
     return previous;
 }
+EI_REWRITTEN(0x00455970, CEngineObject::SetOwner);
 
 void CEngineObject::DestructBase() {
     ei::SetVtable(this, kVtableAddress);
     owner_ = nullptr;
 }
+EI_REWRITTEN(0x0055ED90, CEngineObject::DestructBase);
+EI_REWRITTEN(0x00455930, CEngineObject::DestructBase);
 
 void CEngineObject::ClearFields() {
     refCount_ = 0;

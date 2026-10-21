@@ -345,3 +345,4 @@ void CCampPages::UndoAction() {
         break;
     }
 }
+EI_REWRITTEN(0x00611760, CCampPages::UndoAction);

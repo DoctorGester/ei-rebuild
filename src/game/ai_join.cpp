@@ -135,4 +135,5 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     path->head = node;
 }
 
+EI_REWRITTEN(0x005B9690, CAIMap::JoinLocalSearches);
 EI_REPLACE_METHOD(0x005B9A20, CAIMap::BuildCellsTo);

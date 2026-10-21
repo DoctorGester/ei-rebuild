@@ -581,6 +581,7 @@ void Terrain::SetLightInterval(int frames) {
     if (frames < 0) lightCountdown = -1;
     if (lightCountdown < frames) lightCountdown = frames;
 }
+EI_REWRITTEN(0x006C9290, Terrain::SetLightInterval);
 
 void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= materials.size) return;
@@ -591,6 +592,7 @@ void Terrain::SetWaterLevel(int material, float level) {
         sectorLevel = change + sectorLevel;
     }
 }
+EI_REWRITTEN(0x006CC7F0, Terrain::SetWaterLevel);
 
 void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage) {
     constexpr int kSide = 3;                  // a tile's vertices per row
@@ -639,4 +641,9 @@ EI_REPLACE_METHOD(0x006C6070, Terrain::CombineRotationImpl);
 EI_REWRITTEN(0x006C5620, Terrain::Reset);
 EI_REWRITTEN(0x006C57E0, Terrain::BuildWavePhases);
 EI_REWRITTEN(0x006C7D70, Terrain::SetWaveStrength);
+EI_REWRITTEN(0x006CD5C0, lib::AlignedArray<std::uint32_t>::SetSize);
+EI_REWRITTEN(0x006CE890, lib::AlignedArray<std::uint32_t>::SetSize);
+EI_REWRITTEN(0x006CDD50, lib::AlignedArray<std::uint32_t>::SetAtGrow);
+EI_REWRITTEN(0x006CDE90, lib::AlignedArray<std::uint32_t>::SetAtGrow);
+EI_REWRITTEN(0x006C7EB0, Terrain::SetWaves);
 

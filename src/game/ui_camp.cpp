@@ -795,6 +795,7 @@ bool CCampPages::CanMakeItem() {
     ReleaseObject(spell);
     return true;
 }
+EI_REWRITTEN(0x00612600, CCampPages::CanMakeItem);
 
 // --- 0060E6B0: leaving the camp ---------------------------------------------------------------
 
@@ -939,6 +940,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
     return result;
 }
+EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
 
 // --- 0060FCA0: putting an item on the hero ----------------------------------------------------
 
@@ -981,6 +983,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
     static_cast<CParty*>(GluePlayerData())->RemoveItem(AsItem(item), 0);   // 00661F30
     static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
+EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
 
 // --- 00610920 / 00610AD0: moving an item between the camp's lists ------------------------------
 
@@ -1030,6 +1033,7 @@ void CCampPages::PutOnFromStrip(std::uint8_t* item) {
     }
     interface_->PlaySound(game::PutOnSoundText(), 0);
 }
+EI_REWRITTEN(0x00610920, CCampPages::PutOnFromStrip);
 
 void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     if (!VirtualCanEquip(item, mode)) {
@@ -1274,3 +1278,4 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     inputVtable_ = ei::GamePointer<void*>(0x007408E8);
     return this;
 }
+EI_REWRITTEN(0x005F6240, CCampPages::Construct);

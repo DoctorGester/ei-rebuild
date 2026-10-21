@@ -100,6 +100,7 @@ void SavedParties::SaveAll() {
     for (unsigned i = 0; i < static_cast<unsigned>(reinterpret_cast<MpHeroRecord*>(finish_) - begin); ++i)
         begin[i].WriteFile(folder_);
 }
+EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
 SavedParties* SavedParties::Construct() {
     new (&folder_) mfc::CString();

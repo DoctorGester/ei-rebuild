@@ -45,11 +45,15 @@ AILookArray* __fastcall LooksInit(AILookArray* looks) {
     looks->size = 0;
     return looks;
 }
+EI_REWRITTEN(0x005D8EE0, AILookArray::SetSize);
+EI_REWRITTEN(0x005D8B60, AILookArray::Copy);
+EI_REWRITTEN(0x005573F0, LooksInit);
 
 AILook* AILooks::CopyAt(AILook* out, int index) const {
     *out = data[index];
     return out;
 }
+EI_REWRITTEN(0x005D9DE0, AILooks::CopyAt);
 
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
@@ -101,3 +105,5 @@ PatrolPoint& PatrolPoint::operator=(const PatrolPoint& other) {
     return *this;
 }
 
+EI_REWRITTEN(0x005D93B0, PatrolPointArray::Add);
+EI_REWRITTEN(0x005D9F30, PatrolPointArray::SetAtGrow);

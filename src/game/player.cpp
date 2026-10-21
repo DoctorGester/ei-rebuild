@@ -140,6 +140,7 @@ void CPlayer::DestroyPlayer() {
     lastScreen_ = 0;
 }
 EI_REPLACE_METHOD(0x006650E0, CPlayer::DestroyPlayer);
+EI_REWRITTEN(0x00665380, CPlayer::DestroyPlayer);
 
 void CPlayer::Clear() {
     for (auto* node = items_.head; node != nullptr;) {
@@ -172,8 +173,10 @@ void CPlayer::SetConnection(CPlayerConnection* connection) {
         ++connection_->refCount_;
     }
 }
+EI_REWRITTEN(0x00665950, CPlayer::SetConnection);
 
 void CPlayer::SetPlayerId(int id) { playerId_ = id; }
+EI_REWRITTEN(0x00665A60, CPlayer::SetPlayerId);
 
 namespace {
 
@@ -198,6 +201,7 @@ void CPlayer::Connect(netlink::NetLink* link) {
     if (link != nullptr) ++link->refs_;
     connection_->ResetState();
 }
+EI_REWRITTEN(0x00665990, CPlayer::Connect);
 
 void CPlayer::Disconnect() {
     if (link_ != nullptr) connection_->Leave();
@@ -220,6 +224,7 @@ BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     if (members.size == 0 || unit == nullptr) return 0;
     return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
+EI_REWRITTEN(0x00665440, CPlayer::IsLeader);
 
 void CPlayer::GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag) {
     connection_->ItemsGiven(items, flag);
@@ -249,6 +254,7 @@ BOOL CPlayer::HasLoot(int kind) {
     }
     return 0;
 }
+EI_REWRITTEN(0x00665640, CPlayer::HasLoot);
 
 namespace {
 
@@ -322,3 +328,4 @@ void CPlayer::ReleaseTamedUnits() {
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
     }
 }
+EI_REWRITTEN(0x00665D20, CPlayer::ReleaseTamedUnits);

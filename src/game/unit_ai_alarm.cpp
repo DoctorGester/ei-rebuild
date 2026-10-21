@@ -118,6 +118,7 @@ void AIAlarmRecordElements::Destruct(AIAlarmRecord* records, int count) {
     for (int i = 0; i < count; ++i) mapspec::BehaviourDestruct(&records[i]);
 }
 
+EI_REWRITTEN(0x005D9840, AIAlarmRecordArray::SetSize);
 void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     // 005D97E0 and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
@@ -222,9 +223,11 @@ void AIBrain::HearAlarm(int slot) {
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->voice.Raise(kAlarmHeard);
 }
+EI_REWRITTEN(0x005D5940, AIBrain::HearAlarm);
 
 void AIBrain::ResetBehaviour() {
     memory.Reset();
     int slot = alarmSlot;
     ApplyBehaviour(&alarmRecords.data[slot], slot);
 }
+EI_REWRITTEN(0x005D7C30, AIBrain::ResetBehaviour);

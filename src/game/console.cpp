@@ -280,6 +280,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
     }
     return 1;
 }
+EI_REWRITTEN(0x004DC200, Tokenize);
 
 // 005DD800. The arguments are joined back with single spaces.
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
@@ -296,5 +297,6 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     if (!RunScriptText(&line, 1, &error))
         EndLine(Out() << "Script error: " << static_cast<const char*>(error.text));
 }
+EI_REWRITTEN(0x005DD800, RunScriptLine);
 
 } // namespace console

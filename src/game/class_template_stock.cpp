@@ -66,6 +66,7 @@ ItemStock* ItemStock::Construct(void* owner) {
     modifierMap.ConstructBuckets(100);
     return this;
 }
+EI_REWRITTEN(0x004A66C0, ItemStock::Construct);
 
 ClassTemplate* ClassTemplate::Construct() {
     vtable = ei::GamePointer<void>(kBaseVtableAddress);
@@ -107,6 +108,7 @@ void ClassTemplate::Destruct() {
     ItemsParty()->DestructBody();
     vtable = ei::GamePointer<void>(kBaseVtableAddress);
 }
+EI_REWRITTEN(0x004A6A90, ClassTemplate::Destruct);
 
 ClassTemplate* ClassTemplate::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -119,6 +121,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
     allowed.SetLevels(base, scroll);
     magic.SetLevels(base, scroll);
 }
+EI_REWRITTEN(0x004A6DC0, ClassTemplate::SetLevels);
 
 void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;
@@ -138,6 +141,7 @@ void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     stock.GenerateMaterials(20, 50, &list);
     HandOverAndFree(&list, t->ItemsParty());
 }
+EI_REWRITTEN(0x004A6DF0, ClassTemplateGenerateItems);
 
 void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->flag0D) return;
@@ -151,3 +155,4 @@ void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t) {
     stock.GenerateModifierInstructions(20, 50, &list);
     HandOverAndFree(&list, t->SpellsParty());
 }
+EI_REWRITTEN(0x004A6F60, ClassTemplateGenerateMagic);

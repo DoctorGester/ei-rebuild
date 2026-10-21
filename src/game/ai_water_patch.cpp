@@ -75,3 +75,4 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     else layer->Remove(owner, x0, y0);
 }
 
+EI_REWRITTEN(0x005B7EF0, CAIMap::StampWaterPatch);

@@ -69,6 +69,7 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
     endOffset_ = 0;
     return this;
 }
+EI_REWRITTEN(0x0065ED30, CUiScrollingSurface::Construct);
 
 void CUiScrollingSurface::DestructBody() {
     vtable_ = ei::GamePointer<void>(kScrollingVtableAddress);
@@ -79,6 +80,7 @@ void CUiScrollingSurface::DestructBody() {
     }
     ReleaseContents();
 }
+EI_REWRITTEN(0x0065EDE0, CUiScrollingSurface::DestructBody);
 
 CUiScrollingSurface* CUiScrollingSurface::DeletingDestruct(unsigned deleteFlags) {
     DestructBody();
@@ -94,6 +96,7 @@ bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     archive->CloseFile(data);
     return data != nullptr;
 }
+EI_REWRITTEN(0x0065EF30, CUiScrollingSurface::Load);
 
 bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     RtfSource source = {static_cast<const std::uint8_t*>(data), size, 0};
@@ -104,6 +107,7 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     RenderText();
     return true;
 }
+EI_REWRITTEN(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
     ui_gdi::GameDC* dc = UiSurfaceGetDC(this);
@@ -157,3 +161,4 @@ void CUiScrollingSurface::Start(float speed, char fromBelow) {
     speed_ = speed;
     startTime_ = GameTime();
 }
+EI_REWRITTEN(0x0065F1C0, CUiScrollingSurface::Start);

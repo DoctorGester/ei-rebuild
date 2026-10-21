@@ -38,6 +38,7 @@ int TypeRegistry::TypeOf(const std::uint32_t* key) const {
     const ByVtable::Node* node = byVtable.Find(*key);
     return node ? static_cast<int>(node->value) : -1;
 }
+EI_REWRITTEN(0x00429F40, TypeRegistry::TypeOf);
 
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();

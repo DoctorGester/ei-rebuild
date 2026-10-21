@@ -124,6 +124,7 @@ CWorld* CWorld::ConstructBase() {
     secondsPerTick_ = 0.0f;
     return this;
 }
+EI_REWRITTEN(0x0055EAB0, CWorld::ConstructBase);
 
 CUnit* CWorld::FindUnit(int id) {
     CEngineObject* object = ObjectWithId(id);

@@ -57,3 +57,4 @@ void FigureBone::Place(const Vector3* origin) {
         child->Place(origin);
     }
 }
+EI_REWRITTEN(0x0050C230, FigureBone::Place);

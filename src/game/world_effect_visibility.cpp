@@ -139,6 +139,7 @@ EI_REWRITTEN(0x0067C340, CEffectShowVisibility::Construct);
 EI_REWRITTEN(0x0067C490, CEffectShowVisibility::Destruct);
 EI_REPLACE_METHOD(0x0067C470, CEffectShowVisibility::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067C5F0, CEffectShowVisibility::Reset);
+EI_REWRITTEN(0x0067C640, CEffectShowVisibility::SetUnits);
 EI_REPLACE_METHOD(0x0067C660, CEffectShowVisibility::Start);
 EI_REPLACE_METHOD(0x0067C6B0, CEffectShowVisibility::Unpack);
 EI_REPLACE_METHOD(0x0067C7A0, CEffectShowVisibility::Pack);
