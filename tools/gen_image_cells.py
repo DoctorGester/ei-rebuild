@@ -364,7 +364,7 @@ def code_structures(img):
         if in_code(dw(cell)):
             kinds.setdefault(cell, kind)
 
-    retired = {v + 4 * i for v, n, _, _ in retired_vtables() for i in range(n)}
+    retired = retired_cells()
     with open(VTABLES, newline='') as f:
         for row in csv.DictReader(f):
             vtable = int(row['vtable'], 16)
@@ -442,8 +442,8 @@ def code_check(img, problems):
         counts[g] = counts.get(g, 0) + 1
         if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] != 'vtable-retired':
             code.append((c, v, g))
-    retired = sum(n for _, n, _, _ in retired_vtables())
-    check_retired(problems)
+    retired = sum(in_code(struct.unpack_from('<I', img, c - BASE)[0]) for c in retired_cells())
+    check_retired(problems, img)
     for name, groups in (('structure', CODE_STRUCTURES), ('code', CODE_REVIEWED), ('not', NOT_CODE)):
         for i, g in enumerate(groups):
             n = g[1] if name == 'structure' else g[2]
@@ -546,22 +546,64 @@ def named_ranges():
 
 def retired_vtables():
     """(vtable, slots, class, file) of config/retired_vtables.csv: game.exe's vtables of classes whose vtable is the
-    compiler's now (C19; docs/notes/standalone.md "Compiler-made vtables"). Nothing installs them: their slots are no
-    code cells and the image holds their bytes zero; tools/named_data.py --check proves nothing names or points
-    into them."""
+    compiler's now (C19; docs/notes/standalone.md "Compiler-made vtables"), or that only game.exe's own code stored
+    (file '-': base vtables its destructors stored, locals its functions made, dead code's; the note column names the
+    storing functions). Nothing installs them: their slots are no code cells and the image holds their bytes zero;
+    tools/named_data.py --check proves nothing names or points into them."""
     if not os.path.exists(RETIRED_VTABLES):
         return []
     with open(RETIRED_VTABLES, newline='') as f:
         return [(int(r['vtable'], 16), int(r['slots']), r['class'], r['file']) for r in csv.DictReader(f)]
 
 
-def check_retired(problems):
-    """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once."""
+def retired_cells():
+    """The slots of the retired vtables (config/vtables.csv's vtables overlap: a run of slots that ends another
+    table, 0073CA08 / 0073CA0C / 0073CA10; a cell counts once)."""
+    return {v + 4 * i for v, n, _, _ in retired_vtables() for i in range(n)}
+
+
+def stored_vtable(img, v):
+    """Whether game.exe's code stores `v` as an immediate (mov r/m32, imm32: C7 /0 with any addressing) or loads it
+    into a register (mov r32, imm32: B8+r, then stored from there): a vtable's start. find_vtables.py splits a vtable at every address the code holds, so config/vtables.csv also has tails of
+    longer tables, split off at a devirtualised slot call (call [slot]) or a coincidental byte match; those are slots
+    of the table before them, never installed."""
+    text = bytes(img[CODE[0] - BASE:CODE[1] - BASE])
+    pattern = struct.pack('<I', v)
+    i = text.find(pattern)
+    while i >= 0:
+        if i >= 1 and 0xB8 <= text[i - 1] <= 0xBF:
+            return True
+        for back, mods, rms in ((2, (0,), (0, 1, 2, 3, 6, 7)), (3, (0,), (4,)), (3, (1,), (0, 1, 2, 3, 5, 6, 7)),
+                                (4, (1,), (4,)), (6, (0,), (5,)), (6, (2,), (0, 1, 2, 3, 5, 6, 7)), (7, (2,), (4,))):
+            if i >= back and text[i - back] == 0xC7:
+                m = text[i - back + 1]
+                if m >> 6 in mods and m & 7 in rms and (m >> 3) & 7 == 0:
+                    return True
+        i = text.find(pattern, i + 1)
+    return False
+
+
+def check_retired(problems, img):
+    """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once, the start of a
+    table (stored_vtable), and shares no slot with a vtable still in use (its bytes are zero in the image)."""
     with open(VTABLES, newline='') as f:
         vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
+    listed = {v for v, _, _, _ in retired_vtables()}
+    live = {}
+    for v, (n, _) in vtables.items():
+        if v not in listed:
+            for i in range(n):
+                live.setdefault(v + 4 * i, v)
     seen = set()
     for v, n, cls, path in retired_vtables():
         where = f'config/retired_vtables.csv: {v:08X} ({cls})'
+        if not stored_vtable(img, v):
+            problems.append(f'gen_image_cells: {where}: no code of game.exe stores it: the tail of the vtable '
+                            'before it (a slot call or a byte match split it off), not a vtable of its own')
+        shared = sorted({live[v + 4 * i] for i in range(n) if v + 4 * i in live})
+        if shared:
+            problems.append(f'gen_image_cells: {where} shares slots with ' + ' '.join(f'{x:08X}' for x in shared) +
+                            ', still in use: retire them together')
         if v in seen:
             problems.append(f'gen_image_cells: {where} is listed twice')
         seen.add(v)
@@ -569,6 +611,8 @@ def check_retired(problems):
             problems.append(f'gen_image_cells: {where} is not a vtable of config/vtables.csv')
         elif vtables[v][0] != n:
             problems.append(f'gen_image_cells: {where} has {n} slot(s), config/vtables.csv {vtables[v][0]}')
+        if path == '-':   # no class of ours: only game.exe's code stored it (the note says which)
+            continue
         if not os.path.exists(os.path.join(ROOT, path)):
             problems.append(f'gen_image_cells: {where}: no file {path}')
         elif not re.search(rf'\b(class|struct)\s+{re.escape(cls)}\b',

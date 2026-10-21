@@ -1,5 +1,18 @@
-vtable,slots,class,file
-0073F754,3,BloodPrint,src/game/ground_print.h
-0073F760,3,Footprint,src/game/ground_print.h
-0073F76C,3,GroundPrint,src/game/ground_print.h
-0073F778,3,GroundPrint,src/game/ground_print.h
+vtable,slots,class,file,note
+0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
+0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
+0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
+0073CA08,2,dead class,-,stored only by dead code 0047C8E0
+0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
+0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
+0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073F754,3,BloodPrint,src/game/ground_print.h,
+0073F760,3,Footprint,src/game/ground_print.h,
+0073F76C,3,GroundPrint,src/game/ground_print.h,
+0073F778,3,GroundPrint,src/game/ground_print.h,
+0073F7C4,13,dead class,-,stored only by dead code 005794B0 / 00579730
+0073F7F8,42,dead class,-,stored only by dead code 005794B0 / 00579730
+0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
+00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
