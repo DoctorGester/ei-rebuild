@@ -3171,6 +3171,15 @@ model = "sonnet"
 files = ["tools/rdata_literals.py tools/check_static_init.py tools/gen_image_cells.py tools/gen_static_init.py"]
 note = "Found by SV10g: in a worktree without the run\\ junction, build.cmd verify's tools/rdata_literals.py --check stops with an IndexError (no game.exe found). The tools that read game.exe (rdata_literals, check_static_init, gen_static_init, gen_image_cells' EI_GAME_EXE default F:\\games\\...\\game.exe, exe_strings, data_seam if it reads it) should share one lookup: --exe, else run_all.run_dir(root) (falls back to the main checkout's run\\), vanilla then rebirth, and fail with one clear message naming what was looked for. No behaviour change on main; check build.cmd verify in a worktree without the junction."
 
+[[ticket]]
+id = "S18i1"
+title = "Standalone: forwarders and code literals to registered functions as direct calls"
+group = "standalone"
+size = 2
+model = "opus"
+depends = ["S18i"]
+note = "Since S18i every EI_ORIGINAL forwarder and ei::Code literal asks CodeAddress at run time (ei_code_dispatch: a binary search over ~9,350 registrations per call). Make the ones whose address has a registration call it directly (a generated forwarder -> replacement table, or the macro naming the replacement; harness redirections and unregistered addresses keep the lookup), and drop the lookup from the hot paths. Checked: goldens both installs, the frame time of a heavy scenario before / after."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
