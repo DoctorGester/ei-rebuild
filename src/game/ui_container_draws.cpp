@@ -58,12 +58,6 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     render::ClearDepth(z, rects ? r : nullptr, rects ? n : 0);
 }
 
-// The device object's two batched vertex buffers flushed (004E7840 / 004E7A40, not rewritten).
-void Flush(UiRenderer* device) {
-    device->FlushBatchA();
-    device->FlushBatchB();
-}
-
 // Through their original addresses, as the original calls them.
 // 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
 
@@ -147,7 +141,6 @@ int CHeroEquipPanel::DrawImpl(int pass) {
         interface_->CallScaleRectToScreen(&r);
         slots[i] = r;
     }
-    Flush(DeviceOf(this));
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
@@ -157,9 +150,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
                       mode_};
         owner->DrawItem(pass, &cell);
     }
-    Flush(DeviceOf(this));
     ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);
-    Flush(DeviceOf(this));
     return 1;
 }
 EI_REPLACE_METHOD(0x00622420, CHeroEquipPanel::DrawImpl);

@@ -386,7 +386,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   interface's `UiD3DDevice` (ui.h) has declared methods (`ui_d3d_device.cpp`). The harness's RestoreAfterMinimise
   calls game.exe's own IDirectDraw7 directly in the original's runs (nothing in the image). The vertex-buffer
   batches are gone (R9b3: the batch members, 004E7820 / 004E7E00 and the flush bodies with their
-  DrawIndexedPrimitiveVB; `FlushBatch` / `FlushBatch2` stay as empty ports for their ~35 callers, R9b4). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
+  DrawIndexedPrimitiveVB; R9b4 took out the empty `FlushBatch` / `FlushBatch2` ports 004E7840 / 004E7A40 and their ~35 callers). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
   `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,

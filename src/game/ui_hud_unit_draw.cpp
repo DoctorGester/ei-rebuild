@@ -87,8 +87,6 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 // The renderer's batches flushed, then the depth buffer (and the stencil when the device has one)
 // of the three screen rectangles set to `z` under the device lock.
 void ClearDepthRects(UiRenderer* renderer, RECT* rects, float z) {
-    renderer->FlushBatchA();
-    renderer->FlushBatchB();
     DWORD flags = D3DCLEAR_ZBUFFER;
     if ((renderer->caps_ & kStencilFormat) != 0 && renderer->stencil_ != 0) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(TheDeviceLock());

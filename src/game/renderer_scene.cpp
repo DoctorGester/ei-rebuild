@@ -79,8 +79,6 @@ int CSceneRenderer::BeginScene() {
     device->textureChanges_ = 0;
     long result = DeviceBeginScene(device);
     if (result == D3DERR_SCENE_IN_SCENE) {
-        static_cast<CTextureDevice*>(device)->FlushBatch();
-        static_cast<CTextureDevice*>(device)->FlushBatch2();
         result = DeviceEndScene(device);
         if (result != D3DERR_SCENE_NOT_IN_SCENE && result != 0) app::FatalErrorCode(result, "Can't end scene.\n");
         DeviceBeginScene(device);
@@ -93,8 +91,6 @@ EI_REPLACE_METHOD(0x00503F40, CSceneRenderer::BeginScene);
 
 int CSceneRenderer::EndScene() {
     CTextureDevice* device = device_;
-    static_cast<CTextureDevice*>(device)->FlushBatch();
-    static_cast<CTextureDevice*>(device)->FlushBatch2();
     long result = DeviceEndScene(device);
     if (result != D3DERR_SCENE_NOT_IN_SCENE && result != 0) app::FatalErrorCode(result, "Can't end scene.\n");
     mfc::CString text;

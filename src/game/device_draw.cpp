@@ -40,8 +40,6 @@ void AssignTexture(CEngineObject** slot, CEngineObject* value) {
     if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
-// The device's batched vertices flushed [004E7840, CTextureDevice::FlushBatch].
-void FlushBatch(CTextureDevice* device) { device->FlushBatch(); }
 
 struct DrawArgs {
     int primitive;
@@ -101,7 +99,6 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     CDXSurface*& bound = device->stageSurfaces_[stage];
     if (bound) {
         bound = nullptr;
-        FlushBatch(device);
         device->lastLoadResult_ = device::SetTexture(device::D3D(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
     }
@@ -168,13 +165,12 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     SetRenderState(device, D3DRENDERSTATE_DESTBLEND, savedDest);
 }
 
-// Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the batched
-// vertices are flushed, the stage's texture set (null: no holder has a DirectDraw surface; the new
+// Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the stage's
+// texture set (null: no holder has a DirectDraw surface; the new
 // renderer draws with the holder in stageSurfaces_), and the change counted.
 void BindStage0(CTextureDevice* device, CDXSurface* holder) {
     if (device->stageSurfaces_[0] == holder) return;
     device->stageSurfaces_[0] = holder;
-    FlushBatch(device);
     device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
     ++device->textureChanges_;
 }

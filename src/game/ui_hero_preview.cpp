@@ -43,12 +43,6 @@ R VirtualCall(void* object, int slot, Args... args) {
 }
 
 
-// The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
-void FlushAndRestore(UiRenderer* renderer) {
-    renderer->FlushBatchA();
-    renderer->FlushBatchB();
-}
-
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
 double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
@@ -104,7 +98,6 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     auto* model = reinterpret_cast<std::uint8_t*>(hero);
     if (!model) return;
     auto deviceOf = [this] { return interface_->renderer_; };
-    FlushAndRestore(deviceOf());
 
     // The whole depth buffer (stencil too), then the preview's rectangles to the far plane.
     {
@@ -209,6 +202,5 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     std::memcpy(model + 0x34, savedOrientation, 16);
     Set(model, 8, Get<std::uint32_t>(model, 8) & ~0x800u);
     renderer->SetColour(savedColour);
-    FlushAndRestore(deviceOf());
 }
 EI_REPLACE_METHOD(0x005EC300, CUiWindow::DrawHeroPreview);

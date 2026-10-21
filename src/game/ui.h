@@ -1117,10 +1117,6 @@ struct UiD3DDevice {
     void** vtable_;   // IDirect3DDevice7
 };
 struct UiRenderer {
-    // 004E7840 / 004E7A40 (not rewritten). Flush the two batched vertex buffers.
-    void FlushBatchA();
-    void FlushBatchB();
-
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x54 - 0x0C];

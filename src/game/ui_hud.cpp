@@ -99,8 +99,6 @@ constexpr std::uint32_t kCameraFollows = 8;
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void UiRenderer::FlushBatchA() { static_cast<CTextureDevice*>((void*)this)->FlushBatch(); }
-void UiRenderer::FlushBatchB() { static_cast<CTextureDevice*>((void*)this)->FlushBatch2(); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
 
@@ -147,18 +145,12 @@ EI_REPLACE_METHOD(0x0063C600, CHudWeaponBar::Update);
 
 BOOL CHudWeaponBar::Draw(int pass) {
     std::uint32_t alphaRef, alphaTest;
-    UiRenderer* renderer = interface_->renderer_;
-    renderer->FlushBatchA();
-    renderer->FlushBatchB();
     GetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, &alphaRef);
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, 1);
     GetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, &alphaTest);
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, 1);
     SetRenderState(interface_->renderer_->device_, kRenderStateSpecular, 1);
     DrawBase(pass);
-    renderer = interface_->renderer_;
-    renderer->FlushBatchA();
-    renderer->FlushBatchB();
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, alphaRef);
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, alphaTest);
     SetRenderState(interface_->renderer_->device_, kRenderStateSpecular, 0);

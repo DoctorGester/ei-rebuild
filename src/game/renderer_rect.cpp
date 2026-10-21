@@ -53,7 +53,6 @@ int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, 
 
     if (device->stageSurfaces_[0]) {   // no texture on stage 0
         device->stageSurfaces_[0] = nullptr;
-        static_cast<CTextureDevice*>(device)->FlushBatch();   // 004E7840: draws the batched vertices
         device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
         ++device->textureChanges_;
     }
