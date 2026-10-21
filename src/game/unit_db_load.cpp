@@ -61,11 +61,6 @@ void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, 
     archive.Destruct();
 }
 
-// A prototype table's records, typed (unit_create.h keeps them as bytes).
-UnitPrototypeRecord*& Begin(UnitPrototypeTable& table) { return reinterpret_cast<UnitPrototypeRecord*&>(table.begin); }
-UnitPrototypeRecord*& End(UnitPrototypeTable& table) { return reinterpret_cast<UnitPrototypeRecord*&>(table.end); }
-UnitNpcRecord*& Begin(NpcPrototypeTable& table) { return reinterpret_cast<UnitNpcRecord*&>(table.begin); }
-UnitNpcRecord*& End(NpcPrototypeTable& table) { return reinterpret_cast<UnitNpcRecord*&>(table.end); }
 } // namespace
 
 // --- Name lookups ---------------------------------------------------------------------------------
@@ -105,16 +100,16 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
 
     LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName);
     LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, &models, &levels, models.begin, models.end, &models.byName);
-    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, &prototypes, &levels, Begin(prototypes), End(prototypes),
+    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, &prototypes, &levels, prototypes.begin, prototypes.end,
               &prototypes.byName);
-    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName);
+    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, npcs.begin, npcs.end, &npcs.byName);
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
-    for (int i = 0; i < static_cast<int>(End(prototypes) - Begin(prototypes)); ++i) {
-        UnitModelRecord* model = models.FindByName(Begin(prototypes)[i].modelName);
+    for (int i = 0; i < static_cast<int>(prototypes.end - prototypes.begin); ++i) {
+        UnitModelRecord* model = models.FindByName(prototypes.begin[i].modelName);
         const int index = model ? static_cast<int>(model - models.begin) : -1;
         (&prototypes)->At(static_cast<std::uint32_t>(i))->modelIndex = index;
     }

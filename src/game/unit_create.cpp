@@ -49,12 +49,12 @@ using ItemList = mfc::CTypedPtrList<CItem>;
 
 // --- Prototype names --------------------------------------------------------------------------
 
-char* UnitPrototypeTable::FindByName(const char* name) {
+UnitPrototypeRecord* UnitPrototypeTable::FindByName(const char* name) {
     // The original builds the key twice (a string, then the pair it would insert) and frees both
     // afterwards; the pool sees the same allocations in the same order.
     stlp::string key(name);
     stlp::string pairKey(key);
-    char* record = byName[pairKey];
+    UnitPrototypeRecord* record = byName[pairKey];
     return record;
 }
 EI_REWRITTEN(0x00514930, UnitPrototypeTable::FindByName);

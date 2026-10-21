@@ -688,20 +688,11 @@ constexpr int kPrototypeSize = 0x120;
 constexpr int kModelSize = 0x168;
 constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
-// The unit database's tables and the skill database's vectors as record tables (begin / end; unit_db_destroy.cpp).
-const RecordTable& Prototypes();
-// Prototype record `index` of Prototypes(), or null past the end.
-inline UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
-    return reinterpret_cast<UnitPrototypeRecord*>(Prototypes().RecordAt(index, kPrototypeSize));
-}
-const RecordTable& Models();
-// Model record `index` of Models(), or null past the end.
-inline UnitModelRecord* ModelRecord(std::uint32_t index) {
-    return reinterpret_cast<UnitModelRecord*>(Models().RecordAt(index, kModelSize));
-}
-const RecordTable& Skills();
-const RecordTable& SkillLevels();
-const RecordTable& ModelLevels();   // the models' level records (007AF3B8)
+// Prototype record `index` of the unit database, or null past the end (UnitPrototypeTable::At;
+// unit_db_globals.cpp).
+UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);
+// Model record `index`, or null past the end (UnitModelAt).
+UnitModelRecord* ModelRecord(std::uint32_t index);
 // The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.
 inline constexpr int kSlotTypes = 5;
 inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15.0f, 15.0f, 15.0f};

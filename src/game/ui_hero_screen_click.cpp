@@ -6,6 +6,7 @@
 #include "ui_camp.h"
 #include "acks_db.h"
 #include "unit_create.h"
+#include "unit_db.h"   // UnitPrototypeRecord
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -431,7 +432,7 @@ void CMpHeroScreen::PlayVoice() {
     window.interface_->StopSound(voiceSound_);
     voiceSound_ = -1;
     auto* hero = Hero();
-    char* prototype;
+    UnitPrototypeRecord* prototype;
     {
         stlp::string key(static_cast<const char*>(hero->texts[6]));
         prototype = unitdb::PrototypeTable().byName.Subscript(key);
@@ -439,7 +440,7 @@ void CMpHeroScreen::PlayVoice() {
     if (!prototype) return;
     UnitSoundBank* set;
     {
-        stlp::string key(*reinterpret_cast<const char* const*>(prototype));
+        stlp::string key(static_cast<const char*>(prototype->name));
         // The sound sets (the units' acks) by name: operator[] (00619FB0) inserts a null entry for an unknown name.
         set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }

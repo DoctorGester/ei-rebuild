@@ -90,15 +90,13 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 // CUnit::SetPrototype23C, rewritten elsewhere.
 
 // The records by name (null when there is none).
-const Prototype* FindPrototype(const char* name) {
-    return reinterpret_cast<const Prototype*>(unitdb::PrototypeTable().FindByName(name));
-}
-const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(unitdb::NpcTable().FindByName(name)); }
+const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
+const Npc* FindNpc(const char* name) { return unitdb::NpcTable().FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (the original faults there).
 const Model* ModelOf(const Prototype* prototype) {
     auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
-    return reinterpret_cast<const Model*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
+    return unitdb::ModelRecord(index);
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
@@ -133,7 +131,6 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
 // from its level record (007AF3B8) and no layers; the others unused.
 void SetSlots(UnitStats* stats, const Model* model) {
-    const RecordTable& levels = unitdb::ModelLevels();
     for (int i = 0; i < 6; ++i) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
@@ -143,8 +140,7 @@ void SetSlots(UnitStats* stats, const Model* model) {
             slot.kind = 0;
             continue;
         }
-        const auto* level = reinterpret_cast<const UnitLevelRecord*>(
-            levels.RecordAt(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
+        const UnitLevelRecord* level = unitdb::ModelLevelAt(static_cast<std::uint32_t>(entry.levelIndex));
         slot.type = level->slotType;
         CopyDword(slot.share, entry.share);
         CopyDword(slot.factor, entry.factor);
@@ -184,10 +180,10 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
 // --- Name lookups -----------------------------------------------------------------------------
 
 EI_REWRITTEN(0x005144D0, UnitPrototypeTable::FindByName);
-char* NpcPrototypeTable::FindByName(const char* name) {
+UnitNpcRecord* NpcPrototypeTable::FindByName(const char* name) {
     stlp::string key(name);
     stlp::string pairKey(key);
-    char* record = byName[pairKey];
+    UnitNpcRecord* record = byName[pairKey];
     return record;
 }
 EI_REWRITTEN(0x005145D0, NpcPrototypeTable::FindByName);
@@ -530,8 +526,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
-        const auto* record = reinterpret_cast<const SkillRecord*>(
-            unitdb::Skills().RecordAt(static_cast<std::uint32_t>(skill), kSkillRecordSize));
+        const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
         char stat = static_cast<const char*>(record->statNames.begin()[0])[0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
@@ -630,12 +625,10 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
         std::memcpy(&mapObject->baseScale, &scale, sizeof(scale));
         mapObject->ApplyBaseScale();
-        static_cast<CUnit*>(object)->SetPrototype23C(reinterpret_cast<const UnitPrototypeRecord*>(prototype));
+        static_cast<CUnit*>(object)->SetPrototype23C(prototype);
     }
-    char* record = unitdb::PrototypeTable().FindByName(name);
-    object->prototypeId_ = record
-        ? static_cast<std::uint32_t>(static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize)
-        : 0xFFFFFFFFu;
+    UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
+    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
     return 1;
 }
 EI_REPLACE_METHOD(0x00513B60, UnitStatsBuilder::ApplyPrototype);

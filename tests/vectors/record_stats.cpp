@@ -210,7 +210,7 @@ std::uint16_t __fastcall MaxRecord(const std::uint16_t* damage) {
 LevelView LevelOf(std::uint32_t index) {
     LevelView v{};
     v.index = index;
-    auto* record = reinterpret_cast<const SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
+    const SkillLevelRecord* record = unitdb::SkillLevelAt(index);
     if (record) {
         v.exists = 1;
         v.value = record->values[7];
@@ -222,7 +222,7 @@ LevelView LevelOf(std::uint32_t index) {
 // The first letter of skill `index`'s first stat name, or -1 without the record or a name (the
 // original then faults or reads past the names: such calls are not recorded).
 int LetterOf(std::uint32_t index) {
-    auto* record = reinterpret_cast<const SkillRecord*>(unitdb::Skills().RecordAt(index, unitdb::kSkillSize));
+    const SkillRecord* record = unitdb::SkillAt(index);
     if (!record || record->statNames.size() == 0) return -1;
     const char* name = record->statNames.begin()[0];
     return name ? static_cast<unsigned char>(name[0]) : -1;

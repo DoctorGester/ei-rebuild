@@ -413,25 +413,25 @@ bool SameText(const char* a, const char* b) {
 } // namespace
 
 void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture) {
-    char* unit;
+    UnitPrototypeRecord* unit;
     {
         stlp::string key(prototype);
         unit = unitdb::PrototypeTable().byName.Subscript(key);   // an unknown name gets a null entry
     }
-    char* figure;
+    UnitModelRecord* figure;
     {
-        stlp::string key(Get<const char*>(unit, 4));
-        figure = reinterpret_cast<char*>(unitdb::ModelNamed(key));
+        stlp::string key(static_cast<const char*>(unit->modelName));
+        figure = unitdb::ModelNamed(key);
     }
     mfc::CString sex;
-    const char* figureModel = Get<const char*>(figure, 0xE8);
+    const char* figureModel = figure->figureName;
     const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (005ED889): the model's fifth character
     if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
         sex = "m";
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
-    model->Format("infa%sme%dface", figureModel, Get<int>(unit, 0x10) + 1);
-    texture->Format("face%s%02d", static_cast<const char*>(sex), Get<int>(unit, 0x0C));
+    model->Format("infa%sme%dface", figureModel, unit->hair + 1);
+    texture->Format("face%s%02d", static_cast<const char*>(sex), unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {

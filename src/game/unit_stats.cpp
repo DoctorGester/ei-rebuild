@@ -36,7 +36,7 @@ float FactorStatRange() { return ei::GameData<const float>(kFactorStatRange); }
 
 // The skill level record `index`, or null when there is none.
 const SkillLevelRecord* LevelRecord(std::uint32_t index) {
-    return reinterpret_cast<const SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
+    return unitdb::SkillLevelAt(index);
 }
 
 } // namespace
@@ -69,7 +69,7 @@ EI_REPLACE_METHOD(0x00527030, UnitStats::SkillBase);
 double UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(skills[index]);
     // The first letter of the skill's first stat name picks the stat; a missing record faults.
-    auto* skillRecord = reinterpret_cast<const SkillRecord*>(unitdb::Skills().RecordAt(index, unitdb::kSkillSize));
+    const SkillRecord* skillRecord = unitdb::SkillAt(index);
     const char* name = skillRecord->statNames.begin()[0];
     switch (*name) {
     case 'd': return (stat18 - kStatBase) + skill;
