@@ -468,6 +468,14 @@ model = "sonnet"
 files = ["src/render/render_blit.cpp src/render/render_window.cpp"]
 note = "SV10 profile (render_stats, image): the verify build's CheckUpload (render_blit.cpp: every cursor / fill / movie image upload read back from the GPU and compared, with ReadPassState) is ~3% of the main thread, a GPU stall each time; the gamma ramp check reads the presented frame back after each ramp change. Check the first N uploads of each kind and then every 16th (and every one in scenarios that ask, e.g. render_* ones), so a mismatch still shows within a run. No golden reads them (the digest is game state, captures read the frame through their own path); keep the log's counts. Gain ~3% of draw-heavy runs."
 
+[[ticket]]
+id = "R16j3"
+title = "Shadow map: darkness where shadows overlap, and point lights (campfire) against the classic decals"
+group = "renderer"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "Found in R16j1 (renderer.md section 13 item 10): no caster is missing; the user's 'missing' ruin and fern shadows are classic-decal effects. (1) Classic decals stack: overlapping objects each darken by half, the dirt under the fight's ruin is at 21% of its lit brightness classic and 43% with the map (kStrength 0.5, one sun). Options: a darker kStrength, or ambient-occlusion-like extra darkening where the map's blocker is close; show the user. (2) The classic direction sums the sun and the point lights in reach (0051CE60 LightDirection), so near the town's campfire shadows point away from the fire; the map has the sun only. Options: per point light a small cube or spot map for the strongest one or two lights near the camera (R16i territory), or leave. Wants the user's call; crops in build/R16j1. User 2026-10-21 on (1): 'Color-wise shadows looked about the same I think?' - keep kStrength 0.5, no extra darkening where shadows overlap. What is left is (2), point lights, which goes with R16i (GPU lighting)."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

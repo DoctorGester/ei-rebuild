@@ -142,3 +142,4 @@ table.history .gamescroll table.games { min-width: 520px }
 .failtoggle { font-size: 12px }
 .rowtoggle::after { content: ' \25B8'; display: inline-block; transition: transform .15s }
 .rowtoggle[aria-expanded="true"]::after { transform: rotate(90deg) }
+.diffstat { font-size: 12px } .diffstat .add { color: var(--good) } .diffstat .del { color: var(--watch) }
