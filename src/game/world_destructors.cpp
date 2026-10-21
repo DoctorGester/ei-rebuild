@@ -22,6 +22,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
@@ -138,7 +139,7 @@ void CWorld::Destruct() {
     ei::SetVtable(this, kBaseVtableAddress);
     DestroyManagers();
     auto* countdowns = &countdowns_;
-    countdowns->vtable = ei::GamePointer<void>(kCountdownsVtable);
+    countdowns->vtable = mfc::impl::CountdownArrayClass::Vtable();
     countdowns->FreeData();
     reinterpret_cast<RefPtr*>(&netSession_)->Destroy();
     shared5C_.Destroy();

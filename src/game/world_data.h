@@ -181,7 +181,6 @@ stlp::NameMap& QuestBriefings();   // database_globals.cpp
 // (0073BE80), CList of experience shares (0073FAB0), CArray of unit record pointers (0073FAA4).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
 constexpr std::uintptr_t kShareListVtable = std::uintptr_t(0x0073FAB0);
-constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073FAA4);
 
 // ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }

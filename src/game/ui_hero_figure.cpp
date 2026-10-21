@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstdint>
 
@@ -22,7 +23,7 @@ namespace {
 
 const char* const kHeroName = "Hero";
 // CArray<record*> (the party's records handed to the client world).
-void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
+void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;

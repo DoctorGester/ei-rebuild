@@ -33,6 +33,7 @@
 #include "originals_core.h"
 #include "originals_ai.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <new>
@@ -41,13 +42,10 @@ namespace {
 using ei::SetVtable;
 
 // Vtables.
-constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
-constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 // The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
 constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
 constexpr std::uintptr_t kParticleArrayVtable = std::uintptr_t(0x0073DC48);
-constexpr std::uintptr_t kSoundArrayVtable = std::uintptr_t(0x0073DC3C);
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
 constexpr std::uintptr_t kServerArrayVtable = std::uintptr_t(0x0073EF2C);
@@ -106,6 +104,11 @@ void DestroyArray(Array& array, std::uintptr_t vtable) {
     SetVtable(&array, vtable);
     if (array.data) gamecrt::operator_delete(array.data);
 }
+template <typename Array>
+void DestroyArray(Array& array, void* vtable) {
+    SetVtable(&array, vtable);
+    if (array.data) gamecrt::operator_delete(array.data);
+}
 void DestroyArray(AnimationSteps& array, std::uintptr_t vtable) {
     SetVtable(&array, vtable);
     if (array.steps) gamecrt::operator_delete(array.steps);
@@ -143,7 +146,7 @@ void CObject3D::SetUpObject3D() {
     figure = nullptr;
     partNames.Construct();
     std::memset(&boundsFlags, 0, 0xE * 4);
-    partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
+    partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
     partBoxes = nullptr;
     partBoxGrowBy = 0;
     partBoxCapacity = 0;
@@ -173,7 +176,7 @@ CObject3D::~CObject3D() { TearDownObject3D(); }
 
 void CObject3D::TearDownObject3D() {
     Destroy3D();
-    partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
+    partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     partNames.Destruct();
     if (CLinkMesh* current = figure) {
@@ -206,7 +209,7 @@ EI_REWRITTEN(0x0050E2D0, CMapObject::Construct);
 CMapObject::CMapObject() { SetUpMapObject(); }
 
 void CMapObject::SetUpMapObject() {
-    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
+    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
     effects = nullptr;
     effectGrowBy = 0;
     effectCapacity = 0;
@@ -243,7 +246,7 @@ void CMapObject::DestructBody() {
     SetVtable(this, CMapObject::kVtableAddress);
     TearDownMapObject();
     name2.~CString();
-    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
+    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
     if (effects) gamecrt::operator_delete(effects);
     CObject3D::DestructBody();   // 00515D70
 }
@@ -252,7 +255,7 @@ void CMapObject::DestructBody() {
 // object.
 CMapObject::~CMapObject() {
     TearDownMapObject();
-    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
+    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
     if (effects) gamecrt::operator_delete(effects);
 }
 
@@ -418,7 +421,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     particles.growBy = 0;
     particles.maxSize = 0;
     particles.size = 0;
-    SetVtable(&sounds, kSoundArrayVtable);
+    SetVtable(&sounds, mfc::impl::EffectSoundArrayClass::Vtable());
     sounds.data = nullptr;
     sounds.growBy = 0;
     sounds.maxSize = 0;
@@ -452,7 +455,7 @@ void CMapObjectClientSpecific::DestructBody() {
     }
     owner = nullptr;
     if (light) light->Release();
-    DestroyArray(sounds, kSoundArrayVtable);
+    DestroyArray(sounds, mfc::impl::EffectSoundArrayClass::Vtable());
     SetVtable(&particles, kParticleArrayVtable);
     if (EffectParticle* data = particles.data) {
         for (int i = 0; i < particles.size; ++i)

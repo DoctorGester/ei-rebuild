@@ -35,6 +35,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <d3d.h>
 
@@ -809,7 +810,7 @@ void CCampPages::Close() {
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
-    RecordPtrArray records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
+    RecordPtrArray records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
     auto* player = LocalPlayerData();
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
@@ -842,7 +843,7 @@ void CCampPages::Close() {
         delete static_cast<CEngineObject*>(*list);   // slot 0 with 1, when the re-read field is set
     }
     // The record array's destructor.
-    records.vtable = ei::GamePointer<void>(0x0073FAA4);
+    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x0060E6B0, CCampPages::Close);

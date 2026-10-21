@@ -293,7 +293,6 @@ public:
     CWorld* DeletingDestruct(unsigned flags);
 
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
-    static constexpr std::uintptr_t kCountdownsVtable = std::uintptr_t(0x0073F234);
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20

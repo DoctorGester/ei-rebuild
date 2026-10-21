@@ -50,7 +50,10 @@ vtable,slots,class,file,note
 0073DA4C,13,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DA80,3,AnimationStateListClass,src/lib/mfc_slots.h,CList (an animation state's queue)
 0073DB94,3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
+0073DBA0,3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
+0073DC3C,3,EffectSoundArrayClass,src/lib/mfc_slots.h,CArray (a map object's effect sounds)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
+0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)
@@ -71,7 +74,10 @@ vtable,slots,class,file,note
 0073EB9C,3,MotionPointsClass,src/lib/mfc_slots.h,CArray (a unit motion's points; derived from 0073EBA8)
 0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
+0073EBD4,3,IdArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> of quest item ids (world_party))
+0073EEA0,3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
 0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
+0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
@@ -86,12 +92,14 @@ vtable,slots,class,file,note
 0073F7F8,42,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
+0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
 0073FB88,26,CFigureManager,src/game/figure_manager.h,
 0073FBF0,22,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
+0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007432E0,7,CMappedResource,src/game/resource.h,

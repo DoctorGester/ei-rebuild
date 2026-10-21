@@ -197,6 +197,9 @@ protected:
     CompiledCollection& operator=(const CompiledCollection&) = delete;
 };
 
+using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
+using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
@@ -242,15 +245,15 @@ struct ArgGroupsClass final : ArgGroupsBaseClass {
 // A script command's bindings.
 struct BindingsBaseClass
     : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
-struct EffectArrayClass {   // a map object's effects
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DBA0); }
-};
-struct EffectSoundArrayClass {   // a map object's effect sounds
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DC3C); }
-};
-struct FrameArrayClass {   // a 3D object's frames
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DE40); }
-};
+// A map object's effects.
+struct EffectArrayClass final
+    : CompiledCollection<EffectArrayClass, &ArrayHeader<EffectArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+// A map object's effect sounds.
+struct EffectSoundArrayClass final
+    : CompiledCollection<EffectSoundArrayClass, &ArrayHeader<EffectSoundArrayClass>::Destruct, &SerializeCArray<SoundRecords>> {};
+// A 3D object's frames.
+struct FrameArrayClass final
+    : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &SerializeCArray<Plain56>> {};
 // A unit's motion (UnitMotion's points and waypoints): the arrays the unit's constructor builds are derived
 // instantiations of the ones they are destroyed as (game.exe's 0073EB9C / 0073EB90 over 0073EBA8 / 0073EBB4).
 struct MotionPointArrayClass
@@ -266,27 +269,27 @@ struct MotionWaypointArrayClass final : MotionWaypointBaseClass {
 // A unit's carried objects (CUnit +0x49C).
 struct CarriedArrayClass final
     : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
-struct IdArrayClass {   // CArray<int> of quest item ids (world_party)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EBD4); }
-};
-struct SkinLayerArrayClass {   // a unit's skin layers (ComposeSkin)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EEA0); }
-};
-struct CountdownArrayClass {   // the world's countdowns
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F234); }
-};
-struct PartyUnitArrayClass {   // the server's and interface's party unit arrays
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAA4); }
-};
+// CArray<int> of quest item ids (world_party).
+struct IdArrayClass final
+    : CompiledCollection<IdArrayClass, &ArrayHeader<IdArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A unit's skin layers (ComposeSkin).
+struct SkinLayerArrayClass final
+    : CompiledCollection<SkinLayerArrayClass, &ArrayHeader<SkinLayerArrayClass>::Destruct, &SerializeCArray<PathRecords>> {};
+// The world's countdowns.
+struct CountdownArrayClass final
+    : CompiledCollection<CountdownArrayClass, &ArrayHeader<CountdownArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+// The server's and interface's party unit arrays.
+struct PartyUnitArrayClass final
+    : CompiledCollection<PartyUnitArrayClass, &ArrayHeader<PartyUnitArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
 struct SectorOccluderArrayClass {   // a sector's occluders
     static void* Vtable() { return ei::GamePointer<void>(0x0073FAE0); }
 };
 struct SectorCellArrayClass {   // constructed by 005C18C0
     static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
 };
-struct SpiralCellArrayClass {   // the sector spiral's cells
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FDE0); }
-};
+// The sector spiral's cells.
+struct SpiralCellArrayClass final
+    : CompiledCollection<SpiralCellArrayClass, &ArrayHeader<SpiralCellArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
 struct SmoothRowArrayClass {   // the path smoothing tables' rows
     static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
 };
@@ -480,9 +483,6 @@ inline void InitAttention12(Attention12* p) {
 }
 using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 using List30 = ListAbi<Bytes<0x30>>;
-
-using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
-using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
 // A map trap record's areas (12-byte elements; the magic trap's circles).
 struct TrapAreasArrayClass final : TrapCircleArrayClass {

@@ -34,6 +34,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 #include <algorithm>
 #include <cmath>
@@ -44,7 +45,7 @@ namespace {
 float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 void** ScreenInputVtable() { return ei::GamePointer<void*>(0x00741154); }
-void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
+void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 const char* SaveLoadTexture() { return "saveload"; }
 const char* DefaultAllod() { return "gipat"; }

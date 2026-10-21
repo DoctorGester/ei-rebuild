@@ -35,6 +35,7 @@
 #include "originals_engine.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 
@@ -558,7 +559,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         party->AddItem(node->data, 1, 1);
         node = next;
     }
-    RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
@@ -566,7 +567,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
     }
-    list.vtable = ei::GamePointer<void>(worlddata::kRecordArrayVtable);
+    list.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
@@ -658,7 +659,7 @@ void CWorldServer::CollectParty(CPlayer* player, void* placements) {
     }
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
-    RecordPtrArray list{ei::GamePointer<void>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
     for (int i = 0; i < player->Party()->members_.size; ++i) {
@@ -677,7 +678,7 @@ void CWorldServer::CollectParty(CPlayer* player, void* placements) {
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
     StoreParty(&list, PartyOf(player), placements);
-    list.vtable = ei::GamePointer<void>(worlddata::kRecordArrayVtable);
+    list.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (list.data) gamecrt::operator_delete(list.data);
 }
 

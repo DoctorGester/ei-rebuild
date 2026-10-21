@@ -31,6 +31,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -40,8 +41,8 @@ float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 const void* NoRotation() { return ei::GamePointer<const void>(0x007C2DE0); }           // 16 bytes: the identity rotation
 void* PtrListVtable() { return ei::GamePointer<void>(0x0073BE80); }                    // the item lists' CPtrList
-void* IdArrayVtable() { return ei::GamePointer<void>(0x0073EBD4); }                    // CArray<int>
-void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }                // the record pointers' CArray
+void* IdArrayVtable() { return mfc::impl::IdArrayClass::Vtable(); }   // CArray<int>
+void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // the record pointers' CArray
 
 constexpr int kClassQuestItem = 0x14;
 constexpr int kKindSinglePlayer = 1;

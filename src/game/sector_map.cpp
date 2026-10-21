@@ -9,6 +9,7 @@
 #include "game_data.h"
 #include "ei/vcall.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 
@@ -231,7 +232,6 @@ constexpr int kSpiralReach = 10;                                    // sectors e
 constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
 constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
 // The vtables of the builder's own arrays: the cells (CArray of 8-byte records) and the radii.
-constexpr std::uintptr_t kSpiralCellArrayVtable = std::uintptr_t(0x0073FDE0);
 constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);
 
 // A sector of the square and how far it is: the gap between the sectors, in sectors.
@@ -256,7 +256,7 @@ int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
 
 void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets) {
     mfc::CArray<SpiralCell> cells;
-    cells.Construct(kSpiralCellArrayVtable);
+    cells.Construct(mfc::impl::SpiralCellArrayClass::Vtable());
     cells.SetSize(kSpiralCells, -1);
     offsets->SetSize(kSpiralCells, -1);
     int filled = 0;

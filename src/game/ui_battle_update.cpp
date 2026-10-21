@@ -40,6 +40,7 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_slots.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -340,8 +341,8 @@ void CBattleScreen::Update() {
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
-        mfc::CArray<std::uint8_t*> records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
-        mfc::CArray<std::uint8_t*> second = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
             records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
@@ -352,9 +353,9 @@ void CBattleScreen::Update() {
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
         }
-        second.vtable = ei::GamePointer<void>(0x0073FAA4);
+        second.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
         if (second.data) gamecrt::operator_delete(second.data);
-        records.vtable = ei::GamePointer<void>(0x0073FAA4);
+        records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
         if (records.data) gamecrt::operator_delete(records.data);
     }
 
