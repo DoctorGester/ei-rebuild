@@ -370,7 +370,7 @@ size = 1
 model = "opus"
 depends = ["R16", "R16b"]
 files = ["src/render/render_mesh.cpp", "src/game/world_client_decals.cpp", "src/game/device_shadow.cpp"]
-note = "docs/notes/renderer.md section 13, item 5. Decals are clipped onto the ground on the CPU (ProjectDecal 0056C750) and handed over as flat meshes every frame (12-32, up to 344 KB in the town). Draw a box per decal projecting onto the depth of ground and platforms instead; the game keeps its lists, lifetimes and textures. Changes the look slightly at slopes and platform edges: show the user side-by-side frames (frame_preview.py). Check: ground_prints, render_scene, effects at 16 / 2%. Object shadows leave this ticket when R16j lands (they become shadow-map shadows); the other decals stay."
+note = "Measured, not built (renderer.md section 13 item 5). renderstats' decal timers (render_stats, vanilla 4K, ms a frame): shadow projections zone1 0.34 / fight 0.60 / town 0.48-0.63, print projections 0-0.013 (a print is projected once), flat draws of shadow decals 0.065 / 0.072 / 0.17-0.21, of prints and markers 0-0.06, shadow builds (raster, blur, copy) 0.31 / 0.73 / 1.15-1.30; classic adds 94-288 KB of decal hand-over, +0.02-0.06 ms. A GPU decal path takes under 0.07 ms in the default look (prints, markers), at most about 0.3 ms classic; the shadows' projection stays (its bounds are the shadow sphere ShadowInView 0051E300 reads). The real cost is the classic shadow build running with the shadow map: 0.72 / 1.40 / 2.1 ms a frame: follow-ups R16e1 (exact) and R16e2 (user's call)."
 
 [[ticket]]
 id = "R16f"
@@ -484,6 +484,25 @@ size = 1
 model = "opus"
 files = ["src/game/device_mesh.cpp src/game/device_draw.cpp"]
 note = "Found by R16h (profile of render_stats, image): DrawMesh 004E9010 / 004E9A50 (device_mesh.cpp) still fills a TL vertex per corner (FillCorners), clips meshes crossing the view (ClipTriangles, ToScreenClipped), fogs them (FogVertices) and submits them for every pass, though the new renderer draws every pass from the model-space hand-over (MeshPass takes it; the old path draws nothing). Game code reads only the projection's verdict and, with draw flag 1, the screen rectangle (BoundsOfProjected; for a crossing mesh BoundsOfVertices of the clipped vertices: keep the clip for flag 1 only), and the device's counters (vertexCount_, primitiveCount_, drawCount_). Skip the rest when render::Active(), keeping the passes' hand-over (DrawIndexed per pass with the same counts). Measure first: render_stats' fight and town main-thread CPU per frame (renderstats' new field) with and without. Check: goldens (picking reads the rectangles), render_scene / models / units samecapture A/B at 8 / 0.1%."
+
+[[ticket]]
+id = "R16e1"
+title = "With the shadow map, skip the classic shadow's raster, blur, texture copy and decal draw (read by nothing)"
+group = "renderer"
+size = 0.5
+model = "opus"
+files = ["src/game/map_object_shadow.cpp", "src/render/render_shadows.cpp"]
+note = "Found by R16e (renderer.md section 13 item 5). With the shadow map (the default) DrawShadow 0051CE60 still builds the classic shadow every frame for moving objects: RenderShadow rasterises the parts into the 64 x 64 texture (CLinkMesh::RasterisePartImpl / RasteriseFigureMesh, BlurShadow / BlurShadow2, the lock and copy into the render surface, LoadPixelsFrom, render::TexturePixels), and DrawFlatBlocks 004EA4A0 projects and clips the decal, which BeginMesh then drops. With the map the game reads only the parts' points in the light's view (self->bounds: the quad), the projected decal (ProjectDecal: the sphere ShadowInView 0051E300 tests, vertices.size) and nothing of the texture. Skip the raster, blur, copy and the decal's flat draw when the new renderer is active and the shadows are the map's; keep the points, bounds, quad, projection and sphere (the same game state). A switch to classic must build every shadow again (kFlagRefresh on each, or a stale mark: objects with flags 0x600 are not rebuilt every frame). Gain (R16e, render_stats vanilla 4K, renderstats 'shadow builds' + 'flat draws: shadows'): zone1 0.31 + 0.065, fight 0.73 + 0.072, town 1.15-1.30 + 0.17-0.21 ms a frame (part of the build is the points' projection, which stays). Check: those timers before / after, render_shadows (classic captured after the map: rebuilt textures; classic against remade at 8 / 0.5%), render_options_shadows, goldens 0 differ."
+
+[[ticket]]
+id = "R16e2"
+title = "With the shadow map, the shadow sphere from the decal's box: no shadow projection (needs the user's call)"
+group = "renderer"
+size = 0.5
+model = "opus"
+depends = ["R16e1"]
+files = ["src/game/map_object_shadow.cpp", "src/game/world_client_decals.cpp"]
+note = "Found by R16e (renderer.md section 13 item 5). With the shadow map the object shadows' ProjectDecal 0056C750 (0.34 / 0.60 / 0.48-0.63 ms a frame in zone1 / the fight / the town, render_stats vanilla 4K) is read only for its mesh's bounds: the shadow's sphere (FitBounds in RenderShadow), which ShadowInView 0051E300 tests for objects out of view (CollectVisible 0056A990 then lists them for shadows and updates their pose) and vertices.size (DrawShadow's early return). A sphere around the decal's prism (the quad through the plane at the point minus depth * 0.33, clamped to the terrain's and platforms' heights under it) is conservative: more objects out of view listed for shadows (more casters in the map, which also helps the open 'casters off screen cast nothing'), more pose updates. Changes the shadow lists, so it waits for the user's call; check goldens 0 differ, render_shadows, renderstats' shadow projections gone with the map."
 
 # ---------------------------------------------------------------- native interface drawing
 

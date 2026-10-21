@@ -138,6 +138,15 @@ struct FrameStats {
     // R16k: the old device path's mesh draws (004E9010 / 004E9A50: projection, corners, clipping,
     // passes; DeviceMeshTimer), the hand-over in them left out.
     double deviceMeshMs = 0.0;
+    // R16e: the ground decals' projection onto the ground and platforms (ProjectDecal 0056C750) for the
+    // object shadows and for the ground prints, with its calls and the vertices it made; the device's
+    // flat draws (004EA4A0: projection, clipping, passes; the hand-over in them left out) of the object
+    // shadows' decals and of the rest (prints, selection markers), with their vertices; and the
+    // object shadow's build around its projection (RenderShadow in 0051CE60: the parts' points, the
+    // 64 x 64 raster, its blur and the texture's copy).
+    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatShadowMs = 0.0, flatOtherMs = 0.0, shadowBuildMs = 0.0;
+    std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
+    std::uint64_t flatShadowDraws = 0, flatOtherDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
     // gpuFrames) of the shadow pass and of the whole frame's passes.
@@ -166,6 +175,15 @@ void SetMeshCornersFull(bool full);
 // Harness build: times one device mesh draw into FrameStats::deviceMeshMs (nothing elsewhere).
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
+// Harness build: times one decal projection (0056C750; `shadow`: an object shadow's, else a ground
+// print's), one flat draw (004EA4A0; an object shadow's decal when ClassicShadowDecal announced it) and
+// one object shadow build (RenderShadow) into FrameStats, counting them with the vertices made / drawn.
+void BeginDecalTime(bool shadow);
+void EndDecalTime(int vertices);
+void BeginFlatDrawTime(int vertices);
+void EndFlatDrawTime();
+void BeginShadowBuildTime();
+void EndShadowBuildTime();
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
 // movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns

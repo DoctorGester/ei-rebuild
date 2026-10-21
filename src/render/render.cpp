@@ -742,6 +742,71 @@ void EndDeviceMeshTime() {
     g_deviceMeshTiming = false;
 #endif
 }
+namespace {
+#if defined(EI_RENDER_VALIDATION)
+// A timer of the given kind made in place (they do not nest with their own kind).
+struct GameTimer {
+    alignas(detail::StatsTimer) unsigned char storage[sizeof(detail::StatsTimer)];
+    bool running = false;
+    void Begin(double FrameStats::* field) {
+        if (running) return;
+        new (storage) detail::StatsTimer(field);
+        running = true;
+    }
+    bool End() {
+        if (!running) return false;
+        std::launder(reinterpret_cast<detail::StatsTimer*>(storage))->~StatsTimer();
+        running = false;
+        return true;
+    }
+};
+GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
+#endif
+} // namespace
+void BeginDecalTime(bool shadow) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_decalTimer.running) return;
+    ++(shadow ? detail::Stats().decalShadows : detail::Stats().decalPrints);
+    g_decalTimer.Begin(shadow ? &FrameStats::decalShadowMs : &FrameStats::decalPrintMs);
+#else
+    (void)shadow;
+#endif
+}
+void EndDecalTime(int vertices) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_decalTimer.End()) detail::Stats().decalVertices += static_cast<std::uint64_t>(vertices);
+#else
+    (void)vertices;
+#endif
+}
+void BeginFlatDrawTime(int vertices) {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_flatDrawTimer.running) return;
+    bool shadow = detail::ClassicDecalPending();
+    ++(shadow ? detail::Stats().flatShadowDraws : detail::Stats().flatOtherDraws);
+    detail::Stats().flatDrawVertices += static_cast<std::uint64_t>(vertices);
+    g_flatDrawTimer.Begin(shadow ? &FrameStats::flatShadowMs : &FrameStats::flatOtherMs);
+#else
+    (void)vertices;
+#endif
+}
+void EndFlatDrawTime() {
+#if defined(EI_RENDER_VALIDATION)
+    g_flatDrawTimer.End();
+#endif
+}
+void BeginShadowBuildTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_shadowBuildTimer.running) return;
+    ++detail::Stats().shadowBuilds;
+    g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
+#endif
+}
+void EndShadowBuildTime() {
+#if defined(EI_RENDER_VALIDATION)
+    g_shadowBuildTimer.End();
+#endif
+}
 bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
 void SetMeshCornersFull(bool full) {
 #if defined(EI_RENDER_VALIDATION)
@@ -870,7 +935,9 @@ void AddFrameStats() {
                        &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
                        &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
                        &FrameStats::textureChanges, &FrameStats::comparedBytes, &FrameStats::morphMeshes,
-                       &FrameStats::morphCorners})
+                       &FrameStats::morphCorners, &FrameStats::decalShadows, &FrameStats::decalPrints,
+                       &FrameStats::decalVertices, &FrameStats::flatShadowDraws, &FrameStats::flatOtherDraws,
+                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
         s.*field += f.*field;
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];
@@ -889,6 +956,9 @@ void AddFrameStats() {
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
     s.deviceMeshMs += f.deviceMeshMs;
+    for (auto field : {&FrameStats::decalShadowMs, &FrameStats::decalPrintMs, &FrameStats::flatShadowMs,
+                       &FrameStats::flatOtherMs, &FrameStats::shadowBuildMs})
+        s.*field += f.*field;
     s.shadowDraws += f.shadowDraws;
     s.shadowMs += f.shadowMs;
     s.gpuFrames += f.gpuFrames;

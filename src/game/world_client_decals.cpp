@@ -15,6 +15,7 @@
 #include "terrain.h"
 
 #include "ei/hook.h"
+#include "render/render.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -101,6 +102,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                                 VertexPacket* const* corners, lib::AlignedArray<VertexPacket>* points,
                                 lib::AlignedArray<DecalTexCoord>* texCoords, lib::AlignedArray<std::uint16_t>* indices,
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
+    render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = Builder();
     if (!(Guards() & 1)) {
         Guards() |= 1;
@@ -148,5 +150,6 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
         }
     }
     builder.Finish();
+    render::EndDecalTime(points->size * 4);
 }
 EI_REPLACE_METHOD(0x0056C750, CWorldClient::ProjectDecal);

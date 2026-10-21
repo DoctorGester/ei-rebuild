@@ -139,8 +139,10 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
 int CTextureDevice::DrawFlatBlocks(const void* positions, const char* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
                               const ClipBounds* bounds, float zScale) {
+    render::BeginFlatDrawTime(blocks * 4);
     int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular, bounds, zScale);
     render::EndMesh();
+    render::EndFlatDrawTime();
     return result;
 }
 EI_REPLACE_METHOD(0x004EA4A0, CTextureDevice::DrawFlatBlocks);

@@ -460,6 +460,8 @@ void DestroyShadows();
 // ShadowFrameDone: the frame is presented (ShadowState reports it).
 const void* CurrentCaster();
 bool DropClassicDecal();
+// Whether ClassicShadowDecal announced the flat mesh being drawn (either shadow look).
+bool ClassicDecalPending();
 void EndClassicDecal();
 void ShadowFrameEnd();
 void ShadowFrameDone();
