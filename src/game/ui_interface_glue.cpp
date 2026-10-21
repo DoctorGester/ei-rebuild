@@ -7,6 +7,7 @@
 #include "console.h"
 #include "sound.h"
 #include "text_split.h"
+#include "ui_native.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -70,6 +71,7 @@ void CInterface3D::ShowFps(int on) {
     fpsSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom,
                                                                       kFpsFormat, 1)
                          : nullptr;
+    ui_native::Adopt(fpsSurface_, "fps");
 }
 EI_REPLACE_METHOD(0x005F5700, CInterface3D::ShowFps);
 
@@ -142,6 +144,7 @@ void CInterface3D::ShowStatusText(const char* text) {
                                                                          kStatusFormat, 1)
                             : nullptr;
     if (!statusSurface_) return;
+    ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
     SurfaceClearOriginal(statusSurface_);
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};

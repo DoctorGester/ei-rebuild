@@ -5,6 +5,7 @@
 // InterfaceTextExtentOriginal). See docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "ui_gdi.h"
+#include "ui_native.h"
 #include "ui_widescreen.h"
 
 #include "ei/hook.h"
@@ -39,10 +40,14 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     }
     void* oldFont = dc->SelectFont(interface_->fonts_[font]);
     dc->SetBkMode(TRANSPARENT);
+    // Where the text lands: DrawText clips to its rectangle (and draws nothing for DT_CALCRECT).
+    RECT inked = frame;
     if (shadow) {
         dc->SetTextColor(kShadowColour);
         RECT shifted = frame;
         gameapi::OffsetRect(&shifted, 1, 1);
+        ++inked.right;   // with the shadow's rectangle, one pixel lower and to the right
+        ++inked.bottom;
         RECT drawn = shifted;
         dc->DrawText(text, -1, &drawn, format);
     }
@@ -51,6 +56,8 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     POINT extent{0, 0};
     extent.y = dc->DrawText(text, -1, &frame, format);
     dc->SelectFont(oldFont);
+    // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
+    if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
     InterfacePointFromScreenCopyOriginal(interface_, nullptr, &extent);
     return extent.y;
 }

@@ -10,6 +10,7 @@
 
 #include "texture.h"
 #include "ui.h"
+#include "ui_native.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -56,6 +57,7 @@ ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
     dc = nullptr;
+    ui_native::Sync(surface);   // GDI draws over the memory: a native surface's canvas read back when it is ahead
     gameapi::EnterCriticalSection(TheDeviceLock());
     HBITMAP bitmap = ClientBitmap(holder);
     if (bitmap) dc = CreateCompatibleDC(nullptr);

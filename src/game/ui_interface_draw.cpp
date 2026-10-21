@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "model.h"
 #include "texture.h"
+#include "ui_native.h"
 #include "ui_widescreen.h"
 
 #include "ei/hook.h"
@@ -85,6 +86,7 @@ void MakeBackdrop(CInterface3D* ui) {
     } else {
         ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 800, 600, 4, 1) : nullptr;
     }
+    ui_native::Adopt(ui->backdrop_, "backdrop");
 }
 
 } // namespace

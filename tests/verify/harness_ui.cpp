@@ -238,6 +238,7 @@ void Mirror(const std::unordered_map<const void*, std::string>& names) {
     for (auto it = g_fed.begin(); it != g_fed.end();)
         it = ui::HasCanvas(it->first) && names.count(it->first) ? std::next(it) : g_fed.erase(it);
     for (const auto& [holder, name] : names) {
+        if (ui::HasCanvas(holder) && !g_fed.count(holder)) continue;   // a native surface's (src/game/ui_native.h)
         const render::SurfaceMemory* m = render::SurfaceMemoryOf(holder);
         if (!Readable(m) || !ui::Canvas(holder, m->width, m->height, FormatOf(*m))) continue;
         const std::uint64_t hash = HashMemory(*m);

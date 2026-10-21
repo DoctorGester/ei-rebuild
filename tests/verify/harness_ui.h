@@ -25,7 +25,7 @@
 //   uidiffcheck <least> [most]
 //                             require the surface checks that differed since the last uidiffcheck to number
 //                             <least>..<most> (default: exactly <least>); they no longer fail the run
-//   uimirror on|off           (before P1 there is nothing native: the harness's own proof) every named surface
+//   uimirror on|off           (the harness's own proof) every named surface that is not native (src/game/ui_native.h)
 //                             gets a canvas fed from its memory (render::ui::Image) whenever the memory changes
 //   uifault                   a 4x4 magenta square drawn on one mirrored canvas: the next check must find it
 
