@@ -8,6 +8,9 @@
   - Each address is where it belongs: stores, fills, float results and guards in .data (or its
     zero-filled tail), float and double operands in .rdata (or .data, an earlier fold's result), call targets and exit functions in .text,
     import slots in the import address table.
+  - A float fold of .rdata literals (tagged, tools/rdata_literals.py; S18e1) gives the same float
+    whether it is computed as the original does (x87 order, 53 bits) or as the compiler may fold it
+    (C++ precedence, in double or in float).
   - src/standalone/static_exit.cpp (the exit functions no rewrite registers) is what their instructions
     decode to now, its addresses are where they belong (as above), and src/hook/function_sizes.inc and
     config/extra_function_sizes.csv give each exit function its decoded size.
@@ -15,10 +18,11 @@
 usage: python tools/check_static_init.py [--exe game.exe]
 exit code 1 on any problem
 """
-import argparse, os, re, sys
+import argparse, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_static_init as gen  # noqa: E402
+import rdata_literals as rdata  # noqa: E402
 
 BLOCK = re.compile(r'^    // ([0-9A-F]{8}): [^\n]*\n    d\.Begin\(0x([0-9A-F]{8})\);\n((?:    (?!// )[^\n]*\n)*)', re.M)
 WHERE = [   # (pattern, which group holds an address, sections it may be in)
@@ -29,6 +33,60 @@ WHERE = [   # (pattern, which group holds an address, sections it may be in)
     (re.compile(r'd\.Thiscall\(0x[0-9A-F]{8}, (0x[0-9A-F]{8})'), ('.data',)),
 ]
 IMPORT = re.compile(r'd\.Import\((0x[0-9A-F]{8})')
+FOLD = re.compile(r'd\.StoreFloat\((0x[0-9A-F]{8}), (.*)\);')
+FOLD_TOKEN = re.compile(rdata.TAG.pattern + r'|d\.(?:Float|Double|Log)\(|([-+*/])')
+
+
+def f32(v):
+    return struct.unpack('<f', struct.pack('<f', v))[0]
+
+
+def fold_problems(img, body, initialiser):
+    """A float fold of literals (S18e1) is folded by the compiler: in C++ precedence, at whatever
+    precision. The original computes it in x87 order at 53 bits (VC6's _FPinit, 006EEF7C:
+    _controlfp(_PC_53, _MCW_PC) before _initterm) and stores a float. Each fold must give the same
+    float in x87 order at 53 bits, in C++ order at 53 bits and in C++ order rounding to float."""
+    out = []
+    for m in FOLD.finditer(body):
+        values, ops = [], []
+        for t in FOLD_TOKEN.finditer(m.group(2)):
+            if t.group(4):
+                ops.append(t.group(4))
+                continue
+            if t.group(2) is None:
+                break   # a read or ln: computed at run time
+            size = 4 if t.group(3) or t.group(1).rstrip(')').endswith(('f', 'F')) else 8
+            values.append(struct.unpack('<f' if size == 4 else '<d', img.read(int(t.group(2), 16), size))[0])
+        else:
+            if len(values) != len(ops) + 1:
+                out.append(f'{initialiser:08X}: {m.group(0)}: not a fold of literals')
+                continue
+
+            def x87(rnd):
+                r = values[0]
+                for op, v in zip(ops, values[1:]):
+                    r = rnd({'+': r + v, '-': r - v, '*': r * v, '/': r / v}[op])
+                return f32(r)
+
+            def cpp(rnd):
+                terms, signs, cur = [], [], values[0]
+                for op, v in zip(ops, values[1:]):
+                    if op in '*/':
+                        cur = rnd(cur * v if op == '*' else cur / v)
+                    else:
+                        terms.append(cur)
+                        signs.append(op)
+                        cur = v
+                r = terms[0] if terms else cur
+                for op, v in zip(signs, terms[1:] + [cur]):
+                    r = rnd(r + v if op == '+' else r - v)
+                return f32(r)
+
+            got = {x87(lambda v: v), cpp(lambda v: v), cpp(f32)}
+            if len(got) != 1:
+                out.append(f'{initialiser:08X}: {m.group(0)}: the compiler\'s fold may differ from the original\'s '
+                           f'53-bit result ({sorted(got)}): keep the operands as reads')
+    return out
 
 
 def blocks(text):
@@ -83,6 +141,8 @@ def main():
     for a, body in cases:
         if img.section(a) != '.text':
             problems.append(f'exit function {a:08X} is in {img.section(a)}, not .text')
+    for a, _, body in ours:
+        problems += fold_problems(img, body, a)
     for a, _, body in ours + [(a, None, body) for a, body in cases]:
         for rx, sections in WHERE:
             for m in rx.finditer(body):
