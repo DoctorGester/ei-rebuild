@@ -451,7 +451,7 @@ void SectorData::Build() {
             ApplyWaterLevels();
         }
     }
-    render::TerrainChanged(this, true);   // the pages kept on the GPU (R16c)
+    render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU (R16c)
 }
 
 void SectorData::ApplyWaterLevels() {
@@ -474,7 +474,7 @@ void SectorData::ApplyWaterLevels() {
             }
         }
         std::memset(&levels.data[id], 0, 4);
-        render::TerrainChanged(this, false);
+        render::TerrainChanged(this, render::TerrainChange::WaterMoved);
     }
 }
 
