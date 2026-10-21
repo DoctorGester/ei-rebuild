@@ -194,7 +194,7 @@ struct ZoneExit {
     std::uint32_t passTimeDeploy[5];      // +0x00 MapExit's passTime and deploy rectangle (saved as five dwords)
     float x1, y1, x2, y2;                 // +0x14 rectangle
     float angle;                          // +0x24 rotation about the rectangle's centre (radians)
-    char* target;                         // +0x28 CString: target zone ("" = none)
+    mfc::CString target;                  // +0x28 target zone ("" = none)
     int entrance;                         // +0x2C entrance number in the target zone
     int view;                             // +0x30 MapExit::view (float bits)
     std::uint8_t hasDeployAngle;          // +0x34 saved from version 0x68
@@ -853,7 +853,7 @@ public:
     std::uint8_t loadedFresh_;            // +0x11D the zone is not loaded from a save
     std::uint8_t keepsState_;             // +0x11E
     std::uint8_t unused_11F;
-    char* zoneName_;                      // +0x120 CString: the zone's map database name
+    mfc::CString zoneName_;               // +0x120 the zone's map database name
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
     std::uint32_t lastRainBoltTick_;      // +0x13C the tick of the last bolt in the rain (one per 20 ticks); saved
@@ -892,8 +892,8 @@ public:
     // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
     // updates the players' "gtime" first. Joining players take it (WorldPlayer::sessionKind).
     int sessionKind_;
-    char* mobName_;                       // +0x12D68 CString: the zone's .mob file
-    char* mapName_;                       // +0x12D6C CString: the zone's map
+    mfc::CString mobName_;                // +0x12D68 the zone's .mob file
+    mfc::CString mapName_;                // +0x12D6C the zone's map
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
     // +0x12D88 the map objects SendFreshObjects sent (not part of the map itself, slot 29).
     ObjectIdMap sentObjects_;
@@ -919,7 +919,7 @@ static_assert(offsetof(CWorldServer, lastRainBoltTick_) == 0x13C);
 static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
 static_assert(offsetof(CWorldServer, sessionKind_) == 0x12D64);
-static_assert(offsetof(CWorldServer, mapName_) == 0x12D6C);
+static_assert(offsetof(CWorldServer, mobName_) == 0x12D68 && offsetof(CWorldServer, mapName_) == 0x12D6C);
 static_assert(offsetof(CWorldServer, sentObjects_) == 0x12D88);
 static_assert(offsetof(CWorldServer, zoneHeader_) == 0x12E00);
 static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
@@ -1685,10 +1685,10 @@ public:
     SectorGrid secondGrid_;               // +0x150 (slot 42 moves objects in it)
     std::uint8_t unused_168[0x180 - 0x168];
     Terrain* terrain_;                    // +0x180 counted
-    // +0x184 CString: the zone's allod in lower case ("gipath" after Setup; the zone load takes it from
-    // the map database's record of the local player's zone, "gipat" without one). It names the
-    // terrain's texture pages, the lights table and the music theme.
-    char* zoneName_;
+    // +0x184 the zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
+    // database's record of the local player's zone, "gipat" without one). It names the terrain's
+    // texture pages, the lights table and the music theme.
+    mfc::CString zoneName_;
     CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
@@ -1721,7 +1721,7 @@ public:
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
     CCamera* camera_;                     // +0x210 the view camera (DrawPass, Render)
     std::uint8_t unused_214[0x224 - 0x214];
-    char* texturePath_;                   // +0x224 CString: <data path>textures\ (Setup)
+    mfc::CString texturePath_;            // +0x224 <data path>textures\ (Setup)
     int constant228_;                     // +0x228 10 from the constructor; nothing in the exe reads it
     // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
     // [sunlight], [ambient] and [sky] sections (LoadLights).
@@ -1789,7 +1789,7 @@ static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
 static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
 static_assert(offsetof(CWorldClient, exits_) == 0x90);
 static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
-static_assert(offsetof(CWorldClient, terrain_) == 0x180);
+static_assert(offsetof(CWorldClient, terrain_) == 0x180 && offsetof(CWorldClient, zoneName_) == 0x184);
 static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
 static_assert(offsetof(CWorldClient, session_) == 0x20C);
 static_assert(offsetof(CWorldClient, camera_) == 0x210);
@@ -1995,14 +1995,14 @@ struct GameFlow {
     void SetNetworkZone(const char* zone);
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
-    char* requestTarget_;                 // +0x04 CString: the request's zone or save name
+    mfc::CString requestTarget_;          // +0x04 the request's zone or save name
     std::uint8_t requestParty_[0x70];     // +0x08 PartyRecords: RequestParty()
     int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
-    char* zone7C_;                        // +0x7C CString: the multiplayer zone (SwitchMultiplayerZone)
+    mfc::CString zone7C_;                 // +0x7C the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
 };
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
-static_assert(offsetof(GameFlow, requestArg_) == 0x78);
+static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
 
 struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
@@ -2025,7 +2025,7 @@ struct SavedParties {
     // this.
     SavedParties* Construct();
 
-    char* folder_;               // +0x00 CString
+    mfc::CString folder_;        // +0x00
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
     SavedPartyEntry* finish_;       // +0x08
     SavedPartyEntry* eos_;          // +0x0C

@@ -66,7 +66,7 @@ int CWorldServer::Setup() {
     sendsStartPosition_ = 0;
     loadedFresh_ = 1;
     keepsState_ = 1;
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = game::EmptyText();
+    zoneName_ = game::EmptyText();
     gameResult_ = 0;
     mobFiles_.SetSize(0, -1);
     return 1;
@@ -102,7 +102,7 @@ void CWorldServer::Teardown() {
 
     // The exits' storage freed (each record's target string destroyed), as SetSize(0) inlined.
     if (exits_) {
-        for (int i = 0; i < exitCount_; ++i) reinterpret_cast<mfc::CString*>(&exits_[i].target)->~CString();
+        for (int i = 0; i < exitCount_; ++i) exits_[i].target.~CString();
         gamecrt::operator_delete(exits_);
         exits_ = nullptr;
     }

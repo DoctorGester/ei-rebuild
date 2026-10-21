@@ -192,7 +192,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {
-        party->zone_ = *reinterpret_cast<const mfc::CString*>(&zoneName_);
+        party->zone_ = zoneName_;
         party->entrance_ = 0;
     }
 

@@ -397,7 +397,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, mapName);
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = zoneName;
+    zoneName_ = zoneName;
     PickLoadingMovie(this, nullptr, zoneName);
     ShowLoadProgress(kProgressStart);
     {
@@ -527,7 +527,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             ShowLoadProgress(kProgressDone);
-            *reinterpret_cast<mfc::CString*>(&zoneName_) = zoneName;
+            zoneName_ = zoneName;
             SetTimeSpeed(speed);   // slot 32 (virtual)
             SetTime(time);   // slot 31 (virtual)
             loaded_ = 1;
@@ -899,7 +899,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     AIMap()->EndRefresh();
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
-    if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
+    if (zone) zoneName_ = zone;
     scriptsActive_ = 0;
     return 1;
 }

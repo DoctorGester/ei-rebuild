@@ -264,8 +264,8 @@ public:
     Matrix4 worldMatrix;            // +0x098 CombineRotation (rows; position in the last row); zeroed by Reset
     lib::AlignedArray<CTexture*> pageTextures;     // +0x0D8 per texture page (SetupPages; held)
     lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
-    const char* textF8;             // +0x0F8 CString
-    const char* textFC;             // +0x0FC CString
+    mfc::CString textF8;            // +0x0F8
+    mfc::CString textFC;            // +0x0FC
     int mapLoaded;                  // +0x100 1 once LoadMap has succeeded (nothing is drawn or lit while 0)
     int sectorsX;                   // +0x104 map size in sectors
     int sectorsY;                   // +0x108
@@ -320,7 +320,7 @@ public:
     lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
     int ambientSounds[3];           // +0xAC8 the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
-    const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
+    mfc::CString textAE0;           // +0xAE0 the ambient sound set (ambient\<set>\...)
     int extraPages;                 // +0xAE4 texture pages loaded after the map's own (006C5AA0)
     // +0xAE8 (005711C0) per sector: a level per water material.
     mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;
@@ -329,7 +329,7 @@ static_assert(offsetof(Terrain, mapLoaded) == 0x100 && offsetof(Terrain, tilesPe
 static_assert(offsetof(Terrain, textureClass) == 0x13C && offsetof(Terrain, textureFrames) == 0x14C);
 static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
 static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
-static_assert(offsetof(Terrain, textF8) == 0xF8);
+static_assert(offsetof(Terrain, textF8) == 0xF8 && offsetof(Terrain, textFC) == 0xFC);
 static_assert(offsetof(Terrain, width) == 0x10C);
 static_assert(offsetof(Terrain, materials) == 0x12C && offsetof(Terrain, archive) == 0x15C);
 static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);

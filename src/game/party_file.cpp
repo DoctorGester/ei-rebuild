@@ -118,6 +118,6 @@ void SavedParties::Destruct() {
     for (MpHeroRecord* entry = begin; entry != end; ++entry) entry->Destruct();
     if (begin != nullptr)
         stlp::deallocate(begin, static_cast<std::size_t>(reinterpret_cast<MpHeroRecord*>(eos_) - begin) * sizeof(MpHeroRecord));
-    reinterpret_cast<mfc::CString*>(&folder_)->~CString();
+    folder_.~CString();
 }
 EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);

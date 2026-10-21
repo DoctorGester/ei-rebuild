@@ -49,7 +49,7 @@ ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     x2 = from->x2;
     y2 = from->y2;
     angle = from->angle;
-    records::AsCString(target) = records::AsCString(from->target);
+    target = from->target;
     entrance = from->entrance;
     view = from->view;
     hasDeployAngle = from->hasDeployAngle;
@@ -78,7 +78,7 @@ void ZoneExit::Read(CStream* stream) {
     stream->Read(&y1, 4);
     stream->Read(&x2, 4);
     stream->Read(&y2, 4);
-    stream->ReadInto(reinterpret_cast<mfc::CString*>(&target));
+    stream->ReadInto(&target);
     stream->Read(&entrance, 4);
     stream->Read(&view, 4);
     hasDeployAngle = 0;

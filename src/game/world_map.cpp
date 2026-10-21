@@ -71,8 +71,8 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
             reinterpret_cast<mfc::CString*>(&path)->~CString();
         }
         if (failed) return 0;
-        *reinterpret_cast<mfc::CString*>(&mapName_) = map;
-        *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
+        mapName_ = map;
+        mobName_ = game::EmptyText();
     }
     graph->Seek(0);
     if (graph->Size() != 0 && !reinterpret_cast<CRegionMap*>(aiLayer_)->LoadBlocks(graph)) return 0;
@@ -109,7 +109,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     }
 
     if (keepsState_ || loadedFresh_) {
-        *reinterpret_cast<mfc::CString*>(&mobName_) = mob;
+        mobName_ = mob;
         int loaded = LoadMapObjects(mob, loadedFresh_ == 0);
         if (!loaded) return loaded;
         if (!loadedFresh_) {
@@ -180,8 +180,8 @@ void CWorldServer::ResetZone() {
     }
     ClearMissilePointers(this);
     EndTimedObjects(this);
-    *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = game::EmptyText();
+    mobName_ = game::EmptyText();
+    zoneName_ = game::EmptyText();
     if (manager3C_) static_cast<CBaseManager*>(manager3C_)->FreeSpares();
     if (manager40_) static_cast<CBaseManager*>(manager40_)->FreeSpares();
     if (manager44_) static_cast<CBaseManager*>(manager44_)->FreeSpares();
@@ -293,7 +293,7 @@ void CWorldServer::SendFreshObjects() {
 
 void CWorldServer::ResetState() {
     ResetZone();
-    *reinterpret_cast<mfc::CString*>(&mapName_) = game::EmptyText();
+    mapName_ = game::EmptyText();
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());

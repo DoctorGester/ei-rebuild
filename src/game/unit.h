@@ -143,7 +143,7 @@ struct PartyRecords {
     std::uint8_t unused_38[0x40 - 0x38];
     std::uint8_t array40[0x54 - 0x40];   // +0x40 an array (006643F0 destroys it)
     NamedFloatTable variables;       // +0x54 the party's variables ("zs.<zone>" visited, quests)
-    char* zone;                      // +0x68 CString: the zone the party is in
+    mfc::CString zone;               // +0x68 the zone the party is in
     int entrance;                    // +0x6C the zone exit it arrives by (EnterZone)
 };
 static_assert(offsetof(PartyRecords, recordArrayVtable) == 0x2C);
