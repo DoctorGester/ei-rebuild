@@ -738,7 +738,9 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
 
 // WinMain (00456060) looks for another game window with FindWindowA and, when it finds one,
 // brings it to the front and exits. Harness runs go in parallel (run_all.py --jobs), each game in
-// its own output folder, so in harness runs no other window counts.
+// its own output folder, so in harness runs no other window counts. The other way (ST1b): a game
+// the user starts without the harness runs the real check, so a harness game's window has a title
+// of its own (CreateWithoutActivating) and a play launch never finds it. Nothing reads the title.
 constexpr std::uintptr_t kFindWindowASlot = 0x0073B448;
 decltype(&::FindWindowA) g_findWindow;
 HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
@@ -812,6 +814,11 @@ BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
 HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h,
                                     HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
     if (!parent) exStyle |= WS_EX_NOACTIVATE;
+    char harnessTitle[300];
+    if (!parent && name && std::strcmp(name, &ei::GameData<char>(0x0079BB24)) == 0) {   // the game window (title = WinMain's)
+        std::snprintf(harnessTitle, sizeof(harnessTitle), "%s (harness)", name);
+        name = harnessTitle;
+    }
     input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
 }

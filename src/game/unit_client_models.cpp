@@ -33,7 +33,6 @@
 namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
 // weapon's type; number: the number in "armor<nn>") and the unit prototypes (hair, -1 none; skin).
-const itemdb::ItemRecordHead* ItemHead(const char* record) { return reinterpret_cast<const itemdb::ItemRecordHead*>(record); }
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed on to 00517240
 
@@ -61,7 +60,7 @@ int RowOfSlot(int slot) {
 // The compiler-inlined strcmp of the original (bytes compared unsigned): zero when equal.
 bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
-const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().RecordAt(type, itemdb::kArmorSize); }
+const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
 // The figure manager (global 007AF5F4) and the texture manager (007AF744).
 void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
@@ -81,7 +80,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     if (itemId == kNone) return false;
     std::uint32_t type = itemId >> 16;
     if (type == 0xFFFF || (itemId & 0xFFFF) == 0xFFFF) return false;
-    std::uint32_t slot = static_cast<std::uint32_t>(ItemHead(ArmourRecord(type))->type);
+    std::uint32_t slot = static_cast<std::uint32_t>(ArmourRecord(type)->type);
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
@@ -95,7 +94,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         model = static_cast<CFigureManager*>(manager)->FindModel(&name);
     }
     if (!model) return false;
-    const char* armour = ArmourRecord(type);
+    const itemdb::ArmorRecord* armour = ArmourRecord(type);
     mfc::CString armourPart;
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
@@ -109,7 +108,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
             part.Format("hr.%.2d", hair);
         }
         CFigureMesh* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
-        armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), ItemHead(armour)->number);
+        armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), armour->number);
         if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
@@ -294,9 +293,9 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames) {
     char text[0x401];
     for (const std::uint32_t* id = armourIds->begin(); id != armourIds->end(); ++id) {
-        const char* armour = ArmourRecord(*id >> 16);
+        const itemdb::ArmorRecord* armour = ArmourRecord(*id >> 16);
         if (!armour) continue;
-        int row = RowOfSlot(ItemHead(armour)->type);
+        int row = RowOfSlot(armour->type);
         if (row < 0) continue;
         for (int i = 0; i < 7; ++i) {
             const char* plain = kArmourPartNames[row][i];
@@ -304,9 +303,9 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
             if (SameName(plain, kHair)) {
                 int hair = prototype->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, "hr.%.2d.armor%.2d", hair, ItemHead(armour)->number);
+                gamecrt::sprintf(text, "hr.%.2d.armor%.2d", hair, armour->number);
             } else {
-                gamecrt::sprintf(text, "%s.armor%.2d", plain, ItemHead(armour)->number);
+                gamecrt::sprintf(text, "%s.armor%.2d", plain, armour->number);
             }
             stlp::string name(text);
             names->push_back(name);
@@ -337,24 +336,24 @@ EI_REWRITTEN(0x00535CB0, CollectArmourPartNames);
 // --- Skin -------------------------------------------------------------------------------------
 
 void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
-    const RecordTable& armours = itemdb::Armors();
+    const itemdb::ArmorTable& armours = itemdb::TheItemDatabase().armors;
     if (!detailed) {
         SetLayerCount(out, 0);
         SetLayerCount(out, kSimpleLayers);
         std::uint32_t id = armourIds[0];
         if (id != kNone) {
-            if (const char* armour = armours.RecordAt(id >> 16, itemdb::kArmorSize)) {
+            if (const itemdb::ArmorRecord* armour = armours.At(id >> 16)) {
                 out->data[0].id = id;
                 out->data[0].kind = kLayerArmour;
-                out->data[0].slot = ItemHead(armour)->type;
+                out->data[0].slot = armour->type;
             }
         }
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && (id = weaponIds[hand]) != kNone) {
-            if (const char* weapon = itemdb::Weapons().RecordAt(id >> 16, itemdb::kWeaponSize)) {
+            if (const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16)) {
                 out->data[1].id = id;
                 out->data[1].kind = kLayerWeapon;
-                out->data[1].slot = ItemHead(weapon)->type;
+                out->data[1].slot = weapon->type;
             }
         }
         return;
@@ -368,11 +367,11 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
     for (int k = 0; k < 7; ++k) {
         std::uint32_t id = armourIds[k];
         if (id == kNone) continue;
-        const char* armour = armours.RecordAt(id >> 16, itemdb::kArmorSize);
+        const itemdb::ArmorRecord* armour = armours.At(id >> 16);
         if (!armour) continue;
         out->data[k + 1].id = id;
         out->data[k + 1].kind = kLayerArmour;
-        out->data[k + 1].slot = ItemHead(armour)->type;
+        out->data[k + 1].slot = armour->type;
     }
 }
 EI_REWRITTEN(0x00536300, CUnitClientSpecific::BuildSkinLayers);

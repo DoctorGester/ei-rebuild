@@ -44,7 +44,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(12, &condition, 4);
     ar->Field(13, &materialUnits, 4);
     ar->Field(14, &classMask, 4);
-    ar->Field(15, &field15, 1);
+    ar->Field(15, &buildable, 1);
 }
 EI_REWRITTEN(0x0069F700, ItemRecordHead::SerializeHead);
 

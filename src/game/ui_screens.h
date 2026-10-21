@@ -129,15 +129,6 @@ struct UiItemKinds {
 };
 
 // The fields of an item prototype record (006A0110's result) the predicates read.
-struct ItemPrototypeRecord {
-    std::uint8_t unused_00[0x10];
-    const char* materialClass_;      // +0x10 "none" for items without a material
-    std::uint8_t unused_14[0x68 - 0x14];
-    bool buildable_;                 // +0x68
-};
-static_assert(offsetof(ItemPrototypeRecord, materialClass_) == 0x10);
-static_assert(offsetof(ItemPrototypeRecord, buildable_) == 0x68);
-
 // An STLport vector<CString> (the figure names), its elements as their data pointers.
 using MpStringVector = stlp::vector<const char*>;
 

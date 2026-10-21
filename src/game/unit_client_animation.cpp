@@ -139,7 +139,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
         if (prototype != kNoPrototype) {
             // An index beyond the table reads the type at address 0xC in the original too (a fault).
             const auto* record =
-                reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().RecordAt(prototype, itemdb::kWeaponSize));
+                itemdb::WeaponAt(prototype);
             key = 1u << (record->type & 0x1F);
         }
     } else if (unit->Params()->naturalWeapon < kNaturalWeapons) {

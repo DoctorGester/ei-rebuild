@@ -43,15 +43,19 @@ SpellDatabase* SpellDatabase::Construct() {
     return this;
 }
 
-void IndexedRecordTable::Construct() {
-    records.begin = nullptr;
-    records.end = nullptr;
-    capacityEnd = nullptr;
+template <typename Record>
+void NamedRecordTable<Record>::Construct() {
+    records.ConstructEmpty();
     ByName().InitBuckets(kBuckets);
 }
 
 ItemDatabase* ItemDatabase::Construct() {
-    for (IndexedRecordTable* table : {&materials, &weapons, &armors, &quickItems, &questItems, &loot}) table->Construct();
+    materials.Construct();
+    weapons.Construct();
+    armors.Construct();
+    quickItems.Construct();
+    questItems.Construct();
+    loot.Construct();
     return this;
 }
 

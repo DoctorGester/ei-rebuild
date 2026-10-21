@@ -27,7 +27,7 @@ constexpr float kZero = 0.0f;               // 0073B858
 // Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
 // calls: 00527850 UnitParams::WeaponSkillBonus (unit_params_skill.cpp, ST0), 005285D0 the damage
 // scale (this file; thiscall on the parameters, which it does not read: RET 8, ST0).
-__declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /*type*/, const char* /*weapon*/)
+__declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /*type*/, const itemdb::WeaponRecord* /*weapon*/)
     EI_ORIGINAL(0x00527850)
 // 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
@@ -50,7 +50,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->weaponType = WeaponType(weapon);
         out->damageType = WeaponDamageType(weapon);
         out->speed = WeaponAttack(weapon);
-        const char* record = itemdb::Weapons().RecordAt(PrototypeIndex(weapon), itemdb::kWeaponSize);
+        const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
         // The bonus is stored to a float (FSTP) before the weapon's figure is added; _ftol truncates.
         float bonus = static_cast<float>(WeaponSkillBonusAt(params, nullptr, out->weaponType, record));
         out->attack = static_cast<int>(static_cast<double>(WeaponStat84(weapon)) + bonus);

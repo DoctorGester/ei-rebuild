@@ -48,7 +48,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     materialClass = source->materialClass;
     CopyBytes(this, source, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
-    field15 = source->field15;
+    buildable = source->buildable;
     list20.Copy(source->list20);
     return this;
 }
@@ -60,7 +60,7 @@ void ItemRecordHead::ConstructHead(void* table) {
     new (&materialClass) mfc::CString();
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
-    field15 = 1;
+    buildable = 1;
     vtable = table;
 }
 
@@ -271,10 +271,10 @@ void SpellListRecord::ConstructDefault() {
     stlp::StringElement::Default(&text24);
 }
 
-EI_REPLACE_METHOD(0x006A5950, RecordTable::RecordAtStride<kArmorSize>);
-EI_REPLACE_METHOD(0x006A5990, RecordTable::RecordAtStride<kQuickItemSize>);
-EI_REPLACE_METHOD(0x006A59D0, RecordTable::RecordAtStride<kQuestItemSize>);
-EI_REPLACE_METHOD(0x006A5A10, RecordTable::RecordAtStride<kLootSize>);
+EI_REPLACE_METHOD(0x006A5950, itemdb::ArmorTable::At);
+EI_REPLACE_METHOD(0x006A5990, itemdb::QuickItemTable::At);
+EI_REPLACE_METHOD(0x006A59D0, itemdb::QuestItemTable::At);
+EI_REPLACE_METHOD(0x006A5A10, itemdb::LootItemTable::At);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;

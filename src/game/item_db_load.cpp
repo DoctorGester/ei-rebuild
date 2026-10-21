@@ -1,6 +1,6 @@
 // The item database's name-indexed tables read from an archive stream: quick items, quest items and
 // loot (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
-// (itemdb::IndexedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
+// (itemdb::NamedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
 #include "item_db.h"
 
 #include "chunk_archive.h"
@@ -12,22 +12,29 @@
 #include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
 
-namespace {
+#include <type_traits>
 
-using SerializeFn = void (ChunkArchive::*)(int, void*, void*);
+namespace {
 
 // The records read through an archive, then each filed in the name index under its name (the
 // index's find_or_insert of {name, null}: 00613B70 quick items, 006A7870 loot, 0069E2A0 quest
-// items).
-void LoadIndexed(itemdb::IndexedRecordTable* table, CStream* source, int field, int recordSize, SerializeFn serialize) {
+// items). The chunk serialisers' names cross over: SerializeLoot (006A7D20) reads the quest items,
+// SerializeQuestItems (006A7E10) the loot.
+template <typename Record>
+void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int field) {
     ChunkArchive archive;
     archive.ConstructLocal();
     archive.Open(source, 1, 1);
-    (archive.*serialize)(field, table, nullptr);
+    if constexpr (std::is_same_v<Record, itemdb::QuickItemRecord>)
+        archive.SerializeQuickItems(field, &table->records, nullptr);
+    else if constexpr (std::is_same_v<Record, itemdb::QuestItemRecord>)
+        archive.SerializeLoot(field, &table->records, nullptr);
+    else
+        archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
-    for (char* record = table->records.begin; record != table->records.end; record += recordSize) {
-        stlp::string name(reinterpret_cast<const itemdb::ItemRecordHead*>(record)->text04);
-        stlp::NamedSlot<char>(table->names, name) = record;
+    for (Record* record = table->records.begin(); record != table->records.end(); ++record) {
+        stlp::string name(record->text04);
+        stlp::NamedSlot<Record>(table->names, name) = record;
     }
     archive.DestructLocal();
 }
@@ -36,15 +43,13 @@ void LoadIndexed(itemdb::IndexedRecordTable* table, CStream* source, int field, 
 
 namespace itemdb {
 
-void IndexedRecordTable::LoadQuickItems(CStream* source, int field) {
-    LoadIndexed(this, source, field, kQuickItemSize, &ChunkArchive::SerializeQuickItems);
+template <typename Record>
+void NamedRecordTable<Record>::Load(CStream* source, int field) {
+    LoadIndexed(this, source, field);
 }
-void IndexedRecordTable::LoadQuestItems(CStream* source, int field) {
-    LoadIndexed(this, source, field, kQuestItemSize, &ChunkArchive::SerializeLoot);
-}
-void IndexedRecordTable::LoadLoot(CStream* source, int field) {
-    LoadIndexed(this, source, field, kLootSize, &ChunkArchive::SerializeQuestItems);
-}
+template void QuickItemTable::Load(CStream*, int);
+template void QuestItemTable::Load(CStream*, int);
+template void LootItemTable::Load(CStream*, int);
 
 } // namespace itemdb
 
@@ -62,25 +67,24 @@ using ResizeFn = void (*)(void* records, unsigned count);
 // destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
 // of record chunks first.
 template <typename Record, typename Destroy, typename Serialize>
-void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int size, Destroy destroy,
-                          ResizeFn resize, Serialize serialize) {
+void SerializeItemRecords(ChunkArchive* ar, int id, void* vector, Destroy destroy, ResizeFn resize, Serialize serialize) {
     if (!ar->EnterChunk(id)) return;
-    auto& records = *vector;
+    auto& records = *static_cast<stlp::vector<Record>*>(vector);
     int count;
     if (ar->loading_) {
-        char* end = records.end;
-        for (char* p = records.begin; p != end; p += size) (reinterpret_cast<Record*>(p)->*destroy)();
-        records.end = records.begin;
+        Record* end = records.end();
+        for (Record* p = records.begin(); p != end; ++p) (p->*destroy)();
+        records.Finish() = records.begin();
         count = ar->CountChunks(1);
         resize(vector, static_cast<unsigned>(count));
     } else {
-        count = static_cast<int>(records.end - records.begin) / size;
+        count = static_cast<int>(records.size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        char* record = records.begin + i * size;
+        Record* record = records.begin() + i;
         if (ar->EnterChunk(1)) {
-            (reinterpret_cast<Record*>(record)->*serialize)(ar);
+            (record->*serialize)(ar);
             ar->LeaveChunk();
         }
     }
@@ -90,15 +94,15 @@ void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int siz
 } // namespace
 
 void ChunkArchive::SerializeQuickItems(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::QuickItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kQuickItemSize,
+    SerializeItemRecords<itemdb::QuickItemRecord>(this, id, records,
                                     &itemdb::QuickItemRecord::Destruct, recordvec::ResizeUntyped<recordvec::QuickItemVector>, &itemdb::QuickItemRecord::Serialize);
 }
 void ChunkArchive::SerializeLoot(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::QuestItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize,
+    SerializeItemRecords<itemdb::QuestItemRecord>(this, id, records,
                                     &itemdb::QuestItemRecord::Destruct, recordvec::ResizeUntyped<recordvec::QuestItemVector>, &itemdb::QuestItemRecord::Serialize);
 }
 void ChunkArchive::SerializeQuestItems(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::LootItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize,
+    SerializeItemRecords<itemdb::LootItemRecord>(this, id, records,
                                     &itemdb::ItemRecordHead::DestructHead, recordvec::ResizeUntyped<recordvec::LootVector>, &itemdb::LootItemRecord::Serialize);
 }
 EI_REWRITTEN(0x006A7C20, ChunkArchive::SerializeQuickItems);
@@ -106,24 +110,24 @@ EI_REWRITTEN(0x006A7D20, ChunkArchive::SerializeLoot);
 EI_REWRITTEN(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
 void ChunkArchive::SerializeMaterials(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, static_cast<RecordTable*>(records), itemdb::kMaterialSize,
+    SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, records,
                                     &itemdb::MaterialRecordHead::Destruct, recordvec::ResizeUntyped<recordvec::MaterialVector>, &itemdb::MaterialRecordHead::Serialize);
 }
 void ChunkArchive::SerializeWeapons(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::WeaponRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kWeaponSize,
+    SerializeItemRecords<itemdb::WeaponRecord>(this, id, records,
                                     &itemdb::ItemRecordHead::DestructHead, recordvec::ResizeUntyped<recordvec::WeaponVector>, &itemdb::WeaponRecord::Serialize);
 }
 void ChunkArchive::SerializeArmors(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::ArmorRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kArmorSize,
+    SerializeItemRecords<itemdb::ArmorRecord>(this, id, records,
                                     &itemdb::ItemRecordHead::DestructHead, recordvec::ResizeUntyped<recordvec::ArmorVector>, &itemdb::ArmorRecord::Serialize);
 }
 EI_REWRITTEN(0x006A7940, ChunkArchive::SerializeMaterials);
 EI_REWRITTEN(0x006A7A30, ChunkArchive::SerializeWeapons);
 EI_REWRITTEN(0x006A7B30, ChunkArchive::SerializeArmors);
 
-EI_REWRITTEN(0x006A6E50, itemdb::IndexedRecordTable::LoadQuickItems);
-EI_REWRITTEN(0x006A7110, itemdb::IndexedRecordTable::LoadQuestItems);
-EI_REWRITTEN(0x006A73B0, itemdb::IndexedRecordTable::LoadLoot);
+EI_REWRITTEN(0x006A6E50, itemdb::QuickItemTable::Load);
+EI_REWRITTEN(0x006A7110, itemdb::QuestItemTable::Load);
+EI_REWRITTEN(0x006A73B0, itemdb::LootItemTable::Load);
 
 // --- A-H21: the spell database's vectors and records ---------------------------------------------
 
@@ -224,15 +228,15 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
 EI_REWRITTEN(0x00683EB0, ChunkArchive::IntVectorField);
 
 void ChunkArchive::SerializeSpells(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::SpellRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kSpellSize,
+    SerializeItemRecords<itemdb::SpellRecord>(this, id, records,
                                     &itemdb::SpellRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellVector>, &itemdb::SpellRecord::Serialize);
 }
 void ChunkArchive::SerializeSpellModifiers(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::SpellModifierRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kSpellModifierSize,
+    SerializeItemRecords<itemdb::SpellModifierRecord>(this, id, records,
                                     &itemdb::SpellModifierRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellModifierVector>, &itemdb::SpellModifierRecord::Serialize);
 }
 void ChunkArchive::SerializeSpellLists(int id, void* records, void*) {
-    SerializeItemRecords<itemdb::SpellListRecord>(this, id, static_cast<RecordTable*>(records), sizeof(itemdb::SpellListRecord),
+    SerializeItemRecords<itemdb::SpellListRecord>(this, id, records,
                                     &itemdb::SpellListRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellListVector>, &itemdb::SpellListRecord::Serialize);
 }
 EI_REWRITTEN(0x00684EF0, ChunkArchive::SerializeSpells);
@@ -248,24 +252,22 @@ namespace {
 // 006A7340 / 00584450 the loot; the materials' destructor 006A6C20 as a whole), the records in
 // order, the vector's storage (STLport's deallocate of the capacity in whole records).
 template <typename Record, typename Destroy>
-void DestroyTable(itemdb::IndexedRecordTable& table, int size, Destroy destroy) {
+void DestroyTable(itemdb::NamedRecordTable<Record>& table, Destroy destroy) {
     table.names.Destroy();
-    char* end = table.records.end;
-    for (char* record = table.records.begin; record != end; record += size)
-        (reinterpret_cast<Record*>(record)->*destroy)();
-    if (table.records.begin != nullptr)
-        stlp::deallocate(table.records.begin,
-                         static_cast<std::size_t>((table.capacityEnd - table.records.begin) / size * size));
+    Record* end = table.records.end();
+    for (Record* record = table.records.begin(); record != end; ++record) (record->*destroy)();
+    if (table.records.begin() != nullptr)
+        stlp::deallocate(table.records.begin(), table.records.Capacity() * sizeof(Record));
 }
 
 } // namespace
 
 void itemdb::ItemDatabase::DestructBody() {
-    DestroyTable<LootItemRecord>(loot, kLootSize, &ItemRecordHead::DestructHead);
-    DestroyTable<QuestItemRecord>(questItems, kQuestItemSize, &QuestItemRecord::Destruct);
-    DestroyTable<QuickItemRecord>(quickItems, kQuickItemSize, &QuickItemRecord::Destruct);
-    DestroyTable<ArmorRecord>(armors, kArmorSize, &ItemRecordHead::DestructHead);
-    DestroyTable<WeaponRecord>(weapons, kWeaponSize, &ItemRecordHead::DestructHead);
-    DestroyTable<MaterialRecordHead>(materials, kMaterialSize, &MaterialRecordHead::Destruct);
+    DestroyTable(loot, &ItemRecordHead::DestructHead);
+    DestroyTable(questItems, &QuestItemRecord::Destruct);
+    DestroyTable(quickItems, &QuickItemRecord::Destruct);
+    DestroyTable(armors, &ItemRecordHead::DestructHead);
+    DestroyTable(weapons, &ItemRecordHead::DestructHead);
+    DestroyTable(materials, &MaterialRecordHead::Destruct);
 }
 EI_REPLACE_METHOD(0x006A6570, itemdb::ItemDatabase::DestructBody);

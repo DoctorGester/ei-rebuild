@@ -52,7 +52,7 @@ const UnitModelRecord* UnitModel(std::uint32_t index) {
     return unitdb::ModelRecord(index);
 }
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
-    return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
+    return itemdb::ArmorAt(index);
 }
 const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName; }
 
@@ -70,8 +70,8 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
 // out, weapon record; material record]; the weapon and material records are RecordAtB4 (0056E440,
-// on 007C86F8) and RecordAt50 (0056E400, on 007C86D8; world.h), on the tables' vectors.
-const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<const RecordVector*>(table); }
+// on 007C86F8) and RecordAt50 (0056E400, on 007C86D8; world.h), on the tables' vectors: WeaponAt /
+// MaterialAt.
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
@@ -165,11 +165,10 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     if (id == kNone) return;
     char buffer[0x100];
     {
-        const std::uint8_t* weapon = Records(&itemdb::Weapons())->AtB4(id >> 16);
+        const itemdb::WeaponRecord* weapon = itemdb::WeaponAt(id >> 16);
         mfc::CString name;
-        const std::uint8_t* material = Records(&itemdb::Materials())->At50(id & 0xFFFF);
-        WeaponRecordModelName(&name, reinterpret_cast<const itemdb::WeaponRecord*>(weapon),   // 006A0BF0
-                              reinterpret_cast<const itemdb::MaterialRecordHead*>(material));
+        const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
+        WeaponRecordModelName(&name, weapon, material);   // 006A0BF0
         AppendName(model, name, buffer);
     }
     set.names.SetAtGrow(set.names.GetSize(), buffer);
@@ -359,7 +358,7 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
     out[1].id = weapon;
     out[1].kind = kWeapon;
     out[1].itemType = static_cast<std::uint32_t>(
-        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().RecordAt(weapon >> 16, itemdb::kWeaponSize))->type);
+        itemdb::WeaponAt(weapon >> 16)->type);
 }
 EI_REWRITTEN(0x005683D0, UnitTextureRecords);
 

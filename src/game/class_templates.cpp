@@ -53,26 +53,16 @@ void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-stlp::RecordsByName* Weapons() { return itemdb::Named(itemdb::TheItemDatabase().weapons); }
-stlp::RecordsByName* Armors() { return itemdb::Named(itemdb::TheItemDatabase().armors); }
-stlp::NameMap& QuickItemMap() { return itemdb::TheItemDatabase().quickItems.names; }
-stlp::NameMap& FourthKindMap() { return itemdb::TheItemDatabase().materials.names; }
+// (NamedRecordTable::Named and the tables' name maps.)
 
-// The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
-// each appends the record to one vector unless already there. 00699260 also takes two counts.
-void AddArmor(ItemStock* list, void*, void* record) { list->AddArmor(static_cast<char*>(record)); }
-void AddWeapon(ItemStock* list, void*, void* record) { list->AddWeapon(static_cast<char*>(record)); }
-void AddQuickItem(ItemStock* list, void*, void* record) { list->AddQuickItem(static_cast<char*>(record)); }
-void AddSpell(ItemStock* list, void*, void* record) { list->AddSpell(static_cast<char*>(record)); }
-void AddModifier(ItemStock* list, void*, void* record) { list->AddModifier(static_cast<char*>(record)); }
+// The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only): ItemStock::AddArmor and
+// the like (__thiscall (record)) append the record to one vector unless already there; AddMaterial
+// (00699260) also takes two counts.
 
 // The bit of the template's class (+0x08) in a record's class mask (SHL by CL: modulo 32).
 bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
     std::uint32_t bit = 1u << ((static_cast<unsigned>(t->type) - 1) & 31);
     return (classMask & bit) != 0;
-}
-bool Allowed(const ClassTemplate* t, const void* itemRecord) {
-    return Allowed(t, static_cast<const itemdb::ItemRecordHead*>(itemRecord)->classMask);
 }
 
 ItemStock* AllList(ClassTemplate* t) { return &t->allowed; }
@@ -87,27 +77,28 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     void* items = t->ItemsParty()->ItemManager();
     void* spells = t->SpellsParty()->SpellManager();
 
+    itemdb::ItemDatabase& db = itemdb::TheItemDatabase();
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = Weapons()->Named(names.data[i]);
-        if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
+        itemdb::WeaponRecord* record = db.weapons.Named(names.data[i]);
+        if (record && Allowed(t, record->classMask)) AllList(t)->AddWeapon(record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = Armors()->Named(names.data[i]);
-        if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
+        itemdb::ArmorRecord* record = db.armors.Named(names.data[i]);
+        if (record && Allowed(t, record->classMask)) AllList(t)->AddArmor(record);
     }
     ListQuickItems(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         stlp::string key(names.data[i]);
-        void* record = stlp::NamedSlot<void>(QuickItemMap(), key);
-        if (record && Allowed(t, record)) AddQuickItem(AllList(t), nullptr, record);
+        itemdb::QuickItemRecord* record = stlp::NamedSlot<itemdb::QuickItemRecord>(db.quickItems.names, key);
+        if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
     ListFourthKind(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         stlp::string key(names.data[i]);
-        void* record = stlp::NamedSlot<void>(FourthKindMap(), key);
-        if (record && Allowed(t, static_cast<itemdb::MaterialRecordHead*>(record)->classMask)) t->allowed.AddMaterial(static_cast<char*>(record), 0x14, 0x32);
+        itemdb::MaterialRecordHead* record = stlp::NamedSlot<itemdb::MaterialRecordHead>(db.materials.names, key);
+        if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
     }
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
@@ -115,10 +106,10 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     for (int i = 0; i < names.size; ++i) {
         const char* code = SpellCodeByName(names.data[i]);
         stlp::string key(code);
-        void* record = stlp::NamedSlot<void>(stock::SpellsByName(), key);
-        if (record && Allowed(t, static_cast<itemdb::SpellRecord*>(record)->classMask)) {
-            AddSpell(MagicList(t), nullptr, record);
-            AddSpell(AllList(t), nullptr, record);
+        itemdb::SpellRecord* record = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), key);
+        if (record && Allowed(t, record->classMask)) {
+            MagicList(t)->AddSpell(record);
+            AllList(t)->AddSpell(record);
         }
     }
     ListModifiers(spells, nullptr, &names);
@@ -128,8 +119,8 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         stlp::string key(code);
         auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
         if (record && Allowed(t, record->classMask)) {
-            AddModifier(MagicList(t), nullptr, record);
-            AddModifier(AllList(t), nullptr, record);
+            MagicList(t)->AddModifier(record);
+            AllList(t)->AddModifier(record);
         }
     }
 }
