@@ -108,6 +108,8 @@ const Route kRoutes[] = {
     // handled wide, so WM_CHAR carries UTF-16.
     EI_UTF8_ROUTE(RegisterClassExA),  EI_UTF8_ROUTE(DefWindowProcA),        EI_UTF8_ROUTE(GetMessageA),
     EI_UTF8_ROUTE(PeekMessageA),      EI_UTF8_ROUTE(DispatchMessageA),
+    // The interface's text draw and extent and its fonts (U3): Unicode text drawn and measured as itself.
+    EI_UTF8_ROUTE(DrawTextA),         EI_UTF8_ROUTE(GetTextExtentPoint32A), EI_UTF8_ROUTE(CreateFontIndirectA),
 };
 #undef EI_UTF8_ROUTE
 
@@ -398,6 +400,41 @@ int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
         return 0;
     }
     return CopyOut(std::wstring_view(resource, static_cast<std::size_t>(length)), buffer, size);
+}
+
+// ---- Text drawing and fonts (U3) -----------------------------------------------------------------------
+
+int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format) {
+    if (!text) return ::DrawTextW(dc, nullptr, length, rect, format);
+    const std::wstring wide = Wide(length < 0 ? std::string_view(text) : std::string_view(text, static_cast<std::size_t>(length)));
+    return ::DrawTextW(dc, wide.c_str(), static_cast<int>(wide.size()), rect, format);
+}
+
+BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size) {
+    if (!text || length < 0) return ::GetTextExtentPoint32A(dc, text, length, size);
+    const std::wstring wide = Wide(std::string_view(text, static_cast<std::size_t>(length)));
+    return ::GetTextExtentPoint32W(dc, wide.c_str(), static_cast<int>(wide.size()), size);
+}
+
+HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font) {
+    if (!font) return ::CreateFontIndirectW(nullptr);
+    LOGFONTW wide{};
+    wide.lfHeight = font->lfHeight;
+    wide.lfWidth = font->lfWidth;
+    wide.lfEscapement = font->lfEscapement;
+    wide.lfOrientation = font->lfOrientation;
+    wide.lfWeight = font->lfWeight;
+    wide.lfItalic = font->lfItalic;
+    wide.lfUnderline = font->lfUnderline;
+    wide.lfStrikeOut = font->lfStrikeOut;
+    wide.lfCharSet = font->lfCharSet;
+    wide.lfOutPrecision = font->lfOutPrecision;
+    wide.lfClipPrecision = font->lfClipPrecision;
+    wide.lfQuality = font->lfQuality;
+    wide.lfPitchAndFamily = font->lfPitchAndFamily;
+    const std::wstring face = Wide(std::string_view(font->lfFaceName, ::strnlen(font->lfFaceName, LF_FACESIZE)));
+    face.copy(wide.lfFaceName, LF_FACESIZE - 1);
+    return ::CreateFontIndirectW(&wide);
 }
 
 } // namespace utf8

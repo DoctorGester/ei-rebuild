@@ -68,31 +68,4 @@ int PreviousCharacter(const mfc::CString& text, int at);
 // The start of the character holding byte offset `at` (`at` itself without EI_UTF8 or outside the text).
 int CharacterStart(const mfc::CString& text, int at);
 
-// --- The boundary until U3 ------------------------------------------------------------------------
-//
-// Text still leaves through GDI's ANSI text draw and extent; there the UTF-8 text goes back to the
-// assets' code page, the bytes the original passed, so what is drawn does not change. U3 (drawing and
-// measuring) replaces each use with the wide call and then removes this (the system calls are wide since
-// U2: system_text.h; typed text is UTF-8 since U4). Text that is not valid UTF-8 passes unchanged.
-class ForAnsiCall {
-public:
-    // `length` -1: up to the terminator (and -1 stays -1, as the ANSI calls take it).
-    explicit ForAnsiCall(const char* text, int length = -1) : text_(text), length_(length) {
-        if constexpr (kUtf8) Convert();
-    }
-    ForAnsiCall(const ForAnsiCall&) = delete;
-    ForAnsiCall& operator=(const ForAnsiCall&) = delete;
-
-    const char* data() const { return text_; }
-    int length() const { return length_; }
-    operator const char*() const { return text_; }
-
-private:
-    void Convert();
-
-    const char* text_;
-    int length_;
-    std::string converted_;
-};
-
 } // namespace text

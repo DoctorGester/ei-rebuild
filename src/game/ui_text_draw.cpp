@@ -70,8 +70,7 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     void* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
-    const ::text::ForAnsiCall ansi(text, text.GetLength());   // EI_UTF8: until U3
-    gameapi::GetTextExtentPoint32A(dc->hdc, ansi.data(), ansi.length(), &size);
+    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
     dc->SelectFont(oldFont);
     gameapi::ReleaseDC(GameWindow(), dc->hdc);
     if (widescreen::Active()) {

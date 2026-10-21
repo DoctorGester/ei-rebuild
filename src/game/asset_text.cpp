@@ -192,12 +192,4 @@ int CharacterStart(const mfc::CString& text, int at) {
     }
 }
 
-void ForAnsiCall::Convert() {
-    if (!text_) return;
-    const std::string_view bytes = length_ < 0 ? std::string_view(text_) : std::string_view(text_, static_cast<std::size_t>(length_));
-    if (!ToAssetText(bytes, &converted_)) return;
-    text_ = converted_.c_str();
-    if (length_ >= 0) length_ = static_cast<int>(converted_.size());
-}
-
 } // namespace text

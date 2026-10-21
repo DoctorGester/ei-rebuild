@@ -3,6 +3,10 @@
 # as Windows gives a Unicode window a typed character; a character past U+FFFF as a surrogate pair), are
 # stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
 # and the caret's place). Without EI_UTF8 both steps are skipped and the console is only opened and closed.
+# The line is drawn and measured with the wide GDI calls (U3): a Greek letter (outside the assets' code page
+# 1251) draws as itself, not as the '?' an ANSI call would make of it ("utf8 diffcapture": the frames of the
+# line "λ" and the line "?", the caret after either and the menu's scene frozen, differ only by the glyph; the
+# steps marked "utf8" run in the UTF-8 build only).
 # no original: vanilla rebirth (Unicode typing is the UTF-8 build's)
 waitmenu
 key grave
@@ -33,6 +37,21 @@ consoleline 3 Жёк
 key esc
 frames 2
 consoleline 0
+utf8 freeze
+typeunicode λ
+frames 2
+consoleline 1 λ
+utf8 capture console_greek
+key backspace
+frames 2
+typeunicode ?
+frames 2
+consoleline 1 ?
+utf8 capture console_question
+utf8 diffcapture console_greek console_question 0.000002 0.0005 0
+utf8 unfreeze
+key esc
+frames 2
 key grave
 frames 2
 quit

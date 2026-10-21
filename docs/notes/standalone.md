@@ -1234,10 +1234,8 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **Helpers** (src/game/asset_text.h): `text::FromAssetText` (asset bytes to UTF-8; a `std::string` overload and an
   in-place `CString*` one), `text::ToAssetText` (back to the asset code page, false for ASCII or text that is not
   valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
-  bytes by its bytes) and `text::ForAnsiCall`, the one boundary helper (U3 removes it): at an ANSI call it turns
-  valid UTF-8 back into the asset code page (the original's bytes, so drawing and measuring do not change) and
-  passes anything else (8-bit text not converted; before U2 and U4 file names, resource strings and typed
-  characters were).
+  bytes by its bytes). U1's ANSI boundary helper `ForAnsiCall` (UTF-8 back into the asset code page at GDI's
+  ANSI calls) went with U3.
 - **Sites converted**: the text database (`TextSources::FindText`, which `CTextManager::Open` reads through; the
   copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
   and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
@@ -1245,9 +1243,8 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   (`CCreditsScreen::Build`). The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's
   quest.reg from the text cursor, so it opens it with `CTextManager::OpenData` (bytes as they are), and
   `TextSources::Find` (004DEBC0) stays the raw lookup.
-- **ANSI boundaries with `ForAnsiCall`**: `GameDC::DrawText` (ui_gdi.h, every interface text draw),
-  `CInterface3D::TextExtent` (005F8340), the console prompt's width (`PromptWidth`) (the message box's went with U2).
-  (U1's 8-bit save name editor, a `ToAssetText` / `FromAssetText` pair around it, went with U4.)
+- (U1's 8-bit save name editor, a `ToAssetText` / `FromAssetText` pair around it, went with U4; the text draw
+  and extent are wide since U3.)
 - **Behaviour by length**: a briefing phrase lasts 0.05 s per character (`CBriefingScreen::NextPhrase`): counted
   with `CharacterCount`.
 - **Check** (repeat for U2-U5): build `build.cmd verify` and `build.cmd verify utf8`; run the gallery on each,
@@ -1291,7 +1288,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   console's clipboard and addon's AutoExec lines convert with UTF-8 instead of the ANSI code page;
   `Fullpath` (mfc_file.cpp) takes the current folder through the slot.
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- `ForAnsiCall` left only at GDI's text draw and extent (U3); `ShowMessageBox` passes its text as it is.
+- `ShowMessageBox` passes its text as it is.
 - **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
   round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide,
   with the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/:
@@ -1335,6 +1332,36 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   `DefWindowProcW`), never `&::DefWindowProcW`: the routes table is read during ei_hook.dll's static
   initialisation, when an entry holding an import's address is not set yet (the first try routed none of
   them and typed Cyrillic came out as "???").
+
+### U3: drawing and measuring (2026-10-21)
+
+- **Wide text calls** (system_text.h): with EI_UTF8 the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
+  `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else ANSI-code-page
+  bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face name to
+  `CreateFontIndirectW`). Every interface text draw (MFC's `CDC::DrawText` behind `GameDC::DrawText`, slot 26: the
+  surfaces' `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
+  (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through
+  `InterfaceTextExtentOriginal`) and the console's `PromptWidth` go through them; no call site changed. The
+  harness's font slot wrapper (`HarnessCreateFontIndirect`, no anti-aliasing) wraps the UTF-8 version, as its
+  file redirects do. `text::ForAnsiCall` is gone.
+- **The "charset option"**: the fonts never took a charset from an option. MFC's `CreatePointFont` asks for
+  `DEFAULT_CHARSET`, which the font mapper realises in the system's ANSI code page; the ANSI text calls read bytes
+  in the code page of the selected font's charset. So the original (and the build without EI_UTF8) draws the
+  assets' cp1251 bytes as Cyrillic only on a system whose ANSI code page is 1251; on this machine (1252) every
+  frame shows them as Latin-1 letters ("Ãðàôèêà" for "Графика"). With the wide calls the charset no longer
+  decides the glyph and `DEFAULT_CHARSET` stays. The "Font CharSet" option (+0x224, "english") only sets the CRT's
+  LC_CTYPE (`CTextManager::Create` 004DED20) and is left for U5: its 1252 tables upper / lower-case UTF-8 lead
+  bytes (`tolower` of 0xD0 is 0xF0) but also let `isprint` pass them (the network name filter).
+- **Check**: the frame comparison above with `EI_FONT_CHARSET=204` in the environment of the run without EI_UTF8
+  (harness.cpp: the harness's font slot sets that charset, as a system with the assets' code page realises
+  `DEFAULT_CHARSET`, so the ANSI calls draw the assets' Cyrillic); the UTF-8 run without it. U3's result: 54 of 54
+  frames identical (the same glyphs from the wide calls and the 1251 ANSI calls). Without the variable the
+  build without EI_UTF8 draws Latin-1 letters where the UTF-8 build draws Cyrillic, so most frames differ there.
+  Goldens with the switch on differ only in ui_gallery_game's saves, as before. utf8_typing types "λ" (outside
+  cp1251) into the frozen menu's console and requires its frame to differ from the line "?" (`utf8 diffcapture`;
+  the "utf8 <step>" prefix runs a step in the UTF-8 build only): 58 pixels at 4K, the glyph. How "😀" draws (Times
+  New Roman has no emoji; whether DrawTextW falls back to another font) is not checked.
+- **Still ANSI**: the titles' RichEdit (`SendMessageA`, RTF carries its own code page).
 
 ## 5. The hook retirement (S21-S21e, 2026-10-16)
 

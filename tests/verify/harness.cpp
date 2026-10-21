@@ -186,6 +186,7 @@
 //   clocktrace, randtrace     log every clock read and wait (ei_hook.log), every random draw
 //                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
+//   utf8 <step>               run the step only in the UTF-8 build (EI_UTF8)
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
@@ -423,6 +424,7 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
+#include "../../src/game/asset_text.h"   // text::kUtf8 (the "utf8" step prefix)
 #include "../../src/game/device.h"   // IDirectDraw7
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
@@ -1155,10 +1157,24 @@ BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam
     return TRUE;
 }
 
+// EI_FONT_CHARSET=<n> (e.g. 204, RUSSIAN_CHARSET): the game's fonts get that charset, as a system whose ANSI code
+// page is the assets' realises their DEFAULT_CHARSET. The ANSI text calls then read the assets' bytes in that
+// code page, so a build without EI_UTF8 draws the Cyrillic the UTF-8 build draws with the wide calls, and their
+// frames can be compared pixel for pixel (docs/notes/standalone.md section 4, U3). -1 (unset): as the game asks.
+int FontCharSet() {
+    static const int charSet = [] {
+        char value[16] = "";
+        if (!GetEnvironmentVariableA("EI_FONT_CHARSET", value, sizeof(value)) || !value[0]) return -1;
+        return std::atoi(value);
+    }();
+    return charSet;
+}
+
 HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
     if (!font) return g_createFontIndirect(font);
     LOGFONTA plain = *font;
     plain.lfQuality = NONANTIALIASED_QUALITY;
+    if (FontCharSet() >= 0) plain.lfCharSet = static_cast<BYTE>(FontCharSet());
     return g_createFontIndirect(&plain);
 }
 
@@ -2951,9 +2967,10 @@ void RunSteps() {
         Step s = g_steps[g_next++];
         // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
         // itself, e.g. script error messages). Rebirth is recognised by its addon.dll, or the standalone image's flags.
-        if (s.verb == "vanilla" || s.verb == "rebirth") {
-            bool rebirth = starter::RebirthInstall();
-            if ((s.verb == "rebirth") != rebirth) {
+        // "utf8 <step>": only in the UTF-8 build (EI_UTF8).
+        if (s.verb == "vanilla" || s.verb == "rebirth" || s.verb == "utf8") {
+            const bool runs = s.verb == "utf8" ? text::kUtf8 : (s.verb == "rebirth") == starter::RebirthInstall();
+            if (!runs) {
                 Log("harness: skipped (%s only): %s", s.verb.c_str(), s.argument.c_str());
                 continue;
             }

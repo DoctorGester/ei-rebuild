@@ -18,10 +18,12 @@
 // GetMessageA, PeekMessageA and DispatchMessageA's slots lead to the wide calls (the same arguments), so a typed character arrives as UTF-16 (app.cpp's DispatchInput passes it on as a code point; asset_text.h,
 // "Typing").
 //
+// The interface's text is drawn and measured wide (U3): DrawTextA, GetTextExtentPoint32A and CreateFontIndirectA's
+// slots lead to the wide calls.
+//
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
-// ASCII); GDI's text draw and extent (U3); SendMessageA to the titles' RichEdit control (RTF names its own
-// code page).
+// ASCII); SendMessageA to the titles' RichEdit control (RTF names its own code page).
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -91,6 +93,14 @@ HWND WINAPI FindWindowA(LPCSTR className, LPCSTR title);
 int WINAPI MessageBoxA(HWND owner, LPCSTR text, LPCSTR caption, UINT type);
 int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size);
 int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size);
+
+// The interface's text draw and extent (U3; MFC's CDC::DrawText, CInterface3D::TextExtent 005F8340, the
+// console's prompt width) and its fonts: the wide calls, so text past the assets' code page draws as itself.
+// The lengths are in bytes, as the ANSI calls take them. The fonts keep their LOGFONT, DEFAULT_CHARSET (MFC's
+// CreatePointFont): with the wide calls a font's charset no longer decides which glyph a byte is.
+int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format);
+BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size);
+HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font);
 
 } // namespace utf8
 
