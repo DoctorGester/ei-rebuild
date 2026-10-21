@@ -135,6 +135,9 @@ struct FrameStats {
     // the others; terrainMs: the terrain pages' hand-over and uploads, left out of the times around them.)
     double terrainMs = 0.0;
     double handOverMs = 0.0, textureMs = 0.0, windowMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
+    // R16k: the old device path's mesh draws (004E9010 / 004E9A50: projection, corners, clipping,
+    // passes; DeviceMeshTimer), the hand-over in them left out.
+    double deviceMeshMs = 0.0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
     // gpuFrames) of the shadow pass and of the whole frame's passes.
@@ -152,6 +155,17 @@ FrameStats TakeFrameStats();
 // start, a sokol panic, a lost device that could not be made again). Every call below does nothing
 // when it is off.
 bool Active();
+// Whether the old device path's mesh draws (004E9010 / 004E9A50) do only the per-corner work game
+// code reads (R16k): the new renderer draws every mesh from the model-space hand-over (BeginMesh)
+// and the image has no Direct3D 7 device, so the TL vertices, their fog and the clipped vertices'
+// screen positions are read by nothing but the screen rectangle of draw flag 1 (and the clipper,
+// whose counts the device's counters take). True when Active(), unless the harness asked for the
+// old work in full (its "meshcorners full", the harness build only: A/B frames and timings).
+bool MeshCornersSkipped();
+void SetMeshCornersFull(bool full);
+// Harness build: times one device mesh draw into FrameStats::deviceMeshMs (nothing elsewhere).
+void BeginDeviceMeshTime();
+void EndDeviceMeshTime();
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
 // movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns

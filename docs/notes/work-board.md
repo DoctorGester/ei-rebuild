@@ -65,8 +65,12 @@ build/live/scheduler.log) owns the machine's 16 game slots (EI_HARNESS_SLOTS; ru
 - **Order**: batches by id; within one, expected time descending (unknown = 1000 s), alone runs last. A batch takes
   every free slot (its `--jobs` is ignored); later batches backfill what it cannot use. An alone run stops new starts,
   gathers every slot and runs by itself. Two runs of one folder never run at once.
-- **Runs**: the game thread calls `run_all.run_with_retries(run(root=worktree, build=build, take_slot=False))` and keeps
-  its slot for retries; the main thread does every database write. A finished batch stores run_all's summary and exit
+- **Runs**: the game thread calls `run_all.run_with_retries(run(root=worktree, build=build, take_slot=False,
+  slots=GameSlots))`; the slots go back to the loop as soon as ei_launch returns (or the reference cache has the run),
+  so frame packing and the reference copy run without them (SV10h), and a retry's game asks for them again: the loop
+  grants a waiting retry before anything new starts. An alone run keeps every slot to its end. No new game starts
+  while 16 runs are past their game (AFTER_GAME_MAX). The finish line in scheduler.log gives the slot time:
+  `<folder> PASS 8s (slot 8s)`. The main thread does every database write. A finished batch stores run_all's summary and exit
   code. A batch whose submitter pid is gone is cancelled (its games are not killed). A new scheduler requeues runs a
   dead one left running.
 - **Environment**: each batch's games get the scheduler's environment without its own game variables plus the batch's
@@ -96,9 +100,12 @@ serve`.
 ## Run data
 
 - Frames: run() packs a run folder's 4K BMP captures as `<name>.bmp.z` (tools/frame_store.py: each byte XORed with the
-  byte one pixel before, then zlib level 3; lossless, 2.3x-4.7x smaller) before the reference cache stores it.
-  compare_frames.py, frame_preview and run_all's frame listings read either form; `frame_store.py pack FOLDER...` /
-  `unpack FILE.bmp.z`. The harness itself writes and reads plain BMPs inside a running game.
+  byte one pixel before, then zlib level 3; lossless, 2.3x-4.7x smaller) before the reference cache stores it, in a
+  python process of its own (`frame_store.pack_run`: at most EI_PACK_PROCESSES = 4 at once per Python process, two
+  frames each, below normal priority; in the runner threads the packing's big-number arithmetic held the GIL and
+  slowed every other run, SV10h). The pack checks the compressed bytes read back (0.34 s a 4K frame).
+  compare_frames.py, frame_preview and run_all's frame listings read either form; `frame_store.py pack [--jobs N]
+  FOLDER...` / `unpack FILE.bmp.z`. The harness itself writes and reads plain BMPs inside a running game.
 - run.counts is NULL since the verify wrappers went (it was 4 GB of the database); `prune` clears old rows.
 - Tests: tools/test_work_sched.py (fake runner, temp database and slots), tools/test_tickets.py, tools/test_frame_store.py.
 

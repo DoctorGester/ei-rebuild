@@ -36,10 +36,12 @@ struct HarnessHooks {
     using WorldUpdate = int(__fastcall*)(void* world, void*);
     using CameraUpdate = void(__fastcall*)(void* camera, void*, float seconds);
     using CursorLock = void(__fastcall*)(void* screen);
+    using FrameStep = void(__fastcall*)(bool draw, bool cursor);
     WorldUpdate serverUpdate = nullptr;         // CALL 0058DFF0 at 00457314 in WinMain
     WorldUpdate clientSegment = nullptr;        // CALL 005641F0 at 00457368 in WinMain
     CameraUpdate frameCameraUpdate = nullptr;   // CALL 0040FB30 at 00457595 in WinMain (the frame's last)
     CursorLock cursorLock = nullptr;            // CALL 005E65F0 at 004580D7 in the frame step 00458010
+    FrameStep frameStep = nullptr;              // CALL 00458010 at 004575FD in WinMain (a pass's frame step)
 };
 
 inline HarnessHooks g_harnessHooks;

@@ -663,7 +663,9 @@ bool RunPass() {
         }
     }
     Interface()->Update();
-    app::FrameStep(static_cast<char>(MovieModeFlag()) != 0, true);
+    const bool draw = static_cast<char>(MovieModeFlag()) != 0;
+    if (auto hook = ei::mainloop::g_harnessHooks.frameStep) hook(draw, true);
+    else app::FrameStep(draw, true);
     return true;
 }
 

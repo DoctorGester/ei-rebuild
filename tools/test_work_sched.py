@@ -30,19 +30,23 @@ def is_game(cmd):
 class Fake:
     """A runner that sleeps durations[scenario] and returns results[scenario] (a list: one per attempt)."""
 
-    def __init__(self, durations=None, results=None, default=0.2, gates=None):
+    def __init__(self, durations=None, results=None, default=0.2, gates=None, after=None):
         self.durations, self.results, self.default = durations or {}, results or {}, default
+        self.after = after or {}       # scenario -> seconds of after-game work (frame packing), with the slots given back
+        self.after_spans = []          # (scenario, start, end) of that work
         self.gates = gates or {}       # scenario -> Event the run waits for (instead of sleeping): the test decides when it ends
         self.gate_timed_out = False    # a gate nobody opened in time: the scheduler held up what should have opened it
         self.launches = []   # (batch, scenario) in the order the scheduler started them (its thread, so no thread jitter)
         self.spans = []      # (batch, scenario, start, end)
         self.lock = threading.Lock()
 
-    def __call__(self, batch, run, retries, on_attempt):
+    def __call__(self, batch, run, retries, on_attempt, slots=None):
         attempts = iter(range(retries + 1))
 
         def one(name, install, folder):
             on_attempt(next(attempts))
+            if slots:
+                slots.acquire()
             t0 = time.time()
             if name in self.gates:
                 if not self.gates[name].wait(30):
@@ -50,6 +54,12 @@ class Fake:
             else:
                 time.sleep(self.durations.get(name, self.default))
             t1 = time.time()
+            if slots:
+                slots.release()
+            if self.after.get(name):
+                time.sleep(self.after[name])
+                with self.lock:
+                    self.after_spans.append((name, t1, time.time()))
             with self.lock:
                 self.spans.append((batch['id'], name, t0, t1))
                 seq = self.results.get(name, ['PASS'])
@@ -264,9 +274,9 @@ class SchedTest(unittest.TestCase):
         call = fake.__call__
 
         class Recording(Fake):
-            def __call__(self, batch, run, retries, on_attempt):
+            def __call__(self, batch, run, retries, on_attempt, slots=None):
                 held[run['scenario']] = run['slots_held']
-                return call(batch, run, retries, on_attempt)
+                return call(batch, run, retries, on_attempt, slots)
         recording = Recording()
         recording.__dict__ = fake.__dict__
         self.submit(['p', 'q1', 'q2', 'q3'])
@@ -336,6 +346,71 @@ class SchedTest(unittest.TestCase):
         self.assertTrue(b['summary'].rstrip().endswith('SOME RUNS FAILED'))
         times = json.load(open(os.path.join(self.tmp, 'b', 'run_times.json')))
         self.assertEqual(sorted(times), ['bad-vanilla', 'flaky-vanilla', 'good-vanilla'])
+
+    def test_slot_free_when_the_game_ends(self):
+        # SV10h: a run's after-game work (frame packing) runs without its slot; the next game starts as the game ends
+        fake = Fake(default=0.3, after={n: 1.5 for n in ('a1', 'a2', 'a3', 'a4')})
+        a = self.submit(['a1', 'a2', 'a3', 'a4'])
+        s = self.sched(fake, count=2)
+        self.drive(s)
+        self.assertEqual(len(fake.spans), 4)
+        self.assertLessEqual(fake.most_at_once(), 2)
+        starts = sorted(fake.starts())
+        self.assertLess(starts[2] - starts[0], 1.2, "the third game waited for the first run's packing")
+        self.assertEqual(s.pool.held, {})
+        self.assertEqual({r['result'] for r in self.runs(a).values()}, {'PASS'})
+
+    def test_retry_takes_a_slot_again(self):
+        # the retry's game asks for a slot again and gets it before a queued run starts
+        fake = Fake({'flaky': 0.2, 'a': 0.4, 'b': 0.1}, results={'flaky': ['FAIL', 'PASS']}, after={'flaky': 0.1})
+        a = self.submit(['flaky', 'a', 'b'], argv=['--retries', '1'], expected={'flaky': 30, 'a': 20, 'b': 10})
+        self.drive(self.sched(fake, count=1))
+        self.assertLessEqual(fake.most_at_once(), 1)
+        self.assertEqual([n for _, n, s, e in sorted(fake.spans, key=lambda x: x[2])], ['flaky', 'a', 'flaky', 'b'])
+        self.assertEqual(self.runs(a)['flaky']['result'], 'PASS*')
+
+    def test_runs_past_their_game_are_bounded(self):
+        # no new game while AFTER_GAME_MAX runs are still packing
+        fake = Fake(default=0.05, after={f'x{i}': 0.6 for i in range(8)})
+        self.submit([f'x{i}' for i in range(8)])
+        old = work_sched.AFTER_GAME_MAX
+        work_sched.AFTER_GAME_MAX = 2
+        try:
+            self.drive(self.sched(fake, count=4))
+        finally:
+            work_sched.AFTER_GAME_MAX = old
+        self.assertEqual(len(fake.after_spans), 8)
+        # a game starts only while fewer than 2 runs are past theirs (one more may have ended its game unseen)
+        for t0 in fake.starts():
+            self.assertLessEqual(sum(s < t0 < e for _, s, e in fake.after_spans), 2)
+
+    def test_real_runner_gives_the_slot_back_around_the_game(self):
+        events = []
+
+        class Slots:
+            def acquire(self):
+                events.append('acquire')
+
+            def release(self):
+                events.append('release')
+
+        def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)
+            events.append('game')
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+        scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
+        os.makedirs(scenarios)
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')
+        build = os.path.join(self.tmp, 'bld')
+        old_run = run_all.subprocess.run
+        run_all.subprocess.run = fake_subprocess_run
+        try:
+            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 0, 'folder': build + '/runs/x-vanilla'}
+            work_sched.real_runner({'worktree': self.tmp, 'build': build, 'env': None}, run, 1, lambda n: None, Slots())
+        finally:
+            run_all.subprocess.run = old_run
+        self.assertEqual(events, ['acquire', 'game', 'release'] * 2)     # NO REPORT, so played again
 
     def test_prune_counts(self):
         fake = Fake(default=0.05)
@@ -854,8 +929,8 @@ class SchedTest(unittest.TestCase):
     def test_cached_runs_are_no_times(self):
         fake = Fake(default=0.05)
 
-        def runner(batch, run, retries, on_attempt):
-            r = fake(batch, run, retries, on_attempt)
+        def runner(batch, run, retries, on_attempt, slots=None):
+            r = fake(batch, run, retries, on_attempt, slots)
             return r[:4] + ([run_all.CACHED_NOTE + 'k'],) if run['scenario'] == 'c' else r
         self.submit(['p', 'c'])
         self.drive(self.sched(runner))

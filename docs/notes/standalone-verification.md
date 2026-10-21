@@ -258,7 +258,8 @@ happen (the harness logs "share id" if one does).
 - **Pairs** (SV5d, tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second
   game on tests/scenarios/peer/<name>.txt (both the image or both the original, one job object, either side's hang
   ends both; the peer's report in the run folder's peer\, merged into the host's as `FAILED: peer: ...`). The two run
-  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame) and
+  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame; each
+  game's frame step runs beside the other's turn, SV10a: section 10) and
   their UDP sockets talk through a mailbox of virtual ports, not the loopback adapter (the real sockets are still
   bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. `netcut`
   pulls one side's cable (its datagrams and those sent to it are lost; SV5d2), `hidefile <path>` makes an install
@@ -434,14 +435,52 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   (terrain projection, mesh lighting, the classic shadow textures rasterised on the CPU, GDI text on the
   interface surfaces), our renderer's submission ~6%, the camera ~5%, the harness build's upload read-backs
   (CheckUpload) ~3%.
-- **Pairs take turns**: only one game of a pair runs at a time (harness_pair.h), so a frame of
-  net_pair_quest costs both games' frames: 19.3 ms median, 8-10 ms each game's own work and 11-12 ms waiting
-  for the other (image and original alike; 6,437 frames).
+- **Pairs overlap** (SV10a, harness_pair.h): a game's turn runs from its after-frame peek (steps, messages, the
+  next pass's worlds and net::Pump, the interface's update) to just before the pass's frame step (CALL 00458010 at
+  004575FD, the rewritten loop's `frameStep` hook point); the frame step (the drawing and the present, most of a
+  frame) runs while the other game takes its turn. The frame step pumps the network too: CWorldClient::Render
+  00569E40 calls net::Pump between its drawing stages (four times), and the server answers the lobby's pings from
+  there. So the mailbox keeps the order it had when the frame step was inside the turn: every datagram carries its
+  sender's segment (a turn and the frame step after it, stamp 2 * turn + side), a receive takes datagrams of
+  earlier segments or its own, oldest segment first, then oldest sent; the frame step may send only to its own
+  ports (the host's client and server), to nobody (netcut) or to the fake master. A frame-step send to the other
+  game, a bind, a close or a signal there fails the run (the guard; none in the suites). Goldens unchanged by
+  construction (all 5 pairs, 4 installs, plain and EI_HEAP_JITTER 1 / `2,fill`, several at once).
+  - Measured (net_pair_quest, 2,819 frames, image; overlap off with `EI_PAIR_OVERLAP=0`, runs alternated so the
+    load is the same): machine otherwise quiet, median frame 9.9-10.6 ms against 18.4-22.2 ms, the run's frames
+    40.6-44.2 s against 58.3-72.0 s, pair wait 1.6-2.9 ms a frame against 10-13.5; the original 8.7 ms against
+    16.9 ms median. In a full image suite (16 slots): net_pair_quest 76 s -> 61 s, median frame 24.7 -> 17.4 ms,
+    the suite 80 s -> 65 s. Under load the two games' drawing now competes for the cores (the frame step's own
+    time grows ~25%), so the gain is smaller than the ~45% of a quiet machine.
+  - The report's second `PAIR:` line: the mean time in the turn (4-5 ms) and of the frame step after the hand-off
+    (8-15 ms). A first try that ended the turn after Render's last net::Pump left only 1-2 ms a frame outside the
+    turn (the world's drawing sits between the pumps): 15-25%.
+  - Before SV10a: only one game of a pair ran at a time, a frame of net_pair_quest cost both games' frames (19.3 ms
+    median: 8-10 ms each game's own work, 11-12 ms waiting).
 - Cut (no golden changes): the window checks (WB12's out-of-sight check asked DWM about every window five
   times a second: 0.4-2 ms of wall time a frame in the original's runs, ~6% of net_pair_quest's main thread in
   the image's under load) walk the game's own threads' windows and sweep / ask DWM every 2 s; the digest reuses
   the last-but-one record's map nodes (~20% of its time). Suites after: image 124 runs in 173 s (sum 1,033 s,
   net_pair_quest 153 s); original 114 runs in 227 s (sum 1,192 s, net_pair_quest 176 s), with other workers'
   games on the machine. Suite times move with that load by ±15%, so the per-frame numbers are the measure.
-- Proposals (tickets SV10a-SV10e): the pair's frame step run while the other game takes its turn, start-up,
-  more world updates per drawn frame, drawing only frames a step reads, the harness build's renderer checks.
+- **The scheduler's slots (SV10h, user 2026-10-21: fewer than 16 games within a batch).** A slot is for a game on
+  the GPU; it was held through the run's whole runner call. From build/live/scheduler.log (2026-10-21 03:00-04:15,
+  2,790 runs): log time minus start minus game seconds 5.5 s a run on average, median 2, p90 18, worst 107; a
+  124-run suite held 1,500-2,300 slot-seconds for 780-1,320 game-seconds (5-9 s a run beyond its game), games running
+  on average 5.5-7.7 a second of its wall while 9-13 slots were taken. Where it went (four runs at once, each phase
+  timed): frame packing, frame_store.pack_folder in the runner thread: 25-30 s for runs of 5-15 4K frames (1.2 s a
+  frame alone: 0.1 s XOR delta and 0.3 s zlib, then 0.5-0.9 s undoing the XOR to check it, big-number arithmetic that
+  holds the GIL); with it running, another run's set-up (clean_run_dir, prepare_scenario, otherwise 0.0-0.1 s) took
+  4-10 s, all in the one Python process's GIL. The rest (report parse, reference key, retries) was small. Now:
+  run_all.run(slots=) gives the slots back when ei_launch returns (or when the reference cache has the run) and takes
+  them again before a retry's game (work_sched.GameSlots; docs/notes/work-board.md, "Runs"); frames are packed by a
+  python process of its own (frame_store.pack_run: at most 4 at once per Python process, two frames each, below
+  normal priority), the check compares the compressed bytes read back (0.34 s a frame; the packed files are the same
+  bytes). A run is still reported after its packing. Driving the Scheduler class directly, 24 frame-heavy image
+  runs, 4 slots, machine shared with other suites: batch 104 / 196 s before, 27 / 32 s after; slot beyond the game
+  8.4 / 11.7 s a run before, 0.03 s after; games running 0.8 / 0.5 of 4 before, 3.7 / 3.1 after; report after the
+  game 8.5 / 12.1 s before, 1.9 / 2.1 s after (packing, outside the slot). For a 124-run suite that is ~900 instead
+  of ~1,750 slot-seconds; a lone suite's wall stays net_pair_quest's, the freed slots go to other batches.
+- Proposals (tickets SV10a-SV10e): the pair overlap (SV10a, above) and start-up (SV10b) done; more world updates per
+  drawn frame and drawing only frames a step reads dropped (user: frames get faster, not fewer); the harness
+  build's renderer checks (SV10e) open.

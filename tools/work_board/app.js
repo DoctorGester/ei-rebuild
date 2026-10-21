@@ -45,7 +45,8 @@ const failCount = b => b.failed + checkFailures(b).length;
 function batchSummary(b, withId = true) {
   const parts = withId ? [`#${b.id}`, esc(b.state)] : [esc(b.state)];
   if (b.total) parts.push(`${b.done}/${b.total} games`);
-  if (b.running) parts.push(`${b.running} running`);
+  if (b.running) parts.push(b.games_running && b.games_running !== b.running
+    ? `${b.running} running (${b.games_running} games: pairs play two)` : `${b.running} running`);
   if (b.queued && b.state !== 'queued') parts.push(`${b.queued} queued`);
   const time = b.state === 'running' ? 'for ' + fromFetch(b.elapsed || 0)
     : b.state === 'queued' ? 'waiting ' + fromFetch(b.queued_for || 0) : b.finished ? dur(b.elapsed) + ', ' + ageOf(b.finished) + ' ago' : '';
@@ -238,7 +239,9 @@ function runsView() {
   if (!p.scheduler.alive && (r.queued.length || r.running.length)) out.push(hb != null && hb < 600
     ? `<p class="empty bad">The scheduler has not checked in for ${fromFetch(hb)}; queued batches wait until it does (<code>build/live/scheduler.log</code>).</p>`
     : `<p class="empty bad">The scheduler is not running, so queued batches wait; it starts with the next <code>work.py test</code>.</p>`);
-  out.push(`<section class="lane"><h2>Running<span class="n">${r.running.length}</span></h2>` +
+  const gamesNow = r.running.reduce((n, b) => n + (b.games_running || b.running || 0), 0);
+  out.push(`<section class="lane"><h2>Running<span class="n">${r.running.length}</span>` +
+    (gamesNow ? `<span class="n" title="games playing now, of the machine's 16 slots">${gamesNow} of 16 games</span>` : '') + `</h2>` +
     (r.running.length ? r.running.map(b => batchPanel(b, 0)).join('') : '<p class="empty">No batch is running.</p>') + '</section>');
   out.push(`<section class="lane"><h2>Queue<span class="n">${r.queued.length}</span></h2>` +
     (r.queued.length ? r.queued.map((b, i) => batchPanel(b, i + 1)).join('') : '<p class="empty">Queue empty.</p>') + '</section>');

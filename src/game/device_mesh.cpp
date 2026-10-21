@@ -139,17 +139,23 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
     }
 }
 
+// The TL vertices are read by nothing when the new renderer draws the mesh (R16k,
+// render::MeshCornersSkipped): the passes still go to the device with the same counts.
 void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) device->BoundsOfProjected(&Projected(), 0);
     Vertices().SetSizeDiscard(a.cornerCount);
-    FillCorners(a);
-    if (device->distanceFog_) transform->FogVertices(Vertices().data, a.cornerCount);
+    if (!render::MeshCornersSkipped()) {
+        FillCorners(a);
+        if (device->distanceFog_) transform->FogVertices(Vertices().data, a.cornerCount);
+    }
     Submit(device, textures, a.indices, a.indexCount);
 }
 
 // Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the
 // transform object's clipper (slot 37) writes the clipped triangles to ClipIndices, then the
-// vertices are projected (slot 34).
+// vertices are projected (slot 34). When the new renderer draws the mesh (R16k) the clip still runs
+// (its counts go to the device's counters, an empty result draws no pass), the projection only for
+// draw flag 1's screen rectangle, the fog not at all.
 void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
     Vertices().SetSizeDiscard(capacity);
@@ -165,8 +171,9 @@ void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const Me
     if (indexCount == 0 || vertexCount == 0) return;
     Vertices().SetSize(vertexCount);       // 004EC790
     ClipIndices().SetSize(indexCount);     // 0044FA90
-    transform->ToScreenClipped(Vertices().data, Vertices().size);
-    if (device->distanceFog_) transform->FogVertices(Vertices().data, Vertices().size);
+    bool skipped = render::MeshCornersSkipped();
+    if (!skipped || (a.flags & 1)) transform->ToScreenClipped(Vertices().data, Vertices().size);
+    if (!skipped && device->distanceFog_) transform->FogVertices(Vertices().data, Vertices().size);
     if (a.flags & 1) device->BoundsOfVertices(&Vertices(), CornerOutcodes().data);
     Submit(device, textures, ClipIndices().data, ClipIndices().size);
 }
@@ -198,7 +205,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
 }
 
 // Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
-int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
+int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     ITransformPipeline* transform = device->pipeline_->transform_;
     Projected().SetSizeDiscard(a.blocks * 4);
     int visibility;
@@ -222,6 +229,14 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
         DrawClipped(device, transform, a, textures);
     }
     render::EndMesh();
+    return result;
+}
+
+// The harness build's renderstats time the draw ("device mesh draws", R16k).
+int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
+    render::BeginDeviceMeshTime();
+    int result = ProjectAndDraw(device, a, textures);
+    render::EndDeviceMeshTime();
     return result;
 }
 

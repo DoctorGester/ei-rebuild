@@ -266,6 +266,10 @@
 //                             draw; check requires that no check of a kept mesh against a fresh build
 //                             (every 16th frame, render::MeshCacheState) found it stale. Ignored in a
 //                             run of the original code
+//   meshcorners read|full     the image's device mesh draws (004E9010 / 004E9A50) do only the per-corner
+//                             work game code reads (render::MeshCornersSkipped, R16k; the default) or all
+//                             the old path's (full: TL vertices, fog, clipped vertices to the screen, as
+//                             before R16k), from the next mesh draw. Ignored in a run of the original code
 //   memorytextures inplace|remake
 //                             the image's textures in the renderer's memory (shadow textures, the global
 //                             map's, the CPU-written ones) updated in place with their levels made on
@@ -1279,6 +1283,16 @@ constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     if (clock::Frozen()) return;
     reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+}
+
+// A pass's frame step (CL draw, DL cursor): a pair's game ends its turn first, so that it draws while
+// the other game takes its turn (harness_pair.h). Only the main loop's call; the frame steps of modal
+// loops and screens stay inside the turn.
+constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
+constexpr std::uintptr_t kFrameStep = 0x00458010;
+void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
+    pair::HandOff();
+    reinterpret_cast<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
 }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
@@ -3234,6 +3248,13 @@ void RunSteps() {
             } else {
                 g_failures.push_back("meshcache needs on, off or check");
             }
+        } else if (s.verb == "meshcorners") {
+            if (!render::Active()) {
+                Log("harness: meshcorners %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "read" || s.argument == "full") render::SetMeshCornersFull(s.argument == "full");
+            else g_failures.push_back("meshcorners needs read or full");
         } else if (s.verb == "memorytextures") {
             if (!render::Active()) {
                 Log("harness: memorytextures %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3313,7 +3334,7 @@ void RunSteps() {
                 "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
-                "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f); "
+                "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f), device mesh draws %.3f; "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
                 "(%.0f corners); main thread ms CPU %.2f / wall %.2f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
@@ -3330,7 +3351,7 @@ void RunSteps() {
                 kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-                t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n,
+                t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
                 frameWallMs / n);
@@ -4058,6 +4079,10 @@ struct Harness {
             hooks.serverUpdate = &HeldServerUpdate;
         if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment)))
             hooks.clientSegment = &HeldClientSegment;
+        if (pair::Active() && pair::Overlap() &&
+            (hookPointsOnly ||
+             RedirectCall(kFrameStepCall, kFrameStep, reinterpret_cast<const void*>(&HandOffThenFrameStep))))
+            hooks.frameStep = &HandOffThenFrameStep;
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();
