@@ -19,6 +19,11 @@ constexpr const char* kMaterialClassName = "CMaterial";
 constexpr const char* kManagerClassName = "CMaterialManager";
 constexpr const char* kManagerFolder = "materials";
 constexpr std::size_t kColorTableHint = 100;
+// The kinds Create enters, in its order, and their files.
+constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
+    {0x11, "leather.mat"}, {0x12, "wood.mat"}, {0x13, "metal.mat"}, {0x14, "cloth.mat"},
+    {0x15, "skin.mat"},    {0x16, "stone.mat"}, {0x17, "magic.mat"}, {0x19, "metal.mat"},
+};
 
 // The names, alpha and the two ints the constructor and Create reset (in their order).
 void ResetFields(CMaterial* m) {
@@ -142,11 +147,10 @@ int CMaterialManager::Create() {
     const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     AddArchive(folder + "materials.res");
 
-    const MaterialKindFile* const kinds = MaterialKindFileTable();
-    for (int i = 0; i < kMaterialKindFiles; ++i) {
+    for (const MaterialKindFile& kind : kMaterialKindFiles) {
         MaterialColors colors;
         std::memset(&colors, 0, sizeof(colors));
-        void* data = GetFile(kinds[i].file, nullptr);
+        void* data = GetFile(kind.file, nullptr);
         if (!data) {
             colors.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
             colors.ambient.x = colors.ambient.y = colors.ambient.z = 0.7f;
@@ -156,8 +160,8 @@ int CMaterialManager::Create() {
             std::memcpy(&colors, MaterialFileColors(data), sizeof(colors));
         }
         CloseFile(data);
-        if (kinds[i].kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
-        colors_[static_cast<unsigned>(kinds[i].kind)] = colors;
+        if (kind.kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
+        colors_[static_cast<unsigned>(kind.kind)] = colors;
     }
     return 1;
 }
