@@ -3565,7 +3565,7 @@ id = "U2"
 title = "System boundary: wide file, registry, window title, message box, clipboard and key name calls (19 direct ANSI sites plus gameapi.h, CFile, CFileFind)"
 group = "standalone"
 model = "opus"
-note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup."
+note = "UTF-8 plan (docs/notes/standalone.md section 4), behind one compile-time switch; frame captures of a scenario the same with the switch off and on. User 2026-10-21: do the UTF-8 work earlier, one worker on the U chain alongside cleanup. U2 done: src/game/system_text.h. With EI_UTF8 the image's slots of 27 ANSI text calls (files, registry, CreateWindowEx title, FindWindow, MessageBox, GetKeyNameText, LoadString, mmioOpen, LoadLibrary, LoadCursorFromFile) hold UTF-8 versions calling the wide functions (ImageRoute -> text::SystemRoute), so gameapi, CFile, CFileFind and the CRT's file calls are UTF-8; direct calls use text::sys; clipboard and AutoExec UTF-8; ForAnsiCall left only at GDI draw/extent (U3). Profile calls stay ANSI (bytes round-trip). Saves are folders save<n> (title in info.sav), so a Cyrillic file name check runs at every UTF-8 harness start (harness_utf8.cpp). Frame check 51/54 as U1 (3 UB1 frames); image suite 121 same, original 114 same."
 
 [[ticket]]
 id = "U3"
