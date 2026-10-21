@@ -190,9 +190,10 @@ class Scan:
         self.scan()
 
     def find_helpers(self):
-        """name -> {argument index: True when every definition hands it to the seam}."""
-        verdict = collections.defaultdict(dict)
-        self.helper_defs = collections.defaultdict(list)   # (name, index) -> [(path, (start, end), routed, param)]
+        """name -> {argument index: True when every definition hands it to the seam}, directly or through
+        another helper (TraceSlot -> PatchSlot -> GamePointer): the least fixed point, so a function that
+        only passes the parameter on to itself is no helper."""
+        defs = collections.defaultdict(list)   # (name, index) -> [(path, span, body, param)]
         for path, code in self.code.items():
             for m in DEFINITION.finditer(code):
                 name = m.group(1)
@@ -204,10 +205,24 @@ class Scan:
                     pm = UINTPTR_PARAM.match(re.sub(r'\s*=.*$', '', p))
                     if not pm:
                         continue
-                    routed = self.routes(body, pm.group(1))
                     span = (m.end() - 1, m.end() - 1 + len(body))
-                    self.helper_defs[(name, index)].append((path, span, routed, pm.group(1)))
-                    verdict[name][index] = verdict[name].get(index, True) and routed
+                    defs[(name, index)].append((path, span, body, pm.group(1)))
+        verdict = collections.defaultdict(dict)
+        while True:
+            changed = False
+            for (name, index), found in defs.items():
+                if verdict[name].get(index):
+                    continue
+                if all(self.routes(body, param, verdict) for _, _, body, param in found):
+                    verdict[name][index] = True
+                    changed = True
+            if not changed:
+                break
+        self.helper_defs = collections.defaultdict(list)   # (name, index) -> [(path, (start, end), routed, param)]
+        for (name, index), found in defs.items():
+            for path, span, body, param in found:
+                self.helper_defs[(name, index)].append((path, span, self.routes(body, param, verdict), param))
+            verdict[name].setdefault(index, False)
         return verdict
 
     @staticmethod
@@ -222,7 +237,7 @@ class Scan:
                     return code[brace:i + 1]
         return code[brace:]
 
-    def routes(self, body, param):
+    def routes(self, body, param, helpers):
         """The parameter reaches memory only through the seam (or another helper's seam argument)."""
         p = re.escape(param)
         uses = [m.start() for m in re.finditer(r'\b' + p + r'\b', body)]
@@ -233,7 +248,7 @@ class Scan:
             if not owner:
                 return False
             callee, index = owner
-            if last(callee) in OPENERS:
+            if last(callee) in OPENERS or helpers.get(last(callee), {}).get(index):
                 continue
             return False
         return True

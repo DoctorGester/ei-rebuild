@@ -8,8 +8,13 @@
 // folder, gen_image_cells.py --bytes); the host leaves the old range zero. In game.exe (the original's runs)
 // none of it happens: the shift stays 0.
 //
+// The storage starts at game.exe's import address table (kImportsBegin, 0073B000): its slots are ours at the
+// same shift (image_imports.cpp, S18f), resolved right after the move. The .rdata between the table and .data
+// is still read at its address (until S18h moves it into the gap).
+//
 // The move runs before every other static constructor of ei_hook.dll (init_seg(compiler)): the
-// harness and the game's globals bind references to game data at static initialisation.
+// harness and the game's globals bind references to game data at static initialisation, and the harness
+// takes import slots there.
 #include "game/game_data.h"
 #include "hook/log.h"
 
@@ -29,17 +34,20 @@ std::uintptr_t g_dataShift = 0;
 
 void DescribeCode(std::uintptr_t address, char* out, std::size_t size);   // hook/standalone.cpp
 void ReportImageFailure(const char* what);                                // hook/standalone.cpp
+void ResolveImageImports();                                              // image_imports.cpp
 
 namespace {
 
 constexpr std::uintptr_t kImageBase = 0x00400000;
 constexpr std::size_t kMovedSize = kMovedEnd - kMovedBegin;
+constexpr std::uintptr_t kStorageBegin = kImportsBegin;   // the import slots, then .rdata's place, then .data
+constexpr std::size_t kStorageSize = kMovedEnd - kStorageBegin;
 constexpr std::uintptr_t kKeptBits = 0xFFFF;   // the low 16 bits of each address stay
 constexpr std::uintptr_t kPage = 0x1000;
 static_assert(kMovedBegin % kPage == 0 && kMovedEnd % kPage == 0, "the guard is the section's whole pages");
 
-// The section's storage: room to start at an address whose low 16 bits are the section's.
-alignas(4096) unsigned char g_dataStorage[kMovedSize + kKeptBits + 1];
+// The storage: room to start at an address whose low 16 bits are the import table's.
+alignas(4096) unsigned char g_dataStorage[kStorageSize + kKeptBits + 1];
 
 // The section's bytes as game.exe's file holds them, up to the last nonzero dword (the rest is zero).
 constexpr std::uint32_t kInitialData[] = {
@@ -76,13 +84,14 @@ LONG CALLBACK OnOldData(EXCEPTION_POINTERS* e) {
 void MoveData() {
     if (GetModuleHandleA(nullptr) == reinterpret_cast<HMODULE>(kImageBase)) return;   // game.exe
     const auto storage = reinterpret_cast<std::uintptr_t>(g_dataStorage);
-    const std::uintptr_t begin = storage + ((kMovedBegin - storage) & kKeptBits);
+    const std::uintptr_t base = storage + ((kStorageBegin - storage) & kKeptBits);
+    const std::uintptr_t begin = base + (kMovedBegin - kStorageBegin);
     // The host lays out no .data: the old range should be all zero (a byte that is not means it still copies).
     const auto* old = reinterpret_cast<const unsigned char*>(kMovedBegin);
     std::size_t nonzero = 0;
     for (std::size_t i = 0; i < kMovedSize; ++i) nonzero += old[i] != 0;
     std::memcpy(reinterpret_cast<void*>(begin), kInitialData, sizeof(kInitialData));
-    g_dataShift = begin - kMovedBegin;
+    g_dataShift = base - kStorageBegin;
     int moved = 0;
     for (const Cell& c : kCells) {
         auto& value = GameData<std::uintptr_t>(c.cell);   // a cell inside the moved range is in its new place
@@ -103,6 +112,7 @@ void MoveData() {
         static_cast<unsigned>(begin), static_cast<unsigned>(g_dataShift), static_cast<unsigned>(sizeof(kInitialData)),
         moved, static_cast<int>(std::size(kCells)), static_cast<unsigned>(nonzero),
         guarded ? "PAGE_NOACCESS" : "NOT guarded");
+    ResolveImageImports();
 }
 
 struct DataMover {

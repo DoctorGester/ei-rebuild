@@ -51,10 +51,11 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 ### How it runs
 
 - **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is linked below
-  0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers, .rdata, .data and .rsrc from disk into
-  place (data only), fills .text with INT3, resolves the import table itself (DDraw, mss32 and binkw32 from Engine\,
-  the rest from System32, so Rebirth's dinput proxy and addon.dll stay out), loads ei_hook.dll, and `InstallHooks`
-  writes a JMP for every registration into the blank text. Forwarders, function pointers in data and vtable slots
+  0x400000 and reserves 0x400000-0x7D7000. It copies game.exe's headers, .rdata and .rsrc from disk into place
+  (data only), fills .text with INT3 and loads ei_hook.dll, which keeps .data and the import slots in its own storage
+  and resolves game.exe's imports as it initialises (S18f: DDraw, mss32 and binkw32 from game.exe's folder or the
+  working directory, the rest from System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
+  then `InstallHooks` writes a JMP for every registration into the blank text. Forwarders, function pointers in data and vtable slots
   reach our code through those jumps. `ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game
   args>]`, run from the game folder; without `--run` it builds the image, checks the jumps and exits.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
@@ -112,8 +113,7 @@ each step green on the goldens and removing a measured tie:
   gone with the split. `g_dataStorage` in ei_hook.dll is used from the address whose low 16 bits are 0x3000;
   the shift is set by an `init_seg(compiler)` object, before every other static constructor of the DLL (the
   harness's and the game globals' `GameData` references bind at static init). Nothing writes the range before
-  it: the host lays out only headers, .rdata and .rsrc and fills the IAT (.rdata, 0073B000), the loader and
-  the DLL's CRT start-up touch no game data; the log line counts the old range's nonzero bytes (0).
+  it: the host lays out only headers, .rdata and .rsrc, the loader and the DLL's CRT start-up touch no game data; the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host no longer copies .data (it skips the section at RVA 00383000); the build writes
   .data's file bytes up to the last nonzero dword (`tools/gen_image_cells.py --bytes`, a CMake custom command
   from `EI_GAME_EXE`, by default the Rebirth install's game.exe; every 1.06 copy has the same .data) into
@@ -137,7 +137,30 @@ each step green on the goldens and removing a measured tie:
   harness's report (`OnOldData`; resolve the code address with the map, as for an INT3 hit). ei_vectors.exe's
   `GameAddress` stays the address. A later move of a section (.rdata, S18h) has the same traps: an object
   across the boundary, text read as cells, cells inside the moved range (fixed up in their new place), and a
-  writer before the init_seg(compiler) object (the host's import resolution writes the IAT in .rdata).
+  writer before the init_seg(compiler) object (none now: the host resolves no imports since S18f).
+- **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
+  `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
+  the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
+  unused until S18h), so `GameAddress` maps two ranges with one `g_dataShift`. `tools/gen_iat.py` writes the table
+  (src/standalone/image_imports.inc, committed, 504 slots: slot, DLL, function or ordinal; build.cmd runs it with
+  `--check`) and gameapi.h. Right after the move (same init_seg(compiler) object, before the harness's static
+  constructor takes its slots) `ResolveImageImports` loads each DLL (game.exe's folder from the host's export
+  `EiStandaloneExe`, then the working directory, else System32; dinput always the system's) and fills our slots;
+  the ten resource / module / command-line / DirectInput imports get their wrappers there (`ImageRoute`,
+  hook/standalone.cpp). Everything that calls through a slot by its address reaches our table through the seam:
+  gameapi.h, the static initialisers' `Import`, Bink's slots, the harness's `PatchSlot` / `WatchWrites` (in game.exe
+  all of them are the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0; data_seam.py's
+  helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  **game.exe's own table** stays readable (.rdata does not move before S18h), but every old slot holds a trap of its
+  own (an INT3 per slot in a page of ours): a call through it ends the run with `a call through game.exe's own
+  import slot <slot> (<dll>!<function>) by <code>` (`OnTrap`); a slot of ours whose import did not resolve leads to a
+  trap too, and the launch-free check fails. **Direct callers**: none run. The image's .text is INT3 but for the
+  jumps InstallHooks writes (no trampolines or stolen bytes in the image: recorders install in game.exe only), so no
+  `CALL [slot]` / `JMP [slot]` of the original exists; the launch-free check proves it (`CheckText`: every byte of
+  .text is INT3 or one of our jumps' five, logged as `game.exe's code section: INT3 and our jumps only`). No pointer
+  cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
+  only through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
+  import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
   the value in the source, tagged with its address: `0.5f /*0073B86C*/`, `3.141592653589793 /*0073CAE8*/`, a negative one in
@@ -161,7 +184,7 @@ each step green on the goldens and removing a measured tie:
 | S18c | .data sealed | raw .data uses |
 | S18d | .data moves whole with .bss (one range, one shift): bytes from the build, 1071 cells, guarded | the host's copy of .data |
 | S18e | .rdata constants (floats, doubles, integers no code writes) as literals | .rdata uses 2288 -> 1295 (helper 968 -> 88, seam 603 -> 507, raw 381 -> 367) |
-| S18f | own import table: generated slots resolved by the DLL; gameapi.h and the harness's routes through it | the host's import resolution, the IAT |
+| S18f | own import table: generated slots resolved by the DLL into the storage (one shift with .data); gameapi.h and the harness's routes through it; old slots trap; iat sealed | the host's import resolution, the IAT |
 | S18g | .rdata sealed: vtables, RTTI and throw infos, tables, the harness's vtable tables | raw .rdata uses |
 | S18h | .rdata moves | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (a stub reports an unregistered one), static init calls and forwarders direct, .text guarded | the jumps in .text |

@@ -6,6 +6,7 @@
 #include "ei/main_loop.h"
 #include "../../src/game/random.h"
 #include "../../src/lib/crt.h"
+#include "game/game_data.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -35,9 +36,10 @@ constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
 constexpr std::uintptr_t kCreateThreadSlot = 0x0073B348;
 
+// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f) or of another module's.
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    auto* slot = reinterpret_cast<T*>(address);
+    T* slot = ei::GamePointer<T>(address);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;

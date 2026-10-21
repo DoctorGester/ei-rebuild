@@ -1,6 +1,7 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
-// The host has laid out game.exe's headers and data at 0x400000 with INT3 in place of its code and
-// resolved its imports; here the jumps to our code are written and checked, and WinMain runs.
+// The host has laid out game.exe's headers, .rdata and .rsrc at 0x400000 with INT3 in place of its code; the
+// DLL's static initialisation has put .data and the import slots in its own storage (image_data.cpp,
+// image_imports.cpp); here the jumps to our code are written and checked, and WinMain runs.
 #include "ei/hook.h"
 #include "log.h"
 #include "standalone/static_init.h"
@@ -22,6 +23,7 @@ namespace ei {
 
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook.cpp
 std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
+int ImageImportsMissing();                                              // standalone/image_imports.cpp
 
 namespace {
 // game.exe's code section (.text, 0x401000-0x73A670).
@@ -115,6 +117,25 @@ int CheckJumps() {
     return bad;
 }
 
+// The image's code section holds nothing of game.exe's code: INT3 but for the jumps InstallHooks wrote (and,
+// in a harness run, the harness's own patches). So no instruction of the original runs, none that calls
+// through game.exe's import slots (CALL [slot], JMP [slot]) either. Returns the bytes found besides those.
+int CheckText() {
+    std::vector<bool> jump(kTextEnd - kTextBegin);
+    for (const auto& installed : InstalledHooks())
+        for (std::uintptr_t a = installed.first; a < installed.first + 5 && a < kTextEnd; ++a) jump[a - kTextBegin] = true;
+    int stray = 0;
+    const auto* text = reinterpret_cast<const unsigned char*>(kTextBegin);
+    for (std::size_t i = 0; i < jump.size(); ++i) {
+        if (jump[i] || text[i] == 0xCC) continue;
+        if (stray < 8)
+            Log("standalone: game.exe's code holds %02X at %08X (not INT3, not a jump of ours)", text[i],
+                static_cast<unsigned>(kTextBegin + i));
+        ++stray;
+    }
+    return stray;
+}
+
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
 // 0x400000 is not a loaded module in the host's process, yet the game hands it (its hInstance) to
 // LoadIconA, LoadStringA, FindResourceA ... The image's import slots of those calls lead here: the
@@ -163,8 +184,18 @@ HRESULT WINAPI ImageDirectInputCreateEx(HINSTANCE instance, DWORD version, REFII
     return g_directInputCreateEx(instance, version, iid, out, outer);
 }
 
-// Points `base`'s import slots of `dll`!`function` at `replacement`. Slots are matched by what they hold
-// (the export the loader, or the host, resolved), so a module without an import name table works too.
+// The image's import slots that lead to a wrapper here instead of their export (ImageRoute).
+struct Route {
+    const char* dll;
+    const char* function;
+    const void* replacement;
+};
+constexpr int kRoutes = 10;
+bool g_routed[kRoutes];   // zero before any static constructor: ImageRoute runs from image_imports.cpp's
+
+// Points `base`'s import slots of `dll`!`function` at `replacement` (another module's import table: Miles's).
+// Slots are matched by what they hold (the export the loader resolved), so a module without an import name
+// table works too.
 bool RouteImport(std::uintptr_t base, const char* dll, const char* function, const void* replacement) {
     HMODULE exporter = GetModuleHandleA(dll);
     const FARPROC current = exporter ? GetProcAddress(exporter, function) : nullptr;
@@ -202,20 +233,9 @@ HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
     return LoadLibraryA(name);
 }
 
-// Routes the image's resource, module, command-line and DirectInput calls, and Miles's LoadLibraryA. False when
-// game.exe's resources cannot be loaded or a call is not found.
-bool RouteImageCalls() {
-    g_resources = LoadLibraryExA(g_exePath, nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
-    if (!g_resources) {
-        Log("standalone: cannot load %s's resources (error %lu)", g_exePath, GetLastError());
-        return false;
-    }
-    struct Route {
-        const char* dll;
-        const char* function;
-        const void* replacement;
-    };
-    const Route routes[] = {
+// The image's resource, module, command-line and DirectInput imports and the wrappers that take their slots.
+const Route* Routes() {
+    static const Route routes[kRoutes] = {
         {"USER32.dll", "LoadIconA", reinterpret_cast<const void*>(&ImageLoadIcon)},
         {"USER32.dll", "LoadCursorA", reinterpret_cast<const void*>(&ImageLoadCursor)},
         {"USER32.dll", "LoadBitmapA", reinterpret_cast<const void*>(&ImageLoadBitmap)},
@@ -227,12 +247,21 @@ bool RouteImageCalls() {
         {"KERNEL32.dll", "GetCommandLineA", reinterpret_cast<const void*>(&ImageCommandLine)},
         {"DINPUT.dll", "DirectInputCreateEx", reinterpret_cast<const void*>(&ImageDirectInputCreateEx)},
     };
-    if (HMODULE input = GetModuleHandleA("DINPUT.dll"))
-        g_directInputCreateEx = reinterpret_cast<DirectInputCreateExFn>(GetProcAddress(input, "DirectInputCreateEx"));
+    return routes;
+}
+
+// Loads game.exe's resources, checks that ImageRoute took every route and routes Miles's LoadLibraryA. False
+// when game.exe's resources cannot be loaded or an import is not found.
+bool RouteImageCalls() {
+    g_resources = LoadLibraryExA(g_exePath, nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (!g_resources) {
+        Log("standalone: cannot load %s's resources (error %lu)", g_exePath, GetLastError());
+        return false;
+    }
     bool ok = true;
-    for (const Route& r : routes) {
-        if (RouteImport(kImageBase, r.dll, r.function, r.replacement)) continue;
-        Log("standalone: game.exe's import %s!%s not found to route", r.dll, r.function);
+    for (int i = 0; i < kRoutes; ++i) {
+        if (g_routed[i]) continue;
+        Log("standalone: game.exe's import %s!%s not found to route", Routes()[i].dll, Routes()[i].function);
         ok = false;
     }
     if (HMODULE miles = GetModuleHandleA("mss32.dll")) {
@@ -246,6 +275,21 @@ bool RouteImageCalls() {
 }
 
 } // namespace
+
+// The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export `real`, or
+// nullptr. Called during ei_hook.dll's static initialisation, before this file's: the table is a function's
+// static (made at its first call), the flags and DirectInput's export are zero-initialised.
+const void* ImageRoute(const char* dll, const char* function, const void* real) {
+    for (int i = 0; i < kRoutes; ++i) {
+        const Route& r = Routes()[i];
+        if (_stricmp(r.dll, dll) != 0 || std::strcmp(r.function, function) != 0) continue;
+        if (r.replacement == reinterpret_cast<const void*>(&ImageDirectInputCreateEx))
+            g_directInputCreateEx = reinterpret_cast<DirectInputCreateExFn>(const_cast<void*>(real));
+        g_routed[i] = true;
+        return r.replacement;
+    }
+    return nullptr;
+}
 
 bool Standalone() {
     static const bool standalone = GetModuleHandleA(nullptr) != reinterpret_cast<HMODULE>(kImageBase);
@@ -282,12 +326,20 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     const bool winMain = *reinterpret_cast<const unsigned char*>(kWinMain) == 0xE9;
     Log("standalone: %d jump(s) written into the image, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
+    const int stray = CheckText();
+    Log("standalone: game.exe's code section: INT3 and our jumps%s (%d other byte(s))",
+        stray ? " and more" : " only", stray);
     const bool routed = RouteImageCalls();
     Log("standalone: game.exe's resources, module and command line%s routed; arguments: '%s'", routed ? "" : " not all",
         g_commandLine.c_str() + g_argumentsAt);
+    const int missingImports = ImageImportsMissing();
     // What the static initialisers call that has no code yet (logged; not a failure of the check).
     static_init::ReportMissingTargets();
-    if (!run) return installed > 0 && bad == 0 && winMain && routed ? 0 : 1;
+    if (!run) return installed > 0 && bad == 0 && winMain && routed && missingImports == 0 && stray == 0 ? 0 : 1;
+    if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
+        ReportImageFailure("game.exe's imports did not all resolve");
+        return 1;
+    }
     // As the CRT's start-up: the multibyte code page (__initmbctable, the C initialiser 00783BC0), the
     // static initialisers, WinMain, then exit with its result (the CRT's exit runs the functions the
     // initialisers registered with atexit).

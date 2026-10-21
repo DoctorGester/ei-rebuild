@@ -45,7 +45,7 @@ void ModuleRange(HMODULE module, std::uintptr_t& base, std::uintptr_t& end) {
 }
 
 bool Code(std::uintptr_t v) {
-    return (v >= 0x00401000 && v < 0x0073B000) || (v >= g_addonBase + 0x1000 && v < g_addonEnd) ||
+    return (v >= 0x00401000 && v < 0x0073A670) || (v >= g_addonBase + 0x1000 && v < g_addonEnd) ||
            (v >= g_selfBase + 0x1000 && v < g_selfEnd);
 }
 

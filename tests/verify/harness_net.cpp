@@ -180,9 +180,10 @@ int WINAPI PairCloseSocket(SOCKET s) {
     return g_closeSocket(s);
 }
 
+// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    auto* slot = reinterpret_cast<T*>(address);
+    T* slot = ei::GamePointer<T>(address);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;
