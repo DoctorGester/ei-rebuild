@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -699,6 +700,40 @@ void PrepareDevice() {
 // renderer: its frames are the original's.
 bool Active() { return ei::Standalone() && !g_failed; }
 
+namespace {
+bool g_meshCornersFull = false;   // the harness's "meshcorners full" (R16k)
+#if defined(EI_RENDER_VALIDATION)
+// The timer of the device mesh draw running (at most one: they do not nest), made in place so that
+// no static destructor or heap block comes with it.
+alignas(detail::StatsTimer) unsigned char g_deviceMeshTimer[sizeof(detail::StatsTimer)];
+bool g_deviceMeshTiming = false;
+#endif
+} // namespace
+void BeginDeviceMeshTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (g_deviceMeshTiming) return;
+    new (g_deviceMeshTimer) detail::StatsTimer(&FrameStats::deviceMeshMs);
+    g_deviceMeshTiming = true;
+#endif
+}
+void EndDeviceMeshTime() {
+#if defined(EI_RENDER_VALIDATION)
+    if (!g_deviceMeshTiming) return;
+    std::launder(reinterpret_cast<detail::StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
+    g_deviceMeshTiming = false;
+#endif
+}
+bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
+void SetMeshCornersFull(bool full) {
+#if defined(EI_RENDER_VALIDATION)
+    if (full != g_meshCornersFull)
+        ei::Log("render: the device's mesh draws do %s per-corner work", full ? "all the old" : "only the read");
+    g_meshCornersFull = full;
+#else
+    (void)full;
+#endif
+}
+
 bool StartPresenting() {
     if (g_presentsItself) return true;
     if (!Active() || !EnsureStarted()) return false;
@@ -834,6 +869,7 @@ void AddFrameStats() {
     s.windowMs += f.windowMs;
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
+    s.deviceMeshMs += f.deviceMeshMs;
     s.shadowDraws += f.shadowDraws;
     s.shadowMs += f.shadowMs;
     s.gpuFrames += f.gpuFrames;

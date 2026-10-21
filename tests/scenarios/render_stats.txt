@@ -7,7 +7,10 @@
 # with its terrain pages built and uploaded every frame (R16c: as before the pages were kept on the GPU),
 # zone1, the fight and the town with their figure meshes built and uploaded every frame (R16d: as before
 # the meshes were kept on the GPU), the classic fight and town and the global map with the textures in the
-# renderer's memory made again as new images (R16b: as before they were updated in place). Counts only, but no terrain page or mesh kept on the GPU may have been
+# renderer's memory made again as new images (R16b: as before they were updated in place), zone1, the
+# fight and the town with the device's mesh draws doing all the old per-corner work (R16k: TL vertices,
+# fog, clipped vertices to the screen, as before R16k; the main thread's CPU per frame tells the gain),
+# then again without it (_read: the scene's own load changes over time, so the full stretch lies between two). Counts only, but no terrain page or mesh kept on the GPU may have been
 # found stale.
 # no original: vanilla rebirth (the counts are our renderer's)
 render new,present
@@ -46,6 +49,12 @@ meshcache off
 frames 60
 renderstats zone1_meshfresh
 meshcache on
+meshcorners full
+frames 60
+renderstats zone1_cornersfull
+meshcorners read
+frames 60
+renderstats zone1_read
 
 # A fight: eight of twelve creatures attack the hero, who cannot die (blood prints, hit effects, many
 # figures and shadows).
@@ -99,6 +108,12 @@ meshcache off
 frames 60
 renderstats fight_meshfresh
 meshcache on
+meshcorners full
+frames 60
+renderstats fight_cornersfull
+meshcorners read
+frames 60
+renderstats fight_read
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @RemoveUnitFromServer(GetObjectByName("F1"))
 console @RemoveUnitFromServer(GetObjectByName("F2"))
@@ -149,6 +164,12 @@ meshcache off
 frames 60
 renderstats town_meshfresh
 meshcache on
+meshcorners full
+frames 60
+renderstats town_cornersfull
+meshcorners read
+frames 60
+renderstats town_read
 
 screen 4
 waitwindow 15 map
