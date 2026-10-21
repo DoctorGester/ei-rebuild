@@ -104,22 +104,20 @@ struct PointLightArrayClass final
 struct ObjectPtrArrayBaseClass
     : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &mfc::impl::SerializeCArray<ObjectPtrs>> {};
 
+// The global arrays the static initialisers construct (their constructors and the exit functions' destructors are
+// registered in game_arrays.cpp, so static_init.cpp calls them).
 // The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
-struct ParticleDepthArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
-};
+struct ParticleDepthArrayClass final
+    : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain8>> {};
 // The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h; 007C2FF8).
-struct SpiralOffsetArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
-};
+struct SpiralOffsetArrayClass final
+    : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain4>> {};
 // The script quest's objectives (CArray<ScriptQuestObjective>, script.h; 007AA608).
-struct ObjectiveArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D46C); }
-};
+struct ObjectiveArrayClass final
+    : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &mfc::impl::SerializeCArray<Objectives>> {};
 // The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
-struct SmoothNodeArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
-};
+struct SmoothNodeArrayClass final
+    : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain8>> {};
 
 // The vtable 004C3B20 restores (CArray<ScriptGroup>).
 struct GroupArrayClass final

@@ -167,9 +167,7 @@ void DestructArrayOf(CArray<T, E>& a) {
 
 struct IntArrayClass;   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
 struct UnitPtrArrayClass;   // the interface's unit pointer arrays
-struct FloatArrayClass {   // CArray<float>
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D3E8); }
-};
+struct FloatArrayClass;   // CArray<float>
 struct ArgFloatArrayClass;   // the script commands' float arguments (a CArray<float> subclass)
 struct ObjectRefArrayClass;   // CArray<ScriptObjectRef> (a script group's base)
 struct ScriptGroupClass;   // a script group (game/script.h ScriptGroup)

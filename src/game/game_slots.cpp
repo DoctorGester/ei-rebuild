@@ -84,7 +84,7 @@ EI_REWRITTEN(0x0059A170, SerializeCArray<gamearrays::ObjectPtrs>);   // the worl
 EI_REWRITTEN(0x004C2310, SerializeCArray<gamearrays::ObjectRefs>);   // a script group (ScriptGroup::Serialize)
 EI_REPLACE(0x004C3BE0, SerializeCArray<gamearrays::Groups>);       // the script's group variables
 EI_REPLACE(0x004C5E60, SerializeCArray<gamearrays::PointLights>);  // the script's point lights
-EI_REPLACE(0x004C9E20, SerializeCArray<gamearrays::Objectives>);   // a quest's objectives
+EI_REWRITTEN(0x004C9E20, SerializeCArray<gamearrays::Objectives>);   // a quest's objectives
 EI_REWRITTEN(0x00460270, SerializeCArray<gamearrays::Exits>);        // a zone's exits
 EI_REPLACE(0x0045FEB0, SerializeCArray<BuiltZoneRecords>);         // the map database's zones
 EI_REWRITTEN(0x00511C30, SerializeCArray<gamearrays::Particles>);    // a map object client's effect particles

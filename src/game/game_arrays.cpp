@@ -24,6 +24,19 @@ EI_REPLACE(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct)
 EI_REPLACE(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
 EI_REPLACE(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
 EI_REPLACE(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
+EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical to 005C4490
+// Their constructors, which the static initialisers call (00498910, 004B17C0, 005BF810, 005BF840, 005C4460): the
+// compiled table stored, the rest zero.
+EI_REPLACE(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
+EI_REPLACE(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
+EI_REPLACE(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Construct);
+EI_REPLACE(0x005BF890, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Construct);
+EI_REPLACE(0x005C44B0, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Construct);
+// Their tables' scalar deleting destructors.
+EI_REWRITTEN(0x00499040, mfc::impl::ScalarDelete<&mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct>);   // 00498E80
+EI_REWRITTEN(0x004CB790, mfc::impl::ScalarDelete<&Objectives::Destruct<ObjectiveArrayClass>>);   // 004C9DB0
+EI_REWRITTEN(0x005C1C30, mfc::impl::ScalarDelete<&mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct>);   // 005C18E0
+EI_REWRITTEN(0x005C5830, mfc::impl::ScalarDelete<&mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct>);   // 005C5850
 
 EI_REWRITTEN(0x005121B0, Particles::SetSize);
 EI_REWRITTEN(0x004C3980, Groups::SetSize);

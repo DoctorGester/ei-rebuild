@@ -226,6 +226,9 @@ struct IntArrayClass final
 // The interface's unit pointer arrays
 struct UnitPtrArrayClass final
     : CompiledCollection<UnitPtrArrayClass, &ArrayHeader<UnitPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// CArray<float> (the motions' step speeds, the radius tree's keys, the terrain's level arrays)
+struct FloatArrayClass final
+    : CompiledCollection<FloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
 // The script commands' float arguments (a CArray<float> subclass)
 struct ArgFloatArrayClass final
     : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
@@ -423,9 +426,6 @@ struct TrapCircleArrayClass
 // A trap's points.
 struct TrapPointArrayClass
     : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
-struct Array0498Class {   // constructed by 00498E60 only
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D024); }
-};
 // A script command's object arguments (script_destroy).
 struct ArgObjectsBaseClass
     : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
@@ -482,15 +482,9 @@ struct PartyUnitArrayClass final
 // A sector's occluders.
 struct SectorOccluderArrayClass final
     : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
-struct SectorCellArrayClass {   // constructed by 005C18C0
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FDEC); }
-};
 // The sector spiral's cells.
 struct SpiralCellArrayClass final
     : CompiledCollection<SpiralCellArrayClass, &ArrayHeader<SpiralCellArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
-struct SmoothRowArrayClass {   // the path smoothing tables' rows
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FE34); }
-};
 struct SmoothEdgeArrayClass final
     : CompiledCollection<SmoothEdgeArrayClass, &ArrayHeader<SmoothEdgeArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
 struct SmoothCopyArrayClass final
@@ -596,11 +590,6 @@ struct AlignedAt4ArrayClass final
 // An animation node's 24-byte records with an aligned block at +8.
 struct AlignedAt8ArrayClass final
     : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &SerializeCArray<AlignedAt8Records>> {};
-// 12-byte records with a CString at +4 (004C9D90): game_arrays.h's ObjectiveArrayClass is the same table, which
-// static_init.cpp stores (007AA608).
-struct NamedRecordArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D46C); }
-};
 // The scene loader's {id, CString}.
 struct TextureNameArrayClass final
     : CompiledCollection<TextureNameArrayClass, &TextureNames::Destruct<TextureNameArrayClass>, &SerializeCArray<NamedStrings>> {};

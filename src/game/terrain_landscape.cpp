@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc_slots.h"
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_world.h"
@@ -415,7 +416,6 @@ constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
 constexpr float kMarginPixels = 8.0f;   // 0073CE50
 constexpr double kByteScale = 255.0;    // 0073C370
 constexpr std::uint32_t kLowFlags = 0xFFFF;
-constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);   // CArray<float>
 
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
@@ -427,11 +427,11 @@ float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
 
 void terrain::LevelArrayElements::Construct(mfc::CArray<float>* arrays, int count) {
     std::memset(static_cast<void*>(arrays), 0, static_cast<std::size_t>(count) * sizeof(*arrays));
-    for (int i = 0; i < count; ++i) arrays[i].Construct(kFloatArrayVtable);
+    for (int i = 0; i < count; ++i) arrays[i].Construct(mfc::impl::FloatArrayClass::Vtable());
 }
 void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count) {
     for (int i = 0; i < count; ++i) {
-        arrays[i].vtable = ei::GamePointer<void>(kFloatArrayVtable);
+        arrays[i].vtable = mfc::impl::FloatArrayClass::Vtable();
         if (arrays[i].data) gamecrt::operator_delete(arrays[i].data);
     }
 }
