@@ -49,19 +49,8 @@ bool IsZero(float value) {
 // ---- Original code ------------------------------------------------------------------------------
 
 __declspec(naked) void __fastcall CalcFloatOrig(SSCCmd*, void*, CScript*, ScriptVars*, float*) EI_ORIGINAL(0x004B41E0)
-inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) {
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
-}
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
-// The temporaries lists' RemoveTail (values returned through a hidden pointer).
-ScriptGroup* TempGroupsRemoveTail(mfc::CList<ScriptGroup>* list, ScriptGroup* out) {
-    return gamelists::GroupRemoveTail(reinterpret_cast<gamelists::Groups::List*>(list), nullptr, out);
-}
-ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, ScriptObjectRef* out) {
-    return gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(list), nullptr, out);
-}
 // ScriptVars constructor / destructor and the value arrays' Copy.
 // The run list's NewNode(prev, next) (004CDA30): a node from the free list, its ScriptRun
 // constructed (ConstructElements 004CECB0).
@@ -231,7 +220,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
         slot->object = value->object;
         if (slot->object) ++slot->object->refCount_;
     }
-    for (int i = 0; i < call->groupArgs.size; ++i) GroupCopy(&vars.groups.data[i], nullptr, call->groupArgs.data[i]);
+    for (int i = 0; i < call->groupArgs.size; ++i) vars.groups.data[i].CopyFrom(*call->groupArgs.data[i]);
 }
 EI_REPLACE_METHOD(0x004BB6A0, ScriptDefinition::BindCall);
 
@@ -259,9 +248,8 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
         ScriptVars& from = instance->vars;
         run->vars.floats.Copy(from.floats);   // 004C1A80
         mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&run->vars.strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from.strings));
-        GroupCopy(reinterpret_cast<ScriptGroup*>(&run->vars.objects), nullptr,
-                  reinterpret_cast<const ScriptGroup*>(&from.objects));
-        gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&run->vars.groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from.groups));
+        run->vars.objects.CopyFrom(from.objects);
+        run->vars.groups.CopyFrom(from.groups);
     }
     run->index = 0;
     run->ticks = 0;
@@ -315,10 +303,10 @@ EI_REPLACE(0x004BCC60, ScriptRunWorldScript);
 void __fastcall ScriptFreeTemporaries(CScript* script) {
     if (script->forDepth_ > 0) return;
     // Temporary groups: all but one freed, the last one emptied.
-    mfc::CList<ScriptGroup>& groups = script->tempGroups_;
+    ScriptTempGroups& groups = script->tempGroups_;
     while (groups.count > 1) {
         ScriptGroup group;
-        TempGroupsRemoveTail(&groups, &group);
+        groups.PopTail(&group);
         group.vtable = scriptvtable::kRefsBase;
         if (group.data) {
             DestructRefs(group.data, group.size);
@@ -327,10 +315,10 @@ void __fastcall ScriptFreeTemporaries(CScript* script) {
     }
     groups.tail->data.SetSize(0, -1);
     // Temporary object references.
-    mfc::CList<ScriptObjectRef>& objects = script->tempObjects_;
+    ScriptTempObjects& objects = script->tempObjects_;
     while (objects.count > 1) {
         ScriptObjectRef ref;
-        TempObjectsRemoveTail(&objects, &ref);
+        objects.PopTail(&ref);
         if (ref.object) ref.object->Release();
         ref.object = nullptr;
     }

@@ -71,10 +71,10 @@ CScript* CScript::Construct() {
     ScriptGroup group;
     ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), scriptvtable::kRefs);
     // An empty group and a null reference at the temporary lists' heads (004C8CE0, 004C9210).
-    gamelists::GroupAddHead(mfc::impl::ListAs<gamelists::Groups>(&tempGroups_), nullptr, &group);
+    tempGroups_.PushHead(&group);
     ScriptGroupDestructOriginal(&group);
     ScriptObjectRef none{nullptr};
-    gamelists::ObjectRefAddHead(mfc::impl::ListAs<gamelists::ObjectRefs>(&tempObjects_), nullptr, &none);
+    tempObjects_.PushHead(&none);
     none.Reset();
 
     ScriptReset(this);

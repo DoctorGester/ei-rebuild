@@ -221,7 +221,12 @@ static_assert(offsetof(ZoneExit, deployAngle) == 0x38);
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
 // Its SetSize is the instantiation's own: gamearrays::ExitsSetSize (00573080, game_arrays.h;
 // new records are constructed).
-using ZoneExitArray = mfc::CArray<ZoneExit>;
+struct ZoneExits : mfc::CArray<ZoneExit> {
+    // 00584EA0 / 00587DD0 (RET 8; record_arrays.cpp). By-value GetAt: element `index` copied into `out`
+    // (the fields, the target string copy-constructed). Returns out.
+    ZoneExit* CopyAt(ZoneExit* out, int index) const;
+};
+using ZoneExitArray = ZoneExits;
 
 // The client's flying numbers (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
 // (counted) and the list of the numbers shown.
@@ -423,6 +428,16 @@ using ProjectileList = mfc::CTypedPtrList<Projectile>;
 // mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.
 using WorldStream = CStream;
 
+// CArray<CEngineObject*> of counted references (game_arrays.cpp).
+struct EngineObjectPtrs : mfc::CArray<CEngineObject*> {
+    // 0059B8F0 (RET 4). SetSize to the source's size, then each pointer replaced by the source's (a
+    // counted temporary from CopyAt; the new one referenced before the old one is released).
+    void CopyFrom(const EngineObjectPtrs& source);
+    // 0059E300 / 0059CA40 (RET 8). By-value GetAt: element `index` into `out` with one more
+    // reference. Returns out.
+    CEngineObject** CopyAt(CEngineObject** out, int index) const;
+};
+
 // An element of the world server's shared-object list (CWorldServer + 0x12E60, 0x20 bytes;
 // world_save.cpp): object id, player, a third dword and an MFC CArray of counted object pointers
 // (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
@@ -434,7 +449,7 @@ struct SharedObject {
     int objectId;
     int player;
     std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party
-    mfc::CArray<CEngineObject*> objects;    // +0x0C
+    EngineObjectPtrs objects;    // +0x0C
 
     // 0059B510 (RET 4; S13, world_save.cpp; the compiler's copy constructor): the three dwords, then
     // the array by its Copy (0059B8F0, the objects counted). Returns this.
@@ -1082,34 +1097,53 @@ struct SectorGrid {
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
 
-// 00571D50 (thiscall on the returned functor, RET 0x14). for_each over list nodes [first, last):
-// sets the byte at node +0xD when hypot(node +0x10 - x, node +0x14 - y) <= node +0x94 * scale.
-// Writes {x, y, scale} to out and returns it.
-float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::uint8_t* last, float x, float y,
-                                   float scale);
-// 00571800 / 005718B0 (thiscall on the returned functor, RET 0x18). for_each over list nodes
-// [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose rectangle holds
-// (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22 (00571800) or
-// slot 24 (005718B0) for the point is pushed to the vector `hits`. *out = hits; returns out.
-void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
-                                   long y, CBaseManager* manager);
-void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
-                                    long y, CBaseManager* manager);
-// 005726B0 (RET 4; the predicate of CWorldClient::ClearMaps' remove_if, ECX unused). An object
-// with a positive id is released and true; false otherwise.
-bool __fastcall ReleaseIfIdentified(void* functor, void*, CEngineObject* object);
-// 0056FC60 (RET 8). Lookup in a hash_map<unsigned, T*>: *value = the entry's value and 1, or 0.
-using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
-int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
+// The functor of the for_each over the footprints (world_client_maps.cpp): {x, y, scale}, handed back by
+// value.
+struct RadiusFunctor {
+    // 00571D50 (RET 0x14). for_each over list nodes [first, last): sets the byte at node +0xD when
+    // hypot(node +0x10 - x, node +0x14 - y) <= node +0x94 * scale. Writes {x, y, scale} to this and
+    // returns it.
+    RadiusFunctor* Mark(std::uint8_t* first, std::uint8_t* last, float x, float y, float scale);
+    float x, y, scale;
+};
+// The functor of the for_each over the screen entries: the hits vector it fills, handed back by value.
+// for_each over list nodes [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose
+// rectangle holds (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22
+// (CollectBounds) or slot 24 (CollectParts) for the point is pushed to the vector `hits`. this->hits =
+// hits; returns this.
+struct HitCollector {
+    // 00571800 (RET 0x18).
+    HitCollector* CollectBounds(std::uint8_t* first, std::uint8_t* last, void* hits, long x, long y,
+                                CBaseManager* manager);
+    // 005718B0 (RET 0x18).
+    HitCollector* CollectParts(std::uint8_t* first, std::uint8_t* last, void* hits, long x, long y,
+                               CBaseManager* manager);
+    void* hits;
+};
+// The predicate of CWorldClient::ClearMaps' remove_if (an empty functor).
+struct ReleaseIdentified {
+    // 005726B0 (RET 4). An object with a positive id is released and true; false otherwise.
+    bool Test(CEngineObject* object);
+    std::uint8_t unused;
+};
+// hash_map<unsigned, T*> (the client's pending map).
+struct PendingIndex : stlp::hash_map<std::uint32_t, void*, stlp::IntHash> {
+    // 0056FC60 (RET 8). *value = the entry's value and 1, or 0.
+    int Lookup(const std::uint32_t* key, void** value) const;
+};
+using PendingMap = PendingIndex;
 // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
 // CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
 // SetAtGrow 0059D2E0: the plain CArray members).
 using RecordPtrArray = mfc::CArray<std::uint8_t*>;
-using RecordVector = stlp::vector<std::uint8_t>;
+struct RecordBytes : stlp::vector<std::uint8_t> {
+    // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
+    const std::uint8_t* At50(std::uint32_t index) const;
+    const std::uint8_t* AtB4(std::uint32_t index) const;
+};
+using RecordVector = RecordBytes;
 static_assert(sizeof(RecordVector) == 12);
-const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index);
-const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index);
 
 // A list element whose layout is not needed here (only its size, for the node's).
 template <std::size_t N>
@@ -1631,7 +1665,7 @@ public:
     int exitCount_;                       // +0x094
     std::uint8_t exitArrayTail[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
     // +0x0A0 counted objects (MFC CArray; its own SetSize 00570000 releases the dropped ones).
-    mfc::CArray<CEngineObject*> countedA0_;
+    EngineObjectPtrs countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
     SectorList objects_;                  // +0x0B8 every filed object (one reference each)
     // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and

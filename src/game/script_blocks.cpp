@@ -42,10 +42,13 @@ BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList:
 // the empty temporary's commands copied in (004CC0C0), linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
 ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
-    mfc::CArray<SSCCmd> empty{mfc::impl::ScriptCommandsClass::Vtable(), nullptr, 0, 0, 0};
+    ScriptCommands empty;
+    empty.vtable = mfc::impl::ScriptCommandsClass::Vtable();
+    empty.data = nullptr;
+    empty.size = empty.maxSize = empty.growBy = 0;
     BlockList::Node* node = NewBlockNode(list, list->tail, nullptr);
     ScriptDecl* block = &node->data;
-    recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&block->commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&empty));
+    block->commands.CopyFrom(empty);
     if (list->tail) list->tail->next = node;
     else list->head = node;
     list->tail = node;

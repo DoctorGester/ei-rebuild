@@ -44,10 +44,9 @@ void AssignVars(ScriptVars* to, const ScriptVars* from) {
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->floatNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->floatNames));
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->strings));
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->stringNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->stringNames));
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&to->objects), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&from->objects));
+    to->objects.CopyFrom(from->objects);
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->objectNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->objectNames));
-    gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&to->groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from->groups));
+    to->groups.CopyFrom(from->groups);
     mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->groupNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->groupNames));
 }
 
@@ -78,15 +77,14 @@ SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     CopyPlain(&groupArgs, &other->groupArgs);
     CopyPlain(&localBindings, &other->localBindings);
     CopyPlain(&globalBindings, &other->globalBindings);
-    recordarrays::SubCallArrayCopy(reinterpret_cast<recordarrays::SubCalls::Array*>(&subCalls), nullptr,   // nested commands deep-copied
-                                   reinterpret_cast<const recordarrays::SubCalls::Array*>(&other->subCalls));
+    subCalls.CopyFrom(other->subCalls);   // nested commands deep-copied
     calledScript = other->calledScript;
     return this;
 }
 EI_REPLACE_METHOD(0x004C6BC0, SSCCmd::ScriptCmdAssign);
 
 ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
-    recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&other->commands));
+    commands.CopyFrom(other->commands);
     id = other->id;
     return this;
 }
@@ -156,12 +154,9 @@ void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
     CopyPlain(&to->objectArgs, &from->objectArgs);
     InitArray(&to->groupArgs, mfc::impl::ArgGroupsClass::Vtable());
     CopyPlain(&to->groupArgs, &from->groupArgs);
-    recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->localBindings), nullptr,
-                                        reinterpret_cast<const recordarrays::Bindings::Array*>(&from->localBindings));
-    recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->globalBindings), nullptr,
-                                        reinterpret_cast<const recordarrays::Bindings::Array*>(&from->globalBindings));
-    recordarrays::SubCallsCopyConstruct(reinterpret_cast<recordarrays::SubCalls::Array*>(&to->subCalls), nullptr,
-                                        reinterpret_cast<const recordarrays::SubCalls::Array*>(&from->subCalls));
+    to->localBindings.CopyConstruct(from->localBindings);
+    to->globalBindings.CopyConstruct(from->globalBindings);
+    to->subCalls.CopyConstruct(from->subCalls);
     to->calledScript = from->calledScript;
 }
 
@@ -224,8 +219,7 @@ template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRe
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
-        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->values), nullptr,
-                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
+        other->values.CopyAt(&value, i);
         ScriptObjectRef* slot = &values.data[i];
         Release(slot->object);
         slot->object = nullptr;
@@ -245,13 +239,12 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
     mfc::impl::ArrayAs<gamearrays::Groups>(values).SetSize(other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
-        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->values), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
+        other->values.CopyAt(&copy, i);
         ScriptGroup* group = &values.data[i];
         group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
-            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy), nullptr,
-                                      reinterpret_cast<ScriptObjectRef*>(&member), k);
+            copy.CopyAt(&member, k);
             group->data[k].Reset();
             group->data[k].Construct(member);
             member.Reset();
@@ -280,8 +273,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
-        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->objects), nullptr,
-                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
+        other->objects.CopyAt(&value, i);
         ScriptObjectRef* slot = &objects.data[i];
         slot->Reset();
         slot->Construct(value);
@@ -293,9 +285,8 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
-        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->groups), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
-        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&groups.data[i]), nullptr,
-                                  reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy));
+        other->groups.CopyAt(&copy, i);
+        groups.data[i].CopyFrom(copy);
         GroupDestruct(&copy);
     }
     groupNames.CopyConstruct(&other->groupNames);

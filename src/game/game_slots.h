@@ -155,8 +155,7 @@ inline void InitRunTemporary(ScriptRun* p) {
 }
 inline void AssignRun(ScriptRun* to, const ScriptRun* from) { to->ScriptRunAssign(from); }
 inline void AssignGroup(ScriptGroup* to, const ScriptGroup* from) {
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(to), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(from));
+    to->CopyFrom(*from);
 }
 
 // Tokens ("None" / -1, the token's assignment, the text destroyed) and defines (two strings).
@@ -178,8 +177,7 @@ inline void AssignSharedObject(SharedObject* to, const SharedObject* from) {
     to->objectId = from->objectId;
     to->player = from->player;
     to->money = from->money;
-    gamearrays::ObjectPtrCopy(reinterpret_cast<gamearrays::ObjectPtrs::Array*>(&to->objects), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectPtrs::Array*>(&from->objects));
+    to->objects.CopyFrom(from->objects);
 }
 
 // The sound cache's wave records: the record's assignment (006BD1B0).

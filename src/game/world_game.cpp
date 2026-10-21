@@ -559,7 +559,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
-        ZoneExit* exit = recordarrays::ExitGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
+        ZoneExit* exit = source->CopyAt(reinterpret_cast<ZoneExit*>(copy), i);
         exits.data[i].Assign(exit);
         reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
     }

@@ -121,9 +121,8 @@ int CWorldServer::Update() {
         }
         if (found) {
             alignas(4) std::uint8_t storage[sizeof(ScriptGroup)];
-            ScriptGroup* group = gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&globals.groups), nullptr, reinterpret_cast<ScriptGroup*>(storage), i);
-            gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&heroes), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(group));
+            ScriptGroup* group = globals.groups.CopyAt(reinterpret_cast<ScriptGroup*>(storage), i);
+            heroes.CopyFrom(*group);
             ScriptGroupDestructOriginal((void*)reinterpret_cast<ScriptGroup*>(storage));
             break;
         }
@@ -134,8 +133,7 @@ int CWorldServer::Update() {
         ScriptGroup sum;
         InitGroup(&sum);
         sum.Union(state->partyUnits_, heroes);
-        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&heroes), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&sum));
+        heroes.CopyFrom(sum);
         sum.vtable = scriptvtable::kRefsBase;
         if (sum.data) {
             RefsRelease(sum.data, sum.size);
@@ -149,7 +147,7 @@ int CWorldServer::Update() {
         own.SetSize(heroes.size, -1);
         for (int i = 0; i < heroes.size; ++i) {
             ScriptObjectRef copy;
-            ScriptObjectRef* ref = gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&heroes), nullptr, &copy, i);
+            ScriptObjectRef* ref = heroes.CopyAt(&copy, i);
             ScriptObjectRef* slot = &state->partyUnits_.data[i];
             slot->Reset();
             slot->Construct(*ref);

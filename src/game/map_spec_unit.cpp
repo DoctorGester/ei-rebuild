@@ -140,57 +140,57 @@ EI_REPLACE(0x0046C290, BehaviourDestruct);
 
 // 0046E680: the patrol array becomes a copy of `from` (each patrol copied through a temporary
 // returned by value, as the original does).
-void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* from) {
-    int n = from->size;
+void Patrols::CopyFrom(const Patrols& from) {
+    int n = from.size;
     if (n == 0) {
-        if (self->data) {
-            for (int i = 0, count = self->size; i < count; ++i) DestroyPatrol(self->data[i]);
-            gamecrt::operator_delete(self->data);
-            self->data = nullptr;
+        if (data) {
+            for (int i = 0, count = size; i < count; ++i) DestroyPatrol(data[i]);
+            gamecrt::operator_delete(data);
+            data = nullptr;
         }
-        self->maxSize = 0;
-        self->size = 0;
-    } else if (!self->data) {
-        self->data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Patrol)));
-        ConstructPatrols(self->data, n);
-        self->maxSize = n;
-        self->size = n;
-    } else if (n <= self->maxSize) {
-        if (self->size < n) ConstructPatrols(self->data + self->size, n - self->size);
-        else if (self->size > n) DestructPatrols(self->data + n, self->size - n);
-        self->size = n;
+        maxSize = 0;
+        size = 0;
+    } else if (!data) {
+        data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Patrol)));
+        ConstructPatrols(data, n);
+        maxSize = n;
+        size = n;
+    } else if (n <= maxSize) {
+        if (size < n) ConstructPatrols(data + size, n - size);
+        else if (size > n) DestructPatrols(data + n, size - n);
+        size = n;
     } else {
-        int grow = self->growBy;
+        int grow = growBy;
         if (grow == 0) {
-            grow = self->size / 8;
+            grow = size / 8;
             grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
         }
-        int capacity = self->maxSize + grow;
+        int capacity = maxSize + grow;
         if (n >= capacity) capacity = n;
-        auto* data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Patrol)));
-        std::memcpy(data, self->data, static_cast<std::size_t>(self->size) * sizeof(Patrol));
-        ConstructPatrols(data + self->size, n - self->size);
-        gamecrt::operator_delete(self->data);
-        self->data = data;
-        self->size = n;
-        self->maxSize = capacity;
+        auto* grown = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Patrol)));
+        std::memcpy(grown, data, static_cast<std::size_t>(size) * sizeof(Patrol));
+        ConstructPatrols(grown + size, n - size);
+        gamecrt::operator_delete(data);
+        data = grown;
+        size = n;
+        maxSize = capacity;
     }
-    for (int i = 0; i < from->size; ++i) {
+    for (int i = 0; i < from.size; ++i) {
         alignas(4) std::uint8_t raw[sizeof(Patrol)];
         auto* copy = reinterpret_cast<Patrol*>(raw);
-        recordarrays::PatrolGetAt(from, nullptr, copy, i);
-        Patrol& to = self->data[i];
+        from.CopyAt(copy, i);
+        Patrol& to = data[i];
         to.position = copy->position;
         to.waypoints.SetSize(copy->waypoints.size, -1);
         for (int j = 0; j < copy->waypoints.size; ++j) {
             Waypoint w = copy->waypoints.data[j];   // GetAt by value (0046EFA0)
-            self->data[i].waypoints.data[j] = w;
+            data[i].waypoints.data[j] = w;
         }
         ei::SetVtable(&copy->waypoints, mfc::impl::ArrayBaseClass::Vtable());
         if (copy->waypoints.data) gamecrt::operator_delete(copy->waypoints.data);
     }
 }
-EI_REPLACE(0x0046E680, PatrolsCopy);
+EI_REPLACE_METHOD(0x0046E680, Patrols::CopyFrom);
 
 // ---- The chunk classes ---------------------------------------------------------------------------
 

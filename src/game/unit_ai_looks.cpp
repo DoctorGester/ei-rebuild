@@ -53,11 +53,11 @@ EI_REPLACE(0x005573F0, LooksInit);
 EI_REPLACE_METHOD(0x005D8EE0, AILookArray::SetSize);
 EI_REPLACE_METHOD(0x005D8B60, AILookArray::Copy);
 
-AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index) {
-    *out = looks->data[index];
+AILook* AILooks::CopyAt(AILook* out, int index) const {
+    *out = data[index];
     return out;
 }
-EI_REPLACE(0x005D9DE0, LooksElementAt);
+EI_REPLACE_METHOD(0x005D9DE0, AILooks::CopyAt);
 
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};

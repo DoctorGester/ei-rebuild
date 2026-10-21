@@ -114,25 +114,25 @@ EI_REPLACE_METHOD(0x004D5A90, ScriptNamedValues<mfc::CString>::FindName);
 EI_REPLACE_METHOD(0x004D5AD0, ScriptNamedValues<ScriptObjectRef>::FindName);
 EI_REPLACE_METHOD(0x004D5B10, ScriptNamedValues<ScriptGroup>::FindName);
 
-ScriptCommands* __fastcall ScriptCmdArrayConstruct(ScriptCommands* array) {
-    array->data = nullptr;
-    array->growBy = 0;
-    array->maxSize = 0;
-    array->size = 0;
-    array->vtable = scriptvtable::kCmds;
-    return array;
+ScriptCommands* ScriptCommands::ConstructEmpty() {
+    data = nullptr;
+    growBy = 0;
+    maxSize = 0;
+    size = 0;
+    vtable = scriptvtable::kCmds;
+    return this;
 }
-EI_REPLACE(0x004D5A10, ScriptCmdArrayConstruct);
+EI_REPLACE_METHOD(0x004D5A10, ScriptCommands::ConstructEmpty);
 
-mfc::CArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(mfc::CArray<ScriptIfThen>* array) {
-    array->data = nullptr;
-    array->growBy = 0;
-    array->maxSize = 0;
-    array->size = 0;
-    array->vtable = scriptvtable::kIfThen;
-    return array;
+ScriptIfThens* ScriptIfThens::ConstructEmpty() {
+    data = nullptr;
+    growBy = 0;
+    maxSize = 0;
+    size = 0;
+    vtable = scriptvtable::kIfThen;
+    return this;
 }
-EI_REPLACE(0x004D5A30, ScriptIfThenArrayConstruct);
+EI_REPLACE_METHOD(0x004D5A30, ScriptIfThens::ConstructEmpty);
 
 void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kStrings);

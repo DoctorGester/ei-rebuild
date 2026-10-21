@@ -95,13 +95,6 @@ struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
     static void* Vtable() { return ei::GamePointer<void>(0x0073F034); }
 };
 
-// GetAt by value (__thiscall (result, index), RET 8; returns result): the element copy-constructed
-// into result. 0046EAB0 / its body 0046EFD0: a patrol (the position, then its waypoint array: storage
-// for exactly the source's count, zero filled, the waypoints copied). 00584EA0 / 00587DD0: a zone
-// exit (the fields, the target string copy-constructed).
-mapspec::Patrol* __fastcall PatrolGetAt(const mfc::CArray<mapspec::Patrol>* self, void*, mapspec::Patrol* result,
-                                        int index);
-ZoneExit* __fastcall ExitGetAt(const mfc::CArray<ZoneExit>* self, void*, ZoneExit* result, int index);
 // CStringArray's GetAt by value (004698C0, and 004698A0 calling it; RET 8, S16): the element
 // copy-constructed into `result`, which is returned.
 mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index);
@@ -135,18 +128,6 @@ using Definitions = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 using Runs = ArrayAbi<ScriptRun, EachElements<ScriptRun, nullptr, gamelists::DestroyRun>>;
 using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::DestroyDecl>>;
 
-// 004CC0C0 (RET 4): SetSize to the source's size, then each command assigned from a GetAt copy
-// (004CD450), the copy destroyed.
-void __fastcall CmdArrayCopy(Cmds::Array* self, void*, const Cmds::Array* source);
-// 004C6D10 (RET 4): SetSize to the source's size, then each nested call's type, argument and
-// command assigned from a GetAt copy (004C7510: the command deep-copied), the copy's command
-// destroyed and deleted.
-void __fastcall SubCallArrayCopy(SubCalls::Array* self, void*, const SubCalls::Array* source);
-// 004CCCB0 / 004CCD90 (RET 4; return this): the array's vtable, storage for exactly the source's
-// size (zero filled / nested calls built), then each element copied (the nested calls as the
-// assignment does).
-Bindings::Array* __fastcall BindingsCopyConstruct(Bindings::Array* self, void*, const Bindings::Array* source);
-SubCalls::Array* __fastcall SubCallsCopyConstruct(SubCalls::Array* self, void*, const SubCalls::Array* source);
 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 

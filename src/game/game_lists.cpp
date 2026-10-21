@@ -72,13 +72,6 @@ struct DefinitionIfThenClass {
     static void* Vtable() { return ei::GamePointer<void>(0x0073D430); }
 };
 
-gamearrays::ObjectRefs::Array* RefArray(ScriptGroup* group) {
-    return reinterpret_cast<gamearrays::ObjectRefs::Array*>(group);
-}
-const gamearrays::ObjectRefs::Array* RefArray(const ScriptGroup* group) {
-    return reinterpret_cast<const gamearrays::ObjectRefs::Array*>(group);
-}
-
 // A command block's copy constructor (inlined by 004C69B0): the array's constructor, SetSize to the
 // source's size, each command a GetAt copy assigned and destroyed; then the id.
 void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
@@ -130,7 +123,7 @@ void CopyConstructRun(ScriptRun* to, const ScriptRun* from) {
 // A group's copy constructor: an empty group, then the references copied.
 void CopyConstructGroup(ScriptGroup* to, const ScriptGroup* from) {
     gamearrays::InitGroup(to);
-    gamearrays::ObjectRefCopy(RefArray(to), nullptr, RefArray(from));
+    to->CopyFrom(*from);
 }
 
 // AddHead / AddTail as the instantiations inline them: the new node linked after its element is set.
@@ -170,48 +163,78 @@ EI_REPLACE(0x004D6840, DefineArray::ConstructElements);   // the zero fill, then
 EI_REPLACE(0x004CD930, Definitions::NewNode);
 EI_REPLACE(0x004CDA30, Runs::NewNode);
 
-ScriptDecl* __fastcall DeclRemoveHead(Decls::List* self, void*, ScriptDecl* out) {
-    CopyConstructDecl(out, &self->head->data);
-    self->RemoveAt(self->head);
+
+
+
+
+
+
+
+
+
+// The sound manager's wave cache.
+EI_REPLACE(0x006BD4F0, Waves::NewNode);
+EI_REPLACE(0x006BD560, Waves::FreeNode);
+
+} // namespace gamelists
+
+// ---- Members of the script lists (script.h) -------------------------------------------------------
+
+namespace {
+template <typename Abi, typename List>
+typename Abi::List* As(List* list) {
+    return reinterpret_cast<typename Abi::List*>(list);
+}
+} // namespace
+
+ScriptDecl* ScriptDecls::PopHead(ScriptDecl* out) {
+    auto* list = As<gamelists::Decls>(this);
+    gamelists::CopyConstructDecl(out, &list->head->data);
+    list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE(0x004C69B0, DeclRemoveHead);
+EI_REPLACE_METHOD(0x004C69B0, ScriptDecls::PopHead);
 
-ScriptDefinition* __fastcall InstanceRemoveHead(Definitions::List* self, void*, ScriptDefinition* out) {
-    CopyConstructDefinition(out, &self->head->data);
-    self->RemoveAt(self->head);
+ScriptDefinition* ScriptInstances::PopHead(ScriptDefinition* out) {
+    auto* list = As<gamelists::Definitions>(this);
+    gamelists::CopyConstructDefinition(out, &list->head->data);
+    list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE(0x004C7A10, InstanceRemoveHead);
+EI_REPLACE_METHOD(0x004C7A10, ScriptInstances::PopHead);
 
-ScriptRun* __fastcall RunRemoveHead(Runs::List* self, void*, ScriptRun* out) {
-    CopyConstructRun(out, &self->head->data);
-    self->RemoveAt(self->head);
+ScriptRun* ScriptRuns::PopHead(ScriptRun* out) {
+    auto* list = As<gamelists::Runs>(this);
+    gamelists::CopyConstructRun(out, &list->head->data);
+    list->RemoveAt(list->head);
     return out;
 }
-EI_REPLACE(0x004C82B0, RunRemoveHead);
+EI_REPLACE_METHOD(0x004C82B0, ScriptRuns::PopHead);
 
-Definitions::Node* __fastcall InstanceAddHead(Definitions::List* self, void*, const ScriptDefinition* value) {
-    Definitions::Node* node = self->NewNode(nullptr, self->head);
+ScriptInstances::Node* ScriptInstances::PushHead(const ScriptDefinition* value) {
+    auto* list = As<gamelists::Definitions>(this);
+    gamelists::Definitions::Node* node = list->NewNode(nullptr, list->head);
     node->data.ScriptDefinitionAssign(value);
-    return LinkHead(self, node);
+    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE(0x004C7C90, InstanceAddHead);
+EI_REPLACE_METHOD(0x004C7C90, ScriptInstances::PushHead);
 
-ObjectRefs::Node* __fastcall ObjectRefAddHead(ObjectRefs::List* self, void*, const ScriptObjectRef* value) {
-    ObjectRefs::Node* node = self->NewNode(nullptr, self->head);
+ScriptTempObjects::Node* ScriptTempObjects::PushHead(const ScriptObjectRef* value) {
+    auto* list = As<gamelists::ObjectRefs>(this);
+    gamelists::ObjectRefs::Node* node = list->NewNode(nullptr, list->head);
     gamearrays::ReleaseAndClear(&node->data);
     CEngineObject* object = value->object;
     node->data.object = object;
     if (object) ++object->refCount_;
-    return LinkHead(self, node);
+    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE(0x004C9210, ObjectRefAddHead);
+EI_REPLACE_METHOD(0x004C9210, ScriptTempObjects::PushHead);
 
-ScriptObjectRef* __fastcall ObjectRefRemoveTail(ObjectRefs::List* self, void*, ScriptObjectRef* out) {
-    CEngineObject* object = self->tail->data.object;
+ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
+    auto* list = As<gamelists::ObjectRefs>(this);
+    CEngineObject* object = list->tail->data.object;
     if (object) ++object->refCount_;   // the original's temporary copy
-    self->RemoveAt(self->tail);
+    list->RemoveAt(list->tail);
     out->object = object;
     if (object) {
         ++object->refCount_;
@@ -219,31 +242,28 @@ ScriptObjectRef* __fastcall ObjectRefRemoveTail(ObjectRefs::List* self, void*, S
     }
     return out;
 }
-EI_REPLACE(0x004C9100, ObjectRefRemoveTail);
+EI_REPLACE_METHOD(0x004C9100, ScriptTempObjects::PopTail);
 
-Groups::Node* __fastcall GroupAddHead(Groups::List* self, void*, const ScriptGroup* value) {
-    Groups::Node* node = self->NewNode(nullptr, self->head);
-    gamearrays::ObjectRefCopy(RefArray(&node->data), nullptr, RefArray(value));
-    return LinkHead(self, node);
+ScriptTempGroups::Node* ScriptTempGroups::PushHead(const ScriptGroup* value) {
+    auto* list = As<gamelists::Groups>(this);
+    gamelists::Groups::Node* node = list->NewNode(nullptr, list->head);
+    node->data.CopyFrom(*value);
+    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
 }
-EI_REPLACE(0x004C8CE0, GroupAddHead);
+EI_REPLACE_METHOD(0x004C8CE0, ScriptTempGroups::PushHead);
 
-Groups::Node* __fastcall GroupAddTail(Groups::List* self, void*, const ScriptGroup* value) {
-    Groups::Node* node = self->NewNode(self->tail, nullptr);
-    gamearrays::ObjectRefCopy(RefArray(&node->data), nullptr, RefArray(value));
-    return LinkTail(self, node);
+ScriptTempGroups::Node* ScriptTempGroups::PushTail(const ScriptGroup* value) {
+    auto* list = As<gamelists::Groups>(this);
+    gamelists::Groups::Node* node = list->NewNode(list->tail, nullptr);
+    node->data.CopyFrom(*value);
+    return reinterpret_cast<Node*>(gamelists::LinkTail(list, node));
 }
-EI_REPLACE(0x004C8D80, GroupAddTail);
+EI_REPLACE_METHOD(0x004C8D80, ScriptTempGroups::PushTail);
 
-ScriptGroup* __fastcall GroupRemoveTail(Groups::List* self, void*, ScriptGroup* out) {
-    CopyConstructGroup(out, &self->tail->data);
-    self->RemoveAt(self->tail);
+ScriptGroup* ScriptTempGroups::PopTail(ScriptGroup* out) {
+    auto* list = As<gamelists::Groups>(this);
+    gamelists::CopyConstructGroup(out, &list->tail->data);
+    list->RemoveAt(list->tail);
     return out;
 }
-EI_REPLACE(0x004C8AF0, GroupRemoveTail);
-
-// The sound manager's wave cache.
-EI_REPLACE(0x006BD4F0, Waves::NewNode);
-EI_REPLACE(0x006BD560, Waves::FreeNode);
-
-} // namespace gamelists
+EI_REPLACE_METHOD(0x004C8AF0, ScriptTempGroups::PopTail);

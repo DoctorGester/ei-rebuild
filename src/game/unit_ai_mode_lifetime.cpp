@@ -121,7 +121,7 @@ PatrolMode* PatrolMode::Clone() {
         target.looks.SetSize(temporary.looks.size, -1);
         for (int j = 0; j < temporary.looks.size; ++j) {
             AILook look;
-            LooksElementAt(&temporary.looks, nullptr, &look, j);
+            temporary.looks.CopyAt(&look, j);
             target.looks.data[j] = look;
         }
         temporary.looks.vtable = mfc::impl::AiLookArrayClass::Vtable();

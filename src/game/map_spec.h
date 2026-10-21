@@ -41,13 +41,24 @@ struct Patrol {
 };
 static_assert(sizeof(Patrol) == 0x20);
 
+// CArray<Patrol> (a behaviour's patrols, vtable 0073C37C); map_spec_unit.cpp and record_arrays.cpp.
+struct Patrols : mfc::CArray<Patrol> {
+    // 0046E680 (RET 4; map_spec_unit.cpp). The patrols become a copy of `from` (each patrol copied
+    // through a temporary returned by value, as the original does).
+    void CopyFrom(const Patrols& from);
+    // 0046EAB0 / 0046EFD0 (RET 8; record_arrays.cpp). By-value GetAt: element `index` copy-constructed
+    // into `result` (the position, then the waypoints: storage for exactly the source's count, zero
+    // filled, the waypoints copied). Returns result.
+    Patrol* CopyAt(Patrol* result, int index) const;
+};
+
 // A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
 struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(void* stream);
     void Write(void* stream) const;
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
-    mfc::CArray<Patrol> patrols;       // +0x04 (vtable 0073C37C)
+    Patrols patrols;       // +0x04 (vtable 0073C37C)
     Vector3 guard;               // +0x18 the unit's position when saved
     std::uint32_t loop;          // +0x24 (1) a patrol loops; 0: its points are walked back too
     std::uint32_t flags;         // +0x28 bit 3: the unit is always updated (the brain's +0x37)
@@ -64,10 +75,9 @@ struct Behaviour {
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
 // map_spec_unit.cpp. 0045D5B0: the constructor (no patrols, type 3, loop, radius 10, delay 75; returns
-// this); 0046C290: the destructor body; 0046E680 (RET 4): the patrols become a copy of `from`.
+// this); 0046C290: the destructor body.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
-void __fastcall PatrolsCopy(mfc::CArray<Patrol>* self, void* edx, const mfc::CArray<Patrol>* from);
 
 // A trap's target record (8 bytes, zero-filled when added: 0046F110).
 struct TargetRecord {

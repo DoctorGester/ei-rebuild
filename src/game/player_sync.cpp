@@ -389,8 +389,7 @@ void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup party;
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&party);
     party.vtable = scriptvtable::kRefs;
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&party), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&group50F8_));
+    party.CopyFrom(group50F8_);
     CPlayer::ObjectMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
@@ -407,7 +406,7 @@ void CPlayerServer::UpdatePartyUnits() {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {
             ScriptObjectRef copy;
-            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&party), nullptr, &copy, i);
+            party.CopyAt(&copy, i);
             partyUnits_.data[i].Reset();
             partyUnits_.data[i].Construct(copy);
             copy.Reset();

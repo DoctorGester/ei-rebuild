@@ -664,8 +664,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         empty.size = 0;
         empty.maxSize = 0;
         empty.growBy = 0;
-        auto* node = reinterpret_cast<TempGroupList::Node*>(
-            gamelists::GroupAddTail(mfc::impl::ListAs<gamelists::Groups>(&script->tempGroups_), nullptr, &empty));
+        auto* node = script->tempGroups_.PushTail(&empty);
         GroupDestruct(&empty);
         *result = &node->data;
     }
@@ -717,8 +716,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             (*result)->SetSize(0, -1);
             break;
         }
-        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(*result), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&player->server->group50F8_));
+        (*result)->CopyFrom(player->server->group50F8_);
         const auto& units = player->units.map;
         for (auto* node = units.First(); node; node = units.After(node)) {
             CEngineObject* unit = node->value;

@@ -165,9 +165,9 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     if (id == kNone) return;
     char buffer[0x100];
     {
-        const std::uint8_t* weapon = RecordAtB4(Records(&itemdb::Weapons()), nullptr, id >> 16);
+        const std::uint8_t* weapon = Records(&itemdb::Weapons())->AtB4(id >> 16);
         mfc::CString name;
-        const std::uint8_t* material = RecordAt50(Records(&itemdb::Materials()), nullptr, id & 0xFFFF);
+        const std::uint8_t* material = Records(&itemdb::Materials())->At50(id & 0xFFFF);
         WeaponRecordModelName(&name, reinterpret_cast<const itemdb::WeaponRecord*>(weapon),   // 006A0BF0
                               reinterpret_cast<const itemdb::MaterialRecordHead*>(material));
         AppendName(model, name, buffer);

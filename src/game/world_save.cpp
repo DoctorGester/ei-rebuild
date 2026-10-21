@@ -85,7 +85,7 @@ constexpr int kSharedObjectNodeSize = 0x28;
 using IdArray = mfc::CArray<int>;
 
 // MFC CArray of object pointers (SharedObject::objects, world.h).
-using ObjectPtrArray = mfc::CArray<CEngineObject*>;
+using ObjectPtrArray = EngineObjectPtrs;
 
 // The shared-object list is CWorldServer::sharedObjects_ (+0x12E60, world.h).
 using SharedObjectNode = SharedObjectList::Node;
@@ -759,8 +759,7 @@ namespace {
 
 // 0059B8F0 (RET 4). CArray<CRefPtr>::Copy (gamearrays::ObjectPtrCopy).
 void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
-    gamearrays::ObjectPtrCopy(reinterpret_cast<gamearrays::ObjectPtrs::Array*>(to), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectPtrs::Array*>(from));
+    to->CopyFrom(*from);
 }
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
 void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { gamearrays::ObjectPtrs::DestructElements(a0, a1); }

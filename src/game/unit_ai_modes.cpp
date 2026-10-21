@@ -251,7 +251,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     order.looks.SetSize(next->looks.size, -1);
     for (int i = 0; i < next->looks.size; ++i) {
         AILook look;
-        LooksElementAt(&next->looks, nullptr, &look, i);
+        next->looks.CopyAt(&look, i);
         std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
     }
     if (order.looks.size <= 0) {

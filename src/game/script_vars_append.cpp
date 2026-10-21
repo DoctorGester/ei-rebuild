@@ -80,8 +80,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedVal
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptObjectRef value;
-        gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&other->values), nullptr,
-                                      reinterpret_cast<ScriptObjectRef*>(&value), i);
+        other->values.CopyAt(&value, i);
         ScriptObjectRef* slot = &values.data[old + i];
         Release(slot->object);
         slot->object = nullptr;
@@ -100,13 +99,12 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
         ScriptGroup copy;
-        gamearrays::GroupGetAt(reinterpret_cast<const gamearrays::Groups::Array*>(&other->values), nullptr, reinterpret_cast<ScriptGroup*>(&copy), i);
+        other->values.CopyAt(&copy, i);
         ScriptGroup* group = &values.data[old + i];
         group->SetSize(copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
-            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy), nullptr,
-                                      reinterpret_cast<ScriptObjectRef*>(&member), k);
+            copy.CopyAt(&member, k);
             group->data[k].Reset();
             group->data[k].Construct(member);
             Release(member.object);

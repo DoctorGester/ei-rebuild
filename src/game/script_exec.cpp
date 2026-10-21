@@ -95,11 +95,6 @@ int ConfiguredTimeSpeed() { return ei::GameData<const int>(0x0079BE5C); }
 // Script helpers (script.h types, original addresses).
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
     EI_ORIGINAL(0x004B4030)
-// CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
-inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) {
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
-}
 // CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
 // new node before the head): returns the new node.
 using InstanceList = mfc::CList<ScriptDefinition>;
@@ -475,8 +470,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
             auto* definition = &script->Scripts().data[which];
-            auto* node = reinterpret_cast<InstanceList::Node*>(gamelists::InstanceAddHead(
-                mfc::impl::ListAs<gamelists::Definitions>(&script->instances_), nullptr, definition));
+            auto* node = script->instances_.PushHead(definition);
             ScriptDefinition* instance = &node->data;
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
@@ -530,7 +524,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             }
             case 3: {
                 ScriptGroup* value = cmd->groupArgs.data[0];
-                GroupCopy(&globals->groups.data[Ftol(f[0])], nullptr, value);
+                globals->groups.data[Ftol(f[0])].CopyFrom(*value);
                 break;
             }
             default:
