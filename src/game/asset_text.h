@@ -48,13 +48,13 @@ void ToAssetText(mfc::CString* text, unsigned codepage = kAssetCodePage);
 // a colour escape ("\007C" and three raw bytes, built by the game, never in the assets) counts its 5 bytes.
 int CharacterCount(std::string_view text);
 
-// --- The boundary until U2-U4 -------------------------------------------------------------------
+// --- The boundary until U3-U4 -------------------------------------------------------------------
 //
-// Text still leaves through ANSI calls (GDI's text draw and extent, the message box); there the
-// UTF-8 text goes back to the assets' code page, the bytes the original passed, so what is drawn does
-// not change. U2 (system calls) and U3 (drawing and measuring) replace each use with the wide call and
-// then remove this. Text that is not valid UTF-8 passes unchanged: 8-bit text that has not crossed
-// FromAssetText yet (typed characters before U4, file names and resource strings before U2).
+// Text still leaves through GDI's ANSI text draw and extent; there the UTF-8 text goes back to the
+// assets' code page, the bytes the original passed, so what is drawn does not change. U3 (drawing and
+// measuring) replaces each use with the wide call and then removes this (the system calls are wide since
+// U2: system_text.h). Text that is not valid UTF-8 passes unchanged: 8-bit text that has not crossed
+// FromAssetText yet (typed characters before U4).
 class ForAnsiCall {
 public:
     // `length` -1: up to the terminator (and -1 stays -1, as the ANSI calls take it).

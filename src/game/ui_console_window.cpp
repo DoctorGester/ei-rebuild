@@ -5,6 +5,7 @@
 #include "game_strings.h"
 #include "ui.h"
 #include "ui_gdi.h"
+#include "system_text.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -174,14 +175,18 @@ mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
-// page, as addon's helpers do.
+// page, as addon's helpers do (EI_UTF8: from UTF-8, system_text.h).
 void CopyToClipboard(const char* first, const char* last) {
     int count = static_cast<int>(last - first);
     std::wstring wide;
-    int n = count > 0 ? MultiByteToWideChar(CP_ACP, 0, first, count, nullptr, 0) : 0;
-    if (n > 0) {
-        wide.resize(static_cast<std::size_t>(n));
-        MultiByteToWideChar(CP_ACP, 0, first, count, &wide[0], n);
+    if constexpr (::text::kUtf8) {
+        if (count > 0) wide = ::text::Wide(std::string_view(first, static_cast<std::size_t>(count)));
+    } else {
+        int n = count > 0 ? MultiByteToWideChar(CP_ACP, 0, first, count, nullptr, 0) : 0;
+        if (n > 0) {
+            wide.resize(static_cast<std::size_t>(n));
+            MultiByteToWideChar(CP_ACP, 0, first, count, &wide[0], n);
+        }
     }
     HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
     if (!memory) return;
@@ -212,14 +217,18 @@ std::string ClipboardText() {
         }
         CloseClipboard();
     }
-    std::string narrow;
-    int count = static_cast<int>(wide.size());
-    int n = count > 0 ? WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, nullptr, 0, nullptr, nullptr) : 0;
-    if (n > 0) {
-        narrow.resize(static_cast<std::size_t>(n));
-        WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, &narrow[0], n, nullptr, nullptr);
+    if constexpr (::text::kUtf8) {
+        return ::text::Narrow(wide);
+    } else {
+        std::string narrow;
+        int count = static_cast<int>(wide.size());
+        int n = count > 0 ? WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, nullptr, 0, nullptr, nullptr) : 0;
+        if (n > 0) {
+            narrow.resize(static_cast<std::size_t>(n));
+            WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, &narrow[0], n, nullptr, nullptr);
+        }
+        return narrow;
     }
-    return narrow;
 }
 
 } // namespace

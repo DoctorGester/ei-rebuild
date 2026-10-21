@@ -22,6 +22,7 @@
 #include "ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "system_text.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -185,6 +186,18 @@ void Register(CommandMap* map, const char* name, CommandHandler handler) {
     Command(map, key) = handler;
 }
 
+// UTF-16 text as the game holds it: in the ANSI code page, as addon converts it (EI_UTF8: UTF-8).
+std::string UserText(const wchar_t* wide, int length) {
+    if constexpr (text::kUtf8) {
+        return text::Narrow(std::wstring_view(wide, static_cast<std::size_t>(length)));
+    } else {
+        int n = WideCharToMultiByte(CP_ACP, 0, wide, length, nullptr, 0, nullptr, nullptr);
+        std::string line(static_cast<std::size_t>(n > 0 ? n : 0), '\0');
+        if (n > 0) WideCharToMultiByte(CP_ACP, 0, wide, length, &line[0], n, nullptr, nullptr);
+        return line;
+    }
+}
+
 // The AutoExec lines, read once (addon reads them when it loads).
 const std::vector<std::string>& AutoExecLines() {
     static std::vector<std::string> lines = [] {
@@ -202,10 +215,7 @@ const std::vector<std::string>& AutoExecLines() {
                         while (end < count && data[end] != 0) ++end;
                         if (end > at) {
                             int wide = static_cast<int>(end - at);
-                            int n = WideCharToMultiByte(CP_ACP, 0, &data[at], wide, nullptr, 0, nullptr, nullptr);
-                            std::string line(static_cast<std::size_t>(n > 0 ? n : 0), '\0');
-                            if (n > 0) WideCharToMultiByte(CP_ACP, 0, &data[at], wide, &line[0], n, nullptr, nullptr);
-                            result.push_back(line);
+                            result.push_back(UserText(&data[at], wide));
                         }
                         at = end + 1;
                     }
@@ -213,7 +223,7 @@ const std::vector<std::string>& AutoExecLines() {
             }
             RegCloseKey(key);
         }
-        DWORD attributes = GetFileAttributesA("2utoexec.cfg");
+        DWORD attributes = text::sys::GetFileAttributesA("2utoexec.cfg");
         if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
             std::ifstream file("2utoexec.cfg");
             std::string line;

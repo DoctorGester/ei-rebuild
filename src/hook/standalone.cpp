@@ -9,6 +9,7 @@
 #include "standalone/static_init.h"
 #include "game/game_data.h"
 #include "game/originals_library.h"
+#include "game/system_text.h"
 #include "lib/crt.h"
 #include "render/render.h"
 
@@ -249,7 +250,8 @@ bool RouteImageCalls() {
 
 // The wrapper image_imports.cpp puts in the image's slot of `dll`!`function` instead of its export, or nullptr.
 // Called during ei_hook.dll's static initialisation, before this file's: the table is a function's static (made
-// at its first call), the flags are zero-initialised.
+// at its first call), the flags are zero-initialised. With EI_UTF8 the calls that take or give text take their
+// UTF-8 versions (game/system_text.h).
 const void* ImageRoute(const char* dll, const char* function) {
     for (int i = 0; i < kRoutes; ++i) {
         const Route& r = Routes()[i];
@@ -257,7 +259,7 @@ const void* ImageRoute(const char* dll, const char* function) {
         g_routed[i] = true;
         return r.replacement;
     }
-    return nullptr;
+    return text::SystemRoute(dll, function);
 }
 
 // The host exports EiStandaloneHost; game.exe exports nothing.

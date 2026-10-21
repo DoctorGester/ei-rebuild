@@ -406,6 +406,7 @@
 #include "harness_pair.h"
 #include "harness_timing.h"
 #include "harness_ui.h"
+#include "harness_utf8.h"
 #include "ui_census.h"
 #include "../vectors/vectors.h"
 
@@ -4388,6 +4389,8 @@ struct Harness {
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
+        // EI_UTF8: a Cyrillic folder and file through the game's file calls (harness_utf8.h).
+        if (std::string names = utf8files::Check(g_savesDir); !names.empty()) g_failures.push_back(names);
         addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);

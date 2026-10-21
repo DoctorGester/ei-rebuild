@@ -1207,7 +1207,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   quest.reg from the text cursor, so it opens it with `CTextManager::OpenData` (bytes as they are), and
   `TextSources::Find` (004DEBC0) stays the raw lookup.
 - **ANSI boundaries with `ForAnsiCall`**: `GameDC::DrawText` (ui_gdi.h, every interface text draw),
-  `CInterface3D::TextExtent` (005F8340), the console prompt's width (`PromptWidth`), `ShowMessageBox` (until U2).
+  `CInterface3D::TextExtent` (005F8340), the console prompt's width (`PromptWidth`) (the message box's went with U2).
   Until U4 the save window's name editor works in 8 bits: `ToAssetText` when a title is taken into it
   (ui_menus.cpp, ui_menu_keys.cpp), `FromAssetText` when the typed name is saved (ui_saveload.cpp).
 - **Behaviour by length**: a briefing phrase lasts 0.05 s per character (`CBriefingScreen::NextPhrase`): counted
@@ -1225,12 +1225,48 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   heap's layout and the UTF-8 copies only move it. Goldens with the switch on differ only in ui_gallery_game's
   saves (the save title and the top panel text are UTF-8 now), which is allowed.
 - **Found for U2-U5**: the save name editor edits bytes (U4); `GetStringBuffer` cuts UTF-8 by bytes at the
-  buffer size (U5); the clipboard copy converts with CP_ACP and `CharUpperA` in script_addon_strings upper-cases
-  bytes (U2/U5); network player names pass an `isprint` filter byte by byte (multiplayer, U5); the script string
+  buffer size (U5); `CharUpperA` in script_addon_strings upper-cases bytes (U5); network player names pass an `isprint` filter byte by byte (multiplayer, U5); the script string
   length (script_addon_strings) counts bytes (U5); the CRT's LC_CTYPE is "english" (1252) from the Font CharSet
   option, so `tolower`/`MakeLower` and the `_ismbc*` classes treat UTF-8 bytes as 1252 letters (U5: a UTF-8-aware
-  case table); the system ANSI code page here is 1252, so ANSI file and window calls of Cyrillic need U2's wide
+  case table); the system ANSI code page here is 1252, so ANSI file and window calls of Cyrillic needed U2's wide
   calls.
+
+### U2: the system boundary (2026-10-21)
+
+- **Where**: src/game/system_text.h. With EI_UTF8 the image's import slot of each ANSI call that takes or gives
+  text holds its UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by
+  `ImageRoute` in hook/standalone.cpp when image_imports.cpp resolves the slots). So every call through
+  `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`, `CStdioFile` and the CRT's `fopen` /
+  `_findfirst` / `_access` (they call through the slots). The harness takes the same slots afterwards and wraps
+  the UTF-8 versions, so its saves redirect, overlay and registry snapshot work unchanged (they work on the
+  bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h, harness_install.h). Without
+  EI_UTF8 no slot is routed.
+- **Routed**: files (CreateFile, FindFirstFile / FindNextFile, DeleteFile, MoveFile, CopyFile, Create- /
+  RemoveDirectory, Get- / SetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
+  GetDiskFreeSpace, GetVolumeInformation, LoadLibrary, LoadCursorFromFile, mmioOpen), the registry (RegOpenKeyEx,
+  RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
+  CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)` past the ANSI window
+  procedure; the window stays an ANSI one until U4), FindWindow, MessageBox, GetKeyNameText, LoadString (the
+  window title and MFC's strings, UTF-16 in the resources).
+- **Direct calls** (not through the slots): `text::sys::<Name>A` is the UTF-8 version with EI_UTF8, the ANSI call
+  without (mod_folders, script_addon_commands, console_addon, world_client_draw, world_client_maps). The
+  console's clipboard and addon's AutoExec lines convert with UTF-8 instead of the ANSI code page;
+  `Fullpath` (mfc_file.cpp) takes the current folder through the slot.
+- **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
+- `ForAnsiCall` left only at GDI's text draw and extent (U3); `ShowMessageBox` passes its text as it is.
+- **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
+  round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide,
+  with the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/:
+  ei_hook.dll's folder, EI_GAME_ROOT through `RedirectGamePaths`), CharUpperA / CharLowerA (U5).
+- **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never
+  reaches a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked at every
+  UTF-8 harness start instead (tests/verify/harness_utf8.cpp): a folder and a file with Cyrillic names made,
+  listed, read back and removed through the game's slots under the saves redirect, the names checked on disk
+  as UTF-16; a failure fails the run.
+- **Check**: the frame comparison above. U2's result: as U1's, 51 of the 54 frames identical and ui_gallery_mp's
+  briefing, chat_typed and chat_sent differing by the same 27249 pixels (the heap-layout bug, UB1); goldens with
+  the switch on differ only in ui_gallery_game's saves, as U1's. The image's log names the routes: "504 resolved
+  (28 routed)" with EI_UTF8 (27 here and the command line), "(1 routed)" without.
 
 ## 5. The hook retirement (S21-S21e, 2026-10-16)
 

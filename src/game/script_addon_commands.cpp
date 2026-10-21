@@ -26,6 +26,7 @@
 #include "originals_engine.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "system_text.h"
 
 #include <windows.h>
 
@@ -79,10 +80,10 @@ const std::string& ModFolder() {
     static const std::string folder = [] {
         std::string path;
         HKEY key;
-        if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Gipat.Ru\\EI_Starter\\Settings", 0, KEY_READ, &key) == 0) {
+        if (text::sys::RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Gipat.Ru\\EI_Starter\\Settings", 0, KEY_READ, &key) == 0) {
             char value[MAX_PATH * 2];
             DWORD size = sizeof(value) - 1, type = 0;
-            if (RegQueryValueExA(key, "AddonPath", nullptr, &type, reinterpret_cast<BYTE*>(value), &size) == 0 &&
+            if (text::sys::RegQueryValueExA(key, "AddonPath", nullptr, &type, reinterpret_cast<BYTE*>(value), &size) == 0 &&
                 type == REG_SZ) {
                 value[size] = 0;
                 path = value;
@@ -217,7 +218,7 @@ bool IsFileExists(Call* call) {
                      EndsWith(name, "/..");
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
-    DWORD attributes = GetFileAttributesA(path.c_str());
+    DWORD attributes = text::sys::GetFileAttributesA(path.c_str());
     Store(static_cast<float*>(call->result), attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
     return true;
 }

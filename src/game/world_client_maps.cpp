@@ -66,6 +66,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 #include "game/game_slots.h"
+#include "system_text.h"
 
 #include <new>
 #include <windows.h>
@@ -1336,7 +1337,7 @@ int CWorldClient::Setup() {
     {
         mfc::CString path(mfc::CString::kUnset);
         CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
-        cursor_ = LoadCursorFromFileA(path);
+        cursor_ = text::sys::LoadCursorFromFileA(path);
     }
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
