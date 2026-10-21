@@ -143,7 +143,7 @@ static_assert(sizeof(Message) == 12);
 // The message base vtable under the name the message code uses.
 constexpr std::uintptr_t kMessageVtable = Message::kVtableAddress;
 
-using MessageFactory = Message* (*)();
+using MessageFactory = Message* (__fastcall*)();
 
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
 void* __fastcall NewRefObject(std::size_t size);

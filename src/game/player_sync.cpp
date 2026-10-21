@@ -3,6 +3,7 @@
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "game_strings.h"
 #include "lib/crt_iostream.h"
 
 #include "base_manager.h"
@@ -69,7 +70,6 @@ libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 // The empty string the original sends in place of a non-unit's name.
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { out->Write(&value, 4); }
@@ -174,7 +174,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
             WriteText(&out_, object->GetName());
             prototype = static_cast<std::uint32_t>(reinterpret_cast<CUnit*>(object)->prototype23C);
         } else {
-            WriteText(&out_, EmptyText());
+            WriteText(&out_, game::EmptyText());
         }
         WriteDword(&out_, prototype);
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();

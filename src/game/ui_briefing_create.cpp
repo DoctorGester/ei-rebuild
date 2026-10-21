@@ -1,6 +1,7 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "game_strings.h"
 #include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
@@ -52,7 +53,6 @@ const char* TopicPrefix() { return "b."; }
 const char* ConstructorTopic() { return "constr"; }
 const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // 00608D20: a network client's chat window (0x170 bytes; RET 4, returns this).
 __declspec(naked) CUiWindow* __fastcall ChatWindowConstruct(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x00608D20)
@@ -221,7 +221,7 @@ void CBriefingScreen::Create() {
                        : nullptr;
     AddChild(topicBar_);
     memory = gamecrt::operator_new(0x1C8);
-    text_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
+    text_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
                    : nullptr;
     AddChild(text_);
 

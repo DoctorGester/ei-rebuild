@@ -2,6 +2,7 @@
 // See ui.h and docs/notes/items_spells.md (A-H19).
 
 #include "ui.h"
+#include "game_strings.h"
 
 #include "originals_ui.h"
 
@@ -18,9 +19,6 @@ constexpr int kSurfaceFormat = 5;
 constexpr int kTextFormat = 1;
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
-// The exe's empty text (0079B298).
-const char* EmptyText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079B298)); }
-
 } // namespace
 
 CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
@@ -31,7 +29,7 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     rect_ = rect;
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
-    texts_.SetAtGrow(texts_.size, text ? text : EmptyText());
+    texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText());
     changed_ = false;
     layout_ = rect;
     SetValue(0);
@@ -39,7 +37,7 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
 }
 EI_REPLACE_METHOD(0x0065BCD0, CUiSpin::Construct);
 
-void CUiSpin::AddText(const char* text) { texts_.SetAtGrow(texts_.size, text ? text : EmptyText()); }
+void CUiSpin::AddText(const char* text) { texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText()); }
 EI_REPLACE_METHOD(0x0065BE70, CUiSpin::AddText);
 
 bool CUiSpin::GetValue(int* value) {

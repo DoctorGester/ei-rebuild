@@ -21,7 +21,6 @@ src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,1
-src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,0
 src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
@@ -81,7 +80,7 @@ src/game/unit_ai.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_modes.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_attack.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/unit_create_stats.cpp,0,0,0,0,13,0,0,0,0,0,0,0,0,2
+src/game/unit_create_stats.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_hits.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,0
 src/game/unit_motion_tick.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2

@@ -2,6 +2,7 @@
 // into a memory stream and written as a save file (magic 0x114). See party.h, ui_screens.h
 // (MpHeroRecord) and docs/notes/items_spells.md ("Party records and the party object").
 #include "party.h"
+#include "game_strings.h"
 
 #include "core_streams.h"
 #include "net_link.h"
@@ -24,7 +25,6 @@ constexpr unsigned kPartyFileMagic = 0x114;
 int SaveVersion() { return *reinterpret_cast<const int*>(0x00790260); }
 int NewestReadVersion() { return *reinterpret_cast<const int*>(0x00790268); }
 const char* TempFileName() { return "temp.mp"; }
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }      // ""
 
 mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }
 mfc::CString TempFile(const char* folder) { return mfc::CString(folder) + TempFileName(); }
@@ -89,7 +89,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 EI_REPLACE_METHOD(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(folder_), reinterpret_cast<const unsigned char*>(EmptyText())) == 0)
+    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(folder_), reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0)
         return;
     ClearSaveFolder(folder_);
     // The entries are MpHeroRecords (world_game.cpp declares the same 0x74-byte records as
