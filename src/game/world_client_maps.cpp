@@ -566,7 +566,7 @@ void CWorldClient::ClearMaps() {
     PlainList& heroes = heroes_;
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
-        ObjectHolderDelete(&node->data, nullptr, 0);
+        ObjectHolderRelease(&node->data);
         stlp::deallocate(node, 12);   // 0056FB40
         node = next;
     }
@@ -663,7 +663,7 @@ CEngineObject* CWorldClient::UnitAt2(const long* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
+void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out) {
     for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
         CEngineObject* object = manager40_->FindObject(node->data.objectId);
         if (!object) continue;
@@ -994,7 +994,7 @@ void CWorldClient::Teardown() {
             CellOps::Clear(&grid.rows_[y][x]);
     EmptyList(list7BC_, [](stlp::list<void*>::Node* node) { stlp::deallocate(node, 12); });
     EmptyList(heroes_, [](SectorListNode* node) {
-        ObjectHolderDelete(&node->data, nullptr, 0);
+        ObjectHolderRelease(&node->data);
         stlp::deallocate(node, 12);   // 0056FB40
     });
     PlainList& objects = objects_;
@@ -1150,29 +1150,30 @@ void ReferenceEveryObject(CBaseManager* manager) {
 
 } // namespace
 
-void DestroySectorList(SectorList* list) {
+void DestroySectorList(stlp::list<CEngineObject*>* list) {
     list->ClearWith([](CEngineObject** object) {
         if (*object) (*object)->Release();
     });
     stlp::deallocate(list->head, sizeof(SectorListNode));
 }
 
-SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags) {
+SectorList* SectorList::VectorDelete(unsigned flags) {
     if (flags & 2) {
+        SectorList* cells = this;
         int* block = reinterpret_cast<int*>(cells) - 1;   // new[]'s element count
         for (int i = *block; i-- > 0;) DestroySectorList(&cells[i]);
         if (flags & 1) gamecrt::operator_delete(block);
         return reinterpret_cast<SectorList*>(block);
     }
-    DestroySectorList(cells);
-    if (flags & 1) gamecrt::operator_delete(cells);
-    return cells;
+    DestroySectorList(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-void __fastcall SectorListDestruct(SectorList* list) { DestroySectorList(list); }
+void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list) { DestroySectorList(list); }
 EI_REPLACE(0x0056DEF0, SectorListDestruct);
 
-EI_REWRITTEN(0x00572B30, SectorListsDelete);
-EI_REWRITTEN(0x00572C50, SectorListsDelete);
+EI_REWRITTEN(0x00572B30, SectorList::VectorDelete);
+EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1192,7 +1193,7 @@ EI_REWRITTEN(0x005728D0, SectorGrid::Allocate);
 
 void SectorGrid::Resize(int width, int height) {
     if (unknown08_ == width && unknown0C_ == height) return;
-    if (cells_) SectorListsDelete(cells_, nullptr, 3);
+    if (cells_) cells_->VectorDelete(3);
     gamecrt::operator_delete(rows_);
     unknown08_ = width;
     unknown0C_ = height;

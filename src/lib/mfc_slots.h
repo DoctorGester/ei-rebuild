@@ -139,7 +139,7 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
             V value;
             ar->Read(&key, sizeof(K));
             ar->Read(&value, sizeof(V));
-            *Abi::ElementAt(self, nullptr, &key) = value;
+            self->ElementAt(key) = value;
         }
     }
 }

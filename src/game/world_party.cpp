@@ -222,7 +222,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
 
     WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
     if (placements)   // 0059C3D0
-        mfc::impl::Placements::SetSize(static_cast<mfc::impl::Placements::Array*>(placements), nullptr, 0, -1);
+        static_cast<mfc::impl::Placements::Array*>(placements)->SetSize(0, -1);
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
@@ -244,9 +244,9 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
 
 namespace {
 
-// 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (gamelists::CountedAddTail).
+// 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (CountedEngineList::AddTailCounted).
 void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
-    gamelists::CountedAddTail(mfc::impl::ListAs<gamelists::EngineObjects>(list), nullptr, object);
+    reinterpret_cast<gamelists::CountedEngineList*>(list)->AddTailCounted(object);
 }
 
 } // namespace

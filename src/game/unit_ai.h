@@ -30,7 +30,12 @@ struct AIBrain;
 struct AIOrder;
 class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
 
-using AIObjectList = mfc::CTypedPtrList<CUnit>;
+struct CountedUnits : mfc::CTypedPtrList<CUnit> {
+    // 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
+    // holding a reference; returns the node.
+    Node* AddCountedTail(CUnit* object);
+};
+using AIObjectList = CountedUnits;
 
 // A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
 // reference fields (orders, modes, the brain's target, the reports) are AIRefs: reads see the
@@ -300,14 +305,17 @@ struct PatrolPointElements {
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
 // Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); SetSize
 // is 004C9970 (mfc::impl::AiLookRecords).
-using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
-// 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
-void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
-// 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
-PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags);
-// 005D9E40 / 005D9590 (RET 8; unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
-// `out` (a new look array); returns `out`.
-PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index);
+struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
+    // 005D8CF0 / 005D95B0. The base vtable, every point's looks freed, then the buffer (pointer and
+    // count kept).
+    void Destruct();
+    // 005D8CD0 / 005D9D00 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
+    PatrolPoints* DeletingDestruct(int flags);
+    // 005D9E40 / 005D9590 (RET 8; unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
+    // `out` (a new look array); returns `out`.
+    PatrolPoint* CopyAt(PatrolPoint* out, int index) const;
+};
+using PatrolPointArray = PatrolPoints;
 
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
@@ -930,10 +938,6 @@ static_assert(sizeof(AIEventTable) == 0x1003C);
 
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
-
-// 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
-// holding a reference; returns the node.
-AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CUnit* object);
 
 // The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard
 // (unit_ai_memory.cpp, unit_ai_brain.cpp, unit_ai_hearing.cpp, unit_ai_save.cpp; the original's

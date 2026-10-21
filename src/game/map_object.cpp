@@ -104,7 +104,7 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
 } // namespace
 
 void CMapObject::SetEffectCount(int count) {
-    mfc::impl::Plain20::SetSize(reinterpret_cast<mfc::impl::Plain20::Array*>(&effectsVtable), nullptr, count, -1);
+    reinterpret_cast<mfc::impl::Plain20::Array*>(&effectsVtable)->SetSize(count, -1);
 }
 
 std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {

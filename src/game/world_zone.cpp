@@ -87,7 +87,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
     auto* exits = reinterpret_cast<ZoneExitArray*>(&exitsVtable_);
     if (exits->data) {
         ZoneExit* exit = exits->data;
-        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDelete(exit, nullptr, 0);   // 004608B0
+        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(reinterpret_cast<MapExit*>(exit));   // 004608B0
         gamecrt::operator_delete(exits->data);
         exits->data = nullptr;
     }
@@ -206,7 +206,7 @@ void CWorldServer::ClearMapObjects() {
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)
-        ObjectHolderDelete(reinterpret_cast<CEngineObject**>(&node->data), nullptr, 0);   // 0059DDB0
+        ObjectHolderRelease(reinterpret_cast<CEngineObject**>(&node->data));   // 0059DDB0
     counted_.RemoveAll();
 
     countdowns_.RemoveAll();

@@ -49,10 +49,10 @@ void* SeenMapVtable() { return mfc::impl::FigureRegistryMapClass::Vtable(); }
 // map[key] as the original inlines it: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
     std::uint32_t hash;
-    MapAssoc* assoc = mfc::impl::Map32::GetAssocAt(&map, nullptr, &key, &hash);
+    MapAssoc* assoc = map.GetAssocAt(key, hash);
     if (assoc) return assoc;
-    if (!map.table) mfc::impl::MapAbi<unsigned int, unsigned int>::InitHashTable(&map, nullptr, map.hashSize, 1);
-    assoc = mfc::impl::MapAbi<unsigned int, unsigned int>::NewAssoc(&map);
+    if (!map.table) map.InitHashTable(map.hashSize, 1);
+    assoc = map.NewAssoc();
     assoc->hash = hash;
     assoc->key = key;
     assoc->next = map.table[hash];
@@ -72,10 +72,10 @@ void MapMark(SeenMap& map, std::uint32_t key) {
             }
         }
     } else {
-        mfc::impl::MapAbi<unsigned int, unsigned int>::InitHashTable(&map, nullptr, map.hashSize, 1);
+        map.InitHashTable(map.hashSize, 1);
     }
     if (!assoc) {
-        assoc = mfc::impl::MapAbi<unsigned int, unsigned int>::NewAssoc(&map);
+        assoc = map.NewAssoc();
         assoc->hash = hash;
         assoc->key = key;
         assoc->next = map.table[hash];
@@ -133,7 +133,7 @@ static_assert(sizeof(NamedType) == 8);
 struct NamedElements {
     static void Construct(NamedType* elements, int count) { ConstructNamed(elements, count); }
     static void Destruct(NamedType* elements, int count) {
-        for (int i = 0; i < count; ++i) figure::NamedRecordDelete(reinterpret_cast<std::uint8_t*>(&elements[i]), nullptr, 0);   // 00454360
+        for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&elements[i]));   // 00454360
     }
 };
 using NamedArray = mfc::CArray<NamedType, NamedElements>;

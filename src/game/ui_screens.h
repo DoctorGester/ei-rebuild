@@ -608,15 +608,17 @@ static_assert(offsetof(MpAddressEntry, gameType) == 0x24);
 static_assert(offsetof(MpAddressEntry, state) == 0x2C);
 static_assert(offsetof(MpAddressEntry, password) == 0x30);
 static_assert(sizeof(MpAddressEntry) == 0x34);
-using MpAddressList = stlp::vector<MpAddressEntry>;
 
 // The vector's own instantiation members (ui_connect_screen.cpp; thiscall on the vector).
-// 0061E5A0: a default entry (empty texts, address 0, the rest left) appended. 0061E660 (RET 4):
-// one inserted before `pos` (the tail moved up by assignment); returns it. 0061EA90 (RET 8):
-// [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
-void __fastcall MpAddressesPushDefault(MpAddressList* list);
-MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, MpAddressEntry* pos);
-MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last);
+struct MpAddresses : stlp::vector<MpAddressEntry> {
+    // 0061E5A0: a default entry (empty texts, address 0, the rest left) appended.
+    void PushDefault();
+    // 0061E660 (RET 4): one inserted before `pos` (the tail moved up by assignment); returns it.
+    MpAddressEntry* InsertDefault(MpAddressEntry* pos);
+    // 0061EA90 (RET 8): [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
+    MpAddressEntry* Erase(MpAddressEntry* first, MpAddressEntry* last);
+};
+using MpAddressList = MpAddresses;
 
 class CMpConnectScreen : public CUiContainer {
 public:

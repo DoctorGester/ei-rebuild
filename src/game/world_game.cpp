@@ -1997,7 +1997,7 @@ void DestroyPartyEntry(MpHeroRecord* entry) {
     records->zone_.~CString();
     records->variables_.Destroy();   // 00663330
     records->items_.FreeData();   // 006643F0
-    DestructPartyMemberArray(&records->members_);   // 00664160
+    records->members_.Destruct();   // 00664160
     records->DestructBase();
 }
 

@@ -32,20 +32,15 @@ int __fastcall FreePlexChain(CPlex* head);
 // ---- CList ----------------------------------------------------------------------------------------
 
 template <typename T, typename E = PlainElements<T>>
-struct ListAbi {
+struct ListAbi : CList<T, E> {
     using Element = T;
     using List = CList<T, E>;
     using Node = typename List::Node;
 
-    // NewNode(pPrev, pNext) (RET 8): the node, its element constructed.
-    static Node* __fastcall NewNode(List* self, void*, Node* prev, Node* next) { return self->NewNode(prev, next); }
-    // FreeNode(pNode) (RET 4): the element destroyed, the node onto the free list; the last one
-    // frees every block (RemoveAll).
-    static void __fastcall FreeNode(List* self, void*, Node* node) { self->FreeNode(node); }
-    // RemoveAt(position) (RET 4): unlinked, then FreeNode.
-    static void __fastcall RemoveAt(List* self, void*, Node* node) { self->RemoveAt(node); }
-    // RemoveAll (plain RET): the elements destroyed, every block freed.
-    static void __fastcall RemoveAll(List* self) { self->RemoveAll(); }
+    // The instantiations' NewNode(pPrev, pNext) (RET 8: the node, its element constructed), FreeNode(pNode)
+    // (RET 4: the element destroyed, the node onto the free list; the last one frees every block),
+    // RemoveAt(position) (RET 4: unlinked, then FreeNode) and RemoveAll (plain RET: the elements
+    // destroyed, every block freed) are CList's own members (mfc.h), registered through this type.
     // AddTail / AddHead with ARG_TYPE by value (RET 4): the new node (POSITION).
     static Node* __fastcall AddTailByValue(List* self, void*, T value) { return self->AddTail(value); }
     // RemoveHead (plain RET): the head's element (EAX).
@@ -131,72 +126,12 @@ std::uint32_t HashKey(const K& key) {
 }
 
 template <typename K, typename V>
-struct MapAbi {
+struct MapAbi : CMap<K, V> {
     using Map = CMap<K, V>;
     using Assoc = typename Map::Assoc;
 
-    // InitHashTable(nHashSize, bAllocNow) (RET 8): the old table deleted; a zeroed one of
-    // `hashSize` buckets when `allocNow`; the size kept either way.
-    static void __fastcall InitHashTable(Map* self, void*, std::uint32_t hashSize, int allocNow) {
-        if (self->table) {
-            gamecrt::operator_delete(self->table);
-            self->table = nullptr;
-        }
-        if (allocNow) {
-            self->table = static_cast<Assoc**>(gamecrt::operator_new(hashSize * sizeof(Assoc*)));
-            std::memset(self->table, 0, hashSize * sizeof(Assoc*));
-        }
-        self->hashSize = hashSize;
-    }
-
-    // GetAssocAt(key, nHash&) (RET 8): the key's bucket into `hash`; its association, or null
-    // (also when there is no table).
-    static Assoc* __fastcall GetAssocAt(const Map* self, void*, const K* key, std::uint32_t* hash) {
-        *hash = HashKey(*key) % self->hashSize;
-        if (!self->table) return nullptr;
-        for (Assoc* assoc = self->table[*hash]; assoc; assoc = assoc->next)
-            if (assoc->key == *key) return assoc;
-        return nullptr;
-    }
-
-    // NewAssoc (plain RET): an association from the free list (a new block of `blockSize` when it is
-    // empty, its first association used first), the count raised, key and value zeroed. `next` and
-    // `hash` are the caller's.
-    static Assoc* __fastcall NewAssoc(Map* self) {
-        if (!self->freeList) {
-            CPlex* block = PlexCreate(self->blocks, static_cast<unsigned>(self->blockSize), sizeof(Assoc));
-            Assoc* assoc = reinterpret_cast<Assoc*>(block + 1) + (self->blockSize - 1);
-            for (int i = self->blockSize - 1; i >= 0; --i, --assoc) {
-                assoc->next = self->freeList;
-                self->freeList = assoc;
-            }
-        }
-        Assoc* assoc = self->freeList;
-        self->freeList = assoc->next;
-        ++self->count;
-        std::memset(static_cast<void*>(&assoc->key), 0, sizeof(K));
-        std::memset(static_cast<void*>(&assoc->value), 0, sizeof(V));
-        return assoc;
-    }
-
-    // operator[](key) (RET 4): the value of `key`, a new association (value zero) put at the head of
-    // its bucket when missing (the table allocated first if there is none).
-    static V* __fastcall ElementAt(Map* self, void*, const K* key) {
-        std::uint32_t hash;
-        Assoc* assoc = GetAssocAt(self, nullptr, key, &hash);
-        if (!assoc) {
-            if (!self->table) InitHashTable(self, nullptr, self->hashSize, 1);
-            assoc = NewAssoc(self);
-            assoc->hash = hash;
-            assoc->key = *key;
-            assoc->next = self->table[hash];
-            self->table[hash] = assoc;
-        }
-        return &assoc->value;
-    }
-
-    // RemoveAll (plain RET; elements without destructors).
-    static void __fastcall RemoveAll(Map* self) { self->RemoveAll(); }
+    // The instantiations' InitHashTable, GetAssocAt, NewAssoc, operator[] (ElementAt) and RemoveAll
+    // (elements without destructors) are CMap's own members (mfc.h), registered through this type.
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
     template <typename Class>

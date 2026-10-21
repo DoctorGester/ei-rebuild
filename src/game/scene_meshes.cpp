@@ -75,7 +75,7 @@ void DestroyMap(MapT& map, void* vtable) {
 // 00454210 / 00454280): the value, created when missing.
 template <typename K, typename V>
 V& Lookup(mfc::CMap<K, V>& map, K key) {
-    return *mfc::impl::MapAbi<K, V>::ElementAt(&map, nullptr, &key);
+    return map.ElementAt(key);
 }
 
 const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces.data[f]; }

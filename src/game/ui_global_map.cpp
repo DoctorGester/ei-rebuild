@@ -289,7 +289,7 @@ void CGlobalMap::Create() {
     for (int i = 0; i < allod->maps.size; ++i) {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
-        GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate);
+        zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
         variable.Format("z.%s", static_cast<const char*>(zone->name));
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
@@ -750,12 +750,12 @@ void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
     }
 }
 
-void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int index, const GlobalMapZone* zone) {
-    if (index >= zones->size) zones->SetSize(index + 1);
-    GlobalMapZone& slot = zones->data[index];
+void GlobalMapZoneArray::SetAtGrowZone(int index, const GlobalMapZone* zone) {
+    if (index >= size) SetSize(index + 1);
+    GlobalMapZone& slot = data[index];
     slot.state = zone->state;
     slot.link = zone->link;
     slot.name = zone->name;
     slot.title = zone->title;
 }
-EI_REWRITTEN(0x00631CC0, GlobalMapZonesSetAtGrow);
+EI_REWRITTEN(0x00631CC0, GlobalMapZoneArray::SetAtGrowZone);

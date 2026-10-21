@@ -357,6 +357,15 @@ struct CArray {
         return index;
     }
 
+    // ElementAt (RET 4): the element's address.
+    T& ElementAt(int index) { return data[index]; }
+
+    // GetAt(nIndex) returning the element by value (RET 8: the hidden result pointer first; returns it).
+    T* GetAt(T* result, int index) const {
+        *result = data[index];
+        return result;
+    }
+
     // InsertAt: grows by `count`, moves the tail up with memmove (the slots it vacates are
     // destroyed and constructed again), then assigns `value` to each new slot.
     void InsertAt(int index, const T& value, int count = 1) {
@@ -586,6 +595,66 @@ struct CMap {
         for (std::uint32_t b = assoc ? assoc->hash + 1 : 0; b < hashSize; ++b)
             if (table[b]) return table[b];
         return nullptr;
+    }
+
+    // InitHashTable(nHashSize, bAllocNow) (RET 8): the old table deleted; a zeroed one of
+    // `newHashSize` buckets when `allocNow`; the size kept either way.
+    void InitHashTable(std::uint32_t newHashSize, int allocNow) {
+        if (table) {
+            gamecrt::operator_delete(table);
+            table = nullptr;
+        }
+        if (allocNow) {
+            table = static_cast<Assoc**>(gamecrt::operator_new(newHashSize * sizeof(Assoc*)));
+            std::memset(table, 0, newHashSize * sizeof(Assoc*));
+        }
+        hashSize = newHashSize;
+    }
+
+    // GetAssocAt(key, nHash&) (RET 8): the key's bucket (the key, its low dword for a 64-bit one,
+    // shifted right by 4) into `hashOut`; its association, or null (also when there is no table).
+    Assoc* GetAssocAt(const K& key, std::uint32_t& hashOut) const {
+        hashOut = (static_cast<std::uint32_t>(key) >> 4) % hashSize;
+        if (!table) return nullptr;
+        for (Assoc* assoc = table[hashOut]; assoc; assoc = assoc->next)
+            if (assoc->key == key) return assoc;
+        return nullptr;
+    }
+
+    // NewAssoc (plain RET): an association from the free list (a new block of `blockSize` when it is
+    // empty, its first association used first), the count raised, key and value zeroed. `next` and
+    // `hash` are the caller's.
+    Assoc* NewAssoc() {
+        if (!freeList) {
+            CPlex* block = PlexCreate(blocks, static_cast<unsigned>(blockSize), sizeof(Assoc));
+            Assoc* fresh = reinterpret_cast<Assoc*>(block + 1) + (blockSize - 1);
+            for (int i = blockSize - 1; i >= 0; --i, --fresh) {
+                fresh->next = freeList;
+                freeList = fresh;
+            }
+        }
+        Assoc* assoc = freeList;
+        freeList = assoc->next;
+        ++count;
+        std::memset(static_cast<void*>(&assoc->key), 0, sizeof(K));
+        std::memset(static_cast<void*>(&assoc->value), 0, sizeof(V));
+        return assoc;
+    }
+
+    // operator[](key) (RET 4): the value of `key`, a new association (value zero) put at the head of
+    // its bucket when missing (the table allocated first if there is none).
+    V& ElementAt(const K& key) {
+        std::uint32_t hash;
+        Assoc* assoc = GetAssocAt(key, hash);
+        if (!assoc) {
+            if (!table) InitHashTable(hashSize, 1);
+            assoc = NewAssoc();
+            assoc->hash = hash;
+            assoc->key = key;
+            assoc->next = table[hash];
+            table[hash] = assoc;
+        }
+        return assoc->value;
     }
 
     // RemoveAll for elements without destructors: the table deleted (even when null), the pool
