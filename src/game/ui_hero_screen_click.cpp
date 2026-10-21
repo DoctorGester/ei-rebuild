@@ -104,7 +104,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
-    TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
+    TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, "reserved_04", &text);
     static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->EndSession();
@@ -114,8 +114,8 @@ void BackToMainMenu(CInterface3D* ui) {
 // The heroes' map transfer (sent after a rename).
 // The multiplayer heroes' folder (007C82A0, a CString).
 const char* HeroesFolder() { return *reinterpret_cast<const char* const*>(0x007C82A0); }
-const char* RenameSeparator() { return game::Text(0x00793AA0); }   // " | "
-const char* RenameBar() { return game::Text(0x00793AA4); }         // "|"
+const char* RenameSeparator() { return " | "; }
+const char* RenameBar() { return "|"; }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
@@ -361,7 +361,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
         void* memory = gamecrt::operator_new(0x180);
-        void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, game::Text(0x00793A30), game::Text(0x00793A40),
+        void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, "lmp_deletepers", "lmp_deletepers_msg",
                                                  0x10000, 3, 1)
                            : nullptr;
         ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
@@ -479,7 +479,7 @@ EI_REPLACE(0x00619150, MpHeroPlayVoice);
 // --- 006183B0: continue -------------------------------------------------------------------------
 
 namespace {
-const char* SoundOk() { return game::Text(0x00793A88); }   // "buttons\messbox\ok.wav"
+const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
 void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
@@ -508,7 +508,7 @@ void CMpHeroScreen::Continue() {
         return;
     }
     void* memory = gamecrt::operator_new(0x180);
-    void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, game::Text(0x00793AA8), game::Text(0x00793AB4), 0x20000, 1, 1)
+    void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1)
                        : nullptr;
     ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
@@ -555,7 +555,7 @@ void CMpHeroScreen::CreateHero() {
         window.interface_->PlaySound(SoundCancel(), 0);
         return;
     }
-    window.interface_->PlaySound(game::Text(0x00793A88), 0);   // "buttons\messbox\ok.wav"
+    window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     weapon_ = static_cast<int>(hero->weaponCount) > 0 ? static_cast<CItem*>(hero->weapons[0]) : nullptr;
     weaponPanel_->ShowWeapon(weapon_);
     armor_ = static_cast<int>(hero->quickItemCount) > 0 ? static_cast<CItem*>(hero->quickItems[0]) : nullptr;
@@ -668,8 +668,8 @@ EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
 
 namespace {
 MpHeroRecord*& MpHeroesCapacity() { return *reinterpret_cast<MpHeroRecord**>(0x007C82AC); }
-const char* HeroFilePattern() { return game::Text(0x00793A80); }   // "%s*.mp"
-const char* HeroFileFormat() { return game::Text(0x00793A78); }    // "%d.mp"
+const char* HeroFilePattern() { return "%s*.mp"; }
+const char* HeroFileFormat() { return "%d.mp"; }
 
 // A record built in place for the vector's insert (constructed and destroyed by hand, as the
 // original does with its stack copy).
@@ -700,7 +700,7 @@ int HighestFileNumber(const char* pattern) {
 } // namespace
 
 void CMpHeroScreen::AddNewHero() {
-    window.interface_->PlaySound(game::Text(0x00793A88), 0);   // "buttons\messbox\ok.wav"
+    window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)

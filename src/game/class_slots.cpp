@@ -21,9 +21,9 @@
 
 namespace {
 
-const char* const kHooverName = game::Text(0x00785784);      // "CHoover"
-const char* const kLightningName = game::Text(0x00787CF0);   // "CLightning"
-const char* const kFakeUnitName = game::Text(0x007842F0);    // "CFakeUnit"
+const char* const kHooverName = "CHoover";
+const char* const kLightningName = "CLightning";
+const char* const kFakeUnitName = "CFakeUnit";
 
 constexpr int kClassLightning = 0x1E;
 constexpr int kClassHoover = 0x1F;

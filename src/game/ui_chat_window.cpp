@@ -35,19 +35,19 @@ void** InputVtable() { return reinterpret_cast<void**>(0x00741444); }
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {
     const char* const keys[] = {
-        game::Text(0x0079359C),   // "lmp_status_zone"
-        game::Text(0x0079358C),   // "lmp_status_base"
-        game::Text(0x0079357C),   // "lmp_status_camp"
-        game::Text(0x00793568),   // "lmp_status_connect"
-        game::Text(0x00793554),   // "lmp_exch_we_offer"
-        game::Text(0x00793540),   // "lmp_exch_they_offer"
+        "lmp_status_zone",
+        "lmp_status_base",
+        "lmp_status_camp",
+        "lmp_status_connect",
+        "lmp_exch_we_offer",
+        "lmp_exch_they_offer",
     };
     return keys[i];
 }
 constexpr int kTextCount = 6;
 constexpr int kWeOffer = 4, kTheyOffer = 5;
 
-const char* OnOffSound() { return game::Text(0x007935BC); }                    // "buttons\battle\on_off.wav"
+const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
 
 constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
@@ -213,13 +213,13 @@ void CChatWindow::ShowPlayers() {
             figure = reinterpret_cast<FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (00609427): the model's fifth character
-        if (fixes ? !pluginfixes::ModelIsFemale(figure->model) : SameText(figure->model, game::Text(0x007908C8)))   // "unhuma"
-            sex = game::Text(0x00792EAC);                             // "m"
-        else if (fixes || SameText(figure->model, game::Text(0x00792EA4)))     // "unhufe"
-            sex = game::Text(0x0078BBD8);                             // "f"
-        build = game::Text(0x007844A8);                               // "me"
-        model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);   // "infa%s%s%dface"
-        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), prototype->skin);                      // "face%s%02d"
+        if (fixes ? !pluginfixes::ModelIsFemale(figure->model) : SameText(figure->model, "unhuma"))
+            sex = "m";
+        else if (fixes || SameText(figure->model, "unhufe"))
+            sex = "f";
+        build = "me";
+        model.Format("infa%s%s%dface", figure->model, static_cast<const char*>(build), prototype->hair + 1);
+        picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
         AddPortrait(model, picture);
         regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
@@ -282,7 +282,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     int pick = static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_;
     if (pick != 0) {
         char text[0x80];
-        gamecrt::sprintf(text, game::Text(0x0078EEEC), PlayerOf(players_[index])->serial_);   // "%d"
+        gamecrt::sprintf(text, "%d", PlayerOf(players_[index])->serial_);
         if (pick == 1)
             net::GameClient()->SendCommand(kPickCommandA, text);
         else if (pick == 2)

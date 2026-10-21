@@ -264,7 +264,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     CTextureDevice* holder = device_;
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
     holder->lastLoadResult_ = result;
-    if (result != 0) app::FatalErrorCode(result, game::Text(0x0078EE20));   // "Can't get device description"
+    if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description"
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);

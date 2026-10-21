@@ -62,6 +62,16 @@ thread, which other threads let through by reading the virtual time plus the rea
 main thread last moved it. The sound threads themselves (stream, fader, Miles' timer) draw no random
 numbers and touch no game state.
 
+Not handled (SV5d5): the music's draws follow what the stream thread reports. UpdateMusic 006B5350 reads
+CurrentStreamName 006BAEA0 (the name while the stream state is 1 or 2), which the stream thread changes as
+it plays, in real time: a fight's start picks a combat track (PickName, a draw when the theme has more than
+one) only when the playing one is not the last combat track, and the calm branch runs only while nothing
+plays. So in a run with fights the number of draws follows how far the stream got, which follows the
+machine's load: net_pair_quest parted that way on the original and the image alike (the C13b3 flake, three
+classes in sixteen runs). Such a scenario plays with `music 0` (the AudioStreaming setting answered 0:
+SetMusicVolume 006B7A00 stops the stream and RequestStream drops every request, so the stream state stays 0
+and UpdateMusic's draws follow the virtual clock only). A virtual-time stream thread would cover every run.
+
 ## Rewritten (names provisional)
 
 Every function carries its address in its source comment (grep it); the per-function table that used to be here is gone. All in

@@ -19,21 +19,23 @@ namespace {
 
 // The entries in the order the original reads them: section, name, error, offset of the RECT.
 struct MenuRect {
-    std::uintptr_t section, name, error;
+    const char* section;
+    const char* name;
+    const char* error;
     int offset;
 };
 constexpr MenuRect kRects[] = {
-    {0x007904EC, 0x00790F9C, 0x00790F7C, 0x00},   // MainMenu NewGame
-    {0x007904EC, 0x00790F70, 0x00790F50, 0x10},   // MainMenu LoadGame
-    {0x007904EC, 0x00790F44, 0x00790F24, 0x20},   // MainMenu ExitGame
-    {0x007904EC, 0x00790F1C, 0x00790EFC, 0x30},   // MainMenu Options
-    {0x007904EC, 0x00790EF4, 0x00790ED4, 0x40},   // MainMenu Credits
-    {0x007904EC, 0x00790EC8, 0x00790EA4, 0x50},   // MainMenu Multiplayer
-    {0x00790E90, 0x00790E98, 0x00790E70, 0x60},   // EscMenu SaveGame
-    {0x00790E90, 0x00790F70, 0x00790E50, 0x70},   // EscMenu LoadGame
-    {0x00790E90, 0x00790F1C, 0x00790E30, 0xA0},   // EscMenu Options
-    {0x00790E90, 0x00790E24, 0x00790E00, 0x80},   // EscMenu ResumeGame
-    {0x00790E90, 0x00790DF8, 0x00790DD8, 0x90},   // EscMenu ExitMM
+    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0x00},
+    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 0x10},
+    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 0x20},
+    {"MainMenu", "Options", "Can't get rect for MM Options\n", 0x30},
+    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 0x40},
+    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 0x50},
+    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 0x60},
+    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 0x70},
+    {"EscMenu", "Options", "Can't get rect for EM Options\n", 0xA0},
+    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 0x80},
+    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 0x90},
 };
 
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
@@ -62,9 +64,9 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
         reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values)->SetSize(0, -1);
-        reg->GetIntArray(game::Text(entry.section), game::Text(entry.name), reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
+        reg->GetIntArray(entry.section, entry.name, reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
         if (values.size != 4) {
-            int result = game::FatalError(game::Text(entry.error));
+            int result = game::FatalError(entry.error);
             if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
             reg->Destroy();
             return result;

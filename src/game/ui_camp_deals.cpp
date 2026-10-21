@@ -137,14 +137,14 @@ namespace {
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
 const char* InstructionName(int itemClass) {
     switch (itemClass) {
-    case kWeaponClass: return game::Text(0x007938D0);     // "Instruction Weapon"
-    case kArmorClass: return game::Text(0x007938E4);      // "Instruction Armor"
-    case kQuickItemClass: return game::Text(0x007938F8);  // "Instruction Quick Item"
+    case kWeaponClass: return "Instruction Weapon";
+    case kArmorClass: return "Instruction Armor";
+    case kQuickItemClass: return "Instruction Quick Item";
     default: return nullptr;
     }
 }
-const char* MaterialText() { return game::Text(0x007938C4); }         // "material"
-const char* SpellContainerText() { return game::Text(0x007938A0); }   // "spell container"
+const char* MaterialText() { return "material"; }
+const char* SpellContainerText() { return "spell container"; }
 // The quick item prototypes by name (an STLport map; 00613820 inserts a missing name).
 void* QuickItemsByName() { return reinterpret_cast<void*>(0x007C8744); }
 constexpr int kSpellContainerClass = 0x3008;

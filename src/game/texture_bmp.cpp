@@ -29,8 +29,8 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-const char* CantLoadText() { return game::Text(0x00795BB4); }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
-const char* AlphaNot8BitText() { return game::Text(0x00795B84); }    // "Alpha-file %s must be 8bit gray instead of %d"
+const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture %s.\n"; }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
+const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead of %d"; }
 
 
 // The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message

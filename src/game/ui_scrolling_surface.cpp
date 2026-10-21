@@ -24,8 +24,8 @@ constexpr int kExtraTwipsBelow = 1000;   // formatted below the visible height
 constexpr int kSurfaceFormat = 5;
 constexpr COLORREF kWhite = 0xFFFFFF;
 
-const char* const kRichEditLibrary = game::Text(0x00794C54);   // "Riched20.dll"
-const char* const kRichEditClass = game::Text(0x00794C48);     // "RichEdit20A"
+const char* const kRichEditLibrary = "Riched20.dll";
+const char* const kRichEditClass = "RichEdit20A";
 
 HWND GameWindow() { return *reinterpret_cast<HWND*>(std::uintptr_t(0x0079BC28)); }
 HINSTANCE GameInstance() { return *reinterpret_cast<HINSTANCE*>(std::uintptr_t(0x0079BC24)); }

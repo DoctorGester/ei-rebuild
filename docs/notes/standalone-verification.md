@@ -373,8 +373,10 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
-- SV5d3 (watch): net_pair_quest's Rebirth original parted once in five passes at world update 10040 (a fight in
-  z9q2: an extra block of random draws); the golden is from three agreeing passes.
+- SV5d3 / SV5d5: net_pair_quest parted on both installs, the original and the image alike, at the zone's fights
+  (an extra block of random draws): the music's combat-track draw follows the real-time stream thread
+  (sound.md, "Non-determinism"). The scenario plays without streamed music (`music 0`) since SV5d5. Other
+  scenarios with fights and music keep the exposure (a virtual-time stream thread would remove it).
 - WB12a: the original's runs are not cloaked.
 
 ## 10. Run time (SV10)

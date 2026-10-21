@@ -79,7 +79,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             AddWeaponSprite(this, nullptr, model.data, image.data);
         }
         Texts()->GetItemTexts(weapon, &tip, &description, &line);
-        tip += game::Text(0x00784340);   // "\n"
+        tip += "\n";   // "\n"
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
         float types[7];
@@ -87,27 +87,27 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         const float zero = *reinterpret_cast<const volatile float*>(0x0073B858);
         unsigned type = 0;
         while (type < 7 && !(types[type] < zero) && !(types[type] > zero)) ++type;
-        description = game::Text(0x0078DDEC);   // "Unknown"
+        description = "Unknown";
         if (type < 7) {
-            line.Format(game::Text(0x00792EFC), type);   // "damage_%d"
+            line.Format("damage_%d", type);
             Texts()->GetString(line, &description);
         }
-        line.Format(game::Text(0x007944B0), labels_[0], Truncate(weapon->damage_),   // "%s %d-%d %s\n"
+        line.Format("%s %d-%d %s\n", labels_[0], Truncate(weapon->damage_),   // "%s %d-%d %s\n"
                     Truncate(weapon->damageSpread_ + weapon->damage_), static_cast<const char*>(description));
         tip += line;
         float value = weapon->reach_;
         int category = Get<int>(weapon->GetPrototype(), 0x6C);
-        line.Format(game::Text(0x007944A0), labels_[1], category, labels_[2], Truncate(value));   // "%s %d  %s %d\n"
+        line.Format("%s %d  %s %d\n", labels_[1], category, labels_[2], Truncate(value));   // "%s %d  %s %d\n"
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
         if (void* spell = weapon->spell_) {
-            description = game::Text(0x0078DDEC);   // "Unknown"
+            description = "Unknown";
             int found = TextsOpenSection(Texts(), nullptr,
-                                 mfc::operator+(mfc::CString(game::Text(0x0078DE58)),   // "spell "
+                                 mfc::operator+(mfc::CString("spell "),
                                                 *reinterpret_cast<const mfc::CString*>(SpellPrototype(spell) + 4)));
             if (found) Texts()->ReadLine(&description, 1);
-            line.Format(game::Text(0x00787C18), labels_[3], static_cast<const char*>(description));   // "%s %s\n"
+            line.Format("%s %s\n", labels_[3], static_cast<const char*>(description));   // "%s %s\n"
             tip += line;
         }
         regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
@@ -137,59 +137,59 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
 
     if (item->GetCategory() == 5) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.
-        *text += game::Text(0x00794520);   // " \n"
+        *text += " \n";   // " \n"
         float charges = item->chargeMax_;
         float level = Get<float>(data, 0x40);
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
-        line.Format(game::Text(0x00794510), labels_[0], Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
+        line.Format("%s %d/%d (%d)\n", labels_[0], Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
         *text += line;
         if (SpellPrototype(data)[0x7B] == 0)
-            line.Format(game::Text(0x00794508), labels_[1], labels_[11]);   // "%s %s  "
+            line.Format("%s %s  ", labels_[1], labels_[11]);
         else
-            line.Format(game::Text(0x00794500), labels_[1], Truncate(Get<float>(data, 0x24)));   // "%s %d  "
+            line.Format("%s %d  ", labels_[1], Truncate(Get<float>(data, 0x24)));
         *text += line;
         float duration = Get<float>(data, 0x30);
         if (!(duration >= one))   // TEST AH,1: below 1 or NaN
-            line.Format(game::Text(0x007944F8), labels_[2], labels_[7]);   // "%s %s \n"
+            line.Format("%s %s \n", labels_[2], labels_[7]);   // "%s %s \n"
         else
-            line.Format(game::Text(0x007944F0), labels_[2], Truncate(duration));   // "%s %d \n"
+            line.Format("%s %d \n", labels_[2], Truncate(duration));   // "%s %d \n"
         *text += line;
-        line.Format(game::Text(0x007944E4), labels_[3], Truncate(Get<float>(data, 0x34)), labels_[9]);   // "%s %d%s  "
+        line.Format("%s %d%s  ", labels_[3], Truncate(Get<float>(data, 0x34)), labels_[9]);
         *text += line;
         if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-            line.Format(game::Text(0x007944F8), labels_[4], labels_[8]);
+            line.Format("%s %s \n", labels_[4], labels_[8]);
         } else {
             float radius = Get<float>(data, 0x28);
             double area = static_cast<double>(radius) * radius * pi;
-            line.Format(game::Text(0x007944D8), labels_[4], area, labels_[9]);   // "%s %.1f%s \n"
+            line.Format("%s %.1f%s \n", labels_[4], area, labels_[9]);   // "%s %.1f%s \n"
         }
         *text += line;
         std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
         if (ticks < 2) {
-            line.Format(game::Text(0x00794508), labels_[5], labels_[7]);
+            line.Format("%s %s  ", labels_[5], labels_[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format(game::Text(0x007944CC), labels_[5], seconds, labels_[10]);   // "%s %.1f%s  "
+            line.Format("%s %.1f%s  ", labels_[5], seconds, labels_[10]);
         }
         *text += line;
-        line.Format(game::Text(0x007944F0), labels_[6], Get<int>(data, 0x38));
+        line.Format("%s %d \n", labels_[6], Get<int>(data, 0x38));
         *text += line;
     }
     if (item->GetCategory() == 8) {
         // A scroll: mana and time.
-        *text += game::Text(0x00794520);   // " \n"
+        *text += " \n";   // " \n"
         if (SpellPrototype(data)[0x7B] == 0)
-            line.Format(game::Text(0x00787C18), labels_[1], labels_[11]);   // "%s %s\n"
+            line.Format("%s %s\n", labels_[1], labels_[11]);   // "%s %s\n"
         else
-            line.Format(game::Text(0x00793044), labels_[1], Truncate(Get<float>(data, 0x24)));   // "%s %d\n"
+            line.Format("%s %d\n", labels_[1], Truncate(Get<float>(data, 0x24)));   // "%s %d\n"
         *text += line;
         std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
         if (ticks < 2) {
-            line.Format(game::Text(0x00787C18), labels_[5], labels_[7]);
+            line.Format("%s %s\n", labels_[5], labels_[7]);
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format(game::Text(0x007944C0), labels_[5], seconds, labels_[10]);   // "%s %.1f%s\n"
+            line.Format("%s %.1f%s\n", labels_[5], seconds, labels_[10]);   // "%s %.1f%s\n"
         }
         *text += line;
     }
@@ -206,7 +206,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     if (static_cast<std::uint8_t>(extra) != 0) {
-        AddActionButton(this, nullptr, game::Text(0x0079457C), game::Text(0x00794588), -1);   // "initqi1item", "skill0011"
+        AddActionButton(this, nullptr, "initqi1item", "skill0011", -1);   // "initqi1item", "skill0011"
         regions_.data[count_ - 1]->SetTip(0x290E, 1, 0x1C);
     }
     CUnit* shown = unit_;
@@ -216,13 +216,13 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     mfc::CString title;
     mfc::CString tip;
     mfc::CString hint;
-    AddActionButton(this, nullptr, game::Text(0x0079457C), game::Text(0x00794558), 0);   // "skill0009"
-    title = game::Text(0x00793C60);   // "Science"
-    int found = TextsOpenSection(Texts(), nullptr, mfc::operator+(mfc::CString(game::Text(0x00792FC8)), title));   // "perk "
+    AddActionButton(this, nullptr, "initqi1item", "skill0009", 0);
+    title = "Science";
+    int found = TextsOpenSection(Texts(), nullptr, mfc::operator+(mfc::CString("perk "), title));
     if (found) Texts()->ReadLine(&tip, 1);
-    title.Format(game::Text(0x00793044), labels_[0], Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
-    if (TextsOpenSection(Texts(), nullptr, game::Text(0x0079454C)) != 0) Texts()->ReadToHash(&hint, 1);   // "tip 10511"
-    tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, game::Text(0x00784340)), title), hint);   // "\n"
+    title.Format("%s %d\n", labels_[0], Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
+    if (TextsOpenSection(Texts(), nullptr, "tip 10511") != 0) Texts()->ReadToHash(&hint, 1);
+    tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }
 EI_REPLACE_METHOD(0x0063F800, CHudActionColumn::SetUnit);

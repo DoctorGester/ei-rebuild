@@ -158,7 +158,7 @@ net::PartyMessage* ClientFindPartyAt(net::ClientSession* client) {
 } // namespace
 
 void CExchangeScreen::Create() {
-    LoadTexture(game::Text(0x0079365C), 3, nullptr);   // "campinfo"
+    LoadTexture("campinfo", 3, nullptr);
     CUiRegion* region = AddRegion();
     region->CallSetRect(12, 450, 52, 490);
     region->SetTip(0xA028, 1, 0);
@@ -238,7 +238,7 @@ void CExchangeScreen::Create() {
     moneyField_ = memory ? static_cast<CUiEditField*>(memory)->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
     AsContainer(this)->AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
-    static_cast<CUiEditField*>(moneyField_)->SetText(game::Text(0x0079B298));   // ""
+    static_cast<CUiEditField*>(moneyField_)->SetText("");
 
     AddSurface(NewSurface(interface_, 0x19A, 0x1C2));
     AddSurface(NewSurface(interface_, 0x136, 0x15E));
@@ -289,11 +289,11 @@ BOOL CExchangeScreen::Draw(int pass) {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
-    texts->GetString(game::Text(0x007940C8), &text);   // "xch_current_money"
-    line.Format(game::Text(0x00792F14), static_cast<const char*>(text), LocalParty()->Money());   // "%s %d"
+    texts->GetString("xch_current_money", &text);
+    line.Format("%s %d", static_cast<const char*>(text), LocalParty()->Money());
     RECT rect{0, 0, 200, 0x14};
     SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
-    texts->GetString(game::Text(0x007940BC), &text);   // "xch_accept"
+    texts->GetString("xch_accept", &text);
     rect = RECT{0, 0x14, 200, 0x28};
     SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
@@ -302,7 +302,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface = surfaces_.data[1];
     UiSurfaceGetDC(surface);
     surface->Clear();
-    texts->GetString(game::Text(0x007940AC), &text);   // "xch_money_offer"
+    texts->GetString("xch_money_offer", &text);
     rect = RECT{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
@@ -313,10 +313,10 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface->Clear();
     net::PartyMessage* partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
-        texts->GetString(game::Text(0x00794098), &text);   // "xch_money_remote"
+        texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        line.Format(game::Text(0x0078EEEC), partnerOffer_->Money());   // "%d"
+        line.Format("%d", partnerOffer_->Money());
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
     }
@@ -328,11 +328,11 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface->Clear();
     partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
-        texts->GetString(game::Text(0x00794084), &text);   // "xch_remote_header"
+        texts->GetString("xch_remote_header", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        texts->GetString(ClientFindPartyAt(client)->accepted_ ? game::Text(0x00794074)    // "xch_remote_ok"
-                                                              : game::Text(0x00794060),   // "xch_remote_cancel"
+        texts->GetString(ClientFindPartyAt(client)->accepted_ ? "xch_remote_ok"
+                                                              : "xch_remote_cancel",
                          &text);
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kGrey, 1, 1);

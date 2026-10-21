@@ -16,9 +16,9 @@
 namespace {
 
 // The sound system is handed the game's own string pointers.
-const char* OkSound() { return game::Text(0x00793A88); }       // "buttons\messbox\ok.wav"
-const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
-const char* ExitMovie() { return game::Text(0x0079422C); }     // "Movies\Exit.bik"
+const char* OkSound() { return "buttons\\messbox\\ok.wav"; }
+const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
+const char* ExitMovie() { return "Movies\\Exit.bik"; }
 
 // The result of the exit question: OK plays the exit movie and quits.
 constexpr std::uint32_t kExitResult = 0xFFFF0000;

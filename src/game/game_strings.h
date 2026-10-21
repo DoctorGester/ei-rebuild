@@ -8,8 +8,9 @@
 
 namespace game {
 
-// A string constant of game.exe, passed by its original address (Rebirth may patch the data). In
-// ei_vectors the string is in the stand-in for the game's data (game_data.h), put there by a fixture.
+// A string constant of game.exe, passed by its original address. In ei_vectors the string is in the
+// stand-in for the game's data (game_data.h), put there by a fixture. New code writes the literal instead:
+// vanilla's and Rebirth's exe hold the same data (docs/notes/standalone.md, section 1).
 inline const char* Text(std::uintptr_t address) { return &ei::GameData<const char>(address); }
 
 // 0079B298: the exe's empty string (""). The game's text readers and CString constructors fall back
@@ -106,155 +107,155 @@ inline const char* RotateSoundText() { return reinterpret_cast<const char*>(0x00
 
 // The map files' keywords (map_database.cpp: the words of a map's .ini lines).
 namespace mapwords {
-inline const char* Allod() { return Text(0x00785768); }  // "#allod"
-inline const char* Zone() { return Text(0x00785760); }  // "#zone"
-inline const char* Game() { return Text(0x00785758); }  // "game"
-inline const char* Brief() { return Text(0x00785750); }  // "brief"
-inline const char* Edge() { return Text(0x00785748); }  // "edge"
-inline const char* Res() { return Text(0x00785740); }  // "#res"
-inline const char* Camera() { return Text(0x00785738); }  // "#camera"
-inline const char* Maps() { return Text(0x00785730); }  // "#maps"
-inline const char* Figure() { return Text(0x00785728); }  // "#figure"
-inline const char* Weather() { return Text(0x0078571C); }  // "#weather"
-inline const char* Snow() { return Text(0x00785714); }  // "snow"
-inline const char* Tornado() { return Text(0x0078570C); }  // "tornado"
-inline const char* Cage() { return Text(0x00785704); }  // "#cage"
-inline const char* Restrict() { return Text(0x007856F8); }  // "#restrict"
-inline const char* Sky() { return Text(0x007856F0); }  // "#sky"
-inline const char* Cave() { return Text(0x007856E8); }  // "cave"
-inline const char* Exit() { return Text(0x007856E0); }  // "#exit"
-inline const char* Deploy() { return Text(0x007856D8); }  // "#deploy"
-inline const char* Remove() { return Text(0x007856D0); }  // "#remove"
-inline const char* PassTime() { return Text(0x007856C4); }  // "#passtime"
-inline const char* View() { return Text(0x007856BC); }  // "#view"
-inline const char* Zero() { return Text(0x007856B8); }  // "0"
-inline const char* DeployAngle() { return Text(0x007856A8); }  // "#deployangle"
+inline const char* Allod() { return "#allod"; }
+inline const char* Zone() { return "#zone"; }
+inline const char* Game() { return "game"; }
+inline const char* Brief() { return "brief"; }
+inline const char* Edge() { return "edge"; }
+inline const char* Res() { return "#res"; }
+inline const char* Camera() { return "#camera"; }
+inline const char* Maps() { return "#maps"; }
+inline const char* Figure() { return "#figure"; }
+inline const char* Weather() { return "#weather"; }
+inline const char* Snow() { return "snow"; }
+inline const char* Tornado() { return "tornado"; }
+inline const char* Cage() { return "#cage"; }
+inline const char* Restrict() { return "#restrict"; }
+inline const char* Sky() { return "#sky"; }
+inline const char* Cave() { return "cave"; }
+inline const char* Exit() { return "#exit"; }
+inline const char* Deploy() { return "#deploy"; }
+inline const char* Remove() { return "#remove"; }
+inline const char* PassTime() { return "#passtime"; }
+inline const char* View() { return "#view"; }
+inline const char* Zero() { return "0"; }
+inline const char* DeployAngle() { return "#deployangle"; }
 }  // namespace mapwords
 
 // The quest file's section and key names (quest_database.cpp).
 namespace questwords {
-inline const char* Name() { return Text(0x007967C4); }  // "name"
-inline const char* Quest() { return Text(0x007967BC); }  // "quest"
-inline const char* Exp() { return Text(0x0079275C); }  // "exp"
-inline const char* Money() { return Text(0x00792760); }  // "money"
-inline const char* ZoneIndex() { return Text(0x007967B0); }  // "zone index"
-inline const char* Order() { return Text(0x007967A8); }  // "order"
-inline const char* QuestPlaces() { return Text(0x0079679C); }  // "questplaces"
-inline const char* BriefingReceive() { return Text(0x00796788); }  // "briefing receive"
-inline const char* BriefingReject() { return Text(0x00796720); }  // "briefing reject"
-inline const char* BriefingComplete() { return Text(0x0079670C); }  // "briefing complete"
+inline const char* Name() { return "name"; }
+inline const char* Quest() { return "quest"; }
+inline const char* Exp() { return "exp"; }
+inline const char* Money() { return "money"; }
+inline const char* ZoneIndex() { return "zone index"; }
+inline const char* Order() { return "order"; }
+inline const char* QuestPlaces() { return "questplaces"; }
+inline const char* BriefingReceive() { return "briefing receive"; }
+inline const char* BriefingReject() { return "briefing reject"; }
+inline const char* BriefingComplete() { return "briefing complete"; }
 // The six lists of a briefing, by index: "give items", "remove items", "give quests", "complete quests", "available zones", "complete zones".
 inline const char* ListKey(int index) {
     switch (index) {
-    case 0: return Text(0x0079677C);
-    case 1: return Text(0x0079676C);
-    case 2: return Text(0x00796760);
-    case 3: return Text(0x00796750);
-    case 4: return Text(0x00796740);
-    default: return Text(0x00796730);
+    case 0: return "give items";
+    case 1: return "remove items";
+    case 2: return "give quests";
+    case 3: return "complete quests";
+    case 4: return "available zones";
+    default: return "complete zones";
     }
 }
 }  // namespace questwords
 
 // The save/load screens' file names and texts (ui_saveload.cpp).
 namespace savewords {
-inline const char* SavePattern() { return Text(0x00794A34); }  // "%ssaves\\save*"
-inline const char* InfoFile() { return Text(0x007949B8); }  // "info.sav"
-inline const char* InfoInFolder() { return Text(0x00794A28); }  // "\\info.sav"
-inline const char* ShotFile() { return Text(0x007949AC); }  // "shot.sav"
-inline const char* BrokenTitle() { return Text(0x00794A1C); }  // "Error Save"
-inline const char* NewFolder() { return Text(0x00794A14); }  // "save%d"
-inline const char* GameTime() { return Text(0x00742B88); }  // "gtime"
-inline const char* NotifySaving() { return Text(0x007949C4); }  // "notify_saving"
-inline const char* NoSpace() { return Text(0x007949D4); }  // "no_disc_space"
-inline const char* NoSpaceText() { return Text(0x007949E4); }  // "no_disc_space_msg"
-inline const char* CantLockSurface() { return Text(0x0078E30C); }  // "Can't lock surface.\n"
-inline const char* CantUnlockSurface() { return Text(0x0078E2F4); }  // "Can't unlock surface.\n"
+inline const char* SavePattern() { return "%ssaves\\save*"; }
+inline const char* InfoFile() { return "info.sav"; }
+inline const char* InfoInFolder() { return "\\info.sav"; }
+inline const char* ShotFile() { return "shot.sav"; }
+inline const char* BrokenTitle() { return "Error Save"; }
+inline const char* NewFolder() { return "save%d"; }
+inline const char* GameTime() { return "gtime"; }
+inline const char* NotifySaving() { return "notify_saving"; }
+inline const char* NoSpace() { return "no_disc_space"; }
+inline const char* NoSpaceText() { return "no_disc_space_msg"; }
+inline const char* CantLockSurface() { return "Can't lock surface.\n"; }  // "Can't lock surface.\n"
+inline const char* CantUnlockSurface() { return "Can't unlock surface.\n"; }  // "Can't unlock surface.\n"
 }  // namespace savewords
 
 // The briefing and quest registry texts (world_briefing.cpp).
 namespace briefingwords {
-inline const char* BriefingSection() { return Text(0x007906E4); }  // "briefing "
-inline const char* ShowTag() { return Text(0x007906DC); }  // "#show"
-inline const char* Hero() { return Text(0x0078B0F4); }  // "Hero"
-inline const char* ElderPrefix() { return Text(0x007906F0); }  // "b.elder."
-inline const char* VariablePrefix() { return Text(0x007906FC); }  // "b."
-inline const char* QuestRegistry() { return Text(0x00790784); }  // "\quest.reg"
-inline const char* MapList() { return Text(0x00790778); }  // "\map.txt"
-inline const char* QuestSection() { return Text(0x00790790); }  // "quest "
+inline const char* BriefingSection() { return "briefing "; }
+inline const char* ShowTag() { return "#show"; }
+inline const char* Hero() { return "Hero"; }
+inline const char* ElderPrefix() { return "b.elder."; }
+inline const char* VariablePrefix() { return "b."; }
+inline const char* QuestRegistry() { return "\\quest.reg"; }
+inline const char* MapList() { return "\\map.txt"; }
+inline const char* QuestSection() { return "quest "; }
 }  // namespace briefingwords
 
 // World loading error texts (world_zone.cpp).
 namespace zonetexts {
-inline const char* WrongEntrance() { return Text(0x00790958); }  // "Wrong entrance number in zone exit..."
-inline const char* CantLoadMob() { return Text(0x00790B08); }  // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
-inline const char* CantReadObjects() { return Text(0x00790B3C); }  // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
-inline const char* CantOpenObjects() { return Text(0x00790B74); }  // "CWorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
+inline const char* WrongEntrance() { return "Wrong entrance number in zone exits data"; }  // "Wrong entrance number in zone exit..."
+inline const char* CantLoadMob() { return "CWorldServer::LoadMap.\n Can't load .mob file \"%s\".\n"; }  // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
+inline const char* CantReadObjects() { return "CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n"; }  // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
+inline const char* CantOpenObjects() { return "CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n"; }  // "CWorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
 }  // namespace zonetexts
 
 // Unit equipment error texts (unit_equipment.cpp).
 namespace equipmenttexts {
-inline const char* NoPrototype() { return Text(0x0078F330); }  // Can't find prototype "%s".
-inline const char* NoArmour() { return Text(0x0078F308); }  // Can't create armor "%s" for unit "%s".
-inline const char* NoWeapon() { return Text(0x0078F2DC); }  // Can't create weapon "%s" for unit "%s".
-inline const char* NoSpell() { return Text(0x0078F2B4); }  // Can't create spell "%s" for unit "%s".
+inline const char* NoPrototype() { return "Can't find prototype \"%s\".\n"; }  // Can't find prototype "%s".
+inline const char* NoArmour() { return "Can't create armor \"%s\" for unit \"%s\".\n"; }  // Can't create armor "%s" for unit "%s".
+inline const char* NoWeapon() { return "Can't create weapon \"%s\" for unit \"%s\".\n"; }  // Can't create weapon "%s" for unit "%s".
+inline const char* NoSpell() { return "Can't create spell \"%s\" for unit \"%s\".\n"; }  // Can't create spell "%s" for unit "%s".
 }  // namespace equipmenttexts
 
 // The menu rectangles' resource and its error texts (menu_rects.cpp).
 namespace menutexts {
-inline const char* MenusReg() { return Text(0x00791020); }  // "menus.reg"
-inline const char* CantOpen() { return Text(0x00790FE4); }  // "Can't open file "menus.reg" with the main/esc menu rects\n"
-inline const char* CantParse() { return Text(0x00790FA4); }  // "Can't open "menus.reg" as .reg with ...\n"
+inline const char* MenusReg() { return "menus.reg"; }
+inline const char* CantOpen() { return "Can't open file \"menus.reg\" with the main/esc menu rects\n"; }  // "Can't open file "menus.reg" with the main/esc menu rects\n"
+inline const char* CantParse() { return "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n"; }  // "Can't open "menus.reg" as .reg with ...\n"
 }  // namespace menutexts
 
 // The network log's lines (net_session_tick.cpp, net_connection.cpp).
 namespace nettexts {
-inline const char* ZeroLength() { return Text(0x00784020); }  // "ZERO length packet received from "
-inline const char* Timeout() { return Text(0x00784008); }  // "TIMEOUT client, drop "
-inline const char* UnknownHost() { return Text(0x00783F2C); }  // "ERROR: Update from unknown host"
-inline const char* BadClient() { return Text(0x00783F1C); }  // "ERROR: client "
-inline const char* BadUpdate() { return Text(0x00783F04); }  // " sent incorrect update"
-inline const char* RemoveClient() { return Text(0x00783EE8); }  // "REMOVE client "
-inline const char* AddClient() { return Text(0x00783EF8); }  // "ADD client "
-inline const char* CantHandleGetInfo() { return Text(0x00783F4C); }  // "ERROR: Can't handle get info"
-inline const char* CantHandleLogin() { return Text(0x00783F6C); }  // "ERROR: Can't handle login"
-inline const char* CantHandleInfo() { return Text(0x00783F88); }  // "ERROR: Can't handle info"
-inline const char* CantHandleAccepted() { return Text(0x00783FA4); }  // "ERROR: Can't handle accepted"
-inline const char* CantHandleRejected() { return Text(0x00783FC4); }  // "ERROR: Can't handle rejected"
-inline const char* CantHandleMaster() { return Text(0x00783FE4); }  // "ERROR: Can't handle master packet"
-inline const char* SkipUpdate() { return Text(0x00783EB0); }  // "SKIP update, newer version of object"
-inline const char* SkipRemove() { return Text(0x00783E78); }  // "SKIP remove, newer version of object"
-inline const char* TooOld() { return Text(0x00783E5C); }  // "SKIP too old update, dif "
-inline const char* Duplicate() { return Text(0x00783E3C); }  // "DUPLICATE update received from "
+inline const char* ZeroLength() { return "ZERO length packet received from "; }
+inline const char* Timeout() { return "TIMEOUT client, drop "; }
+inline const char* UnknownHost() { return "ERROR: Update from unknown host"; }
+inline const char* BadClient() { return "ERROR: client "; }
+inline const char* BadUpdate() { return " sent incorrect update"; }
+inline const char* RemoveClient() { return "REMOVE client "; }
+inline const char* AddClient() { return "ADD client "; }
+inline const char* CantHandleGetInfo() { return "ERROR: Can`t handle get info"; }  // "ERROR: Can't handle get info"
+inline const char* CantHandleLogin() { return "ERROR: Can`t handle login"; }  // "ERROR: Can't handle login"
+inline const char* CantHandleInfo() { return "ERROR: Can`t handle info"; }  // "ERROR: Can't handle info"
+inline const char* CantHandleAccepted() { return "ERROR: Can`t handle accepted"; }  // "ERROR: Can't handle accepted"
+inline const char* CantHandleRejected() { return "ERROR: Can`t handle rejected"; }  // "ERROR: Can't handle rejected"
+inline const char* CantHandleMaster() { return "ERROR: Can`t handle master packet"; }  // "ERROR: Can't handle master packet"
+inline const char* SkipUpdate() { return "SKIP update, newer version of object is already here"; }  // "SKIP update, newer version of object"
+inline const char* SkipRemove() { return "SKIP remove, newer version of object is already here"; }  // "SKIP remove, newer version of object"
+inline const char* TooOld() { return "SKIP too old update, dif="; }  // "SKIP too old update, dif "
+inline const char* Duplicate() { return "DUPLICATE update received from "; }
 }  // namespace nettexts
 
 // "\n" (ui_console_window.cpp, ui_text.cpp) and a path suffix (net_server_map.cpp).
-inline const char* NewLineText() { return Text(0x00784340); }
-inline const char* PathSuffixText() { return Text(0x00783D74); }
+inline const char* NewLineText() { return "\n"; }
+inline const char* PathSuffixText() { return ".1"; }
 
 // The save folders and the key-mapping message (ui_menu_keys.cpp).
 namespace menukeytexts {
-inline const char* QuickSave() { return Text(0x007933AC); }  // "saveq"
-inline const char* AutoSaveA() { return Text(0x007942E8); }  // "savea"
-inline const char* AutoSaveB() { return Text(0x007940F0); }  // "saveb"
-inline const char* KeyMapped() { return Text(0x00794874); }  // "key_already_mapped"
-inline const char* KeyMappedText() { return Text(0x00794888); }  // "key_already_mapped_msg"
+inline const char* QuickSave() { return "saveq"; }
+inline const char* AutoSaveA() { return "savea"; }
+inline const char* AutoSaveB() { return "saveb"; }
+inline const char* KeyMapped() { return "key_already_mapped"; }
+inline const char* KeyMappedText() { return "key_already_mapped_msg"; }
 }  // namespace menukeytexts
 
 // The console window's prompt and "more" mark (ui_console_window.cpp).
 namespace consoletexts {
-inline const char* Prompt() { return Text(0x00792DE0); }
-inline const char* More() { return Text(0x00787BD8); }
+inline const char* Prompt() { return "> "; }
+inline const char* More() { return "+"; }
 // The cheat word, each character XOR 0x66 (console.cpp).
-inline const char* CheatWord() { return Text(0x00740028); }
+inline const char* CheatWord() { return "\022\016\017\010\001\007\013\007\004\t\004"; }
 }  // namespace consoletexts
 
 // The thunderstorm's script lines (world_weather.cpp).
 namespace weathertexts {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
-inline const char* ThunderScript() { return Text(0x007904A8); }
+inline const char* ThunderScript() { return "WorldScript(CreateFX( %f,%f,%f,60,150,\"nature\\thunder\\%i.wav\" ) )"; }
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( ... "nature\lightning\%i.wav" ) CreateLightning(1, ...) ... )"
-inline const char* LightningScript() { return Text(0x00790394); }
+inline const char* LightningScript() { return "WorldScript(CreatePointLight(1,%f,%f,%f,80,255,255,255 ) CreateFX( %f,%f,%f,60,150,\"nature\\lightning\\%i.wav\" ) CreateLightning(1,%f,%f,%f,%f,%f,%f,-7)Sleep(1) DeleteLightning(1) Sleep(1)CreateLightning(2,%f,%f,%f,%f,%f,%f,-7)Sleep(1) DeleteLightning(2) DeletePointLight(1) )"; }
 }  // namespace weathertexts
 
 } // namespace game

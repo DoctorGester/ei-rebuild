@@ -257,23 +257,23 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
     }
     if (SameName(allod, "gipat")) {
-        LoadingMovie() = game::Text(0x00790A9C);   // progres2.bik
+        LoadingMovie() = "progres2.bik";   // progres2.bik
     } else if (SameName(allod, "ingos")) {
-        LoadingMovie() = game::Text(0x00790A8C);   // progres3.bik
+        LoadingMovie() = "progres3.bik";   // progres3.bik
     } else {
         bool suslanger = SameName(allod, "suslanger");
-        LoadingMovie() = game::Text(0x00790A7C);   // progres4.bik
+        LoadingMovie() = "progres4.bik";   // progres4.bik
         if (!suslanger) {
-            LoadingMovie() = game::Text(0x00790A70);   // progres.bik
+            LoadingMovie() = "progres.bik";   // progres.bik
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod, "gipat2")) LoadingMovie() = game::Text(0x00790A9C);
+                if (SameName(allod, "gipat2")) LoadingMovie() = "progres2.bik";
                 else if (SameName(allod, "jigran")) LoadingMovie() = kProgres5;
             }
         }
     }
     if (zone) {
-        if (libcrt::Stricmp(zone, "gz1g") == 0) LoadingMovie() = game::Text(0x00790A60);   // progres1.bik
-        if (libcrt::Stricmp(zone, "bz7g") == 0) LoadingMovie() = game::Text(0x00790A60);
+        if (libcrt::Stricmp(zone, "gz1g") == 0) LoadingMovie() = "progres1.bik";   // progres1.bik
+        if (libcrt::Stricmp(zone, "bz7g") == 0) LoadingMovie() = "progres1.bik";
     }
 }
 

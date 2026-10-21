@@ -62,13 +62,13 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         reinterpret_cast<CItemScreen*>(grid->owner_)->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
-            text.Format(game::Text(0x0078EEEC), pieces);
+            text.Format("%d", pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
             int price = static_cast<CCampPages*>(grid->owner_)->VirtualPrice(cell.item, kind);   // the camp
-            text.Format(game::Text(0x0078EEEC), price);
+            text.Format("%d", price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 1, 1);
         }

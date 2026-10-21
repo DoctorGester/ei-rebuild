@@ -51,11 +51,11 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // The notification made before a new effect: (kind, family) strings by value, the second made
 // first.
-void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
+void Notify(void* self, const char* kind, const char* family) {
     alignas(mfc::CString) unsigned char second[sizeof(mfc::CString)];
     alignas(mfc::CString) unsigned char first[sizeof(mfc::CString)];
-    new (second) mfc::CString(game::Text(family));
-    new (first) mfc::CString(game::Text(kind));
+    new (second) mfc::CString(family);
+    new (first) mfc::CString(kind);
     std::uintptr_t a, b;
     std::memcpy(&a, first, 4);
     std::memcpy(&b, second, 4);
@@ -153,7 +153,7 @@ EI_REPLACE_METHOD(0x0046D520, ParticleSpec::ParticleSpecConstruct);
 
 // 0046D550 (slot 4): "Particle source".
 mfc::CString* ParticleSpec::ParticleSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(game::Text(0x00787DF0));
+    new (out) mfc::CString("Particle source");
     return out;
 }
 EI_REPLACE_METHOD(0x0046D550, ParticleSpec::ParticleSpecTypeName);
@@ -191,7 +191,7 @@ EI_REPLACE_METHOD(0x0046D730, ParticleSpec::ParticleSpecOnChunk);
 void ParticleSpec::ParticleSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, 0x00787E00, 0x00787E08);   // "efcu3", "particles"
+        Notify(this, "efcu3", "particles");
         if (type) MakeEffect(&effect);
         return;
     }
@@ -225,7 +225,7 @@ EI_REPLACE_METHOD(0x0046D960, LightSpec::LightSpecConstruct);
 
 // 0046D9D0 (slot 4): "Light".
 mfc::CString* LightSpec::LightSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(game::Text(0x00787E14));
+    new (out) mfc::CString("Light");
     return out;
 }
 EI_REPLACE_METHOD(0x0046D9D0, LightSpec::LightSpecTypeName);
@@ -265,7 +265,7 @@ EI_REPLACE_METHOD(0x0046DBF0, LightSpec::LightSpecOnChunk);
 void LightSpec::LightSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, 0x00787E1C, 0x00787E24);   // "efcu0", "light"
+        Notify(this, "efcu0", "light");
         MakeEffect(&effect);
         return;
     }
@@ -321,7 +321,7 @@ EI_REPLACE_METHOD(0x0046DF50, SoundSpec::SoundSpecDelete);
 
 // 0046DF20 (slot 4): "Sound".
 mfc::CString* SoundSpec::SoundSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(game::Text(0x00787E2C));
+    new (out) mfc::CString("Sound");
     return out;
 }
 EI_REPLACE_METHOD(0x0046DF20, SoundSpec::SoundSpecTypeName);
@@ -373,7 +373,7 @@ EI_REPLACE_METHOD(0x0046E190, SoundSpec::SoundSpecOnChunk);
 void SoundSpec::SoundSpecApply() {
     Spec& b = effect.base;
     if (!b.object) {
-        Notify(this, 0x00787E34, 0x00787E3C);   // "efcu2", "sound"
+        Notify(this, "efcu2", "sound");
         if (sounds.size > 0) MakeEffect(&effect);
         return;
     }

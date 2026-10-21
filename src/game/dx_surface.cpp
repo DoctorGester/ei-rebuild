@@ -78,7 +78,7 @@ constexpr long kSurfaceRefused = static_cast<long>(0x80004001);
 
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
     void* object = gamecrt::operator_new(0xC);
-    if (object) object = GameErrorConstruct(static_cast<GameError*>(object), game::Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
+    if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't create DDSurface %d:%d with default BPP.\n", width, height);   // "Can't create DDSurface %d %d ..."
     libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     for (;;) {
     }
@@ -101,7 +101,7 @@ bool ReadDisplayModeFormat(CTextureDevice* device, PixelFormat* format) {
 // one). Otherwise the original's report (`format` stays as it was).
 void ReadScreenFormat(CTextureDevice* device, PixelFormat* format) {
     if (ReadDisplayModeFormat(device, format)) return;
-    app::FatalErrorCode(kSurfaceRefused, game::Text(0x0078E714));   // "Can't get pixel format from surface"
+    app::FatalErrorCode(kSurfaceRefused, "Can't get pixel format from surface.\n");   // "Can't get pixel format from surface"
 }
 
 } // namespace
@@ -220,7 +220,7 @@ CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int hei
     if (!this->device) {
         // "... Can't create DDSurface - no DXDD." (a report that says go on: the original reads the
         // missing surface's description and fails there; every caller passes the device object)
-        game::FatalError(game::Text(0x0078E8CC));
+        game::FatalError("CDXDirectDrawSurface::CreateDDSurface.\n Can't create DDSurface - no DXDD.\n");
         ThrowCreateFailed(widthIn, heightIn);
     }
     if (!AttachClientMemory(this, widthIn, heightIn, format)) ThrowSurfaceNotMade(this->device, widthIn, heightIn);
@@ -281,7 +281,7 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
             source += picture->width * 4;
         }
     } else if (bits == 24) {
-        game::FatalError(game::Text(0x0078EA10));   // "Can't load picture to 24bit surface! ..."
+        game::FatalError("Can't load picture to 24bit surface! Only 32bit and 16bit supported\n");   // "Can't load picture to 24bit surface! ..."
         // (The surface cleared as if it had no row padding, as the original.)
         std::memset(out, 0, (bits >> 3) * static_cast<std::uint32_t>(pixels.height * pixels.width));
     }
@@ -304,8 +304,8 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixe
 // reported, then cleared.
 int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
     const auto* picture = static_cast<const MmpHeader*>(data);
-    if (!picture) return game::FatalError(game::Text(0x0078EB10));                  // "Can't load picture from NULL pointer."
-    if (picture->format != kFormat8888) return game::FatalError(game::Text(0x0078EAE4));   // "... from non-8888 format."
+    if (!picture) return game::FatalError("Can't load picture from NULL pointer.\n");                  // "Can't load picture from NULL pointer."
+    if (picture->format != kFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");   // "... from non-8888 format."
     if (!render::SurfaceMemoryOf(this)) {
         // The screen's pixel format. Without a owner the original reads through a null pointer
         // here; 004EFC60 always passes one. (The low byte of the flag asked for video memory.)
@@ -319,7 +319,7 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
         if (!AttachClientMemory(this, pictureWidth, pictureHeight, format)) {
             this->device->lastLoadResult_ = kSurfaceRefused;
             // "Can't create newSurface to load picture %d:%d:%d."
-            return game::FatalError(game::Text(0x0078EAB4), picture->width, picture->height, picture->bitsPerPixel);
+            return game::FatalError("Can't create surface to load picture %d:%d:%d.\n", picture->width, picture->height, picture->bitsPerPixel);
         }
         this->device->lastLoadResult_ = 0;    // the memory is the surface
         width = pictureWidth;
@@ -327,12 +327,12 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
         bitsPerPixel = static_cast<int>(format.words[kBits]);
     } else if (picture->width != static_cast<std::uint32_t>(width) ||
                picture->width != static_cast<std::uint32_t>(height)) {
-        return game::FatalError(game::Text(0x0078E99C));   // "Dimentions of the DD newSurface are differ from ..."
+        return game::FatalError("Dimentions of the DD surface are differ from dimentions of the MMP file");   // "Dimentions of the DD newSurface are differ from ..."
     }
 
     SurfacePixels pixels;
     // (Always memory here: made above, or the dead loaders' holder.)
-    if (!DirectPixels(this, &pixels)) return game::FatalError(game::Text(0x0078EA80));   // "Can't get newSurface pixel format to load picture."
+    if (!DirectPixels(this, &pixels)) return game::FatalError("Can't get surface pixel format to load picture.\n");   // "Can't get newSurface pixel format to load picture."
     gameapi::EnterCriticalSection(DeviceLock());
     FillPicture(this, picture, pixels);
     gameapi::LeaveCriticalSection(DeviceLock());
@@ -357,7 +357,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     SetHolderVtable(this);
     if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
-        if (object) object = GameErrorConstruct(static_cast<GameError*>(object), game::Text(0x0078E918));   // "Can't load picture to surface"
+        if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't load picture to surface.\n");   // "Can't load picture to surface"
         libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     }
     render::PictureFromMmp(this, picture);

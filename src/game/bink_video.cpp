@@ -181,7 +181,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
-        game::DebugLog(game::Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
+        game::DebugLog("Can't open (or bad format) video file %s.\n", file);   // "Can't open (or bad format) video file %s."
         return 1;
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
@@ -275,7 +275,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     if (!movie.holder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = GameFolder();
-        path += game::Text(0x00784A4C);    // "Movies\"
+        path += "Movies\\";
         path += LoadingMovieName();  // progres.bik, or the zone's
         if (movie.bink) {
             BinkClose()(movie.bink);
@@ -283,7 +283,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         }
         movie.bink = OpenBink(path.c_str(), 0);
         if (!movie.bink) {
-            game::DebugLog(game::Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
+            game::DebugLog("Can't open video file \"%s\"\n", path.c_str());   // "Can't open video file \"%s\""
             return;
         }
         RECT screen;
@@ -348,7 +348,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {
-        game::DebugLog(game::Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
+        game::DebugLog("Can't open (or bad format) video file %s.\n", name);   // "Can't open (or bad format) video file %s."
         return 0;
     }
     CursorShowOriginal(Cursor(), nullptr, 0);

@@ -566,27 +566,27 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         const char* key;
         if (EqualOrNaN(value, complete)) {
             if (questSound_ <= 3) questSound_ = 3;
-            key = game::Text(0x007943A0);   // "combat_complete_quest"
+            key = "combat_complete_quest";
         } else if (EqualOrNaN(value, failed)) {
             value = 1.0f;
-            key = game::Text(0x0079438C);   // "combat_failed_quest"
+            key = "combat_failed_quest";
         } else {
-            key = game::Text(0x00794378);   // "combat_get_quest"
+            key = "combat_get_quest";
         }
         TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         BOOL found;
         {
-            mfc::CString quest(game::Text(0x00790790));   // "quest "
+            mfc::CString quest("quest ");
             mfc::CString textKey = quest + parts[2];
             found = texts->Open(textKey);
         }
         if (found) texts->ReadLine(&text, 1);
-        mfc::CString colour(game::Text(0x00794370));   // colour code 0x31E3EE43 and a space
-        text = colour + title + game::Text(0x0078DA40) + text;
+        mfc::CString colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
+        text = colour + title + " " + text;
     } else if (parts.size == 4) {
         if (!IsMultiplayerClient()) {
-            const char* dot = game::Text(0x00783D78);
+            const char* dot = ".";
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable);
             // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
@@ -594,21 +594,21 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         }
         const char* key;
         if (EqualOrNaN(value, complete)) {
-            key = game::Text(0x00794358);   // "combat_complete_subobj"
+            key = "combat_complete_subobj";
         } else if (EqualOrNaN(value, failed)) {
             value = 1.0f;
-            key = game::Text(0x00794340);   // "combat_failed_subobj"
+            key = "combat_failed_subobj";
         } else {
-            key = game::Text(0x0079432C);   // "combat_get_subobj"
+            key = "combat_get_subobj";
         }
         TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         bool found = false;
         {
-            mfc::CString quest(game::Text(0x00790790));   // "quest "
+            mfc::CString quest("quest ");
             mfc::CString textKey = quest + parts[2];
             if (texts->Open(textKey)) {
-                mfc::CString sub(game::Text(0x00794320));   // "#subobj "
+                mfc::CString sub("#subobj ");
                 mfc::CString lineKey = sub + parts[3];
                 found = texts->FindLine(lineKey) != 0;
             }
@@ -617,10 +617,10 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             TextNextLine(texts);
             texts->ReadLine(&text, 1);
         }
-        mfc::CString colour(game::Text(0x0079349C));   // colour code 0x31B3FF43 and a space
-        text = colour + title + game::Text(0x0078DA40) + text;
+        mfc::CString colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
+        text = colour + title + " " + text;
     }
-    text = text + game::Text(0x00794318);   // colour code and a line end
+    text = text + "\007C\344\327\247\n";   // colour code and a line end
 
     CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
     const char* line = text;

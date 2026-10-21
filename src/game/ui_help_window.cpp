@@ -20,13 +20,13 @@
 
 namespace {
 
-const char* SaveLoadTexture() { return game::Text(0x00793380); }   // "saveload"
-const char* TutorialSection() { return game::Text(0x00794A78); }   // "tutorial "
-const char* ScreenLine() { return game::Text(0x00794A70); }        // "#screen"
-const char* TutorSection() { return game::Text(0x00794A68); }      // "tutor "
-const char* LineEnds() { return game::Text(0x0078DD00); }          // "\r\n"
-const char* NextSound() { return game::Text(0x00794A84); }         // "buttons\tutorial\next.wav"
-const char* OkSound() { return game::Text(0x0079477C); }           // "buttons\tutorial\ok.wav"
+const char* SaveLoadTexture() { return "saveload"; }
+const char* TutorialSection() { return "tutorial "; }
+const char* ScreenLine() { return "#screen"; }
+const char* TutorSection() { return "tutor "; }
+const char* LineEnds() { return "\r\n"; }          // "\r\n"
+const char* NextSound() { return "buttons\\tutorial\\next.wav"; }
+const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
 
 constexpr char kHelpAction = ';';   // the help key's action (KeyActions)
 
