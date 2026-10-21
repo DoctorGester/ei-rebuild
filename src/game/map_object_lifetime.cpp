@@ -123,11 +123,20 @@ void DestroyArray(AnimationSteps& array, std::uintptr_t vtable) {
 
 CObject3D* CObject3D::Construct() {
     SetVtable(this, CEngineObject::kVtableAddress);
+    SetVtable(this, CTransformObject::kVtableAddress);
+    ::new (&name) mfc::CString;
+    SetUpObject3D();
+    SetVtable(this, CObject3D::kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
+
+CObject3D::CObject3D() { SetUpObject3D(); }
+
+void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
     SetIdentity(&orientation);
     SetIdentity(&worldOrientation);
-    SetVtable(this, CTransformObject::kVtableAddress);
-    ::new (&name) mfc::CString;
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
     SetVtable(&effectSources, kPartListVtable);
     effectSources.count = 0;
@@ -146,7 +155,6 @@ CObject3D* CObject3D::Construct() {
     partBoxGrowBy = 0;
     partBoxCapacity = 0;
     partBoxCount = 0;
-    SetVtable(this, CObject3D::kVtableAddress);
     attached = nullptr;
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
@@ -156,12 +164,21 @@ CObject3D* CObject3D::Construct() {
     // irreflexive: S17a). It starts at zero here, and in the original through a harness patch
     // (harness_leftovers.cpp).
     std::memset(&viewPosition, 0, sizeof(viewPosition));
-    return this;
 }
-EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 
 void CObject3D::DestructBody() {
     SetVtable(this, CObject3D::kVtableAddress);
+    TearDownObject3D();
+    name.~CString();
+    SetVtable(this, CTransformObject::kVtableAddress);
+    static_cast<CEngineObject*>(this)->DestructBase();
+}
+EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
+
+// The name is destroyed after the body, then CEngineObject's part.
+CObject3D::~CObject3D() { TearDownObject3D(); }
+
+void CObject3D::TearDownObject3D() {
     Destroy3D();
     partBoxArrayVtable = ei::GamePointer<void>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
@@ -180,22 +197,27 @@ void CObject3D::DestructBody() {
     effectSources.head = nullptr;
     mfc::PlexFreeDataChain(blocks);
     effectSources.blocks = nullptr;
-    name.~CString();
-    SetVtable(this, CTransformObject::kVtableAddress);
-    static_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
 
 // --- CMapObject -------------------------------------------------------------------------------
 
 CMapObject* CMapObject::Construct() {
     CObject3D::Construct();   // 00515BD0
+    ::new (&name2) mfc::CString;
+    SetUpMapObject();
+    SetVtable(this, CMapObject::kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
+
+CMapObject::CMapObject() { SetUpMapObject(); }
+
+void CMapObject::SetUpMapObject() {
     effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
     effects = nullptr;
     effectGrowBy = 0;
     effectCapacity = 0;
     effectCount = 0;
-    ::new (&name2) mfc::CString;
     // The network records (DeltaField, 0xA0 each) and their two memory streams.
     DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
@@ -217,18 +239,31 @@ CMapObject* CMapObject::Construct() {
     stream->Reset();
     SetVtable(stream, CMemoryStream::kQueueVtableAddress);
     records->Reset();
-    SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
     PackedVitals()->Reset();
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);
-    return this;
 }
-EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
 
 void CMapObject::DestructBody() {
     SetVtable(this, CMapObject::kVtableAddress);
+    TearDownMapObject();
+    name2.~CString();
+    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
+    if (effects) gamecrt::operator_delete(effects);
+    CObject3D::DestructBody();   // 00515D70
+}
+
+// The second name is destroyed after the body (before the effects in the original), then the 3D
+// object.
+CMapObject::~CMapObject() {
+    TearDownMapObject();
+    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
+    if (effects) gamecrt::operator_delete(effects);
+}
+
+void CMapObject::TearDownMapObject() {
     DeltaState* records = NetState();
     DestroyStream(&records->header_[1]);
     DestroyStream(&records->header_[0]);
@@ -238,10 +273,6 @@ void CMapObject::DestructBody() {
         for (int i = 0; i < count; ++i) (data + i)->Destruct();
         gamecrt::operator_delete(records->fields_);
     }
-    name2.~CString();
-    effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
-    if (effects) gamecrt::operator_delete(effects);
-    CObject3D::DestructBody();   // 00515D70
 }
 EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
