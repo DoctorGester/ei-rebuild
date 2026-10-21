@@ -31,6 +31,7 @@ Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
     z = z_;
     return this;
 }
+EI_REWRITTEN(0x00471A90, Vector3::ConstructScene);
 
 // 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
 // specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
@@ -38,14 +39,17 @@ Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
 void CMaterial::SetDiffuse(const Vector3* value) {
     std::memcpy(&colors.diffuse, value, sizeof(Vector3));
 }
+EI_REWRITTEN(0x00471AB0, CMaterial::SetDiffuse);
 
 void CMaterial::SetAmbient(const Vector3* value) {
     std::memcpy(&colors.ambient, value, sizeof(Vector3));
 }
+EI_REWRITTEN(0x00471AD0, CMaterial::SetAmbient);
 
 void CMaterial::SetSpecular(const Vector3* value) {
     std::memcpy(&colors.specular, value, sizeof(Vector3));
 }
+EI_REWRITTEN(0x00471AF0, CMaterial::SetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 
@@ -54,6 +58,7 @@ void CMaterial::SetSpecular(const Vector3* value) {
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
     manager->quietStart = 0;
 }
+EI_REWRITTEN(0x004981A0, ParticleManagerClearQuietStart);
 
 // ---- Script commands' accessors -------------------------------------------------------------------
 
@@ -61,10 +66,12 @@ void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
 void CEngineObject::SetFlagBits(std::uint32_t bits) {
     flags_ |= bits;
 }
+EI_REWRITTEN(0x004B9F50, CEngineObject::SetFlagBits);
 
 void CEngineObject::ClearFlagBits(std::uint32_t bits) {
     flags_ &= ~bits;
 }
+EI_REWRITTEN(0x004B9F60, CEngineObject::ClearFlagBits);
 
 // 004B9F90 (RET 4): the map object's position.
 void CMapObject::SetScriptPosition(const Vector3* point) {
@@ -77,3 +84,4 @@ CItem* CUnit::CarriedItem(int index) const {
 }
 EI_REPLACE_METHOD(0x004BA080, CUnit::CarriedItem);
 
+EI_REWRITTEN(0x004BAA20, ObjectListIterator::First);

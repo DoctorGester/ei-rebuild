@@ -206,6 +206,7 @@ int CTextureDevice::DrawIndexed(int primitive, int fvf, void* vertices, int vert
     Draw(this, args, indexCount / 3);
     return 1;
 }
+EI_REWRITTEN(0x004EB550, CTextureDevice::DrawIndexed);
 
 // 004EB370. Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
@@ -225,3 +226,4 @@ int CTextureDevice::DrawTwoTextures(CDXSurface* first, CDXSurface* second, int p
     Draw(this, args, triangles);
     return 1;
 }
+EI_REWRITTEN(0x004EB370, CTextureDevice::DrawTwoTextures);

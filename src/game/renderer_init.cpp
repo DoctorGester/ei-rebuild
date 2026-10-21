@@ -301,6 +301,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
 }
 EI_REPLACE_METHOD(0x00500B70, CSceneRenderer::CreateRendererImpl);
 
+EI_REWRITTEN(0x005019D0, CTransformPipeline::Top);
 void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     CTransformPipeline* pipeline = pipeline_;
     MatrixStack* stacks = pipeline->stacks_;

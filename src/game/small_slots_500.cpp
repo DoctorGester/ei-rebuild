@@ -49,3 +49,4 @@ void Vector3::Assign(const Vector3* other) {
     y = other->y;
     z = other->z;
 }
+EI_REWRITTEN(0x00503F20, Vector3::Assign);

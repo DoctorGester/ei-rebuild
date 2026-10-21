@@ -25,6 +25,7 @@ CTransformObject* CTransformObject::ConstructBase() {
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
+EI_REWRITTEN(0x00453400, CTransformObject::ConstructBase);
 
 CTransformObject* CTransformObject::CopyTransformImpl(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));
@@ -129,14 +130,17 @@ void CCamera::SetTurnRate(float rate) {
     EI_NAN_AUDIT(turnRate_, rate);
     if (std::fabs(turnRate_) < std::fabs(rate)) std::memcpy(&turnRate_, &turnTarget_, sizeof(float));
 }
+EI_REWRITTEN(0x0040F360, CCamera::SetTurnRate);
 
 void CCamera::SetTiltRate(float rate) {
     std::memcpy(&tiltTarget_, &rate, sizeof(float));
     EI_NAN_AUDIT(tiltRate_, rate);
     if (std::fabs(tiltRate_) < std::fabs(rate)) std::memcpy(&tiltRate_, &tiltTarget_, sizeof(float));
 }
+EI_REWRITTEN(0x0040F3C0, CCamera::SetTiltRate);
 
 void CCamera::SetZoomTarget(std::uint32_t value) { zoomTarget_ = value; }
+EI_REWRITTEN(0x0040F420, CCamera::SetZoomTarget);
 
 void CCamera::SetTarget(const CEngineObject* target) {
     if (!target) {
@@ -145,6 +149,7 @@ void CCamera::SetTarget(const CEngineObject* target) {
     }
     SetTargetId(target->id_);
 }
+EI_REWRITTEN(0x0040D3B0, CCamera::SetTarget);
 
 void CCamera::SetTargetId(int id) {
     targetId_ = id;
@@ -153,3 +158,4 @@ void CCamera::SetTargetId(int id) {
         std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
+EI_REWRITTEN(0x0040D420, CCamera::SetTargetId);

@@ -88,6 +88,7 @@ ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
     id = other->id;
     return this;
 }
+EI_REWRITTEN(0x004CB2D0, ScriptDecl::ScriptDeclAssign);
 
 // The FX source element (0x34 bytes): the first two words, the name assigned, the rest copied as words.
 ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other) {
@@ -169,6 +170,7 @@ SSCCmd* ScriptCommands::CopyAt(SSCCmd* out, int index) const {
     CopyConstructCmd(out, &data[index]);
     return out;
 }
+EI_REWRITTEN(0x004CE750, ScriptCommands::CopyAt);
 
 // The nested call's command is deep-copied into a new one; when operator new fails, the copy's
 // command is null.
@@ -185,6 +187,7 @@ ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
     out->cmd = cmd;
     return out;
 }
+EI_REWRITTEN(0x004CCAA0, ScriptSubCalls::CopyAt);
 
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned from a GetAt copy.
@@ -227,6 +230,7 @@ template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRe
     CopyConstructStrings(&names, &other->names);
     return this;
 }
+EI_REWRITTEN(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct);
 
 // Group values: each group sized to the GetAt copy's and its members copied in place; the copy's
 // destructor inlined (vtable 0073D11C, each reference destroyed, the array freed).
@@ -254,6 +258,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
     CopyConstructStrings(&names, &other->names);
     return this;
 }
+EI_REWRITTEN(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 
 // ScriptVars' copy constructor: names through 004CBA00, string values through 004C2510 / GetAt,
 // objects through the reference helpers, groups assigned (004C1290) from GetAt copies.
@@ -302,6 +307,7 @@ ScriptVars* ScriptVars::ScriptVarsConstruct() {
     InitArray(&groupNames, scriptvtable::kStrings);
     return this;
 }
+EI_REWRITTEN(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 
 // Float values: the values through their SetSize (004C2880) and the FPU, then the names as
 // ScriptNamesCopyConstruct builds them (inlined in the original).
@@ -311,6 +317,7 @@ template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(co
     names.CopyConstruct(&other->names);
     return this;
 }
+EI_REWRITTEN(0x004CBB80, ScriptNamedValues<float>::CopyConstruct);
 
 // String values: values and names each through 004C2510 and GetAt copies.
 template <> ScriptNamedValues<mfc::CString>* ScriptNamedValues<mfc::CString>::CopyConstruct(const ScriptNamedValues<mfc::CString>* other) {
@@ -318,6 +325,7 @@ template <> ScriptNamedValues<mfc::CString>* ScriptNamedValues<mfc::CString>::Co
     CopyConstructStrings(&names, &other->names);
     return this;
 }
+EI_REWRITTEN(0x004CBCA0, ScriptNamedValues<mfc::CString>::CopyConstruct);
 
 // ScriptDefinition::operator=: the pairs read straight from the source (no GetAt), the variables as
 // ScriptVars::operator= (inlined in the original).

@@ -83,6 +83,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     }
     return renderer->DrawSprites(0, &Points(), &Sprites());
 }
+EI_REWRITTEN(0x004E1EB0, CVisibilityFog::Draw);
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------
 
@@ -127,3 +128,4 @@ void CRainSnow::PrepareBuffers() {
     indices.SetSize(kDropVertices, -1);
     for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
+EI_REWRITTEN(0x004E3C20, CRainSnow::PrepareBuffers);

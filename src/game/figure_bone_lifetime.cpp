@@ -50,6 +50,7 @@ FigureBone* FigureBone::Construct() {
     CreateBone();
     return this;
 }
+EI_REWRITTEN(0x0050AF40, FigureBone::Construct);
 
 int FigureBone::CreateBone() {
     // The original assigns "none" (007846F0) to all three names, not an empty string.
@@ -100,6 +101,7 @@ void FigureBone::DestructBody() {
     name.~CString();
     DestructBase();
 }
+EI_REWRITTEN(0x0050B1D0, FigureBone::DestructBody);
 
 FigureBone* FigureBone::DeleteBone(unsigned flags) {
     DestructBody();
@@ -108,3 +110,4 @@ FigureBone* FigureBone::DeleteBone(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0050B1B0, FigureBone::DeleteBone);
 
+EI_REWRITTEN(0x0050DD40, lib::AlignedArray<Matrix4>::SetSizeDiscardStep);

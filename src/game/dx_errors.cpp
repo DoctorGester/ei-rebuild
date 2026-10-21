@@ -184,6 +184,7 @@ const char* __fastcall DirectXErrorText(long result) {
                                               [](const ErrorText& e, std::uint32_t k) { return e.result < k; });
     return found != std::end(kErrorTexts) && found->result == key ? found->text : kUnrecognized;
 }
+EI_REWRITTEN(0x00480B80, DirectXErrorText);
 
 // ---- The thrown error object (00480250-004815D0) ---------------------------------------------------
 
@@ -226,6 +227,7 @@ GameError* __cdecl GameErrorConstruct(GameError* error, const char* format, ...)
     va_end(args);
     return error;
 }
+EI_REWRITTEN(0x00480250, GameErrorConstruct);
 
 GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args) {
     error->message = nullptr;
@@ -269,6 +271,7 @@ void __fastcall GameErrorDestruct(GameError* error) {
     error->vtable = ErrorBaseVtable();
     if (error->message) gamecrt::operator_delete(error->message);
 }
+EI_REWRITTEN(0x004815D0, GameErrorDestruct);
 
 GameError* GameError::DeleteScalar(int flags) {
     GameErrorDestruct(this);

@@ -71,6 +71,8 @@ T* FreeIfAsked(T* self, unsigned flags) {
 // 005EACF0 / 00602BA0: an input side's (the battle camera's 00740208, the inert extra side
 // 00741154): the base input vtable back.
 void __fastcall InputSideDestroy(UiInputSide* side) { side->vtable_ = InputSideBaseVtable(); }
+EI_REWRITTEN(0x005EACF0, InputSideDestroy);
+EI_REWRITTEN(0x00602BA0, InputSideDestroy);
 
 // 005EA850 (RET 4): the base input side's own deleting destructor (slot 0 of 007401D0): its
 // vtable stored, freed with bit 0 of `flags`; returns the side.
@@ -126,6 +128,7 @@ void CMessageBox::DestroyBody() {
     DestroyContainer();
 }
 EI_REWRITTEN(0x0061E3E0, CMessageBox::DestroyBody);
+EI_REWRITTEN(0x00633750, CMessageBox::DestroyBody);
 
 void CMasterRequestBox::DestroyBody() {
     net::MasterLinkDestruct(&link_);   // 00440D40
@@ -249,6 +252,20 @@ void CSaveLoadWindow::DestroyBody() {
 }
 EI_REWRITTEN(0x006070C0, CSaveLoadWindow::DestroyBody);
 
+EI_REWRITTEN(0x005F5F50, CUiContainer::DestroyContainer);
+EI_REWRITTEN(0x005F5F80, CUiContainer::DestroyContainer);
+EI_REWRITTEN(0x00603CF0, CUiContainer::DestroyContainer);
+EI_REWRITTEN(0x005EE040, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x005EE410, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E280, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E300, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E330, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E5D0, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E670, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x0060E6A0, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x006157F0, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x00635DA0, CUiWindow::DestroyBase);
+EI_REWRITTEN(0x00635DD0, CUiWindow::DestroyBase);
 // --- Deleting destructors (slot 0) --------------------------------------------------------------
 
 // 005FE910 (the plain window, 00740F60) and the windows whose body is the window's.

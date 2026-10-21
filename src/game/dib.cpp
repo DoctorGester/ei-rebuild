@@ -59,6 +59,7 @@ CDib* CDib::Construct() {
     Empty();
     return this;
 }
+EI_REWRITTEN(0x006D4AA0, CDib::Construct);
 
 CDib* CDib::ConstructSized(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green,
                            std::uint32_t blue) {
@@ -66,11 +67,13 @@ CDib* CDib::ConstructSized(int width, int height, int bitCount, std::uint32_t re
     Create(width, height, bitCount, red, green, blue);
     return this;
 }
+EI_REWRITTEN(0x006D4B30, CDib::ConstructSized);
 
 void CDib::Destruct() {
     vtable = DibVtable();
     Empty();
 }
+EI_REWRITTEN(0x006D4CD0, CDib::Destruct);
 
 CDib* CDib::Delete(unsigned flags) {
     Destruct();
@@ -124,6 +127,7 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     std::memset(colours, 0, static_cast<std::size_t>(colourCount) * sizeof(RGBQUAD));
     bits = nullptr;
 }
+EI_REWRITTEN(0x006D4BA0, CDib::Create);
 
 void CDib::Empty() {
     if (file) {
@@ -157,6 +161,7 @@ void CDib::Empty() {
     palette = nullptr;
     maskBytes = 0;
 }
+EI_REWRITTEN(0x006D69B0, CDib::Empty);
 
 SIZE* CDib::Size(SIZE* out) const {
     if (!header) {
@@ -168,6 +173,7 @@ SIZE* CDib::Size(SIZE* out) const {
     out->cy = header->biHeight;
     return out;
 }
+EI_REWRITTEN(0x006D4D10, CDib::Size);
 
 int CDib::MakePalette() {
     if (colourCount == 0) return 0;
@@ -188,6 +194,7 @@ int CDib::MakePalette() {
     gamecrt::operator_delete(description);
     return 1;
 }
+EI_REWRITTEN(0x006D54D0, CDib::MakePalette);
 
 std::uint8_t* CDib::AllocateBits() {
     if (header) {
@@ -198,3 +205,4 @@ std::uint8_t* CDib::AllocateBits() {
     }
     return bits;
 }
+EI_REWRITTEN(0x006D6AB0, CDib::AllocateBits);

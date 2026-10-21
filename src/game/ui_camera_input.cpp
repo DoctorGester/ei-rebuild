@@ -94,6 +94,7 @@ CCameraInput* CCameraInput::Construct(CInterface3D* ui) {
     z_ = 0.0f;
     return this;
 }
+EI_REWRITTEN(0x005EACB0, CCameraInput::Construct);
 
 void CCameraInput::OnKeyUp(int, int, int flags) {
     switch (KeyActions()[flags & kScanCodeMask]) {

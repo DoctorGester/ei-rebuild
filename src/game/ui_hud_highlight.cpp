@@ -87,5 +87,7 @@ void CHudActionColumn::Highlight(int index, int on) { HighlightButton(this, &sel
 EI_REWRITTEN(0x0063F730, CHudActionColumn::Highlight);
 
 void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
+EI_REWRITTEN(0x0063E7C0, CHudSpellColumn::ClearHighlights);
 
 void CHudActionColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
+EI_REWRITTEN(0x0063F7A0, CHudActionColumn::ClearHighlights);

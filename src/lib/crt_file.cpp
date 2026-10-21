@@ -160,31 +160,37 @@ int __cdecl Open(const char* path, int flags, ...) {
     }
     return Sopen(path, flags, _SH_DENYNO, permissions);
 }
+EI_REWRITTEN(0x006EB35C, libcrt::Open);
 
 int __cdecl Read(int fd, void* buffer, unsigned count) {
     QuietInvalidParameters quiet;
     return _read(fd, buffer, count);
 }
+EI_REWRITTEN(0x006EB046, libcrt::Read);
 
 int __cdecl Write(int fd, const void* buffer, unsigned count) {
     QuietInvalidParameters quiet;
     return _write(fd, buffer, count);
 }
+EI_REWRITTEN(0x006EB642, libcrt::Write);
 
 long __cdecl Lseek(int fd, long offset, int origin) {
     QuietInvalidParameters quiet;
     return _lseek(fd, offset, origin);
 }
+EI_REWRITTEN(0x006EB284, libcrt::Lseek);
 
 int __cdecl Close(int fd) {
     QuietInvalidParameters quiet;
     return _close(fd);
 }
+EI_REWRITTEN(0x006EAF66, libcrt::Close);
 
 long __cdecl Filelength(int fd) {
     QuietInvalidParameters quiet;
     return _filelength(fd);
 }
+EI_REWRITTEN(0x006E904C, libcrt::Filelength);
 
 // Only the write bit of the mode is tested: a read-only file fails it.
 int __cdecl Access(const char* path, int mode) {
@@ -194,6 +200,7 @@ int __cdecl Access(const char* path, int mode) {
     if ((attributes & FILE_ATTRIBUTE_READONLY) && (mode & kWrite)) return -1;
     return 0;
 }
+EI_REWRITTEN(0x006EAF20, libcrt::Access);
 
 long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data) {
     WIN32_FIND_DATAA found;
@@ -207,6 +214,7 @@ long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data) {
     strcpy_s(data->name, found.cFileName);
     return static_cast<long>(reinterpret_cast<std::intptr_t>(handle));
 }
+EI_REWRITTEN(0x006EB832, libcrt::Findfirst);
 
 // _openfile (006F2811): the first letter is required (r, w or a); the letters after it are read up to
 // one that is unknown or repeats its group, which ends the mode without failing it.
@@ -274,37 +282,44 @@ gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode) {
     }
     return reinterpret_cast<gamecrt::CrtFile*>(file);
 }
+EI_REWRITTEN(0x006E9107, libcrt::Fopen);
 
 int __cdecl Fclose(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fclose(HostFile(file));
 }
+EI_REWRITTEN(0x006E8EB8, libcrt::Fclose);
 
 int __cdecl Fseek(gamecrt::CrtFile* file, long offset, int origin) {
     QuietInvalidParameters quiet;
     return std::fseek(HostFile(file), offset, origin);
 }
+EI_REWRITTEN(0x006E95D2, libcrt::Fseek);
 
 long __cdecl Ftell(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::ftell(HostFile(file));
 }
+EI_REWRITTEN(0x006E97C4, libcrt::Ftell);
 
 std::size_t __cdecl Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fread(to, size, count, HostFile(file));
 }
+EI_REWRITTEN(0x006E8F35, libcrt::Fread);
 
 std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fwrite(from, size, count, HostFile(file));
 }
+EI_REWRITTEN(0x006E968B, libcrt::Fwrite);
 
 // A null stream flushes every stream (VC6's flsall: 0, or EOF when one fails), as the host's does.
 int __cdecl Fflush(gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return std::fflush(file ? HostFile(file) : nullptr);
 }
+EI_REWRITTEN(0x006ED534, libcrt::Fflush);
 
 int Fileno(const gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;

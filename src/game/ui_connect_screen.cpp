@@ -840,6 +840,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
     BufferPut(&link_.out, &extra, sizeof(extra));
     return this;
 }
+EI_REWRITTEN(0x0061E2F0, CMasterRequestBox::Construct);
 
 void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatioImpl(&link_.in);

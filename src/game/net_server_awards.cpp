@@ -53,6 +53,8 @@ RefPtr* RefPtr::CopyShared(const RefPtr* other) {
 }
 
 namespace net {
+EI_REWRITTEN(0x004263F0, RefPtr::CopyShared);
+EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 
 // 00419D90: queues an award message for `connection` on the pending awards (+0x25B4) with a 60
 // second delay. `text` is the caller's string (made in the argument slot), destroyed here as the

@@ -84,6 +84,7 @@ std::uint32_t ChannelLayout::ToNative(std::uint32_t argb) const {
     return channel(argb >> 24, alphaBits, alphaShift) | channel((argb >> 8) & 0xFF, greenBits, greenShift) |
            channel((argb >> 16) & 0xFF, redBits, redShift) | channel(argb & 0xFF, blueBits, blueShift);
 }
+EI_REWRITTEN(0x004EDC00, ChannelLayout::ToNative);
 
 std::uint32_t ChannelLayout::FromNative(std::uint32_t pixel) const {
     auto channel = [pixel](std::uint32_t mask, std::uint32_t bits, std::uint32_t shift) {
@@ -97,6 +98,7 @@ std::uint32_t ChannelLayout::FromNative(std::uint32_t pixel) const {
     argb = (argb << 8) | channel(blueMask, blueBits, blueShift);
     return argb;
 }
+EI_REWRITTEN(0x004EDC70, ChannelLayout::FromNative);
 
 int CTextureDevice::FindFormat(int id, PixelFormat* format) {
     auto* node = formats_.Find(id);
@@ -104,6 +106,7 @@ int CTextureDevice::FindFormat(int id, PixelFormat* format) {
     *format = *node->value;
     return 1;
 }
+EI_REWRITTEN(0x004E7DA0, CTextureDevice::FindFormat);
 
 int CTextureDevice::ParseMmpHeader(const void* data, PixelFormat* format) {
     const auto* header = static_cast<const MmpHeader*>(data);
@@ -126,5 +129,6 @@ int CTextureDevice::ParseMmpHeader(const void* data, PixelFormat* format) {
     *format = *node->value;
     return 1;
 }
+EI_REWRITTEN(0x004E7C40, CTextureDevice::ParseMmpHeader);
 
 

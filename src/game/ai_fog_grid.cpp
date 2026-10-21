@@ -60,3 +60,6 @@ void FogGrid::Write(CMemoryStream* stream) {
     stream->Write(cells, static_cast<std::uint32_t>(h * w));
 }
 
+EI_REWRITTEN(0x005C8B60, FogGrid::Clear);
+EI_REWRITTEN(0x005C8BF0, FogGrid::Read);
+EI_REWRITTEN(0x005C8CC0, FogGrid::Write);

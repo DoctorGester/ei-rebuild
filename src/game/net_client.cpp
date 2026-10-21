@@ -40,6 +40,7 @@ ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
     self->extra = 0;
     return self;
 }
+EI_REWRITTEN(0x0041C420, ClientVectorConstruct);
 
 // The client base's constructor is inlined: the session base, its lobby fields, an unbound socket.
 ClientSession* ClientSession::Construct() {

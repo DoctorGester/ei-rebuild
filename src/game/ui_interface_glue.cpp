@@ -32,24 +32,30 @@ constexpr std::uint32_t kStatusColour = 0xFF00;
 int CInterface3D::PlaySound(const char* name, int loop) {
     return TheSoundManager()->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
 }
+EI_REWRITTEN(0x005F7E60, CInterface3D::PlaySound);
 
 void CInterface3D::StopSound(int handle) {
     if (handle != kNoSound) TheSoundManager()->StopSound(handle);
 }
+EI_REWRITTEN(0x005F7E90, CInterface3D::StopSound);
 
 void CInterface3D::ConsoleAddText(const char* text) {
     if (console_) console_->AddText(text);
 }
+EI_REWRITTEN(0x005F7EB0, CInterface3D::ConsoleAddText);
 
 void CInterface3D::SetConsoleRect(const int* rect) {
     if (console_) console_->SetRect(rect);
 }
+EI_REWRITTEN(0x005F7ED0, CInterface3D::SetConsoleRect);
 
 void CInterface3D::SetConsoleHistory(int lines) {
     if (console_) console_->SetHistory(lines);
 }
+EI_REWRITTEN(0x005F7EF0, CInterface3D::SetConsoleHistory);
 
 void CInterface3D::SetDebugInfoRect(const RECT* rect) { DebugInfoPanel()->SetRect(rect); }
+EI_REWRITTEN(0x005F7F10, CInterface3D::SetDebugInfoRect);
 
 void CInterface3D::ShowFps(int on) {
     if (!static_cast<std::uint8_t>(on)) {
@@ -89,39 +95,48 @@ constexpr char* kNoExtra = nullptr;
 void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualItemsPicked(items, money, crippled);
 }
+EI_REWRITTEN(0x005F7F30, CInterface3D::OnItemsPicked);
 
 void CInterface3D::OnUnitJoined(void* unit) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualUnitJoined(unit);
 }
+EI_REWRITTEN(0x005F7F60, CInterface3D::OnUnitJoined);
 
 void CInterface3D::OnUnitLeft(void* unit) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualUnitLeft(unit);
 }
+EI_REWRITTEN(0x005F7F80, CInterface3D::OnUnitLeft);
 
 void CInterface3D::OnGameLost() {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualGameOver(0);
 }
+EI_REWRITTEN(0x005F7FA0, CInterface3D::OnGameLost);
 
 void CInterface3D::OnUnitSpeech(int id, unsigned event) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualSpeech(id, event, kNoExtra);
 }
+EI_REWRITTEN(0x005F82A0, CInterface3D::OnUnitSpeech);
 
 void CInterface3D::OnPlayersChanged(int added) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualPlayersChanged(added);
 }
+EI_REWRITTEN(0x005F82D0, CInterface3D::OnPlayersChanged);
 
 void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
     root_->AddLine(text, number);
 }
+EI_REWRITTEN(0x005F82F0, CInterface3D::OnChatLine);
 
 void CInterface3D::OnExchangeDone(void* partyB, void* partyA, void* partyC) {
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualExchangeDone(partyB, partyA, partyC);
 }
+EI_REWRITTEN(0x005F8310, CInterface3D::OnExchangeDone);
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
 void CInterface3D::SaveWindowState() {
     if (stackBegin_ != stackEnd_) stackBegin_[0]->VirtualSaveState();
 }
+EI_REWRITTEN(0x005F86D0, CInterface3D::SaveWindowState);
 
 void CInterface3D::ShowStatusText(const char* text) {
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));

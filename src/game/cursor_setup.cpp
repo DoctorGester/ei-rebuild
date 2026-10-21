@@ -71,3 +71,5 @@ void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int fl
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }
 
+EI_REWRITTEN(0x005DAEA0, SetUpCursors);
+EI_REWRITTEN(0x005DAE70, ResetCursors);

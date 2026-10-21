@@ -83,6 +83,7 @@ struct Scored {
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b) {
     return DistanceSquaredXYUnrounded<double>(*a, *b);
 }
+EI_REWRITTEN(0x005CFE20, AIDistance2);
 
 void AIOrder::Clear() {
     kind = 9;
@@ -90,6 +91,7 @@ void AIOrder::Clear() {
     object = nullptr;
     flag = 0;
 }
+EI_REWRITTEN(0x00545F40, AIOrder::Clear);
 
 void AIOrder::MakeAttack(CEngineObject* target) {
     Clear();
@@ -100,6 +102,7 @@ void AIOrder::MakeAttack(CEngineObject* target) {
         object = target;
     }
 }
+EI_REWRITTEN(0x005CF720, AIOrder::MakeAttack);
 
 void AIOrder::MakeCast(int spell, CEngineObject* target) {
     Clear();
@@ -110,6 +113,7 @@ void AIOrder::MakeCast(int spell, CEngineObject* target) {
     }
     what = spell;
 }
+EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 
 // 005CF3C0
 bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHere) {

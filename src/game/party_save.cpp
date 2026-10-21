@@ -143,6 +143,7 @@ void PartyUnitRecord::Save(CStream* stream) {
     stream->Write(&fightAtWill, 4);
     WriteText(stream, texts[6]);
 }
+EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
 
 // --- CParty -------------------------------------------------------------------------------------
 
@@ -199,12 +200,14 @@ CParty* CParty::Assign(CParty* source) {
     CopyThrough(this, source);
     return this;
 }
+EI_REWRITTEN(0x00661300, CParty::Assign);
 
 CParty* CParty::CopyConstruct(CParty* source) {
     Construct();
     CopyThrough(this, source);
     return this;
 }
+EI_REWRITTEN(0x006613C0, CParty::CopyConstruct);
 
 // --- 006617F0 (A-H25): the party as a stream field of an archive --------------------------------------
 

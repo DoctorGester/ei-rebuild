@@ -106,3 +106,4 @@ void* __fastcall CreateFigureObject(void*, void*, int classId) {
     return object;
 }
 
+EI_REWRITTEN(0x005AA8E0, CreateFigureObject);

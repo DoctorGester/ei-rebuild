@@ -228,19 +228,42 @@ void CStringArray::Serialize(CArchive* ar) {
 EI_REPLACE_METHOD(0x006FEE9A, CWordArray::Construct);
 EI_REPLACE_METHOD(0x006FEEB1, CWordArray::DeletingDestructor);
 EI_REPLACE_METHOD(0x006FEECD, CWordArray::Destruct);
+EI_REWRITTEN(0x006FEEFA, CWordArray::SetSize);
+EI_REWRITTEN(0x006FF0B4, CWordArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF1E7, CWordArray::Serialize);
 
+EI_REWRITTEN(0x006FF23A, CDWordArray::Construct);
 EI_REPLACE_METHOD(0x006FF251, CDWordArray::DeletingDestructor);
+EI_REWRITTEN(0x006FF26D, CDWordArray::Destruct);
+EI_REWRITTEN(0x006FF29A, CDWordArray::SetSize);
+EI_REWRITTEN(0x006FF45E, CDWordArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF595, CDWordArray::Serialize);
 
 EI_REPLACE_METHOD(0x006FF5EA, CByteArray::Construct);
 EI_REPLACE_METHOD(0x006FF601, CByteArray::DeletingDestructor);
 EI_REPLACE_METHOD(0x006FF61D, CByteArray::Destruct);
+EI_REWRITTEN(0x006FF64A, CByteArray::SetSize);
+EI_REWRITTEN(0x006FF7DC, CByteArray::SetAtGrow);
 EI_REPLACE_METHOD(0x006FF8E6, CByteArray::Serialize);
 
+EI_REWRITTEN(0x006FF933, CUIntArray::Construct);
 EI_REPLACE_METHOD(0x006FF94A, CUIntArray::DeletingDestructor);
+EI_REWRITTEN(0x006FF966, CUIntArray::Destruct);
+EI_REWRITTEN(0x006FF993, CUIntArray::SetSize);
+EI_REWRITTEN(0x006FFB57, CUIntArray::SetAtGrow);
 
+EI_REWRITTEN(0x006FE925, CStringArray::Construct);
 EI_REPLACE_METHOD(0x006FE93C, CStringArray::DeletingDestructor);
+EI_REWRITTEN(0x006FE958, CStringArray::Destruct);
+EI_REWRITTEN(0x006FE9B8, CStringArray::SetSize);
+EI_REWRITTEN(0x006FEB01, CStringArray::Append);
+EI_REWRITTEN(0x006FEB61, CStringArray::Copy);
+EI_REWRITTEN(0x006FEC26, CStringArray::InsertEmpty);
+EI_REWRITTEN(0x006FED03, CStringArray::InsertAt);
+EI_REWRITTEN(0x006FED3C, CStringArray::RemoveAt);
 EI_REPLACE_METHOD(0x006FEE31, CStringArray::Serialize);
+EI_REWRITTEN(0x006FEAD5, CStringArray::ConstructElements);
+EI_REWRITTEN(0x006FE996, CStringArray::DestructElements);
+EI_REWRITTEN(0x006FEB37, CStringArray::CopyElements);
 
 } // namespace mfc::impl

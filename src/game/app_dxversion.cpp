@@ -175,5 +175,6 @@ std::uint32_t __cdecl GetDxVersion() {
     gameapi::FreeLibrary(d3d8);
     return 0x800;
 }
+EI_REWRITTEN(0x0045E310, GetDxVersion);
 
 } // namespace app

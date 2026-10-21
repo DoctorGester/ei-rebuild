@@ -29,6 +29,7 @@ void CMemoryStream::PutBit(bool bit) {
     if (bitMask_ > 0x80) StartByte();   // sets bitMask_ to 1
     if (bit) bits_ |= static_cast<std::uint8_t>(bitMask_);
 }
+EI_REWRITTEN(0x0047DFC0, CMemoryStream::PutBit);
 
 bool CMemoryStream::GetBit() {
     bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
@@ -86,6 +87,7 @@ void CMemoryStream::WriteStream(BitStream* from) {
     std::uint8_t* data = from->data_;
     Write(data, from->Size());
 }
+EI_REWRITTEN(0x0047DA80, CMemoryStream::WriteStream);
 
 int CMemoryStream::ReadStream(BitStream* to) {
     std::uint32_t length = 0;
@@ -126,6 +128,7 @@ void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out) {
     }
     out->Write(p, rest);
 }
+EI_REWRITTEN(0x0047E6D0, WriteRaw);
 
 void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size, BitStream* out) {
     if (std::memcmp(old, data, size) == 0) {
@@ -151,6 +154,7 @@ void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size,
     }
     out->Write(p, rest);
 }
+EI_REWRITTEN(0x0047E5E0, WriteDiff);
 
 // Without a snapshot to compare with (it is shorter than position + size) everything is sent and
 // appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
@@ -170,6 +174,7 @@ void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::ui
     if (keepSnapshot) std::memcpy(current, data, size);
     snapshot->Seek(snapshot->Position() + size);
 }
+EI_REWRITTEN(0x0047E740, WriteDeltaChannel);
 
 } // namespace delta
 
@@ -219,11 +224,13 @@ std::uintptr_t DeltaField::BeginReadA(int second, BitStream* reader) {
     StartRead(this, second, reader);
     return second ? static_cast<std::uintptr_t>(second) : reinterpret_cast<std::uintptr_t>(reader);
 }
+EI_REWRITTEN(0x0047DBD0, DeltaField::BeginReadA);
 
 DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {
     StartRead(this, second, reader);
     return this;
 }
+EI_REWRITTEN(0x0047FAA0, DeltaField::BeginReadB);
 
 void DeltaField::EndField() {
     if (delta::ReadSnapshot()) {
@@ -238,11 +245,13 @@ void DeltaField::EndField() {
     if (delta::KeepSnapshot1()) snapshot[1].Resize(snapshot[1].Position());
 }
 EI_REWRITTEN(0x0047DC20, DeltaField::EndField);
+EI_REWRITTEN(0x0047FAF0, DeltaField::EndField);
 
 void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
     delta::WriteDeltaChannel(&snapshot[0], data, size, delta::KeepSnapshot0(), &out[0]);
     delta::WriteDeltaChannel(&snapshot[1], data, size, delta::KeepSnapshot1(), &out[1]);
 }
+EI_REWRITTEN(0x0047DCA0, DeltaField::WriteDelta);
 
 // The bytes come from the snapshot read against (all unchanged, or per unchanged word) or from the
 // reader. When anything changed the result is also written to snapshot[1] at the same place.
@@ -271,18 +280,22 @@ void DeltaField::ReadDelta(void* data, std::uint32_t size) {
     }
     delta::ReadSnapshot()->Seek(position + size);
 }
+EI_REWRITTEN(0x0047E000, DeltaField::ReadDelta);
 
 void DeltaField::WriteBoth(const void* data, std::uint32_t size) {
     out[0].Write(data, size);
     out[1].Write(data, size);
 }
+EI_REWRITTEN(0x0047E140, DeltaField::WriteBoth);
 
 void DeltaField::WriteStringBoth(const char* text) {
     out[0].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
     out[1].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
 }
+EI_REWRITTEN(0x0047E2D0, DeltaField::WriteStringBoth);
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::Reader()->Read(data, size); }
+EI_REWRITTEN(0x0047E170, DeltaField::ReadRaw);
 
 void* DeltaField::ReadString(void* cstring) {
     delta::Reader()->ReadString(cstring);
@@ -294,6 +307,7 @@ void DeltaField::WriteStreamBoth(BitStream* from) {
     out[0].WriteStream(from);
     out[1].WriteStream(from);
 }
+EI_REWRITTEN(0x0047E190, DeltaField::WriteStreamBoth);
 
 void DeltaField::ReadText(char* text, int size) {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
@@ -309,12 +323,14 @@ void DeltaField::ReadText(char* text, int size) {
 EI_REWRITTEN(0x0047E340, DeltaField::ReadText);
 
 int DeltaField::ReadStream(BitStream* to) { return delta::Reader()->ReadStream(to); }
+EI_REWRITTEN(0x0047E240, DeltaField::ReadStream);
 
 // --- Readers ------------------------------------------------------------------------------------
 
 namespace delta {
 
 int __fastcall GetBit(BitStream* reader) { return reader->GetBit() ? 1 : 0; }
+EI_REWRITTEN(0x0047EAE0, GetBit);
 
 bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStream* reader) {
     if (reader->GetBit()) {
@@ -336,6 +352,7 @@ bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStr
     reader->Read(p, rest);
     return true;
 }
+EI_REWRITTEN(0x0047EB20, ReadDiff);
 
 } // namespace delta
 
@@ -477,9 +494,11 @@ void DeltaField::WriteFloat16(std::uint32_t floatBits) {
     std::uint16_t h = delta::PackFloat16(floatBits);
     WriteDelta(&h, 2);
 }
+EI_REWRITTEN(0x0047F1E0, DeltaField::WriteFloat16);
 
 // The result is never a NaN (the exponent is at most 0xBF), so its FLD/FSTP store is a copy.
 void DeltaField::ReadFloat16(float* value) { StoreBits(value, delta::UnpackFloat16(ReadWord())); }
+EI_REWRITTEN(0x0047F3D0, DeltaField::ReadFloat16);
 
 void DeltaField::WriteFloat16x3(const float* values) {
     for (int i = 0; i < 3; ++i) {
@@ -487,10 +506,12 @@ void DeltaField::WriteFloat16x3(const float* values) {
         WriteDelta(&h, 2);
     }
 }
+EI_REWRITTEN(0x0047F4D0, DeltaField::WriteFloat16x3);
 
 void DeltaField::ReadFloat16x3(float* values) {
     for (int i = 0; i < 3; ++i) StoreBits(&values[i], delta::UnpackFloat16(ReadWord()));
 }
+EI_REWRITTEN(0x0047F7F0, DeltaField::ReadFloat16x3);
 
 // --- DeltaState --------------------------------------------------------------------------------
 
@@ -545,6 +566,7 @@ void DeltaState::SetWriteMode(int deltaOnly) {
         mode_ = kWriteDelta;
     }
 }
+EI_REWRITTEN(0x0047FD50, DeltaState::SetWriteMode);
 
 int DeltaState::BeginRead(int second, BitStream* reader) {
     reader_ = reader;
@@ -552,6 +574,7 @@ int DeltaState::BeginRead(int second, BitStream* reader) {
     mode_ = second ? kRead1 : kRead0;
     return second;
 }
+EI_REWRITTEN(0x0047FD80, DeltaState::BeginRead);
 
 namespace {
 // One channel's header: the mask, then the channel's output of every field in it.

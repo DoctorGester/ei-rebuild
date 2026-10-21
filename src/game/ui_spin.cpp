@@ -47,6 +47,7 @@ bool CUiSpin::GetValue(int* value) {
     changed_ = false;
     return true;
 }
+EI_REWRITTEN(0x0065BEB0, CUiSpin::GetValue);
 
 void CUiSpin::SetValue(int value) {
     value_ = value < texts_.size ? value : 0;

@@ -68,6 +68,7 @@ int __fastcall IsSpellTarget(CEngineObject* unit) { return AcceptsAreaSpells(uni
 EI_REWRITTEN(0x00681B80, IsSpellTarget);
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CEngineObject* unit) { Deliver(this, hit, unit); }
+EI_REWRITTEN(0x006835B0, CSpellEffect::HitUnit);
 
 void CSpellEffect::HitUnitsInRadius() {
     UnitList list;

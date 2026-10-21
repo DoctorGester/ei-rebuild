@@ -61,6 +61,7 @@ void CWorld::SetWind(const Vector3* direction, float strength) {
     std::memcpy(windDirection_, direction, sizeof(windDirection_));
     std::memcpy(&windStrength_, &strength, sizeof(windStrength_));
 }
+EI_REWRITTEN(0x0055FCB0, CWorld::SetWind);
 
 void CWorldServer::SetTimeImpl(float hours) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);

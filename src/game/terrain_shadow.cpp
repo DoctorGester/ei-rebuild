@@ -110,6 +110,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     }
     return 1;
 }
+EI_REWRITTEN(0x006C92C0, Terrain::SunReaches);
 
 std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     if ((landscapeFlags & 4) == 0) return 0xFF;

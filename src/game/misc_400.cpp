@@ -98,3 +98,5 @@ EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
 EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObjectImpl);
 EI_REWRITTEN(0x00406B30, misc400::AlignedWords);
 EI_REWRITTEN(0x00406B50, misc400::AlignedDwords);
+EI_REWRITTEN(0x00430FC0, BufferCursor::Start);
+EI_REWRITTEN(0x00433F10, misc400::ClearPointee);

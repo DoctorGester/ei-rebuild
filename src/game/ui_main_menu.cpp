@@ -85,6 +85,7 @@ void CInterface3D::ResetSavedState() {
     hudTopPage_ = 0;
     fastGame_ = 0;
 }
+EI_REWRITTEN(0x005F51F0, CInterface3D::ResetSavedState);
 
 // --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
 

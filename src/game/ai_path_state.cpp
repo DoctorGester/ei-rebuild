@@ -101,3 +101,4 @@ void AIPath::ReadState(DeltaField* field) {
         previousY = cell.y;
     }
 }
+EI_REWRITTEN(0x005C7FC0, AIPath::ReadState);

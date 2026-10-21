@@ -211,6 +211,7 @@ BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
 }
+EI_REWRITTEN(0x00525900, UnitStats::Heal);
 
 BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
     for (UnitStatSlot& slot : slots) {
@@ -223,6 +224,7 @@ BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
 }
+EI_REWRITTEN(0x00525930, UnitStats::RegenerateSlots);
 
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
     float ratio = maxHitPoints / slots[1].share;
@@ -235,6 +237,7 @@ void UnitStats::SetSlotMaxima(float maxHitPoints) {
         slot.current = SelectLess(m, current, m, current);
     }
 }
+EI_REWRITTEN(0x00525A00, UnitStats::SetSlotMaxima);
 
 void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
     float ratio = maxHitPoints / slots[1].share;
@@ -249,6 +252,7 @@ void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
         slot.current = SelectLess(m, s, m, s);
     }
 }
+EI_REWRITTEN(0x00525A70, UnitStats::ScaleSlotMaxima);
 
 void* UnitStats::RefillSlots() {
     for (UnitStatSlot& slot : slots) {
@@ -272,8 +276,10 @@ void* UnitStats::RestoreSlots() {
 EI_REPLACE_METHOD(0x00523C80, UnitStats::RestoreSlots);
 
 float UnitStats::LegsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotLegs)); }
+EI_REWRITTEN(0x00524060, UnitStats::LegsFactor);
 
 float UnitStats::ArmsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotArms)); }
+EI_REWRITTEN(0x00524110, UnitStats::ArmsFactor);
 
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
@@ -282,6 +288,7 @@ int UnitStats::MovementState(char checkLoad) {
     if (lowest < GameLogicSettings().damageLevelRunLimit) return 1;
     return 0;
 }
+EI_REWRITTEN(0x005241C0, UnitStats::MovementState);
 
 // --- Maxima ----------------------------------------------------------------------------------
 
@@ -309,6 +316,7 @@ double UnitStats::RateValue() {
 EI_REWRITTEN(0x00524320, UnitStats::RateValue);
 
 float __stdcall ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
+EI_REWRITTEN(0x00523D30, ScaleDamageByEffects);
 
 double __stdcall HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
 EI_REWRITTEN(0x00523DB0, HitPointEffectScale);
@@ -450,11 +458,13 @@ void AddPending(UnitStats* stats, double gain) {
 } // namespace
 
 void UnitStats::AddExperience(float amount) { AddPending(this, amount); }
+EI_REWRITTEN(0x00523920, UnitStats::AddExperience);
 
 void UnitStats::AddScaledExperience(float amount) { AddPending(this, IntelligenceFactor(&stat20) * amount); }
 EI_REWRITTEN(0x00523960, UnitStats::AddScaledExperience);
 
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
+EI_REWRITTEN(0x00523C20, UnitStats::TakePendingExperience);
 
 namespace {
 // The hit point and mana maxima after the experience or a base value changed: the curves with
@@ -591,3 +601,4 @@ bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
 EI_REWRITTEN(0x00529400, UnitStats::RaiseIntelligence);
 
 double UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }
+EI_REWRITTEN(0x005282D0, UnitStats::SkillLevelValueCopy);

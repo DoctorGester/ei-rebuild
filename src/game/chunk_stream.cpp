@@ -57,13 +57,19 @@ struct TextDecoder {
 } // namespace
 
 Chunk* Chunk::Construct(Chunk* parent) { return new (this) Chunk(parent); }
+EI_REWRITTEN(0x0042BEC0, Chunk::Construct);
 
 void Chunk::Destruct() {}
+EI_REWRITTEN(0x0046C7E0, Chunk::Destruct);
+EI_REWRITTEN(0x0046CBB0, Chunk::Destruct);
+EI_REWRITTEN(0x0046D070, Chunk::Destruct);
+EI_REWRITTEN(0x0042BEF0, Chunk::Destruct);
 
 void Chunk::Advance(int bytes) {
     if (parent_) parent_->Advance(bytes);
     consumed_ += bytes;
 }
+EI_REWRITTEN(0x0042BF00, Chunk::Advance);
 
 void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
 
@@ -80,6 +86,7 @@ void Chunk::BeginWrite(std::uint32_t id) {
     if (parent_) parent_->Advance(kHeader);
     consumed_ += kHeader;
 }
+EI_REWRITTEN(0x0042BF50, Chunk::BeginWrite);
 
 void Chunk::EndWrite() {
     std::uint32_t end = FilePosition(File());
@@ -87,6 +94,7 @@ void Chunk::EndWrite() {
     FileWrite(File(), &consumed_, 4);
     FileSeek(File(), static_cast<std::int32_t>(end), 0);
 }
+EI_REWRITTEN(0x0042BFB0, Chunk::EndWrite);
 
 void Chunk::WriteHeader(std::uint32_t id, int payload) {
     int size = payload + kHeader;
@@ -95,12 +103,16 @@ void Chunk::WriteHeader(std::uint32_t id, int payload) {
     if (parent_) parent_->Advance(size);
     consumed_ += size;
 }
+EI_REWRITTEN(0x0042C000, Chunk::WriteHeader);
 
 void Chunk::WriteFloat(std::uint32_t id, std::uint32_t valueBits) { WriteValueChunk(this, id, &valueBits, 4); }
+EI_REWRITTEN(0x0042C2C0, Chunk::WriteFloat);
 
 void Chunk::WriteInt(std::uint32_t id, int value) { WriteValueChunk(this, id, &value, 4); }
+EI_REWRITTEN(0x0042C380, Chunk::WriteInt);
 
 void Chunk::WriteByte(std::uint32_t id, std::uint8_t value) { WriteValueChunk(this, id, &value, 1); }
+EI_REWRITTEN(0x0042C500, Chunk::WriteByte);
 
 // The three values are written one by one from the arguments.
 void Chunk::WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
@@ -113,6 +125,7 @@ void Chunk::WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std
     FileWrite(File(), &y, 4);
     FileWrite(File(), &z, 4);
 }
+EI_REWRITTEN(0x0042CD70, Chunk::WriteVector3);
 
 // The four values are written as one 16-byte block.
 void Chunk::WriteQuaternion(std::uint32_t id, Quaternion value) {
@@ -123,6 +136,7 @@ void Chunk::WriteQuaternion(std::uint32_t id, Quaternion value) {
     consumed_ += size;
     FileWrite(File(), &value, 0x10);
 }
+EI_REWRITTEN(0x0042D0E0, Chunk::WriteQuaternion);
 
 void Chunk::WriteBlob(std::uint32_t id, const void* data, int size) {
     int total = size + kHeader;
@@ -132,6 +146,7 @@ void Chunk::WriteBlob(std::uint32_t id, const void* data, int size) {
     consumed_ += total;
     FileWrite(File(), data, static_cast<std::uint32_t>(size));
 }
+EI_REWRITTEN(0x0042CFA0, Chunk::WriteBlob);
 
 // --- Reading -----------------------------------------------------------------------------------
 
@@ -143,6 +158,7 @@ bool Chunk::SkipContent() {
     consumed_ += rest;
     return true;
 }
+EI_REWRITTEN(0x0042C060, Chunk::SkipContent);
 
 void Chunk::ReadHeader() {
     SkipContent();
@@ -152,6 +168,7 @@ void Chunk::ReadHeader() {
     if (parent_) parent_->Advance(kHeader);
     consumed_ += kHeader;
 }
+EI_REWRITTEN(0x0042C0B0, Chunk::ReadHeader);
 
 // The parent is not checked for null (the original reads its fields unconditionally).
 void Chunk::ForEachChild() {
@@ -163,24 +180,28 @@ void Chunk::ForEachChild() {
         ReadHeader();
     }
 }
+EI_REWRITTEN(0x0042C140, Chunk::ForEachChild);
 
 float Chunk::ReadFloat() {
     float value;
     ReadCounted(this, &value, 4);
     return value;
 }
+EI_REWRITTEN(0x0042C280, Chunk::ReadFloat);
 
 int Chunk::ReadInt() {
     int value;
     ReadCounted(this, &value, 4);
     return value;
 }
+EI_REWRITTEN(0x0042C340, Chunk::ReadInt);
 
 std::uint8_t Chunk::ReadByte() {
     std::uint8_t value;
     ReadCounted(this, &value, 1);
     return value;
 }
+EI_REWRITTEN(0x0042C4C0, Chunk::ReadByte);
 
 // x and z are copied through the FPU, y as an integer (as the original does).
 Vector3* Chunk::ReadVector3(Vector3* out) {
@@ -197,6 +218,7 @@ Vector3* Chunk::ReadVector3(Vector3* out) {
     std::memcpy(&out->y, &v[1], 4);
     return out;
 }
+EI_REWRITTEN(0x0042CCC0, Chunk::ReadVector3);
 
 float* Chunk::ReadQuad(float* out) {
     std::uint32_t v[4];
@@ -207,6 +229,7 @@ float* Chunk::ReadQuad(float* out) {
     std::memcpy(&out[3], &v[1], 4);
     return out;
 }
+EI_REWRITTEN(0x0042CEC0, Chunk::ReadQuad);
 
 // A short read leaves the defaults (1, 0, 0, 0) in place.
 float* Chunk::ReadQuaternion(float* out) {
@@ -215,12 +238,14 @@ float* Chunk::ReadQuaternion(float* out) {
     std::memcpy(out, v, sizeof(v));
     return out;
 }
+EI_REWRITTEN(0x0042D060, Chunk::ReadQuaternion);
 
 void Chunk::ReadBytes(void* data, int size) {
     FileRead(File(), data, static_cast<std::uint32_t>(size));
     if (parent_) parent_->Advance(size);
     consumed_ += size;
 }
+EI_REWRITTEN(0x0042D020, Chunk::ReadBytes);
 
 // --- Text ----------------------------------------------------------------------------------------
 
@@ -241,6 +266,7 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
     new (out) mfc::CString(text);
     return out;
 }
+EI_REWRITTEN(0x0042C580, Chunk::ReadString);
 
 // The content read into the decoder's input (resized to it, zero-filled) in one read, then decoded.
 mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
@@ -266,6 +292,7 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     stlp::deallocate(decoder.text.Start(), static_cast<std::size_t>(decoder.text.EndOfStorage() - decoder.text.Start()));
     return out;
 }
+EI_REWRITTEN(0x0042C650, Chunk::ReadEncodedString);
 
 // A chunk holding the characters (no terminator). The buffer is taken after the file (GetBuffer(0)).
 void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
@@ -278,6 +305,7 @@ void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
     void* file = File();
     FileWrite(file, text.GetBuffer(0), static_cast<std::uint32_t>(length));
 }
+EI_REWRITTEN(0x0042C820, Chunk::WriteString);
 
 // The array is emptied (SetSize(0, -1)), then `count` string chunks are read through a child chunk
 // (its constructor inlined) and appended. The count is unsigned.
@@ -295,6 +323,7 @@ void Chunk::ReadStringArray(void* strings) {
         text->~CString();
     }
 }
+EI_REWRITTEN(0x0042CA20, Chunk::ReadStringArray);
 
 // The size covers the count and every element's chunk. Each element's buffer is taken with
 // GetBuffer(0) after the file is asked for (it may make a shared string unique).
@@ -320,13 +349,17 @@ void Chunk::WriteStringArray(std::uint32_t id, void* strings) {
         FileWrite(file, (*array)[i].GetBuffer(0), static_cast<std::uint32_t>(length));
     }
 }
+EI_REWRITTEN(0x0042CB80, Chunk::WriteStringArray);
 
 // --- The root chunk ------------------------------------------------------------------------------
 
 int RootChunk::Open(mfc::CString path, unsigned flags) {
     return AsFile(&file_)->Open(static_cast<const char*>(path), flags & 0xFFFF, nullptr);
 }
+EI_REWRITTEN(0x0042D160, RootChunk::Open);
 
 void* RootChunk::File() { return &file_; }   // 0042D260 (short_functions.cpp)
 
 void RootChunk::Destruct() { file_.~CFile(); }
+EI_REWRITTEN(0x00596130, RootChunk::Destruct);
+EI_REWRITTEN(0x0042D270, RootChunk::Destruct);

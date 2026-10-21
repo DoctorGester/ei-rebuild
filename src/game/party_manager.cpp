@@ -60,6 +60,7 @@ void PartyManagerEntry::Destruct() {
 // ---- Archive chunks -------------------------------------------------------------------------------
 
 void ChunkArchive::IntField(int id, int* value) { Field(id, value, 4); }
+EI_REWRITTEN(0x004AD2C0, ChunkArchive::IntField);
 
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;

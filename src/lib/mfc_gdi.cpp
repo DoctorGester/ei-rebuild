@@ -52,6 +52,8 @@ CHandleMap* __stdcall MapHGDIOBJ(BOOL create) {
     return MakeMap(map, create, TempGdiObjectClass(), offsetof(CGdiObject, handle), 1);
 }
 
+EI_REWRITTEN(0x00708D07, MapHDC);
+EI_REWRITTEN(0x00709FEE, MapHGDIOBJ);
 // ---- CGdiObject, CPen, CFont ----------------------------------------------------------------------
 
 CGdiObject* __stdcall CGdiObject::FromHandle(HGDIOBJ object) {
@@ -132,10 +134,20 @@ CGdiObject* CGdiObject::DeletingDestruct(unsigned flags) {
     return this;
 }
 
+EI_REWRITTEN(0x00444B30, CGdiObject::Destruct);
+EI_REWRITTEN(0x00444B90, CGdiObject::Destruct);
+EI_REWRITTEN(0x005FDDE0, CGdiObject::Destruct);
 EI_REPLACE_METHOD(0x00444B10, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x00444B70, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x005FDDC0, CGdiObject::DeletingDestruct);
+EI_REWRITTEN(0x0070A060, CGdiObject::FromHandle);
+EI_REWRITTEN(0x0070A075, CGdiObject::Attach);
+EI_REWRITTEN(0x0070A0A2, CGdiObject::Detach);
+EI_REWRITTEN(0x0070A0CC, CGdiObject::DeleteObject);
 EI_REPLACE(0x0070C028, CreateTempGdiObject);
+EI_REWRITTEN(0x0070A0E2, CPen::Construct);
+EI_REWRITTEN(0x0070BBE5, CFont::CreatePointFont);
+EI_REWRITTEN(0x0070BC2A, CFont::CreatePointFontIndirect);
 
 // ---- CDC ------------------------------------------------------------------------------------------
 
@@ -212,9 +224,17 @@ void CDC::FillSolidArea(int x, int y, int cx, int cy, COLORREF colour) {
     gameapi::ExtTextOutA(hdc, 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
 }
 
+EI_REWRITTEN(0x00708CD7, CDC::Construct);
+EI_REWRITTEN(0x00708D79, CDC::FromHandle);
 EI_REPLACE(0x0070BFD7, CreateTempDC);
+EI_REWRITTEN(0x00708F5A, CDC::SelectObject);
 EI_REPLACE_METHOD(0x00708FE6, CDC::SelectObject);
 EI_REPLACE_METHOD(0x0070917A, CDC::SetTextColor);
 EI_REPLACE_METHOD(0x006E6A1C, CDC::DrawText);
+EI_REWRITTEN(0x007090C2, CDC::SetBkMode);
+EI_REWRITTEN(0x00709613, CDC::MoveTo);
+EI_REWRITTEN(0x0070965F, CDC::LineTo);
+EI_REWRITTEN(0x0070BADA, CDC::FillSolidRect);
+EI_REWRITTEN(0x0070BB04, CDC::FillSolidArea);
 
 } // namespace mfc::impl

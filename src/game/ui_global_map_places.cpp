@@ -176,6 +176,7 @@ void CGlobalMap::RefreshSelection() {
     backdrop_->CaptureScreen();
     SelectZone(-1, 0);
 }
+EI_REWRITTEN(0x00630670, CGlobalMap::RefreshSelection);
 
 // --- 0062EE90: the weather -----------------------------------------------------------------------
 

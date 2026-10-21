@@ -61,6 +61,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     return 1;
 }
 
+EI_REWRITTEN(0x005AC880, CFigureManager::LoadSkeletonLinks);
 // 005ACB80 (thiscall on the figure manager, RET 8): a bone's cage. The data comes from the cached
 // model's bones archive (GetFile with the bone's name and the size out) or from the file
 // "<bone's model name (name3)><bone's name (slot 7)>.bon" (the manager's GetFile with the size
@@ -88,3 +89,4 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     else cage->InterpolateCube(stream);
     return 1;
 }
+EI_REWRITTEN(0x005ACB80, CFigureManager::LoadFigureBones);

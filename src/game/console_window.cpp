@@ -44,6 +44,7 @@ void ConsoleWindow::SetRect(const int* rect) {
         Show(true);
     }
 }
+EI_REWRITTEN(0x005E3E90, ConsoleWindow::SetRect);
 
 // 005E3F90: keeps the last `lines` lines.
 void ConsoleWindow::SetHistory(int lines) {
@@ -51,6 +52,7 @@ void ConsoleWindow::SetHistory(int lines) {
     if (lines_.GetSize() > lines) lines_.RemoveAt(0, lines_.GetSize() - lines);
     static_cast<ConsoleWindow*>(this)->DrawLines();   // 005E4800: clamps the scroll position, draws the visible lines
 }
+EI_REWRITTEN(0x005E3F90, ConsoleWindow::SetHistory);
 
 // 005E4090: the first piece continues the last line, each '\n' starts a new one. A window scrolled
 // back stays on the same lines. Keeps the last history_ lines.
@@ -66,5 +68,6 @@ void ConsoleWindow::AddText(const char* text) {
     if (lines_.GetSize() > history_) lines_.RemoveAt(0, lines_.GetSize() - history_);
     static_cast<ConsoleWindow*>(this)->DrawLines();   // 005E4800: clamps the scroll position, draws the visible lines
 }
+EI_REWRITTEN(0x005E4090, ConsoleWindow::AddText);
 
 } // namespace console

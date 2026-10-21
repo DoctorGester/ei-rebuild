@@ -80,6 +80,9 @@ CEngineObject** __fastcall ObjectHolderDelete(CEngineObject** self, void*, unsig
     return DestroyAndFree(self, flags, [](CEngineObject** holder) { ObjectHolderRelease(holder); });
 }
 EI_REWRITTEN(0x005754E0, ObjectHolderDelete);
+EI_REWRITTEN(0x00575510, ObjectHolderDelete);
+EI_REWRITTEN(0x005768A0, ObjectHolderDelete);
+EI_REWRITTEN(0x0059DDB0, ObjectHolderDelete);
 
 // ---- MFC collections (S13) ----------------------------------------------------------------------
 

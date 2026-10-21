@@ -53,3 +53,4 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     return static_cast<double>(largest) / heightScale;
 }
 
+EI_REWRITTEN(0x005BC750, CAIMap::LargestStepAlong);

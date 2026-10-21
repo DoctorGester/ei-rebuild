@@ -98,6 +98,7 @@ void __fastcall Help(CStringArray*) {
     };
     for (const char* line : kLines) PrintLine(line);
 }
+EI_REWRITTEN(0x005DF5E0, Help);
 
 // 005DD920: debuginfo l<eft>|r<ight>|lt|lefttop|rt|righttop.
 void __fastcall DebugInfo(CStringArray* args) {
@@ -113,6 +114,7 @@ void __fastcall DebugInfo(CStringArray* args) {
     }
     PrintLine("Invalid debug info position");
 }
+EI_REWRITTEN(0x005DD920, DebugInfo);
 
 // 005DDBE0: console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).
 void __fastcall ConsolePos(CStringArray* args) {
@@ -132,12 +134,14 @@ void __fastcall ConsolePos(CStringArray* args) {
     }
     PrintLine("Invalid console position");
 }
+EI_REWRITTEN(0x005DDBE0, ConsolePos);
 
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine("Invalid parameters");
     TheInterface()->SetConsoleHistory(libcrt::Atoi((*args)[0]));
 }
+EI_REWRITTEN(0x005DDF80, History);
 
 // 005DDFE0: filter (prints the shown categories), filter <type> (shows only that one),
 // filter <type> 1|on|0|off.
@@ -169,6 +173,7 @@ void __fastcall Filter(CStringArray* args) {
         PrintLine("Invalid parameters");
     }
 }
+EI_REWRITTEN(0x005DDFE0, Filter);
 
 // 005DE460: show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
 void __fastcall Show(CStringArray* args) {
@@ -193,6 +198,7 @@ void __fastcall Show(CStringArray* args) {
     if (ArgOn(args, 1)) (TheClientWorld()->*on)();
     else if (ArgOff(args, 1)) (TheClientWorld()->*off)();
 }
+EI_REWRITTEN(0x005DE460, Show);
 
 // 005DEA00: listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
@@ -224,6 +230,7 @@ void __fastcall ListVar(CStringArray* args) {
     }
     if (writing) file.Close();
 }
+EI_REWRITTEN(0x005DEA00, ListVar);
 
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
@@ -250,6 +257,7 @@ void __fastcall LoadVar(CStringArray* args) {
     }
     file.Close();
 }
+EI_REWRITTEN(0x005DEC90, LoadVar);
 
 // 005DEEE0: "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
@@ -259,6 +267,7 @@ void __fastcall LastFps(CStringArray*) {
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
+EI_REWRITTEN(0x005DEEE0, LastFps);
 
 // 005DEF50: exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
@@ -277,6 +286,7 @@ void __fastcall Exec(CStringArray* args) {
     while (file.ReadString(line)) ExecuteAt(line);
     file.Close();
 }
+EI_REWRITTEN(0x005DEF50, Exec);
 
 // 005DF0F0: give <player> money <n> | exp <n> (shared by the party) | assortment.
 void __fastcall Give(CStringArray* args) {
@@ -310,6 +320,7 @@ void __fastcall Give(CStringArray* args) {
     }
     PrintLine("Give what?");
 }
+EI_REWRITTEN(0x005DF0F0, Give);
 
 namespace {
 // join / server (S16b): a party with one member ("F", "Human Hero", `extra`) on the stack, handed
@@ -334,6 +345,7 @@ void __fastcall Join(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
+EI_REWRITTEN(0x005DF3A0, Join);
 
 // 005DF490 (no Ghidra function; S16b): server <map>: "Starting up a server", then the flow's
 // request 6 with a party of one ("Serv").
@@ -342,19 +354,23 @@ void __fastcall HostServer(CStringArray* args) {
     PrintLine("Starting up a server");
     RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
 }
+EI_REWRITTEN(0x005DF490, HostServer);
 
 // 005DF5A0 (a jump to the empty 00455CD0; S16b): memusage does nothing.
 void __fastcall MemUsage(CStringArray*) {}
+EI_REWRITTEN(0x005DF5A0, MemUsage);
 
 // 005DFC10 (a jump to GameFlow 00581620; no Ghidra function, S16c): disconnect, any arguments: the
 // client world's local player disconnects.
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
+EI_REWRITTEN(0x005DFC10, Disconnect);
 
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
 }
+EI_REWRITTEN(0x005DF5B0, LootAll);
 
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
@@ -362,6 +378,7 @@ void __fastcall FadeOut(CStringArray* args) {
     TheInterface()->fade_->Start(libcrt::Atoi((*args)[0]));
     PrintLine("Ok");
 }
+EI_REWRITTEN(0x005DF8E0, FadeOut);
 
 // 005DF9B0: net client|server|time 0/1 (traffic and timing output), net zone <name>.
 void __fastcall Net(CStringArray* args) {
@@ -384,6 +401,7 @@ void __fastcall Net(CStringArray* args) {
         Server()->SendCommand(0, zone);
     }
 }
+EI_REWRITTEN(0x005DF9B0, Net);
 
 // 005DFC20 / 005DFCE0. Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
@@ -402,6 +420,7 @@ void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::SpeechLis
     mfc::CString line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
+EI_REWRITTEN(0x005DFC20, WriteSpeechLines);
 
 void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
                                             const stlp::vector<acks::EnvironmentSpeech>* list) {
@@ -409,6 +428,7 @@ void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
     mfc::CString line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
 }
+EI_REWRITTEN(0x005DFCE0, WriteEnvironmentSpeechLines);
 
 // 005DFDA0: generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
@@ -431,6 +451,7 @@ void __fastcall GenerateAcks(CStringArray*) {
         record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
     file.Close();
 }
+EI_REWRITTEN(0x005DFDA0, GenerateAcks);
 
 // 005E00D0: days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
 void __fastcall Days(CStringArray* args) {
@@ -479,11 +500,13 @@ void __fastcall Days(CStringArray* args) {
     };
     for (const char* line : kUsage) PrintLine(line);
 }
+EI_REWRITTEN(0x005E00D0, Days);
 
 // 005E0570: partyresend.
 void __fastcall PartyResend(CStringArray*) {
     if (WorldPlayer* player = GetPlayer(0)) static_cast<CPlayerServer*>(player->server)->ResendParty();
 }
+EI_REWRITTEN(0x005E0570, PartyResend);
 
 namespace {
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
@@ -510,9 +533,11 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
 
 // 005E0590: kick [name].
 void __fastcall Kick(CStringArray* args) { KickOrBan(args, 1, 2); }
+EI_REWRITTEN(0x005E0590, Kick);
 
 // 005E06E0: ban [name].
 void __fastcall Ban(CStringArray* args) { KickOrBan(args, 2, 3); }
+EI_REWRITTEN(0x005E06E0, Ban);
 
 // 005E0830: fps 1|on|0|off (anything else: nothing).
 void __fastcall Fps(CStringArray* args) {
@@ -520,6 +545,7 @@ void __fastcall Fps(CStringArray* args) {
     if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
     else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
 }
+EI_REWRITTEN(0x005E0830, Fps);
 
 namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
@@ -534,8 +560,10 @@ void SetRate(CStringArray* args, int* rate, const char* usage) {
 
 // 005E0990: rate <bytes per second>.
 void __fastcall Rate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
+EI_REWRITTEN(0x005E0990, Rate);
 
 // 005E0A10: localrate <bytes per second>.
 void __fastcall LocalRate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
+EI_REWRITTEN(0x005E0A10, LocalRate);
 
 } // namespace console::commands

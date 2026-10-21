@@ -17,6 +17,20 @@ void __fastcall GroupDestruct(ScriptGroup* group) { group->DestructBody(); }
 void __fastcall BridgeManagerDestroy(PlatformSet* set) { set->list.RemoveAll(); }
 EI_REPLACE(0x00561840, BridgeManagerDestroy);
 
+EI_REWRITTEN(0x004BE250, gamearrays::PointLights::Destruct<PointLightArrayClass>);
+EI_REWRITTEN(0x004BE2E0, Definitions::Destruct<DefinitionArrayClass>);
+EI_REWRITTEN(0x004C18E0, Commands::Destruct<CommandArrayClass>);
+EI_REWRITTEN(0x00598F40, gamelists::Refs::Destruct<RefListAClass>);
+EI_REWRITTEN(0x00599D60, gamelists::Refs::Destruct<RefListBClass>);
+EI_REWRITTEN(0x00570180, gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>);
+EI_REWRITTEN(0x005989D0, gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>);
+EI_REWRITTEN(0x00556AD0, ObjectValues::Destruct<MemoryObjectArrayClass>);
+EI_REWRITTEN(0x00556D90, ObjectValues::Destruct<MemoryObjectArrayClass>);
+EI_REWRITTEN(0x00511BB0, EffectObjects::Destruct<EffectObjectArrayClass>);
+EI_REWRITTEN(0x00558070, gamelists::Holders::Destruct<ArmourSpellListClass>);
+EI_REWRITTEN(0x00427600, gamelists::EngineObjects::Destruct<ItemObjectListClass>);
+EI_REWRITTEN(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Class>);
+EI_REWRITTEN(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
 // ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------
 
 // Over the destructors above.

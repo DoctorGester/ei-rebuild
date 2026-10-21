@@ -192,6 +192,7 @@ void CDebugPanel::Tick() {
     }
     if (CUiSurface* surface = surface_) surface->Blit();
 }
+EI_REWRITTEN(0x00444CD0, CDebugPanel::Tick);
 
 // 00444D00: clears the panel and draws each entry (the key in the left half, the value in the
 // right half; a dark copy one pixel down and right first) until the next line would not fit.
@@ -228,6 +229,7 @@ void CDebugPanel::Redraw() {
     dc->SelectFont(oldFont);
     UiSurfaceReleaseDC(surface_);
 }
+EI_REWRITTEN(0x00444D00, CDebugPanel::Redraw);
 
 // 00444F50: shows the panel (its surface made when missing, drawn at once) or hides it (the
 // surface freed).

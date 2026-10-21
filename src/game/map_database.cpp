@@ -302,6 +302,7 @@ bool CMapDatabase::LoadAll() {
     Load("map.txt");
     return Load("map-LMP.txt");
 }
+EI_REWRITTEN(0x0045EA00, CMapDatabase::LoadAll);
 
 CMapDatabase* CMapDatabase::Construct() {
     allods.Construct(kAllodArrayVtable);

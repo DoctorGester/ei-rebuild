@@ -90,6 +90,7 @@ void CMemoryStream::Resize(std::uint32_t size) {
     bitMask_ = 0x80;
     if (old) gamecrt::operator_delete(old);
 }
+EI_REWRITTEN(0x004A54D0, CMemoryStream::Resize);
 
 void CMemoryStream::SetSize(std::uint32_t size) {
     if (size <= capacity_) {
@@ -105,6 +106,7 @@ void CMemoryStream::SetSize(std::uint32_t size) {
     position_ = 0;
     bitMask_ = 0x80;
 }
+EI_REWRITTEN(0x004A5570, CMemoryStream::SetSize);
 
 void CMemoryStream::StartByte() {
     if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
@@ -113,12 +115,14 @@ void CMemoryStream::StartByte() {
     Write(&bits_, 1);
     bitMask_ = 1;
 }
+EI_REWRITTEN(0x004A5610, CMemoryStream::StartByte);
 
 void CMemoryStream::EndBits() {
     if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
     bitsIndex_ = -1;
     bitMask_ = 0x80;
 }
+EI_REWRITTEN(0x004A5650, CMemoryStream::EndBits);
 
 // --- CStream helpers ---------------------------------------------------------------------------
 
@@ -148,6 +152,7 @@ void CStream::ReadSized(CStream* to) {
     to->Write(block, size);
     gamecrt::operator_delete(block);
 }
+EI_REWRITTEN(0x004A51C0, CStream::ReadSized);
 
 void CStream::WriteSized(CStream* from) {
     auto size = static_cast<std::int32_t>(from->Size());
@@ -165,6 +170,7 @@ void CStream::WriteSized(CStream* from) {
     Write(block, static_cast<std::uint32_t>(size));
     gamecrt::operator_delete(block);
 }
+EI_REWRITTEN(0x004A5250, CStream::WriteSized);
 
 bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {
     std::int32_t value = 0;
@@ -176,9 +182,11 @@ bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::i
     version_ = static_cast<std::uint32_t>(value);
     return true;
 }
+EI_REWRITTEN(0x004A52D0, CStream::ReadHeader);
 
 void CStream::WriteHeader(std::uint32_t magic, std::uint32_t version) {
     Write(&magic, kHeaderFieldBytes);
     Write(&version, kHeaderFieldBytes);
     version_ = version;
 }
+EI_REWRITTEN(0x004A5340, CStream::WriteHeader);

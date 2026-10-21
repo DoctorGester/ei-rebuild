@@ -393,6 +393,7 @@ void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
     SetVtables(self, Vtable(0x00740D18), Vtable(0x00740CE4));
     return self;
 }
+EI_REWRITTEN(0x005F6F30, Screen9Construct);
 
 // 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.

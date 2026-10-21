@@ -42,3 +42,17 @@ net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connectio
 
 using namespace netlists;
 
+EI_REWRITTEN(0x0043D780, FindClientByAddress);
+EI_REWRITTEN(0x0043D7D0, InitClientRef);
+EI_REWRITTEN(0x00437F30, SentPacketAbi::Erase);
+EI_REWRITTEN(0x004390C0, FreedBatchAbi::Erase);
+EI_REWRITTEN(0x0043CA40, SentPacketAbi::Clear);
+EI_REWRITTEN(0x0043BA20, FreedBatchAbi::Clear);
+EI_REWRITTEN(0x004399C0, SentPacketAbi::Destruct);
+EI_REWRITTEN(0x00438F60, SentItemAbi::InsertDefault);
+EI_REWRITTEN(0x00439000, FreedBatchAbi::InsertDefault);
+EI_REWRITTEN(0x004397E0, SentPacketAbi::InsertDefault);
+EI_REWRITTEN(0x00439C80, ChunkAbi::InsertDefault);
+EI_REWRITTEN(0x00437930, (CopyConstruct<FreedIds, FreedIdsElement>));
+EI_REWRITTEN(0x00437F60, (CopyConstruct<PacketRecord, PacketRecordElement>));
+EI_REWRITTEN(0x00438690, (CopyConstruct<net::ReliableChunk, ChunkElement>));

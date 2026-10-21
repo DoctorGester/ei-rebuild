@@ -174,6 +174,7 @@ CSpellContainer* CSpellContainer::Construct() {
     Reset();   // inlined in the original
     return this;
 }
+EI_REWRITTEN(0x0068BA80, CSpellContainer::Construct);
 
 void CSpellContainer::Destruct() {
     ei::SetVtable(this, kVtableAddress);

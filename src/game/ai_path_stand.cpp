@@ -83,3 +83,7 @@ void AIPath::StandStill(const CMapObject* unit) {
     StandAt(this, &motionOrder.startTime, unit);
 }
 
+EI_REWRITTEN(0x005B1DE0, AIPath::StandAndTurn);
+EI_REWRITTEN(0x005B1F10, AIPath::StandAndTrack);
+EI_REWRITTEN(0x005B2050, AIPath::StandAndTurnUntil);
+EI_REWRITTEN(0x005B2190, AIPath::StandStill);

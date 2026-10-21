@@ -53,6 +53,7 @@ constexpr float kDiagonal = 0.707f;     // 0073FDAC
 constexpr float kInset = 0.49f;         // 0073FDA8
 } // namespace
 
+EI_REWRITTEN(0x005B1B70, PathCellList::NewNode);
 bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     target->x = 1.0f / (1.0f * 0.5f) * target->x;
@@ -151,6 +152,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     }
     return false;
 }
+EI_REWRITTEN(0x005BAC10, CAIMap::SnapTarget);
 
 void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
@@ -216,6 +218,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->SetTarget(x, y);
     SetStepSpeeds(unit, &path->steps);
 }
+EI_REWRITTEN(0x005BB190, CAIMap::AdvancePath);
 
 bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
@@ -353,3 +356,4 @@ bool CAIMap::ContinuePath(CUnit* unit, AIPath* path) {
     if (path->failed) path->reached = false;
     return !wasReached;
 }
+EI_REWRITTEN(0x005BB900, CAIMap::ContinuePath);

@@ -207,13 +207,24 @@ mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags) {
 } // namespace unitset
 
 // The records: the head's constructor and destructor, the copies, equal() of two id ranges.
+EI_REWRITTEN(0x00559DB0, unitset::ConstructHead);
 EI_REWRITTEN(0x00559DE0, unitset::DestroyHead);
 EI_REWRITTEN(0x0055A860, FiguredUnitRecord::CopyConstruct);
+EI_REWRITTEN(0x0055A9F0, DressedUnitRecord::CopyConstruct);
+EI_REWRITTEN(0x0055D020, unitset::EqualIds);
 
 // The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and
 // resize; the multimaps' equal_range, resize, insert_equal_noresize and the iterator's step.
 EI_REWRITTEN(0x0055ABB0, gamehash::ConstructGroupPair);
+EI_REWRITTEN(0x0055AC40, gamehash::FiguredAbi::ConstructDefault);
+EI_REWRITTEN(0x0055AEB0, gamehash::FiguredAbi::CopyConstruct);
+EI_REWRITTEN(0x0055AD10, gamehash::FiguredAbi::Destroy);
+EI_REWRITTEN(0x0055BA10, gamehash::FiguredGroupsAbi::FindOrInsert);
+EI_REWRITTEN(0x0055B540, gamehash::FiguredAbi::InsertEqualNoresize);
+EI_REWRITTEN(0x0055BAC0, gamehash::DressedAbi::InsertEqualNoresize);
 
 // The id and name vectors: _M_insert_overflow, ~_Vector_base (2), _Construct of an id and of a
 // CString, and the CString's scalar deleting destructor (the names' element loop calls it with 0).
+EI_REWRITTEN(0x0055C260, stlp::ConstructAt<std::uint32_t>);
+EI_REWRITTEN(0x0055C270, stlp::ConstructAt<mfc::CString>);
 EI_REWRITTEN(0x0051FAD0, unitset::DeleteName);

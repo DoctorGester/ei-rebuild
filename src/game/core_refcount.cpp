@@ -19,6 +19,7 @@ int CRefObject::Shutdown() {
     --refs_;
     return result;
 }
+EI_REWRITTEN(0x00417DF0, CRefObject::Shutdown);
 
 void RefPtr::Assign(CRefObject* object) {
     CRefObject* old = ptr;
@@ -38,6 +39,7 @@ void RefPtr::Share(CRefObject* object) {
     ++object->refs_;
     ptr->flags6_ |= CRefObject::kCopyOnShare;
 }
+EI_REWRITTEN(0x00418BE0, RefPtr::Share);
 
 void RefPtr::Destroy() {
     CRefObject* object = ptr;
@@ -50,6 +52,7 @@ void RefPtr::Destroy() {
     }
     ReleaseObject(ptr);   // reloaded: the shutdown may have changed it
 }
+EI_REWRITTEN(0x00413270, RefPtr::Destroy);
 
 RefPtr* RefPtr::ShareAssign(CRefObject* object) {
     if (object != ptr) {
@@ -58,3 +61,4 @@ RefPtr* RefPtr::ShareAssign(CRefObject* object) {
     }
     return this;
 }
+EI_REWRITTEN(0x005D9D40, RefPtr::ShareAssign);

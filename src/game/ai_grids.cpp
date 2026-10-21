@@ -17,8 +17,10 @@
 // ---- Allocate / free ------------------------------------------------------------------------------
 
 void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid) { AllocateGrid(*grid); }
+EI_REWRITTEN(0x005B1470, AllocateNodeGrid);
 
 void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid) { AllocateGrid(*grid); }
+EI_REWRITTEN(0x005B14C0, AllocateByteGrid);
 
 void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
     constexpr int kEdges = 8;
@@ -26,14 +28,17 @@ void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
     int count = grid->width * grid->height * kEdges;
     for (int i = 0; i < count; ++i) grid->data[i] = -1;
 }
+EI_REWRITTEN(0x005B1550, AllocateEdgeGrid);
 
 void __fastcall AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) grid->data[i] = 0;
 }
+EI_REWRITTEN(0x005B15F0, AllocateZeroedByteGrid);
 
 void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid) { AllocateGrid(*grid); }
+EI_REWRITTEN(0x005B1680, AllocateRegionGrid);
 
 void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
     AllocateGrid(*grid);
@@ -46,18 +51,33 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
         cell.level = 0;
     }
 }
+EI_REWRITTEN(0x005BD030, AllocateCellGrid);
 
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & 0xFFFFFF60) | 0x100;
 }
+EI_REWRITTEN(0x005BD0B0, AllocateOccluderGrid);
 
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid) { FreeGrid(*grid); }
+EI_REWRITTEN(0x005BD010, FreeAnyGrid);
 // Byte-identical copies (the other element types' destructors).
+EI_REWRITTEN(0x00598400, FreeAnyGrid);
+EI_REWRITTEN(0x00598420, FreeAnyGrid);
 EI_REPLACE(0x00598440, FreeAnyGrid);
 EI_REPLACE(0x00598460, FreeAnyGrid);
 EI_REPLACE(0x00598480, FreeAnyGrid);
+EI_REWRITTEN(0x00598580, FreeAnyGrid);
+EI_REWRITTEN(0x005985A0, FreeAnyGrid);
+EI_REWRITTEN(0x00598A60, FreeAnyGrid);
+EI_REWRITTEN(0x00598A80, FreeAnyGrid);
+EI_REWRITTEN(0x00598AA0, FreeAnyGrid);
+EI_REWRITTEN(0x00598B00, FreeAnyGrid);
+EI_REWRITTEN(0x005B1450, FreeAnyGrid);
+EI_REWRITTEN(0x005BCC30, FreeAnyGrid);
+EI_REWRITTEN(0x005CD490, FreeAnyGrid);
+EI_REWRITTEN(0x0058AAB0, FreeAnyGrid);
 
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
     if (width == newWidth && height == newHeight) return;
@@ -66,6 +86,7 @@ template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
     height = newHeight;
     AllocateGrid(*this);
 }
+EI_REWRITTEN(0x005CD3A0, SearchGrid<std::uint8_t>::Resize);
 
 template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source) {
     height = source->height;
@@ -74,6 +95,7 @@ template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source) {
     int count = width * height;
     if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count));
 }
+EI_REWRITTEN(0x005CD410, SearchGrid<std::uint8_t>::CopyFrom);
 
 template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source) {
     height = source->height;
@@ -82,6 +104,7 @@ template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source) {
     int count = width * height;
     if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
 }
+EI_REWRITTEN(0x005C4BA0, SearchGrid<SearchNode>::CopyFrom);
 
 // ---- Constructors ---------------------------------------------------------------------------------
 
@@ -91,6 +114,7 @@ template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newW
     AllocateGrid(*this);
     return this;
 }
+EI_REWRITTEN(0x005BCBD0, SearchGrid<std::int8_t>::Construct);
 
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight) {
     width = newWidth;
@@ -98,6 +122,7 @@ template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWid
     AllocateGrid(*this);
     return this;
 }
+EI_REWRITTEN(0x005BCC50, SearchGrid<SearchNode>::Construct);
 
 template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight) {
     height = newHeight;
@@ -105,6 +130,7 @@ template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth
     AllocateCellGrid(this);
     return this;
 }
+EI_REWRITTEN(0x005BCEE0, SearchGrid<AIMapCell>::Construct);
 
 template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight) {
     height = newHeight;
@@ -112,6 +138,7 @@ template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int 
     AllocateOccluderGrid(this);
     return this;
 }
+EI_REWRITTEN(0x005BCF00, SearchGrid<std::uint32_t>::Construct);
 
 void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
     grid->width = 1;
@@ -150,6 +177,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
     if (owner) Attach(owner, false);
     return this;
 }
+EI_REWRITTEN(0x005B3FF0, LocalSearch::Construct);
 
 void LocalSearch::Destruct() {
     cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
@@ -157,6 +185,7 @@ void LocalSearch::Destruct() {
     FreeGrid(levels);
     FreeGrid(nodes);
 }
+EI_REWRITTEN(0x0058AA60, LocalSearch::Destruct);
 
 CUnitLayer* CUnitLayer::Construct() {
     nodes.vtable = ei::GamePointer<void>(kNodeListVtable);
@@ -194,6 +223,7 @@ void AIDirtyRect::Reset() {
 EI_REPLACE_METHOD(0x005B40F0, AIDirtyRect::Reset);
 
 AITerrainType* __fastcall TerrainTypeAt(AITerrainType** types, void*, int index) { return *types + index; }
+EI_REWRITTEN(0x005BDD50, TerrainTypeAt);
 
 // ---- The event table ------------------------------------------------------------------------------
 
@@ -216,6 +246,7 @@ AIEventTable* AIEventTable::Construct() {
     Clear();
     return this;
 }
+EI_REWRITTEN(0x005B3F40, AIEventTable::Construct);
 
 void AIEventTable::Clear() {
     tick = -1;
@@ -229,6 +260,7 @@ void AIEventTable::Clear() {
     }
     std::memset(rows[0], 0, sizeof(AIEventCell));
 }
+EI_REWRITTEN(0x005C9250, AIEventTable::Clear);
 
 void AIEventTable::Destroy() {
     for (auto& slot : slots) {
@@ -242,6 +274,7 @@ void AIEventTable::Destroy() {
     gamecrt::operator_delete(cells);
     gamecrt::operator_delete(rows);
 }
+EI_REWRITTEN(0x005C91F0, AIEventTable::Destroy);
 
 // ---- Terrain types --------------------------------------------------------------------------------
 
@@ -270,3 +303,4 @@ void CAIMap::BuildOpenMarks() {
         materials[i].openMarks = packed;
     }
 }
+EI_REWRITTEN(0x005B8620, CAIMap::BuildOpenMarks);
