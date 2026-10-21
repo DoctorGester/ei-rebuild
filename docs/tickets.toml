@@ -1995,7 +1995,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Batch 15: raw game addresses 540 -> 223 (distinct data addresses 5,114 -> 4,713): game.exe strings passed by address became literals (options, console commands and texts, menus, materials, camp, item info, logs; both exes hold the same data, standalone.md section 1; tools/exe_strings.py). Left: shims 590 (wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies); raw addresses 223: particle callbacks by code address (particle_create 85: emitFn/updateFn/elementFn are void* to thiscall members), deleting destructors' template arguments (33), item-info stat functions and float constants by address (23), net_session_base's handler table (17), unit_create_stats' creators (13), then small tables; per-file copies of the world tick 007AFFC4, interface 007C7D50 and game flow 007AFE20 accessors to merge into one header each. The 782 uncounted game::Text(0x...) calls: C11a."
 
 [[ticket]]
 id = "C12"
@@ -2215,6 +2215,15 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C13b3x"]
 note = "After C13b3x (294 EI_ORIGINAL forwarders). Once the R16 renderer work in src/render / world_client_draw.cpp is merged: (1) originals_render.h DrawMesh / DrawMesh2 -> CTextureDevice::DrawMeshBlocks / DrawMeshBlocks2 (argument lists differ: give the callers the member signature); (2) originals_core.h ManagerFindObject (00403F40): its one caller is world_client_draw.cpp -> static_cast<CBaseManager*>(x)->FindObject(id). Optional: (3) CWndDestroyWindow (007051A1, unreachable in the image) once afxMapHWND (007048B7) and CWnd::Detach (007049A7) are ported. Check with python tools/direct_calls.py --report -v --cast --loose --library after build.cmd verify; --golden after each."
+
+[[ticket]]
+id = "C11a"
+title = "game.exe strings by address (game::Text(0x...)) as literals"
+group = "cleanup"
+size = 2
+model = "sonnet"
+files = ["src/game/*.cpp", "tools/exe_strings.py"]
+note = "782 game::Text(0x...) calls in 72 files (2026-10-21) still pass a string of game.exe's data by address; C11 batch 15 turned 317 counted sites into literals. tools/exe_strings.py reads each string from vanilla's and Rebirth's exe (identical data) and writes the literal (--wrap game::Text, --before, --lines; dry run first and read the output: data-range addresses are not always strings). Then turn the helpers' std::uintptr_t text parameters into const char*. Keep game::kEmptyTextAddress / EmptyText where code compares the pointer. Spelling only; check_cleanup's raw-address count and the golden suite must not change."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
