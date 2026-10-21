@@ -65,7 +65,9 @@ string by address only where code compares the pointer itself (`game::kEmptyText
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (run\vanilla's game.exe laid
   out, vanilla data) and `standalone-rebirth` (run\rebirth's game.exe, the Rebirth data, the flags of
   `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth launch with addon turns on; refresh it when
-  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change).
+  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change). Both from run\<install>-clean
+  (run_all.clean_run_dir: hard links of run\<install>'s files but dgVoodoo's), so the imports come from the system
+  as in a player's clean folder (SV10f); run\<install> keeps dgVoodoo for the original's runs.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
