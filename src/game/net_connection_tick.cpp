@@ -54,7 +54,7 @@ std::int32_t ReliableSize(GameBuffer* b) {
 // returns to the id pools. False once the peer was silent for the session's timeout_ or the
 // reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
-    CurrentConnection() = this;
+    g_currentConnection = this;
     idleTime_ = static_cast<float>(D(idleTime_) + dt);
     Set(&clock_, dt + Get(&clock_));
     float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
@@ -67,9 +67,9 @@ bool Connection::Tick(double dt) {
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
     loss = loss >= tenth ? loss : tenth;
-    float longest = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
+    float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
     loss = longest >= loss ? loss : longest;
-    float kept = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
+    float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
 
     for (HistoryNode* node = history_.First(); node != history_.End();) {
         double age = Get(&clock_) - Get(&node->data.time);
@@ -110,7 +110,7 @@ bool Connection::Tick(double dt) {
 
     double freedTime = D(freedTimer_) + dt;
     freedTimer_ = static_cast<float>(freedTime);
-    if (freedTime > static_cast<double>(CurrentSession()->idReuseTime_)) {
+    if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
         freedTimer_ = 0.0f;
         FreedIds& oldest = freedIds_.First()->data;
         for (FreedId* e = oldest.begin(); e != oldest.end(); ++e) {
@@ -129,8 +129,8 @@ bool Connection::Tick(double dt) {
     }
 
     bool alive = false;
-    if (static_cast<double>(CurrentSession()->timeout_) > D(idleTime_)) alive = ReliableSize(&reliableOut_) < 32000;
-    CurrentConnection() = nullptr;
+    if (static_cast<double>(g_currentSession->timeout_) > D(idleTime_)) alive = ReliableSize(&reliableOut_) < 32000;
+    g_currentConnection = nullptr;
     return alive;
 }
 EI_REWRITTEN(0x00433BD0, Connection::Tick);

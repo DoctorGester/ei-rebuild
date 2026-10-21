@@ -217,7 +217,6 @@ NOT_CODE = [
     (0x0078FC44, 0x0078FC44, 1, '"her": text (leather)'),
     (0x00792EF8, 0x00792EF8, 1, '" %s": text'),
     (0x00792F84, 0x00792F84, 1, '" %s": text'),
-    (0x00797724, 0x00797724, 1, 'a number in the CRT\'s data'),
 ]
 
 # Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.

@@ -12,15 +12,11 @@
 
 namespace ei::vectors::coder {
 
-// Where the tables are in game.exe (net_coder.cpp reads them through ei::GameData).
-constexpr std::uintptr_t kLengthCodes = 0x0079B844;   // indexed by match length 1..0x22
-constexpr std::uintptr_t kLengthBits = 0x0079B7BC;
-constexpr std::uintptr_t kOffsetCodes = 0x0079B738;   // indexed by distance bucket 0..0x21
-constexpr std::uintptr_t kOffsetBits = 0x0079B6B0;
-constexpr std::uintptr_t kBitMasks = 0x0078DB24;      // (1 << n) - 1, read by BufferCursor::GetBits
-
-// "@CoderTables" (fixture): the tables as the game holds them. The replay checks that InitCodeTables
-// fills the same, then leaves the game's in the stand-in for the coder checks.
+// "@CoderTables" (fixture): the tables as game.exe holds them, each from the address the original's code
+// indexes from (the lengths' at 0079B844 and 0079B7BC, one entry before the tables, which start at length 1; the
+// masks' at 0078DB24, one entry before (1 << 1) - 1). The replay checks that InitCodeTables fills ours
+// (net_coder.h: g_lengthCodes ...) the same and that kCoderBitMasks is the game's, then leaves the game's in ours
+// for the coder checks.
 struct Tables {
     std::uint32_t lengthCodes[0x23];
     std::uint32_t lengthBits[0x23];

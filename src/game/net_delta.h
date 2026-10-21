@@ -34,12 +34,12 @@ static_assert(sizeof(BitStream) == 0x28);
 
 namespace delta {
 
-// 007A9784 / 007A9780: while writing, whether channel 0 / 1 keeps what it sent as the new snapshot.
-inline int& KeepSnapshot0() { return ei::GameData<int>(0x007A9784); }
-inline int& KeepSnapshot1() { return ei::GameData<int>(0x007A9780); }
-// 007A9794 / 007A9798: while reading, the snapshot read against and the received stream.
-inline BitStream*& ReadSnapshot() { return ei::GameData<BitStream*>(0x007A9794); }
-inline BitStream*& Reader() { return ei::GameData<BitStream*>(0x007A9798); }
+// While writing, whether channel 0 / 1 keeps what it sent as the new snapshot.
+inline int g_keepSnapshot1 = /*007A9780*/ {};
+inline int g_keepSnapshot0 = /*007A9784*/ {};
+// While reading, the snapshot read against and the received stream.
+inline BitStream* g_readSnapshot = /*007A9794*/ {nullptr};
+inline BitStream* g_received = /*007A9798*/ {nullptr};
 
 // Writers of one channel (__fastcall, the first two arguments in ECX / EDX).
 // 0047E740. WriteDelta for a single channel. Returns nothing.

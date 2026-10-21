@@ -89,7 +89,6 @@ constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
-int Campaign() { return ei::GameData<const int>(0x007C2CC4); }        // 4: the party is player 0's
 int SaveVersion() { return ei::GameData<const int>(0x00790260); }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
@@ -215,7 +214,7 @@ int GameFlow::SaveGame(const char* slot) {
     slotFolder.Format(kSlotFolder, DataFolderText(), slot);
     currentFolder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(slotFolder);
-    if (Campaign() == 4) {
+    if (TheServerWorld()->sessionKind_ == 4) {
         if (CPlayer* player = TheServerWorld()->GetPlayer(0))
             ThePartyManager()->BeginRedeploy(player->Party());
     }
@@ -464,7 +463,6 @@ constexpr int kGameResultNetwork = 2;
 constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
-int& CampaignMode() { return ei::GameData<int>(0x007C2CC4); }
 int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
@@ -575,7 +573,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     TheServerWorld()->SetZoneExits(&exits);
     TheServerWorld()->SetClimate(zoneRecord->setting2C);
     TheServerWorld()->SetCave(zoneRecord->setting30);
-    CampaignMode() = 1;
+    TheServerWorld()->sessionKind_ = 1;
     TheServerWorld()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
 
@@ -620,8 +618,8 @@ int __stdcall LeaveZone(CParty* records) {
     TheServerWorld()->ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
-    if (Campaign() == 1) TheCamera()->SaveView(7);
-    else if (Campaign() == 3) TheCamera()->SaveView(6);
+    if (TheServerWorld()->sessionKind_ == 1) TheCamera()->SaveView(7);
+    else if (TheServerWorld()->sessionKind_ == 3) TheCamera()->SaveView(6);
     path.Format(kCurrentFolder, DataFolderText());
     {
         mfc::CString fileName = zone + kSaveExtension;
@@ -1084,7 +1082,7 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     FlowBeforeServer(this, nullptr);
-    net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     {
         auto* memory = NewRefObjectAs<net::ServerSession>();
         net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
@@ -1097,7 +1095,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     // The local client connects to the local server with the password as its hello.
     alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, kLocalHost, ei::GameData<const int>(0x00783E30));
+    AddressSet(address, nullptr, kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
@@ -1119,7 +1117,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::NetLog() = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     auto* memory = NewRefObjectAs<net::ClientSession>();
     net::ClientSession* client = memory ? memory->Construct() : nullptr;
@@ -1325,7 +1323,7 @@ bool __fastcall NameInList(const char* const* list, const char* name) {
 namespace {
 
 
-// StartZone's modes (also stored as the campaign mode, 007C2CC4).
+// StartZone's modes (also stored as the campaign mode, the server world's sessionKind_).
 constexpr int kModeFromRecord = 0;   // by the zone record's kind: 0 -> 1, 1 -> 4, 2 -> 3
 constexpr int kModeMainMenu = 2;
 constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
@@ -1416,7 +1414,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         result = kResultPlaying;
     }
 
-    CampaignMode() = mode;
+    TheServerWorld()->sessionKind_ = mode;
     if (mode == 1) SpectatorFlag() = mode;
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
@@ -1521,13 +1519,13 @@ void GameFlow::ProcessRequest() {
     int& state = state_;
     if (state == 0) return;
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
-    if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
+    if (GameMode() == 1 && (TheServerWorld()->sessionKind_ == 1 || TheServerWorld()->sessionKind_ == 3) && state == kStateZone) {
         LocalRecords records;
         ThePartyManager()->EndRedeploy(records.Party());
         LeaveZoneAt(records.Party());
         ThePartyManager()->BeginRedeploy(records.Party());
     }
-    if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
+    if (GameMode() == 2 && TheServerWorld()->sessionKind_ == 1 && state == kStateZone) {
         LocalRecords records;
         LeaveZoneAt(records.Party());
     }

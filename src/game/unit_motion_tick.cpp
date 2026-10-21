@@ -119,7 +119,6 @@ std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uin
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
 int WorldTime(const CWorld* world) { return world->tick_; }
-int GameMode() { return ei::GameData<const int>(0x007C2CC4); }
 
 constexpr int kStateIdle = 0;
 constexpr int kStateCasting = 5;
@@ -353,7 +352,7 @@ void Exhaustion(CUnitServer* c) {
     if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     CPlayer* player = unit->player;
-    if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && GameMode() != 3) {
+    if (c->moveMode.wasMode3 && player && player->godMode_ == 0 && TheServerWorld()->sessionKind_ != 3) {
         UnitVitals& vitals = unit->ServerCompanion()->vitals;
         float* stamina = &vitals.mana;
         const float* rate = &vitals.maxMana;

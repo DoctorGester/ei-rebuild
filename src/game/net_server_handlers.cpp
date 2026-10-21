@@ -99,11 +99,11 @@ namespace {
 EI_REPLACE_METHOD(0x0041ACA0, ServerSession::OnMasterImpl);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
-// (0079B924; nothing when it is gone or detached): the first binding of that connection names the
+// (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the
 // player (nothing without one, or when the binding is detached), and the line is announced to
 // everybody as "^<number><name>^7: <text>".
 void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
-    Connection* connection = CurrentConnection();
+    Connection* connection = g_currentConnection;
     if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
     const stlp::list<RefPtr>& bindings = Bindings(server);
     for (auto* node = bindings.First(); node != bindings.End(); node = node->next) {

@@ -31,8 +31,8 @@ const int* OstreamVirtualBases() { return ei::GamePointer<const int>(0x00748284)
 
 // The lock all streams share (x_lockc) and how many ios are alive (initialised with the first, deleted
 // with the last).
-CRITICAL_SECTION* SharedLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007CAE90); }
-int& LiveIosCount() { return ei::GameData<int>(0x007CAEC8); }
+CRITICAL_SECTION g_sharedLock = /*007CAE90*/ {};
+int g_liveIosCount = /*007CAEC8*/ {};
 
 constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 
@@ -316,7 +316,7 @@ Ios* Ios::Construct() {
     precision = 6;
     fill = ' ';
     gameapi::InitializeCriticalSection(Section(lock));
-    if (LiveIosCount()++ == 0) gameapi::InitializeCriticalSection(SharedLock());
+    if (g_liveIosCount++ == 0) gameapi::InitializeCriticalSection(&g_sharedLock);
     return this;
 }
 EI_REWRITTEN(0x006FCDB1, libcrt::Ios::Construct);
@@ -324,7 +324,7 @@ EI_REWRITTEN(0x006FCDB1, libcrt::Ios::Construct);
 void Ios::Destruct() {
     lockFlag = -1;
     vtable = IosVtable();
-    if (--LiveIosCount() == 0) gameapi::DeleteCriticalSection(SharedLock());
+    if (--g_liveIosCount == 0) gameapi::DeleteCriticalSection(&g_sharedLock);
     gameapi::DeleteCriticalSection(Section(lock));
     if (deleteBuffer && bp) delete bp;
     bp = nullptr;
