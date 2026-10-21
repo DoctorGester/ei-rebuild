@@ -69,7 +69,7 @@ std::string WithSlash(std::string path) {
 
 // addon's 10025B50: the archive table's key, CharLowerA's lower case of the path.
 std::string Lower(std::string text) {
-    if (!text.empty()) CharLowerA(text.data());
+    if (!text.empty()) text::sys::CharLowerA(text.data());
     return text;
 }
 
@@ -272,7 +272,7 @@ void OnOpenResource(CMappedResource* res, const char* path) {
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
     char lower[MAX_PATH];
     strncpy_s(lower, path, _TRUNCATE);
-    CharLowerA(lower);
+    text::sys::CharLowerA(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
     if (config.ignored.count(lower) != 0) tables.ignored.insert(res);

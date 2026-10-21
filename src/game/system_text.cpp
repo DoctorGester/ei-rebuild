@@ -1,6 +1,8 @@
 // The Windows calls that take or give text, in UTF-8 (EI_UTF8). See system_text.h.
 #include "system_text.h"
 
+#include "lib/text_case.h"
+
 #include <algorithm>
 #include <cstring>
 
@@ -110,6 +112,8 @@ const Route kRoutes[] = {
     EI_UTF8_ROUTE(PeekMessageA),      EI_UTF8_ROUTE(DispatchMessageA),
     // The interface's text draw and extent and its fonts (U3): Unicode text drawn and measured as itself.
     EI_UTF8_ROUTE(DrawTextA),         EI_UTF8_ROUTE(GetTextExtentPoint32A), EI_UTF8_ROUTE(CreateFontIndirectA),
+    // Case (U5): UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
+    EI_UTF8_ROUTE(CharUpperA),        EI_UTF8_ROUTE(CharLowerA),
 };
 #undef EI_UTF8_ROUTE
 
@@ -406,8 +410,13 @@ int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
 
 int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format) {
     if (!text) return ::DrawTextW(dc, nullptr, length, rect, format);
-    const std::wstring wide = Wide(length < 0 ? std::string_view(text) : std::string_view(text, static_cast<std::size_t>(length)));
-    return ::DrawTextW(dc, wide.c_str(), static_cast<int>(wide.size()), rect, format);
+    std::wstring wide = Wide(length < 0 ? std::string_view(text) : std::string_view(text, static_cast<std::size_t>(length)));
+    const int count = static_cast<int>(wide.size());
+    // DT_MODIFYSTRING (with DT_END_ELLIPSIS: the server list's names) writes the shortened text back, up to
+    // four characters past the string's own (U5): room for them. The game reads none of it back, so the
+    // UTF-8 text is left as it was.
+    if (format & DT_MODIFYSTRING) wide.resize(wide.size() + 5, L'\0');
+    return ::DrawTextW(dc, wide.data(), count, rect, format);
 }
 
 BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size) {
@@ -436,6 +445,25 @@ HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font) {
     face.copy(wide.lfFaceName, LF_FACESIZE - 1);
     return ::CreateFontIndirectW(&wide);
 }
+
+// ---- Case (U5) -------------------------------------------------------------------------------------------
+
+namespace {
+// CharUpperA / CharLowerA's two forms: a string changed in place (the pointer back), or one character in the
+// pointer's low word (its other case back in the same form).
+LPSTR ChangeCase(LPSTR text, unsigned (*map)(unsigned), void (*inPlace)(char*, std::size_t)) {
+    const std::uintptr_t value = reinterpret_cast<std::uintptr_t>(text);
+    if ((value >> 16) == 0) {
+        const unsigned c = static_cast<unsigned>(value & 0xFF);
+        return reinterpret_cast<LPSTR>(static_cast<std::uintptr_t>(c < 0x80 ? map(c) : c));
+    }
+    inPlace(text, static_cast<std::size_t>(-1));
+    return text;
+}
+} // namespace
+
+LPSTR WINAPI CharUpperA(LPSTR text) { return ChangeCase(text, UpperCodePoint, UpperInPlace); }
+LPSTR WINAPI CharLowerA(LPSTR text) { return ChangeCase(text, LowerCodePoint, LowerInPlace); }
 
 } // namespace utf8
 

@@ -5,6 +5,7 @@
 #include "game/originals_library.h"
 #include "gameapi.h"
 #include "game/game_data.h"
+#include "text_case.h"
 
 #include <cfloat>
 #include <cmath>
@@ -110,6 +111,23 @@ constexpr unsigned char kMbLead = 0x4;      // _M1 in _mbctype
 
 constexpr unsigned short kUpper = 0x1;      // _UPPER
 constexpr unsigned short kLower = 0x2;      // _LOWER
+
+// EI_UTF8 (text_case.h, ticket U5): every string is UTF-8, so case and character classes no longer come from
+// the locale or the ANSI code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has
+// no class and no case of its own, and is never a double-byte lead byte; the string compares and _mbslwr
+// change case by text_case.h's table.
+constexpr bool kUtf8 = EI_UTF8 != 0;
+// A byte (as the int the class functions take) past ASCII, or EOF.
+bool PastAscii(int c) { return c < 0 || c >= 0x80; }
+// A double-byte character's lead byte by the multibyte table (never with EI_UTF8).
+bool IsDoubleByteLead(unsigned char c) {
+    if constexpr (kUtf8) {
+        (void)c;
+        return false;
+    } else {
+        return (MultibyteFlags()[c] & kMbLead) != 0;
+    }
+}
 
 // The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE] 007CABF0; zero for "C") and code page
 // (__lc_codepage 007CAC00).
@@ -263,17 +281,21 @@ int __cdecl Strcmp(const char* a, const char* b) {
 // Bytes that differ are compared as tolower folds them (the "C" locale's A-Z, or _tolower_lk), as
 // unsigned bytes: -1 or 1.
 int __cdecl Stricmp(const char* a, const char* b) {
-    const int* fold = FoldTable();
-    for (;; ++a, ++b) {
-        const unsigned char ca = static_cast<unsigned char>(*a);
-        const unsigned char cb = static_cast<unsigned char>(*b);
-        if (ca == cb) {
-            if (ca == 0) return 0;
-            continue;
+    if constexpr (kUtf8) {
+        return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
+    } else {
+        const int* fold = FoldTable();
+        for (;; ++a, ++b) {
+            const unsigned char ca = static_cast<unsigned char>(*a);
+            const unsigned char cb = static_cast<unsigned char>(*b);
+            if (ca == cb) {
+                if (ca == 0) return 0;
+                continue;
+            }
+            const unsigned char la = static_cast<unsigned char>(fold[ca]);
+            const unsigned char lb = static_cast<unsigned char>(fold[cb]);
+            if (la != lb) return la < lb ? -1 : 1;
         }
-        const unsigned char la = static_cast<unsigned char>(fold[ca]);
-        const unsigned char lb = static_cast<unsigned char>(fold[cb]);
-        if (la != lb) return la < lb ? -1 : 1;
     }
 }
 EI_REWRITTEN(0x006F2230, libcrt::Stricmp);
@@ -281,32 +303,40 @@ EI_REWRITTEN(0x006F2230, libcrt::Stricmp);
 // A terminator in either string ends the compare (the raw bytes compared); otherwise the folded bytes.
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
-    const int* fold = FoldTable();
-    for (; n > 0; --n, ++a, ++b) {
-        unsigned ca = static_cast<unsigned char>(*a);
-        unsigned cb = static_cast<unsigned char>(*b);
-        if (ca == 0 || cb == 0) return ca == cb ? 0 : ca < cb ? -1 : 1;
-        ca = static_cast<unsigned>(fold[ca]);
-        cb = static_cast<unsigned>(fold[cb]);
-        if (ca != cb) return ca < cb ? -1 : 1;
+    if constexpr (kUtf8) {
+        return text::CompareIgnoringCase(a, b, n, true);
+    } else {
+        const int* fold = FoldTable();
+        for (; n > 0; --n, ++a, ++b) {
+            unsigned ca = static_cast<unsigned char>(*a);
+            unsigned cb = static_cast<unsigned char>(*b);
+            if (ca == 0 || cb == 0) return ca == cb ? 0 : ca < cb ? -1 : 1;
+            ca = static_cast<unsigned>(fold[ca]);
+            cb = static_cast<unsigned>(fold[cb]);
+            if (ca != cb) return ca < cb ? -1 : 1;
+        }
+        return 0;
     }
-    return 0;
 }
 EI_REWRITTEN(0x006FA1A0, libcrt::Strnicmp);
 
 // VC6's _memicmp: no terminator test; bytes that differ are compared folded (A-Z in the "C" locale,
 // _tolower_lk otherwise), as unsigned bytes: -1 or 1 (S16).
 int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
-    const int* fold = FoldTable();
-    const unsigned char* pa = static_cast<const unsigned char*>(a);
-    const unsigned char* pb = static_cast<const unsigned char*>(b);
-    for (; n > 0; --n, ++pa, ++pb) {
-        if (*pa == *pb) continue;
-        const unsigned char ca = static_cast<unsigned char>(fold[*pa]);
-        const unsigned char cb = static_cast<unsigned char>(fold[*pb]);
-        if (ca != cb) return ca < cb ? -1 : 1;
+    if constexpr (kUtf8) {
+        return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
+    } else {
+        const int* fold = FoldTable();
+        const unsigned char* pa = static_cast<const unsigned char*>(a);
+        const unsigned char* pb = static_cast<const unsigned char*>(b);
+        for (; n > 0; --n, ++pa, ++pb) {
+            if (*pa == *pb) continue;
+            const unsigned char ca = static_cast<unsigned char>(fold[*pa]);
+            const unsigned char cb = static_cast<unsigned char>(fold[*pb]);
+            if (ca != cb) return ca < cb ? -1 : 1;
+        }
+        return 0;
     }
-    return 0;
 }
 EI_REWRITTEN(0x006FD2F0, libcrt::Memicmp);
 
@@ -322,43 +352,81 @@ int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
 EI_REWRITTEN(0x006E8767, libcrt::Mbsicmp);
 
 unsigned char* __cdecl Mbsinc(const unsigned char* p) {
-    const bool lead = (MultibyteFlags()[*p] & kMbLead) != 0;
-    return const_cast<unsigned char*>(p + (lead ? 2 : 1));
+    if constexpr (kUtf8) {
+        return const_cast<unsigned char*>(p + 1);
+    } else {
+        const bool lead = (MultibyteFlags()[*p] & kMbLead) != 0;
+        return const_cast<unsigned char*>(p + (lead ? 2 : 1));
+    }
 }
 EI_REWRITTEN(0x006E9947, libcrt::Mbsinc);
 
-int __cdecl Ismbblead(unsigned c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0 ? 1 : 0; }
+int __cdecl Ismbblead(unsigned c) {
+    if constexpr (kUtf8) {
+        (void)c;
+        return 0;
+    } else {
+        return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0 ? 1 : 0;
+    }
+}
 EI_REWRITTEN(0x006E99F2, libcrt::Ismbblead);
 
-int __cdecl Isleadbyte(int c) { return CharClasses()[static_cast<unsigned char>(c)] & kLeadByte; }
+int __cdecl Isleadbyte(int c) {
+    if constexpr (kUtf8) {
+        (void)c;
+        return 0;
+    } else {
+        return CharClasses()[static_cast<unsigned char>(c)] & kLeadByte;
+    }
+}
 EI_REWRITTEN(0x006E9A6C, libcrt::Isleadbyte);
 
 // In the "C" locale only A-Z / a-z change (any other int comes back as it is); under a locale,
 // MapCaseByLocale.
 int __cdecl Tolower(int c) {
-    if (LocaleHandle() == 0) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
+    if (LocaleHandle() == 0 || kUtf8) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
     return MapCaseByLocale(c, LCMAP_LOWERCASE, kUpper);
 }
 EI_REPLACE(0x006EBA53, libcrt::Tolower);
 
 int __cdecl Toupper(int c) {
-    if (LocaleHandle() == 0) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
+    if (LocaleHandle() == 0 || kUtf8) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
     return MapCaseByLocale(c, LCMAP_UPPERCASE, kLower);
 }
 EI_REWRITTEN(0x006E91C0, libcrt::Toupper);
 
 // The single-byte path (__mb_cur_max 1): the class bits of the table entry. isdigit and isspace
 // test the entry's low byte, isalpha and isprint the word (same results for their masks).
-int __cdecl Isalpha(int c) { return CharClasses()[c] & kAlpha; }
+int __cdecl Isalpha(int c) {
+    if constexpr (kUtf8) {
+        if (PastAscii(c)) return 0;
+    }
+    return CharClasses()[c] & kAlpha;
+}
 EI_REWRITTEN(0x006E92FB, libcrt::Isalpha);
 
-int __cdecl Isdigit(int c) { return CharClasses()[c] & kDigit; }
+int __cdecl Isdigit(int c) {
+    if constexpr (kUtf8) {
+        if (PastAscii(c)) return 0;
+    }
+    return CharClasses()[c] & kDigit;
+}
 EI_REPLACE(0x006E9379, libcrt::Isdigit);
 
-int __cdecl Isspace(int c) { return CharClasses()[c] & kSpace; }
+int __cdecl Isspace(int c) {
+    if constexpr (kUtf8) {
+        if (PastAscii(c)) return 0;
+    }
+    return CharClasses()[c] & kSpace;
+}
 EI_REPLACE(0x006E93CE, libcrt::Isspace);
 
-int __cdecl Isprint(int c) { return CharClasses()[c] & kPrint; }
+int __cdecl Isprint(int c) {
+    if constexpr (kUtf8) {
+        if (PastAscii(c)) return 0;
+    }
+    return CharClasses()[c] & kPrint;
+}
 EI_REWRITTEN(0x006E944C, libcrt::Isprint);
 
 // Leading white space, a sign, then decimal digits; overflow wraps.
@@ -406,7 +474,7 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
     if (*end != '\0') {
         do {
             const unsigned char c = static_cast<unsigned char>(*end);
-            if (MultibyteFlags()[c] & kMbLead) {
+            if (IsDoubleByteLead(c)) {
                 ++end;
             } else if (c == '/' || c == '\\') {
                 afterSlash = end + 1;
@@ -565,17 +633,28 @@ int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t 
 }
 EI_REWRITTEN(0x006ECD2B, libcrt::Mbsncmp);
 
-std::size_t __cdecl Mbclen(const unsigned char* c) { return (MultibyteFlags()[*c] & kMbLead) ? 2 : 1; }
+std::size_t __cdecl Mbclen(const unsigned char* c) {
+    if constexpr (kUtf8) {
+        (void)c;
+        return 1;
+    } else {
+        return (MultibyteFlags()[*c] & kMbLead) ? 2 : 1;
+    }
+}
 EI_REWRITTEN(0x006ECC98, libcrt::Mbclen);
 
 unsigned char* __cdecl Mbslwr(unsigned char* text) {
-    for (unsigned char* p = text; *p; ++p) {
-        const unsigned char flags = MultibyteFlags()[*p];
-        if (flags & kMbLead) {
-            if (!p[1]) break;
-            ++p;
-        } else if (flags & kMbSingleUpper) {
-            *p = MultibyteCaseMap()[*p];
+    if constexpr (kUtf8) {
+        text::LowerInPlace(reinterpret_cast<char*>(text));
+    } else {
+        for (unsigned char* p = text; *p; ++p) {
+            const unsigned char flags = MultibyteFlags()[*p];
+            if (flags & kMbLead) {
+                if (!p[1]) break;
+                ++p;
+            } else if (flags & kMbSingleUpper) {
+                *p = MultibyteCaseMap()[*p];
+            }
         }
     }
     return text;

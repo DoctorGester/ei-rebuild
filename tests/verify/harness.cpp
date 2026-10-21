@@ -115,7 +115,11 @@
 //                             gets it, each UTF-16 unit a WM_CHAR posted with PostMessageW (harness_utf8.h)
 //   consoleline <n> <text>    the UTF-8 build's (skipped otherwise): require the console's input line to hold
 //                             <text> in UTF-8 with the caret at the start of its character <n> (from 0)
-//   netcut                    in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
+//   utf8text                  the UTF-8 build's (skipped otherwise): Cyrillic case-insensitive compares, case
+//                             changes and the player name filter by lib/text_case.h's table (harness_utf8.h)
+//   chatwrap <text>           the UTF-8 build's (skipped otherwise): <text> added to the chat overlay breaks into
+//                             lines of valid UTF-8 that join back to it (harness_utf8.h)
+//   netcut                   in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
 //                             it sends arrives, what the other game sends it is lost; both sessions time out
 //   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
 //                             this game until the game writes it (then its overlay copy is read): a player
@@ -3159,6 +3163,11 @@ void RunSteps() {
                 g_failures.push_back(failure);
         } else if (s.verb == "consoleline") {
             if (std::string failure = utf8typing::CheckConsoleLine(s.argument); !failure.empty())
+                g_failures.push_back(failure);
+        } else if (s.verb == "utf8text") {
+            if (std::string failure = utf8text::Check(); !failure.empty()) g_failures.push_back(failure);
+        } else if (s.verb == "chatwrap") {
+            if (std::string failure = utf8text::CheckChatWrap(s.argument); !failure.empty())
                 g_failures.push_back(failure);
         } else if (s.verb == "peersignal") {
             if (!pair::Active()) g_failures.push_back("peersignal: not a pair's game (a \"peer\" line starts the other)");

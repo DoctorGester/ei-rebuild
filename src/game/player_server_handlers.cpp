@@ -22,8 +22,10 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "asset_text.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/text_case.h"
 #include "lib/mfc_slots.h"
 #include "originals_library.h"
 
@@ -569,10 +571,23 @@ constexpr std::uint8_t kMessageError = 0x11;
 } // namespace
 
 BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) {
-    for (int i = 0; i < maxLength; ++i) {
-        char c = text[i];
-        if (c == 0) return i >= minLength;
-        if (libcrt::Isprint(c) == 0) return 0;
+    if constexpr (text::kUtf8) {
+        // EI_UTF8 (U5): by character, each a valid UTF-8 sequence of a printable code point, within
+        // `maxLength` bytes; `minLength` counts characters. (The original's isprint of each signed byte
+        // passed UTF-8's bytes only through the "english" locale's table and the bytes before it.)
+        int characters = 0;
+        for (int i = 0; i < maxLength; ++characters) {
+            if (text[i] == 0) return characters >= minLength;
+            unsigned c;
+            i += text::DecodeUtf8(text + i, static_cast<std::size_t>(maxLength - i), &c);
+            if (!text::IsPrintableCodePoint(c)) return 0;
+        }
+    } else {
+        for (int i = 0; i < maxLength; ++i) {
+            char c = text[i];
+            if (c == 0) return i >= minLength;
+            if (libcrt::Isprint(c) == 0) return 0;
+        }
     }
     return 1;
 }

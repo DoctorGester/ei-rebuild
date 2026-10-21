@@ -315,7 +315,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
-after C18e's runtime classes and throws). C18 turns them into named C++
+after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -585,12 +585,19 @@ kinds given.
       (but the generated files) names it, no initialiser call, atexit or exit function takes it, no initialiser
       reads it (a copy's source), no named range holds it, and no address referenced elsewhere and stored by no
       initialiser lies less than 0x100 below it (it could be a field of that object). Its stores are left out like a
-      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 291
-      objects, 857 store statements: the per-file copies of header constants (130 zero vectors, 102 identity
-      rotations {1, 0, 0, 0}, 59 floats: 1 / 1 and pi's folds) that the original's code never reads either. The
-      rest of the generated-only addresses are objects the original reads (read by a ported function that uses
-      the value or another name; stored by an initialiser that also calls or registers an exit function; or in
-      the 0x100 below a referenced object): name them by area as above.
+      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 347
+      objects, 998 store statements: the per-file copies of header constants (zero vectors, identity rotations
+      {1, 0, 0, 0}, floats: 1 / 1 and pi's folds) that the original's code never reads either, and the neighbours of
+      other objects below. **C18m (reviewed)**: 48 groups lay within 0x100 above a referenced object; each was read
+      against that object (named_data.py --refs; its extent from the ported class's size, its constructor or the code's
+      accesses) and cannot be one of its fields: `REVIEWED_NEAR` in gen_static_init.py (group -> the object below and
+      why; most are a group right after the end of a database, a stream, a hash table or a list head). Reads inside
+      config/dead_code.csv do not count as the original's reads, and `REVIEWED_READ` lists five groups whose readers
+      are ported with a literal or are no operand (loop bounds ending at the group, a call displacement that reads as an
+      address). An entry that no longer fits (the object below got a name, the group got a reader) fails the
+      generator: drop it. The rest of the generated-only addresses are objects the original reads (read by a ported
+      function that uses the value or another name; stored by an initialiser that also calls or registers an exit
+      function; or stored by calls): name them by area as above.
     The verify build has no run where the original's initialisers and ours meet (since S21e game.exe runs only the
     original), so the comparison is the build's: exact for stores and folds of literals; a definition that a
     call fills (the sway curves) is compared at its zero start, and the goldens cover what the call builds.
@@ -1292,7 +1299,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
   round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide,
   with the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/:
-  ei_hook.dll's folder, EI_GAME_ROOT through `RedirectGamePaths`), CharUpperA / CharLowerA (U5).
+  ei_hook.dll's folder, EI_GAME_ROOT through `RedirectGamePaths`). (CharUpperA / CharLowerA are routed since U5: the case table.)
 - **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never
   reaches a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked at every
   UTF-8 harness start instead (tests/verify/harness_utf8.cpp): a folder and a file with Cyrillic names made,
@@ -1350,7 +1357,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   assets' cp1251 bytes as Cyrillic only on a system whose ANSI code page is 1251; on this machine (1252) every
   frame shows them as Latin-1 letters ("Ãðàôèêà" for "Графика"). With the wide calls the charset no longer
   decides the glyph and `DEFAULT_CHARSET` stays. The "Font CharSet" option (+0x224, "english") only sets the CRT's
-  LC_CTYPE (`CTextManager::Create` 004DED20) and is left for U5: its 1252 tables upper / lower-case UTF-8 lead
+  LC_CTYPE (`CTextManager::Create` 004DED20) (with EI_UTF8 not since U5): its 1252 tables upper / lower-case UTF-8 lead
   bytes (`tolower` of 0xD0 is 0xF0) but also let `isprint` pass them (the network name filter).
 - **Check**: the frame comparison above with `EI_FONT_CHARSET=204` in the environment of the run without EI_UTF8
   (harness.cpp: the harness's font slot sets that charset, as a system with the assets' code page realises
@@ -1362,6 +1369,61 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   the "utf8 <step>" prefix runs a step in the UTF-8 build only): 58 pixels at 4K, the glyph. How "😀" draws (Times
   New Roman has no emoji; whether DrawTextW falls back to another font) is not checked.
 - **Still ANSI**: the titles' RichEdit (`SendMessageA`, RTF carries its own code page).
+
+### U5: the audit (2026-10-21)
+
+Every site that treats text as bytes, decided as an identifier (left: ASCII names, keys, file names, numbers, or
+bytes compared and copied whole) or display text (fixed for UTF-8 with EI_UTF8; without it nothing changes).
+
+- **Case** (src/lib/text_case.h): a small table, ASCII, Latin-1 and the rest of code page 1252's letters, Cyrillic
+  U+0400-U+045F and Ґ ґ (every letter of 1251); each pair is two UTF-8 bytes both ways, so a case change never
+  changes a length. With EI_UTF8 the CRT no longer takes case or classes from the locale: `_stricmp`,
+  `_strnicmp`, `_memicmp` and `_mbsicmp` compare the table's lower-cased bytes (`text::CompareIgnoringCase`;
+  "Р" D0 A0 and "Ѡ" D1 A0 share a trail, so every byte is folded, never only differing ones), `_mbslwr` (and so
+  `CString::MakeLower`) lowers by it, `tolower` / `toupper` change ASCII only, and `isalpha`, `isdigit`,
+  `isspace`, `isprint`, `_ismbcdigit` and `_ismbcspace` give a byte past ASCII no class (code page 1252's
+  `isspace(0xA0)`, the trail of "Р", would split words). There are no double-byte lead bytes (`_ismbblead`,
+  `isleadbyte`, `_mbsinc`, `_mbclen`, `_splitpath`), whatever the system's ANSI code page. The "Font CharSet"
+  option is not used: `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are
+  routed (their slots, `text::sys`) to the table. Sites: about 100 case-insensitive compares (map, zone,
+  allod, material, model, spell, skill, item, keyword and file names, "none", the briefing's person and topic
+  keys, the save folders) left as identifiers: they reach the CRT's compares, which use the table. 19
+  `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`: mod_folders' 2 path keys and MFC's
+  `CFileFind` path left (now UTF-8-safe through the routes), script `StrLower` / `StrUpper` fixed. 6 per-byte
+  folds (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword tables through
+  `CaseFoldTable`) left: their names are ASCII (the .reg tables' slots were laid out by the original's tools).
+  8 class tests left (drive letters, digits in scripts and party files, the edit field's ASCII classes); the
+  network's player name filter (`IsPrintableText` 0047ADA0) fixed: by character, each a valid UTF-8
+  sequence of a printable code point (the original passed UTF-8 bytes only through the 1252 table's
+  `isprint` and the bytes before it for a negative char).
+- **Buffers**: about 95 fixed `char` buffers. Left: paths and file names (MAX_PATH, the figure, link and
+  terrain names, archive patterns), numbers and ids, model / texture / sound names read from the network
+  (`DeltaField::ReadText` empties one too long), error texts (`wvsprintfA` stops at 1 KB), the profile calls'
+  buffers (ANSI, U2), the host password (`strncpy` to 20 bytes on both sides, compared as bytes). Fixed:
+  `CFileRegistry::GetStringBuffer` cuts at a character's end (`text::FittingBytes`; the asset's 16-bit length no
+  longer wraps); the server list's 90-byte name buffer (`text::CopyFitting`); the message box's edit text
+  (50 characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`CMessageBox::CopyEditText`,
+  cut at a character's end); `DrawTextA`'s UTF-8 route with `DT_MODIFYSTRING` (the server list's ellipsis)
+  gives `DrawTextW` the four characters of room it writes past the text (it wrote past the `std::wstring`). The
+  chat line also stays within 200 bytes (`CChatOverlay::OnChar`): a client's update carries 220 bytes
+  (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never
+  arrive. Save names are CStrings (no buffer).
+- **Byte indexing**: about 37 sites. Left: ASCII prefixes, markers and separators (`Left(1)`, `Left(2)`, `Mid` past
+  "pers_", "constr", '|', "^<digit>", the text splitters and tokenizers that stop at ASCII bytes; a UTF-8
+  byte never equals one), the editors' carets (U4). Fixed: script `StrLen` and `StrMid` count characters
+  (`text::CharacterCount`, `text::CharacterBytes`); the new game's name cut to 10 characters, not bytes
+  (`CMpConnectScreen`).
+- **Console padding**: none. Nothing pads text to a width (no `%-20s`, no stream width); the console tables are
+  literal ASCII.
+- **Word wrap**: the chat overlay's `AddLine` (005E2A30) takes a character as its whole UTF-8 sequence
+  (`text::CharacterLength`), so a word wider than a line breaks between characters and every piece is measured
+  as text. `CUiSurface::DrawWrappedText`, the console tokenizer and the text reader walk bytes but break only at
+  ASCII spaces and newlines: left.
+- **Check**: tests/scenarios/utf8_typing.txt's "utf8 utf8text" (Cyrillic compares in either case, the "Р" / "Ѡ"
+  pair, `MakeLower`, `CharUpperA`, `tolower` and `isspace` of UTF-8 bytes, the name filter on a Cyrillic name, a
+  cut sequence and a control character) and "utf8 chatwrap" (a long Cyrillic line with a 150-letter word added to
+  the chat overlay: more than one line, each valid UTF-8, joined back to the text), and the frame comparison
+  above.
 
 ## 5. The hook retirement (S21-S21e, 2026-10-16)
 

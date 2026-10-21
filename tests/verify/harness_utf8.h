@@ -31,3 +31,21 @@ std::string Type(HWND window, const std::string& typed);
 std::string CheckConsoleLine(const std::string& argument);
 
 } // namespace ei::verify::utf8typing
+
+// The UTF-8 build's text audit (EI_UTF8, ticket U5; tests/scenarios/utf8_typing.txt, its steps marked "utf8").
+// Both need the standalone image (our code on our data).
+namespace ei::verify::utf8text {
+
+// "utf8text": case and classes without the locale (lib/text_case.h): the CRT's case-insensitive compares
+// (_stricmp, _strnicmp, _memicmp, _mbsicmp) match Cyrillic in either case and tell apart letters whose
+// UTF-8 bytes share a trail; CString::MakeLower and CharUpperA change Cyrillic case; tolower / isspace of a
+// UTF-8 byte leave it alone; the network's player name filter (IsPrintableText 0047ADA0) passes a Cyrillic
+// name and rejects a cut sequence and a control character. Empty, or what failed.
+std::string Check();
+
+// "chatwrap <text>": <text> added to the interface's chat overlay (CChatOverlay::AddLine 005E2A30) breaks into
+// more than one line, each valid UTF-8 (a long word is broken between characters), which joined give <text>
+// back; the lines are cleared afterwards. Empty, or what failed.
+std::string CheckChatWrap(const std::string& text);
+
+} // namespace ei::verify::utf8text

@@ -343,7 +343,8 @@ static_assert(sizeof(PlayerLoginMessage) == 0x88);
 // 0047ADA0 (__fastcall, RET 4; player_server_handlers.cpp). 1 when the first `maxLength`
 // characters of `text` are printable (the game's isprint, of the signed char); a terminator
 // before that gives whether at least `minLength` characters came first; 0 at the first
-// unprintable one.
+// unprintable one. With EI_UTF8 by character: a valid UTF-8 sequence of a printable code point each
+// (lib/text_case.h), `minLength` characters.
 BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength);
 
 // 00670670 (__fastcall). |a - b| squared, unrounded in ST0 (the use order's nearest-unit test).

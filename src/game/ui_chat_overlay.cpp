@@ -113,9 +113,15 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     mfc::CString source(text);
     mfc::CString ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
-    for (const char* p = source; CharAt(p) != 0; p = MbsInc(p)) {
+    // With EI_UTF8 a character is its whole UTF-8 sequence (U5), so a word wider than a line is broken
+    // between characters and measured as text.
+    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : MbsInc(p)) {
         console::Ops(ch).AssignChar(p[0]);
-        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) console::Ops(ch).AppendChar(p[1]);
+        if constexpr (text::kUtf8) {
+            for (int k = 1; k < text::CharacterLength(p); ++k) console::Ops(ch).AppendChar(p[k]);
+        } else {
+            if (libcrt::Isleadbyte(static_cast<signed char>(*p))) console::Ops(ch).AppendChar(p[1]);
+        }
         int c = CharAt(p);
         if (mark) {
             if (static_cast<unsigned>(c) >= '0' && static_cast<unsigned>(c) < '8')
@@ -319,7 +325,10 @@ void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
     mfc::CString line = text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_);
-    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped &&
+    // The line also stays within kMaxTyped bytes (U5: what the original's 200 one-byte characters took).
+    // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
+    // than that would never be counted in one. Without EI_UTF8 it follows from the character count.
+    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && line.GetLength() <= kMaxTyped &&
         TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
         typed_ = line;
         caret_ += text::TypedLength(key);

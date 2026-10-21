@@ -2,17 +2,22 @@
 #include "harness_utf8.h"
 
 #include "../../src/game/console.h"
+#include "../../src/game/player_messages.h"
 #include "../../src/game/system_text.h"
 #include "../../src/game/ui.h"
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "harness_objects.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/mfc.h"
 
 #include <windows.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace ei::verify::utf8files {
 
@@ -132,3 +137,98 @@ std::string CheckConsoleLine(const std::string& argument) {
 }
 
 } // namespace ei::verify::utf8typing
+
+namespace ei::verify::utf8text {
+
+namespace {
+
+bool ValidUtf8(const std::string& text) {
+    if (text.empty()) return true;
+    return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0) > 0;
+}
+
+// The first failed expectation of the case and class checks, or empty.
+std::string CaseFailure() {
+    struct Pair {
+        const char* a;
+        const char* b;
+        int sign;   // the compare's expected sign
+    };
+    // "Р" (D0 A0) and "Ѡ" (D1 A0) share a trail: lower-cased, D1 80 and D1 A1.
+    const Pair compares[] = {
+        {"Жук и ЁЛКА", "жУК И ёлка", 0}, {"Привет, Мир", "ПРИВЕТ, мир", 0}, {"Р", "Ѡ", -1},
+        {"абв", "АБГ", -1},             {"Ґанок", "ґАНОК", 0},           {"Straße É", "STRAßE é", 0},
+    };
+    for (const Pair& p : compares) {
+        const int got = libcrt::Stricmp(p.a, p.b);
+        const int mbs = gamecrt::mbsicmp(p.a, p.b);
+        if ((got > 0) - (got < 0) != p.sign || mbs != got)
+            return std::string("_stricmp / _mbsicmp(\"") + p.a + "\", \"" + p.b + "\") is " + std::to_string(got) + " / " +
+                   std::to_string(mbs) + ", expected the sign " + std::to_string(p.sign);
+    }
+    if (libcrt::Strnicmp("Привет мир", "ПРИВЕТ МИР", 12) != 0) return "_strnicmp of 12 bytes of \"Привет\" differs";
+    if (libcrt::Memicmp("ЖУК", "жук", 6) != 0) return "_memicmp of \"ЖУК\" and \"жук\" differs";
+    mfc::CString lower("ПРИВЕТ Ёж Ґ ABC");
+    lower.MakeLower();
+    if (std::strcmp(lower, "привет ёж ґ abc") != 0) return std::string("CString::MakeLower gave \"") + static_cast<const char*>(lower) + "\"";
+    char upper[] = "ёжик abc";
+    text::sys::CharUpperA(upper);
+    if (std::strcmp(upper, "ЁЖИК ABC") != 0) return std::string("CharUpperA gave \"") + upper + "\"";
+    // 0xD0 (a lead byte) is 'Ð' and 0xA0 (the trail of "Р") a space in code page 1252's tables.
+    if (libcrt::Tolower(0xD0) != 0xD0 || gamecrt::tolower(0xD0) != 0xD0) return "tolower changes the byte D0";
+    if (libcrt::Isspace(0xA0) != 0 || libcrt::Isalpha(0xD0) != 0) return "a UTF-8 byte has a character class";
+    // The player name filter: a Cyrillic name passes, a cut sequence or a control character does not.
+    if (!IsPrintableText("Игрок Ёж", 0x3F, 1)) return "the name filter rejects \"Игрок Ёж\"";
+    const char cut[] = {'\xD0', '\0'};
+    if (IsPrintableText(cut, 0x3F, 1)) return "the name filter passes a cut UTF-8 sequence";
+    if (IsPrintableText("Иг\x01рок", 0x3F, 1)) return "the name filter passes a control character";
+    if (IsPrintableText("", 0x3F, 1)) return "the name filter passes an empty name";
+    return {};
+}
+
+} // namespace
+
+std::string Check() {
+    if constexpr (!text::kUtf8) {
+        Log("harness: utf8text skipped (the UTF-8 build's)");
+        return {};
+    } else {
+        if (!ei::Standalone()) return "utf8text: needs the standalone image";
+        std::string failure = CaseFailure();
+        if (!failure.empty()) return "utf8text: " + failure;
+        Log("harness: utf8text: Cyrillic case-insensitive compares, case changes and the name filter as expected");
+        return {};
+    }
+}
+
+std::string CheckChatWrap(const std::string& wanted) {
+    if constexpr (!text::kUtf8) {
+        (void)wanted;
+        Log("harness: chatwrap skipped (the UTF-8 build's)");
+        return {};
+    } else {
+        if (!ei::Standalone()) return "chatwrap: needs the standalone image";
+        CChatOverlay* overlay = HarnessInterface()->root_;
+        if (!overlay) return "chatwrap: the interface has no chat overlay";
+        overlay->ClearLines();
+        overlay->AddLine(wanted.c_str(), 0);
+        std::string joined;
+        int count = 0;
+        std::string failure;
+        for (auto* node = overlay->lines_.First(); node != overlay->lines_.End(); node = node->next) {
+            const std::string line(static_cast<const char*>(node->data.name), static_cast<std::size_t>(node->data.name.GetLength()));
+            if (!ValidUtf8(line) && failure.empty()) failure = "chatwrap: line " + std::to_string(count) + " is not valid UTF-8: \"" + line + "\"";
+            Log("harness: chatwrap: line %d: \"%s\" (%d characters)", count, line.c_str(), text::CharacterCount(line));
+            joined += line;
+            ++count;
+        }
+        overlay->ClearLines();
+        if (!failure.empty()) return failure;
+        if (count < 2) return "chatwrap: the text was not broken into lines (" + std::to_string(count) + ")";
+        if (joined != wanted) return "chatwrap: the lines joined give \"" + joined + "\"";
+        Log("harness: chatwrap: %d lines, each valid UTF-8", count);
+        return {};
+    }
+}
+
+} // namespace ei::verify::utf8text

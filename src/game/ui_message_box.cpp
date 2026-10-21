@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "asset_text.h"
 #include "app_helpers.h"
 #include "world_glue.h"
 #include "game_strings.h"
@@ -23,6 +24,9 @@ const char* ExitMovie() { return "Movies\\Exit.bik"; }
 // The result of the exit question: OK plays the exit movie and quits.
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
 constexpr std::uint32_t kEditField = 4;
+// The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
+// password boxes, CMpConnectScreen::boxText_, 0x80 bytes).
+constexpr std::size_t kEditTextSize = 0x80;
 constexpr std::uint32_t kAnswerOk = 1;
 constexpr std::uint32_t kAnswerCancel = 2;
 
@@ -41,7 +45,12 @@ void PlayExitMovieAndQuit() {
 void CMessageBox::CopyEditText() {
     // The original copies the text through a temporary CString (strcpy into the caller's buffer).
     const char* text = edit_->text_;
-    std::memcpy(editText_, text, std::strlen(text) + 1);
+    if constexpr (text::kUtf8) {
+        // U5: the field's 50 characters can take up to 200 bytes in UTF-8; cut to the buffer at a character's end.
+        text::CopyFitting(editText_, kEditTextSize, text);
+    } else {
+        std::memcpy(editText_, text, std::strlen(text) + 1);
+    }
 }
 
 void CMessageBox::OnLButtonDown(int buttons, int x, int y) {

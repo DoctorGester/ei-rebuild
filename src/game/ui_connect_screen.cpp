@@ -8,6 +8,7 @@
 #include "options.h"
 #include "record_vectors.h"
 #include "stl_sorts.h"
+#include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
@@ -769,7 +770,7 @@ void CMpConnectScreen::Create() {
     {
         const int end = name.Find(NameEnd());
         if (end >= 0) name = name.Left(end);
-        if (name.GetLength() > kNameLength) name = name.Left(kNameLength);
+        if (text::CharacterCount(name) > kNameLength) name = name.Left(text::CharacterBytes(name, kNameLength));
         name.TrimLeft();
         name.TrimRight();
         nameEdit_->SetText(name);

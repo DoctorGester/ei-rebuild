@@ -21,6 +21,8 @@
 // The interface's text is drawn and measured wide (U3): DrawTextA, GetTextExtentPoint32A and CreateFontIndirectA's
 // slots lead to the wide calls.
 //
+// Case (U5): CharUpperA / CharLowerA's slots and text::sys change UTF-8 case by lib/text_case.h's table.
+//
 // Not routed (still ANSI): the profile calls (GetPrivateProfile*, WritePrivateProfileString), whose values
 // round-trip as bytes in the ANSI calls (the config\*.ini files are the game's own and their names are
 // ASCII); SendMessageA to the titles' RichEdit control (RTF names its own code page).
@@ -102,11 +104,18 @@ int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format);
 BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size);
 HFONT WINAPI CreateFontIndirectA(const LOGFONTA* font);
 
+// Case (U5): a UTF-8 string upper / lower cased in place by lib/text_case.h's table (a character in the
+// pointer's low word: an ASCII one changed, any other byte as it is).
+LPSTR WINAPI CharUpperA(LPSTR text);
+LPSTR WINAPI CharLowerA(LPSTR text);
+
 } // namespace utf8
 
 // The calls our own code makes directly (not through game.exe's imports): UTF-8 with EI_UTF8, else ANSI.
 namespace sys {
 #if EI_UTF8
+using utf8::CharLowerA;
+using utf8::CharUpperA;
 using utf8::FindFirstFileA;
 using utf8::FindNextFileA;
 using utf8::GetFileAttributesA;
@@ -114,6 +123,8 @@ using utf8::LoadCursorFromFileA;
 using utf8::RegOpenKeyExA;
 using utf8::RegQueryValueExA;
 #else
+using ::CharLowerA;
+using ::CharUpperA;
 using ::FindFirstFileA;
 using ::FindNextFileA;
 using ::GetFileAttributesA;

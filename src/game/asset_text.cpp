@@ -105,6 +105,67 @@ int CharacterCount(std::string_view text) {
 
 int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text)); }
 
+// ---- Lengths and cuts by character (U5) ----------------------------------------------------------------
+
+namespace {
+bool IsTrailByte(char byte) { return (static_cast<unsigned char>(byte) & 0xC0) == 0x80; }
+} // namespace
+
+int CharacterLength(const char* p) {
+    if constexpr (!kUtf8) {
+        (void)p;
+        return 1;
+    } else {
+        int length = 1;
+        while (IsTrailByte(p[length])) ++length;
+        return length;
+    }
+}
+
+int CharacterBytes(std::string_view text, int characters) {
+    if (characters <= 0) return 0;
+    if constexpr (!kUtf8) {
+        return static_cast<int>((std::min)(text.size(), static_cast<std::size_t>(characters)));
+    } else {
+        // CharacterCount's characters: a colour escape by its bytes, a UTF-8 sequence once.
+        constexpr std::size_t kEscapeLength = 5;
+        int count = 0;
+        std::size_t i = 0;
+        while (i < text.size() && count < characters) {
+            if (text[i] == '\007' && i + 1 < text.size() && text[i + 1] == 'C') {
+                const std::size_t length = (std::min)({kEscapeLength, text.size() - i,
+                                                       static_cast<std::size_t>(characters - count)});
+                count += static_cast<int>(length);
+                i += length;
+                continue;
+            }
+            ++i;
+            while (i < text.size() && IsTrailByte(text[i])) ++i;
+            ++count;
+        }
+        return static_cast<int>(i);
+    }
+}
+
+int CharacterBytes(const mfc::CString& text, int characters) { return CharacterBytes(Bytes(text), characters); }
+
+std::size_t FittingBytes(std::string_view text, std::size_t room) {
+    if (text.size() <= room) return text.size();
+    std::size_t n = room;
+    if constexpr (kUtf8) {
+        while (n > 0 && IsTrailByte(text[n])) --n;
+    }
+    return n;
+}
+
+void CopyFitting(char* to, std::size_t size, const char* from) {
+    if (size == 0) return;
+    const std::string_view text(from);
+    const std::size_t n = FittingBytes(text, size - 1);
+    std::memcpy(to, text.data(), n);
+    to[n] = '\0';
+}
+
 // ---- Typing (U4) ---------------------------------------------------------------------------------------
 
 namespace {

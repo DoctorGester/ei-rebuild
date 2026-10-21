@@ -20,7 +20,7 @@ tools/check_static_init.py (build.cmd) re-decodes game.exe and compares.
 
 usage: python tools/gen_static_init.py [--exe game.exe]
 """
-import argparse, bisect, collections, os, re, struct, sys
+import argparse, bisect, collections, csv, os, re, struct, sys
 
 import capstone
 
@@ -546,6 +546,72 @@ DATA_SECTIONS = (0x00783000, 0x007CD000)   # .data and its zero-filled tail
 UNREAD_KINDS = ('stores', 'float fold', 'copy')   # initialisers of plain constant objects
 UNREAD_NEAR = 0x100   # an object referenced right below may be the enclosing one
 
+# The groups UNREAD_NEAR would keep out that were read against the object right below (C18m): the object ends before
+# the group (its extent from the ported class's size, the ctor / dtor or the code's accesses; named_data.py --refs
+# lists them), so the stores cannot be one of its fields. address of the group -> (the object below, why).
+REVIEWED_NEAR = {
+    0x0079B1A8: ('0079B1A0', '"sqrt", the CRT math function name (8 bytes)'),
+    0x0079B5E0: ('0079B5DC', 'counted pointer to the server (4 bytes: its constructor 0041FF50 stores one dword)'),
+    0x0079B610: ('0079B60C', 'the player serial counter (dword read and written directly)'),
+    0x0079B680: ('0079B66C', 'the clip work buffer: CWordArray 0079B668, 0x14 bytes, its data pointer'),
+    0x0079B690: ('0079B68C', 'the clip buffer count (dword)'),
+    0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
+    0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
+    0x0079BEE0: ('0079BED8', 'the options 0079BC70 (GameOptions, 0x26C bytes) end at 0079BEDC; 0079BED8 is its master server CString'),
+    0x0079BF28: ('0079BF1C', 'the map database 0079BF00 (CMapDatabase, 0x28 bytes); 0079BF1C is its maps array data'),
+    0x0079C1C0: ('0079C1AC', 'the lever table 0079C1A0 (0x20 bytes); 0079C1AC is a member'),
+    0x007A9698: ('007A9694', 'the lightning noise loaded flag (dword)'),
+    0x007A9750: ('007A9748', 'the sort scratch guard byte (the scratch array is below it)'),
+    0x007A9788: ('007A9784', 'the select timeout 007A9778 (8 bytes) and the snapshot flags 007A9780 / 007A9784 (dwords)'),
+    0x007A9BA8: ('007A9BA4', 'a dword read directly'),
+    0x007AA5E8: ('007AA5D8', 'the party manager 007AA5A0 (PartyManager, 0x44 bytes); 007AA5D8 is its class template vector'),
+    0x007AA624: ('007AA620', 'the saving script pointer (dword; the CString 007AA61C below it is 4 bytes)'),
+    0x007AA880: ('007AA868', 'a decal vertex (DecalVertex, 0x14 bytes)'),
+    0x007ABA10: ('007ABA08', 'the float 1 / pi (read directly)'),
+    0x007ABB68: ('007ABB64', 'the fog dead cells vector 007ABB58 (12 bytes) and its guard byte'),
+    0x007AEE68: ('007AEE64', 'the DirectDraw driver list (an STLport list: one head pointer)'),
+    0x007AEE98: ('007AEE94', 'the device lock 007AEE78 (CRITICAL_SECTION, 0x18 bytes) and the holder count (dword)'),
+    0x007AF0BC: ('007AF084', 'the scene renderer 007AF060 (CSceneRenderer, members to +0x58) ends at 007AF0BC; 007AF084 is its helper'),
+    0x007AF3D8: ('007AF3BC', 'the unit database record tables 007AF358 / 007AF378 / 007AF398 / 007AF3B8 (RecordTable, 0x20 bytes each)'),
+    0x007AF410: ('007AF40C', 'the squared radius float (read directly)'),
+    0x007AFD9C: ('007AFCAC', 'the client world 007AF5B8 (CWorldClient, 0x7E4 bytes) ends at 007AFD9C; 007AFCAC is its rain / snow layer'),
+    0x007AFEA8: ('007AFEA6', 'three empty one-byte objects 007AFEA4-007AFEA6 (their `this` is never read)'),
+    0x007C2DDC: ('007C2D60', 'the received memory stream (CMemoryStream, 0x28 bytes)'),
+    0x007C2E78: ('007C2E70', 'the part draw guard byte (the moved positions array 007C2E60 is below it)'),
+    0x007C2F28: ('007C2F24', 'the flood queue guard byte (the queue 007C2F10 is below it)'),
+    0x007C5530: ('007C552C', 'the loading movie screen RECT 007C5520 (16 bytes)'),
+    0x007C5568: ('007C5560', 'a flag byte (read directly)'),
+    0x007C7B44: ('007C7B38', 'the cheat command map (an STLport map, 0xC bytes)'),
+    0x007C7B70: ('007C7B68', 'the console message filter mask (dword)'),
+    0x007C7E00: ('007C7DD8', 'the interface manager 007C7D50 (CInterface3D, 0xB0 bytes) ends at 007C7E00; 007C7DD8 is a flag byte of it'),
+    0x007C7E28: ('007C7E24', 'the screenshot counter (dword)'),
+    0x007C80F8: ('007C80E8', 'the menus rectangles 007C8048 (11 RECTs, 0xB0 bytes: the LoadMenuRects offsets 0 to 0xA0)'),
+    0x007C8120: ('007C811C', 'the next lightning tick (dword)'),
+    0x007C8328: ('007C8318', 'a CString (4 bytes) after the party variables 007C8304 (NamedFloatTable, 0x14 bytes)'),
+    0x007C8348: ('007C8344', 'the party being loaded (pointer)'),
+    0x007C8384: ('007C8370', 'the party id set (a hash_set: 0x14 bytes)'),
+    0x007C83F8: ('007C83D5', 'the received stream 007C83D0 (CMemoryStream, 0x28 bytes)'),
+    0x007C84CC: ('007C8478', 'the spell footprint set (FootprintCellSet, 0x54 bytes)'),
+    0x007C84F0: ('007C84EC', 'the projectile world being loaded (pointer)'),
+    0x007C8578: ('007C8568', 'the spell database 007C8510 (SpellDatabase, 0x64 bytes) ends at 007C8574; 007C8568 is its recipe vector'),
+    0x007C8798: ('007C877C', 'the item database 007C86D8 (ItemDatabase, 0xC0 bytes) ends at 007C8798; 007C877C is in its loot table'),
+    0x007C87E8: ('007C87D4', 'the quest database 007C87A8 (QuestDatabase, 0x40 bytes) ends at 007C87E8; 007C87D4 is its briefing map'),
+    0x007C8A28: ('007C8A0C', 'the prints database 007C89C8 (PrintsDatabase, 0x60 bytes) ends at 007C8A28'),
+    0x007C8AC0: ('007C8AA4', 'the speech database 007C8A60 (AckDatabase, 0x60 bytes) ends at 007C8AC0'),
+}
+
+
+# The groups the original's code reads that are unread objects all the same (C18m): each read is in code of ours that is
+# ported with a literal (src/ names no address of the group: `touched` still checks), is no operand, or is a loop bound
+# that ends at the group. address of the group -> why. (Reads inside config/dead_code.csv do not count at all.)
+REVIEWED_READ = {
+    0x007A9678: 'LoadLightningNoise (ported with a row count): 00468BB0 compares a pointer with the noise table end',
+    0x007A9C2C: 'EmitBag (ported, 00493560): 00493591 compares a pointer with the bag sizes end',
+    0x007C53E0: '00683868 is the middle of a call displacement (coincidence); 005C8AE2.. are the initialiser own stores',
+    0x007C7E80: '0070B443 is the middle of a CMP [reg + 0x7C], 0 (coincidence); 00600AF2.. are the initialiser own stores',
+    0x007C8430: 'CEffectMoshka::Update (ported, 0067CEF0): pi / 2 is its kHalfPi literal',
+}
+
 
 def written_cells(line):
     """The dword addresses a store, float fold or fill statement writes (None for another statement)."""
@@ -617,6 +683,23 @@ def stored_values(img, decoded):
     return values
 
 
+def dead_code():
+    """[(begin, end)] of config/dead_code.csv, sorted and merged: functions nothing reaches (C18m: the reads of the original's dead
+    code do not keep an object from being unread; docs/notes/standalone.md)."""
+    rows = []
+    with open(os.path.join(ROOT, 'config', 'dead_code.csv'), newline='', encoding='utf-8') as f:
+        for r in csv.DictReader(f):
+            a = int(r['address'], 16)
+            rows.append((a, a + int(r['size'])))
+    merged = []
+    for b, e in sorted(rows):
+        if merged and b <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(e, merged[-1][1]))
+        else:
+            merged.append((b, e))
+    return merged
+
+
 def hand_literals():
     """The game data addresses src/ and tests/ name (comments blanked), but in the files this tool writes."""
     import named_data
@@ -630,6 +713,7 @@ def hand_literals():
     return found
 
 
+STALE_REVIEWED = []   # REVIEWED_NEAR entries that no longer fit (unread_objects, then generate)
 UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread object (C18k)
 
 
@@ -648,6 +732,8 @@ def unread_objects(img, decoded, exits):
     else writes the object, its data pointer stays null and the exit function does nothing. Its atexit and the exit
     function are left out with the stores (UNREAD_EXITS; C18k: the unused aligned arrays 007A9CA8, 007AEDF0, ...)."""
     UNREAD_EXITS.clear()
+    STALE_REVIEWED.clear()
+    reviewed_used, read_used = set(), set()
     frees = {}   # the freed object's address -> (exit function, the initialiser registering it)
     for fn, name, body, _, initialisers in exits:
         m = re.fullmatch(r'if \(d\.NonZero\((0x[0-9A-F]{8})\)\) d\.Cdecl\(0x[0-9A-F]{8}, d\.Dword\(d\.Dword\(\1\) - 4\)\);', body)
@@ -671,6 +757,13 @@ def unread_objects(img, decoded, exits):
         i = bisect.bisect_right(starts, at) - 1
         return i >= 0 and own[i][0] <= at < own[i][1]
 
+    dead_ranges = dead_code()
+    dead_starts = [b for b, _ in dead_ranges]
+
+    def dead(at):   # inside code nothing runs (config/dead_code.csv): its reads do not count
+        i = bisect.bisect_right(dead_starts, at) - 1
+        return i >= 0 and at < dead_ranges[i][1]
+
     _, va, vsz, rp, _ = next(s for s in img.sections if s[0] == '.text')
     text = img.data[rp:rp + vsz]
     referenced, foreign = set(), set()
@@ -679,7 +772,7 @@ def unread_objects(img, decoded, exits):
         for i, (v,) in enumerate(struct.iter_unpack('<I', text[k:k + 4 * n])):
             if DATA_SECTIONS[0] <= v < DATA_SECTIONS[1]:
                 referenced.add(v)
-                if not owned(va + k + 4 * i):
+                if not owned(va + k + 4 * i) and not dead(va + k + 4 * i):
                     foreign.add(v)
     touched = hand_literals()
     stored, groups = set(), []
@@ -718,16 +811,28 @@ def unread_objects(img, decoded, exits):
         with_exit = kind == 'stores + atexit' and freed == [lo] and frees[lo][1] == a and exits_of[a] == [frees[lo][0]]
         if ((kind not in UNREAD_KINDS and not with_exit) or (freed and not with_exit) or any(call for _, call in run)
                 or not DATA_SECTIONS[0] <= lo < hi <= DATA_SECTIONS[1]
-                or any(lo <= v < hi for v in foreign) or any(lo <= v < hi for v in touched)
-                or any(b < hi and lo < e for b, e, _ in named)):
+                or (any(lo <= v < hi for v in foreign) and lo not in REVIEWED_READ)
+                or any(lo <= v < hi for v in touched) or any(b < hi and lo < e for b, e, _ in named)):
             continue
+        if lo in REVIEWED_READ:
+            read_used.add(lo)
         i = bisect.bisect_left(points, lo) - 1
         below = points[i] if i >= 0 else 0
         if below in foreign and below not in stored and lo - below < UNREAD_NEAR:
-            continue
+            if lo not in REVIEWED_NEAR:
+                continue
+            if f'{below:08X}' != REVIEWED_NEAR[lo][0]:
+                STALE_REVIEWED.append(f'{lo:08X}: reviewed against {REVIEWED_NEAR[lo][0]}, the object below is now {below:08X}')
+                continue
+            reviewed_used.add(lo)
         out.append((lo, hi - lo, a))
         if with_exit:
             UNREAD_EXITS[a] = frees[lo][0]
+    STALE_REVIEWED.extend(f'{lo:08X}: reviewed as read (REVIEWED_READ), no longer a group the original reads that would '
+                          'be unread (named, written or gone: drop the entry)' for lo in sorted(set(REVIEWED_READ) - read_used))
+    reported = {int(x[:8], 16) for x in STALE_REVIEWED}
+    STALE_REVIEWED.extend(f'{lo:08X}: reviewed as next to {REVIEWED_NEAR[lo][0]}, no longer a group UNREAD_NEAR keeps out '
+                          '(named, read or gone: drop the entry)' for lo in sorted(set(REVIEWED_NEAR) - reviewed_used - reported))
     return out
 
 
@@ -783,7 +888,7 @@ def generate(img):
     exits = [e for e in exits if e[0] not in dropped]
     ranges = [(b, e) for b, e, _ in named_ranges()] + [(lo, lo + n) for lo, n, _ in unread]
     kept, problems = leave_out(decoded, ranges, dict(UNREAD_EXITS))
-    return kept, exits, unread_csv(img, decoded, unread), problems
+    return kept, exits, unread_csv(img, decoded, unread), problems + STALE_REVIEWED
 
 
 # The exit functions the initialisers register with atexit, each a whole-function pattern of
