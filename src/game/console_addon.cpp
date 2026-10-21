@@ -22,6 +22,7 @@
 #include "ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "settings_file.h"
 #include "system_text.h"
 
 #include <cstdarg>
@@ -186,42 +187,25 @@ void Register(CommandMap* map, const char* name, CommandHandler handler) {
     Command(map, key) = handler;
 }
 
-// UTF-16 text as the game holds it: in the ANSI code page, as addon converts it (EI_UTF8: UTF-8).
-std::string UserText(const wchar_t* wide, int length) {
-    if constexpr (text::kUtf8) {
-        return text::Narrow(std::wstring_view(wide, static_cast<std::size_t>(length)));
-    } else {
-        int n = WideCharToMultiByte(CP_ACP, 0, wide, length, nullptr, 0, nullptr, nullptr);
-        std::string line(static_cast<std::size_t>(n > 0 ? n : 0), '\0');
-        if (n > 0) WideCharToMultiByte(CP_ACP, 0, wide, length, &line[0], n, nullptr, nullptr);
-        return line;
-    }
-}
-
 // The AutoExec lines, read once (addon reads them when it loads).
 const std::vector<std::string>& AutoExecLines() {
     static std::vector<std::string> lines = [] {
         std::vector<std::string> result;
-        HKEY key;
-        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Gipat.Ru\\EI_Starter\\Settings", 0, KEY_READ, &key) == 0) {
-            DWORD type = 0, size = 0;
-            if (RegQueryValueExW(key, L"Console AutoExec", nullptr, &type, nullptr, &size) == 0 && size != 0) {
-                std::vector<wchar_t> data(size / 2 + 1, L'\0');
-                if (RegQueryValueExW(key, L"Console AutoExec", nullptr, &type, reinterpret_cast<BYTE*>(data.data()), &size) == 0 &&
-                    type == REG_MULTI_SZ) {
-                    std::size_t count = size / 2;
-                    for (std::size_t at = 0; at < count;) {
-                        std::size_t end = at;
-                        while (end < count && data[end] != 0) ++end;
-                        if (end > at) {
-                            int wide = static_cast<int>(end - at);
-                            result.push_back(UserText(&data[at], wide));
-                        }
-                        at = end + 1;
-                    }
+        // The lines as the game holds its text (the ANSI code page, EI_UTF8: UTF-8; settings_file.h's bytes).
+        constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
+        DWORD type = 0, size = 0;
+        if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, nullptr, &size) == 0 && size != 0) {
+            std::string data(size, '\0');
+            if (settings_file::ReadValue(kStarterSettings, "Console AutoExec", &type, data.data(), &size) == 0 &&
+                type == REG_MULTI_SZ) {
+                data.resize(size);
+                for (std::size_t at = 0; at < data.size();) {
+                    std::size_t end = data.find('\0', at);
+                    if (end == std::string::npos) end = data.size();
+                    if (end > at) result.push_back(data.substr(at, end - at));
+                    at = end + 1;
                 }
             }
-            RegCloseKey(key);
         }
         DWORD attributes = text::sys::GetFileAttributesA("2utoexec.cfg");
         if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {

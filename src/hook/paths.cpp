@@ -1,8 +1,11 @@
 // When ei_launch runs a game.exe from outside its game folder (launch-vanilla.cmd), it sets
 // EI_GAME_ROOT. The game reads its install paths from the registry key that every installed copy
 // shares, so the paths there may point at another install. This redirects those lookups to
-// EI_GAME_ROOT for this process only; the registry itself is not changed.
+// EI_GAME_ROOT for this process only; the registry itself is not changed. In ei_standalone.exe the paths
+// come from its settings file (game/settings_file.h): the same change is made to each read of them there.
 #include "log.h"
+#include "ei/hook.h"
+#include "game/settings_file.h"
 #include "lib/gameapi.h"
 
 #include <cstdint>
@@ -17,10 +20,17 @@ namespace {
 char g_root[MAX_PATH];
 decltype(&::RegQueryValueExA) g_original;
 
+bool IsGamePath(const char* name) { return _stricmp(name, "Work path") == 0 || _stricmp(name, "CD-ROM Path") == 0; }
+
+// The standalone's settings file: each path read is the root.
+void RedirectedPath(const char* name, unsigned long, std::string& data) {
+    if (IsGamePath(name)) data.assign(g_root, std::strlen(g_root) + 1);
+}
+
 LONG WINAPI QueryValue(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
     LONG result = g_original(key, name, reserved, type, data, size);
     if (result != ERROR_SUCCESS || !name || !data || !size) return result;
-    if (_stricmp(name, "Work path") != 0 && _stricmp(name, "CD-ROM Path") != 0) return result;
+    if (!IsGamePath(name)) return result;
     DWORD needed = static_cast<DWORD>(std::strlen(g_root)) + 1;
     if (needed > *size) return result;
     std::memcpy(data, g_root, needed);
@@ -35,6 +45,11 @@ void RedirectGamePaths() {
     if (n == 0 || n >= MAX_PATH - 2) return;
     strcpy_s(g_root, root);
     if (g_root[n - 1] != '\\') strcat_s(g_root, "\\");
+    if (Standalone()) {
+        settings_file::AddReadFilter(&RedirectedPath);
+        Log("game paths redirected to %s (the settings file's)", g_root);
+        return;
+    }
 
     auto* slot = &gameapi::RegQueryValueExA;   // game.exe's import table entry
     DWORD old;

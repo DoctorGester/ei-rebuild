@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
+#include "settings_file.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,23 +27,17 @@ constexpr std::uintptr_t kPanelRightAddress = std::uintptr_t(0x007428AC);    // 
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
 
-// addon reads its settings with RegQueryValueExW under HKEY_CURRENT_USER; these go through the game's
-// own import of RegQueryValueExA (the strings are the same in both), so harness runs can answer them.
+// addon reads its settings with RegQueryValueExW under HKEY_CURRENT_USER; the standalone keeps them in its
+// settings file (settings_file.h; the strings are the same in both).
 constexpr const char* kStarterSettings = "Software\\Gipat.Ru\\EI_Starter\\Settings";
 constexpr const char* kGeneralSettings = "Software\\Gipat.ru\\EI_Starter\\EvilIslands\\General Settings";
 
 // Settings\WideScreen: a DWORD, 1 when the key or the value is missing (addon's default).
 bool WideScreenSetting() {
-    HKEY key;
     DWORD value = 1;
-    if (gameapi::RegOpenKeyExA(HKEY_CURRENT_USER, kStarterSettings, 0, KEY_READ, &key) == ERROR_SUCCESS) {
-        DWORD read = 0, size = sizeof(read), type = 0;
-        if (gameapi::RegQueryValueExA(key, "WideScreen", nullptr, &type, reinterpret_cast<BYTE*>(&read), &size) ==
-                ERROR_SUCCESS &&
-            type == REG_DWORD)
-            value = read;
-        gameapi::RegCloseKey(key);
-    }
+    DWORD read = 0, size = sizeof(read), type = 0;
+    if (settings_file::ReadValue(kStarterSettings, "WideScreen", &type, &read, &size) == ERROR_SUCCESS && type == REG_DWORD)
+        value = read;
     return value != 0;
 }
 
@@ -50,18 +45,13 @@ bool WideScreenSetting() {
 void Resolution(int* width, int* height) {
     *width = 0;
     *height = 0;
-    HKEY key;
-    if (gameapi::RegOpenKeyExA(HKEY_CURRENT_USER, kGeneralSettings, 0, KEY_READ, &key) != ERROR_SUCCESS) return;
     char text[64] = {};
     DWORD size = sizeof(text) - 1, type = 0;
-    if (gameapi::RegQueryValueExA(key, "VIDEORESOLUTION", nullptr, &type, reinterpret_cast<BYTE*>(text), &size) ==
-            ERROR_SUCCESS &&
-        type == REG_SZ) {
+    if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == ERROR_SUCCESS && type == REG_SZ) {
         // addon: its own CRT's sscanf. Ours directly (S16b): this runs before the hooks are in, when
         // the standalone image has no code at 006EAEEC yet.
         libcrt::Sscanf(text, "%dx%d", width, height);
     }
-    gameapi::RegCloseKey(key);
 }
 
 // addon's apply function (10023AFC): the checks that refuse a mode (logged as failed or disabled),
