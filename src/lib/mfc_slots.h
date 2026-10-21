@@ -396,6 +396,24 @@ struct TerrainArrayBClass final
 struct TerrainArrayCClass final
     : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &SerializeCArray<Plain4>> {};
 
+// A model or animation file's arrays (the loader's, 00474F30..00476AB0).
+struct RotKeyArrayClass final
+    : CompiledCollection<RotKeyArrayClass, &ArrayHeader<RotKeyArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct PosKeyArrayClass final
+    : CompiledCollection<PosKeyArrayClass, &ArrayHeader<PosKeyArrayClass>::Destruct, &SerializeCArray<Plain24>> {};
+struct MorphHeadArrayClass final
+    : CompiledCollection<MorphHeadArrayClass, &ArrayHeader<MorphHeadArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+struct NormalArrayClass final
+    : CompiledCollection<NormalArrayClass, &ArrayHeader<NormalArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+struct FilePointArrayClass final
+    : CompiledCollection<FilePointArrayClass, &ArrayHeader<FilePointArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+struct FileUvArrayClass final
+    : CompiledCollection<FileUvArrayClass, &ArrayHeader<FileUvArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+struct FileFaceArrayClass final
+    : CompiledCollection<FileFaceArrayClass, &ArrayHeader<FileFaceArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+struct IndexArrayClass final
+    : CompiledCollection<IndexArrayClass, &ArrayHeader<IndexArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+
 // Lists whose elements need nothing.
 // A figure bone's children and an animation state's bones.
 struct BoneListClass final : CompiledCollection<BoneListClass, &PtrList::Destruct<BoneListClass>, &SerializeCList<PtrList>> {};

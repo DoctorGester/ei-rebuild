@@ -480,15 +480,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 // The data the loader reads by address: the vtables of the arrays it constructs inline and its
 // messages.
 namespace scenedata {
-inline void* PointArrayVtable() { return ei::GamePointer<void>(0x0073C860); }       // A
-inline void* TexCoordArrayVtable() { return ei::GamePointer<void>(0x0073C854); }    // B
-inline void* FileFaceArrayVtable() { return ei::GamePointer<void>(0x0073C848); }    // C
-inline void* RotKeyArrayVtable() { return ei::GamePointer<void>(0x0073C83C); }      // E
-inline void* PosKeyArrayVtable() { return ei::GamePointer<void>(0x0073C830); }      // F
-inline void* MorphHeadArrayVtable() { return ei::GamePointer<void>(0x0073C824); }   // G
-inline void* NormalArrayVtable() { return ei::GamePointer<void>(0x0073C86C); }      // H
 inline void* DwordMapVtable() { return ei::GamePointer<void>(0x0073C818); }
-inline void* IndexArrayVtable() { return ei::GamePointer<void>(0x0073C800); }
 
 inline const char* CantOpenText() { return "Can't open file %s.\n"; }
 // "Scene \"%s\" have more then one top-level object!..."

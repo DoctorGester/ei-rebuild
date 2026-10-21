@@ -35,7 +35,15 @@ vtable,slots,class,file,note
 0073C68C,3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
 0073C698,3,TrapCircleArrayClass,src/lib/mfc_slots.h,CArray (a trap's circles)
 0073C6A4,3,TrapPointArrayClass,src/lib/mfc_slots.h,CArray (a trap's points)
+0073C800,3,IndexArrayClass,src/lib/mfc_slots.h,CArray (a model file's index lists)
 0073C80C,3,SceneObjectArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 0x1C-byte CObject elements)
+0073C824,3,MorphHeadArrayClass,src/lib/mfc_slots.h,CArray (an animation file's morph headers)
+0073C830,3,PosKeyArrayClass,src/lib/mfc_slots.h,CArray (an animation file's position keys)
+0073C83C,3,RotKeyArrayClass,src/lib/mfc_slots.h,CArray (an animation file's rotation keys)
+0073C848,3,FileFaceArrayClass,src/lib/mfc_slots.h,CArray (a model file's faces)
+0073C854,3,FileUvArrayClass,src/lib/mfc_slots.h,CArray (a model file's texture coordinates)
+0073C860,3,FilePointArrayClass,src/lib/mfc_slots.h,CArray (a model file's points)
+0073C86C,3,NormalArrayClass,src/lib/mfc_slots.h,CArray (a model file's normals)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70

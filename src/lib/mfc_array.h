@@ -212,30 +212,6 @@ struct AiLookArrayClass {   // the AI's look records
 struct SpriteArrayClass {   // the weather and lightning sprites
     static void* Vtable() { return ei::GamePointer<void>(0x0073C584); }
 };
-struct RotKeyArrayClass {   // an animation file's rotation keys
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C83C); }
-};
-struct PosKeyArrayClass {   // an animation file's position keys
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C830); }
-};
-struct MorphHeadArrayClass {   // an animation file's morph headers
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C824); }
-};
-struct NormalArrayClass {   // a model file's normals
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C86C); }
-};
-struct FilePointArrayClass {   // a model file's points
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C860); }
-};
-struct FileUvArrayClass {   // a model file's texture coordinates
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C854); }
-};
-struct FileFaceArrayClass {   // a model file's faces
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C848); }
-};
-struct IndexArrayClass {   // a model file's index lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C800); }
-};
 struct BoneLinkArrayClass {   // a figure's bone links
     static void* Vtable() { return ei::GamePointer<void>(0x0073C12C); }
 };
