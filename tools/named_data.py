@@ -156,6 +156,15 @@ def _pack_names(self):
 Definition.pack_names = _pack_names
 
 
+class Retired:
+    """A retired vtable (gen_image_cells.retired_vtables): game.exe's vtable of a class whose vtable is the compiler's."""
+    def __init__(self, vtable, slots, cls, path):
+        self.address, self.size, self.name, self.path = vtable, 4 * slots, f"{cls}'s retired vtable", path
+
+    def where(self):
+        return 'config/retired_vtables.csv'
+
+
 def definitions():
     """Every tagged definition under src/, in path order."""
     found = []
@@ -224,8 +233,17 @@ def check(img, update):
         if y.address < x.address + x.size:
             problems.append(f'{y.where()}: {y.name} overlaps {x.name} ({x.where()})')
 
+    # The retired vtables (config/retired_vtables.csv, C19): no definition, the same proof that nothing reaches them.
+    import gen_image_cells
+    retired = [Retired(v, n, cls, path) for v, n, cls, path in gen_image_cells.retired_vtables()]
+    for r in retired:
+        for a, b in addon_sites():
+            if a < r.address + r.size and r.address < b:
+                problems.append(f'{r.where()}: {r.name} overlaps the addon.dll site {a:08X}: that slot is written')
+    reached = good + retired
+
     def inside(a):
-        for d in good:
+        for d in reached:
             if d.address <= a < d.address + d.size:
                 return d
         return None

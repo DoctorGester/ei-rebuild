@@ -21,7 +21,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -30,6 +29,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -93,7 +93,7 @@ std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fist
 
 // ---- GroundPrint --------------------------------------------------------------------------------
 
-void GroundPrint::ConstructBase(std::uint8_t visible, int life, float alphaScale, int lifetime, std::uint32_t colour) {
+GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int lifetime, std::uint32_t colour) {
     built_ = false;
     visible_ = visible;
     growth_ = 0.0f;
@@ -121,38 +121,35 @@ void GroundPrint::SetTexture(const char* name) {
     textures->LoadTexture(texture_.texture);
 }
 
-GroundPrint* GroundPrint::CopyConstruct(const GroundPrint* other) {
-    built_ = other->built_;
-    visible_ = other->visible_;
-    position_ = other->position_;
-    halfWidth_ = other->halfWidth_;
-    halfLength_ = other->halfLength_;
-    growth_ = other->growth_;
-    life_ = other->life_;
-    texture_.Copy(&other->texture_);
-    uvOffset_ = other->uvOffset_;
-    uvScale_ = other->uvScale_;
-    uvAngle_ = other->uvAngle_;
-    angle_ = other->angle_;
-    lit_ = other->lit_;
-    alpha_ = other->alpha_;
-    alphaScale_ = other->alphaScale_;
-    colour_ = other->colour_;
-    lifetime_ = other->lifetime_;
-    positions_ = other->positions_;
-    texCoords_ = other->texCoords_;
-    indices_ = other->indices_;
-    ei::SetVtable(this, kCopyVtableAddress);
-    return this;
+GroundPrint::GroundPrint(const GroundPrint& other) {
+    built_ = other.built_;
+    visible_ = other.visible_;
+    position_ = other.position_;
+    halfWidth_ = other.halfWidth_;
+    halfLength_ = other.halfLength_;
+    growth_ = other.growth_;
+    life_ = other.life_;
+    texture_.Copy(&other.texture_);
+    uvOffset_ = other.uvOffset_;
+    uvScale_ = other.uvScale_;
+    uvAngle_ = other.uvAngle_;
+    angle_ = other.angle_;
+    lit_ = other.lit_;
+    alpha_ = other.alpha_;
+    alphaScale_ = other.alphaScale_;
+    colour_ = other.colour_;
+    lifetime_ = other.lifetime_;
+    positions_ = other.positions_;
+    texCoords_ = other.texCoords_;
+    indices_ = other.indices_;
 }
 
-GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, float halfLength, float angle,
-                                          float alphaScale, int life, int lifetime) {
-    ConstructBase(1, life, alphaScale, lifetime, 0xFFFFFFFFu);
+GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
+                         int lifetime)
+    : GroundPrint(1, life, alphaScale, lifetime, 0xFFFFFFFFu) {
     position_ = {x, y};
     halfWidth_ = halfWidth;
     halfLength_ = halfLength;
-    ei::SetVtable(this, kVtableAddress);
     Vector3 point{x, y, 0.0f};
     lit_ = camera::TheTerrain()->EdgeFade(&point);
     int quarter = RandomQuarter();
@@ -163,10 +160,9 @@ GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, flo
     uvAngle_ = static_cast<float>(quarter) * HalfPi();
     SetTexture("fireprints");
     growth_ = 0.0f;
-    return this;
 }
 
-int GroundPrint::TickImpl() {
+int GroundPrint::Tick() {
     --life_;
     halfWidth_ = halfWidth_ + growth_;
     halfLength_ = halfLength_ + growth_;
@@ -178,7 +174,7 @@ int GroundPrint::TickImpl() {
     return life_;
 }
 
-void GroundPrint::LoadImpl(CStream* stream) {
+void GroundPrint::Load(CStream* stream) {
     Read(stream, &position_.x);
     Read(stream, &position_.y);
     Read(stream, &halfWidth_);
@@ -201,7 +197,7 @@ void GroundPrint::LoadImpl(CStream* stream) {
     built_ = false;
 }
 
-void GroundPrint::SaveImpl(CStream* stream) {
+void GroundPrint::Save(CStream* stream) {
     Write(stream, position_.x);
     Write(stream, position_.y);
     Write(stream, halfWidth_);
@@ -294,14 +290,13 @@ GroundPrint* GroundPrint::DeletingDestruct(unsigned flags) {
 
 // ---- Footprint ----------------------------------------------------------------------------------
 
-Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale,
-                                int life, int lifetime, std::uint32_t tile, float scale, int visible, int kind) {
-    ConstructBase(static_cast<std::uint8_t>(visible), life, alphaScale, lifetime, 0xFFFFFFFFu);
+Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
+                     int lifetime, std::uint32_t tile, float scale, int visible, int kind)
+    : GroundPrint(static_cast<std::uint8_t>(visible), life, alphaScale, lifetime, 0xFFFFFFFFu) {
     kind_ = kind;
     scale_ = scale;
     position_ = {x, y};
     halfWidth_ = halfWidth;
-    ei::SetVtable(this, kVtableAddress);
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
     lit_ = camera::TheTerrain()->EdgeFade(&point);
@@ -320,28 +315,31 @@ Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLen
         SetTexture(name);
     }
     growth_ = 0.0f;
-    return this;
 }
 
-void Footprint::LoadImpl(CStream* stream) {
-    GroundPrint::LoadImpl(stream);
+Footprint::Footprint(const Footprint& other) : GroundPrint(other) {
+    scale_ = other.scale_;
+    kind_ = other.kind_;
+}
+
+void Footprint::Load(CStream* stream) {
+    GroundPrint::Load(stream);
     Read(stream, &scale_);
     Read(stream, &kind_);
 }
 
-void Footprint::SaveImpl(CStream* stream) {
-    GroundPrint::SaveImpl(stream);
+void Footprint::Save(CStream* stream) {
+    GroundPrint::Save(stream);
     Write(stream, scale_);
     Write(stream, kind_);
 }
 
 // ---- BloodPrint ---------------------------------------------------------------------------------
 
-BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSize, float alphaScale, int life,
-                                  int lifetime, std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh) {
-    ConstructBase(1, life, alphaScale, lifetime, colour);
+BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
+                       std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh)
+    : GroundPrint(1, life, alphaScale, lifetime, colour) {
     position_ = {x, y};
-    ei::SetVtable(this, kVtableAddress);
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
@@ -364,26 +362,32 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     float radiansPerDegree = static_cast<float>(Pi() * PerDegree());
     spin_ = degrees * radiansPerDegree;
     growth_ = static_cast<float>((fullSize - halfWidth_) / static_cast<double>(spreadTicks_));
-    return this;
 }
 
-int BloodPrint::TickImpl() {
+BloodPrint::BloodPrint(const BloodPrint& other) : GroundPrint(other) {
+    spin_ = other.spin_;
+    spreadTicks_ = other.spreadTicks_;
+    kind_ = other.kind_;
+    fresh_ = other.fresh_;
+}
+
+int BloodPrint::Tick() {
     if (--spreadTicks_ < 0) growth_ = 0.0f;
     else built_ = false;
     angle_ = angle_ + spin_;
-    return GroundPrint::TickImpl();
+    return GroundPrint::Tick();
 }
 
-void BloodPrint::LoadImpl(CStream* stream) {
-    GroundPrint::LoadImpl(stream);
+void BloodPrint::Load(CStream* stream) {
+    GroundPrint::Load(stream);
     Read(stream, &spin_);
     Read(stream, &spreadTicks_);
     Read(stream, &kind_);
     Read(stream, &fresh_);
 }
 
-void BloodPrint::SaveImpl(CStream* stream) {
-    GroundPrint::SaveImpl(stream);
+void BloodPrint::Save(CStream* stream) {
+    GroundPrint::Save(stream);
     Write(stream, spin_);
     Write(stream, spreadTicks_);
     Write(stream, kind_);
@@ -401,9 +405,8 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     if (look.alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     std::uint32_t colour = ((Channel(frameSun_.r) | 0x100) << 8 | Channel(frameSun_.g)) << 8 | Channel(frameSun_.b);
     alignas(BloodPrint) unsigned char storage[sizeof(BloodPrint)];
-    auto* print = reinterpret_cast<BloodPrint*>(storage);
-    print->Construct(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
-                     static_cast<std::uint8_t>(fresh));
+    auto* print = new (storage) BloodPrint(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
+                                           static_cast<std::uint8_t>(fresh));
     stlp::list<BloodPrint>::Node* node;
     stlp::ListAbi<BloodPrint, recordlist::BloodPrintElement>::Insert(&bloodPrints_, nullptr, &node, bloodPrints_.End(), print);
     print->Destruct();
@@ -434,9 +437,8 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
     }
     if (look && look->alpha > 0.0f && look->life > 0 && look->lifetime > 0) {
         alignas(Footprint) unsigned char storage[sizeof(Footprint)];
-        auto* print = reinterpret_cast<Footprint*>(storage);
-        print->Construct(x, y, halfWidth, halfLength, angle, look->alpha, look->life, look->lifetime, tile, scale,
-                         visible, bloodKind);
+        auto* print = new (storage) Footprint(x, y, halfWidth, halfLength, angle, look->alpha, look->life,
+                                              look->lifetime, tile, scale, visible, bloodKind);
         stlp::list<Footprint>::Node* node;
         stlp::ListAbi<Footprint, recordlist::FootprintElement>::Insert(&footprints_, nullptr, &node, footprints_.End(), print);
         print->Destruct();
@@ -452,8 +454,7 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     EI_NAN_AUDIT(alpha);
     if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     alignas(GroundPrint) unsigned char storage[sizeof(GroundPrint)];
-    auto* print = reinterpret_cast<GroundPrint*>(storage);
-    print->ConstructScorch(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
+    auto* print = new (storage) GroundPrint(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
     stlp::list<GroundPrint>::Node* node;
     stlp::ListAbi<GroundPrint, recordlist::ScorchMarkElement>::Insert(&scorchMarks_, nullptr, &node, scorchMarks_.End(), print);
     print->Destruct();
@@ -461,16 +462,48 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
 
 // ---- Registration -------------------------------------------------------------------------------
 
-// The virtual slots (rewrite-guide rule 4).
+// The virtual slots and the constructors, called without dispatch (rewrite-guide rule 4; C19: the
+// compiler's vtables hold the methods themselves, nothing reaches these addresses but their names).
+namespace {
 
-EI_REPLACE_METHOD(0x006CECD0, GroundPrint::TickImpl);
-EI_REPLACE_METHOD(0x006CF4F0, GroundPrint::LoadImpl);
-EI_REPLACE_METHOD(0x006CF370, GroundPrint::SaveImpl);
-EI_REPLACE_METHOD(0x006CFE60, Footprint::LoadImpl);
-EI_REPLACE_METHOD(0x006CFE10, Footprint::SaveImpl);
-EI_REPLACE_METHOD(0x006CFA20, BloodPrint::TickImpl);
-EI_REPLACE_METHOD(0x006CFB40, BloodPrint::LoadImpl);
-EI_REPLACE_METHOD(0x006CFAC0, BloodPrint::SaveImpl);
+int __fastcall GroundPrintTick(GroundPrint* self, void*) { return self->GroundPrint::Tick(); }
+void __fastcall GroundPrintLoad(GroundPrint* self, void*, CStream* stream) { self->GroundPrint::Load(stream); }
+void __fastcall GroundPrintSave(GroundPrint* self, void*, CStream* stream) { self->GroundPrint::Save(stream); }
+void __fastcall FootprintLoad(Footprint* self, void*, CStream* stream) { self->Footprint::Load(stream); }
+void __fastcall FootprintSave(Footprint* self, void*, CStream* stream) { self->Footprint::Save(stream); }
+int __fastcall BloodPrintTick(BloodPrint* self, void*) { return self->BloodPrint::Tick(); }
+void __fastcall BloodPrintLoad(BloodPrint* self, void*, CStream* stream) { self->BloodPrint::Load(stream); }
+void __fastcall BloodPrintSave(BloodPrint* self, void*, CStream* stream) { self->BloodPrint::Save(stream); }
+
+GroundPrint* __fastcall ConstructScorchMark(GroundPrint* self, void*, float x, float y, float halfWidth,
+                                            float halfLength, float angle, float alphaScale, int life, int lifetime) {
+    return new (self) GroundPrint(x, y, halfWidth, halfLength, angle, alphaScale, life, lifetime);
+}
+GroundPrint* __fastcall CopyGroundPrint(GroundPrint* self, void*, const GroundPrint* other) {
+    return new (self) GroundPrint(*other);
+}
+Footprint* __fastcall ConstructFootprint(Footprint* self, void*, float x, float y, float halfWidth, float halfLength,
+                                         float angle, float alphaScale, int life, int lifetime, std::uint32_t tile,
+                                         float scale, int visible, int kind) {
+    return new (self) Footprint(x, y, halfWidth, halfLength, angle, alphaScale, life, lifetime, tile, scale, visible,
+                                kind);
+}
+BloodPrint* __fastcall ConstructBloodPrint(BloodPrint* self, void*, float x, float y, float halfSize, float fullSize,
+                                           float alphaScale, int life, int lifetime, std::uint32_t tile,
+                                           std::uint32_t colour, std::uint8_t fresh) {
+    return new (self) BloodPrint(x, y, halfSize, fullSize, alphaScale, life, lifetime, tile, colour, fresh);
+}
+
+} // namespace
+
+EI_REPLACE(0x006CECD0, GroundPrintTick);
+EI_REPLACE(0x006CF4F0, GroundPrintLoad);
+EI_REPLACE(0x006CF370, GroundPrintSave);
+EI_REPLACE(0x006CFE60, FootprintLoad);
+EI_REPLACE(0x006CFE10, FootprintSave);
+EI_REPLACE(0x006CFA20, BloodPrintTick);
+EI_REPLACE(0x006CFB40, BloodPrintLoad);
+EI_REPLACE(0x006CFAC0, BloodPrintSave);
 EI_REPLACE_METHOD(0x006CEDE0, GroundPrint::Draw);
 EI_REPLACE_METHOD(0x006CF960, GroundPrint::Destruct);
 EI_REPLACE_METHOD(0x0056D080, GroundPrint::Destruct);
@@ -478,10 +511,10 @@ EI_REPLACE_METHOD(0x0056D400, GroundPrint::Destruct);
 EI_REPLACE_METHOD(0x0056D680, GroundPrint::Destruct);
 EI_REPLACE_METHOD(0x00575560, GroundPrint::DeletingDestruct);
 EI_REPLACE_METHOD(0x00575580, GroundPrint::DeletingDestruct);
-EI_REPLACE_METHOD(0x006CFEA0, GroundPrint::ConstructScorch);
-EI_REPLACE_METHOD(0x00571FC0, GroundPrint::CopyConstruct);
-EI_REPLACE_METHOD(0x006CFBA0, Footprint::Construct);
-EI_REPLACE_METHOD(0x006CF660, BloodPrint::Construct);
+EI_REPLACE(0x006CFEA0, ConstructScorchMark);
+EI_REPLACE(0x00571FC0, CopyGroundPrint);
+EI_REPLACE(0x006CFBA0, ConstructFootprint);
+EI_REPLACE(0x006CF660, ConstructBloodPrint);
 EI_REPLACE_METHOD(0x0056CE90, CWorldClient::AddBloodPrint);
 EI_REPLACE_METHOD(0x0056D150, CWorldClient::AddFootprint);
 EI_REPLACE_METHOD(0x0056D4C0, CWorldClient::AddScorchMark);

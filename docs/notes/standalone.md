@@ -260,7 +260,8 @@ each step green on the goldens and removing a measured tie:
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
 - **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
-  seam. **Vtables**: `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
+  seam. **Vtables** (until C19 makes a family's vtables the compiler's: "Compiler-made vtables" below):
+  `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
   the per-class `kVtableAddress` constants and the `SetVtable(this, 0x...)` literals are ids / helper arguments; the
   `const void*` overload takes a pointer already resolved (`X::Vtable()` accessors returning `GamePointer<void>`). A file's own
   vtable helper (`SetVtable(CUnitShape*, std::uintptr_t)`, `ConstructList`, `FreeArray`, `DestroyArray`, `InitList`,
@@ -359,6 +360,59 @@ kinds given.
     data pointing at it (a cell keeps it at its address). Saves and messages carry values, not addresses: the
     goldens catch a changed value.
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
+
+### Compiler-made vtables (C19)
+
+Most objects still get game.exe's vtables: the constructors we wrote out store the address (`ei::SetVtable`), and the
+image's copy of each table holds code cells that image_code.cpp points at our registered functions. C19 makes the
+classes real C++ virtual classes, one family per batch, so the compiler builds their vtables and game.exe's tables
+are left to nobody. The split (batch 1, tools: `find_vtables.py`'s config/vtables.csv, 619 vtables, 7,258 slot code
+cells; who names each address in src/ and tests/, comments blanked):
+
+| Family | Vtables | Slots | What ties it |
+|---|---|---|---|
+| container instantiations (mfc_array / mfc_slots / mfc_list, record_arrays, class_templates) | 159 | 475 | one table per CArray / CList instantiation: a template parameter of the shared templates |
+| world, units, items, spells, effects, AI, combat, party | 101 | 1,358 | |
+| interface (ui*, console) | 88 | 1,574 | slots called by index (`vtable_[n]`: 74 sites, ui.h 28) |
+| library (MFC, CRT; RTTI type_info) | 54 | 522 | MFC's own classes; with C14 |
+| network (net*, link*, player_sync, server*) | 45 | 422 | message classes (net_messages.cpp: 117 stores) |
+| no store in src/ | 39 | 421 | only game.exe's code installed them (base vtables a destructor stores, ...): check, then retire |
+| render, device, textures, figures, scene, sound | 39 | 516 | |
+| map objects (map_object*, object3d*, trap, magic trap, lever, torch, sky, lightning) | 39 | 947 | |
+| named by the harness | 35 | 940 | the window labels (`kKnownWindows`, `WindowReady`, the census's `W<vtable>#n`), the digest's AI modes and CSpellEffect, harness_savetrace's stream Write slots, the console streambuf's sync slot (`PatchSlot`) |
+| streams, files, resources, core | 17 | 136 | |
+| src/lib only | 3 | 7 | |
+
+Nothing else depends on a vtable's address: saves and network messages carry values (no vtable comparison in src/),
+game.exe's game classes have no RTTI (only MFC's have type descriptors; nothing reads them), find_vtables reads RTTI
+names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5 (mod_folders reproduces it).
+
+**The method** (batch 1: the ground prints, ground_print.{h,cpp}, 0073F754 / 0073F760 / 0073F76C / 0073F778):
+1. Pick a family whose vtables only its own files name (`python tools/named_data.py --split vtable` lists each
+   vtable address with the files that name it; tests/ too: grep the harness), with no harness use (or replace
+   that first, below).
+2. The classes: drop `__declspec(novtable)` and the `kVtableAddress` constants; the virtuals stay declared in
+   game.exe's slot order (every slot, so slot indexes keep their meaning) and hold the bodies (`TickImpl` becomes
+   `Tick`); a derived slot calls the base's qualified (`GroundPrint::Tick()`).
+3. The constructors become C++ constructors (the shared part a protected one, the copy the lists make a copy
+   constructor); callers construct in place (`new (storage) BloodPrint(...)`, `new (to) BloodPrint(from)` in the list
+   policies). Members must be trivially default-constructible (or initialised in the list as the original does):
+   a constructor default-initialises what it does not name. The explicit `Destruct` / deleting destructors can stay.
+4. The registrations stay (C20 retires them): virtual slots and constructors through `__fastcall` shims that call
+   without dispatch (`self->GroundPrint::Tick()`, `new (self) GroundPrint(...)`; rewrite guide rule 4).
+5. List the family's game.exe vtables in config/retired_vtables.csv (vtable, slots, class, declaring file):
+   gen_image_cells.py moves their slots out of the code cells (group `vtable-retired`; the `vtable` group's count is
+   7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves nothing names an
+   address inside them (src/, tests/), no pointer cell points into them and no code cell is left in them. A vtable two
+   classes shared (0073F778, the copy constructor's) goes when both do.
+6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
+- **Ids for later families**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
+  `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
+  recording) and the image give the same: e.g. the harness maps a vtable to a name (`kKnownWindows`' names) through
+  game.exe's address in game.exe and through the class's compiler vtable (read from a constructed object, or
+  `typeid` once no game.exe table is left in that hierarchy) in the image; when the label text changes, re-record with
+  `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
+  instead.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 

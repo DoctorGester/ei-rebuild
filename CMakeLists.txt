@@ -120,7 +120,8 @@ set(EI_IMAGE_DISPATCH ${CMAKE_BINARY_DIR}/image/dispatch_bytes.inc)
 add_custom_command(OUTPUT ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH}
     COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}
             --dispatch ${EI_IMAGE_DISPATCH}
-    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv ${EI_GAME_EXE}
+    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv
+            ${CMAKE_SOURCE_DIR}/config/retired_vtables.csv ${EI_GAME_EXE}
     COMMENT "Writing game.exe's .data bytes"
     VERBATIM)
 target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH})

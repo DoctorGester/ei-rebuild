@@ -1,0 +1,5 @@
+vtable,slots,class,file
+0073F754,3,BloodPrint,src/game/ground_print.h
+0073F760,3,Footprint,src/game/ground_print.h
+0073F76C,3,GroundPrint,src/game/ground_print.h
+0073F778,3,GroundPrint,src/game/ground_print.h

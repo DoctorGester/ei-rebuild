@@ -86,31 +86,16 @@ struct LinkArchiveElement {
 };
 
 // The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node
-// copies (0056F880 blood, 0056F940 footprints, 0056F9F0 scorch marks) start with GroundPrint's copy
-// constructor (00571FC0), copy their own members and store their class's vtable.
+// copies (0056F880 blood, 0056F940 footprints, 0056F9F0 scorch marks) are the classes' copy
+// constructors (GroundPrint's 00571FC0, then their own members).
 struct BloodPrintElement {
-    static void Copy(BloodPrint* to, const BloodPrint& from) {
-        to->CopyConstruct(&from);
-        to->spin_ = from.spin_;
-        to->spreadTicks_ = from.spreadTicks_;
-        to->kind_ = from.kind_;
-        to->fresh_ = from.fresh_;
-        ei::SetVtable(to, BloodPrint::kVtableAddress);
-    }
+    static void Copy(BloodPrint* to, const BloodPrint& from) { new (to) BloodPrint(from); }
 };
 struct FootprintElement {
-    static void Copy(Footprint* to, const Footprint& from) {
-        to->CopyConstruct(&from);
-        to->scale_ = from.scale_;
-        to->kind_ = from.kind_;
-        ei::SetVtable(to, Footprint::kVtableAddress);
-    }
+    static void Copy(Footprint* to, const Footprint& from) { new (to) Footprint(from); }
 };
 struct ScorchMarkElement {
-    static void Copy(GroundPrint* to, const GroundPrint& from) {
-        to->CopyConstruct(&from);
-        ei::SetVtable(to, GroundPrint::kVtableAddress);
-    }
+    static void Copy(GroundPrint* to, const GroundPrint& from) { new (to) GroundPrint(from); }
 };
 
 // The titles' script lines (CCreditsScreen::lines_, 24-byte nodes; 0062C0C0): the flag byte, the
