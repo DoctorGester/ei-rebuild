@@ -1,7 +1,10 @@
 #pragma once
 
 #include "maths.h"
+#include "lib/crt.h"
 #include "map_object.h"
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 #include "unit.h"   // LockKey
 
 #include "lib/mfc.h"
@@ -79,13 +82,41 @@ struct LeverSetup {
 };
 static_assert(offsetof(LeverSetup, cycling) == 0x16);
 
-// Levers (GetClassName "CLeverObject", class id 0x5D, 0x264 bytes, vtable 0073E740; made by the
-// factory 00512730; gates are levers too, e.g. zone1's "VGate", id 1889). A map object whose
+// Levers (GetClassName "CLeverObject", class id 0x5D, 0x264 bytes; made by the factory 00512730;
+// gates are levers too, e.g. zone1's "VGate", id 1889; a real virtual class: the compiler makes its
+// vtable, C19, game.exe's 0073E740 is retired). A map object whose
 // scale's y (+0xC8) is the shown position (0..1) and z (+0xCC) a second animation value that
 // scales the spots' distance. flags_ 0x80000: disabled (EnableLever 0). Names provisional; see
 // docs/notes/units.md ("Levers"). unit_lever.cpp: SetState, CollectUseSpots; lever_object.cpp the rest.
 class Lever : public CMapObject {
 public:
+    // 0052B1F0. The map object (0050E2D0), the lock {1, 0, 0}, the map object's Create (0050E770),
+    // the animation cleared, 6 network fields (0050FA30), then the lock again, state 0 of 1, not
+    // cycling, both flags 0.
+    Lever();
+    // 0052B320. The map object's Destroy (0050E840), then its destructor.
+    ~Lever() override;
+    // The deleting destructor (slot 0, 0052B300) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return CreateLever(); }        // 2: 0052B370
+    int RunTick() override { return UpdateLever(); }       // 6: 0052B490
+    void Load(void* stream) override;                      // 9: 0052BDD0 LoadLever
+    void Save(void* stream) override;                      // 10: 0052BE40 SaveLever
+    const char* GetClassName() override;                   // 11: 0052B2E0 "CLeverObject"
+    int GetClassId() override;                             // 12: 0052B2F0 (0x5D)
+    bool IsSynchronised() override { return Slot29True(); }        // 29
+    int IsUsable() override { return NeedsKey(); }                 // 38
+    int IsDirectUseBlocked() override { return Flag260Slot(); }    // 39
+    // 41: ApplyKey. The first argument is the key record (combat_actions.cpp passes its address).
+    bool ApplyScience(int first, int second) override;
+    int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }   // 42
+    bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }    // 43
+    void UseSpots(void* out, float userRadius) override;           // 44: CollectUseSpots
+    std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }   // 49
+    void WriteNetState() override { WriteLeverNetState(); }        // 50
+    float Radius() override { return static_cast<float>(RadiusSlot()); }   // 60
+
     // 0052B7A0 (RET 8). Sets state `state` (negative: the next one, wrapping when cycling) and
     // moves the lever there over `duration` ticks (negative: the model's default from 0079C1AC,
     // else 10; zero or less: at once). The units standing around it are lifted off the sector map
@@ -100,14 +131,10 @@ public:
     // ((1 - +0xCC) + +0xCC * record scale) * |offset| + userRadius.
     void CollectUseSpots(LeverSpots* out, float userRadius);
 
-    // lever_object.cpp (A-U6).
-    // 0052B1F0. The constructor: the map object (0050E2D0), the lock {1, 0, 0}, the vtable, the
-    // map object's Create (0050E770), the animation cleared, 6 network fields (0050FA30), then
-    // the lock again, state 0 of 1, not cycling, both flags 0. Returns this.
+    // lever_object.cpp (A-U6). The registrations of the constructor and destructors (C20 retires
+    // them): 0052B1F0 the constructor in place (returns this), 0052B320 the destructor, 0052B300
+    // (slot 0, RET 4) the destructor, then operator delete when `flags` bit 0 is set (returns this).
     Lever* Construct();
-    // 0052B320. The destructor body: the vtable, the map object's Destroy (0050E840) and
-    // destructor body (0050E660). 0052B300 (slot 0, RET 4): it, then operator delete when `flags`
-    // bit 0 is set; returns this.
     void DestructBody();
     Lever* DeletingDestruct(int flags);
     // 0052B370 (slot 2, Create). The map object's Create, then as the constructor's tail. Returns

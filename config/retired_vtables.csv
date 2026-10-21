@@ -8,8 +8,17 @@ vtable,slots,class,file,note
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073E548,61,CTrapObject,src/game/trap_object.h,
+0073E63C,43,MagicTrap,src/game/magic_trap.h,
+0073E6E8,18,MagicTrap,src/game/magic_trap.h,the tail of 0073E63C (a byte match)
+0073E740,61,Lever,src/game/lever.h,
+0073E834,7,CTorchObject,src/game/torch.h,
+0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
+0073E954,14,CTorchObjectClientSpec,src/game/torch_client_spec.h,
+0073E98C,5,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
 0073F76C,3,GroundPrint,src/game/ground_print.h,
@@ -19,7 +28,15 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FB88,26,CFigureManager,src/game/figure_manager.h,
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
+007432E0,7,CMappedResource,src/game/resource.h,
+007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
+00743300,8,CMMIOResource,src/game/resource.h,
+00743A14,26,CSpellManager,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
+00743CB0,26,CTextureManager,src/game/texture.h,
+00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,
+007440F0,13,CSoundManager,src/game/sound.h,

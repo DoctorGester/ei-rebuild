@@ -169,10 +169,27 @@ static_assert(sizeof(WaveRecord) == 0x1C);
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
-// CSoundManager (0x8C0 bytes, vtable 007440F0, class id 0xE). Only the fields used by the
-// rewritten code are named.
+// CSoundManager (0x8C0 bytes, class id 0xE). Only the fields used by the rewritten code are
+// named. A real virtual class: the compiler makes its vtable (C19; game.exe's 007440F0 is retired).
 struct CSoundManager : CEngineObject {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007440F0);
+    // 006B6040 (sound_manager_lifetime.cpp). CEngineObject's fields, the sub-objects (stream reader,
+    // registries, archive, wave source list, the MP3 stream's strings, faders (volume 100), arrays
+    // and locks, the MIDI sequence's), the emitters and sequences (their element constructors
+    // 006B63D0 / 006B63F0 through the CRT's eh vector iterator), the wave cache list, both hash
+    // maps (100 buckets), AIL_startup, then Reset.
+    CSoundManager();
+    // 006B65D0. Close, AIL_shutdown, the hash maps, the cache list (each record's DestructElements
+    // 006BE210), the sequences and emitters, the MIDI and stream parts, the wave source list, the
+    // registries, the stream reader; the members' destructors (the strings, the archive) after it,
+    // then CEngineObject's.
+    ~CSoundManager() override;
+    // The deleting destructor (slot 0, 006B62B0) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return CreateBody(); }   // 2: 006B6D70
+    void Destroy() override { Close(); }             // 3: 006B6D80
+    const char* GetClassName() override;              // 11: 006B6290 "CSoundManager"
+    int GetClassId() override;                        // 12: 006B62A0 (0xE)
 
     void* waveDriver;                   // +0x01C HDIGDRIVER (Open)
     void* midiDriver;                   // +0x020 HMDIDRIVER (closed by Close; not opened here)
@@ -295,8 +312,8 @@ struct CSoundManager : CEngineObject {
     // A-H14 (sound_manager_lifetime.cpp).
     // 006B6D70 (slot 2, the engine object's Create; named so, rule 4): Reset, then 1.
     int CreateBody();
-    // 006B62B0 (slot 0, RET 4). The destructor body 006B65D0, then operator delete when bit 0 of
-    // `flags` is set. Returns this.
+    // 006B62B0 (slot 0, RET 4; registered, C20 retires it). The destructor, then operator delete
+    // when bit 0 of `flags` is set. Returns this.
     CSoundManager* DeletingDestruct(unsigned flags);
     // 006B7060. Every wave source removed from the list and deleted (slot 0).
     void ClearWaveSources();
@@ -323,17 +340,10 @@ struct CSoundManager : CEngineObject {
     // empty unless the stream plays or switches.
     mfc::CString CurrentStreamName();
 
-    // A-H15 (sound_manager_lifetime.cpp).
-    // 006B6040. Constructor body: CEngineObject's fields, the sub-objects (stream reader,
-    // registries, archive, wave source list, the MP3 stream's strings, faders (volume 100), arrays
-    // and locks, the MIDI sequence's), the emitters and sequences (their element constructors
-    // 006B63D0 / 006B63F0 through the CRT's eh vector iterator), the wave cache list, both hash
-    // maps (100 buckets), the vtable, AIL_startup, then Reset. Returns this.
+    // A-H15 (sound_manager_lifetime.cpp). The registrations of the constructor and destructor
+    // (C20 retires them): 006B6040 the constructor in place (returns this), 006B65D0 the
+    // destructor.
     CSoundManager* Construct();
-    // 006B65D0. Destructor body: Close, AIL_shutdown, the hash maps, the cache list (each record's
-    // DestructElements 006BE210), the sequences and emitters, the MIDI and stream parts, the
-    // wave source list, the registries and archive (006714A0 through its address: Rebirth),
-    // the sound folder, the stream reader, CEngineObject's.
     void DestructBody();
     // 006BA9C0 (`this` is the manager's +0x100, the MP3 stream). The stream state reset: no
     // sample, file or codec, the positions -1, both names empty, switch mode 4, no read

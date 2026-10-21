@@ -345,6 +345,12 @@ def addon_sites():
     return [(a, a + n) for a, n in rdata_literals.addon_sites()]
 
 
+# The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
+# generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
+RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
+ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
+
+
 def other_files():
     """src/ and tests/ files that can name an address: .cpp, .h, .inc."""
     for top in ('src', 'tests'):
@@ -401,9 +407,13 @@ def check(img, update):
     # The retired vtables (config/retired_vtables.csv, C19): no definition, the same proof that nothing reaches them.
     import gen_image_cells
     retired = [Retired(v, n, cls, path) for v, n, cls, path in gen_image_cells.retired_vtables()]
+    # addon.dll's sites are game.exe's: addon only runs in game.exe (harness_addon.cpp at WinMain), never in the
+    # image, which reproduces its patches behind flags. A retired vtable may hold a site whose slot the image's
+    # class reproduces (RETIRED_ADDON_SITES: ResOverride's GetFile slot, CMappedResource::GetFileImpl through
+    # mod_folders), and addon_sites.inc may name it; any other site in a retired vtable is a problem.
     for r in retired:
         for a, b in addon_sites():
-            if a < r.address + r.size and r.address < b:
+            if a < r.address + r.size and r.address < b and a not in RETIRED_ADDON_SITES:
                 problems.append(f'{r.where()}: {r.name} overlaps the addon.dll site {a:08X}: that slot is written')
     reached = good + retired
 
@@ -440,7 +450,7 @@ def check(img, update):
         for m in LITERAL.finditer(code):
             a = int(m.group(1), 16)
             d = inside(a)
-            if d:
+            if d and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

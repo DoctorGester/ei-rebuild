@@ -11,6 +11,8 @@
 
 #include <new>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 // The class names are the exe's strings (GetClassName returns their addresses).
@@ -73,22 +75,9 @@ CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
         if (void* p = gamecrt::operator_new_zeroed(0x5128))   // 0066C540
             return reinterpret_cast<CEngineObject*>(static_cast<CPlayerServer*>(p)->Construct());
         return nullptr;
-    case kTorchObjectSpec: {
-        auto* spec = static_cast<CTorchObjectSpec*>(gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec)));
-        if (!spec) return nullptr;
-        ei::SetVtable(spec, CEngineObject::kVtableAddress);
-        spec->refCount_ = 0;
-        spec->id_ = -1;
-        spec->prototypeId_ = 0;
-        spec->type_ = 0;
-        spec->flags_ = 0;
-        spec->owner_ = nullptr;
-        new (&spec->name_) mfc::CString();
-        ei::SetVtable(spec, CTorchObjectSpec::kVtableAddress);
-        spec->torch_ = nullptr;
-        spec->Create();
-        return spec;
-    }
+    case kTorchObjectSpec:
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec))) return new (p) CTorchObjectSpec();
+        return nullptr;
     default:
         return nullptr;
     }
@@ -106,16 +95,19 @@ EI_REPLACE_METHOD(0x004D6970, CServerSpecificManager::NewObjectImpl);
 
 // --- CTorchObjectSpec ---------------------------------------------------------------------------
 
-void CTorchObjectSpec::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
-    Destroy();
-    name_.~CString();
-    DestructBase();
+CTorchObjectSpec::CTorchObjectSpec() {
+    ClearFields();
+    torch_ = nullptr;
+    CreateSpec();
 }
+
+CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
+
+void CTorchObjectSpec::Destruct() { this->CTorchObjectSpec::~CTorchObjectSpec(); }
 EI_REPLACE_METHOD(0x004D6BA0, CTorchObjectSpec::Destruct);
 
 CTorchObjectSpec* CTorchObjectSpec::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CTorchObjectSpec::~CTorchObjectSpec();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -123,13 +115,14 @@ EI_REPLACE_METHOD(0x004D6B80, CTorchObjectSpec::DeletingDestruct);
 
 const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }
+int CTorchObjectSpec::RunTick() { return 1; }
 
 namespace {
 const char* __fastcall TorchSpecClassNameHook(CTorchObjectSpec* self) { return self->CTorchObjectSpec::GetClassName(); }
 int __fastcall TorchSpecClassIdHook(CTorchObjectSpec* self) { return self->CTorchObjectSpec::GetClassId(); }
 // 004D6B50: slot 6 (the per-tick update of world objects) returns 1. Slots 13-15 (004D6B20 / 30 / 40)
 // are a bare RET (too short to hook).
-int __fastcall TorchSpecUpdate(CTorchObjectSpec*) { return 1; }
+int __fastcall TorchSpecUpdate(CTorchObjectSpec* self) { return self->CTorchObjectSpec::RunTick(); }
 } // namespace
 EI_REPLACE(0x004D6B60, TorchSpecClassNameHook);
 EI_REPLACE(0x004D6B70, TorchSpecClassIdHook);

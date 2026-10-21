@@ -86,14 +86,12 @@ EI_REPLACE(0x005A9C90, DestroyFigureModel);
 EI_REPLACE(0x005AE5B0, records::LeadingStringDelete);   // S13
 EI_REPLACE(0x005AE5D0, records::LeadingStringDelete);
 
-// 005AA1C0 (thiscall): the figure manager's destructor: its vtable (0073FB88), every cached model
-// destroyed and freed, the base's clean-up (00674F40), the model map cleared and its buckets
-// freed (the map's inline destructor), then the base destructor (00674DF0). The char* parameter is
-// what world_deleting_destructors.cpp declares.
-void __fastcall DestroyFigureManager(char* object) {
+// 005AA1C0 (thiscall): the figure manager's destructor: every cached model destroyed and freed,
+// the base's clean-up (00674F40), the model map cleared and its buckets freed (the map's inline
+// destructor), then the base destructor (00674DF0).
+CFigureManager::~CFigureManager() {
     using Node = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>::Node;
-    auto* manager = reinterpret_cast<CFigureManager*>(object);
-    ei::SetVtable(manager, CFigureManager::kVtableAddress);
+    CFigureManager* manager = this;
     auto& table = manager->models_;
     ForEachNode(table, [](Node* node) {
         if (FigureModel* model = node->value) {
@@ -109,6 +107,12 @@ void __fastcall DestroyFigureManager(char* object) {
     stlp::vector<Node*>& buckets = Buckets(table);
     if (buckets.Start())
         Deallocate(buckets.Start(), static_cast<std::size_t>(buckets.EndOfStorage() - buckets.Start()) * 4);
-    manager->CResourceManager::Destruct();   // 00674DF0
+}
+
+// The registration (C20 retires it). The char* parameter is what world_deleting_destructors.cpp
+// declares.
+void __fastcall DestroyFigureManager(char* object) {
+    auto* manager = reinterpret_cast<CFigureManager*>(object);
+    manager->CFigureManager::~CFigureManager();
 }
 EI_REPLACE(0x005AA1C0, DestroyFigureManager);

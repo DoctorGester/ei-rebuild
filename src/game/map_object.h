@@ -86,14 +86,13 @@ struct AttackParams; // combat.h
 struct UnitStats;    // unit.h
 struct LockKey;      // unit.h
 
-// The game builds map objects (constructor 0050E2D0 stores the vtable): novtable, and the virtual
-// slots past CEngineObject's are declared in vtable order (0073DAA0; CUnit's 0073EA8C has the same
-// slots). Slots declared `void Name()` keep their place in the order only (their real arguments are
-// not declared; name them properly when calling them). The rewritten slots that are declared here
-// are registered through __fastcall hooks (rewrite guide rule 4); the others are members of another
-// name registered by address (IsInvisible for slot 21, ResetScale for 30, ...), or the shared stub
-// bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
-class __declspec(novtable) CMapObject : public CObject3D {
+// The game builds most map objects with Construct (0050E2D0 stores the vtable 0073DAA0, 61 slots;
+// CUnit's 0073EA8C adds slot 61); a class whose constructor is C++ (C19: the torches, levers and
+// traps) gets the compiler's table, built from the same bodies: every slot is defined here (slots
+// 13-26 are CObject3D's, 19 and 21 overridden). The bodies registered by address keep their names
+// (IsInvisible for slot 21, ResetScale for 30, the stubs of map_object_stub_slots.cpp, ...); the
+// slots call them. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
+class CMapObject : public CObject3D {
 public:
     int ScaleEffectChangedDefault(int /*scaleEffect*/);
     bool AcceptsAnyAnimation(const void* /*animation*/);
@@ -102,37 +101,27 @@ public:
     void SetScriptPosition(const Vector3* point);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
 
-    virtual void CopyTransform();      // 13: CTransformObject 00401490
-    virtual void CombineRotation();    // 14: CObject3D 00516370 (CombineRotation3D)
-    virtual void UpdateWorld();        // 15: CTransformObject 0040CC30
-    virtual void SaveTransform();      // 16: 00516350 (00401510)
-    virtual void LoadTransform();      // 17: 00516360 (00401540)
-    // 18 (0x48): whether the object may play the animation entry (FigureAnimation, map_object_figures.h);
-    // 0050E400 for CObject3D / CMapObject, CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
-    virtual bool AcceptsAnimation(const void* animation);
-    // 19 (RET 4): units 0052E870 AttachCompanion. 0050E890 (map_object.cpp): an object of type 0x47
+    // 0050E660's work without the vtables (map_object_lifetime.cpp); 0050E560 is slot 0.
+    ~CMapObject() override;
+    int Create() override { return CreateMapObject(); }   // 2: 0050E770
+    void Destroy() override { DestroyMapObject(); }        // 3: 0050E840
+    void ClearState() override {}                          // 5: 0050E760 (empty)
+    int RunTick() override { return Update(); }            // 6: 0050F1C0
+    void Load(void* stream) override;                      // 9: 0050F7A0 LoadMapObject
+    void Save(void* stream) override;                      // 10: 0050F900 SaveMapObject
+    // 19: units 0052E870 AttachCompanion. 0050E890 (map_object.cpp): an object of type 0x47
     // becomes the companion (as AttachCompanion, but a null or other object goes to the 3D object's
     // slot 19, 00516D50, which takes type 0x46 objects at +0x94). Returns the companion's new
-    // reference count, or what 00516D50 leaves.
-    virtual std::uintptr_t AttachObject(CEngineObject* object);
+    // reference count, or 0.
+    std::uintptr_t AttachObject(CEngineObject* object) override;
     std::uintptr_t AttachObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
-    virtual void CopyFigure();         // 20: CObject3D 005161E0
-    virtual bool InvisibleSlot();   // 21 (0x54): 0050FA10 IsInvisible
-    // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
-    // rectangle / draw its shadow with the scene context (CObject3D 00516460 / 00516420 / 00516490:
-    // the side half's slots 19 / 20; 1 without one).
-    virtual int DrawFigure(void* context);
-    virtual int DrawCollectDirty(void* context);
-    virtual int DrawFigureShadow(void* context);
-    virtual void AdvanceTime(float time);   // 25: 0050E410 empty; units 0052FC40
-    // 26: loads the figure (CObject3D 00517500, units 0052E910). Returns 1 (or the loader's EAX).
-    virtual std::uintptr_t LoadFigures();
+    bool InvisibleSlot() override;   // 21 (0x54): 0050FA10 IsInvisible
     // 27: units 00532A80. 0050F2D0 (map_object.cpp): resets the scale (slot 30) and grows or shrinks
     // it by 0.4 per net level of enlarge/shrink (x, y, z) or, without those, strengthen/weaken (x
     // and, except for heroes, z). Components stay >= 0. Marks part 1 changed. Returns what the
     // original leaves in EAX (0, or the world when the object is referenced).
     virtual std::uintptr_t RecomputeScale();
-    // 28: 0050E420 empty (units 00532AB0). Callers use EAX.
+    // 28: 0050E420 empty (units 00532AB0). Callers use EAX (0 here).
     virtual std::uintptr_t EffectsChanged();
     // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
     // torches 1. False ones leave the server's map-object maps after the zone loads
@@ -146,8 +135,7 @@ public:
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster);
     virtual int StatsChanged();        // 32: 0050E970 PackVitals (units 0052EB50); 1
-    // 33 (0x84): 0050E960; units 0052EB30 hand the argument to
-    // their controller's slot 19.
+    // 33 (0x84): 0050E960 (1); units 0052EB30 hand the argument to their controller's slot 19.
     virtual std::uintptr_t ScaleEffectChanged(int scaleEffect);
     // 34 (0x88, RET 4): the prototype by name (units 0052EB70: their statistics). 0050E9B0
     // (map_object_stub_slots.cpp): the vitals of the prototype `prototype` (the owner's
@@ -191,10 +179,10 @@ public:
     std::uintptr_t AddEffectImpl(const MapEffect* effect);   // body of the slot above (registered by member pointer)
     // 0050FE70: the effect array's SetSize(count, -1) (CArray<MapEffect>, mfc::impl::Plain20's).
     void SetEffectCount(int count);
-    virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 (the new flags_)
+    virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it (0); units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion
     std::uintptr_t SetVisibilityModeImpl(int mode);   // body of the slot above (registered by member pointer)
-    virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from; returns `out`
+    virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from (0050F730 GroundPoint); returns `out`
     virtual std::uint32_t ReadNetState(int first);   // 49 (RET 4): 0050EC30 (units 0052EF90)
     virtual void WriteNetState();      // 50: 0050EAF0 (units 0052EC70)
     // 51 (RET 4; units 0052F740). 0050F020 (map_object.cpp): z = ground height at (x, y) + `offset`.
@@ -203,19 +191,20 @@ public:
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time);
-    virtual Vector3* AimPoint(Vector3* out);        // 53 (0xD4)
+    virtual Vector3* AimPoint(Vector3* out);        // 53 (0xD4): 0050E4D0 GetPosition2
     virtual int IsLargeUnit();                      // 54 (0xD8): 0; units +0x278 (00446890)
-    virtual int IsDead();                           // 55 (0xDC): non-zero when dead or gone
+    virtual int IsDead();                           // 55 (0xDC): non-zero when dead or gone (0050E500)
     // 56 (RET 4; the world server's RemoveObject tells every object): `object` is going away.
-    // Empty (0050E510); units: the controller's slot 42; magic traps 0052AC90.
+    // Empty (0050E510; 0); units: the controller's slot 42; magic traps 0052AC90.
     virtual int ForgetObject(CEngineObject* object);
-    virtual void UpdateMoveFactors();  // 57: empty; units: the controller's slot 53
-    virtual void RefreshWounds();      // 58: 0; units: the controller's slot 31
+    virtual void UpdateMoveFactors();  // 57: empty (0050E520); units: the controller's slot 53
+    virtual void RefreshWounds();      // 58: empty (0050E530); units: the controller's slot 31
     // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0 (0050E540); units their forward
     // speed (004468B0).
     virtual double MoveSpeed();
-    virtual float Radius();                         // 60 (0xF0): units' +0x328 (004468A0), ST0
-    // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
+    virtual float Radius();                         // 60 (0xF0): 0.75 (0050E550); units' +0x328 (004468A0), ST0
+    // 61 (0xF4): units only (00446830) keep `name` in their CString +0x238 (the script name); a
+    // map object's table ends at 60 (empty here).
     virtual void SetScriptName(const char* name);
 
     // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
@@ -234,6 +223,11 @@ public:
     // 0050E660. The destructor body: the streams' buffers, the network records (00510340), the
     // second name and the effects freed, then the 3D object's destructor body.
     void DestructBody();
+    // The fields the constructor sets past the 3D object's and the second name (Construct and the
+    // C++ constructor), and the destructor body's work but for the second name, the vtables and
+    // the 3D object (DestructBody and the C++ destructor).
+    void SetUpMapObject();
+    void TearDownMapObject();
 
     // --- Rewritten (map_object.cpp) ---
 
@@ -367,6 +361,11 @@ public:
     std::uint8_t netState[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
     std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams at +0x1E8 and +0x210
+
+protected:
+    // 0050E2D0 as C++, for a class whose vtable is the compiler's: SetUpMapObject (the second name
+    // is a member).
+    CMapObject();
 };
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);

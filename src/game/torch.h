@@ -1,24 +1,47 @@
 #pragma once
 
-// Torches (GetClassName "CTorchObject", class id 0x57, 0x23C bytes, vtable 0073E834, constructor
-// 0052BEE0): a map object holding its light / flame description, a CTorchObjectSpec
-// (server_specific_manager.h, type_ 0x4B), at +0x238. Names provisional; torch_object.cpp (A-U6);
-// Create (0052BFC0) is in map_object_create.cpp.
+// Torches (GetClassName "CTorchObject", class id 0x57, 0x23C bytes, constructor 0052BEE0): a map
+// object holding its light / flame description, a CTorchObjectSpec (server_specific_manager.h,
+// type_ 0x4B), at +0x238. Names provisional; torch_object.cpp (A-U6); Create (0052BFC0) is in
+// map_object_create.cpp. A real virtual class: the compiler makes its vtable (C19; game.exe's
+// 0073E834 and its tail 0073E850 are retired).
 
 #include "map_object.h"
+#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CStream;            // core_streams.h
 class CTorchObjectSpec;   // server_specific_manager.h
 
 class CTorchObject : public CMapObject {
 public:
-    // 0052BEE0. The map object's constructor, no spec, the vtable. Returns this.
+    // 0052BEE0. The map object's constructor, no spec.
+    CTorchObject();
+    // 0052BF60. The spec released (the pointer kept), then the map object's destructor.
+    ~CTorchObject() override;
+    // The deleting destructor (slot 0, 0052BF40) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    int Create() override { return CreateTorch(); }        // 2: 0052BFC0
+    void Destroy() override { DestroyTorch(); }            // 3: 0052C150
+    int RunTick() override { return UpdateTorch(); }       // 6: 0052BF10
+    void Load(void* stream) override;                      // 9: 0052C280 LoadTorch
+    void Save(void* stream) override;                      // 10: 0052C2A0 SaveTorch
+    const char* GetClassName() override;                   // 11: 0052BF20 "CTorchObject"
+    int GetClassId() override;                             // 12: 0052BF30 (0x57)
+    std::uintptr_t AttachObject(CEngineObject* object) override { return AttachTorchObject(object); }   // 19
+    bool IsSynchronised() override { return Slot29True(); }                         // 29
+    std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }   // 49
+    void WriteNetState() override { WriteTorchNetState(); }                         // 50
+
+    // The registrations of the constructor and destructors (C20 retires them): 0052BEE0 the
+    // constructor in place (returns this), 0052BF60 the destructor, 0052BF40 (slot 0, RET 4) the
+    // destructor, then operator delete when `flags` bit 0 is set (returns this).
     CTorchObject* Construct();
-    // 0052BF60. The vtable, the spec released (the pointer kept), the map object's destructor body.
-    // 0052BF40 (slot 0, RET 4): it, then operator delete when `flags` bit 0 is set; returns this.
     void DestructBody();
     CTorchObject* DeletingDestruct(int flags);
     // map_object_create.cpp (U6). 0052BFC0 (slot 2, Create): the map object's Create (0050E770),

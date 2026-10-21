@@ -7,6 +7,9 @@
 #include "originals_engine.h"
 
 #include <cstring>
+#include <type_traits>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -28,6 +31,9 @@ void CloseAll(stlp::vector<ArchiveEntry>& archives) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
+// The archive list has no destructor (the bodies free it); its default constructor only nulls it.
+static_assert(std::is_trivially_destructible_v<stlp::vector<ArchiveEntry>>);
+
 CResourceManager* CResourceManager::Construct() {
     ConstructBase();
     std::memset(&archives_, 0, sizeof(archives_));
@@ -36,15 +42,23 @@ CResourceManager* CResourceManager::Construct() {
 }
 EI_REPLACE_METHOD(0x00674D90, CResourceManager::Construct);
 
+CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
+
 void CResourceManager::Destruct() {
     ei::SetVtable(this, kVtableAddress);
+    TearDownResourceManager();
+    DestructBody();
+}
+EI_REPLACE_METHOD(0x00674DF0, CResourceManager::Destruct);
+
+CResourceManager::~CResourceManager() { TearDownResourceManager(); }
+
+void CResourceManager::TearDownResourceManager() {
     CloseAll(archives_);
     CBaseManager::Destroy();
     archives_.clear();
     archives_.FreeStorage();
-    DestructBody();
 }
-EI_REPLACE_METHOD(0x00674DF0, CResourceManager::Destruct);
 
 CResourceManager* CResourceManager::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -128,6 +142,13 @@ BOOL CResourceManager::HasFileImpl(const char* name) {
 void CResourceManager::FreeAllFiles() {
     for (ArchiveEntry& e : archives_) e.resource->FreeAllFiles();
 }
+
+// The slots whose bodies are registered by member pointer.
+BOOL CResourceManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
+BOOL CResourceManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
+void* CResourceManager::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
+bool CResourceManager::CloseFile(void* data) { return CloseFileImpl(data); }
+BOOL CResourceManager::HasFile(const char* name) { return HasFileImpl(name); }
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).

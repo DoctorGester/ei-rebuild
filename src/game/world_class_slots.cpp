@@ -4,6 +4,7 @@
 #include "game_strings.h"
 
 #include "world.h"
+#include "figure_manager.h"
 
 #include "ei/hook.h"
 
@@ -80,8 +81,12 @@ int __fastcall VisFogManagerClassId(ClientArrayManager*) { return kVisFogManager
 EI_REPLACE(0x00562DB0, VisFogManagerClassName);
 EI_REPLACE(0x00562DC0, VisFogManagerClassId);
 
-const char* __fastcall FigureManagerClassName(CFigureManager*) { return kFigureManagerName; }
-int __fastcall FigureManagerClassId(CFigureManager*) { return kFigureManagerId; }
+const char* CFigureManager::GetClassName() { return kFigureManagerName; }
+int CFigureManager::GetClassId() { return kFigureManagerId; }
+const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
+
+const char* __fastcall FigureManagerClassName(CFigureManager* self) { return self->CFigureManager::GetClassName(); }
+int __fastcall FigureManagerClassId(CFigureManager* self) { return self->CFigureManager::GetClassId(); }
 EI_REPLACE(0x005AA180, FigureManagerClassName);
 EI_REPLACE(0x005AA190, FigureManagerClassId);
 
@@ -103,7 +108,7 @@ EI_REPLACE(0x00579580, UiObjectClassName);
 EI_REPLACE(0x00579590, UiObjectClassId);
 
 const char* __fastcall ItemManagerResourceName(CItemManager*) { return kItemsFolderName; }
-const char* __fastcall FigureManagerResourceName(CFigureManager*) { return kFiguresFolderName; }
+const char* __fastcall FigureManagerResourceName(CFigureManager* self) { return self->CFigureManager::GetFolderName(); }
 EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
 EI_REPLACE(0x005AA170, FigureManagerResourceName);
 

@@ -194,7 +194,7 @@ EI_REPLACE_METHOD(0x005164B0, CObject3D::AddPart);
 
 // --- Loading ----------------------------------------------------------------------------------
 
-int CObject3D::LoadFigures() {
+int CObject3D::LoadFiguresImpl() {
     if (flags_ & kFlagFiguresLoaded) return 1;
     void* manager = static_cast<CWorld*>(ManagerContext())->FigureManager();
     void* model;
@@ -225,4 +225,4 @@ int CObject3D::LoadFigures() {
     flags_ |= kFlagFiguresLoaded;
     return 1;
 }
-EI_REPLACE_METHOD(0x00517500, CObject3D::LoadFigures);
+EI_REPLACE_METHOD(0x00517500, CObject3D::LoadFiguresImpl);

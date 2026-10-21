@@ -3,10 +3,13 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
 #include <windows.h>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // Pixel format of a texture surface (32 bytes), as filled in by the texture device.
 struct PixelFormat {
@@ -407,10 +410,17 @@ struct ChannelLayout {
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 
-// vtable 00743D24, class id 6. 0x68 bytes (00691810 makes it).
+// Class id 6, "CTexture", 0x68 bytes (the texture manager's 00691810 makes it). A real virtual
+// class: the compiler makes its vtable (C19; game.exe's 00743D24 is retired).
 class CTexture : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743D24);
+    // The constructor 00691810 inlines: CEngineObject's fields, an empty name and extra block, no
+    // surface, then Create's state (no block, sizes 0, an empty format of size 0x20).
+    CTexture();
+    // 00691950. Destroy's work, the extra block freed, the name, CEngineObject's.
+    ~CTexture() override;
+    // The deleting destructor (slot 0, 00691930) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 00690430 (texture_mmp.cpp). Creates the surface from .mmp data, starting at mip level `mip`
     // (the original: a system-memory surface filled from the file by 0068FA10 and loaded into a
@@ -448,10 +458,14 @@ public:
     int Create() override;
     // 3: 00691A70. The block freed, the surface released, +0x64 and flags_ 0.
     void Destroy() override;
+    // 7: 00691900 (short_functions.cpp). The name's text.
+    const char* GetName() override;
+    const char* GetClassName() override;   // 11: 00691910 "CTexture"
+    int GetClassId() override;             // 12: 00691920 (6)
     // 00690FA0. Frees block_ (an aligned block) and clears it.
     void FreeBlock();
-    // 00691950. The destructor body: Destroy's work, the extra block freed, the name destroyed,
-    // CEngineObject's destructor body. 00691930: slot 0.
+    // The registrations of the destructors (C20 retires them): 00691950 the destructor, 00691930
+    // (slot 0) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void DestructBody();
     CTexture* DeletingDestruct(unsigned flags);
 
@@ -497,22 +511,29 @@ constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 // with its name and GetLastError.
 void __cdecl DeleteComposedTextures();
 
-// vtable 00743CB0, class id 0x26. Slots 16-22 are CResourceManager's.
+// Class id 0x26. Slots 16-22 are CResourceManager's. A real virtual class: the compiler makes its
+// vtable (C19; game.exe's 00743CB0 is retired).
 class CTextureManager : public CResourceManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743CB0);
     static constexpr std::uintptr_t kCacheVtableAddress = std::uintptr_t(0x00743D18);   // cache_'s CPtrList
 
     // texture_manager_lifetime.cpp (A-H23).
-    // 00691140. CResourceManager's constructor body, an empty cache (blocks of 10), no shadow
-    // surface or device, +0xD8 / +0xE8 / +0xEC 0. Returns this.
+    // 00691140. CResourceManager's constructor, an empty cache (blocks of 10), no shadow surface
+    // or device, +0xD8 / +0xE8 / +0xEC 0.
+    CTextureManager();
+    // 00691250. The shadow surface released, every cached texture destroyed (slot 3) and deleted,
+    // the cache emptied, the composed textures deleted, the device dropped,
+    // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor.
+    ~CTextureManager() override;
+    // The registrations (C20 retires them): 00691140 the constructor in place (returns this),
+    // 00691250 the destructor, 00691230 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CTextureManager* Construct();
-    // 00691250. The destructor body: the shadow surface released, every cached texture destroyed
-    // (slot 3) and deleted, the cache emptied, the composed textures deleted, the device dropped,
-    // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor body.
-    // 00691230: slot 0.
     void Destruct();
     CTextureManager* DeletingDestruct(unsigned flags);
+    const char* GetClassName() override;     // 11: 00691210 "CTextureManager"
+    int GetClassId() override;               // 12: 00691220 (0x26)
+    const char* GetFolderName() override;    // 25: 00691200 "textures"
     // 2: 00691500 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails), the composed textures deleted, then the three texture archives of
     // the text resources' folder added (slot 16): "textures.res", "redress.res", "menus.res". All

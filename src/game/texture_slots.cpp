@@ -11,6 +11,8 @@
 
 #include <cstring>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 // --- MmpHeader -------------------------------------------------------------------------------------
 
 void MmpHeader::SetNoFormat() {
@@ -64,6 +66,10 @@ void DropSurface(CTexture* texture) {
 }
 } // namespace
 
+const char* CTexture::GetName() { return name_; }
+const char* CTexture::GetClassName() { return "CTexture"; }
+int CTexture::GetClassId() { return 6; }
+
 void CTexture::FreeBlock() {
     if (block_) lib::FreeAligned32(block_);
     block_ = nullptr;
@@ -91,22 +97,37 @@ void CTexture::Destroy() {
     flags_ = 0;
 }
 
-void CTexture::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+CTexture::CTexture() {
+    ClearFields();
+    std::memset(&extra_, 0, sizeof(extra_));
+    surface_ = nullptr;
+    name_.Empty();
+    DropSurface(this);
+    block_ = nullptr;
+    height_ = 0;
+    width_ = 0;
+    uploadResult_ = 0;
+    std::memset(&format_, 0, sizeof(format_));
+    format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
+    spare64_ = 0;
+    extra_.SetSize(0, -1);
+}
+
+// The name goes after the body (its destructor), then CEngineObject's.
+CTexture::~CTexture() {
     FreeBlock();
     DropSurface(this);
     spare64_ = 0;
     flags_ = 0;
-    // The members' destructors: the counted surface pointer is null by now; the extra block (its
-    // pointer is not cleared), the name.
+    // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
     if (extra_.data) lib::FreeAligned32(extra_.data);
-    Name()->~CString();
-    DestructBase();
 }
+
+void CTexture::DestructBody() { this->CTexture::~CTexture(); }
 EI_REPLACE_METHOD(0x00691950, CTexture::DestructBody);
 
 CTexture* CTexture::DeletingDestruct(unsigned deleteFlags) {
-    DestructBody();
+    this->CTexture::~CTexture();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -116,9 +137,13 @@ namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
 int __fastcall TextureCreateHook(CTexture* self) { return self->CTexture::Create(); }
 void __fastcall TextureDestroyHook(CTexture* self) { self->CTexture::Destroy(); }
+const char* __fastcall TextureClassName(CTexture* self) { return self->CTexture::GetClassName(); }
+int __fastcall TextureClassId(CTexture* self) { return self->CTexture::GetClassId(); }
 } // namespace
 EI_REPLACE(0x00691A00, TextureCreateHook);
 EI_REPLACE(0x00691A70, TextureDestroyHook);
+EI_REPLACE(0x00691910, TextureClassName);
+EI_REPLACE(0x00691920, TextureClassId);
 
 // --- CTextureManager -------------------------------------------------------------------------------
 

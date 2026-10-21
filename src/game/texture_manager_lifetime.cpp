@@ -10,6 +10,10 @@
 #include "lib/crt.h"
 #include "game_data.h"
 
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 constexpr int kListBlockSize = 10;
@@ -28,18 +32,17 @@ std::uint32_t CreateFlag(int type) {
 
 } // namespace
 
-CTextureManager* CTextureManager::Construct() {
-    CResourceManager::Construct();
+CTextureManager::CTextureManager() {
     cache_ = mfc::CTypedPtrList<CTexture>{ei::GamePointer<void>(kCacheVtableAddress), nullptr, nullptr, 0,
                                           nullptr, nullptr, kListBlockSize};
     shadowRenderSurface_ = nullptr;
     device_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
     cachedBytes_ = 0;
     mipLevel_ = 0;
     limitTo512_ = 0;
-    return this;
 }
+
+CTextureManager* CTextureManager::Construct() { return new (this) CTextureManager(); }
 EI_REPLACE_METHOD(0x00691140, CTextureManager::Construct);
 
 // The part Destroy and the destructor share: the shadow surface, the cache, the composed textures
@@ -81,20 +84,20 @@ void CTextureManager::Destroy() {
     CResourceManager::Destroy();
 }
 
-void CTextureManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+CTextureManager::~CTextureManager() {
     ReleaseTextures(this);
     CResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
     cache_.vtable = ei::GamePointer<void>(kCacheVtableAddress);
     cache_.RemoveAll();
-    CResourceManager::Destruct();
 }
+
+void CTextureManager::Destruct() { this->CTextureManager::~CTextureManager(); }
 EI_REPLACE_METHOD(0x00691250, CTextureManager::Destruct);
 
 CTextureManager* CTextureManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CTextureManager::~CTextureManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -114,9 +117,16 @@ EI_REPLACE(0x00691500, TextureManagerCreateHook);
 EI_REPLACE(0x00691630, TextureManagerDestroyHook);
 EI_REPLACE_METHOD(0x00691AA0, CTextureManager::CreateObjectImpl);
 
-const char* __fastcall TextureManagerClassName(CTextureManager*) { return kClassName; }
-int __fastcall TextureManagerClassId(CTextureManager*) { return 0x26; }
-const char* __fastcall TextureManagerFolder(CTextureManager*) { return kFolder; }
+CEngineObject* CTextureManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
+int CTextureManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }
+CEngineObject* CTextureManager::NewObject(int type) { return NewObjectImpl(type); }
+const char* CTextureManager::GetClassName() { return kClassName; }
+int CTextureManager::GetClassId() { return 0x26; }
+const char* CTextureManager::GetFolderName() { return kFolder; }
+
+const char* __fastcall TextureManagerClassName(CTextureManager* self) { return self->CTextureManager::GetClassName(); }
+int __fastcall TextureManagerClassId(CTextureManager* self) { return self->CTextureManager::GetClassId(); }
+const char* __fastcall TextureManagerFolder(CTextureManager* self) { return self->CTextureManager::GetFolderName(); }
 EI_REPLACE(0x00691210, TextureManagerClassName);
 EI_REPLACE(0x00691220, TextureManagerClassId);
 EI_REPLACE(0x00691200, TextureManagerFolder);

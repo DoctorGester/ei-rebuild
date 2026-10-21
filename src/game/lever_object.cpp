@@ -21,9 +21,11 @@
 #include "lib/nan_audit.h"
 
 #include <initializer_list>
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
-void* const kLeverVtable = ei::GamePointer<void>(0x0073E740);
 constexpr int kLeverNetFields = 6;
 constexpr int kLeverField = 5;            // the network field and the MarkChanged part
 constexpr int kPartScale = 1;
@@ -35,8 +37,6 @@ constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
 
 const char* const kLeverClassName = "CLeverObject";
-
-void SetVtable(Lever* lever) { *reinterpret_cast<void**>(lever) = kLeverVtable; }
 
 // The tail the constructor and Create share (after the map object's Create).
 void ResetLever(Lever* self) {
@@ -54,25 +54,22 @@ void ResetLever(Lever* self) {
 }
 } // namespace
 
-Lever* Lever::Construct() {
-    CMapObject::Construct();
+Lever::Lever() {
     lock = LockKey{1, 0, 0};
-    SetVtable(this);
     CreateMapObject();
     ResetLever(this);
-    return this;
 }
+
+Lever* Lever::Construct() { return new (this) Lever(); }
 EI_REPLACE_METHOD(0x0052B1F0, Lever::Construct);
 
-void Lever::DestructBody() {
-    SetVtable(this);
-    DestroyMapObject();
-    CMapObject::DestructBody();
-}
+Lever::~Lever() { DestroyMapObject(); }
+
+void Lever::DestructBody() { this->Lever::~Lever(); }
 EI_REPLACE_METHOD(0x0052B320, Lever::DestructBody);
 
 Lever* Lever::DeletingDestruct(int flags) {
-    DestructBody();
+    this->Lever::~Lever();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -133,6 +130,13 @@ void Lever::SaveLever(CStream* stream) {
     stream->Write(&byte, 1);
 }
 EI_REPLACE_METHOD(0x0052BE40, Lever::SaveLever);
+
+void Lever::Load(void* stream) { LoadLever(static_cast<CStream*>(stream)); }
+void Lever::Save(void* stream) { SaveLever(static_cast<CStream*>(stream)); }
+bool Lever::ApplyScience(int first, int second) {
+    return ApplyKey(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
+}
+void Lever::UseSpots(void* out, float userRadius) { CollectUseSpots(static_cast<LeverSpots*>(out), userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
     stream->Read(&mask, 4);
@@ -252,8 +256,11 @@ EI_REPLACE_METHOD(0x0052BBA0, Lever::KeyOpens);
 double Lever::RadiusSlot() { return radius; }
 EI_REPLACE_METHOD(0x0052B3E0, Lever::RadiusSlot);
 
-const char* __fastcall LeverClassName(Lever*) { return kLeverClassName; }
+const char* Lever::GetClassName() { return kLeverClassName; }
+int Lever::GetClassId() { return kClassLever; }
+
+const char* __fastcall LeverClassName(Lever* self) { return self->Lever::GetClassName(); }
 EI_REPLACE(0x0052B2E0, LeverClassName);
 
-int __fastcall LeverClassId(Lever*) { return kClassLever; }
+int __fastcall LeverClassId(Lever* self) { return self->Lever::GetClassId(); }
 EI_REPLACE(0x0052B2F0, LeverClassId);
