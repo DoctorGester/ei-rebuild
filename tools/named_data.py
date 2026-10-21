@@ -65,6 +65,8 @@ TYPES = {
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
     'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
+    'Vector3': 'fff', 'Quaternion': 'ffff',
+    'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
     'MaterialKindFile': 'iP',

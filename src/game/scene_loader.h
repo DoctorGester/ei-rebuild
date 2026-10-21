@@ -105,7 +105,7 @@ struct MeshFace {
     // face_normal.cpp (A-S4). 0049AEC0 (__thiscall, RET 4): the face's plane from the points
     // `positions` (an array of 3-float points) holds: the edges from vertex 1 to vertex 2 and to
     // vertex 0 are normalised unless shorter than 1e-5, crossed, the result normalised (a zero
-    // length gives the vector at 007A9C98), then the distance.
+    // length gives the zero vector), then the distance.
     void ComputeNormal(const PointBuffer* positions);
     std::uint32_t vertex[3];       // +00
     std::uint32_t vertex2[3];      // +0C
