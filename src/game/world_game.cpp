@@ -1742,6 +1742,23 @@ void GameFlow::Destruct() {
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 
+// The flow, zero at the start: built by the static initialiser 00578440 in the list's order and destroyed by the exit
+// function it registers (005784C0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// "The static initialisers' objects").
+constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
+GameFlow* TheGameFlow() { return &*g_gameFlow; }
+
+namespace {
+void __cdecl ConstructGameFlow() {   // 00578440
+    g_gameFlow->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+}
+void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }   // 005784C0
+} // namespace
+
+EI_REPLACE(0x00578440, ConstructGameFlow);
+EI_REPLACE(0x005784C0, DestroyGameFlow);
+
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());

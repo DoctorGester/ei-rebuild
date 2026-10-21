@@ -193,6 +193,7 @@ address,size,name,file
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
 007AFDF0,1,g_lastResourcesGuard,src/game/world_game.cpp
+007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
 007AFED4,4,g_appliedStamp,src/game/world_game.cpp

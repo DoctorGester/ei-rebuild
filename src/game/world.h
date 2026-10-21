@@ -1942,6 +1942,11 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+static_assert(sizeof(GameFlow) == 0x84);
+
+// The game flow (the object at 007AFE20; world_game.cpp): built by the static initialiser 00578440 in the list's order,
+// destroyed by the exit function it registers (005784C0).
+extern lib::StaticObject<GameFlow> g_gameFlow;
 
 struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
 

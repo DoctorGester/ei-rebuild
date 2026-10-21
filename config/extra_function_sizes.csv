@@ -906,3 +906,4 @@ address,size,note
 006D4A70,11,static initialiser linking CDib's runtime class (C18e; no Ghidra function: decoded size)
 005E4DD0,22,static initialiser of the cursor (no Ghidra function)
 005F4680,22,static initialiser of the interface manager (no Ghidra function)
+00578440,22,static initialiser of the game flow (no Ghidra function)

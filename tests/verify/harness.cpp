@@ -663,14 +663,6 @@ int __fastcall ConsoleSync(void* self, void*) {
 }
 decltype(&::PeekMessageA) g_peekMessage;
 
-// 007AFE20: the game's pending state change, carried out by the main loop (0057C700) and then
-// reset to 0. +0 kind (2 = load the save in slot <argument>, 3 = new game, 4 = go to zone <argument>, 6 = start
-// a multiplayer server on map <argument>), +4 the argument.
-struct GameRequest {
-    int kind;
-    mfc::CString argument;
-};
-GameRequest& g_request = ei::GameData<GameRequest>(0x007AFE20);
 
 // Crash diagnostics: logs access violations and other fatal exceptions with the faulting address
 // and the code addresses found on the stack (game.exe addresses as is, ours as ei_hook+offset).
@@ -2238,7 +2230,7 @@ bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
 bool WindowReady(std::uintptr_t (&vtables)[2]) {
     auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
-    if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
+    if (!top || ui->queuedWindow_ || HarnessFlow()->state_ != 0) return false;
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
     if (vtable != vtables[0] && vtable != vtables[1]) return false;
     if (vtable == ei::GameAddress(CSaveLoadWindow::kVtableAddress) || vtable == ei::GameAddress(CSaveLoadWindow::kInputVtableAddress))
@@ -2258,7 +2250,7 @@ std::string DescribeTopWindow() {
         if (vtable == ei::GameAddress(w.vtables[0]) || vtable == ei::GameAddress(w.vtables[1])) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, g_request.kind,
+                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
                   ei::GameData<int>(kCampaignMode));
     return text;
 }
@@ -2755,7 +2747,7 @@ void RunSteps() {
         // the zone loads): no request pending, not the main menu, the server world holds the zone
         // and the local player is back in the world (state 1; LeaveToZone left it at 3).
         bool ready = false;
-        if (g_inputLoop && g_request.kind == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
+        if (g_inputLoop && HarnessFlow()->state_ == 0 && ei::GameData<int>(kCampaignMode) != 2 &&
             _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
             void* connection = LocalConnection();
             ready = connection && ConnectionState(connection) == 1;
@@ -2767,7 +2759,7 @@ void RunSteps() {
         } else if (g_waitZoneDeadline.Passed()) {
             char what[500];
             std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)%s",
-                          g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, ei::GameData<int>(kCampaignMode),
+                          g_waitZoneName.c_str(), ServerZoneName(), HarnessFlow()->state_, ei::GameData<int>(kCampaignMode),
                           DescribeLocalPlayer().c_str(), g_waitZoneDeadline.Why().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -3045,10 +3037,10 @@ void RunSteps() {
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
             ei::GameData<unsigned char>(0x00784750) = 0;
-            g_request.kind = 3;
+            HarnessFlow()->state_ = 3;
         } else if (s.verb == "load") {
-            g_request.argument = s.argument.c_str();
-            g_request.kind = 2;
+            HarnessFlow()->requestTarget_ = s.argument.c_str();
+            HarnessFlow()->state_ = 2;
         } else if (s.verb == "hold" || s.verb == "release") {
             std::string bad;
             unsigned mods = ParseModifiers(s.argument, &bad);

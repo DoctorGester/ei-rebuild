@@ -31,7 +31,7 @@ struct PartyManager;   // party_manager.h
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
 // 007AFE20: the game flow object (its state machine, sessions and requests).
-inline GameFlow* TheGameFlow() { return ei::GamePointer<GameFlow>(0x007AFE20); }
+GameFlow* TheGameFlow();   // g_gameFlow (world_game.cpp)
 
 // 007C7D50: the interface manager (windows, the quest log, status text, the console window).
 CInterface3D* TheInterface();   // g_interface (ui_small_members.cpp)
