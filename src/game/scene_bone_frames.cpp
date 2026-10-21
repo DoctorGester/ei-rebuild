@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstdint>
@@ -30,10 +31,11 @@ Quaternion AxisAngle(const Vector3& axis, float angle) {
 }
 
 // The axis and angle of a unit rotation: the angle 2 acos(w), the axis the vector part over its
-// length; (1, 0, 0) and 0 when the squared length is at most 1e-8 (0073BAE0) or NaN.
+// length; (1, 0, 0) and 0 when the squared length is at most 1e-8 (0073BAE0).
 float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     float squared = LengthSquaredUnrounded<Sum3::ZYX>(q.x, q.y, q.z);
-    if (!(squared > 1e-8f /*0073BAE0*/)) {
+    EI_NAN_AUDIT(squared);
+    if (squared <= 1e-8f /*0073BAE0*/) {
         *axis = {1.0f, 0.0f, 0.0f};
         return 0.0f /*0073B858*/;
     }
@@ -110,7 +112,8 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
         Quaternion now = Keys(bone)[frame].rotation;
         Quaternion step;
         MultiplyByConjugate(&step, now, before);
-        if (!(step.w >= 0.0f /*0073B858*/)) {   // the shorter way round (or NaN)
+        EI_NAN_AUDIT(step.w);
+        if (step.w < 0.0f /*0073B858*/) {   // the shorter way round
             step.w = -step.w;
             step.x = -step.x;
             step.y = -step.y;

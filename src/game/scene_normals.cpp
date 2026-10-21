@@ -64,12 +64,12 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
             }
             float length = LengthXYZ(sum);
             Vector3 normal;
-            if (!(length > weld)) {   // within the weld distance of zero, or NaN
-                normal = GamePoint(0x0079B9B0);
-            } else {
+            if (length > weld) {
                 normal.x = sum.x / length;
                 normal.y = sum.y / length;
                 normal.z = sum.z / length;
+            } else {   // within the weld distance of zero, or NaN
+                normal = GamePoint(0x0079B9B0);
             }
             normals.SetAtGrow(normals.size, std::bit_cast<PointBits>(normal));   // 00452AF0
         }

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "ei/vcall.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
@@ -78,7 +79,8 @@ EI_REPLACE_METHOD(0x00499EE0, CCloudNoise::Start);
 
 void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     phase_ = seconds * speed_ + phase_;
-    while (!(phase_ < 1.0f)) {
+    EI_NAN_AUDIT(phase_);
+    while (phase_ >= 1.0f) {   // a NaN phase ends it (the original looped for ever)
         phase_ = phase_ - 1.0f;
         Generate(frames_[2], step_);
         if (step_ == kSteps - 1) {

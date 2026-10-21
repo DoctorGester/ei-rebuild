@@ -30,7 +30,7 @@ std::uint32_t Bits(float value) {
 bool SignSet(float value) { return (Bits(value) & 0x80000000u) != 0; }
 
 // The original's select (FLD 0; FCOMP v; C0 picks 0): 0 for a positive or unordered value.
-float AtMostZero(float value) { return !(0.0f >= value) ? 0.0f : value; }
+float AtMostZero(float value) { return 0.0f >= value ? value : 0.0f; }
 
 } // namespace
 
@@ -129,7 +129,7 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     float sum = static_cast<float>(top * top + right * right);
     sum = static_cast<float>(sum + bottom * bottom);
     float depth = static_cast<float>(std::sqrt(sum + left * left));
-    if (!(fade >= depth)) depth = fade;
+    depth = fade >= depth ? depth : fade;
     int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }

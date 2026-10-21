@@ -39,7 +39,6 @@ void __stdcall CameraViewMatrix(float* out, const CTransformObject* camera) {
 }
 
 void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
-    Vector3 axis = {0.0f, 0.0f, 1.0f};
     double x = direction->x;
     float y = direction->y;
     double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
@@ -48,9 +47,9 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
     float yNormal = static_cast<float>(scaleF * y);
     float clamped = static_cast<float>(cosine);
     if (cosine > 1.0f) clamped = 1.0f;
-    else if (!(clamped >= -1.0f)) clamped = -1.0f;
+    else clamped = clamped >= -1.0f ? clamped : -1.0f;   // -1 also for NaN
     float angle = static_cast<float>(std::acos(static_cast<double>(clamped)));
-    if (!(yNormal <= 0.0f)) axis = {0.0f, 0.0f, -1.0f};
+    const Vector3 axis = yNormal <= 0.0f ? Vector3{0.0f, 0.0f, 1.0f} : Vector3{0.0f, 0.0f, -1.0f};   // -1 also for NaN
     out->FromAxisAngle(axis, angle);
 }
 

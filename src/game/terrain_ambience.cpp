@@ -15,6 +15,7 @@
 #include "lib/vecmath.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstdint>
@@ -75,9 +76,9 @@ int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 
 int __cdecl ByWeight(const void* a, const void* b) {
     float wa = static_cast<const ClassVotes*>(a)->weightSum;
     float wb = static_cast<const ClassVotes*>(b)->weightSum;
-    if (!(wa >= wb)) return 1;
     if (wa > wb) return -1;
-    return 0;
+    if (wa == wb) return 0;
+    return 1;
 }
 
 // The pan for a class's summed offset: 0 straight ahead, up to +-100 at the sides (behind
@@ -90,7 +91,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     if (along > length) return 0.0f;
     float c = static_cast<float>(along / length);
     if (c > 1.0f) c = 1.0f;
-    else if (!(c >= -1.0f)) c = -1.0f;
+    else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
     double angle = Acos(c);
     if (angle > HalfPi()) angle = kPi - angle;
     angle = kPercent / HalfPi() * angle;
@@ -103,9 +104,10 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
 mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
     float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
     const char* name;
-    if (!(hour < 6.0f) && !(hour > 18.0f)) name = "day";
-    else if (!(hour >= 22.0f) && hour > 2.0f) name = !(hour >= 6.0f) ? "morning" : "evening";
-    else name = "night";
+    if (hour < 6.0f || hour > 18.0f)
+        name = hour < 22.0f && hour > 2.0f ? (hour < 6.0f ? "morning" : "evening") : "night";
+    else
+        name = "day";   // also NaN
     return new (out) mfc::CString(name);
 }
 
@@ -142,7 +144,7 @@ void Terrain::PlayAmbience() {
             cell.y = static_cast<float>((sy + 0.5f) * CellSize() * kSectorCells);
             float ground = HeightAt(cell.x, cell.y, 0);
             float water = HeightAt(cell.x, cell.y, 1);
-            cell.z = !(water >= ground) ? ground : water;
+            cell.z = water >= ground ? water : ground;
             cell.offset = {static_cast<float>(cell.x - listener.x), static_cast<float>(cell.y - listener.y),
                            static_cast<float>(cell.z - listener.z)};
             float weights[kClasses] = {};
@@ -152,13 +154,14 @@ void Terrain::PlayAmbience() {
             }
             float best = -1.0f;
             for (int i = 0; i < kClasses; ++i) {
-                if (!(best >= weights[i])) {
+                EI_NAN_AUDIT(weights[i]);
+                if (best < weights[i]) {
                     best = weights[i];
                     cell.soundClass = i;
                 }
             }
             float distance = static_cast<float>(LengthSquared2D(Vector2{cell.offset.x, cell.offset.y}));
-            float within = !(distance >= radiusSquared) ? distance : radiusSquared;
+            float within = distance >= radiusSquared ? radiusSquared : distance;
             cell.weight = static_cast<float>((radiusSquared - within) / radiusSquared * kPercent);
             ClassVotes& vote = votes[cell.soundClass];
             vote.weightSum = static_cast<float>(cell.weight * cell.weight + vote.weightSum);
@@ -170,9 +173,8 @@ void Terrain::PlayAmbience() {
 
     IsaacRandom& random = IsaacRandom::Global();
     int heard = 0;
-    for (; heard < 3; ++heard) {
+    for (; heard < 3 && votes[heard].weightSum > kMinWeight; ++heard) {   // a NaN weight ends it
         ClassVotes& vote = votes[heard];
-        if (!(vote.weightSum > kMinWeight)) break;
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 3; ++column) {
                 const Cell& cell = cells[column * 3 + row];
@@ -191,8 +193,8 @@ void Terrain::PlayAmbience() {
         float pan = PanOf(vote.offset, axis);
         float limit = kind.panLimit;
         float low = static_cast<float>(-limit);
-        pan = !(pan >= low) ? low : pan;
-        pan = !(limit >= pan) ? limit : pan;
+        pan = pan >= low ? pan : low;
+        pan = limit >= pan ? pan : limit;
         vote.pan = x87::fistp(pan);
 
         // A one-shot now and then, in a random sector of the class (3x3 draws until one matches).

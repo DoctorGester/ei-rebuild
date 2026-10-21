@@ -309,8 +309,8 @@ void Terrain::BuildWavePhases() {
 }
 
 void Terrain::SetWaveStrength(float strength) {
-    if (!(strength >= 0.0f)) strength = 0.0f;
-    if (!(1.0f >= strength)) strength = 1.0f;
+    strength = strength >= 0.0f ? strength : 0.0f;
+    strength = 1.0f >= strength ? strength : 1.0f;
     waveGlow = strength;
     waveHeight = WaveHeightScale() * strength;
     waveSpeed = WaveSpeedScale() * strength;

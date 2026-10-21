@@ -20,6 +20,7 @@
 #include "device_buffers.h"
 #include "originals_render.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstdint>
@@ -218,7 +219,8 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
     CurrentU() = 0.0f;
     float step = static_cast<float>(uLength / static_cast<double>(points[1] - 1));
     float zero = 0.0f;
-    if (!(uLength < zero) && !(uLength > zero)) CurrentU() = 0.875f;   // compares equal to 0 (NaN too)
+    EI_NAN_AUDIT(uLength);
+    if (uLength == zero) CurrentU() = 0.875f;
     BottomV() = vStart + vSize;
     std::memcpy(&TopV(), &vStart, 4);
 

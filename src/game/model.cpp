@@ -61,8 +61,8 @@ static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     float w2 = static_cast<float>(cw + cw);
     float xw = static_cast<float>(c.x + cw);
     float yw = static_cast<float>(c.y + cw);
-    return SignBit(xw) | SignBit(yw) << 2 | SignBit(c.z) << 4 | std::uint32_t(!(w2 >= xw)) << 1 |
-           std::uint32_t(!(w2 >= yw)) << 3 | std::uint32_t(!(cw >= c.z)) << 5;
+    return SignBit(xw) | SignBit(yw) << 2 | SignBit(c.z) << 4 | (w2 >= xw ? 0u : 2u) | (w2 >= yw ? 0u : 8u) |
+           (cw >= c.z ? 0u : 0x20u);
 }
 
 int CTransformPipeline::ClipTest(const ClipBounds* b) const {

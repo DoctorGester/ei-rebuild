@@ -37,6 +37,7 @@
 #include <vector>
 #include "originals_render.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
 // it stores to a float (float locals); the order of every operation is the original's.
@@ -146,7 +147,8 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
     Vector3 towards = {static_cast<float>(static_cast<double>(at.x) - from.x),
                        static_cast<float>(static_cast<double>(at.y) - from.y),
                        static_cast<float>(static_cast<double>(at.z) - from.z)};
-    if (!(distanceSquared < 0.0f || distanceSquared > 0.0f)) {   // zero (or NaN)
+    EI_NAN_AUDIT(distanceSquared);
+    if (distanceSquared == 0.0f) {
         std::memcpy(&towards, DefaultLight(), sizeof(towards));
     } else {
         double inverse = kOneDouble / std::sqrt(distanceSquared);
@@ -174,7 +176,8 @@ void DirectionalShare(CLight* light, Vector3* out) {
 void LightDirection(const Vector3& sum, Vector3* direction) {
     double lengthSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(sum);   // (x + z) + y
     std::memcpy(direction, &sum, 12);
-    if (lengthSquared < 0.0 || lengthSquared > 0.0) {
+    EI_NAN_AUDIT(lengthSquared);
+    if (lengthSquared != 0.0) {
         double inverse = kOneDouble / std::sqrt(lengthSquared);
         direction->x = static_cast<float>(sum.x * inverse);
         direction->y = static_cast<float>(inverse * direction->y);

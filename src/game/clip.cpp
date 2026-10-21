@@ -63,12 +63,12 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
         if (KeepAbove ? curOver : !curOver) Emit(cur);
         if (curOver == (Coord<Axis>(b) > limit)) continue;
         bool aboveOne = StoreRatio(limit, Coord<Axis>(a), Coord<Axis>(b), &clip::LastRatio()) != 0;
-        if (aboveOne || !(clip::LastRatio() >= 0.0f)) {
-            Emit(next);
-        } else {
+        if (!aboveOne && clip::LastRatio() >= 0.0f) {
             clip::LerpVertex(&a, &b, clip::LastRatio(), &vertices[*vertexCount]);
             Emit(static_cast<std::uint16_t>(*vertexCount));
             ++*vertexCount;
+        } else {   // also a NaN ratio
+            Emit(next);
         }
     }
     std::memcpy(indices, clip::Buffer(), static_cast<std::size_t>(clip::BufferCount()) * 2);

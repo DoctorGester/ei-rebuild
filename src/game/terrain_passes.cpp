@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 
@@ -116,8 +117,9 @@ void Terrain::ChooseDetail(SectorData* sector) {
     // (24-bit precision), where the helper's stores change nothing.
     const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, camera::TheCamera()->localPosition_);
     int level = 2;
-    if (!(distanceSquared >= DetailNear() * DetailNear()) && minDetail <= 0) level = 0;
-    else if (!(distanceSquared >= DetailFar() * DetailFar()) && minDetail <= 1) level = 1;
+    EI_NAN_AUDIT(distanceSquared);
+    if (distanceSquared < DetailNear() * DetailNear() && minDetail <= 0) level = 0;
+    else if (distanceSquared < DetailFar() * DetailFar() && minDetail <= 1) level = 1;
     sector->SetDetail(level);
 }
 EI_REPLACE_METHOD(0x006C66E0, Terrain::ChooseDetail);
