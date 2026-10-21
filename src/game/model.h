@@ -9,6 +9,7 @@
 #include "script.h"   // ScriptStream
 #include "water_tweens.h"
 
+#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
@@ -207,6 +208,9 @@ public:
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
+// The pipeline's compiled table (C19, lib/compiled_vtable.h; game.exe's 0073D778): the deleting destructor. Its base's
+// is texture.h's RendererBaseClass.
+struct TransformPipelineClass final : ei::CompiledDeleter<TransformPipelineClass, &CTransformPipeline::DeleteScalar> {};
 
 // The scene's pipeline (the global pointer at 007AF068; world_client_view.cpp calls it the render
 // device): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world draw's, 9 the views.
@@ -659,13 +663,14 @@ static_assert(sizeof(CLinkFigureLoader) == 0x34);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 
-// A record of prints.db (terrain footprints). vtable 00744264. 0x28 bytes. The records are
-// constructed and destroyed by the game's vector code.
+// A record of prints.db (terrain footprints). 0x28 bytes. The records are constructed and destroyed by the
+// game's vector code (record_vectors.h). A real virtual class (C19): the compiler makes its one-slot table
+// (game.exe's 00744264 is retired); Vtable() is it.
 struct PrintRecord {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
     void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744264);
+    static void* Vtable() { return ei::CompiledVtable<PrintRecord>(); }
 
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2
@@ -674,12 +679,13 @@ struct PrintRecord {
 static_assert(offsetof(PrintRecord, name) == 0x04);
 static_assert(sizeof(PrintRecord) == 0x28);
 
-// The second record type of prints.db. vtable 00744268. 0x34 bytes.
+// The second record type of prints.db. 0x34 bytes. A real virtual class as PrintRecord (game.exe's 00744268 is
+// retired).
 struct PrintRecord2 {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
     void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744268);
+    static void* Vtable() { return ei::CompiledVtable<PrintRecord2>(); }
 
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2

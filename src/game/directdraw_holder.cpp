@@ -69,7 +69,7 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ei::SetVtable(holder, 0x0073D774);
+    ei::SetVtable(holder, DXSurfaceClass::Vtable());
     ++device::HolderCount();
     return holder;
 }
@@ -98,7 +98,7 @@ void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
 EI_REWRITTEN(0x004EECF0, CTextureDevice::SetCooperativeLevel);
 
 void CTextureDevice::DestructDirectDraw() {
-    ei::SetVtable(this, 0x0073D770);
+    ei::SetVtable(this, DirectDrawClass::Vtable());
     if (flags_ & DDSCL_FULLSCREEN) {
         lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
         if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
@@ -111,7 +111,7 @@ void CTextureDevice::DestructDirectDraw() {
     device::AssignHolder(primary_, nullptr);
     if (ddraw_) device::Release(device::DDraw(this));
     modes_.Destroy();
-    ei::SetVtable(this, 0x0073D768);
+    ei::SetVtable(this, RendererBaseClass::Vtable());
 }
 EI_REWRITTEN(0x004EE330, CTextureDevice::DestructDirectDraw);
 
@@ -122,7 +122,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
                                                     int /*for3D*/) {
     refs_ = 0;
     lastLoadResult_ = 0;
-    ei::SetVtable(this, 0x0073D768);
+    ei::SetVtable(this, RendererBaseClass::Vtable());
     driver_ = nullptr;
     primary_ = nullptr;
     renderTarget_ = nullptr;
@@ -130,7 +130,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     flags_ = 0;
     window_ = window;
     modes_.Construct();
-    ei::SetVtable(this, 0x0073D770);
+    ei::SetVtable(this, DirectDrawClass::Vtable());
     const RECT screen = {0, 0, width, height};
 
     ProcessorInfo& processor = Processor();

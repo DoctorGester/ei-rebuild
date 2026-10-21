@@ -31,7 +31,7 @@ bool PartMatches(const char* name, const char* pattern) {
 // --- CResourceBase -------------------------------------------------------------------------------
 
 CResourceBase* CResourceBase::Construct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, ResourceBaseClass::Vtable());
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -41,7 +41,7 @@ CResourceBase* CResourceBase::Construct() {
 }
 
 void CResourceBase::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, ResourceBaseClass::Vtable());
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -70,7 +70,7 @@ void CResourceBase::FreeAccelTable() {
 
 CResourceStream* CResourceStream::Construct() {
     CResourceBase::Construct();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, ResourceStreamClass::Vtable());
     archive_ = nullptr;
     file_ = nullptr;
     offset_ = 0;
@@ -79,7 +79,7 @@ CResourceStream* CResourceStream::Construct() {
 }
 
 void CResourceStream::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, ResourceStreamClass::Vtable());
     Close();
     CResourceBase::Destruct();
 }
@@ -257,12 +257,12 @@ CMMIOResource* CMMIOResource::DeletingDestroy(unsigned flags) {
 
 EI_REWRITTEN(0x00674790, CResourceBase::Construct);
 EI_REWRITTEN(0x00674810, CResourceBase::Destruct);
-EI_REPLACE_METHOD(0x006747C0, CResourceBase::DeletingDestruct);
+EI_REWRITTEN(0x006747C0, CResourceBase::DeletingDestruct);
 EI_REWRITTEN(0x00674A90, CResourceBase::FreeAccelTable);
 
 EI_REWRITTEN(0x00674280, CResourceStream::Construct);
 EI_REWRITTEN(0x006742C0, CResourceStream::Destruct);
-EI_REPLACE_METHOD(0x006742A0, CResourceStream::DeletingDestruct);
+EI_REWRITTEN(0x006742A0, CResourceStream::DeletingDestruct);
 EI_REWRITTEN(0x00674430, CResourceStream::Close);
 EI_REWRITTEN(0x006744C0, CResourceStream::OpenFile);
 EI_REWRITTEN(0x006746B0, CResourceStream::Read);

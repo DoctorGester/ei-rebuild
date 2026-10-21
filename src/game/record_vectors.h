@@ -239,7 +239,7 @@ using DressedUnitVector = stlp::VectorAbi<DressedUnitRecord, DressedUnitElement>
 template <typename R>
 struct PrintElement {
     static void Construct(R* to, const R& from) {
-        ei::SetVtable(to, R::kVtableAddress);
+        ei::SetVtable(to, R::Vtable());
         new (&to->name) stlp::string(from.name);
         std::memcpy(Values(*to), Values(from), sizeof(R) - offsetof(R, values2));
     }
@@ -250,7 +250,7 @@ struct PrintElement {
     static void Default(R* p) {
         stlp::StringElement::Default(&p->name);
         std::memset(Values(*p), 0, sizeof(R) - offsetof(R, values2));
-        ei::SetVtable(p, R::kVtableAddress);
+        ei::SetVtable(p, R::Vtable());
     }
     static void Destroy(R* p) { p->name.~string(); }
 

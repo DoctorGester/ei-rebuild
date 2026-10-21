@@ -905,6 +905,30 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     004BCA20). script.h's scriptvtable::kFloats / kStrings / kGroups / kIfThen, game_lists.cpp's DefinitionIfThenClass
     and the literals in script_load.cpp / script_parse_load.cpp are gone. RefListAClass 0073FA4C (the world server's
     new connections, AcceptNewPlayers) is game_slots.h's compiled tag (game_flow_data.h's kSessionListVtable gone).
+- **Batch 13's families** (2026-10-21): the one-slot rows batch 12 freed and the CScript members' tables: 26 rows,
+  6,158 -> 6,126 code cells, 27 slot registrations EI_REWRITTEN.
+  - **Compiled tags for any class** (src/lib/compiled_vtable.h): `ei::CompiledVtable<T>()` (moved out of mfc_slots.h,
+    which re-exports it), `ei::CompiledTag<Self>` (the `Vtable()` accessor) and `ei::CompiledDeleter<Self, &C::Delete>`
+    (a one-slot table whose slot 0 calls the class's deleting destructor member). A class that keeps `void* vtable`
+    as a field stores `Tag::Vtable()` where it stored game.exe's address; the original's dispatch through the field
+    (`Release`, `Delete`, `Blit`, `Kind`) reaches the tag's slot, which calls the same body.
+  - **The rows**: the thrown error object (GameErrorClass / GameErrorBaseClass, 0073CAB4 / 0073CAB0; dx_errors.h);
+    the renderer's (texture.h: RendererBaseClass 0073D768, DirectDrawClass 0073D770, DeviceObjectClass 0073D760,
+    DXSurfaceClass 0073D774; model.h: TransformPipelineClass 0073D778; device_helpers.cpp's CRendererBase is
+    declared in texture.h now); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
+    UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
+    CUiSurface's UiSurfaceClass 00740F28 (slot 0 Blit, UiSurfaceBlit) and the scrolling text's tokens (TextTokenClass
+    00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
+    (ResourceBaseClass 00743324, ResourceStreamClass 00743320); the item records (item_db.h: ItemRecordTag over
+    ItemRecordSlots, one tag per kind 00744054-00744068; the base's 00744060 is ItemRecordBaseClass, whose Kind is
+    the compiler CRT's `_purecall` as game.exe's 006E73EB, reached only by a bug); prints.db's PrintRecord /
+    PrintRecord2 (00744264 / 00744268: real virtual classes, `Vtable()` the compiler's, Serialize defined).
+  - **Two game tables for one instantiation**: the CScript constructor's 0073D394 / 0073D358 / 0073D334 do what
+    0073D3A0 / 0073D3B8 / 0073D3C4 do (MSVC6 emitted the instantiations twice); the constructor stores the compiled
+    PointLightArrayClass / DefinitionArrayClass / ScriptAreaArrayClass that the destructors already used.
+  - **Not vtables**: the five rows a full find_vtables rerun adds (0074676C, 0074718C, 007474B8, 00747E2C / 30) are
+    string bytes ("%lc", "Unregister", ...) whose first dword happens to fall in .text: never retire them (zeroing
+    them breaks the strings); a rerun's rows need that check before they are copied into config/vtables.csv.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

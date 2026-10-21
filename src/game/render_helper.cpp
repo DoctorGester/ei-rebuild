@@ -464,19 +464,19 @@ void* CRenderBase::DeleteScalar(unsigned flags) {
 EI_REWRITTEN(0x004FCD30, CRenderBase::DeleteScalar);
 EI_REWRITTEN(0x004FD900, CRenderBase::DeleteScalar);
 
-// 004E6880: the device object's (vtable 0073D760).
+// 004E6880: the device object's (DeviceObjectClass).
 void* CTextureDevice::DeleteDevice(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004E6880, CTextureDevice::DeleteDevice);
+EI_REWRITTEN(0x004E6880, CTextureDevice::DeleteDevice);
 
 // 004EE310: the DirectDraw holder's.
 void* CTextureDevice::DeleteDirectDraw(unsigned flags) {
     DestructDirectDraw();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004EE310, CTextureDevice::DeleteDirectDraw);
+EI_REWRITTEN(0x004EE310, CTextureDevice::DeleteDirectDraw);
 
 // 004FCC20: the helper's (the body above, through its address).
 void* CRenderHelper::DeleteScalar(unsigned flags) {
@@ -485,7 +485,7 @@ void* CRenderHelper::DeleteScalar(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x004FCC20, CRenderHelper::DeleteScalar);
 
-// ---- The transform pipeline (CTransformPipeline, vtable 0073D778) -----------------------------------------
+// ---- The transform pipeline (CTransformPipeline, TransformPipelineClass) -----------------------------------------
 
 // 004F0DB0: a matrix stack's constructor (the pipeline's constructor 004F0B90 has the compiler's
 // array constructor run it for each of the 16): room for 16 matrices, empty.
@@ -517,7 +517,7 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
     GameError* error = memory ? GameErrorConstruct(memory, text) : nullptr;
     folder.reset();
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
-    ei::SetVtable(self, 0x0073D768);
+    ei::SetVtable(self, RendererBaseClass::Vtable());
     throw reinterpret_cast<CDXException*>(error);
 }
 
@@ -530,9 +530,9 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* folder) {
     refs_ = 0;
     std::memset(unused_08, 0, sizeof(unused_08));
-    ei::SetVtable(this, 0x0073D768);
+    ei::SetVtable(this, RendererBaseClass::Vtable());
     for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstruct(&stacks_[i]);
-    ei::SetVtable(this, 0x0073D778);
+    ei::SetVtable(this, TransformPipelineClass::Vtable());
 
     std::optional<stlp::string> path;   // freed by hand before a throw
     path.emplace(folder);
@@ -558,13 +558,13 @@ EI_REWRITTEN(0x004F0B90, CTransformPipeline::TransformPipelineConstruct);
 // 004F0E10: the destructor body: the transform object forgotten, 3DfpFPU.dll unloaded, the stacks'
 // blocks freed from the last to the first (004F0DE0 each), the counted base's vtable left.
 void __fastcall TransformPipelineDestruct(CTransformPipeline* self) {
-    ei::SetVtable(self, 0x0073D778);
+    ei::SetVtable(self, TransformPipelineClass::Vtable());
     void* library = self->library_;
     self->transform_ = nullptr;
     if (library) gameapi::FreeLibrary(static_cast<HMODULE>(library));
     self->library_ = nullptr;
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
-    ei::SetVtable(self, 0x0073D768);
+    ei::SetVtable(self, RendererBaseClass::Vtable());
 }
 EI_REWRITTEN(0x004F0E10, TransformPipelineDestruct);
 
@@ -573,7 +573,7 @@ void* CTransformPipeline::DeleteScalar(unsigned flags) {
     TransformPipelineDestruct(this);
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004F0DF0, CTransformPipeline::DeleteScalar);
+EI_REWRITTEN(0x004F0DF0, CTransformPipeline::DeleteScalar);
 
 // ---- The driver list --------------------------------------------------------------------------------
 

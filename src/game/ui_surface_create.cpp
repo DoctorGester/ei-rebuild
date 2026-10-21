@@ -1,4 +1,4 @@
-// The window surface's constructors and destructor body (CUiSurface, 0x38 bytes, vtable 00740F28):
+// The window surface's constructors and destructor body (CUiSurface, 0x38 bytes, UiSurfaceClass):
 // 005FCF80 (a window showing an .mmp picture), 005FD120 (ReleaseContents), 005FCC00 (thiscall:
 // interface, layout left, top, right, bottom, format, scale flag; RET 0x1C) and 005FCDD0 (thiscall:
 // interface, layout rectangle, format; always scaled; RET 0xC). Both scale the rectangle to the
@@ -78,7 +78,7 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
     ui_native::Forget(self);   // (a surface made again where another was)
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
-    self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
+    self->vtable_ = UiSurfaceClass::Vtable();
     self->background_ = 0;
     self->interface_ = ui;
 }
@@ -90,7 +90,7 @@ CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); 
 // 005FD120. The destructor body: frees the kept bytes (total 007C7E74), takes the surface's
 // height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
 void CUiSurface::ReleaseContents() {
-    vtable_ = ei::GamePointer<void>(kVtableAddress);
+    vtable_ = UiSurfaceClass::Vtable();
     ui_native::Forget(this);
     if (std::uint8_t* kept = kept_) {
         gamecrt::operator_delete(kept);
@@ -113,7 +113,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     CUiSurface* self = AsSurface(raw);
     ui_native::Forget(self);
     self->holder_ = nullptr;
-    self->vtable_ = ei::GamePointer<void>(CUiSurface::kVtableAddress);
+    self->vtable_ = UiSurfaceClass::Vtable();
     self->background_ = 0;
     self->interface_ = static_cast<CInterface3D*>(ui);
     CBaseManager* manager = TheTextureManager();

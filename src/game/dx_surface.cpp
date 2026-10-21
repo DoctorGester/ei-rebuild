@@ -37,9 +37,9 @@
 namespace {
 
 int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
-// The holder's vtable and its base class's.
-void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D774); }
-void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
+// The holder's vtable and its base class's (compiled: texture.h).
+void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, DXSurfaceClass::Vtable()); }
+void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, RendererBaseClass::Vtable()); }
 
 // 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
 // nonzero to go on.

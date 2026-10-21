@@ -6,6 +6,7 @@
 // mfc_slots.cpp registers the instantiations whose elements need nothing of the game,
 // src/game/game_slots.cpp the others. Checked in game by verify_mfc_slots.cpp until S21d.
 
+#include "compiled_vtable.h"
 #include "mfc_archive.h"
 #include "mfc_list.h"
 #include "game/game_data.h"
@@ -161,13 +162,8 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
 struct CRuntimeClass;
 const CRuntimeClass* ObjectRuntimeClass();
 
-// The table a T's constructor stores in its first dword (T built in a buffer and left: it holds nothing to destroy).
-template <typename T>
-void* CompiledVtable() {
-    static_assert(std::is_polymorphic_v<T>);
-    alignas(T) unsigned char storage[sizeof(T)];
-    return *reinterpret_cast<void**>(::new (static_cast<void*>(storage)) T);
-}
+// The table a T's constructor stores (compiled_vtable.h).
+using ei::CompiledVtable;
 
 template <typename F>
 struct SerializeTarget;

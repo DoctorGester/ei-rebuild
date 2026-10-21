@@ -170,7 +170,7 @@ void CTextureDevice::BuildFormatTable() {
 EI_REWRITTEN(0x004E6EE0, CTextureDevice::BuildFormatTable);
 
 void CTextureDevice::Destruct() {
-    ei::SetVtable(this, 0x0073D760);
+    ei::SetVtable(this, DeviceObjectClass::Vtable());
     for (const StageBlock& block : kStageBlocks) {
         const DWORD handle = *block.handle;
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
@@ -217,7 +217,7 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     formats_.InitBuckets(100);
     largestFormatId_ = 0;
     material_ = nullptr;
-    ei::SetVtable(this, 0x0073D760);
+    ei::SetVtable(this, DeviceObjectClass::Vtable());
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 

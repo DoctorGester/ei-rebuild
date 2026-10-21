@@ -24,9 +24,9 @@
 namespace {
 
 // The vtables the destructors leave: the engine's counted root (0073C368) and the renderer's own
-// counted base (0073D768: CDXSurface, the device object and the pipeline derive from it).
+// counted base (RendererBaseClass: CDXSurface, the device object and the pipeline derive from it).
 void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
-void SetRendererBaseVtable(void* object) { ei::SetVtable(object, 0x0073D768); }
+void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseClass::Vtable()); }
 
 } // namespace
 
@@ -47,7 +47,7 @@ EI_REWRITTEN(0x0056F1A0, TexturePointerAssign);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
-// 004EF790 (RET 4): CDXSurface's (vtable 0073D774, slot 0): the destructor body 004EFD20, then the
+// 004EF790 (RET 4): CDXSurface's (DXSurfaceClass, slot 0): the destructor body 004EFD20, then the
 // block freed when bit 0 of `flags` is set. Returns the object.
 void __fastcall DXSurfaceDestroy(CDXSurface* holder);   // dx_surface.cpp
 CDXSurface* CDXSurface::DeleteScalar(unsigned flags) {
@@ -55,19 +55,16 @@ CDXSurface* CDXSurface::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004EF790, CDXSurface::DeleteScalar);
+EI_REWRITTEN(0x004EF790, CDXSurface::DeleteScalar);
 
-// 004E7800 (RET 4): the renderer's counted base (vtable 0073D768, slot 0): nothing to destroy. No
+// 004E7800 (RET 4): the renderer's counted base (RendererBaseClass, slot 0): nothing to destroy. No
 // object keeps this vtable while it can be released, so nothing calls it.
-struct CRendererBase {
-    void* DeleteScalar(unsigned flags);
-};
 void* CRendererBase::DeleteScalar(unsigned flags) {
     SetRendererBaseVtable(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004E7800, CRendererBase::DeleteScalar);
+EI_REWRITTEN(0x004E7800, CRendererBase::DeleteScalar);
 
 // 004F6A00 (RET 4): the figure loader's base class (vtable 0073D824, slot 0; the constructor
 // 004F68C0 stores it before the loader's own): the root's vtable left (004F69F0, inlined here),

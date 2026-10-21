@@ -130,7 +130,7 @@ EI_REWRITTEN(0x005FB850, ScalarDelete<&GlobalMapZones::Destruct<GlobalMapZoneArr
 EI_REWRITTEN(0x0045D890, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
 EI_REWRITTEN(0x0045E070, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
 EI_REWRITTEN(0x004600F0, ScalarDelete<&OwnedAllods::Destruct<AllodArrayClass>>);
-EI_REPLACE(0x004C1A60, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
+EI_REWRITTEN(0x004C1A60, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
 EI_REWRITTEN(0x004CB630, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
 
 // Over the destructors of the arrays, lists and maps whose elements need nothing.
@@ -333,7 +333,7 @@ EI_REWRITTEN(0x00519B50, SerializeCArray<Plain56>);   // FrameArrayClass
 // Arrays whose elements SetSize builds and destroys (a shrinking load destroys the ones past the count).
 EI_REWRITTEN(0x0045DC60, SerializeCArray<OwnedPatrols>);   // PatrolArrayClass
 EI_REWRITTEN(0x0045FCB0, SerializeCArray<OwnedAllods>);   // AllodArrayClass
-EI_REPLACE(0x004C88E0, SerializeCArray<ScriptAreas>);   // ScriptAreaArrayClass
+EI_REWRITTEN(0x004C88E0, SerializeCArray<ScriptAreas>);   // ScriptAreaArrayClass
 EI_REWRITTEN(0x006C4A40, SerializeCArray<ByteArrays>);   // TerrainByteArraysClass
 EI_REPLACE(0x005D9610, SerializeCArray<AiLookRecords>);   // vtable 0073FF74
 EI_REWRITTEN(0x00450D40, SerializeCArray<AlignedAt4Records>);   // AlignedAt4ArrayClass

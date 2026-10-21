@@ -72,4 +72,4 @@ CUnitShape* __fastcall CreateUnitShape(void*, void*, const UnitShapeHandle* hand
     if (!shape) return nullptr;
     return shape->Construct(handle->height);
 }
-EI_REPLACE(0x005B33D0, CreateUnitShape);
+EI_REWRITTEN(0x005B33D0, CreateUnitShape);

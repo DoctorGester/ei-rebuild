@@ -36,14 +36,11 @@ enum ScriptType : int {
 // slot 1 reads, slot 2 writes).
 using ScriptStream = CStream;
 
-// The vtables of the CScript members' CArray instantiations (the constructor 004BDE40 installs them; A-E1). The
-// variables' tables are compiled (C19): mfc::impl::ScriptFloatValuesClass, gamearrays::ScriptStringValuesClass /
-// ScriptGroupValuesClass, mfc::impl::ScriptIfThenPairsClass.
-namespace scriptvtable {
-inline void* const kPointLights = ei::GamePointer<void>(0x0073D394);  // CArray<ScriptPointLight>
-inline void* const kDefinitions = ei::GamePointer<void>(0x0073D358);  // CArray<ScriptDefinition>
-inline void* const kAreas = ei::GamePointer<void>(0x0073D334);        // CArray<ScriptArea>
-} // namespace scriptvtable
+// The CScript members' CArray instantiations have compiled tables (C19): gamearrays::PointLightArrayClass,
+// recordarrays::DefinitionArrayClass, mfc::impl::ScriptAreaArrayClass (game.exe's 0073D394 / 0073D358 / 0073D334, which
+// the constructor 004BDE40 installed, are retired: their slots did what 0073D3A0 / 0073D3B8 / 0073D3C4's do), and the
+// variables' mfc::impl::ScriptFloatValuesClass, gamearrays::ScriptStringValuesClass / ScriptGroupValuesClass,
+// mfc::impl::ScriptIfThenPairsClass.
 
 // A CString returned by value into raw storage; destroyed at the end of the scope.
 struct TempString {

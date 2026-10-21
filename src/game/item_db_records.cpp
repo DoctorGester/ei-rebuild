@@ -32,11 +32,14 @@ int __fastcall itemdb::ArmorRecordKind(ItemRecordHead*) { return 0x3005; }
 int __fastcall itemdb::QuickItemRecordKind(ItemRecordHead*) { return 0x3006; }
 int __fastcall itemdb::QuestItemRecordKind(ItemRecordHead*) { return 0x3009; }
 int __fastcall itemdb::LootItemRecordKind(ItemRecordHead*) { return 0x3007; }
-EI_REPLACE(0x006A6430, itemdb::WeaponRecordKind);
-EI_REPLACE(0x006A6440, itemdb::ArmorRecordKind);
-EI_REPLACE(0x006A6450, itemdb::QuickItemRecordKind);
-EI_REPLACE(0x006A6460, itemdb::QuestItemRecordKind);
-EI_REPLACE(0x006A6470, itemdb::LootItemRecordKind);
+EI_REWRITTEN(0x006A6430, itemdb::WeaponRecordKind);
+EI_REWRITTEN(0x006A6440, itemdb::ArmorRecordKind);
+EI_REWRITTEN(0x006A6450, itemdb::QuickItemRecordKind);
+EI_REWRITTEN(0x006A6460, itemdb::QuestItemRecordKind);
+EI_REWRITTEN(0x006A6470, itemdb::LootItemRecordKind);
+// The base record's slot (ItemRecordBaseClass): _purecall (006E73EB in game.exe, reached only by a bug).
+extern "C" int __cdecl _purecall();
+int __fastcall itemdb::PureRecordKind(ItemRecordHead*) { return _purecall(); }
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
@@ -51,14 +54,14 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
 }
 EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);
 
-void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
+void ItemRecordHead::ConstructHead(void* table) {
     new (&text04) mfc::CString();
     new (&text08) mfc::CString();
     new (&materialClass) mfc::CString();
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
     field15 = 1;
-    vtable = ei::GamePointer<void>(vtableAddress);
+    vtable = table;
 }
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
@@ -74,7 +77,7 @@ WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
 EI_REPLACE_METHOD(0x006A8FB0, WeaponRecord::AssignWeapon);
 
 ItemRecordHead* ItemRecordHead::ConstructBase() {
-    ConstructHead(kBaseVtableAddress);
+    ConstructHead(BaseVtable());
     return this;
 }
 EI_REPLACE_METHOD(0x006A63B0, ItemRecordHead::ConstructBase);
@@ -305,7 +308,7 @@ void ConstructExtra(QuestItemRecord* record) {
 // the original's placement new. Both return the end of the destination.
 template <typename R>
 void CopyConstructRecord(R* to, const R* from) {
-    to->ConstructHead(R::kVtableAddress);
+    to->ConstructHead(R::Vtable());
     ConstructExtra(to);
     to->Assign(from);
     to->CopyOwn(from);
@@ -325,7 +328,7 @@ void ZeroDefaultBytes(QuickItemRecord* record) {
 
 template <typename R>
 void DefaultConstructRecord(R* to) {
-    to->ConstructHead(R::kVtableAddress);
+    to->ConstructHead(R::Vtable());
     ConstructExtra(to);
     ZeroDefaultBytes(to);
 }

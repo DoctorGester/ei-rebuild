@@ -58,6 +58,8 @@ vtable,slots,class,file,note
 0073CA08,1,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
+0073CAB0,1,GameErrorBaseClass,src/game/dx_errors.h,the thrown error object's base (GameErrorDestruct leaves it)
+0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
@@ -71,12 +73,15 @@ vtable,slots,class,file,note
 0073D310,3,GroupArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptGroup>)
 0073D31C,3,ScriptAreaClass,src/lib/mfc_slots.h,CArray (a script area's parts)
 0073D328,3,ScriptAreaPartsClass,src/lib/mfc_slots.h,CArray (the array a script area element holds (base ScriptAreaClass); derived from ScriptAreaClass)
+0073D334,3,ScriptAreaArrayClass,src/lib/mfc_slots.h,CArray (the CScript constructor's copy of 0073D3C4: the script's areas)
 0073D340,3,RunListClass,src/game/game_slots.h,CList (the script's runs)
 0073D34C,3,DefinitionListClass,src/game/game_slots.h,CList (the script's instances)
+0073D358,3,DefinitionArrayClass,src/game/record_arrays.h,CArray (the CScript constructor's copy of 0073D3B8: the script's definitions)
 0073D364,3,DeclListClass,src/game/game_slots.h,CList (the script's command blocks)
 0073D370,3,LightningListClass,src/game/game_slots.h,CList (the script's lightnings)
 0073D37C,3,FxSourceListClass,src/game/game_slots.h,CList (the script's FX sources)
 0073D388,3,ParticleSourceListClass,src/game/game_slots.h,CList (the script's particle sources)
+0073D394,3,PointLightArrayClass,src/game/game_arrays.h,CArray (the CScript constructor's copy of 0073D3A0: the script's point lights)
 0073D3A0,3,PointLightArrayClass,src/game/game_arrays.h,CArray (the script's point lights)
 0073D3AC,3,ScriptIfThenArrayClass,src/lib/mfc_slots.h,CArray (the script's if-then blocks)
 0073D3B8,3,DefinitionArrayClass,src/game/record_arrays.h,CArray (the script's definitions)
@@ -105,6 +110,12 @@ vtable,slots,class,file,note
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
+0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
+0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
+0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"
+0073D770,1,DirectDrawClass,src/game/texture.h,the device object's DirectDraw base
+0073D774,1,DXSurfaceClass,src/game/texture.h,the surface holder (CDXSurface)
+0073D778,1,TransformPipelineClass,src/game/model.h,the transform pipeline (CTransformPipeline)
 0073D790,15,CLinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
 0073D7CC,15,CLinkMeshBase,src/game/link_figure.h,CLinkMesh's base (stored by its constructor and destructors 004F2C00 / 004F2D40 / 004F2E40)
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
@@ -197,6 +208,7 @@ vtable,slots,class,file,note
 0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0073FCF0,3,AiMapListClass,src/lib/mfc_slots.h,CList (the AI map's lists)
 0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
+0073FD58,1,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
 0073FD9C,3,WaypointListClass,src/lib/mfc_slots.h,CList (the AI plan's waypoint lists)
 0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
 0073FDEC,3,SpiralOffsetArrayClass,src/game/game_arrays.h,CArray (the sector spiral's offsets 007C2FF8)
@@ -212,15 +224,21 @@ vtable,slots,class,file,note
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
+00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
 007428A0,3,QuickEntryArrayClass,src/lib/mfc_slots.h,CArray (the HUD's quick item entries)
 00742F08,3,LinePtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's line pointers)
 00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
+00742F20,1,WordTokenClass,src/game/ui.h,a scrolling text's word (UiWordToken)
+00742F24,1,TextTokenClass,src/game/ui.h,a scrolling text's base token (UiTextToken)
+00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,1,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
+00743320,1,ResourceStreamClass,src/game/resource_stream.h,the sound system's file reader (CResourceStream)
+00743324,1,ResourceBaseClass,src/game/resource_stream.h,the archive readers' base (CResourceBase)
 00743A14,26,CSpellManager,src/game/spell.h,
 00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
@@ -228,6 +246,12 @@ vtable,slots,class,file,note
 00743CB0,26,CTextureManager,src/game/texture.h,
 00743D18,3,TextureListClass,src/lib/mfc_slots.h,CList (the texture manager's list)
 00743D24,13,CTexture,src/game/texture.h,
+00744054,1,LootItemRecordClass,src/game/item_db.h,a loot item record (LootItemRecord)
+00744058,1,QuestItemRecordClass,src/game/item_db.h,a quest item record (QuestItemRecord)
+0074405C,1,QuickItemRecordClass,src/game/item_db.h,a quick item record (QuickItemRecord)
+00744060,1,ItemRecordBaseClass,src/game/item_db.h,the item records' base (ItemRecordHead; _purecall)
+00744064,1,ArmorRecordClass,src/game/item_db.h,an armour record (ArmorRecord)
+00744068,1,WeaponRecordClass,src/game/item_db.h,a weapon record (WeaponRecord)
 00744098,13,CMusicSystem,src/game/sound.h,
 007440F0,13,CSoundManager,src/game/sound.h,
 00744124,3,WaveListClass,src/game/game_slots.h,CList (the sound cache's wave records)
@@ -238,3 +262,5 @@ vtable,slots,class,file,note
 00744210,3,TerrainArrayAClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CBE60)
 0074421C,3,TerrainArrayBClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC2A0 / 006CC3E0)
 00744228,3,TerrainArrayCClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC530)
+00744264,1,PrintRecord,src/game/model.h,a prints.db record
+00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
