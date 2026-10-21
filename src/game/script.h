@@ -1123,9 +1123,6 @@ inline QuestTable* TheQuestTable() { return ei::GamePointer<QuestTable>(0x007C87
 // 004C5480 (ScriptSubCall destructor body, __thiscall): the nested command destroyed and deleted;
 // the pointer stays.
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
-// 004D5A10 / 004D5A30 (CArray constructors, __thiscall, plain RET, `this` returned): empty, growBy 0,
-// vtable 0073D4A8 (CArray<SSCCmd>: LoadConditions' and LoadCommands' local arrays) / 0073D430
-// (CArray<ScriptIfThen>: the if-then pairs of Load's local definition).
 
 // 004C81B0 (__thiscall). Group values' destructor: the names, then each group's references (element
 // destructor 004CE1E0) and storage, then the array's; only base vtables are written.
