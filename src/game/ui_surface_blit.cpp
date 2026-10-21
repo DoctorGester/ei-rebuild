@@ -43,4 +43,4 @@ void __fastcall UiSurfaceBlit(CUiSurface* surface) {
     else
         render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
 }
-EI_REPLACE(0x005FDA80, UiSurfaceBlit);
+EI_REWRITTEN(0x005FDA80, UiSurfaceBlit);

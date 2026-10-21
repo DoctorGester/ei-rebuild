@@ -191,8 +191,8 @@ static_assert(sizeof(GameError) == 0xC);
 
 namespace {
 
-void* ErrorVtable() { return ei::GamePointer<void>(0x0073CAB4); }
-void* ErrorBaseVtable() { return ei::GamePointer<void>(0x0073CAB0); }
+void* ErrorVtable() { return GameErrorClass::Vtable(); }
+void* ErrorBaseVtable() { return GameErrorBaseClass::Vtable(); }
 // 00787EE4: "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
@@ -275,11 +275,11 @@ GameError* GameError::DeleteScalar(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004815B0, GameError::DeleteScalar);
+EI_REWRITTEN(0x004815B0, GameError::DeleteScalar);
 
 GameError* GameError::DeleteScalarBase(int flags) {
     GameErrorDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00481580, GameError::DeleteScalarBase);
+EI_REWRITTEN(0x00481580, GameError::DeleteScalarBase);

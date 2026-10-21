@@ -47,12 +47,12 @@ EI_REWRITTEN(0x00558820, ScalarDelete<&gamelists::Holders::Destruct<ArmourSpellL
 EI_REWRITTEN(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
 EI_REWRITTEN(0x0059B3F0, ScalarDelete<&gamelists::Refs::Destruct<RefListAClass>>);
 EI_REWRITTEN(0x0059B490, ScalarDelete<&gamelists::Refs::Destruct<RefListBClass>>);
-EI_REPLACE(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
+EI_REWRITTEN(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
 EI_REWRITTEN(0x004CB130, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
 EI_REWRITTEN(0x004CB1E0, ScalarDelete<&gamelists::ParticleSources::Destruct<ParticleSourceListClass>>);
 EI_REWRITTEN(0x004CB200, ScalarDelete<&gamelists::FxSources::Destruct<FxSourceListClass>>);
 EI_REWRITTEN(0x004CB290, ScalarDelete<&gamelists::Lightnings::Destruct<LightningListClass>>);
-EI_REPLACE(0x004C1A40, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
+EI_REWRITTEN(0x004C1A40, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
 EI_REWRITTEN(0x004CB2F0, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
 EI_REWRITTEN(0x004CB440, ScalarDelete<&gamelists::Definitions::Destruct<DefinitionListClass>>);
 EI_REWRITTEN(0x004CB550, ScalarDelete<&gamelists::Runs::Destruct<RunListClass>>);
@@ -83,7 +83,7 @@ EI_REWRITTEN(0x005701F0, SerializeCArray<gamearrays::ObjectPtrs>);   // the clie
 EI_REWRITTEN(0x0059A170, SerializeCArray<gamearrays::ObjectPtrs>);   // the world's shared object pointers
 EI_REWRITTEN(0x004C2310, SerializeCArray<gamearrays::ObjectRefs>);   // a script group (ScriptGroup::Serialize)
 EI_REWRITTEN(0x004C3BE0, SerializeCArray<gamearrays::Groups>);       // the script's group variables
-EI_REPLACE(0x004C5E60, SerializeCArray<gamearrays::PointLights>);  // the script's point lights
+EI_REWRITTEN(0x004C5E60, SerializeCArray<gamearrays::PointLights>);  // the script's point lights
 EI_REWRITTEN(0x004C9E20, SerializeCArray<gamearrays::Objectives>);   // a quest's objectives
 EI_REWRITTEN(0x00460270, SerializeCArray<gamearrays::Exits>);        // a zone's exits
 EI_REPLACE(0x0045FEB0, SerializeCArray<BuiltZoneRecords>);         // the map database's zones

@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "game_lists.h"
 #include "game/game_slots.h"
+#include "game/record_arrays.h"
 
 #include <cstring>
 #include <new>
@@ -46,12 +47,12 @@ ScriptNamedValues<T>* Named(mfc::CArray<T>* values) { return reinterpret_cast<Sc
 } // namespace
 
 CScript* CScript::Construct() {
-    ConstructArray(&pointLights_, scriptvtable::kPointLights);
+    ConstructArray(&pointLights_, gamearrays::PointLightArrayClass::Vtable());
     ConstructList(&particles_, gameslots::ParticleSourceListClass::Vtable());
     ConstructList(&fxSources_, gameslots::FxSourceListClass::Vtable());
     ConstructList(&lightning_, gameslots::LightningListClass::Vtable());
     ConstructList(&blocks_, gameslots::DeclListClass::Vtable());
-    ConstructArray(&definitions_, scriptvtable::kDefinitions);
+    ConstructArray(&definitions_, recordarrays::DefinitionArrayClass::Vtable());
     ScriptFloatsConstruct(Named(&globals_.floats));
     ScriptStringsConstruct(Named(&globals_.strings));
     ScriptObjectsConstruct(Named(&globals_.objects));
@@ -59,7 +60,7 @@ CScript* CScript::Construct() {
     ConstructList(&instances_, gameslots::DefinitionListClass::Vtable());
     ConstructList(&runs_, gameslots::RunListClass::Vtable());
     ConstructList(&worldBlocks_, gameslots::DeclListClass::Vtable());
-    ConstructArray(&areas_, scriptvtable::kAreas);
+    ConstructArray(&areas_, mfc::impl::ScriptAreaArrayClass::Vtable());
     ConstructList(&tempGroups_, gameslots::GroupListClass::Vtable());
     ConstructList(&tempObjects_, gameslots::ObjectRefListClass::Vtable());
     new (&errorText_) mfc::CString();

@@ -2,6 +2,7 @@
 
 #include "engine_object.h"
 #include "resource_manager.h"
+#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -268,6 +269,20 @@ static_assert(offsetof(CDXSurface, device) == 0x0C);
 static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
+
+// The renderer's counted base (CDXSurface, the device object and the pipeline derive from it in the original): only
+// its deleting destructor (004E7800, device_helpers.cpp), which no object reaches.
+struct CRendererBase {
+    void* DeleteScalar(unsigned flags);
+};
+
+// The compiled tables (C19, lib/compiled_vtable.h) of the renderer's objects, each one slot (the deleting
+// destructor), in place of game.exe's: the counted base 0073D768, the device object's DirectDraw base 0073D770, the
+// device object 0073D760 and the surface holder 0073D774 (the pipeline's, 0073D778: model.h).
+struct RendererBaseClass final : ei::CompiledDeleter<RendererBaseClass, &CRendererBase::DeleteScalar> {};
+struct DirectDrawClass final : ei::CompiledDeleter<DirectDrawClass, &CTextureDevice::DeleteDirectDraw> {};
+struct DeviceObjectClass final : ei::CompiledDeleter<DeviceObjectClass, &CTextureDevice::DeleteDevice> {};
+struct DXSurfaceClass final : ei::CompiledDeleter<DXSurfaceClass, &CDXSurface::DeleteScalar> {};
 
 // The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
 // triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed

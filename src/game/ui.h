@@ -16,6 +16,7 @@
 #include "item_db.h"
 #include "unit.h"   // LockKey
 
+#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
@@ -546,7 +547,6 @@ public:
     void Fill(COLORREF colour);
     void Clear();
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740F28);
     static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
 
     void* vtable_;
@@ -573,6 +573,10 @@ static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 // 005FDA80 (ui_surface_blit.cpp): CUiSurface's own draw (slot 0), for the classes that draw over it.
 void __fastcall UiSurfaceBlit(CUiSurface* surface);
+// The surface's compiled table (C19, lib/compiled_vtable.h; game.exe's 00740F28): slot 0 is the draw above.
+struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
+    virtual void Blit() { UiSurfaceBlit(reinterpret_cast<CUiSurface*>(this)); }   // 0
+};
 // 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
@@ -2473,11 +2477,9 @@ static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
 namespace mfc { class CString; }
 
-// The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, vtable
-// 00742F28, type 1) or a word (0x10 bytes, vtable 00742F20 over the base 00742F24, type 2).
+// The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, FormatTokenClass,
+// type 1) or a word (0x10 bytes, WordTokenClass over the base TextTokenClass, type 2).
 struct UiTextToken {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F24);
-    // (the base token's; the format token's and the word's are their own)
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
@@ -2496,7 +2498,6 @@ struct UiTextToken {
     int type_;                       // +0x04 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F28);
     bool newline_;                   // +0x08 a line break (a newline token, or a font change after
                                      //       the first token)
     std::uint8_t unused_09[3];
@@ -2505,7 +2506,6 @@ struct UiFormatToken : UiTextToken {
 };
 static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F20);
     // 0065D910 (ui_scroll_text.cpp): the destructor body: the text released, the base vtable back.
     void DestroyWord();
     // 0065D8F0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyWord, then the
@@ -2516,6 +2516,11 @@ struct UiWordToken : UiTextToken {
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
 static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x08);
+// The tokens' compiled tables (C19, lib/compiled_vtable.h), each one slot (the deleting destructor), in place of
+// game.exe's: the base 00742F24, the format token 00742F28, the word 00742F20.
+struct TextTokenClass final : ei::CompiledDeleter<TextTokenClass, &UiTextToken::TextTokenDelete> {};
+struct FormatTokenClass final : ei::CompiledDeleter<FormatTokenClass, &UiTextToken::FormatTokenDelete> {};
+struct WordTokenClass final : ei::CompiledDeleter<WordTokenClass, &UiWordToken::WordTokenDelete> {};
 // MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
 // A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only

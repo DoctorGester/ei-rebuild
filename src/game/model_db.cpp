@@ -119,8 +119,12 @@ void PrintRecord2::SerializeImpl(ChunkArchive* ar) {
     TripleChunk(ar, 10, values10);
 }
 
-EI_REPLACE_METHOD(0x006D41D0, PrintRecord::SerializeImpl);
-EI_REPLACE_METHOD(0x006D4270, PrintRecord2::SerializeImpl);
+// Slot 0 of the compiled tables.
+void PrintRecord::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
+void PrintRecord2::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
+
+EI_REWRITTEN(0x006D41D0, PrintRecord::SerializeImpl);
+EI_REWRITTEN(0x006D4270, PrintRecord2::SerializeImpl);
 
 // ---- WaterTweens --------------------------------------------------------------------------------
 

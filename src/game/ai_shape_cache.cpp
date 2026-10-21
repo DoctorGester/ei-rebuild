@@ -9,6 +9,7 @@
 // The unit shapes' cache itself is constructed by a static initialiser (before the hooks are
 // installed) and destroyed at exit: UnitShapeCache::Construct and Destruct at the end of this file.
 #include "ai_shape_cache.h"
+#include "ai_unit_layer.h"
 
 #include "core_refcount.h"
 
@@ -17,6 +18,7 @@
 #include "game_hashes.h"
 
 #include <cstdint>
+#include <new>
 
 namespace {
 
@@ -60,9 +62,11 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
 }
 
 EI_REWRITTEN(0x005BD7F0, UnitShapeCache::Get);
+CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(this, nullptr, handle); }
+
 UnitShapeCache* UnitShapeCache::Construct() {
+    new (this) UnitShapeCache;   // the vtable (the map's default constructor only nulls its bucket vector)
     shapes.InitBuckets(kFirstBuckets);
-    ei::SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x005B32E0, UnitShapeCache::Construct);

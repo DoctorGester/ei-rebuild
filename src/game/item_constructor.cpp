@@ -64,8 +64,8 @@ template <typename T> void CopyBits(T& to, const T& from) {
 template <typename R> R* NewRecordOf() {
     auto* record = static_cast<R*>(gamecrt::operator_new(sizeof(R)));
     if (!record) return nullptr;
-    record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
-    ei::SetVtable(record, R::kVtableAddress);
+    record->ConstructHead(ItemRecordHead::BaseVtable());
+    ei::SetVtable(record, R::Vtable());
     return record;
 }
 
@@ -85,18 +85,18 @@ ItemRecordHead* NewRecord(int classId) {
     case kClassSpell: {
         auto* record = static_cast<QuickItemRecord*>(gamecrt::operator_new(sizeof(QuickItemRecord)));
         if (!record) return nullptr;
-        record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
+        record->ConstructHead(ItemRecordHead::BaseVtable());
         new (&record->text7C) mfc::CString();   // a CString the record's destructor would free
-        ei::SetVtable(record, QuickItemRecord::kVtableAddress);
+        ei::SetVtable(record, QuickItemRecord::Vtable());
         std::memset(record->attributeBonus, 0, 0x8B - 0x80);   // +0x80..+0x8A
         return record;
     }
     case kClassQuest: {
         auto* record = static_cast<QuestItemRecord*>(gamecrt::operator_new(sizeof(QuestItemRecord)));
         if (!record) return nullptr;
-        record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
+        record->ConstructHead(ItemRecordHead::BaseVtable());
         std::memset(&record->zonesBegin, 0, 3 * sizeof(record->zonesBegin));   // an empty STLport vector (0055A3E0)
-        ei::SetVtable(record, QuestItemRecord::kVtableAddress);
+        ei::SetVtable(record, QuestItemRecord::Vtable());
         return record;
     }
     case kClassLoot:

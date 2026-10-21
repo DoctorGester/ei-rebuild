@@ -10,6 +10,7 @@
 // null record) rather than inventing a default.
 
 #include "console.h"
+#include "lib/compiled_vtable.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
 #include "lib/static_object.h"
@@ -182,16 +183,17 @@ struct ItemRecordHead {
     void SerializeHead(ChunkArchive* ar);
     // What the kinds' copy constructors do first: empty strings and string arrays, +0x68 = 1,
     // the kind's vtable.
-    void ConstructHead(std::uintptr_t vtableAddress);
+    void ConstructHead(void* table);
     // 006A63B0 (A-H25). The base record's constructor out of line (the vectors' resize and insert
-    // build their default record with it): ConstructHead with the base vtable 00744060; returns
+    // build their default record with it): ConstructHead with the base vtable (BaseVtable); returns
     // this.
     ItemRecordHead* ConstructBase();
     // 006A8950 / 006A89D0 / 006A8BD0 (S13; item_db_records.cpp): the weapon, armour and loot
     // records' destructors (the compiler's): the string arrays +0x50, +0x20, then the strings +0x10,
     // +0x08, +0x04.
     void DestructHead();
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x00744060);
+    // The base record's table (ItemRecordBaseClass below; game.exe's 00744060).
+    static void* BaseVtable();
 
     void* vtable;                       // +0x00
     mfc::CString text04;                // +0x04 the name the tables file the record under
@@ -248,6 +250,23 @@ int __fastcall QuickItemRecordKind(ItemRecordHead*);
 int __fastcall QuestItemRecordKind(ItemRecordHead*);
 int __fastcall LootItemRecordKind(ItemRecordHead*);
 
+// The records' compiled tables (C19, lib/compiled_vtable.h), one slot each (Kind), in place of game.exe's: the
+// weapon's 00744068, the armour's 00744064, the quick item's 0074405C, the quest item's 00744058, the loot's 00744054
+// and the base's 00744060, whose slot is _purecall (the base record's kind is never asked).
+template <typename Self, int(__fastcall* KindOf)(ItemRecordHead*)>
+struct ItemRecordTag : ItemRecordSlots {
+    static void* Vtable() { return ei::CompiledVtable<Self>(); }
+    int Kind() override { return KindOf(reinterpret_cast<ItemRecordHead*>(this)); }
+};
+struct WeaponRecordClass final : ItemRecordTag<WeaponRecordClass, &WeaponRecordKind> {};
+struct ArmorRecordClass final : ItemRecordTag<ArmorRecordClass, &ArmorRecordKind> {};
+struct QuickItemRecordClass final : ItemRecordTag<QuickItemRecordClass, &QuickItemRecordKind> {};
+struct QuestItemRecordClass final : ItemRecordTag<QuestItemRecordClass, &QuestItemRecordKind> {};
+struct LootItemRecordClass final : ItemRecordTag<LootItemRecordClass, &LootItemRecordKind> {};
+int __fastcall PureRecordKind(ItemRecordHead*);   // _purecall (item_db_records.cpp)
+struct ItemRecordBaseClass final : ItemRecordTag<ItemRecordBaseClass, &PureRecordKind> {};
+inline void* ItemRecordHead::BaseVtable() { return ItemRecordBaseClass::Vtable(); }
+
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 // The record kinds' copy constructors, as STLport's uninitialized_copy (first, last, dest) and
 // uninitialized_fill_n (dest, n, x) of each vector inline them (item_db_records.cpp): empty strings
@@ -257,7 +276,7 @@ int __fastcall LootItemRecordKind(ItemRecordHead*);
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744068);
+    static void* Vtable() { return WeaponRecordClass::Vtable(); }
     // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
     void CopyOwn(const WeaponRecord* source);
     // 006A8FB0 (RET 4; item_db_records.cpp): the weapon record's operator= (STLport's vector
@@ -287,7 +306,7 @@ static_assert(sizeof(WeaponRecord) == kWeaponSize);
 
 // An armour prototype (kArmorSize bytes): the two absorption rows CItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744064);
+    static void* Vtable() { return ArmorRecordClass::Vtable(); }
     // +0x6C..+0xB4 (+0xB4..+0xC7 are not copied).
     void CopyOwn(const ArmorRecord* source);
     // 006A9370 (RET 4; A-H25): operator= (the vector's inserts): the head's copy, then CopyOwn's
@@ -321,7 +340,7 @@ static_assert(sizeof(ArmorRecord) == kArmorSize);
 
 // A quick item prototype (potions, wands, scrolls; kQuickItemSize bytes).
 struct QuickItemRecord : ItemRecordHead {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074405C);
+    static void* Vtable() { return QuickItemRecordClass::Vtable(); }
     // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
     // copied (the string is constructed empty).
     void CopyOwn(const QuickItemRecord* source);
@@ -346,7 +365,7 @@ static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 // The 0x7C-byte item prototype with a list of zone names (table 007C8758; QuestItemInfo 006A0110
 // reads the list).
 struct QuestItemRecord : ItemRecordHead {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744058);
+    static void* Vtable() { return QuestItemRecordClass::Vtable(); }
     // +0x6C only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
     QuestItemRecord* AssignQuest(const QuestItemRecord* source);   // 006AAE40 (the zone list is kept)
@@ -363,7 +382,7 @@ static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 
 // The prototype of a CItemLoot (table 007C8778): kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744054);
+    static void* Vtable() { return LootItemRecordClass::Vtable(); }
     // +0x6C..+0x77.
     void CopyOwn(const LootItemRecord* source);
     LootItemRecord* AssignLoot(const LootItemRecord* source);      // 006A9DA0

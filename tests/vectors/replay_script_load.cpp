@@ -91,9 +91,9 @@ CScript* ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
     s->loaded_ = r.Get<std::int32_t>();
     InitBlocks(&s->blocks_, r.Get<std::int32_t>());
     InitBlocks(&s->worldBlocks_, r.Get<std::int32_t>());
-    s->definitions_.vtable = scriptvtable::kDefinitions;
+    s->definitions_.vtable = recordarrays::DefinitionArrayClass::Vtable();
     if (r.Get<std::uint8_t>()) {
-        ReadShape(r, &s->definitions_, scriptvtable::kDefinitions);
+        ReadShape(r, &s->definitions_, recordarrays::DefinitionArrayClass::Vtable());
         for (int i = 0; i < s->definitions_.size && r.ok(); ++i) {
             ScriptDefinition& d = s->definitions_.data[i];
             d.index = r.Get<std::int32_t>();

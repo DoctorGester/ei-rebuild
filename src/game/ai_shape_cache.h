@@ -28,10 +28,10 @@ struct ShapeCacheHash {
     std::size_t operator()(const ShapeCacheHandle& handle) const { return handle.key; }
 };
 
-class __declspec(novtable) UnitShapeCache {
+// A real virtual class (C19): the compiler makes its one-slot table (game.exe's 0073FD58 is retired).
+class UnitShapeCache {
 public:
     CRefObject* Get(void* handleIn);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD58);
 
     // A node is {next, handle, shape}: 0x18 bytes.
     using Map = stlp::hash_map<ShapeCacheHandle, RefPtr, ShapeCacheHash>;
@@ -40,7 +40,7 @@ public:
     virtual CRefObject* CreateShape(const ShapeCacheHandle* handle);
 
     // 005B32E0 (the static initialiser 005B31C0 calls it on 007C2F70; returns this). An empty map
-    // with the first prime number of buckets from 100 up (193), then the vtable.
+    // with the first prime number of buckets from 100 up (193), then the vtable (constructed in place).
     UnitShapeCache* Construct();
     // 005B31F0 (through the stub 005B31E0 the initialiser registers with atexit). Every node's shape
     // released as its owner and its handle's reference dropped (the pair's destructor, 005BE280),

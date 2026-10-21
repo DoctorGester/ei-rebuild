@@ -105,23 +105,23 @@ EI_REPLACE_METHOD(0x0065EAC0, UiInput::DeleteWindow<&CUiTooltip::TooltipDelete>)
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 
-// 0065D8A0: the base token (00742F24; its body inlined: the base vtable written).
+// 0065D8A0: the base token (TextTokenClass; its body inlined: the base vtable written).
 UiTextToken* UiTextToken::TextTokenDelete(unsigned flags) {
-    ei::SetVtable(this, UiTextToken::kVtableAddress);
+    ei::SetVtable(this, TextTokenClass::Vtable());
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0065D8A0, UiTextToken::TextTokenDelete);
+EI_REWRITTEN(0x0065D8A0, UiTextToken::TextTokenDelete);
 
-// 0065D8C0: the format token (00742F28).
+// 0065D8C0: the format token (FormatTokenClass).
 UiTextToken* UiTextToken::FormatTokenDelete(unsigned flags) {
     DestroyBase();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0065D8C0, UiTextToken::FormatTokenDelete);
+EI_REWRITTEN(0x0065D8C0, UiTextToken::FormatTokenDelete);
 
-// 0065D8F0: the word (00742F20).
+// 0065D8F0: the word (WordTokenClass).
 UiWordToken* UiWordToken::WordTokenDelete(unsigned flags) {
     DestroyWord();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0065D8F0, UiWordToken::WordTokenDelete);
+EI_REWRITTEN(0x0065D8F0, UiWordToken::WordTokenDelete);

@@ -173,7 +173,7 @@ EI_REWRITTEN(0x004507E0, SerializeCArray<Materials>);
 EI_REWRITTEN(0x00451640, SerializeCArray<SceneNodes>);
 EI_REWRITTEN(0x00454A70, SerializeCArray<FaceGroups>);
 EI_REWRITTEN(0x004C52A0, SerializeCArray<SubCalls>);
-EI_REPLACE(0x004C7820, SerializeCArray<Definitions>);
+EI_REWRITTEN(0x004C7820, SerializeCArray<Definitions>);
 EI_REWRITTEN(0x0050FC80, SerializeCArray<DeltaFields>);
 EI_REPLACE(0x00557960, SerializeCArray<Behaviours>);
 EI_REPLACE(0x006B5770, SerializeCArray<Themes>);

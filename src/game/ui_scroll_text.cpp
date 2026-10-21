@@ -109,7 +109,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (!format) {
                 format = static_cast<UiFormatToken*>(gamecrt::operator_new(sizeof(UiFormatToken)));
                 if (format) {
-                    ei::SetVtable(format, UiFormatToken::kVtableAddress);
+                    ei::SetVtable(format, FormatTokenClass::Vtable());
                     format->type_ = kFormatType;
                     format->newline_ = false;
                     format->colour_ = kConstructedColour;
@@ -137,11 +137,11 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         if (word) {
             auto* w = static_cast<UiWordToken*>(gamecrt::operator_new(sizeof(UiWordToken)));
             if (w) {
-                ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
+                ei::SetVtable(w, TextTokenClass::Vtable());   // the base, replaced by the word's
                 w->type_ = 0;
                 ::new (&w->text_) mfc::CString;   // afxEmptyString
                 w->type_ = kWordType;
-                ei::SetVtable(w, UiWordToken::kVtableAddress);
+                ei::SetVtable(w, WordTokenClass::Vtable());
                 w->width_ = 0;
             }
             SIZE size = TextExtent(interface_, token, font);
@@ -424,13 +424,13 @@ EI_REWRITTEN(0x0065AFE0, CUiScrollbar::SetMaximum);
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
-void UiTextToken::DestroyBase() { ei::SetVtable(this, UiTextToken::kVtableAddress); }
+void UiTextToken::DestroyBase() { ei::SetVtable(this, TextTokenClass::Vtable()); }
 EI_REWRITTEN(0x0065D8E0, UiTextToken::DestroyBase);
 EI_REWRITTEN(0x0065D960, UiTextToken::DestroyBase);
 
 void UiWordToken::DestroyWord() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, WordTokenClass::Vtable());
     text_.~CString();
-    ei::SetVtable(this, UiTextToken::kVtableAddress);
+    ei::SetVtable(this, TextTokenClass::Vtable());
 }
 EI_REWRITTEN(0x0065D910, UiWordToken::DestroyWord);
