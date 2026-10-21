@@ -20,6 +20,9 @@ struct PartyRecord {
     char party[0x70];           // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
 
+    // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
+    CParty* Party() { return reinterpret_cast<CParty*>(party); }
+
     // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
     // the party (SaveParty / LoadParty with variables) as stream field 2.
     void Serialize(ChunkArchive* ar);
@@ -40,7 +43,7 @@ static_assert(offsetof(PartyRecord, name) == 0x78);
 struct NamedPartyRecords {
     // 004A5E10 (__thiscall). The party (+0x08) of the first record named `name` (_mbscmp), else of the
     // last unnamed record, else null.
-    void* Find(const char* name) const;
+    CParty* Find(const char* name) const;
     // 004A5E90 (__thiscall). Appends a new record named `name`.
     void Add(const char* name);
     // 004A5FA0 (__thiscall). Removes the records named `name`; after a removal the record moved into
@@ -83,4 +86,4 @@ int __stdcall PartyNextId(int* out);
 // equal to the manager's current name (007AA5A0 +0x34, NamedPartyRecords::text10) gives the
 // player's own party (+0x70), any other the records' party of that owner (PartyRecordsFind).
 // Null without a player.
-void* __fastcall PartyForScript(void* player, mfc::CString* name);
+CParty* __fastcall PartyForScript(void* player, mfc::CString* name);

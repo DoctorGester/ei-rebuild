@@ -90,7 +90,7 @@ void CCampPages::DebugFill() {
     console::CStringArray materials;
     static_cast<CItemManager*>(ItemDatabase())->ListMaterialNames(&materials);
 
-    if (auto* items = static_cast<CParty*>(itemParts_[0])) {
+    if (CParty* items = itemParts_[0]) {
         PartyResetOriginal(items, nullptr, 1, 0);
 
         static_cast<CItemManager*>(ItemDatabase())->ListWeaponNames(&names);
@@ -132,7 +132,7 @@ void CCampPages::DebugFill() {
         }
     }
 
-    if (auto* spells = static_cast<CParty*>(spellParts_[0])) {
+    if (CParty* spells = spellParts_[0]) {
         PartyResetOriginal(spells, nullptr, 1, 0);
         static_cast<CSpellManager*>(SpellDatabase())->ListModifierNames(&names);
         for (int i = 0; i < names.size; ++i)

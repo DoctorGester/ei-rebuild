@@ -244,7 +244,7 @@ EI_REPLACE_METHOD(0x00436F80, SessionBase::RateFor);
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
     auto* buffer = reinterpret_cast<GameBuffer*>(storage);
-    static_cast<GameBuffer*>(buffer)->ConstructGrowing();
+    buffer->ConstructGrowing();
     std::uint8_t kind = 1;
     if (buffer->cur + 1 <= buffer->end) {
         buffer->flags |= 1;
@@ -287,7 +287,7 @@ void SessionBase::Destruct() {
         std::uint32_t id = connection->id_;
         alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
         auto* buffer = reinterpret_cast<GameBuffer*>(storage);
-        static_cast<GameBuffer*>(buffer)->ConstructGrowing();
+        buffer->ConstructGrowing();
         std::uint8_t kind = 1;
         buffer->BufferWrite(&kind, 1);
         if (buffer->cur + 4 <= buffer->end) {

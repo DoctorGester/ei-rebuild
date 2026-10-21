@@ -144,7 +144,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).
 CParty* NewItemList() {
     void* memory = gamecrt::operator_new(sizeof(CParty));
-    CParty* list = memory ? static_cast<CParty*>(static_cast<CParty*>(memory)->Construct()) : nullptr;
+    CParty* list = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
     list->Create();
     return list;
 }

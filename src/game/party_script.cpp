@@ -14,7 +14,7 @@ const NamedPartyRecords* RecordList() { return ei::GamePointer<const NamedPartyR
 
 } // namespace
 
-void* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
+CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
     auto* player = static_cast<CPlayer*>(playerArg);
     if (!player) return nullptr;
     mfc::CString owner;
@@ -23,7 +23,7 @@ void* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
         owner = console::Ops(*name).Mid(0, split);
         *name = console::Ops(*name).Mid(split + 2, console::Length(*name) - split - 2);
     }
-    if (GameMbscmp(owner, RecordList()->text10) == 0) return &player->party_;
+    if (GameMbscmp(owner, RecordList()->text10) == 0) return player->Party();
     return (RecordList())->Find(owner);
 }
 EI_REPLACE(0x004BAEC0, PartyForScript);

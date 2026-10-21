@@ -317,7 +317,7 @@ void RedeployParty(const SSCCmd* cmd) {
     PartyArray slots;
     mfc::impl::ConstructArrayOf<mfc::impl::PartySlotArrayClass>(slots);
     TheWorld()->CollectParty(player, &slots);
-    void* party = player->Party();
+    CParty* party = player->Party();
     ThePartyManager()->BeginRedeploy(party);
     ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
@@ -331,8 +331,8 @@ void RedeployParty(const SSCCmd* cmd) {
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]))) return;
-    CParty* from = static_cast<CParty*>(Parties()->Find(Text(cmd, 0)));
-    CParty* to = static_cast<CParty*>(Parties()->Find(Text(cmd, 1)));
+    CParty* from = Parties()->Find(Text(cmd, 0));
+    CParty* to = Parties()->Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
         while (to->items_.size != 0) to->RemoveItem(to->items_.data[0], 1);
@@ -1115,7 +1115,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString name(cmd->stringArgs.data[0]);
-            auto* records = static_cast<CParty*>(PartyForScript(player, &name));
+            CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
                     records->AddMember(name, Text(cmd, 1), game::EmptyText());
@@ -1130,8 +1130,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             mfc::CString from(cmd->stringArgs.data[0]);
             mfc::CString to(cmd->stringArgs.data[1]);
-            auto* fromRecords = static_cast<CParty*>(PartyForScript(player, &from));
-            auto* toRecords = static_cast<CParty*>(PartyForScript(player, &to));
+            CParty* fromRecords = PartyForScript(player, &from);
+            CParty* toRecords = PartyForScript(player, &to);
             PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
             PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {

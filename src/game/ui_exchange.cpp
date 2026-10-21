@@ -185,7 +185,7 @@ void CExchangeScreen::Create() {
 
     // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
     void* memory = gamecrt::operator_new(sizeof(CParty));
-    scratch_ = memory ? static_cast<CParty*>(static_cast<CParty*>(memory)->Construct()) : nullptr;
+    scratch_ = memory ? static_cast<CParty*>(memory)->Construct() : nullptr;
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
     ownOffer_ = reinterpret_cast<CParty*>(&client->parties_[0]);
@@ -375,7 +375,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (mode == kStripActionTake) {
         uiorig::PlayUiSound(interface_, kPutOnSound, 0);
         CParty* local = LocalParty();
-        static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(ownOffer_), local, kOfferLimit, 1, 0);
+        static_cast<CItemScreen*>(this)->MoveItem(item, ownOffer_, local, kOfferLimit, 1, 0);
         net::ClientPublishParty(net::GameClient());
         return;
     }

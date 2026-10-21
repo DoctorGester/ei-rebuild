@@ -1252,7 +1252,7 @@ int CWorldClient::Setup() {
         ::new (&terrain->textAE0) mfc::CString;
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
-        static_cast<Terrain*>(terrain)->Reset();
+        terrain->Reset();
     }
     terrain_ = terrain;
     ++terrain->refCount_;
