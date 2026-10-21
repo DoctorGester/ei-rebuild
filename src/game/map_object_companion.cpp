@@ -125,7 +125,7 @@ int CMapObjectClientSpecific::Update() {
             sound->timer = timer;
             if (!(timer & 0x80000000u)) continue;
             mfc::CString name;
-            std::uint32_t variant = (&IsaacRandom::Global())->Next() % 3 + 1;
+            std::uint32_t variant = IsaacRandom::Global().Next() % 3 + 1;
             if (sound->kind == kSoundStench) {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;

@@ -54,7 +54,7 @@ PartyRecord* NewRecord() {
     if (!record) return nullptr;
     record->vtable = ei::GamePointer<void>(0x0073BB68);
     PartyConstruct(record->party);
-    *reinterpret_cast<void**>(&record->name) = ei::GameData<void*>(0x00796E48);   // afxEmptyString
+    ::new (&record->name) mfc::CString;   // afxEmptyString
     record->vtable = ei::GamePointer<void>(0x0073C360);
     reinterpret_cast<CParty*>(record->party)->Create();   // slot 2
     return record;

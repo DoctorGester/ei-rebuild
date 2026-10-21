@@ -10,6 +10,7 @@
 #include "originals_library.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
+#include "lib/mfc_string.h"
 
 #include <cstring>
 #include <new>
@@ -123,13 +124,13 @@ void TextOps::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0
 // --- Construction ----------------------------------------------------------------------------------
 
 CIniFile* CIniFile::Construct() {
-    path_ = ei::GameData<char* const>(0x00796E48);   // afxEmptyString
+    path_ = mfc::impl::PchNil();   // afxEmptyString
     return this;
 }
 EI_REPLACE_METHOD(0x00695B80, CIniFile::Construct);
 
 CIniFile* CIniFile::ConstructWithPath(const char* path) {
-    path_ = ei::GameData<char* const>(0x00796E48);
+    path_ = mfc::impl::PchNil();
     reinterpret_cast<mfc::CString&>(path_) = path;
     return this;
 }

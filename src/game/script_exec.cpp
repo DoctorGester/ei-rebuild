@@ -143,11 +143,10 @@ CUnit* UnitOf(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 // A player (CWorldServer::GetPlayer): the world's view of the CPlayer it is.
 CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(player); }
 
-PartyManager* ThePartyManager() { return GamePartyManager(); }
 
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
-NamedPartyRecords* Parties() { return &GamePartyManager()->records; }
+NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 // A party's items (00661DB0 add, 00661F30 remove).
 int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)party->AddItem(static_cast<CItem*>(item), a, b); }

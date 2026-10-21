@@ -29,10 +29,8 @@ namespace app {
 
 namespace {
 
-template <typename T>
-T& Global(std::uintptr_t address) { return ei::GameData<T>(address); }
 
-bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
+bool Running() { return ei::GameData<std::uint8_t>(0x0079BC5C) != 0 && ei::GameData<std::uint8_t>(0x00784750) != 0; }
 
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0) is called through the target of the original CALL at
@@ -93,13 +91,13 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     CursorDrawFrame(TheCursor());   // 005E54A0
     if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
     TheCursor()->ReleaseLock();
-    if (!Global<std::uint8_t>(0x0079BC54)) return;
+    if (!ei::GameData<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", ei::GameData<std::uint32_t>(0x0079BA0C), ei::GameData<std::uint32_t>(0x0079BC58));
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
-        Global<std::uint8_t>(0x0079BC54) = 0;
+        ei::GameData<std::uint8_t>(0x0079BC54) = 0;
         return;
     }
     // {0, 0, width, height} of the render target's surface; without one the original passes two
@@ -120,7 +118,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (bitmap) bitmap->Write(&file);
     if (bitmap) reinterpret_cast<mfc::CObjectVirtuals*>(bitmap)->DeletingDestructor(1);   // slot 1 Delete(1)
     file.Close();
-    ++Global<std::uint32_t>(0x0079BC58);
+    ++ei::GameData<std::uint32_t>(0x0079BC58);
 }
 EI_REPLACE(0x00458010, FrameStep);
 
@@ -134,7 +132,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     IniConstruct(ini);
     {
         alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), ei::GamePointer<const mfc::CString>(0x007AF460), "config\\movie.ini");
+        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), &TheDataFolder(), "config\\movie.ini");
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }

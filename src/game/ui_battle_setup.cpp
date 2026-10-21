@@ -32,6 +32,7 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/mfc_string.h"
 
 using console::CStringArray;
 
@@ -96,7 +97,6 @@ Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, s
 }
 
 // A CString member made empty, as MFC's inline constructor does (afxEmptyString's data).
-char* EmptyStringData() { return ei::GameData<char* const>(0x00796E48); }
 
 } // namespace
 
@@ -192,8 +192,8 @@ void CBattleScreen::Create() {
         if (void* p = gamecrt::operator_new(0x1C4)) {
             panel = static_cast<CHudUnitPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
-            panel->strings_[0] = EmptyStringData();
-            panel->strings_[1] = EmptyStringData();
+            panel->strings_[0] = mfc::impl::PchNil();
+            panel->strings_[1] = mfc::impl::PchNil();
             panel->texts_.Construct();
             panel->partLabels_.Construct();
             panel->vtable_ = ei::GamePointer<void*>(0x007426F8);
@@ -250,8 +250,8 @@ void CBattleScreen::Create() {
         if (void* p = gamecrt::operator_new(0x16C)) {
             panel = static_cast<CHudTopPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
-            panel->pageTexts_[0] = EmptyStringData();
-            panel->pageTexts_[1] = EmptyStringData();
+            panel->pageTexts_[0] = mfc::impl::PchNil();
+            panel->pageTexts_[1] = mfc::impl::PchNil();
             panel->vtable_ = ei::GamePointer<void*>(0x00742498);
             panel->inputVtable_ = ei::GamePointer<void*>(0x00742464);
         }

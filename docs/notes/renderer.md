@@ -690,6 +690,15 @@ resolution must have the machine to themselves and serialised the suites.
     match (samecapture); `smoothcheck plain smooth 0.002 0.2` requires the option on, the world multisampled with the
     device's samples (8 here) in the last frame, anisotropic world models, and the frames to differ in 0.2% .. 20% of
     the pixels (a black or stale frame fails); the quick save's picture (`checksave`, R13) matches the smooth frame.
+  - The copy into every sample (R12a1): the game never reaches it (its world view is a frame's first draw), so the
+    harness build's `smoothorder before|split` (`render::SetSmoothOrder`) draws the frozen frame's passes in other
+    orders: an empty frame pass before the world (copies the cleared target in), or the world's first run cut at
+    its middle command with an empty frame pass between (depth back from sample 0, then the resolved first half and
+    that depth into every sample); `smoothorder check` requires the copies counted (`SmoothInfo::copiesInto`,
+    `depthCopiesBack`). Before matches the game's order to 1 (the noise between two captures of the same frame);
+    split differs in 0.02% of the pixels (> 8), only along edges where both halves meet (water against the
+    terrain's edge: those pixels' samples get sample 0's depth and the resolved colour, by design). A copy shifted
+    by 3 pixels gave 10%, the depth not copied (1.0) 37%.
 
 ### Frame capture
 

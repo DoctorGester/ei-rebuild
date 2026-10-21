@@ -57,10 +57,9 @@ double Unsigned(std::uint32_t value) {
 #define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/     // ~0.4 * 2^-32
 #define EI_RING_STEP 0.62832 /*0073CC98*/     // 0.62832 (2 pi / 10)
 
-IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
-double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
+double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), nullptr, min, max); }
 
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
@@ -175,7 +174,7 @@ void SetupExplosion(CParticleSource* s) {
         float x, y, z;
         double lengthSquared;
         for (int tries = 10;;) {
-            x = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            x = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_2 - D(EI_ONE));
             y = static_cast<float>(Range(-1.0f, 1.0f));
             double zUnrounded = Range(-1.0f, 1.0f) + D(EI_POINT_SEVEN);
             z = static_cast<float>(zUnrounded);
@@ -188,7 +187,7 @@ void SetupExplosion(CParticleSource* s) {
         v.Construct(x, y, z);
         Vector3 direction;
         DivideVector(&direction, v, length);
-        double speed = Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
+        double speed = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
         float vx = static_cast<float>(D(direction.x) * speed);
         float vy = static_cast<float>(speed * D(direction.y));
         double vz = speed * D(direction.z);
@@ -200,8 +199,8 @@ void SetupExplosion(CParticleSource* s) {
         SetElementDword(s, i, 0x18, 0);
         SetElementFloat(s, i, 0x1C, 0.4f);
         SetElementFloat(s, i, 0x20, 0.7f);
-        SetElementFloat(s, i, 0x24, static_cast<float>(Unsigned(GlobalRandom().Next() % 6)));
-        SetElementFloat(s, i, 0x28, static_cast<float>(Unsigned(GlobalRandom().Next() & 1)));
+        SetElementFloat(s, i, 0x24, static_cast<float>(Unsigned(IsaacRandom::Global().Next() % 6)));
+        SetElementFloat(s, i, 0x28, static_cast<float>(Unsigned(IsaacRandom::Global().Next() & 1)));
     }
 }
 
@@ -311,7 +310,7 @@ void SetupFalling(CParticleSource* s) {
     s->lifetime = 6;
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitFalling, &Source::UpdateFalling, &Source::TickFalling);
-    SetElementCount(s, static_cast<int>(GlobalRandom().Next() % 5 + 4));
+    SetElementCount(s, static_cast<int>(IsaacRandom::Global().Next() % 5 + 4));
     for (int i = 0; i < s->elementCount; ++i) SetElementDword(s, i, 0x30, 0);
 }
 

@@ -40,6 +40,7 @@
 #include "game_singletons.h"
 #include "ei/vcall.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_string.h"
 
 #include <concepts>
 
@@ -694,7 +695,6 @@ EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 
 namespace {
-char* EmptyCString() { return ei::GameData<char* const>(0x00796E48); }
 
 // A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
 // storage, grow step, capacity and size cleared in that order.
@@ -710,14 +710,14 @@ void EmptyArray(Array* array, std::uintptr_t vtableAddress) {
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     reinterpret_cast<CUiContainer*>(this)->Construct(ui);
-    allodTitle_ = EmptyCString();
+    allodTitle_ = mfc::impl::PchNil();
     EmptyArray(&zones_, 0x00740BFC);
     EmptyArray(&links_, 0x00740BF0);
     EmptyArray(&quests_, 0x00740BE4);
     path_.Start() = nullptr;
     path_.Finish() = nullptr;
     path_.EndOfStorage() = nullptr;   // the allocator proxy (005FA0C0)
-    target_ = EmptyCString();
+    target_ = mfc::impl::PchNil();
     // The tree (005FA100: the header from the pool; 005FA0E0 empties it) keeps the first byte of
     // the original's compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
@@ -728,7 +728,7 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.x = 0.0f;
     turn_.y = 0.0f;
     turn_.z = 0.0f;
-    shownName_ = EmptyCString();
+    shownName_ = mfc::impl::PchNil();
     vtable_ = ei::GamePointer<void*>(0x00740B3C);
     inputVtable_ = ei::GamePointer<void*>(0x00740B08);
     return this;

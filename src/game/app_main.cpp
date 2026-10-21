@@ -68,10 +68,6 @@ namespace app {
 std::uint32_t __cdecl GetDxVersion();
 namespace {
 
-template <typename T>
-T& Global(std::uintptr_t address) {
-    return ei::GameData<T>(address);
-}
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
 // A step of a float expression kept apart from the next: the value passes through a double, which
 // holds any result at the precisions the game runs at (53 bits before Direct3D starts, 24 after).
@@ -84,19 +80,19 @@ double Step(double value) {
 
 // What the command line gave: the folder of the movie frames ("-moviepath_"), a map (".mpr"), a mob
 // file (".mob"), a script (".scr") and the camera file (".cam"; ".\camera.cam" without one).
-mfc::CString& MovieFolder() { return Global<mfc::CString>(0x0079BA0C); }
-mfc::CString& CommandLineMap() { return Global<mfc::CString>(0x0079BA10); }
-mfc::CString& CommandLineMob() { return Global<mfc::CString>(0x0079BA14); }
-mfc::CString& CommandLineScript() { return Global<mfc::CString>(0x0079BA18); }
-mfc::CString& CameraFile() { return Global<mfc::CString>(0x0079BA1C); }
+mfc::CString& MovieFolder() { return ei::GameData<mfc::CString>(0x0079BA0C); }
+mfc::CString& CommandLineMap() { return ei::GameData<mfc::CString>(0x0079BA10); }
+mfc::CString& CommandLineMob() { return ei::GameData<mfc::CString>(0x0079BA14); }
+mfc::CString& CommandLineScript() { return ei::GameData<mfc::CString>(0x0079BA18); }
+mfc::CString& CameraFile() { return ei::GameData<mfc::CString>(0x0079BA1C); }
 
 // The window: its class atom, class name and title (0x100 bytes each, from the string table), the
 // instance and the window.
-std::uint16_t& WindowClassAtom() { return Global<std::uint16_t>(0x0079BA20); }
-char* WindowClassName() { return &Global<char>(0x0079BA24); }
-char* WindowTitle() { return &Global<char>(0x0079BB24); }
-HINSTANCE& Instance() { return Global<HINSTANCE>(0x0079BC24); }
-HWND& MainWindow() { return Global<HWND>(0x0079BC28); }
+std::uint16_t& WindowClassAtom() { return ei::GameData<std::uint16_t>(0x0079BA20); }
+char* WindowClassName() { return &ei::GameData<char>(0x0079BA24); }
+char* WindowTitle() { return &ei::GameData<char>(0x0079BB24); }
+HINSTANCE& Instance() { return ei::GameData<HINSTANCE>(0x0079BC24); }
+HWND& MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 constexpr int kTextSize = 0x100;
 constexpr UINT kTitleString = 0x65;
 constexpr UINT kClassNameString = 0x66;
@@ -104,62 +100,54 @@ constexpr int kIcon = 0x69;
 
 // The registry key of the options and the folders: where the game was started, the disc's, the
 // text resources' and the data folder (the last three are set from the options).
-mfc::CString& RegistryRoot() { return Global<mfc::CString>(0x007AF450); }
-mfc::CString& StartFolder() { return Global<mfc::CString>(0x007AF454); }
-mfc::CString& DiscFolder() { return Global<mfc::CString>(0x007AF458); }
-mfc::CString& TextFolder() { return Global<mfc::CString>(0x007AF45C); }
-mfc::CString& DataFolder() { return Global<mfc::CString>(0x007AF460); }
+mfc::CString& RegistryRoot() { return ei::GameData<mfc::CString>(0x007AF450); }
+mfc::CString& StartFolder() { return ei::GameData<mfc::CString>(0x007AF454); }
+mfc::CString& DiscFolder() { return ei::GameData<mfc::CString>(0x007AF458); }
+mfc::CString& TextFolder() { return ei::GameData<mfc::CString>(0x007AF45C); }
 
 // The window's activation as the window procedure left it (app.cpp).
-std::uint8_t& Active() { return Global<std::uint8_t>(0x0079BC5C); }
-std::uint8_t& ActivationChanged() { return Global<std::uint8_t>(0x0079BC5D); }
+std::uint8_t& Active() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
+std::uint8_t& ActivationChanged() { return ei::GameData<std::uint8_t>(0x0079BC5D); }
 
 // The loop's clock: the time of the last pass (a function-local static of the original: guard bit
 // 0 of 0079B9FC), the time not yet run by the server and by the client (milliseconds), and the
 // client's speed.
-std::uint8_t& LastTimeGuard() { return Global<std::uint8_t>(0x0079B9FC); }
-DWORD& LastTime() { return Global<DWORD>(0x0079B9F8); }
-std::uint32_t& ServerBacklog() { return Global<std::uint32_t>(0x0079BC64); }
-std::uint32_t& ClientBacklog() { return Global<std::uint32_t>(0x0079BC68); }
-float& ClientSpeed() { return Global<float>(0x00784758); }
+std::uint8_t& LastTimeGuard() { return ei::GameData<std::uint8_t>(0x0079B9FC); }
+DWORD& LastTime() { return ei::GameData<DWORD>(0x0079B9F8); }
+std::uint32_t& ServerBacklog() { return ei::GameData<std::uint32_t>(0x0079BC64); }
+std::uint32_t& ClientBacklog() { return ei::GameData<std::uint32_t>(0x0079BC68); }
+float& ClientSpeed() { return ei::GameData<float>(0x00784758); }
 // The console's switch that prints the client speed every frame.
-int& ShowClientSpeed() { return Global<int>(0x0079BC60); }
+int& ShowClientSpeed() { return ei::GameData<int>(0x0079BC60); }
 // A movie of the frames is being written (app_frame.cpp): the loop then runs a fixed time a frame.
-std::uint8_t& RecordingFrames() { return Global<std::uint8_t>(0x0079BC54); }
+std::uint8_t& RecordingFrames() { return ei::GameData<std::uint8_t>(0x0079BC54); }
 
 // What the video memory allows (bytes read elsewhere): little texture memory, little memory besides
 // the textures, little non-local memory; and whether a device was named on the command line.
-std::uint8_t& LittleOtherMemory() { return Global<std::uint8_t>(0x00784753); }
-std::uint8_t& LittleTextureMemory() { return Global<std::uint8_t>(0x00784754); }
-std::uint8_t& LittleNonLocalMemory() { return Global<std::uint8_t>(0x00784755); }
-std::uint8_t& DeviceNamed() { return Global<std::uint8_t>(0x00784756); }
+std::uint8_t& LittleOtherMemory() { return ei::GameData<std::uint8_t>(0x00784753); }
+std::uint8_t& LittleTextureMemory() { return ei::GameData<std::uint8_t>(0x00784754); }
+std::uint8_t& LittleNonLocalMemory() { return ei::GameData<std::uint8_t>(0x00784755); }
+std::uint8_t& DeviceNamed() { return ei::GameData<std::uint8_t>(0x00784756); }
 constexpr DWORD kLittleMemory = 0x800000;
 
 // The loading screen's movie file.
-const char*& LoadingMovieName() { return Global<const char*>(0x00791EE0); }
+const char*& LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
 
 // The objects.
-CWorldClient* Client() { return &Global<CWorldClient>(0x007AF5B8); }
-CWorldServer* Server() { return &Global<CWorldServer>(0x007AFF60); }
-CCamera* Camera() { return &Global<CCamera>(0x0079B2A8); }
-CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
-CDirectInputMouse*& Mouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
-void* ClassRegistry() { return &Global<char>(0x0079B270); }
-void* LogicSettingsObject() { return &Global<char>(0x007C53F8); }
-void* QuestDatabaseObject() { return &Global<char>(0x007C87A8); }
-void* SpellTablesObject() { return &Global<char>(0x007C8510); }
-void* ItemDatabaseObject() { return &Global<char>(0x007C86D8); }
-void* LeverTableObject() { return &Global<char>(0x0079C1A0); }
-void* AckDatabaseObject() { return &Global<char>(0x007C8A60); }
-void* PrintsDatabaseObject() { return &Global<char>(0x007C89C8); }
-void* MapDatabaseObject() { return &Global<char>(0x0079BF00); }
-void* TextureManager() { return Global<void*>(0x007AF744); }
-UnitDatabase* UnitDatabaseObject() { return &Global<UnitDatabase>(0x007AF358); }
-SkillDatabase* SkillDatabaseObject() { return &Global<SkillDatabase>(0x007AF268); }
-CRITICAL_SECTION* DeviceLock() { return &Global<CRITICAL_SECTION>(0x007AEE78); }
+CDirectInputMouse*& Mouse() { return ei::GameData<CDirectInputMouse*>(0x0079BA08); }
+void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
+void* LogicSettingsObject() { return &ei::GameData<char>(0x007C53F8); }
+void* QuestDatabaseObject() { return &ei::GameData<char>(0x007C87A8); }
+void* SpellTablesObject() { return &ei::GameData<char>(0x007C8510); }
+void* ItemDatabaseObject() { return &ei::GameData<char>(0x007C86D8); }
+void* LeverTableObject() { return &ei::GameData<char>(0x0079C1A0); }
+void* AckDatabaseObject() { return &ei::GameData<char>(0x007C8A60); }
+void* PrintsDatabaseObject() { return &ei::GameData<char>(0x007C89C8); }
+UnitDatabase* UnitDatabaseObject() { return &ei::GameData<UnitDatabase>(0x007AF358); }
+SkillDatabase* SkillDatabaseObject() { return &ei::GameData<SkillDatabase>(0x007AF268); }
 
 // The game's log stream (the old iostream).
-console::GameOStream& SpeedLog() { return Global<console::GameOStream>(0x007C56B0); }
+console::GameOStream& SpeedLog() { return ei::GameData<console::GameOStream>(0x007C56B0); }
 
 // ---- The callees -----------------------------------------------------------------------------------
 
@@ -239,7 +227,7 @@ void ReadCommandLine(const char* commandLine) {
     CommandLineScript().Empty();
     CommandLineMob().Empty();
     CommandLineMap().Empty();
-    CWorldClient* client = Client();
+    CWorldClient* client = TheClientWorld();
     GameOptions* options = options::TheOptions();
     for (int i = 0; i < arguments.size; ++i) {
         if (arguments[i].Find("-moviepath_") == 0) {
@@ -352,7 +340,7 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // when the player cancels.
 bool CheckDrives(const console::CStringArray& messages) {
     mfc::CString discFolder(DiscFolder());
-    mfc::CString dataFolder(DataFolder());
+    mfc::CString dataFolder(TheDataFolder());
     double freeBytes;
     if (FreeDiskSpace(dataFolder, &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
@@ -382,7 +370,7 @@ void CreateMouse() {
         mouse->references_ = 0;
         mouse->input_ = nullptr;
         mouse->device_ = nullptr;
-        mouse->vtable_ = &Global<char>(0x0073C350);
+        mouse->vtable_ = &ei::GameData<char>(0x0073C350);
     }
     CDirectInputMouse* old = Mouse();
     Mouse() = mouse;
@@ -392,11 +380,11 @@ void CreateMouse() {
 
 // The folders the game writes to.
 void CreateFolders(mfc::CString& path) {
-    path.Format("%ssaves\\", static_cast<const char*>(DataFolder()));
+    path.Format("%ssaves\\", static_cast<const char*>(TheDataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%smp\\", static_cast<const char*>(DataFolder()));
+    path.Format("%smp\\", static_cast<const char*>(TheDataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%stextures\\", static_cast<const char*>(DataFolder()));
+    path.Format("%stextures\\", static_cast<const char*>(TheDataFolder()));
     gameapi::CreateDirectoryA(path, nullptr);
 }
 
@@ -404,7 +392,7 @@ void CreateFolders(mfc::CString& path) {
 // non-local video memory.
 DWORD CreateRenderer() {
     GameOptions* options = options::TheOptions();
-    CCamera* camera = Camera();
+    CCamera* camera = TheCamera();
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
@@ -433,29 +421,29 @@ DWORD CreateRenderer() {
 std::uintptr_t OpenSound() {
     GameOptions* options = options::TheOptions();
     mfc::CString textFolder(TextFolder());
-    mfc::CString dataFolder(DataFolder());
+    mfc::CString dataFolder(TheDataFolder());
     mfc::CString discFolder(DiscFolder());
-    Sound()->Open(MainWindow(), 1, -1, 44100, 16);
+    TheSoundManager()->Open(MainWindow(), 1, -1, 44100, 16);
     {
         mfc::CString registry = textFolder + "streamsn.reg";
         mfc::CString folder = dataFolder + "stream\\";
-        SoundSetPathAt(Sound(), nullptr, folder, registry);
+        SoundSetPathAt(TheSoundManager(), nullptr, folder, registry);
     }
     {
         mfc::CString effects = textFolder + "sfx.res";
-        CSoundManager* sound = Sound();
+        CSoundManager* sound = TheSoundManager();
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
     {
         mfc::CString unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
         mfc::CString speech = discFolder + "res\\speech.res";
-        Sound()->AddWaveSource(speech);
+        TheSoundManager()->AddWaveSource(speech);
     }
-    Sound()->SetEffectsVolume(options->audioSfx_);
-    Sound()->SetSpeechVolume(options->audioSpeech_);
-    Sound()->SetMusicVolume(options->audioStreaming_);
-    Sound()->panDirect = options->reverseStereo_ != 0;
+    TheSoundManager()->SetEffectsVolume(options->audioSfx_);
+    TheSoundManager()->SetSpeechVolume(options->audioSpeech_);
+    TheSoundManager()->SetMusicVolume(options->audioStreaming_);
+    TheSoundManager()->panDirect = options->reverseStereo_ != 0;
     return reinterpret_cast<std::uintptr_t>(static_cast<const char*>(discFolder));
 }
 
@@ -482,7 +470,7 @@ constexpr int kLongestPassTicks = 5;
 
 // The world tick's length in milliseconds (0078FF34) and the factor from milliseconds to the
 // camera's time (0073C348: 1 / 55).
-std::uint32_t TickLength() { return Global<std::uint32_t>(0x0078FF34); }
+std::uint32_t TickLength() { return ei::GameData<std::uint32_t>(0x0078FF34); }
 float CameraSeconds(std::uint32_t milliseconds) {
     return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }
@@ -514,9 +502,9 @@ void TakeActivationChange() {
     if (Active()) {
         if (TheSceneRenderer()->flags_ & 2) {
             CTextureDevice* device = TheRenderDevice();
-            gameapi::EnterCriticalSection(DeviceLock());
+            gameapi::EnterCriticalSection(TheDeviceLock());
             device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
-            gameapi::LeaveCriticalSection(DeviceLock());
+            gameapi::LeaveCriticalSection(TheDeviceLock());
         }
         static_cast<CSceneRenderer*>(SceneRenderer())->flags_ |= 1;
         gameapi::SetCursor(nullptr);
@@ -551,15 +539,15 @@ bool RunWorlds() {
         bool settled = true;
         if (ServerBacklog() >= TickLength()) {
             settled = false;
-            if (!ServerUpdate()(Server(), nullptr)) return false;
+            if (!ServerUpdate()(TheServerWorld(), nullptr)) return false;
             ServerBacklog() -= TickLength();
             net::Pump();
         }
-        if (ClientBacklog() >= TickLength() && (Client()->PumpHasIncoming() || !Client()->IsLocalViewMode2())) {
-            if (!ClientSegment()(Client(), nullptr)) return false;
+        if (ClientBacklog() >= TickLength() && (TheClientWorld()->PumpHasIncoming() || !TheClientWorld()->IsLocalViewMode2())) {
+            if (!ClientSegment()(TheClientWorld(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
-            Camera()->Update(CameraSeconds(tick));
+            TheCamera()->Update(CameraSeconds(tick));
             net::Pump();
             continue;
         }
@@ -605,7 +593,7 @@ bool RunPass() {
         return false;
     }
     GuardPlayerData(glue, nullptr, 1);
-    CWorldClient* client = Client();
+    CWorldClient* client = TheClientWorld();
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
         else TheGameFlow()->CloseSessions();
@@ -634,7 +622,7 @@ bool RunPass() {
         if (ShowClientSpeed()) PrintClientSpeed(ClientSpeed(), roundedBalance);
 
         // The camera runs on the real time of the pass, a tick at a time.
-        CCamera* camera = Camera();
+        CCamera* camera = TheCamera();
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
             camera->Update(CameraSeconds(tick));
@@ -690,9 +678,9 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     static_cast<CSceneRenderer*>(SceneRenderer())->DestroyRenderer();
     OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
-    Client()->SetCamera(nullptr);
-    Server()->Teardown();
-    Client()->Teardown();
+    TheClientWorld()->SetCamera(nullptr);
+    TheServerWorld()->Teardown();
+    TheClientWorld()->Teardown();
     libcrt::SetNewHandler(previousHandler);
 }
 
@@ -723,13 +711,13 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =
         libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
-    Client()->Setup();
-    Server()->Setup();
+    TheClientWorld()->Setup();
+    TheServerWorld()->Setup();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    Camera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
+    TheCamera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
-    Client()->SetCamera(Camera());
+    TheClientWorld()->SetCamera(TheCamera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -756,13 +744,13 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     CloseLoadingMovie();
     LoadDatabases();
     Mouse()->Setup(MainWindow(), instance);
-    Client()->SetUpGraphics(TheRenderDevice());
+    TheClientWorld()->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  DeviceNamed() == 0);
     InterfaceCreateAt(TheInterface(), nullptr, TheRenderDevice());
-    static_cast<CMapDatabase*>(MapDatabaseObject())->LoadAll();
+    TheMapDatabase()->LoadAll();
     StartFirstMap();
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 

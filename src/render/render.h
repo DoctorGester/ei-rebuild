@@ -50,15 +50,26 @@ bool Smooth();
 void BeginWorld();
 void EndWorld();
 // The smooth option's state: on, the samples the device gives (up to 8) and the world's target's,
-// and in the last presented frame the multisampled passes and the models drawn anisotropically
-// (world) or as their stage says (the interface's).
+// and in the last presented frame the multisampled passes, the copies between the targets (the
+// frame target's colour and depth into every sample before a world run that follows other draws;
+// sample 0's depth back after a world run) and the models drawn anisotropically (world) or as their
+// stage says (the interface's).
 struct SmoothInfo {
     bool on = false;
     int deviceSamples = 1, targetSamples = 1;
     int multisampledPasses = 0;
+    int copiesInto = 0, depthCopiesBack = 0;
     int anisotropicModels = 0, plainModels = 0;
 };
 SmoothInfo SmoothState();
+// Harness build only (the harness's "smoothorder", R12a1): the smooth option's passes in an order the
+// game never draws (its world view is always the frame's first draw), from the next frame. Before: an
+// empty pass on the frame target first (cleared as a frame's first pass clears it), so the world's
+// first run starts from the copy into every sample. Split: the world view's first run ends at its
+// middle command, an empty pass on the frame target follows (sample 0's depth copied back) and the
+// rest of the world starts from the copy into every sample. Game: as the game draws.
+enum class SmoothOrder : std::uint8_t { Game, Before, Split };
+void SetSmoothOrder(SmoothOrder order);
 
 // Object shadows (R16j, docs/notes/renderer.md section 13). By default the world's figures and map
 // objects cast shadows from the sun through a shadow map made every frame, sampled with filtering

@@ -22,6 +22,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <utility>
@@ -151,7 +152,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     console::CStdioFile file;
     bool opened;
     {
-        mfc::CString path = GameDataPath() + game::TutorialIniText();
+        mfc::CString path = TheDataFolder() + game::TutorialIniText();
         opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
     }
     if (opened) {

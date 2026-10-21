@@ -191,7 +191,7 @@ bool RandObj(Call* call) {
     ScriptGroup* group = call->cmd->groupArgs.data[0];
     int size = group->size;
     if (size) {
-        std::uint32_t index = (&IsaacRandom::Global())->Next() % static_cast<std::uint32_t>(size);
+        std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(size);
         (*static_cast<ScriptObjectRef**>(call->result))->Assign(group->data[index].object);
     }
     return true;

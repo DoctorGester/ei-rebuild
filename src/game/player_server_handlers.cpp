@@ -295,7 +295,6 @@ namespace {
 int CampaignMode() { return ei::GameData<const volatile int>(0x007C2CC4); }
 int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
 // The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
-void* PartyManager() { return ei::GamePointer<void>(0x007AA5A0); }
 int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
 
 constexpr std::uint8_t kMessageZone = 0x08;
@@ -417,7 +416,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     party->zone_ = zone;
     int mode = GameMode();
     if (mode == 1) {
-        PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
+        PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
     } else if (mode == 2) {
         if (party->members_.size == 1) party->members_.data[0].unitId = kLoneHeroRecordId;
         SendParty();
@@ -511,7 +510,7 @@ int CPlayerServer::OnNewParty() {
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
-    PartyMapStore(PartyManager(), nullptr, key, party);
+    PartyMapStore(ThePartyManager(), nullptr, key, party);
     return 1;
 }
 
@@ -601,13 +600,13 @@ int CPlayerServer::OnLogin() {
     CParty* party = player->Party();
     switch (GameMode()) {
     case 1:
-        PartyManagerEndRedeploy(PartyManager(), nullptr, party);
+        PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
         party->OpenEdgeExits();
         break;
     case 2:
     case 3:
         // The two strings are passed but not read.
-        if (!PartyMapLoad(PartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
+        if (!PartyMapLoad(ThePartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
                           static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
                           reinterpret_cast<const int*>(&player->partyId_), party))
             return 0;

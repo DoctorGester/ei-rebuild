@@ -28,6 +28,7 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 namespace {
 
@@ -57,7 +58,7 @@ void Attach(CEngineObject* manager, CWorld* world) { static_cast<CBaseManager*>(
 
 int __fastcall WorldCreateManagers(CWorld* world) {
     world->paused_ = 0;
-    CStringAssignTextOriginal(worlddata::DataFolderString(), nullptr, worlddata::ConfiguredDataPath());
+    CStringAssignTextOriginal(&TheDataFolder(), nullptr, worlddata::ConfiguredDataPath());
     CStringAssignTextOriginal(worlddata::TextFolderString(), nullptr, worlddata::ConfiguredTextPath());
     CStringAssignTextOriginal(worlddata::BaseFolderString(), nullptr, worlddata::ConfiguredBasePath());
     world->tick_ = 0;

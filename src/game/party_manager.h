@@ -67,6 +67,3 @@ static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, field3) == 0x20);
 static_assert(offsetof(PartyManager, records) == 0x24);
 static_assert(offsetof(PartyManager, templates) == 0x38);
-
-// 007AA5A0: the game's party manager.
-inline PartyManager* GamePartyManager() { return ei::GamePointer<PartyManager>(0x007AA5A0); }

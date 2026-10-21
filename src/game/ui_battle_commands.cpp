@@ -33,7 +33,6 @@
 namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
-void* const kTextGlue = ei::GamePointer<void>(0x007AFEA4);
 
 // A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
@@ -54,8 +53,6 @@ inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerC
 
 // 0063B920 (thiscall on the battle screen, RET 8): the unit's name line into a CString.
 void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { a0->UnitName(a2, a3); }
-// 00578E20 (thiscall on 007AFEA4): the text manager.
-CTextManager* __fastcall TextTable(void*) { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddLine(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
@@ -292,7 +289,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         mfc::CString line;
         UnitNameLine(this, nullptr, unit, &line);
         line += ":\n";
-        CTextManager* texts = TextTable(kTextGlue);
+        CTextManager* texts = (CTextManager*)GameClientTexts();
         const char* name = phrase->name.data();
         BOOL found;
         {

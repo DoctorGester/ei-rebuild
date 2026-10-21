@@ -34,6 +34,7 @@
 #include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
@@ -558,7 +559,7 @@ EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
 void CMpConnectScreen::SaveAddressBook() {
     LocalArchive local;
     LocalFileStream file;
-    if (!file.stream.Open(GameDataPath() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
+    if (!file.stream.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
     ChunkArchive& archive = local.archive;
     archive.Open(&file.stream, 0, 1);
     net::ClientQueries* queries = &net::GameClient()->queries_;
@@ -788,7 +789,7 @@ void CMpConnectScreen::Create() {
     LocalQueries book;
     LocalArchive local;
     LocalFileStream file;
-    if (file.stream.Open(GameDataPath() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
+    if (file.stream.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
         ChunkArchive& archive = local.archive;
         archive.Open(&file.stream, 1, 1);
         if (archive.EnterChunk(1)) {

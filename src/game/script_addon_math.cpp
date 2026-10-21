@@ -176,7 +176,7 @@ bool Random(Call* call) {
     Store(&low, Floats(call)[0]);
     Store(&high, Floats(call)[1]);
     if (high > low) {
-        *FloatResult(call) = static_cast<float>(RandomRange((&IsaacRandom::Global()), nullptr, low, high));
+        *FloatResult(call) = static_cast<float>(RandomRange(&IsaacRandom::Global(), nullptr, low, high));
     } else {
         Store(FloatResult(call), low);
     }

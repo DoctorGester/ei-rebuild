@@ -62,7 +62,6 @@ using stock::Candidates;
 using stock::TakenMaterials;
 using stock::TakenPrototypes;
 
-IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 
 // The record tables the original passes as `this` to their lookups.
 void* TableObject(const RecordTable& table) { return const_cast<RecordTable*>(&table); }
@@ -176,7 +175,7 @@ void DestroySpellList(StockList& list) {
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the
 // spells 0069A780 generates for the item's level, if within the power limit.
 void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
-    if (GlobalRandom().Next() % 101 >= 50) return;
+    if (IsaacRandom::Global().Next() % 101 >= 50) return;
     float level = 0.0f;
     float power = 0.0f;
     if (!ctor->MagicCapacity(&level, &power)) return;
@@ -186,7 +185,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
     unsigned count = 0;
     for (StockListNode* n = spells.head->next; n != spells.head; n = n->next) ++count;
     if (count == 0) return;
-    unsigned index = count > 1 ? GlobalRandom().Next() % count : 0;
+    unsigned index = count > 1 ? IsaacRandom::Global().Next() % count : 0;
     StockListNode* node = spells.head->next;
     for (unsigned i = 0; i < index; ++i) node = node->next;
     void* spell = node->data;
@@ -462,7 +461,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
     for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
         StockListNode* head = recipes->value.mapped.head;
         for (StockListNode* n = head->next; n != head; n = n->next) {
-            if (GlobalRandom().Next() % 101 < threshold) continue;
+            if (IsaacRandom::Global().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
             auto* recipe = static_cast<const SpellRecipe*>(n->data);
@@ -482,7 +481,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
             if (budget < level || count > 8) continue;
             const StockStringVector& optional = recipe->optional;
             for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
-                if (GlobalRandom().Next() % 101 < 50) continue;
+                if (IsaacRandom::Global().Next() % 101 < 50) continue;
                 char* m = ModifierSlot(this, optional[i]);
                 if (!m || budget < ModifierLevel(m) + level) continue;
                 AppendModifier(chosen, m);

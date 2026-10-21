@@ -697,7 +697,6 @@ void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scale
 }
 
 constexpr int kCategoryWand = 8;
-IsaacRandom& UiRandom() { return IsaacRandom::Global(); }
 // 00742760: the factor turning a random dword into the portraits' negative start delay.
 double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
 // A random value times ~-2^-34 * 0.3 (00742760), as the original stores it.
@@ -707,7 +706,7 @@ float PortraitDelay(std::uint32_t random) {
 // Portrait `index` nods (wobble kind 1) after a short random delay.
 void NodPortrait(CBattleScreen* screen, int index) {
     HudPortraitSlot* slots = screen->portraits_->slots_;
-    float delay = PortraitDelay(UiRandom().Next());
+    float delay = PortraitDelay(IsaacRandom::Global().Next());
     slots[index].wobbleTime_ = delay;
     screen->portraits_->slots_[index].wobbleKind_ = 1;
 }

@@ -6,7 +6,11 @@
 # anisotropic models in the frame and the smooth frame to differ from the plain one only in a few
 # pixels (the world's edges and textures: nothing black or stale). The quick save's picture (R13, a
 # screen copy between frames) must still show that frame. R16c: the smooth frame with the terrain pages
-# built and uploaded again (smooth_fresh) matches the one with them kept on the GPU.
+# built and uploaded again (smooth_fresh) matches the one with them kept on the GPU. R12a1: the copy of
+# the frame target into every sample, which the game's order never reaches (the world view is a
+# frame's first draw): with an empty pass before the world (smooth_before) the frame matches exactly;
+# with the world split in two at its middle command (smooth_split, the later half drawn over the copy
+# of the resolved first half) only where both halves' edges meet in a pixel.
 # no original: vanilla rebirth (the smooth option is our renderer's)
 render new,present,smooth,checkall
 reject Script error
@@ -32,10 +36,20 @@ terraincache on
 samecapture smooth smooth2
 samecapture smooth smooth_fresh
 smoothcheck plain smooth 0.002 0.2
+smoothorder check
 key f5
 waitline 15 Saved saveq
 vanilla checksave saveq smooth 32 0.02
 rebirth checksave saveq smooth centre 32 0.02
+smoothorder before
+capture smooth_before
+smoothorder check
+smoothorder split
+capture smooth_split
+smoothorder check
+smoothorder game
+samecapture smooth smooth_before 1 0
+samecapture smooth smooth_split 8 0.002
 unfreeze
 frames 5
 terraincache check

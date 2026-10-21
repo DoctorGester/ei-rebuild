@@ -108,7 +108,7 @@ bool StrLen(Call* call) {
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = (&IsaacRandom::Global())->Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
+    std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
     *StringResult(call) = static_cast<const char*>(Arg(call, static_cast<int>(index)));
     return true;
 }

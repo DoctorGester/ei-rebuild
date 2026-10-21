@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "game_data.h"
+#include "lib/mfc_string.h"
 
 #include <cstdint>
 #include <cstring>
@@ -137,7 +138,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (w) {
                 ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
                 w->type_ = 0;
-                w->text_ = ei::GameData<char*>(0x00796E48);   // afxEmptyString
+                w->text_ = mfc::impl::PchNil();   // afxEmptyString
                 w->type_ = kWordType;
                 ei::SetVtable(w, UiWordToken::kVtableAddress);
                 w->width_ = 0;
