@@ -64,7 +64,7 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     GameRender();
-    if (mouseMove) self->InputMouseMove(0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
+    if (mouseMove) self->InputMouseMove(0, MouseScreenX(), MouseScreenY());
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
     return static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
 }

@@ -417,6 +417,7 @@
 #include "../../src/game/device.h"   // IDirectDraw7
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
+#include "harness_objects.h"
 #include "../../src/game/item.h"
 #include "../../src/game/options.h"
 #include "../../src/game/party_manager.h"
@@ -1678,7 +1679,7 @@ std::string CursorCheck(const std::string& argument) {
         "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
         count, info.lastTo.left, info.lastTo.top, info.lastTo.right, info.lastTo.bottom, info.checks, info.mismatches, info.calls,
         info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
-    const CCursor* game = TheCursor();
+    const CCursor* game = HarnessCursor();
     Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", game->mode_, game->thread_ ? "running" : "none",
         game->imageShown_);
     char what[240];
@@ -1699,7 +1700,7 @@ std::string CursorCheck(const std::string& argument) {
     if (!render::ReadCursorPresent(&width, &height, &bgr) || !capture::WriteFrame(name, width, height, bgr, &path))
         return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
     g_capturedFrames.push_back(path + " (the cursor thread's last present)");
-    const CursorImage* image = TheCursor()->image_;
+    const CursorImage* image = HarnessCursor()->image_;
     if (!image) return "cursorcheck: the cursor has no image";
     int fx = g_mouseX, fy = g_mouseY;
     render::WindowToFrame(&fx, &fy);

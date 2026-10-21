@@ -64,7 +64,7 @@ inline CSceneRenderer* TheSceneRenderer() { return ei::GamePointer<CSceneRendere
 
 // 007C7BD8: the cursor. 0079BF00: the map database. 007C27D4: the mission script. 007B01F4: the sector map.
 // 0079B2A8: the camera.
-inline CCursor* TheCursor() { return ei::GamePointer<CCursor>(0x007C7BD8); }
+CCursor* TheCursor();   // g_cursor (ui_cursor_setup.cpp)
 inline CMapDatabase* TheMapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
 inline CScript* TheMissionScript() { return ei::GamePointer<CScript>(0x007C27D4); }
 inline CSectorMap* TheSectorMap() { return ei::GamePointer<CSectorMap>(0x007B01F4); }

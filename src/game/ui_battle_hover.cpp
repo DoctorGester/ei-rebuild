@@ -41,12 +41,8 @@ constexpr int kCursorFlagBase = 0x10;   // + the first set flag of +0x18D..+0x19
 constexpr int kCursorCantCast = 0x17;
 constexpr int kCursorOrder = 0x18;
 
-// The mouse cursor (global at 007C7BD8); 005E5200 selects shape `shape`.
-struct HoverCursor {
-    int SetShape(int shape);
-};
-int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->ChangeShape(a2); }
-void SetCursor(int shape) { ei::GamePointer<HoverCursor>(0x007C7BD8)->SetShape(shape); }
+// The mouse cursor; 005E5200 selects shape `shape`.
+void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
