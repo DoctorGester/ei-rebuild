@@ -31,8 +31,6 @@ double Unsigned(std::uint32_t value) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
@@ -82,23 +80,23 @@ struct BoltPoint {
 static_assert(sizeof(BoltPoint) == sizeof(ParticleElement));
 
 constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
-#define EI_POINT_THREE GameFloat(0x0073C54C)       // 0.3
-#define EI_QUARTER GameFloat(0x0073C3B0)           // 0.25
-#define EI_ONE GameFloat(0x0073B84C)               // 1.0
-#define EI_HALF GameFloat(0x0073B86C)              // 0.5
-#define EI_POINT_FOUR GameFloat(0x0073B868)        // 0.4
-#define EI_POINT_TWO GameFloat(0x0073BAD4)         // 0.2
-#define EI_TENTH GameFloat(0x0073B850)             // 0.1
-#define EI_THREE GameFloat(0x0073BAA4)             // 3.0
-#define EI_NINE GameFloat(0x0073CF10)              // 9.0
-#define EI_TWO GameFloat(0x0073CDB8)               // 2.0
-#define EI_SPARK_SIZE GameFloat(0x0073CCB8)        // 0.06
-#define EI_SCALE_0_9 GameDouble(0x0073CF20)        // ~0.9 * 2^-32
-#define EI_SCALE_1 GameDouble(0x0073C468)          // ~2^-32
-#define EI_SCALE_ANGLE GameDouble(0x0073CF18)      // ~2 pi * 2^-32
-#define EI_SCALE_2 GameDouble(0x0073C508)          // ~2^-31
-#define EI_SCALE_0_04 GameDouble(0x0073CF08)       // ~0.04 * 2^-32
-#define EI_SCALE_0_01 GameDouble(0x0073CF00)       // ~0.01 * 2^-32
+#define EI_POINT_THREE 0.3f /*0073C54C*/       // 0.3
+#define EI_QUARTER 0.25f /*0073C3B0*/           // 0.25
+#define EI_ONE 1.0f /*0073B84C*/               // 1.0
+#define EI_HALF 0.5f /*0073B86C*/              // 0.5
+#define EI_POINT_FOUR 0.4f /*0073B868*/        // 0.4
+#define EI_POINT_TWO 0.2f /*0073BAD4*/         // 0.2
+#define EI_TENTH 0.1f /*0073B850*/             // 0.1
+#define EI_THREE 3.0f /*0073BAA4*/             // 3.0
+#define EI_NINE 9.0f /*0073CF10*/              // 9.0
+#define EI_TWO 2.0f /*0073CDB8*/               // 2.0
+#define EI_SPARK_SIZE 0.06f /*0073CCB8*/        // 0.06
+#define EI_SCALE_0_9 2.0954757378615665e-10 /*0073CF20*/        // ~0.9 * 2^-32
+#define EI_SCALE_1 2.3283064370807974e-10 /*0073C468*/          // ~2^-32
+#define EI_SCALE_ANGLE 1.4621764913365538e-9 /*0073CF18*/      // ~2 pi * 2^-32
+#define EI_SCALE_2 4.656612874161595e-10 /*0073C508*/          // ~2^-31
+#define EI_SCALE_0_04 9.313225540156372e-12 /*0073CF08*/       // ~0.04 * 2^-32
+#define EI_SCALE_0_01 2.328306385039093e-12 /*0073CF00*/       // ~0.01 * 2^-32
 
 // One point of a new bolt: a random offset (none for point 0) around the source, on the ground,
 // with a fork direction.
@@ -237,11 +235,11 @@ struct ModifierPoint {
 };
 static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 
-#define EI_TEN GameFloat(0x0073BAAC)               // 10.0
-#define EI_ZERO GameFloat(0x0073B858)              // 0.0
-#define EI_SMALL_RING GameFloat(0x0073CEA0)        // 1/23
-#define EI_JITTER GameFloat(0x0073CE90)            // 0.04
-#define EI_SCALE_0_08 GameDouble(0x0073CE98)       // ~0.08 * 2^-32
+#define EI_TEN 10.0f /*0073BAAC*/               // 10.0
+#define EI_ZERO 0.0f /*0073B858*/              // 0.0
+#define EI_SMALL_RING 0.04347826f /*0073CEA0*/        // 1/23
+#define EI_JITTER 0.04f /*0073CE90*/            // 0.04
+#define EI_SCALE_0_08 1.8626451080312744e-11 /*0073CE98*/       // ~0.08 * 2^-32
 
 const std::int32_t* FadeAlpha() { return ei::GamePointer<const std::int32_t>(0x0078A774); }
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
@@ -442,29 +440,29 @@ EI_REPLACE_METHOD(0x00490130, CParticleSource::EmitModifier);
 
 namespace {
 
-#define EI_ZONE_EXIT_SPREAD GameFloat(0x0073CF2C)  // 1.9
-#define EI_SCALE_0_03 GameDouble(0x0073CE10)       // ~0.03 * 2^-32
-#define EI_POINT_SEVEN GameFloat(0x0073C538)       // 0.7
-#define EI_TWENTIETH GameFloat(0x0073C52C)         // 0.05
-#define EI_SCALE_0_4 GameDouble(0x0073CCB0)        // ~0.4 * 2^-32
-#define EI_ONE_AND_HALF GameFloat(0x0073C51C)      // 1.5
-#define EI_ONE_POINT_TWO GameFloat(0x0073CF5C)     // 1.2
-#define EI_PORTAL_GROWTH GameFloat(0x0073CDE8)     // 1.03
-#define EI_EIGHT GameFloat(0x0073CC7C)             // 8.0
-#define EI_TWO_HUNDRED GameFloat(0x0073CF58)       // 200.0
-#define EI_POINT_EIGHT GameFloat(0x0073CCA8)       // 0.8
-#define EI_SPARK_SCALE GameFloat(0x0073CF60)       // 0.55
-#define EI_POINT_SIX GameFloat(0x0073CDE0)         // 0.6
-#define EI_POINT_NINE GameFloat(0x0073CD70)        // 0.9
-#define EI_PI GameFloat(0x0073CAF0)                // pi
-#define EI_FEEBLE_SPEED GameDouble(0x0073CF90)     // 0.05
-#define EI_SCALE_0_2 GameDouble(0x0073CED8)        // ~0.2 * 2^-32
-#define EI_FEEBLE_SIZE GameFloat(0x0073CF8C)       // 0.035
-#define EI_FEET_DENSITY GameFloat(0x0073CE50)      // 8.0
-#define EI_FEET_RISE GameFloat(0x0073CDF4)         // 1.2
-#define EI_BYTE GameFloat(0x0073C370)              // 255.0
-#define EI_DUST_GROWTH GameFloat(0x0073CEE0)       // 1.05
-#define EI_TRANS_GROWTH GameFloat(0x0073CCD8)      // 0.02
+#define EI_ZONE_EXIT_SPREAD 1.9f /*0073CF2C*/  // 1.9
+#define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/       // ~0.03 * 2^-32
+#define EI_POINT_SEVEN 0.7f /*0073C538*/       // 0.7
+#define EI_TWENTIETH 0.05f /*0073C52C*/         // 0.05
+#define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/        // ~0.4 * 2^-32
+#define EI_ONE_AND_HALF 1.5f /*0073C51C*/      // 1.5
+#define EI_ONE_POINT_TWO 1.2f /*0073CF5C*/     // 1.2
+#define EI_PORTAL_GROWTH 1.03f /*0073CDE8*/     // 1.03
+#define EI_EIGHT 8.0f /*0073CC7C*/             // 8.0
+#define EI_TWO_HUNDRED 200.0f /*0073CF58*/       // 200.0
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/       // 0.8
+#define EI_SPARK_SCALE 0.55f /*0073CF60*/       // 0.55
+#define EI_POINT_SIX 0.6f /*0073CDE0*/         // 0.6
+#define EI_POINT_NINE 0.9f /*0073CD70*/        // 0.9
+#define EI_PI 3.1415927f /*0073CAF0*/                // pi
+#define EI_FEEBLE_SPEED 0.05000000074505806 /*0073CF90*/     // 0.05
+#define EI_SCALE_0_2 4.6566139843846196e-11 /*0073CED8*/        // ~0.2 * 2^-32
+#define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/       // 0.035
+#define EI_FEET_DENSITY 8.0f /*0073CE50*/      // 8.0
+#define EI_FEET_RISE 1.2f /*0073CDF4*/         // 1.2
+#define EI_BYTE 255.0f /*0073C370*/              // 255.0
+#define EI_DUST_GROWTH 1.05f /*0073CEE0*/       // 1.05
+#define EI_TRANS_GROWTH 0.02f /*0073CCD8*/      // 0.02
 
 // Alpha tables indexed by the ticks left.
 const std::int32_t* SparkAlpha() { return ei::GamePointer<const std::int32_t>(0x0078AB98); }

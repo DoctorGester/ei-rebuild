@@ -44,20 +44,18 @@ double Unsigned(std::uint32_t value) {
 }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-double GameDouble(std::uintptr_t address) { return ei::GameData<const volatile double>(address); }
-#define EI_ONE GameFloat(0x0073B84C)            // 1.0
-#define EI_POINT_FOUR GameFloat(0x0073B868)     // 0.4
-#define EI_POINT_SEVEN GameFloat(0x0073C538)    // 0.7
-#define EI_POINT_EIGHT GameFloat(0x0073CCA8)    // 0.8
-#define EI_POINT_TWO GameFloat(0x0073CCA0)      // 0.2
-#define EI_TWELVE GameFloat(0x0073CB18)         // 12.0
-#define EI_SIXTY_FOURTH GameFloat(0x0073CCA4)   // 0.015625
-#define EI_UV_INSET GameFloat(0x0073CC90)       // 1/512: the frame rectangles are inset by this
-#define EI_COLOR_SCALE GameFloat(0x0073C370)    // 255.0
-#define EI_SCALE_2 GameDouble(0x0073C508)       // ~2^-31
-#define EI_SCALE_0_4 GameDouble(0x0073CCB0)     // ~0.4 * 2^-32
-#define EI_RING_STEP GameDouble(0x0073CC98)     // 0.62832 (2 pi / 10)
+#define EI_ONE 1.0f /*0073B84C*/            // 1.0
+#define EI_POINT_FOUR 0.4f /*0073B868*/     // 0.4
+#define EI_POINT_SEVEN 0.7f /*0073C538*/    // 0.7
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/    // 0.8
+#define EI_POINT_TWO 0.2f /*0073CCA0*/      // 0.2
+#define EI_TWELVE 12.0f /*0073CB18*/         // 12.0
+#define EI_SIXTY_FOURTH 0.015625f /*0073CCA4*/   // 0.015625
+#define EI_UV_INSET 0.001953125f /*0073CC90*/       // 1/512: the frame rectangles are inset by this
+#define EI_COLOR_SCALE 255.0f /*0073C370*/    // 255.0
+#define EI_SCALE_2 4.656612874161595e-10 /*0073C508*/       // ~2^-31
+#define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/     // ~0.4 * 2^-32
+#define EI_RING_STEP 0.62832 /*0073CC98*/     // 0.62832 (2 pi / 10)
 
 IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 
