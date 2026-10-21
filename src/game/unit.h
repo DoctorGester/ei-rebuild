@@ -790,10 +790,12 @@ constexpr int kPrototypeSize = 0x120;
 constexpr int kModelSize = 0x168;
 constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
-inline const RecordTable& Prototypes() { return ei::GameData<const RecordTable>(0x007AF358); }
-inline const RecordTable& Models() { return ei::GameData<const RecordTable>(0x007AF398); }
-inline const RecordTable& Skills() { return ei::GameData<const RecordTable>(0x007AF268); }
-inline const RecordTable& SkillLevels() { return ei::GameData<const RecordTable>(0x007AF274); }
+// The unit database's tables and the skill database's vectors as record tables (begin / end; unit_db_destroy.cpp).
+const RecordTable& Prototypes();
+const RecordTable& Models();
+const RecordTable& Skills();
+const RecordTable& SkillLevels();
+const RecordTable& ModelLevels();   // the models' level records (007AF3B8)
 // The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.
 inline constexpr int kSlotTypes = 5;
 inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15.0f, 15.0f, 15.0f};

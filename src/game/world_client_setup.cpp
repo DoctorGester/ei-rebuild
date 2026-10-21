@@ -39,7 +39,7 @@ constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of th
 
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return ei::GameData<const char* const>(0x0079BC94); } // a CString
-UnitDatabase* Units() { return ei::GamePointer<UnitDatabase>(0x007AF358); }
+UnitDatabase* Units() { return &unitdb::Database(); }
 
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
 // figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is

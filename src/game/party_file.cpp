@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "net_link.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -121,3 +122,19 @@ void SavedParties::Destruct() {
     folder_.~CString();
 }
 EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);
+
+// The saved parties, empty at the start: built by the static initialiser 0065F2A0 in the list's order and destroyed by the
+// exit function it registers (0065F2C0); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
+
+namespace {
+void __cdecl ConstructSavedParties() {   // 0065F2A0
+    g_savedParties->Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x0065F2C0));
+}
+void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }   // 0065F2C0
+} // namespace
+
+EI_REPLACE(0x0065F2A0, ConstructSavedParties);
+EI_REPLACE(0x0065F2C0, DestroySavedParties);

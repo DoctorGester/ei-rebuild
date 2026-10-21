@@ -3,9 +3,12 @@
 // Small application helpers of 00455950-00457720 (app_helpers.cpp, A-E1) and the globals they use.
 
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstdint>
+
+extern lib::StaticObject<stlp::list<std::uint8_t>> g_protectionChecks;   // static_lists.cpp
 
 namespace app {
 
@@ -15,9 +18,9 @@ inline std::uint8_t& QuitAllowed() { return ei::GameData<std::uint8_t>(0x0078475
 inline std::uint8_t& MovieModeFlag() { return ei::GameData<std::uint8_t>(0x00784752); }
 
 // 0079BC2C: the copy protection's check list (an STLport list of bytes, 1 passed / 0 failed; built
-// empty by the static initialiser 00455E50, freed at exit by 00455F00). Nothing adds to it.
+// empty by the static initialiser 00455E30, freed at exit by 00455F00; static_lists.cpp). Nothing adds to it.
 using ProtectionCheckList = stlp::list<std::uint8_t>;
-inline ProtectionCheckList& ProtectionChecks() { return ei::GameData<ProtectionCheckList>(0x0079BC2C); }
+inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
 
 double __fastcall DiskFreeSpace(const char* path);          // 00455A90
 void __fastcall SetQuitAllowed(std::uint8_t allowed);       // 00455F10

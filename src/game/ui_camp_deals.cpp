@@ -29,7 +29,7 @@ const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
 // The spell prototypes (their by-name lookup 00613920 is a thiscall on the table).
-void* SpellTable() { return ei::GamePointer<void>(0x007C8510); }
+stlp::RecordsByName* SpellTable() { return itemdb::Named(itemdb::TheSpellDatabase().spells); }
 
 // Pages of the action buttons.
 enum CampPage {
@@ -147,7 +147,7 @@ const char* InstructionName(int itemClass) {
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
 // The quick item prototypes by name (an STLport map; 00613820 inserts a missing name).
-void* QuickItemsByName() { return ei::GamePointer<void>(0x007C8744); }
+void* QuickItemsByName() { return &itemdb::TheItemDatabase().quickItems.names; }
 constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
@@ -213,7 +213,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             char* prototype = item->spell_->GetPrototype();
             const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
-            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(SpellTable()), nullptr, name))));
+            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(SpellTable(), nullptr, name))));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
             static_cast<ItemStock*>(stock)->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));

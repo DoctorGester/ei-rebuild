@@ -10,6 +10,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -78,3 +79,4 @@ static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, field3) == 0x20);
 static_assert(offsetof(PartyManager, records) == 0x24);
 static_assert(offsetof(PartyManager, templates) == 0x38);
+static_assert(sizeof(PartyManager) == 0x44);
