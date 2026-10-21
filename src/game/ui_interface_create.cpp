@@ -23,6 +23,7 @@
 #include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "options.h"
 
 #include <cstdint>
 #include <utility>
@@ -52,7 +53,7 @@ bool CreateFont(ui_gdi::GameFont* font, int size) {
 }
 
 // The language the keyboard starts in (the option 0079BE98, a Windows language id) and English.
-DWORD KeyboardLanguage() { return ei::GameData<const volatile DWORD>(0x0079BE98); }
+DWORD KeyboardLanguage() { return static_cast<DWORD>(options::TheOptions()->keyboardLayout_); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
 

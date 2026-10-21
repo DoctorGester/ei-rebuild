@@ -73,6 +73,8 @@ TYPES = {
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
     'MaterialKindFile': 'iP',
+    'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
+    'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy

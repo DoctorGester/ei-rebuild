@@ -47,7 +47,7 @@ struct SpriteElements {
 using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0
 SpriteArray& Sprites() { return ei::GameData<SpriteArray>(0x0079C1E0); }
 LightningPointArray& GlowPoints() { return ei::GameData<LightningPointArray>(0x0079C1D0); }
-std::uint8_t& GlowGuards() { return ei::GameData<std::uint8_t>(0x0079C1F4); }
+std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 // The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
 void SizeSprites() { Sprites().SetSize(8); }
@@ -63,13 +63,13 @@ float RandomOffset() {
 // 00467590. `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
 void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size) {
-    if (!(GlowGuards() & 1)) {
-        GlowGuards() |= 1;
+    if (!(g_glowGuards & 1)) {
+        g_glowGuards |= 1;
         SpriteArrayConstruct(&Sprites());
         GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x00467A10));
     }
-    if (!(GlowGuards() & 2)) {
-        GlowGuards() |= 2;
+    if (!(g_glowGuards & 2)) {
+        g_glowGuards |= 2;
         LightningPointArray& p = GlowPoints();
         p.data = nullptr;
         p.growBy = 0;

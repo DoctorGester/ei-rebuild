@@ -185,10 +185,11 @@ EI_REWRITTEN(0x004A8890, PartyManager::BeginRedeploy);
 void PartyManager::EndRedeploy(void* players) { records.EndRedeploy(static_cast<CParty*>(players)); }
 EI_REWRITTEN(0x004A8880, PartyManager::EndRedeploy);
 
+int g_nextPartyId = /*0078B0E8*/ 1;
+
 int __stdcall PartyNextId(int* out) {
-    int& counter = ei::GameData<int>(0x0078B0E8);
-    *out = counter;
-    return ++counter;
+    *out = g_nextPartyId;
+    return ++g_nextPartyId;
 }
 EI_REWRITTEN(0x004A8910, PartyNextId);
 

@@ -21,6 +21,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "options.h"
 
 namespace {
 constexpr std::uint32_t kFlagNoEffect = 8;            // HitEffect's flags
@@ -67,8 +68,8 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
 // The party light (0079BEA0: r, g, b; 0079BEAC: radius).
-const float* PartyLightColour() { return ei::GamePointer<const float>(0x0079BEA0); }
-float PartyLightRadius() { return ei::GameData<const float>(0x0079BEAC); }
+const float* PartyLightColour() { return &options::TheOptions()->heroLight_.red; }
+float PartyLightRadius() { return options::TheOptions()->heroLight_.radius; }
 
 // The hit sound's folder by the weapon class (kinds 7 and 8 and above 15 have none).
 const char* HitSoundFormat(std::uint8_t kind) {
