@@ -674,7 +674,7 @@ int CPlayerClient::OnNewObject() {
     // The player keeps it, counted.
     CPlayer* player = Owner();
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
-    player->knownObjects_[header.id] = created;
+    player->knownObjects_[header.id] = object;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
         object->TakePrototype(unit->GetPrototype()->name);

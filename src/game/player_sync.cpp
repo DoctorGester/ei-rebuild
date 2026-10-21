@@ -85,7 +85,8 @@ void WriteStateStream(BitStream* out, BitStream* from) {
 
 // The insert of hash_map::operator[] inlined by the senders: the highest id kept, the object
 // stored under its id and counted.
-void Keep(CPlayer::ObjectMap& map, int& maxId, CEngineObject* object) {
+template <typename T>
+void Keep(stlp::hash_map<int, T*, stlp::IntHash>& map, int& maxId, T* object) {
     int id = object->id_;
     if (id > maxId) maxId = id;
     map[id] = object;
@@ -93,8 +94,9 @@ void Keep(CPlayer::ObjectMap& map, int& maxId, CEngineObject* object) {
 }
 
 // The erase the removers inline: the node of `id`, if any, dropped.
-void Forget(CPlayer::ObjectMap& map, int id) {
-    if (CPlayer::ObjectMap::Node* node = map.Find(id)) map.Erase(node);
+template <typename Map>
+void Forget(Map& map, int id) {
+    if (typename Map::Node* node = map.Find(id)) map.Erase(node);
 }
 
 int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCount_; }
@@ -325,7 +327,7 @@ int CPlayerServer::SendPartyState() {
 }
 
 int CPlayerServer::ForgetObject(CEngineObject* object) {
-    CPlayer::ObjectMap& known = Owner()->knownObjects_;
+    CPlayer::MapObjectMap& known = Owner()->knownObjects_;
     if (known.Find(object->id_) != nullptr) {
         Forget(known, object->id_);
         object->Release();
