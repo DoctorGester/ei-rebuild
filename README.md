@@ -45,7 +45,7 @@ with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces 
 
 ### Vanilla (no Rebirth)
 
-`launch-vanilla.cmd` runs the image on the plain GOG install in `F:\games\EvilIslands`. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it (the original code's harness runs draw through them). `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
+`launch-vanilla.cmd` runs the image on the plain GOG install in `F:\games\EvilIslands`. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it (the original code's harness runs draw through them). The image itself starts from `runanilla-clean`, the same files without dgVoodoo's DLLs (`tools\clean_run.py` makes or updates it with hard links; `launch-vanilla.cmd` and `harness.cmd` call it), so the DirectX check takes the native path. `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
 
 ### Automated harness
 
