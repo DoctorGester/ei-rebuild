@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "app_helpers.h"
+#include "options.h"
 #include "bink_video.h"
 #include "library_trees.h"
 #include "sound.h"
@@ -700,7 +701,7 @@ void CCreditsScreen::Build() {
 
     // The script: one record per line, words separated by spaces.
     auto* archive = reinterpret_cast<CMappedResource*>(archive_);
-    archive->OpenResource(mfc::operator+(ei::GameData<const mfc::CString>(0x0079BC94), "outro.res"),
+    archive->OpenResource(mfc::operator+(options::TheOptions()->resourcesPath_, "outro.res"),
                           0);   // "outro.res"
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);

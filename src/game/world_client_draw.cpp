@@ -8,6 +8,7 @@
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
+#include "options.h"
 #include "renderer_lines.h"
 #include "net_session.h"
 #include "sky_object.h"
@@ -144,11 +145,11 @@ float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
 float ShadowLength() { return (-0.02f /*0073F750*/); }
 // The light effect settings (0079BD50, 0079BD4C, 0079BD54: the three lists +0x1B8 / +0x1BC /
 // +0x1C0) and the game mode (0079BE64; 1 single player).
-int LightEffectsSetting(std::uintptr_t address) { return ei::GameData<const int>(address); }
-int LightEffects1B8() { return LightEffectsSetting(std::uintptr_t(0x0079BD50)); }
-int LightEffects1BC() { return LightEffectsSetting(std::uintptr_t(0x0079BD4C)); }
-int LightEffects1C0() { return LightEffectsSetting(std::uintptr_t(0x0079BD54)); }
-int GameMode() { return ei::GameData<const int>(0x0079BE64); }
+int LightEffectsSetting(const int& setting) { return setting; }
+int LightEffects1B8() { return LightEffectsSetting(options::TheOptions()->enableBloodprints_); }
+int LightEffects1BC() { return LightEffectsSetting(options::TheOptions()->enableFootprints_); }
+int LightEffects1C0() { return LightEffectsSetting(options::TheOptions()->enableFireprints_); }
+int GameMode() { return options::TheOptions()->selectionType_; }
 // 007900E4: the part a selection marker sits on.
 const char* MarkerPartName() { return "hp"; }
 

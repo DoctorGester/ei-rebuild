@@ -10,6 +10,7 @@
 
 #include "../lib/mfc.h"
 #include "game_data.h"
+#include "../lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -216,7 +217,10 @@ static_assert(offsetof(GameOptions, workPath_) == field::kWorkPath && offsetof(G
               offsetof(GameOptions, masterServerName_) == field::kMasterServerName &&
               sizeof(GameOptions) == field::kLoadedSize);
 
-inline GameOptions* TheOptions() { return ei::GamePointer<GameOptions>(0x0079BC70); }
+// The game's options (the object at 0079BC70; options_global.cpp): built by the static initialiser 00458700 in the list's
+// order, destroyed by the exit function it registers (00458720; options_construct.cpp, options_defaults.cpp).
+extern lib::StaticObject<GameOptions> g_options;
+inline GameOptions* TheOptions() { return &*g_options; }
 
 // 00458DA0 (options_defaults.cpp). The options' defaults.
 void __fastcall OptionsResetDefaults(GameOptions* self);

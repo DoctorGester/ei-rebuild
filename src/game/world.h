@@ -7,6 +7,7 @@
 // else is provisional. Only the members used by the rewritten functions are declared.
 
 #include <cstddef>
+#include "options.h"
 #include <cstdint>
 
 #include "base_manager.h"
@@ -2049,12 +2050,12 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 void __stdcall SelectLoadingMovie(const char* zone);
 
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
-inline int TimeSpeedSetting() { return ei::GameData<const int>(0x0079BE5C); }
+inline int TimeSpeedSetting() { return options::TheOptions()->defaultTimeScale_; }
 // The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
 // the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
-inline float FogStartDay() { return ei::GameData<const float>(0x0079BED4); }
-inline float FogStartNight() { return ei::GameData<const float>(0x0079BED0); }
-inline float FarClipDistance() { return ei::GameData<const float>(0x0079BE54); }
+inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_; }
+inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
+inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
 // world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the

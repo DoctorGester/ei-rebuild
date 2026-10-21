@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
+#include "options.h"
 #include "random.h"
 #include "item_db.h"
 #include "item_db_text.h"
@@ -457,7 +458,7 @@ constexpr int kHostPort = 8000;
 constexpr int kServerMessageZone = 8;
 
 int& CampaignMode() { return ei::GameData<int>(0x007C2CC4); }
-int& SpectatorFlag() { return ei::GameData<int>(0x0079BE6C); }
+int& SpectatorFlag() { return options::TheOptions()->drawVisibleOnly_; }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
@@ -1461,12 +1462,12 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
-int& SavedSpectator() { return ei::GameData<int>(0x0079BEC4); }
-int& Spectator0() { return ei::GameData<int>(0x0079BEC0); }
+int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
+int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
-const char* ResourcesPath() { return ei::GameData<const char* const>(0x0079BC94); }
+const char* ResourcesPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }

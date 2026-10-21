@@ -5,6 +5,7 @@
 // sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
 // patches.
 #include "net_classes.h"
+#include "options.h"
 #include "record_vectors.h"
 #include "stl_sorts.h"
 #include "ui.h"
@@ -65,7 +66,7 @@ const char* RefusalKey(int refusal) {
 }
 // The port an address typed without one gets (8888), and the master server's host name.
 int DefaultPort() { return ei::GameData<const int>(0x00783E30); }
-const char* MasterHost() { return ei::GameData<const char* const>(0x0079BED8); }
+const char* MasterHost() { return static_cast<const char*>(options::TheOptions()->masterServerName_); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0, 0073B858), on (-0.08984375, 00741DA0); the selected game

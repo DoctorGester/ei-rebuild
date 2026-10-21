@@ -7,10 +7,15 @@
 
 #include "../../src/game/game_data.h"
 #include "../../src/game/game_singletons.h"
+#include "../../src/game/options.h"
 #include "ei/hook.h"
 
 inline CCursor* HarnessCursor() {
     return ei::Standalone() ? TheCursor() : &ei::OriginalGameData<CCursor>(0x007C7BD8);
+}
+
+inline options::GameOptions* HarnessOptions() {
+    return ei::Standalone() ? options::TheOptions() : &ei::OriginalGameData<options::GameOptions>(0x0079BC70);
 }
 
 inline GameFlow* HarnessFlow() {

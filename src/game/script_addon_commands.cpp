@@ -2,6 +2,7 @@
 // 100115AC-10011703, 10011CC5-10011F43, 100124F4, 10012813-10012C7B, 10012D0F-10012EFB). The game
 // functions they call are the rewritten members, or their original addresses where not rewritten.
 #include "script_addon_handlers.h"
+#include "options.h"
 #include "world_glue.h"
 
 #include "combat.h"
@@ -40,7 +41,7 @@ namespace {
 
 
 // 0079BE6C: the "draw all units" flag (the console's spectator mode).
-int& DrawAllUnits() { return ei::GameData<int>(0x0079BE6C); }
+int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
 // 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
 std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 

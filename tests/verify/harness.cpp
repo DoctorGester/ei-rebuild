@@ -1153,11 +1153,6 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
     return g_createFontIndirect(&plain);
 }
 
-// The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
-// off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
-// clears it every frame, since the options are reloaded when a game starts.
-int& g_showTutorial = ei::GameData<int>(0x0079BE78);
-
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
 // frame, since loading a zone resets it, and again after every world update (HeldServerUpdate,
@@ -2660,7 +2655,9 @@ std::string WindowSizeStep(const std::string& argument);
 
 void RunSteps() {
     SetUnhandledExceptionFilter(&HarnessUnhandled);
-    g_showTutorial = 0;
+    // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
+    // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
+    HarnessOptions()->showTutorial_ = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
@@ -3162,9 +3159,9 @@ void RunSteps() {
             std::string error = SameFileStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
-            options::TheOptions()->masterServerName_ = s.argument.c_str();
+            HarnessOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "waterwaves") {
-            if (s.argument == "0" || s.argument == "1") options::TheOptions()->enableWaterWaves_ = s.argument == "1";
+            if (s.argument == "0" || s.argument == "1") HarnessOptions()->enableWaterWaves_ = s.argument == "1";
             else g_failures.push_back("waterwaves needs 0 or 1");
         } else if (s.verb == "fakemaster") {
             int port = 0;

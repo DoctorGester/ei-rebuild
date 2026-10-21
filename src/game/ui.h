@@ -8,6 +8,7 @@
 // mouse position before hit testing.
 
 #include "core_transform.h"
+#include "options.h"
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
@@ -1060,7 +1061,7 @@ inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 
 // The client world (CWorldClient, world.h).
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
-inline int& ShowHitNumbersOption() { return ei::GameData<int>(0x0079BE74); }
+inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
 inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
 
@@ -3431,4 +3432,4 @@ long& MouseDragX();
 long& MouseDragY();
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
-inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }
+inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }

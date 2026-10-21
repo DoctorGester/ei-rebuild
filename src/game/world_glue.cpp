@@ -1,6 +1,7 @@
 // The game glue's small functions (game.exe 0x00578000-0x00578E30). See world_glue.h and
 // docs/notes/world.md.
 #include "world_glue.h"
+#include "options.h"
 
 #include "net_classes.h"
 #include "object_tables.h"
@@ -105,8 +106,8 @@ const char kConstructionVariable[] = "constr.current";   // 00790384
 // The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
-float& MapEdgeFade() { return ei::GameData<float>(0x0079BD34); }
-const char* DefaultMusic() { return ei::GameData<const char*>(0x0079BECC); }
+float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
+const char* DefaultMusic() { return static_cast<const char*>(options::TheOptions()->defaultStreamingSound_); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView()); }

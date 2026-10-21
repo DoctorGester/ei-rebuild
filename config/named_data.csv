@@ -140,6 +140,7 @@ address,size,name,file
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
 0079BC64,4,g_serverBacklog,src/game/app_main.cpp
 0079BC68,4,g_clientBacklog,src/game/app_main.cpp
+0079BC70,620,g_options,src/game/options_global.cpp
 0079C1A0,32,g_leverTable,src/game/lever_table.cpp
 0079C1F4,1,g_glowGuards,src/game/lightning_draw.cpp
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp

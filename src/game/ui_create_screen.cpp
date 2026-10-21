@@ -4,6 +4,7 @@
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
 #include "app.h"
+#include "options.h"
 #include "world.h"
 #include "ui_camp.h"
 #include "ui_briefing.h"
@@ -271,7 +272,7 @@ void CInterface3D::ShowMessage(int force) {
         messageFlag_ = 0;
     }
     if (messageText_.GetLength() == 0) return;
-    if (ei::GameData<const int>(0x0079BE78) == 0 && !forced) return;
+    if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
     void* memory = gamecrt::operator_new(0x194);
     CUiWindow* window = nullptr;
     if (memory) {
@@ -316,7 +317,7 @@ void CInterface3D::OpenHelp(int flag) {
         helpTopics_.Subscript(key) = 0;
     }
     bool forced = static_cast<std::uint8_t>(flag) != 0;
-    if (ei::GameData<const int>(0x0079BE78) != 0) {
+    if (options::TheOptions()->showTutorial_ != 0) {
         if (!forced && seen >= 0) return;
     } else if (!forced) {
         return;

@@ -2,6 +2,7 @@
 // (CCameraInput, ui_camera_keys.h; the key press is in ui_camera_keys.cpp). See docs/notes/ui.md,
 // section 2 ("005EADD0").
 #include "ui_camera_keys.h"
+#include "options.h"
 
 #include "camera.h"
 #include "ui.h"
@@ -23,12 +24,13 @@
 namespace {
 
 // The camera speed options (floats in the game's data; the camera keys multiply two of them).
-float Option(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-float PanSpeed() { return Option(0x0079BDC0) * Option(0x0079BDB8); }
-float TurnSpeed() { return Option(0x0079BDCC) * Option(0x0079BDC4); }
-float TiltSpeed() { return Option(0x0079BDD8) * Option(0x0079BDD0); }
-float ClimbSpeed() { return Option(0x0079BDE4) * Option(0x0079BDDC); }
-float ZoomSpeed() { return Option(0x0079BDE0) * Option(0x0079BDDC); }
+float Option(const float& setting) { return static_cast<const volatile float&>(setting); }
+const options::GameOptions& Settings() { return *options::TheOptions(); }
+float PanSpeed() { return Option(Settings().cameraScroll_.powerKeyboard) * Option(Settings().cameraScroll_.speed); }
+float TurnSpeed() { return Option(Settings().cameraRotate_.powerKeyboard) * Option(Settings().cameraRotate_.speed); }
+float TiltSpeed() { return Option(Settings().cameraPitch_.powerKeyboard) * Option(Settings().cameraPitch_.speed); }
+float ClimbSpeed() { return Option(Settings().cameraZoom_.powerKeyboard) * Option(Settings().cameraZoom_.speed); }
+float ZoomSpeed() { return Option(Settings().cameraZoom_.powerMouse) * Option(Settings().cameraZoom_.speed); }
 // 00740240: the wheel's steps per delta unit (read from the exe, rule 9).
 float WheelStep() { return (-0.008333334f /*00740240*/); }
 
@@ -42,10 +44,14 @@ bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_
 
 // The mouse options: the drag's pan speed, its turn and tilt speeds (with the mouse factors
 // 0079BD64 / 0079BD68) and the width of the screen edges that pan (0 = off).
-float DragPanSpeed() { return Option(0x0079BDBC) * Option(0x0079BDB8); }
-float DragTurnSpeed() { return Option(0x0079BDC8) * Option(0x0079BDC4) * Option(0x0079BD64); }
-float DragTiltSpeed() { return Option(0x0079BDD4) * Option(0x0079BDD0) * Option(0x0079BD68); }
-int EdgeMargin() { return ei::GameData<const volatile int>(0x0079BDAC); }
+float DragPanSpeed() { return Option(Settings().cameraScroll_.powerMouse) * Option(Settings().cameraScroll_.speed); }
+float DragTurnSpeed() {
+    return Option(Settings().cameraRotate_.powerMouse) * Option(Settings().cameraRotate_.speed) * Option(Settings().cameraFlipX_);
+}
+float DragTiltSpeed() {
+    return Option(Settings().cameraPitch_.powerMouse) * Option(Settings().cameraPitch_.speed) * Option(Settings().cameraFlipY_);
+}
+int EdgeMargin() { return static_cast<const volatile int&>(Settings().cameraBorderScrollArea_); }
 // Layout units to a part of the screen (0074015C 1 / 400, 00740204 1 / 300) and the rates' scales
 // (0073BAAC 10, 0073BAB4 500).
 float PerWidth() { return 0.0025f /*0074015C*/; }

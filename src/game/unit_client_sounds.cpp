@@ -1,6 +1,7 @@
 // The sound names the client controller picks for a unit's footsteps and actions. See
 // unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
+#include "options.h"
 
 #include "camera.h"
 #include "item.h"
@@ -170,7 +171,7 @@ struct LocalView {
 };
 
 // 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
-bool AllFootprintsShown() { return ei::GameData<const int>(0x0079BE6C) == 0; }
+bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the
 // callers have returned on a NaN `now`).
