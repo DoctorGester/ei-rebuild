@@ -681,7 +681,7 @@ constexpr FactoryEntry kFactory[] = {
 
 // Every object starts zeroed (operator_new_zeroed): the units' constructors leave levels4C8 and the
 // motion's turn fields, which the saves write (SV7b2).
-CEngineObject* CMapObjectManager::CreateObject(int classId) {
+CEngineObject* CMapObjectManager::NewObjectImpl(int classId) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.classId != classId) continue;
         void* block = gamecrt::operator_new_zeroed(entry.size);
@@ -690,4 +690,4 @@ CEngineObject* CMapObjectManager::CreateObject(int classId) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00512730, CMapObjectManager::CreateObject);
+EI_REPLACE_METHOD(0x00512730, CMapObjectManager::NewObjectImpl);

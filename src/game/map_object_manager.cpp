@@ -1,4 +1,4 @@
-// The map object manager ("map objects", class id 0x2D, vtable 0073DCD8; A-U12): its lifetime, the
+// The map object manager ("map objects", class id 0x2D; A-U12): its lifetime, the
 // objects it makes complete with their halves, the animation database lookup and the defaults of
 // an object without a prototype. The object factory (slot 14) is unit_create_object.cpp's.
 #include "unit_create.h"
@@ -17,10 +17,13 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 
+#include <new>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 
 namespace {
 
-constexpr std::uintptr_t kManagerVtable = std::uintptr_t(0x0073DCD8);
 constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
@@ -40,8 +43,6 @@ constexpr int kTorchHalf = 0x4B;
 constexpr std::uint32_t kKeyVariantBits = 0x7FFF;      // an entry must have every one the key asks for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
-CResourceManager* AsResourceManager(CMapObjectManager* manager) { return reinterpret_cast<CResourceManager*>(manager); }
-
 // The third half an object of class `classId` gets (the switch of 00512A30: the table at 00512B08
 // for classes 0x32-0x3A), or 0 for none.
 int ThirdHalfOf(int classId) {
@@ -59,39 +60,42 @@ int ThirdHalfOf(int classId) {
 
 // --- Lifetime and class slots ---------------------------------------------------------------------
 
-CMapObjectManager* CMapObjectManager::Construct() {
-    AsResourceManager(this)->Construct();
-    ei::SetVtable(this, kManagerVtable);
-    return this;
-}
+CMapObjectManager::CMapObjectManager() {}
+
+CMapObjectManager* CMapObjectManager::Construct() { return new (this) CMapObjectManager(); }
 EI_REPLACE_METHOD(0x005125E0, CMapObjectManager::Construct);
 
-void CMapObjectManager::Destruct() {
-    ei::SetVtable(this, kManagerVtable);
-    AsResourceManager(this)->Destruct();
-}
+CMapObjectManager::~CMapObjectManager() {}
+
+void CMapObjectManager::Destruct() { this->CMapObjectManager::~CMapObjectManager(); }
 EI_REPLACE_METHOD(0x00512650, CMapObjectManager::Destruct);
 
 CMapObjectManager* CMapObjectManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CMapObjectManager::~CMapObjectManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
 EI_REPLACE_METHOD(0x00512630, CMapObjectManager::DeletingDestruct);
 
+const char* CMapObjectManager::GetFolderName() { return kFolderName; }
+const char* CMapObjectManager::GetClassName() { return kClassName; }
+int CMapObjectManager::GetClassId() { return kManagerClassId; }
+int CMapObjectManager::Create() { return CreateManager(); }
+CEngineObject* CMapObjectManager::NewObject(int classId) { return NewObjectImpl(classId); }
+CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
+
 // 00512600 / 00512610 / 00512620 (slots 25, 11, 12).
-const char* __fastcall MapObjectManagerFolder(CMapObjectManager*) { return kFolderName; }
+const char* __fastcall MapObjectManagerFolder(CMapObjectManager* self) { return self->CMapObjectManager::GetFolderName(); }
 EI_REPLACE(0x00512600, MapObjectManagerFolder);
-const char* __fastcall MapObjectManagerClassName(CMapObjectManager*) { return kClassName; }
+const char* __fastcall MapObjectManagerClassName(CMapObjectManager* self) { return self->CMapObjectManager::GetClassName(); }
 EI_REPLACE(0x00512610, MapObjectManagerClassName);
-int __fastcall MapObjectManagerClassId(CMapObjectManager*) { return kManagerClassId; }
+int __fastcall MapObjectManagerClassId(CMapObjectManager* self) { return self->CMapObjectManager::GetClassId(); }
 EI_REPLACE(0x00512620, MapObjectManagerClassId);
 
 int CMapObjectManager::CreateManager() {
-    CResourceManager* manager = AsResourceManager(this);
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
-    if (!manager->CBaseManager::Create()) return 0;
-    manager->AddArchive(folder + "database.res");   // the exe's 00784818
+    if (!CBaseManager::Create()) return 0;
+    AddArchive(folder + "database.res");   // the exe's 00784818
     return 1;
 }
 EI_REPLACE_METHOD(0x00512660, CMapObjectManager::CreateManager);
@@ -99,8 +103,8 @@ EI_REPLACE_METHOD(0x00512660, CMapObjectManager::CreateManager);
 // --- Objects ----------------------------------------------------------------------------------------
 
 CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
-    CResourceManager* manager = AsResourceManager(this);
-    CEngineObject* object = manager->CBaseManager::CreateObjectImpl(classId, id);
+    CResourceManager* manager = this;
+    CEngineObject* object = CBaseManager::CreateObjectImpl(classId, id);
     if (!object) return nullptr;
     auto* figures = static_cast<CWorld*>(manager->context_)->FigureManager();
     static_cast<CMapObject*>(object)->SetAnimationState(
@@ -115,7 +119,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
 EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);
 
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
-    auto* database = static_cast<AnimationDatabase*>(AsResourceManager(this)->GetFile(*figure + ".adb", nullptr));
+    auto* database = static_cast<AnimationDatabase*>(GetFile(*figure + ".adb", nullptr));
     if (!database) {
         game::DebugLog(kNoDatabaseText, static_cast<const char*>(*figure));
         return nullptr;

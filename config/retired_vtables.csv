@@ -14,6 +14,7 @@ vtable,slots,class,file,note
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
 0073E548,61,CTrapObject,src/game/trap_object.h,
 0073E63C,43,MagicTrap,src/game/magic_trap.h,
 0073E6E8,18,MagicTrap,src/game/magic_trap.h,the tail of 0073E63C (a byte match)
