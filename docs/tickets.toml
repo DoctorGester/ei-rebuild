@@ -1652,6 +1652,12 @@ model = "sonnet"
 files = ["src/lib/crt_x87.cpp"]
 note = "Found by R16h (profile of render_stats' town, image): ctrlfp (the CRT's __control87_2) is 9% of the main thread's samples. MathControlWord (crt_x87.cpp) reads and sets the x87 control word around every libcrt math call (Hypot from Vector3::Length, the camera's ClampAboveObjects over every object within 16 units, frexp ...): three __control87_2 calls each. Set it only when it differs from the word wanted, restore only what was changed, and use the cheapest form (fnstcw / fldcw); the results must stay bit-identical (vectors of the libcrt family, goldens). Also check the renderer's FpuGuard (render.cpp; per mesh pass, MeshPass). Measure with renderstats' main-thread CPU per frame (R16h) in the town and the fight."
 
+[[ticket]]
+id = "SV10j"
+title = "std::lrint without the UCRT's FP-environment read per call (acrt_fenv_get_control 1.6% of the town)"
+group = "verification"
+note = "Found by SV10i (EI_PROFILE render_stats town, image): after the control-word fix, the UCRT's acrt_fenv_get_control is 1.6% of the main thread's samples: std::lrint (the AI's cell roundings in unit_ai_*.cpp, script_effects.cpp, combat and armour slots, world_effect_tornado ...) reads the x87 and SSE control words on every call to find the rounding mode. The original rounds with FISTP under the current x87 rounding: a shared helper (x87.h, like x87::fistp, for double and float) gives the same result without the read; check that it matches the UCRT's lrint for every rounding mode and for NaN / out-of-range values (the UCRT returns its own value and sets errno where FISTP gives 80000000), the old-against-new way SV10i did (docs/notes/standalone.md, x87 entries), plus goldens. Measure with renderstats' main-thread CPU per frame and a profile."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
