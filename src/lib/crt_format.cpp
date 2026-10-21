@@ -977,7 +977,6 @@ int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...) {
     va_end(args);
     return written;
 }
-EI_REPLACE(0x006EAEB0, libcrt::Fprintf);
 
 int __cdecl Printf(const char* format, ...) {
     va_list args;
@@ -986,7 +985,6 @@ int __cdecl Printf(const char* format, ...) {
     va_end(args);
     return written;
 }
-EI_REPLACE(0x006E955F, libcrt::Printf);
 
 gamecrt::CrtFile* StandardOutput() { return ei::GamePointer<gamecrt::CrtFile>(0x00798080); }   // &_iob[1]
 
@@ -1682,6 +1680,5 @@ int __cdecl Sscanf(const char* text, const char* format, ...) {
     va_end(args);
     return result;
 }
-EI_REPLACE(0x006EAEEC, libcrt::Sscanf);
 
 } // namespace libcrt

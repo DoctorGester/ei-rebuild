@@ -57,8 +57,6 @@ void CWnd::Destruct() {
     base.Destruct();
 }
 
-EI_REPLACE_METHOD(0x00703EAE, CCmdTarget::Construct);
-EI_REPLACE_METHOD(0x00703EC8, CCmdTarget::Destruct);
 EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
 EI_REPLACE_METHOD(0x00704FE3, CWnd::Destruct);
 
@@ -80,6 +78,5 @@ int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
 }
 
 EI_REPLACE(0x0070AC94, MessageBoxText);
-EI_REPLACE(0x0070ACCC, MessageBoxId);
 
 } // namespace mfc::impl

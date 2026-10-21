@@ -53,11 +53,8 @@ void CProcessLocalObject::Destruct() {
     if (object) object->DeletingDestructor(1);
 }
 
-EI_REPLACE_METHOD(0x0070C71F, CThreadSlotData::FreeSlot);
-EI_REPLACE_METHOD(0x0070CA59, CThreadLocalObject::Destruct);
 EI_REPLACE_METHOD(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE> (007C90C0)
 EI_REPLACE_METHOD(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T> (007CAA84)
-EI_REPLACE_METHOD(0x0070CAD2, CProcessLocalObject::Destruct);
 EI_REPLACE_METHOD(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE> (007C90BC)
 EI_REPLACE_METHOD(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T> (007CAA88)
 EI_REPLACE_METHOD(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T> (007CAA8C)
@@ -133,13 +130,8 @@ void AuxData::UpdateScrollMetrics() {
     marked4 = FALSE;
 }
 
-EI_REPLACE(0x0070AA54, AfxDeleteObject);
 EI_REPLACE_METHOD(0x0070D1AA, AuxData::Construct);
 EI_REPLACE_METHOD(0x0070E181, AuxData::Destruct);
-EI_REPLACE_METHOD(0x00703E12, AuxData::UpdateSysColors);
-EI_REPLACE_METHOD(0x00703E56, AuxData::UpdateSysMetrics);
-EI_REPLACE(0x0070D158, UpdateAfxScrollMetricsMarked4);
-EI_REPLACE(0x0070D188, UpdateAfxScrollMetrics);
 
 } // namespace mfc::impl
 
@@ -218,11 +210,6 @@ void __cdecl AfxWingdixTerm() { AfxDeleteObject(&AfxHalftoneBrush()); }
 
 void __cdecl AfxWingdixTermInit() { AfxWingdixTermResult() = static_cast<char>(GameAtExit(WingdixTermAt())); }
 
-EI_REPLACE_METHOD(0x0070C4E9, CSimpleList::AddHead);
-EI_REPLACE_STANDALONE(0x0070CE8C, ImageModuleState);
-EI_REPLACE(0x0070C3C5, AfxCriticalInit);
-EI_REPLACE(0x0070C458, AfxLockGlobals);
-EI_REPLACE(0x0070C4C8, AfxUnlockGlobals);
 EI_REPLACE(0x00700674, AfxClassInit);
 EI_REPLACE(0x0070DC4D, AfxInitDbcs);
 EI_REPLACE(0x0070B5F0, AfxWingdixTerm);

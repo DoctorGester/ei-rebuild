@@ -493,13 +493,4 @@ T* __fastcall CopyAssigned(const T* first, const T* last, T* out) {
     return out;
 }
 
-// The members that never touch an element, one body for all instantiations (stlp_vector.cpp).
-using AnyVector = vector<Opaque<1>>;
-// _Vector_base(const allocator_type&) (e.g. 00406240; RET 4): returns this.
-AnyVector* __fastcall VectorConstructBase(AnyVector* self, void*, const void* allocator);
-// _STLP_alloc_proxy(const allocator_type&, const pointer&) (e.g. 00406260; RET 8): returns this.
-AllocProxy* __fastcall AllocProxyConstruct(AllocProxy* self, void*, const void* allocator, void* const* data);
-// get_allocator() (e.g. 00421EB0; RET 4): the tag byte into *out; returns out.
-std::uint8_t* __fastcall VectorGetAllocator(const AnyVector* self, void*, std::uint8_t* out);
-
 } // namespace stlp

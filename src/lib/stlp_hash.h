@@ -644,9 +644,8 @@ struct HashtableAbi {
     }
 };
 
-// __stl_hash_string of a string (004298D0; ECX the string) and of a C string (00460BA0; ECX the text).
+// __stl_hash_string of a string (004298D0; ECX the string).
 std::uint32_t __fastcall HashString(const string* s);
-std::uint32_t __fastcall HashText(const char* s);
 
 // hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
 using NameMap = hashtable<StringKeyTraits<4>>;

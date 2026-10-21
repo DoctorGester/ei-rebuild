@@ -46,7 +46,6 @@ const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, con
     }
     return first;
 }
-EI_REPLACE(0x00408A50, LowerBoundDwords);
 
 void string::InitRange(const char* first, const char* last) {
     std::size_t n = static_cast<std::size_t>(last - first);

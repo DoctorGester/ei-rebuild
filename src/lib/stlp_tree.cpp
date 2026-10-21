@@ -227,13 +227,6 @@ RbNodeBase* __fastcall RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNod
 
 } // namespace stlp::rb
 
-EI_REPLACE(0x0043DBE0, stlp::rb::Increment);
-EI_REPLACE(0x0043FBE0, stlp::rb::Decrement);
-EI_REPLACE(0x0043E300, stlp::rb::RotateLeft);
-EI_REPLACE(0x0043E350, stlp::rb::RotateRight);
-EI_REPLACE(0x0043FE90, stlp::rb::Rebalance);
-EI_REPLACE(0x0043D830, stlp::rb::RebalanceForErase);
-
 namespace stlp {
 
 bool CStringLess::Less(const mfc::CString& a, const mfc::CString& b) {

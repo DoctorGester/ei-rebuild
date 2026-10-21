@@ -203,15 +203,4 @@ struct DequeAbi {
     }
 };
 
-// The members that never touch an element, one body for every instantiation (stlp_deque.cpp).
-using AnyDequeIterator = deque<Opaque<16>>::Iterator;
-// _Deque_iterator(const _Deque_iterator&) (00411810 / 004A2BF0; RET 4): four words; returns this.
-AnyDequeIterator* __fastcall DequeIteratorCopy(AnyDequeIterator* self, void*, const AnyDequeIterator* from);
-// _Destroy(first, last) and __destroy(first, last, T*) (00411DF0 / 00412140, 004A2FC0 / 004A3060;
-// RET 0x20) and __destroy_aux(first, last, __false_type) (00412190 / 004A3090; RET 0x24): the
-// elements are trivial, so the originals only walk the range (copying the iterators on the way)
-// and destroy nothing.
-void __stdcall DequeDestroyRange(AnyDequeIterator first, AnyDequeIterator last);
-void __stdcall DequeDestroyRangeAux(AnyDequeIterator first, AnyDequeIterator last, const void* tag);
-
 } // namespace stlp

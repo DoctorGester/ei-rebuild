@@ -30,13 +30,15 @@ holds the address itself. The readers, each a set of addresses:
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,
 or nothing does (then the function is dead in the image).
 
-usage: python tools/registration_readers.py [--list READER] [--unread] [--files] [--drop [--exclude RE ...]]
+usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
+                                           [--drop [--exclude RE ...] [--exclude-name RE ...] [--kinds K,...]]
   (no option)  the split: per reader the registrations it reads (a registration can have several), and per
                first reader in the order above (each counted once)
   --list R     the registrations whose first reader is R (a prefix: "cell", "cell:vtable", "forwarder", ...)
   --unread     the unread registrations, file:line kind address name
   --files      the unread registrations per file
-  --drop       deletes the unread registrations' lines (files matching an --exclude regex left alone)
+  --drop       deletes the unread registrations' lines (files matching an --exclude regex and names matching an
+               --exclude-name regex left alone; only --kinds, by default all but the generated EI_REPLACE_SHORT)
 """
 import argparse, collections, csv, os, re, struct, sys
 
@@ -209,24 +211,82 @@ def measure():
     return regs
 
 
-def drop(regs, exclude):
+def excluded(r, exclude, exclude_names):
+    return any(re.search(x, r.path) for x in exclude) or any(re.search(x, r.name) for x in exclude_names)
+
+
+def drop(regs, exclude, exclude_names, kinds):
     by_file = collections.defaultdict(list)
     for r in regs:
-        if not r.readers and not any(re.search(x, r.path) for x in exclude):
+        if not r.readers and r.kind in kinds and not excluded(r, exclude, exclude_names):
             by_file[r.path].append(r)
-    dropped = 0
+    dropped = comments = 0
     for path, rs in sorted(by_file.items()):
         full = os.path.join(ROOT, path)
         raw = open(full, encoding='utf-8', newline='').read()
-        for r in sorted(rs, key=lambda r: -r.start):
-            begin = raw.rfind('\n', 0, r.start) + 1
-            end = raw.find('\n', r.end)
-            end = len(raw) if end < 0 else end + 1
-            raw = raw[:begin] + raw[end:]
+        lines = raw.splitlines(keepends=True)
+        dead = set()
+        for r in rs:
+            first = raw.count('\n', 0, r.start)
+            dead.update(range(first, first + raw.count('\n', r.start, r.end) + 1))
             dropped += 1
+        before = len(dead)
+        dead |= orphan_comments(lines, dead)
+        comments += len(dead) - before
+        out = []
+        for i, line in enumerate(lines):
+            if i in dead:
+                continue
+            # Two blank lines meeting where lines went: one is enough.
+            if not line.strip() and out and not out[-1].strip() and i > 0 and i - 1 in dead:
+                continue
+            out.append(line)
         with open(full, 'w', encoding='utf-8', newline='') as f:
-            f.write(raw)
-    print(f'dropped {dropped} registration(s) in {len(by_file)} file(s)')
+            f.write(''.join(out))
+    print(f'dropped {dropped} registration(s) in {len(by_file)} file(s), {comments} comment line(s) that introduced only them')
+
+
+def orphan_comments(lines, dead):
+    """Comment blocks (whole // lines) that only introduce or follow dropped registrations: between a boundary (a
+    blank line, the file's start or end, a brace line, a dropped line) and a run of dropped lines that itself ends at
+    one. Section rules (// --- ...) stay."""
+    found = set()
+
+    def comment(i):
+        s = lines[i].strip()
+        return s.startswith('//') and '---' not in s and '===' not in s
+
+    def boundary(i):
+        if i < 0 or i >= len(lines) or i in dead or i in found:
+            return True
+        s = lines[i].strip()
+        return not s or s in ('{', '}', '};') or s.startswith(('} //', 'namespace'))
+
+    def run_ends_at_boundary(i, step):
+        while 0 <= i < len(lines) and (i in dead or i in found):
+            i += step
+        return boundary(i) or comment(i)
+
+    changed = True
+    while changed:
+        changed = False
+        i = 0
+        while i < len(lines):
+            if not comment(i) or i in dead or i in found:
+                i += 1
+                continue
+            j = i
+            while j + 1 < len(lines) and comment(j + 1) and j + 1 not in dead and j + 1 not in found:
+                j += 1
+            gone = dead | found
+            above, below = i - 1, j + 1
+            introduces = below in gone and below < len(lines) and boundary(above) and run_ends_at_boundary(below, 1)
+            follows = above in gone and above >= 0 and boundary(below) and run_ends_at_boundary(above, -1)
+            if introduces or follows:
+                found.update(range(i, j + 1))
+                changed = True
+            i = j + 1
+    return found
 
 
 def main(argv):
@@ -235,11 +295,14 @@ def main(argv):
     ap.add_argument('--unread', action='store_true')
     ap.add_argument('--files', action='store_true')
     ap.add_argument('--drop', action='store_true')
-    ap.add_argument('--exclude', action='append', default=[])
+    ap.add_argument('--exclude', action='append', default=[], help='leave files whose path matches')
+    ap.add_argument('--exclude-name', action='append', default=[], help='leave registrations whose name matches')
+    ap.add_argument('--kinds', default='EI_REPLACE,EI_REPLACE_METHOD,EI_REPLACE_DISPATCH,EI_REPLACE_STANDALONE',
+                    help='the kinds --drop takes (EI_REPLACE_SHORT is generated: gen_short_functions.py)')
     args = ap.parse_args(argv)
     regs = measure()
     if args.drop:
-        drop(regs, args.exclude)
+        drop(regs, args.exclude, args.exclude_name, args.kinds.split(','))
         return 0
     if args.list or args.unread:
         for r in regs:

@@ -246,28 +246,6 @@ typename list<T>::Node* AsNode(Node* node) {
     return reinterpret_cast<typename list<T>::Node*>(node);
 }
 
-// The members that never touch an element, one body for all instantiations (stlp_list.cpp).
-using AnyList = OpaqueList<16>;
-// begin() (e.g. 0040A9F0) and end() (e.g. 004049D0; RET 4).
-AnyList::Node** __fastcall ListBegin(const AnyList* self, void*, AnyList::Node** out);
-AnyList::Node** __fastcall ListEnd(const AnyList* self, void*, AnyList::Node** out);
-// distance(first, last, n) (e.g. 00429040; RET 8): ECX the count.
-void __fastcall ListDistance(int* n, void*, const AnyList::Node* first, const AnyList::Node* last);
-// The sentinel given back while a list's constructor unwinds (00482790, 004FB840; only exception
-// unwind funclets call them): a non-null node back to the pool as a block of NodeBytes.
-template <std::size_t NodeBytes>
-void __fastcall ListPutSentinel(OpaqueList<NodeBytes>* self) {
-    if (self->head) deallocate(self->head, NodeBytes);
-}
-// The iterator's copy constructor (004387C0; RET 4): returns this.
-AnyList::Node** __fastcall ListIteratorCopy(AnyList::Node** self, void*, AnyList::Node* const* from);
-// --it (00439A60, 004FB570): returns it.
-AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** it);
-// splice(pos, x, i) (004380C0; RET 0xC) and splice(pos, x, first, last) (00438770; RET 0x10):
-// neither list is read.
-void __fastcall ListSpliceOne(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* i);
-void __fastcall ListSpliceRange(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* first,
-                                AnyList::Node* last);
 // remove(value) of a list<int> (00511FB0; RET 4; S16a: the light factory's lit ids): every element equal
 // to *value (read again for each node) erased, through 00512030.
 void __fastcall ListRemoveInt(list<int>* self, void*, const int* value);

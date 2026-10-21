@@ -196,35 +196,4 @@ void __fastcall ThrowOutOfRange() {
 
 } // namespace stlp
 
-EI_REPLACE(0x00428DF0, StringAbi::RangeInitialize);
-EI_REPLACE(0x00428F10, StringAbi::RangeInitialize);
-EI_REPLACE(0x0042A2B0, StringAbi::RangeInitializeTagged);
-EI_REPLACE(0x0042A3D0, StringAbi::RangeInitializeTagged);
-EI_REPLACE(0x004A8930, StringAbi::CopyConstruct);
-EI_REPLACE(0x004F5DF0, StringAbi::ConstructAt);
-EI_REPLACE(0x0040C5A0, StringAbi::ConstructFromText);
-EI_REPLACE(0x0041F460, StringAbi::ConstructDefault);
 EI_REPLACE(0x006B6CC0, StringAbi::ConstructDefault);
-EI_REPLACE(0x00421800, StringAbi::ConstructWithCapacity);
-EI_REPLACE(0x0040C2A0, StringAbi::Append);
-EI_REPLACE(0x0042B700, StringAbi::Append);
-EI_REPLACE(0x0040C280, StringAbi::Append);
-EI_REPLACE(0x0042AFB0, StringAbi::Append);
-EI_REPLACE(0x00675690, StringAbi::AppendRange);
-EI_REPLACE(0x00426A80, StringAbi::AssignRange);
-EI_REPLACE(0x0042A4F0, StringAbi::AssignRangeTagged);
-EI_REPLACE(0x0041F4E0, StringAbi::AssignString);
-EI_REPLACE(0x0041F550, StringAbi::AssignText);
-EI_REPLACE(0x0040B3C0, StringAbi::Erase);
-EI_REPLACE(0x0041F5F0, StringAbi::Substr);
-EI_REPLACE(0x0068C680, StringAbi::Reserve);
-EI_REPLACE(0x0069BF10, StringAbi::PushBack);
-EI_REPLACE(0x00445780, StringAbi::Less);
-EI_REPLACE(0x00445810, StringAbi::Compare);
-EI_REPLACE(0x004DDC90, StringAbi::DeletingDestructor);
-// S12g: the net code's string members.
-EI_REPLACE(0x00424E40, StringAbi::AllocateBlock);
-EI_REPLACE(0x00427D60, StringAbi::PlusText);
-EI_REPLACE(0x00427E80, StringAbi::PlusString);
-EI_REPLACE(0x00427FA0, StringAbi::Equals);
-EI_REPLACE(0x004410A0, stlp::ThrowOutOfRange);
