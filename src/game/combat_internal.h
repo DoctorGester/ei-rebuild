@@ -4,21 +4,20 @@
 
 #include "combat.h"
 #include "game_data.h"
+#include "lib/crt_iostream.h"
 
 // The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use (combat.cpp).
-struct GameOstream {
+struct GameOstream : libcrt::Ostream {
     GameOstream* Put(const char* text);     // 006FC31D
     GameOstream* Put(long value);           // 006FC9C6
     GameOstream* Put(double value);         // 006FC7FA
     GameOstream* PutChar(int c);            // 006FC0B0
     GameOstream* Apply(void* manipulator);  // 00434FE0: manipulator(*this)
 
-    // The logs set the dword at +4 to 1 before each floating point number.
-    void SetField4() { field4 = 1; }
-
-    void* vtable;       // +0x00 (the ostream's virtual base pointer)
-    int field4;         // +0x04
+    // The logs set x_floatused to 1 before each floating point number.
+    void SetField4() { floatUsed = 1; }
 };
+static_assert(sizeof(GameOstream) == 8);
 
 // The game's log stream (global 007AF3E8) and the manipulator that ends a line (00435000).
 inline GameOstream* GameLog() { return ei::GameData<GameOstream*>(0x007AF3E8); }

@@ -50,11 +50,11 @@ char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadS
 void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }                       // 00701E23
 void CStdioFile::Close() { Impl()->Close(); }                                                       // 00701FE0
 
-GameOStream& GameOStream::operator<<(const char* text) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-GameOStream& GameOStream::operator<<(char c) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-GameOStream& GameOStream::operator<<(int a0) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutLong(static_cast<long>(a0))); }
-GameOStream& GameOStream::operator<<(double v) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
-GameOStream& GameOStream::Apply(void* manipulator) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
+GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
+GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
+GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); return *this; }
+GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
+GameOStream& GameOStream::Apply(void* manipulator) { libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator)); return *this; }
 
 
 CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *lib_trees::Commands::Subscript(map, nullptr, &name); }

@@ -26,6 +26,7 @@
 #include "core_refcount.h"
 #include "net_coder.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
@@ -88,7 +89,7 @@ void __fastcall MasterLinkDestruct(MasterLink* self);
 
 // The network log (0079B91C; null when logging is off): an old iostream whose inserters are library
 // code, called at their addresses (net_session_tick.cpp).
-class LogStream {
+class LogStream : public libcrt::Ostream {
 public:
     LogStream* Put(const char* text);       // 006FC31D
     LogStream* PutChar(char c);             // 006FC0B0

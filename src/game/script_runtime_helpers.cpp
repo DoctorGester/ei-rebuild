@@ -80,7 +80,7 @@ EI_REPLACE_METHOD(0x004BA100, CAIMap::FindUnitsInRadius);
 // ---- Console output -------------------------------------------------------------------------------
 
 console::GameOStream& console::GameOStream::PutFloatArgument(float f) {
-    floatUsed_ = 1;
+    floatUsed = 1;
     return *this << static_cast<double>(f);
 }
 EI_REPLACE_METHOD(0x004BA9D0, console::GameOStream::PutFloatArgument);

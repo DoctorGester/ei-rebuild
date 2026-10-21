@@ -72,16 +72,15 @@ float Max0(float value) { return value <= kZero ? kZero : value; }   // the orig
 } // namespace
 
 // The hit log stream (global 007AF284, a MSVC 6 ostream) and its inserters (library code).
-struct UnitLogStream {
-    UnitLogStream* Put(const char* text);      // 006FC31D
-    UnitLogStream* Put(double value);          // 006FC7FA
-    UnitLogStream* PutChar(int c);             // 006FC0B0
-    UnitLogStream* Apply(void* manipulator);   // 00434FE0: manipulator(*this)
+struct UnitLogStream : libcrt::Ostream {
+    UnitLogStream* Put(const char* text) { PutText(text); return this; }                             // 006FC31D
+    UnitLogStream* Put(double value) { PutDouble(value); return this; }                              // 006FC7FA
+    UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
+    UnitLogStream* Apply(void* manipulator) {                                                        // 00434FE0: manipulator(*this)
+        libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator));
+        return this;
+    }
 };
-UnitLogStream* UnitLogStream::Put(const char* text) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-UnitLogStream* UnitLogStream::Put(double v) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
-UnitLogStream* UnitLogStream::PutChar(int c) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-UnitLogStream* UnitLogStream::Apply(void* manipulator) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 namespace {
 UnitLogStream* HitLog() { return ei::GameData<UnitLogStream*>(0x007AF284); }

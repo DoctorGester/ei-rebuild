@@ -23,16 +23,15 @@
 namespace {
 
 // The game's ostream (MSVC 6 iostream).
-struct AiLogStream {
-    AiLogStream* Write(const char* text);   // 006FC31D
-    AiLogStream* Write(long value);         // 006FC9C6
-    AiLogStream* Put(int c);                // 006FC0B0
-    AiLogStream* Apply(void* manipulator);  // 00434FE0
+struct AiLogStream : libcrt::Ostream {
+    AiLogStream* Write(const char* text) { PutText(text); return this; }                       // 006FC31D
+    AiLogStream* Write(long value) { PutInt(value); return this; }                             // 006FC9C6
+    AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
+    AiLogStream* Apply(void* manipulator) {                                                    // 00434FE0
+        libcrt::Ostream::Apply(reinterpret_cast<libcrt::Manipulator>(manipulator));
+        return this;
+    }
 };
-AiLogStream* AiLogStream::Write(const char* text) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-AiLogStream* AiLogStream::Write(long v) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutInt(v)); }
-AiLogStream* AiLogStream::Put(int c) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-AiLogStream* AiLogStream::Apply(void* manipulator) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 AiLogStream* AlarmLog() { return ei::GameData<AiLogStream*>(0x007C2EB8); }
 
 // 00455940: the owner's manager context (the world server).
