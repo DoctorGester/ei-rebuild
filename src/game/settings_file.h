@@ -19,7 +19,8 @@
 // the bytes are what the game's ANSI registry call gave (UTF-8 with EI_UTF8).
 //
 // Harness runs (verify build, tests/verify/harness_settings.h) pin a file of their own (Pin): written from the
-// committed registry snapshot, read only, every read of a value it lacks reported.
+// committed registry snapshot, read only (or writable, to check the options save), every read of a value it lacks
+// reported. The one-time import reads a RegistrySource, the registry's or a test's stand-in (SetImportSource).
 
 #include <deque>
 #include <string>
@@ -57,6 +58,34 @@ public:
     std::deque<Key> keys;   // a deque: a key stays where it is as others are added (CWinRegistry holds one)
 };
 
+// Where the one-time import reads from: the key `path` (below HKEY_CURRENT_USER) as the game's ANSI registry calls
+// read it. The registry's is in settings_file.cpp; DocumentSource and the harness's stand in for it.
+class RegistrySource {
+public:
+    virtual ~RegistrySource() = default;
+    // false when the key does not exist; else its values and the names of its subkeys (a value that cannot be
+    // read is left out).
+    virtual bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) = 0;
+};
+
+// A source over a Document (its keys' paths below HKEY_CURRENT_USER): a key exists when it or one below it is in
+// the document.
+class DocumentSource : public RegistrySource {
+public:
+    explicit DocumentSource(const Document& document) : document_(document) {}
+    bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) override;
+
+private:
+    const Document& document_;
+};
+
+// The trees game.exe and Rebirth keep their settings in: what the import copies.
+inline constexpr const char* kImportedTrees[] = {"Software\\Nival Interactive\\EvilIslands", "Software\\Gipat.Ru\\EI_Starter"};
+
+// Copies kImportedTrees (every key below them, in the source's order) from `source` into `document`; the number
+// of values copied.
+int ImportTrees(Document& document, RegistrySource& source);
+
 // `sub` below `path` as a key path: the parts of both, empty ones (doubled or outer '\') skipped.
 std::string JoinPath(const char* path, const char* sub);
 
@@ -83,9 +112,13 @@ long ReadValue(const char* path, const char* name, unsigned long* type, void* da
 using ReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
 void AddReadFilter(ReadFilter filter);
 
-// Harness runs: `file` in place of the one next to the exe, read only (writes are dropped, nothing is imported),
-// and each read of a key or value it lacks passed to `missing` (key path, value name). Before the first use.
+// Harness runs: `file` in place of the one next to the exe, and each read of a key or value it lacks passed to
+// `missing` (key path, value name). `readOnly`: writes are dropped and a missing file is not imported; else the
+// file is written as in the product (Flush at CWinRegistry::Close, .tmp then moved) and a missing file is
+// imported from the import source. Before the first use.
 using MissingHandler = void (*)(const char* path, const char* name);
-void Pin(const char* file, MissingHandler missing);
+void Pin(const char* file, MissingHandler missing, bool readOnly = true);
+// Harness runs: the import reads `source` (which must outlive the run) in place of the registry.
+void SetImportSource(RegistrySource* source);
 
 } // namespace settings_file

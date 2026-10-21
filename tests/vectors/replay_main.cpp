@@ -29,6 +29,8 @@ Check* Checks() { return g_checks; }
 
 } // namespace ei::vectors
 
+int RunSettingsFileChecks();   // replay_settings.cpp: the settings file's format and import (ST1a)
+
 namespace {
 
 using namespace ei::vectors;
@@ -154,6 +156,7 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
+    problems += RunSettingsFileChecks();   // not recorded vectors: the settings file's text and import, without the game
     int checks = 0, unused = 0;
     for (const Check* c = Checks(); c; c = c->next) {
         ++checks;

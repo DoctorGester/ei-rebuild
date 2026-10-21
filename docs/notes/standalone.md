@@ -1096,6 +1096,32 @@ the `--no-hooks` suite) keeps the registry.
   are dropped, as the registry's were), no import, a read of a value the file lacks fails the run unless the
   snapshot marks it absent (`"name"=-`). So a standalone run never depends on the machine's registry, and its
   folder shows the settings it played with. The advapi32 hooks stay for anything else that reads the registry.
+- **Checks (ST1a)**: the product's two file paths, which a read-only pinned run does not reach, are checked without
+  the user's registry.
+  - *Format and import, no game*: src/game/settings_document.cpp holds `Document` (Text / Parse), `JoinPath` and the
+    import's walk (`ImportTrees` over a `RegistrySource`: the registry's in settings_file.cpp, `DocumentSource` over a
+    Document for tests). tests/vectors/replay_settings.cpp runs after the vector replays in `ei_vectors.exe`
+    (build.cmd fails when a check does): dwords (and a REG_DWORD that is not four bytes), escaped strings and the ones
+    that go to `hex(1)`, floats (+-0, denormals, NaN, infinities, a sweep of 20,000 random bit patterns plus every
+    exponent: the bits always read back, numbers as `float:`, NaN / infinity as `hex:`), binaries, `hex(7)` and the
+    other types, `@` against a value named "@", names without case, keys that merge without case, comments / BOM / line
+    breaks / continuation lines, bad lines (reported and skipped), and the import against a made-up tree and against
+    config/harness/registry.reg itself (its HKEY_CURRENT_USER keys parsed as the stand-in registry: the two trees only,
+    no parents, no sibling keys, every value bit for bit).
+  - *The game's save and the import in a run*: `settingsfile writable` (settings_save.txt) leaves the run's
+    ei_settings.ini writable with a probe key of odd values; the game's exit save (WinMain's SaveToRegistry, `Flush` at
+    `CWinRegistry::Close`, `.tmp` then moved) rewrites it with water waves switched on in memory. `settingsfile import`
+    (settings_import.txt) starts with no file and imports the snapshot through `settings_file::SetImportSource` (a
+    `DocumentSource`, never HKCU), so the first-use import, `Write` and the game reading the result run for real.
+    `ei_launch` compares the file after the game ended with the scenario's `# settings-file: settings/<name>.ini`
+    (tests/scenarios/settings/; line breaks apart), fails the run on a difference or a left `.tmp`, and skips the check
+    on the Rebirth install unless `<name>.rebirth.ini` exists. To change an expected file: read the difference in the
+    failure lines, then copy the run's ei_settings.ini over it. Both scenarios are `# no original:` (game.exe uses the
+    registry).
+  - Known limits: a value name with a line break or other control character cannot be written (the registry allows
+    it; the game has none); a line the parser does not understand is dropped on the next save (logged as
+    "settings: ... not understood"); the real registry source (`Registry` in settings_file.cpp) is the one part of the
+    import no test runs, as it reads HKCU.
 
 ### Generated code
 
