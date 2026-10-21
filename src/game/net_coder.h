@@ -166,7 +166,7 @@ struct BufferCursor {
     void PutBit(std::uint32_t bit);
     // 00431040. Next bit (reading).
     std::uint32_t GetBit();
-    // 00430FE0. Next `count` bits (reading), masked with the table at 0078DB24.
+    // 00430FE0. Next `count` bits (reading, 1..32), masked with kCoderBitMasks.
     std::uint32_t GetBits(std::uint32_t count);
     // 00430930. Copies `size` bytes to `p`.
     void WriteBytes(const void* from, std::uint32_t size);
@@ -229,3 +229,18 @@ static_assert(offsetof(CoderState, out) == 0x2800);
 static_assert(offsetof(CoderState, pos) == 0x2818);
 static_assert(offsetof(CoderState, prev) == 0x2824);
 static_assert(sizeof(CoderState) == 0x2828);
+
+// The code tables of the coder's lengths and distances (net_coder.cpp), filled at start-up by InitCodeTables
+// (0042FAE0): the code and its bit count of each match length 1..0x22 (at length - 1) and of each distance
+// bucket 0..0x21.
+extern std::uint32_t g_offsetBits[34];
+extern std::uint32_t g_offsetCodes[34];
+extern std::uint32_t g_lengthBits[34];
+extern std::uint32_t g_lengthCodes[34];
+
+// (1 << n) - 1 for n = 1..32, at n - 1 (BufferCursor::GetBits).
+inline constexpr std::uint32_t kCoderBitMasks[32] = /*0078DB28*/ {
+    0x1,       0x3,       0x7,       0xF,       0x1F,       0x3F,       0x7F,       0xFF,
+    0x1FF,     0x3FF,     0x7FF,     0xFFF,     0x1FFF,     0x3FFF,     0x7FFF,     0xFFFF,
+    0x1FFFF,   0x3FFFF,   0x7FFFF,   0xFFFFF,   0x1FFFFF,   0x3FFFFF,   0x7FFFFF,   0xFFFFFF,
+    0x1FFFFFF, 0x3FFFFFF, 0x7FFFFFF, 0xFFFFFFF, 0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF};

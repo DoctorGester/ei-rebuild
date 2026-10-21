@@ -26,11 +26,12 @@ void OfferTables() {
     if (offered) return;
     offered = true;
     auto v = Zeroed<Tables>();
-    std::memcpy(v.lengthCodes, ei::GamePointer<const void>(kLengthCodes), sizeof(v.lengthCodes));
-    std::memcpy(v.lengthBits, ei::GamePointer<const void>(kLengthBits), sizeof(v.lengthBits));
-    std::memcpy(v.offsetCodes, ei::GamePointer<const void>(kOffsetCodes), sizeof(v.offsetCodes));
-    std::memcpy(v.offsetBits, ei::GamePointer<const void>(kOffsetBits), sizeof(v.offsetBits));
-    std::memcpy(v.masks, ei::GamePointer<const void>(kBitMasks), sizeof(v.masks));
+    // game.exe's own tables (the recording runs the original; the addresses its code indexes from).
+    std::memcpy(v.lengthCodes, ei::OriginalGameData<const std::uint32_t[0x23]>(0x0079B844), sizeof(v.lengthCodes));
+    std::memcpy(v.lengthBits, ei::OriginalGameData<const std::uint32_t[0x23]>(0x0079B7BC), sizeof(v.lengthBits));
+    std::memcpy(v.offsetCodes, ei::OriginalGameData<const std::uint32_t[0x22]>(0x0079B738), sizeof(v.offsetCodes));
+    std::memcpy(v.offsetBits, ei::OriginalGameData<const std::uint32_t[0x22]>(0x0079B6B0), sizeof(v.offsetBits));
+    std::memcpy(v.masks, ei::OriginalGameData<const std::uint32_t[33]>(0x0078DB24), sizeof(v.masks));
     g_tables.Offer(v, ControlWord());
 }
 

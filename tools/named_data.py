@@ -182,6 +182,9 @@ class Definition:
             return
         count = len(values) // len(fmt)
         dims = re.findall(r'\[\s*([^\]]*?)\s*\]', self.dims)
+        if any(re.match(r'0[xX]', d) for d in dims):   # [0x22] would read as no bound: the listed elements only
+            self.problem = f'{self.dims.strip()}: write the bound as a decimal number'
+            return
         if all(d.isdigit() for d in dims):   # no bound: one element
             want = 1
             for d in dims:

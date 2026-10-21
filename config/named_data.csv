@@ -94,6 +94,7 @@ address,size,name,file
 0078ACF8,64,kTransAlpha,src/game/particle_callbacks.cpp
 0078B0E8,4,g_nextPartyId,src/game/party_records.cpp
 0078B120,768,kScriptParticleTypes,src/game/script_effects.cpp
+0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
 0078FF38,4,g_lastLitHour,src/game/world_data.h
@@ -122,6 +123,10 @@ address,size,name,file
 0079B5C8,12,kZeroVector,src/game/camera.h
 0079B664,4,g_lastRatio,src/game/clip.h
 0079B68C,4,g_bufferCount,src/game/clip.h
+0079B6B0,136,g_offsetBits,src/game/net_coder.cpp
+0079B738,136,g_offsetCodes,src/game/net_coder.cpp
+0079B7C0,136,g_lengthBits,src/game/net_coder.cpp
+0079B848,136,g_lengthCodes,src/game/net_coder.cpp
 0079B8FC,1,g_bufferFlags,src/game/atexit_400.cpp
 0079B9B0,12,kZeroVector,src/game/scene_loader.h
 0079B9F8,4,g_lastTime,src/game/app_main.cpp
