@@ -660,7 +660,7 @@ BOOL CCampPages::Draw(int pass) {
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
     UpdateAction();
-    reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);
+    CUiContainer::DrawContainer(pass);
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);
@@ -1265,7 +1265,7 @@ EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
-    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
+    CUiContainer::Construct(ui);
     hoveredItem_ = nullptr;
     // The caches' compare byte is the flag's low byte.
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);

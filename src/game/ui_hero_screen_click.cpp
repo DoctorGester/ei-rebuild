@@ -85,7 +85,7 @@ CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
 CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
     if (!camp) return nullptr;
-    reinterpret_cast<CUiContainer*>(camp)->Construct(ui);
+    camp->CUiContainer::Construct(ui);
     camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);

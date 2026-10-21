@@ -532,8 +532,6 @@ EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
 
 namespace {
 
-// 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 
@@ -576,7 +574,7 @@ void CGlobalMap::Update() {
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
         // Turn the model about z.
-        float turned = static_cast<float>(FrameTime(this) * static_cast<double>(turning_) * D(3.1415927f /*00742098*/) *
+        float turned = static_cast<float>(FrameTime() * static_cast<double>(turning_) * D(3.1415927f /*00742098*/) *
                                  D(0.25f /*0073C3B0*/) +
                              D(angle_));
         angle_ = turned;
@@ -626,7 +624,7 @@ void CGlobalMap::Update() {
     }
 
     // The current zone's arrow bobs over it.
-    double time = FrameTime(this) + D(bobTime_);
+    double time = FrameTime() + D(bobTime_);
     bobTime_ = static_cast<float>(time);
     double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
@@ -647,7 +645,7 @@ void CGlobalMap::Update() {
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;
         if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
-            float seconds = static_cast<float>(FrameTime(this));
+            float seconds = static_cast<float>(FrameTime());
             reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(pixels.bits), seconds);
         }
         gameapi::LeaveCriticalSection(lock);
@@ -674,7 +672,7 @@ void EmptyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
-    reinterpret_cast<CUiContainer*>(this)->Construct(ui);
+    CUiContainer::Construct(ui);
     ::new (&allodTitle_) mfc::CString;
     EmptyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
     EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());

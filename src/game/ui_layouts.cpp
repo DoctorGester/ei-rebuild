@@ -54,16 +54,6 @@ __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, floa
     EI_ORIGINAL(0x005E7D60)
 
 namespace {
-// The text manager (global at 007AF788; item_db_text.h) as the builders use it.
-struct UiTexts {
-    // 004DEFC0 (not rewritten). Finds the text `key`; non-zero when found (the cursor is then
-    // at its start).
-    int Find(const char* key);
-};
-int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-} // namespace
-
-namespace {
 
 
 // Fields of an interface sprite set directly by the builders.
@@ -226,7 +216,7 @@ void COptionsWindow::Build() {
         AddSprite(0)->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text.Format("tip option_group_%s", OptionGroupName(k));
-        if (reinterpret_cast<UiTexts*>(TheTextManager())->Find(text) != 0) TheTextManager()->ReadToHash(&text, 1);
+        if (TheTextManager()->Open(text) != 0) TheTextManager()->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
             mfc::CString prefix("option_group_");
@@ -459,7 +449,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ClearSurfaces();
         auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
         if (w) {
-            reinterpret_cast<CUiContainer*>(w)->Construct(ui);
+            w->window.Construct(ui);
             reinterpret_cast<CMappedResource*>(w->archive_)->Construct();
             w->lines_.Construct();   // 00634300
             new (static_cast<void*>(&w->name_)) mfc::CString("Titles");
@@ -481,7 +471,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
         if (w) {
-            reinterpret_cast<CUiContainer*>(w)->Construct(ui);
+            w->window.Construct(ui);
             w->hoveredItem_ = nullptr;
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);
@@ -610,7 +600,7 @@ void CDifficultyBox::Build() {
     int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     mfc::CString explanation;
     int textHeight = 0;
-    if (reinterpret_cast<UiTexts*>(TheTextManager())->Find("tip option_difficulty") != 0) {
+    if (TheTextManager()->Open("tip option_difficulty") != 0) {
         TheTextManager()->ReadToHash(&explanation, 1);
         explanation.TrimRight("\r\n");   // CR LF
         rect = RECT{15, 0, 385, 300};

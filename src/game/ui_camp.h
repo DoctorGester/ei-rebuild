@@ -129,7 +129,7 @@ struct GlobalMapStep {
     int exit;
 };
 
-class CGlobalMap : public CUiWindow {
+class CGlobalMap : public CUiContainer {
 public:
     // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
@@ -243,7 +243,6 @@ public:
     // hidden (0) through visible_.
     void ShowAllButZones(int visible);
 
-    std::uint8_t unused_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
     int questCount_;                 // +0x168
     int linkCount_;                  // +0x16C

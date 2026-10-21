@@ -269,7 +269,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                                         D(0.00125f /*00740164*/) / D(extent)));
     } else {
         SetShade(model, 0x3F800000);
-        float dt = static_cast<float>(reinterpret_cast<CUiContainer*>(this)->FrameTime());
+        float dt = static_cast<float>(FrameTime());
         auto* turn = Get<ItemTurn*>(itemBytes, 0x1C);
         int kind = Get<int>(itemBytes, 0x10);
         void* spell = Get<void*>(itemBytes, 0x44);

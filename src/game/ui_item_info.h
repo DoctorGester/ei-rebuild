@@ -147,7 +147,7 @@ public:
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these
 // fields; 005EDD80 sets the caches up): the description panel, the item under the mouse, and the
 // caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
-class CItemScreen : public CUiWindow {
+class CItemScreen : public CUiContainer {
 public:
     // 005F6FF0 (slot 0, the deleting destructor; ui_window_delete.cpp). Screen9Destroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
@@ -195,7 +195,6 @@ public:
     float WeightDefault();
     int PriceDefault(CItem* item, int kind);
 
-    std::uint8_t unused_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
     CUiWindow* iconWindow_;          // +0x16C (005EDD80)

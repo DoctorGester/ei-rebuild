@@ -135,7 +135,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
 
-    reinterpret_cast<CUiContainer*>(&window)->DrawContainer(pass);
+    window.DrawContainer(pass);
     if (mode_ == kModeList && heroIndex_ >= 0)
         window.DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kListDepth, 0);
     else if (mode_ == kModeNewHero)

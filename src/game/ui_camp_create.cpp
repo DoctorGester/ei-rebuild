@@ -91,7 +91,7 @@ constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
 CParty* LocalParty() { return LocalPlayerData(); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
-CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContainer*>(camp); }
+CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
 // Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
 // unordered result (a NaN variable) as equal.

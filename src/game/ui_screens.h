@@ -505,8 +505,7 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
@@ -862,8 +861,7 @@ public:
     // plays animation 0.
     void OnClose();
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
@@ -962,8 +960,7 @@ public:
     // closed (005DBF70).
     void OnMessageResult(int result);
 
-    CUiWindow window;
-    std::uint8_t unused_148[0x164 - 0x148];
+    CUiContainer window;
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written

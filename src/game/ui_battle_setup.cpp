@@ -66,12 +66,6 @@ RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 // The window base constructed in fresh memory (005FE700).
 CUiWindow* NewWindowBase(void* memory, CInterface3D* ui) { return static_cast<CUiWindow*>(memory)->Construct(ui); }
 
-// The screens' extra input handlers (CUiContainer +0x158 vector).
-struct ContainerInputs {
-    void AddInput(void* input);   // 00600CC0
-};
-void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(this)->AddInput(static_cast<UiInputSide*>(input)); }
-
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
 int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
@@ -149,12 +143,12 @@ void CBattleScreen::Create() {
     }
 
     // The screen's own input handler (vtable 00741154, 0x0C bytes).
-    void** input = static_cast<void**>(gamecrt::operator_new(0x0C));
+    auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(sizeof(UiInputSide)));
     if (input) {
-        input[0] = ei::GamePointer<void>(0x00741154);
-        input[1] = interface_;
+        input->vtable_ = ei::GamePointer<void*>(0x00741154);
+        input->owner_ = interface_;
     }
-    reinterpret_cast<ContainerInputs*>(this)->AddInput(input);
+    AddInput(input);   // 00600CC0
 
     CreateTexture(0x100, 0x100, 0x20);
     CreateTexture(0x100, 0x100, 0x20);
@@ -275,7 +269,7 @@ void CBattleScreen::Create() {
     TopPanelShowPageOriginal(topPanel_);
 
     memory = gamecrt::operator_new(0x2C);
-    reinterpret_cast<ContainerInputs*>(this)->AddInput(memory ? static_cast<CCameraInput*>(memory)->Construct(interface_) : nullptr);
+    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     ei::GameData<std::uint32_t>(0x0079B2B0) &= ~0x40u;
     pendingAction_ = 0;

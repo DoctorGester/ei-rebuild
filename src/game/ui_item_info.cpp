@@ -113,7 +113,7 @@ struct SurfaceDraw : CUiSurface {
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The text manager (007AF788; thiscall).
-struct Texts {
+struct Texts : CTextManager {
     BOOL Open(const char* key);                          // 004DEFC0
     BOOL NextLine();                                     // 004DF510
     BOOL ReadLine(mfc::CString* out, BOOL advance);      // 004DF8D0
@@ -121,13 +121,13 @@ struct Texts {
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(this)); }
-BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
+BOOL Texts::NextLine() { return TextNextLine(this); }
+BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return CTextManager::ReadLine(a0, a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
+    return GetItemTexts(item, name, description, kind);
 }
-Texts* TextManager() { return reinterpret_cast<Texts*>(TheTextManager()); }
+Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -693,7 +693,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         key += SpellPrototypeOf(spell)->code;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
-            reinterpret_cast<CTextManager*>(texts)->ReadToHash(&description, 1);
+            texts->ReadToHash(&description, 1);
         }
     }
     texts->GetString("item_spell", &kindText);
