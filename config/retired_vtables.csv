@@ -7,6 +7,7 @@ vtable,slots,class,file,note
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
+0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0

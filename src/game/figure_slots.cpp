@@ -18,11 +18,11 @@ EI_REPLACE(0x00453450, FigureClassName);
 int __fastcall FigureClassId(void*) { return 0x44; }
 EI_REPLACE(0x00453460, FigureClassId);
 const char* __fastcall FakeFigureClassName(void*) { return "CFakeFigure"; }
-EI_REPLACE(0x004547F0, FakeFigureClassName);
+EI_REWRITTEN(0x004547F0, FakeFigureClassName);
 int __fastcall FakeFigureClassId(void*) { return 0x47; }
-EI_REPLACE(0x00454800, FakeFigureClassId);
+EI_REWRITTEN(0x00454800, FakeFigureClassId);
 int __fastcall FakeFigureAnswerOne(void*) { return 1; }
-EI_REPLACE(0x004547A0, FakeFigureAnswerOne);
+EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
 
 // 00453470: CFigure's scalar deleting destructor (its body 0059F030).
 void* __fastcall FigureDelete(void* self, void*, unsigned flags) {

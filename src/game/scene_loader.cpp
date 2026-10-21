@@ -657,15 +657,15 @@ void SceneNode::Construct() {
 }
 
 // 004545C0's element.
-void SceneMesh::Construct() {
-    ConstructBase();
-    new (&name) mfc::CString();
+SceneMesh::SceneMesh() {
+    ClearFields();
+    localRotation_.SetIdentity();
+    worldRotation_.SetIdentity();
     groups.Construct(kFaceGroupArrayVtable);
-    ei::SetVtable(this, kVtableAddress);
 }
 
 // Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
-void SceneMesh::Destruct() {
+SceneMesh::~SceneMesh() {
     FaceGroupArrayDestruct(&groups);
     faces.FreeData();
     cornerIndices.FreeData();
@@ -678,18 +678,29 @@ void SceneMesh::Destruct() {
     normalBlocks.FreeData();
     positionBlocks.FreeData();
     spareBlocks098.FreeData();
-    name.~CString();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
-    CEngineObject::DestructBase();
 }
+
+void SceneMesh::Destruct() { this->SceneMesh::~SceneMesh(); }
+
+} // namespace scene
+void recordarrays::InitSceneMesh(scene::SceneMesh* p) { new (p) scene::SceneMesh(); }
+namespace scene {
 EI_REWRITTEN(0x00454830, SceneMesh::Destruct);
 
 SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->SceneMesh::~SceneMesh();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00454810, SceneMesh::DeletingDestruct);
+EI_REWRITTEN(0x00454810, SceneMesh::DeletingDestruct);
+
+int SceneMesh::Create() { return 1; }
+void SceneMesh::Destroy() {}
+const char* SceneMesh::GetName() { return name; }
+const char* SceneMesh::GetClassName() { return "CFakeFigure"; }
+int SceneMesh::GetClassId() { return 0x47; }
+void SceneMesh::SaveTransform(void*) {}
+void SceneMesh::LoadTransform(void*) {}
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 

@@ -43,9 +43,9 @@ inline void InitMaterial(CMaterial* p) { p->Construct(); }
 using Materials = ArrayAbi<CMaterial, EachElements<CMaterial, InitMaterial, DeleteThroughFirst<CMaterial>>>;
 
 // The scene's meshes (004545C0) and nodes (00454F80): the constructor bodies the instantiations
-// inline (scene_loader.cpp). Meshes are destroyed through slot 0 (00476F50), nodes by their
-// destructor (004543E0; 00477100).
-inline void InitSceneMesh(scene::SceneMesh* p) { p->Construct(); }
+// inline (scene_loader.cpp; the mesh's is SceneMesh's C++ constructor, InitSceneMesh). Meshes are
+// destroyed through slot 0 (00476F50), nodes by their destructor (004543E0; 00477100).
+void InitSceneMesh(scene::SceneMesh* p);
 inline void InitSceneNode(scene::SceneNode* p) { p->Construct(); }
 inline void DestroySceneNode(scene::SceneNode* p) { p->Destruct(); }
 using SceneMeshes = ArrayAbi<scene::SceneMesh, EachElements<scene::SceneMesh, InitSceneMesh, DeleteThroughFirst<scene::SceneMesh>>>;
