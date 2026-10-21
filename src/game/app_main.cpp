@@ -231,8 +231,7 @@ ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
 // The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
-// camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) as the frame calls it through a pointer.
-void __fastcall CameraUpdateOf(CCamera* camera, void*, float seconds) { camera->Update(seconds); }
+// camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) the frame's update.
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
@@ -551,9 +550,9 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick (00457368 -> 005641F0)
 // are followed by the harness's "speed" hold. Otherwise the function itself.
 using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
-CameraUpdate FrameCameraUpdate() {
-    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) return reinterpret_cast<CameraUpdate>(hook);
-    return &CameraUpdateOf;
+void FrameCameraUpdate(CCamera* camera, float seconds) {
+    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) reinterpret_cast<CameraUpdate>(hook)(camera, nullptr, seconds);
+    else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
 WorldUpdate ServerUpdate() {
@@ -723,7 +722,7 @@ bool RunPass() {
             tick = TickLength();
             elapsed -= tick;
         }
-        FrameCameraUpdate()(camera, nullptr, CameraSeconds(elapsed));
+        FrameCameraUpdate(camera, CameraSeconds(elapsed));
         if (!client->paused_) {
             if (camera->flags_ & CCamera::kRecording)
                 camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_)));

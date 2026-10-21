@@ -37,21 +37,20 @@ void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElement
 
 EI_REWRITTEN(0x005BD200, PathCellList::AddHead);
 EI_REWRITTEN(0x005BD2A0, PathCellList::AddTail);
-void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other) {
-    for (const PathCellList::Node* n = other->head; n;) {
-        const PathCellList::Node* next = n->next;
+void PathCells::Append(const PathCells* other) {
+    for (const Node* n = other->head; n;) {
+        const Node* next = n->next;
         PathCell cell = n->data;
-        list->AddTail(cell);
+        AddTail(cell);
         n = next;
     }
 }
-EI_REWRITTEN(0x005C5DA0, PathCellsAppend);
+EI_REWRITTEN(0x005C5DA0, PathCells::Append);
 
-PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, PathCellList* out) {
-    using Node = PathCellList::Node;
+PathCells* PathCells::Reversed(PathCells* out) const {
     // The original first builds a reversed local list, then copies it into `out` in order.
     PathCellList reversed{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
-    for (const Node* n = list->head; n; n = n->next) reversed.AddHead(n->data);
+    for (const Node* n = head; n; n = n->next) reversed.AddHead(n->data);
     *out = PathCellList{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
     for (const Node* n = reversed.head; n;) {
         const Node* next = n->next;
@@ -62,7 +61,7 @@ PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, Path
     reversed.RemoveAll();
     return out;
 }
-EI_REWRITTEN(0x005C5E60, PathCellsReversed);
+EI_REWRITTEN(0x005C5E60, PathCells::Reversed);
 
 void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
     using Node = PathCellList::Node;
@@ -91,9 +90,9 @@ void AIPath::ToMotionOrder(AIPath* out) const {
     constexpr int kFollowSteps = 2;
     std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
     out->steps.RemoveAll();
-    PathCellsAppend(&out->steps, nullptr, &steps);
+    out->steps.Append(&steps);
     if (OrderOf(out)->kind != kFollowSteps) return;
-    PathCellsAppend(&out->steps, nullptr, &cells);
+    out->steps.Append(&cells);
     PathCellsRemoveRepeats(&out->steps);
     out->SetStepSpeeds(0x200);
     out->SetTarget(targetX, targetY);

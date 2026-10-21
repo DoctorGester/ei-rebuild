@@ -235,7 +235,7 @@ int ReadTerrainTypes(CAIMap& map) {
         {
             mfc::CString name = registry.file.GetString(sections[i], "Name", mfc::CString(""));
             const char* text = name.GetBuffer(0);
-            std::memcpy(TerrainTypeAt(&map.materials.data, nullptr, index)->name, text, std::strlen(text) + 1);
+            std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
         type.cost = registry.file.GetInt2(sections[i], "CostMul", -1);

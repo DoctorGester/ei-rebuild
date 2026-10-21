@@ -97,7 +97,7 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
 // 00665470. Player: receives the items in `list` (a CPtrList).
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
-void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
+void PlayerMessage(void* messages, CUnit* unit, int code) {
     PlayerSendObject0BOriginal(messages, nullptr, unit, code);
 }
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
@@ -383,7 +383,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->player) {     // 005301A0
             CUnit* killer = attacker->ServerController()->unit;
             if (killer->player)
-                PlayerMessage(killer->player->Server(), nullptr, killer, kMessageKilled);
+                PlayerMessage(killer->player->Server(), killer, kMessageKilled);
         } else if (unit->player) {
             attacker->ServerController()->voice.Raise(9);
         }
@@ -521,7 +521,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         return;
     }
     CUnit* self = unit;
-    PlayerMessage(self->player->Server(), nullptr, self, message);
+    PlayerMessage(self->player->Server(), self, message);
 }
 EI_REWRITTEN(0x0054F000, CUnitServer::UseSkill);
 

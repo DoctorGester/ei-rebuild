@@ -20,7 +20,14 @@ class CUnit;
 
 namespace acks {
 
-using SpeechList = stlp::vector<SpeechRecord>;
+struct Speeches : stlp::vector<SpeechRecord> {
+    // 006D8780 (RET 4): a random speech among those whose chance is at least `roll` (the game's
+    // rand()); null, without drawing, when there is none. (The original also answers null for a
+    // null list; SayAck, its only caller, never passes one.)
+    const SpeechRecord* Pick(int roll) const;
+};
+static_assert(sizeof(Speeches) == 0xC);
+using SpeechList = Speeches;
 
 // A speech that also depends on the surroundings (0x2C bytes): eligible when the world's
 // environment flags for the unit (CWorldClient::EnvironmentFlags) include all of `environment`.
@@ -29,6 +36,12 @@ struct EnvironmentSpeech {
     std::uint32_t environment;      // +0x28
 };
 static_assert(sizeof(EnvironmentSpeech) == 0x2C);
+
+struct EnvironmentSpeeches : stlp::vector<EnvironmentSpeech> {
+    // 006D88E0 (RET 8): the same among the speeches whose environment flags include `environment`.
+    const SpeechRecord* Pick(std::uint32_t environment, int roll) const;
+};
+static_assert(sizeof(EnvironmentSpeeches) == 0xC);
 
 // The part every record type starts with.
 struct AckRecordHead {
@@ -53,7 +66,7 @@ struct UnitAcks {
 
     AckRecordHead head;                                     // +0x000
     SpeechList lists[33];                                   // +0x020 the speech lists the map points into
-    stlp::vector<EnvironmentSpeech> environmentSpeeches;    // +0x1AC kind 0x29
+    EnvironmentSpeeches environmentSpeeches;                // +0x1AC kind 0x29
     SpeechList namedSpeeches;                               // +0x1B8 by SpeechRecord::name (006D8A40)
 };
 static_assert(sizeof(UnitAcks) == 0x1C4);
@@ -125,13 +138,6 @@ inline AckDatabase& Database() { return *g_ackDatabase; }
 
 // (The archive's helpers for the records are ChunkArchive::SerializeSpeech / SerializeSpeechList /
 // SerializeEnvironmentSpeeches, acks_db.cpp.)
-
-// 006D8780 (thiscall on the list, RET 4): a random speech among those whose chance is at least
-// `roll` (the game's rand()); null, without drawing, when there is none.
-const SpeechRecord* __fastcall PickSpeech(const SpeechList* list, void*, int roll);
-// 006D88E0 (RET 8): the same among the speeches whose environment flags `environment` includes.
-const SpeechRecord* __fastcall PickEnvironmentSpeech(const stlp::vector<EnvironmentSpeech>* list, void*,
-                                                     std::uint32_t environment, int roll);
 
 // 006D8430 (__fastcall, from the interface 006366F0). The unit says ack `kind`: see acks_db.cpp.
 // Returns the speech given to the controller's Say, or null.

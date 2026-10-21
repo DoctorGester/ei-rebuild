@@ -465,7 +465,7 @@ void CUnitServer::UpdateSneak() {
         // Out of breath: back from the second mode's mode 3, with a remark.
         std::uint32_t code = running == 1 ? 0x15 : 0x14;
         if ((code <= 0x29 || code == 0x30) && code != 0xFFFFFFFFu && unit->player)
-            PlayerMessage(unit->player->connection_, nullptr, unit, static_cast<int>(code));
+            PlayerMessage(unit->player->connection_, unit, static_cast<int>(code));
         if (action.modifier != 0) action.modifier = 0;
         moveMode2.wasMode3 = 0;
         int mode = moveMode2.mode;
@@ -537,7 +537,7 @@ bool CUnitServer::ChangeMoveMode() {
         unit->UpdateSizeClass();
         SectorMapAdd(ServerSectors(), nullptr, unit);
         CUnit* self = unit;
-        if (self->player) PlayerMessage(self->player->connection_, nullptr, self, kMessageModeBlocked);
+        if (self->player) PlayerMessage(self->player->connection_, self, kMessageModeBlocked);
         return false;
     }
     if (state == kStateIdle) {
@@ -722,7 +722,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         if (!self->player) return;
         message = stillFar ? kMessagePartial : kMessageCannotDo;
     }
-    PlayerMessage(self->player->connection_, nullptr, self, message);
+    PlayerMessage(self->player->connection_, self, message);
 }
 EI_REWRITTEN(0x0054EB30, CUnitServer::ReportPath);
 

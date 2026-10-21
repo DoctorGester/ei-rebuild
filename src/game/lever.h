@@ -43,11 +43,7 @@ static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table's layout: the records (an STLport vector) and their index by model name. Its
 // constructor (004632A0) is a static initialiser, its destructor 00463120 (lever_table.cpp).
-namespace app {
-// 00465090 (app_device_list.cpp): the records as chunk `id` of a chunk archive, one chunk 1 per
-// record (the list emptied and resized when loading). The last argument is not read.
-void __fastcall DeviceListArchive(void* archive, void*, int id, stlp::vector<LeverRecord>* list, int unused);
-} // namespace app
+// (The archive's helper for the records is ChunkArchive::SerializeLevers, app_device_list.cpp.)
 
 struct LeverRecordTable {
     using NameIndex = stlp::hash_map<stlp::string, LeverRecord*, stlp::StringHash>;

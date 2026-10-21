@@ -19,6 +19,11 @@ public:
     virtual ~CRefCounted();                 // 0: scalar deleting destructor (1 when the last reference goes)
     virtual void Serialize(ChunkArchive* ar);   // 1: empty in the root class (RET 4); chunk_archive.h
 
+    // 00412730 (and the unit shape's 005B3570; slot 0 of the root class's vtable 0073BB68, RET 4,
+    // core_streams.cpp): the root vtable stored, then operator delete when bit 0 of `flags` is set.
+    // Returns this.
+    CRefCounted* RootDeletingDestruct(unsigned flags);
+
     std::int16_t refs_;         // +0x04
     std::uint8_t flags6_;       // +0x06
     std::uint8_t flags7_;       // +0x07
@@ -41,6 +46,10 @@ public:
     // 00417DF0. Calls OnShutdown with an extra reference held, so it cannot destroy itself
     // meanwhile. Returns OnShutdown's EAX.
     int Shutdown();
+    // 00412700 (and its copies 00562750, 0058FBC0; slot 0 of vtable 0073BB58, RET 4,
+    // core_streams.cpp): the root's destructor body (00412720, out of line), then operator delete
+    // when bit 0 of `flags` is set. Returns this.
+    CRefObject* ValueDeletingDestruct(unsigned flags);
 };
 static_assert(sizeof(CRefObject) == 8);
 

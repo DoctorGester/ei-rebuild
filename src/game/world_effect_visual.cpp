@@ -333,8 +333,8 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    TexturePointerAssign(reinterpret_cast<CEngineObject**>(&source_), nullptr,   // 0056F1A0
-                         reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_));
+    HeldEngineObject::Of(reinterpret_cast<CEngineObject**>(&source_))   // 0056F1A0
+        ->Assign(reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_));
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

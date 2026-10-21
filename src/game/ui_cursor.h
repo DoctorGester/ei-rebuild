@@ -49,6 +49,9 @@ public:
     void Destruct();
     // 004578B0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
     CDirectInputMouse* DeletingDestruct(unsigned flags);
+    // 00457950 (slot 0 of the root class, vtable 0073C368; RET 4): the root vtable stored, then
+    // operator delete when bit 0 of `flags` is set. Returns the object.
+    CDirectInputMouse* RootDeletingDestruct(unsigned flags);
 
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
     // DIDATAFORMAT): ours, since game.exe keeps its object table (006E6180) in its code section,

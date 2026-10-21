@@ -32,18 +32,15 @@ void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseCla
 
 // ---- Counted holders ------------------------------------------------------------------------------
 
-// 004EBE60 (RET 4; byte-identical to 00429B50 and 0056F1A0, a particle source's): a counted engine
-// object pointer (a texture) takes
-// `value`: counted first, then the old one released through its slot 4.
-void __fastcall TexturePointerAssign(CEngineObject** pointer, void*, CEngineObject* value) {
-    CEngineObject* previous = *pointer;
-    *pointer = value;
+void HeldEngineObject::Assign(CEngineObject* value) {
+    CEngineObject* previous = object;
+    object = value;
     if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
 EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
-EI_REWRITTEN(0x004EBE60, TexturePointerAssign);
-EI_REWRITTEN(0x0056F1A0, TexturePointerAssign);
+EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
+EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 

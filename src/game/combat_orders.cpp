@@ -72,7 +72,7 @@ void SetTarget(UnitAction* order, CMapObject* target) {
 }
 
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerMessage(unit->player->Server(), nullptr, unit, message);
+    if (unit->player) PlayerMessage(unit->player->Server(), unit, message);
 }
 } // namespace
 

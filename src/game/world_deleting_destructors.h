@@ -21,7 +21,7 @@ struct Behaviour;
 void __fastcall ObjectHolderRelease(CEngineObject** self);
 
 // S13: slot 1 (the deleting destructor) of seven MFC collection instantiations, which only the
-// vtables point at (world_deleting_destructors.cpp, mfc::impl::ScalarDelete over the instantiations'
+// vtables point at (world_deleting_destructors.cpp, mfc::impl::ScalarDeleting over the instantiations'
 // MFC destructors, library rows, called at their addresses):
 // 00571E50: the client's platform set (CList, vtable 0073F548); body 0056FE40.
 // 00571ED0: a client map's CArray (vtable 0073F730); body 005711E0.

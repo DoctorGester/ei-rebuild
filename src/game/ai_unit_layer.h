@@ -36,8 +36,9 @@ constexpr std::uintptr_t kUnitShapeVtable = std::uintptr_t(0x0073FD5C);
 
 // The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
 using UnitShapeHandle = ShapeCacheHandle;
-// 005B33D0 (the shape cache's slot 0, RET 4). A new shape for the handle's radius.
-CUnitShape* __fastcall CreateUnitShape(void* cache, void*, const UnitShapeHandle* handle);
+// 005B33D0 (the shape cache's slot 0, thiscall with `this` unused: RET 4). A new shape for the
+// handle's radius.
+CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle);
 
 // The bucket of a block key.
 inline int UnitLayerBucket(int blockX, int blockY) { return (blockX * 17 + blockY) & 0x3FF; }

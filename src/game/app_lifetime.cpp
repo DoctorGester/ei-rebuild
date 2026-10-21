@@ -109,14 +109,12 @@ CDirectInputMouse* CDirectInputMouse::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x004578B0, CDirectInputMouse::DeletingDestruct);
 
-// 00457950: slot 0 of the mouse's root class (vtable 0073C368; one slot): the vtable stored, then
-// operator delete when bit 0 of `flags` is set. Returns the object.
-void* __fastcall CountedRootDeletingDestruct(void* self, void*, unsigned flags) {
-    *static_cast<void**>(self) = kMouseRootVtable;
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CDirectInputMouse* CDirectInputMouse::RootDeletingDestruct(unsigned flags) {
+    vtable_ = kMouseRootVtable;
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00457950, CountedRootDeletingDestruct);
+EI_REPLACE_METHOD(0x00457950, CDirectInputMouse::RootDeletingDestruct);
 
 // ---- The party manager ----------------------------------------------------------------------------
 

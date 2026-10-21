@@ -290,7 +290,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             // The action can be done from here.
             PathMessage(unit, route.bytes(), &point.x, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
-                PlayerMessage(PlayerConnection(unit->player), nullptr, unit, static_cast<int>(shout));
+                PlayerMessage(PlayerConnection(unit->player), unit, static_cast<int>(shout));
             return true;
         }
         int kind = order->kind == kOrderAttack ? 2 : 1;

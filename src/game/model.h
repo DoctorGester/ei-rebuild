@@ -510,8 +510,15 @@ static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRender
 // renderer_lifetime.cpp (A-U11). 00500960 (cdecl): the renderer (the global at 007AF060).
 CSceneRenderer* __cdecl SceneRenderer();
 // The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
-// left), 00504E20 (RET 4) takes `device` (one more reference) and releases the old one.
-void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device);
+// left), 00504E20 (RET 4; renderer_lifetime.cpp) takes `device` (one more reference) and releases
+// the old one.
+struct HeldDevice {
+    CTextureDevice* device;
+
+    static HeldDevice* Of(CTextureDevice** holder) { return reinterpret_cast<HeldDevice*>(holder); }
+    void Assign(CTextureDevice* value);
+};
+static_assert(sizeof(HeldDevice) == 4);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.

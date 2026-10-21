@@ -5,6 +5,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
+#include "ui_screens.h"
 
 #include "base_manager.h"
 #include "maths.h"
@@ -597,9 +598,4 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     return 1;
 }
 
-namespace {
-BOOL __fastcall HudMapWheel(void* input, void*, int buttons, int delta, int x, int y) {
-    return reinterpret_cast<CHudMap*>(static_cast<std::uint8_t*>(input) - 0x94)->OnWheel(buttons, delta, x, y);
-}
-} // namespace
-EI_REPLACE(0x00645640, HudMapWheel);
+EI_REPLACE_METHOD(0x00645640, InputForward<&CHudMap::OnWheel>::Call);

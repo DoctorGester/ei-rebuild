@@ -139,8 +139,15 @@ struct PathCellElements {
 // MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations. Registered
 // on the template: NewNode 005B1B70 (ai_path.cpp), AddHead / AddTail 005BD200 / 005BD2A0
 // (ai_path_cells.cpp). RemoveAll is 00556D40's code.
-using PathCellList = mfc::CList<PathCell, PathCellElements>;
-static_assert(sizeof(PathCellList::Node) == 0x10);
+struct PathCells : mfc::CList<PathCell, PathCellElements> {
+    // 005C5DA0 (RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells.
+    void Append(const PathCells* other);
+    // 005C5E60 (RET 4). Constructs `out` (blocks of 0x80) holding the cells in reverse order;
+    // returns `out`.
+    PathCells* Reversed(PathCells* out) const;
+};
+static_assert(sizeof(PathCells) == 0x1C && sizeof(PathCells::Node) == 0x10);
+using PathCellList = PathCells;
 
 // The speed word and terrain bits a path builder gives its cells (SV7d2): the plain step speed, no
 // terrain bits. The originals leave stack leftovers there (SearchPathTo 005C3200 the caller's
@@ -157,11 +164,6 @@ inline void SetPlainCellWords(PathCellList* list) {
     for (PathCellList::Node* node = list->head; node; node = node->next) SetPlainCellWords(&node->data);
 }
 
-// 005C5DA0 (thiscall, RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells to `list`.
-void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other);
-// 005C5E60 (thiscall, RET 4). Constructs `out` (blocks of 0x80) holding `list`'s cells in reverse
-// order; returns `out`.
-PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, PathCellList* out);
 // 005C6000 (thiscall). Removes each cell equal (x, y) to the one before it (the first is compared
 // with (-1, -1)); an emptied list frees its blocks.
 void __fastcall PathCellsRemoveRepeats(PathCellList* list);

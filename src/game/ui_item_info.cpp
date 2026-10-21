@@ -10,6 +10,7 @@
 // original leaves unrounded are declared double there, so no rounding happens in between. Compiled
 // with precise floating point so that products keep the original's order.
 #include "party.h"
+#include "ui_screens.h"
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
@@ -1080,16 +1081,10 @@ CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(
 
 // 005EE6B0 (input slot 1): redraws the description.
 void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
-void __fastcall InfoPanelKeyDown(void* input, void*, int key, int repeat, int flags) {
-    PanelOf(input)->OnKeyDown(key, repeat, flags);
-}
-void __fastcall InfoPanelKeyUp(void* input, void*, int key, int repeat, int flags) {
-    PanelOf(input)->OnKeyUp(key, repeat, flags);
-}
 } // namespace
 EI_REPLACE(0x005EE6B0, InfoPanelRefresh);
-EI_REPLACE(0x005EE640, InfoPanelKeyDown);
-EI_REPLACE(0x005EE680, InfoPanelKeyUp);
+EI_REPLACE_METHOD(0x005EE640, InputForward<&CItemInfoPanel::OnKeyDown>::Call);
+EI_REPLACE_METHOD(0x005EE680, InputForward<&CItemInfoPanel::OnKeyUp>::Call);
 
 // --- 005EE440: Build ------------------------------------------------------------------------------
 

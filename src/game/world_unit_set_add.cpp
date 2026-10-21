@@ -215,7 +215,7 @@ EI_REWRITTEN(0x0055D020, unitset::EqualIds);
 
 // The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and
 // resize; the multimaps' equal_range, resize, insert_equal_noresize and the iterator's step.
-EI_REWRITTEN(0x0055ABB0, gamehash::ConstructGroupPair);
+EI_REWRITTEN(0x0055ABB0, gamehash::FiguredGroupPair::Construct);
 EI_REWRITTEN(0x0055AC40, gamehash::FiguredAbi::ConstructDefault);
 EI_REWRITTEN(0x0055AEB0, gamehash::FiguredAbi::CopyConstruct);
 EI_REWRITTEN(0x0055AD10, gamehash::FiguredAbi::Destroy);

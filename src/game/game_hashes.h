@@ -52,16 +52,17 @@ using FiguredGroupsAbi = stlp::HashtableAbi<FiguredGroupsTraits>;
 using DressedTable = stlp::hashtable<DressedTraits>;
 using DressedAbi = stlp::HashtableAbi<DressedTraits>;
 
-// 0055ABB0 (RET 8). pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
-// table (its functor bytes, then _M_copy_from). Returns this.
-FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Value* self, void*, const std::uint32_t* key,
-                                                         const FiguredTable* table);
+struct FiguredGroupPair : FiguredGroupsTable::Value {
+    // 0055ABB0 (RET 8). pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
+    // table (its functor bytes, then _M_copy_from). Returns this.
+    FiguredGroupPair* Construct(const std::uint32_t* from, const FiguredTable* table);
+};
 
 // The unit shapes' cache (UnitShapeCache::Map, ai_shape_cache.h): pair<const handle, RefPtr>,
 // 0x18-byte nodes. A key lands in bucket handle.key % count; two handles are equal when their
 // heights compare equal or unordered (FCOMP, then TEST AH, 0x40). The pair is copied and destroyed
 // by its compiler-written members (005BE370 / 005BE280, ai_movement.cpp).
-using ShapePair = UnitShapeCache::Map::Pair;
+using ::ShapePair;
 struct ShapeTraits {
     using Value = ShapePair;
     using Key = ShapeCacheHandle;
@@ -71,7 +72,7 @@ struct ShapeTraits {
         EI_NAN_AUDIT(a.height, b.height);
         return a.height == b.height;
     }
-    static void Construct(Value* to, const Value& from) { ConstructShapePair(to, nullptr, &from.key, &from.value); }
+    static void Construct(Value* to, const Value& from) { to->Construct(&from.key, &from.value); }
     static void Destroy(Value* p) { DestroyShapePair(p); }
 };
 // 005BE090 (RET 4). The shape cache's operator[]: a pair of a copy of the handle and a null

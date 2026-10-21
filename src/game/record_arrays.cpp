@@ -136,7 +136,7 @@ EI_REWRITTEN(0x004C7510, ScriptSubCalls::CopyAt);
 
 // ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
 
-using mfc::impl::ScalarDelete;
+using mfc::impl::ScalarDeleting;
 
 EI_REWRITTEN(0x004514B0, SceneNodes::Destruct<SceneNodeArrayClass>);
 EI_REWRITTEN(0x004C5180, SubCalls::Destruct<SubCallBaseClass>);
@@ -150,36 +150,35 @@ EI_REWRITTEN(0x0044FE80, mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass
 EI_REWRITTEN(0x004500F0, mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>);
 EI_REWRITTEN(0x00450770, mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>);
 // Scalar deleting destructors (vtable slot 1).
-EI_REWRITTEN(0x004529F0, ScalarDelete<&SceneNodes::Destruct<SceneNodeArrayClass>>);
-EI_REWRITTEN(0x004CB0D0, ScalarDelete<&SubCalls::Destruct<SubCallBaseClass>>);
-EI_REWRITTEN(0x004CCF50, ScalarDelete<&SubCalls::Destruct<SubCallBaseClass>>);
-EI_REWRITTEN(0x00510160, ScalarDelete<&DeltaFields::Destruct<DeltaFieldArrayClass>>);
-EI_REPLACE(0x00556BE0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
-EI_REWRITTEN(0x005587E0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
-EI_REPLACE(0x006B5980, ScalarDelete<&Themes::Destruct<ThemeArrayClass>>);
-EI_REWRITTEN(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
-EI_REWRITTEN(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
-EI_REWRITTEN(0x006C4E80, ScalarDelete<&SectorVertices::Destruct<SectorVertexArrayClass>>);
-EI_REWRITTEN(0x00452890, ScalarDelete<&mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>>);
-EI_REWRITTEN(0x004528B0, ScalarDelete<&mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>);
-EI_REWRITTEN(0x004528F0, ScalarDelete<&mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>);
+EI_REWRITTEN(0x004529F0, ScalarDeleting<&SceneNodes::Destruct<SceneNodeArrayClass>>::Delete);
+EI_REWRITTEN(0x004CB0D0, ScalarDeleting<&SubCalls::Destruct<SubCallBaseClass>>::Delete);
+EI_REWRITTEN(0x004CCF50, ScalarDeleting<&SubCalls::Destruct<SubCallBaseClass>>::Delete);
+EI_REWRITTEN(0x00510160, ScalarDeleting<&DeltaFields::Destruct<DeltaFieldArrayClass>>::Delete);
+EI_REPLACE_METHOD(0x00556BE0, ScalarDeleting<&Behaviours::Destruct<BehaviourArrayClass>>::Delete);
+EI_REWRITTEN(0x005587E0, ScalarDeleting<&Behaviours::Destruct<BehaviourArrayClass>>::Delete);
+EI_REPLACE_METHOD(0x006B5980, ScalarDeleting<&Themes::Destruct<ThemeArrayClass>>::Delete);
+EI_REWRITTEN(0x00454CC0, ScalarDeleting<&scene::FaceGroupArrayDestruct>::Delete);
+EI_REWRITTEN(0x006C4EC0, ScalarDeleting<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>::Delete);
+EI_REWRITTEN(0x006C4E80, ScalarDeleting<&SectorVertices::Destruct<SectorVertexArrayClass>>::Delete);
+EI_REWRITTEN(0x00452890, ScalarDeleting<&mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>>::Delete);
+EI_REWRITTEN(0x004528B0, ScalarDeleting<&mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>::Delete);
+EI_REWRITTEN(0x004528F0, ScalarDeleting<&mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>::Delete);
 
 // Serialize (vtable slot 2): afxtempl's with the raw element bytes (mfc_slots.h); loading sizes the
 // array through the instantiation's own SetSize, so its elements are built and destroyed as above.
-using mfc::impl::SerializeCArray;
-EI_REWRITTEN(0x0044FEF0, SerializeCArray<FigureParts>);
-EI_REWRITTEN(0x00450160, SerializeCArray<SceneMeshes>);
-EI_REWRITTEN(0x004507E0, SerializeCArray<Materials>);
-EI_REWRITTEN(0x00451640, SerializeCArray<SceneNodes>);
-EI_REWRITTEN(0x00454A70, SerializeCArray<FaceGroups>);
-EI_REWRITTEN(0x004C52A0, SerializeCArray<SubCalls>);
-EI_REWRITTEN(0x004C7820, SerializeCArray<Definitions>);
-EI_REWRITTEN(0x0050FC80, SerializeCArray<DeltaFields>);
-EI_REPLACE(0x00557960, SerializeCArray<Behaviours>);
-EI_REPLACE(0x006B5770, SerializeCArray<Themes>);
-EI_REWRITTEN(0x006C4790, SerializeCArray<SectorVertices>);
-EI_REWRITTEN(0x00571240, SerializeCArray<WaterLevels>);
-EI_REWRITTEN(0x005993A0, SerializeCArray<Sectors>);
+EI_REWRITTEN(0x0044FEF0, FigureParts::Serialize);
+EI_REWRITTEN(0x00450160, SceneMeshes::Serialize);
+EI_REWRITTEN(0x004507E0, Materials::Serialize);
+EI_REWRITTEN(0x00451640, SceneNodes::Serialize);
+EI_REWRITTEN(0x00454A70, FaceGroups::Serialize);
+EI_REWRITTEN(0x004C52A0, SubCalls::Serialize);
+EI_REWRITTEN(0x004C7820, Definitions::Serialize);
+EI_REWRITTEN(0x0050FC80, DeltaFields::Serialize);
+EI_REPLACE_METHOD(0x00557960, Behaviours::Serialize);
+EI_REPLACE_METHOD(0x006B5770, Themes::Serialize);
+EI_REWRITTEN(0x006C4790, SectorVertices::Serialize);
+EI_REWRITTEN(0x00571240, WaterLevels::Serialize);
+EI_REWRITTEN(0x005993A0, Sectors::Serialize);
 
 // The water levels' element helpers.
 EI_REWRITTEN(0x00575690, WaterLevels::ConstructElements);

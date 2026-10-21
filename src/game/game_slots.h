@@ -66,7 +66,7 @@ using BuiltZoneRecords =
 
 // ---- The lists whose Serialize loads through a temporary (ticket S6d) -----------------------------
 //
-// SerializeCListThrough's element functions for each instantiation: how its loader builds the
+// ListAbi::SerializeThrough's element functions for each instantiation: how its loader builds the
 // temporary (Init), assigns the new element from it (Assign) and destroys it (Destroy). The lists'
 // NewNode is the instantiation's (the ABIs below where game_lists.h's build the element otherwise).
 
@@ -215,78 +215,76 @@ using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, Assign
 // addresses: one tag each now).
 
 using mfc::impl::CompiledCollection;
-using mfc::impl::SerializeCArray;
-using mfc::impl::SerializeCListThrough;
 
 // Counted pointer lists of the world server (00598F40): the connections AcceptNewPlayers takes.
 struct RefListAClass final
-    : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &SerializeCListThrough<RefsThrough>> {};
+    : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
 // A list of engine objects released through slot 4 (00427600).
 struct ItemObjectListClass final
-    : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &SerializeCListThrough<EngineObjectsThrough>> {};
+    : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
 // The same in the client maps (00571F10), and the lightning manager's new bolts.
 struct ClientObjectList2Class final
-    : CompiledCollection<ClientObjectList2Class, &gamelists::EngineObjects::Destruct<ClientObjectList2Class>, &SerializeCListThrough<EngineObjectsThrough>> {};
+    : CompiledCollection<ClientObjectList2Class, &gamelists::EngineObjects::Destruct<ClientObjectList2Class>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
 // CList<ScriptObjectRef> (CScript's temporary objects, +0x1CC).
 struct ObjectRefListClass final
-    : CompiledCollection<ObjectRefListClass, &gamelists::ObjectRefs::Destruct<ObjectRefListClass>, &SerializeCListThrough<ObjectRefsThrough>> {};
+    : CompiledCollection<ObjectRefListClass, &gamelists::ObjectRefs::Destruct<ObjectRefListClass>, &ObjectRefsThrough::Abi::SerializeThrough<ObjectRefsThrough>> {};
 // A magic trap's victims (counted references).
 struct VictimListClass final
-    : CompiledCollection<VictimListClass, &gamelists::ObjectRefs::Destruct<VictimListClass>, &SerializeCListThrough<VictimsThrough>> {};
+    : CompiledCollection<VictimListClass, &gamelists::ObjectRefs::Destruct<VictimListClass>, &VictimsThrough::Abi::SerializeThrough<VictimsThrough>> {};
 // Counted pointer lists of the world server (00599D60).
 struct RefListBClass final
-    : CompiledCollection<RefListBClass, &gamelists::Refs::Destruct<RefListBClass>, &SerializeCListThrough<RefsThrough>> {};
+    : CompiledCollection<RefListBClass, &gamelists::Refs::Destruct<RefListBClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
 // A map object controller's counted pointer list (005575F0).
 struct OwnedRefListClass final
-    : CompiledCollection<OwnedRefListClass, &gamelists::OwnedRefs::Destruct<OwnedRefListClass>, &SerializeCListThrough<OwnedRefsThrough>> {};
+    : CompiledCollection<OwnedRefListClass, &gamelists::OwnedRefs::Destruct<OwnedRefListClass>, &OwnedRefsThrough::Abi::SerializeThrough<OwnedRefsThrough>> {};
 // The world server's shared objects (0059A3C0).
 struct SharedObjectListClass final
-    : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SerializeCListThrough<SharedObjectsThrough>> {};
+    : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SharedObjectsThrough::Abi::SerializeThrough<SharedObjectsThrough>> {};
 // The armour spells (12-byte records holding an engine object).
 struct ArmourSpellListClass final
-    : CompiledCollection<ArmourSpellListClass, &gamelists::Holders::Destruct<ArmourSpellListClass>, &SerializeCListThrough<ArmourSpellsThrough>> {};
+    : CompiledCollection<ArmourSpellListClass, &gamelists::Holders::Destruct<ArmourSpellListClass>, &ArmourSpellsThrough::Abi::SerializeThrough<ArmourSpellsThrough>> {};
 // The sound cache's CList<WaveRecord> (destructor 006BC870).
 struct WaveListClass final
-    : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &SerializeCListThrough<WavesThrough>> {};
+    : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &WavesThrough::Abi::SerializeThrough<WavesThrough>> {};
 
 // CScript's lists (their destructors, S13b: 004C92C0, 004C8E20, 004C7560, 004C8520, 004C7E30, 004C6760, 004C6410,
 // 004C6120).
 struct ParticleSourceListClass final
-    : CompiledCollection<ParticleSourceListClass, &gamelists::ParticleSources::Destruct<ParticleSourceListClass>, &SerializeCListThrough<ParticleSourcesThrough>> {};
+    : CompiledCollection<ParticleSourceListClass, &gamelists::ParticleSources::Destruct<ParticleSourceListClass>, &ParticleSourcesThrough::Abi::SerializeThrough<ParticleSourcesThrough>> {};
 struct FxSourceListClass final
-    : CompiledCollection<FxSourceListClass, &gamelists::FxSources::Destruct<FxSourceListClass>, &SerializeCListThrough<FxSourcesThrough>> {};
+    : CompiledCollection<FxSourceListClass, &gamelists::FxSources::Destruct<FxSourceListClass>, &FxSourcesThrough::Abi::SerializeThrough<FxSourcesThrough>> {};
 struct LightningListClass final
-    : CompiledCollection<LightningListClass, &gamelists::Lightnings::Destruct<LightningListClass>, &SerializeCListThrough<LightningsThrough>> {};
+    : CompiledCollection<LightningListClass, &gamelists::Lightnings::Destruct<LightningListClass>, &LightningsThrough::Abi::SerializeThrough<LightningsThrough>> {};
 // The command blocks (+0x70 and +0x178).
 struct DeclListClass final
-    : CompiledCollection<DeclListClass, &DeclList::Destruct<DeclListClass>, &SerializeCListThrough<DeclsThrough>> {};
+    : CompiledCollection<DeclListClass, &DeclList::Destruct<DeclListClass>, &DeclsThrough::Abi::SerializeThrough<DeclsThrough>> {};
 // The script instances (+0x140).
 struct DefinitionListClass final
-    : CompiledCollection<DefinitionListClass, &gamelists::Definitions::Destruct<DefinitionListClass>, &SerializeCListThrough<DefinitionsThrough>> {};
+    : CompiledCollection<DefinitionListClass, &gamelists::Definitions::Destruct<DefinitionListClass>, &DefinitionsThrough::Abi::SerializeThrough<DefinitionsThrough>> {};
 struct RunListClass final
-    : CompiledCollection<RunListClass, &gamelists::Runs::Destruct<RunListClass>, &SerializeCListThrough<RunsThrough>> {};
+    : CompiledCollection<RunListClass, &gamelists::Runs::Destruct<RunListClass>, &RunsThrough::Abi::SerializeThrough<RunsThrough>> {};
 // CScript's temporary groups (+0x1B0).
 struct GroupListClass final
-    : CompiledCollection<GroupListClass, &GroupList::Destruct<GroupListClass>, &SerializeCListThrough<GroupsThrough>> {};
+    : CompiledCollection<GroupListClass, &GroupList::Destruct<GroupListClass>, &GroupsThrough::Abi::SerializeThrough<GroupsThrough>> {};
 // The script parser's tokens (004CA260).
 struct TokenListClass final
-    : CompiledCollection<TokenListClass, &gamelists::Tokens::Destruct<TokenListClass>, &SerializeCListThrough<TokensThrough>> {};
+    : CompiledCollection<TokenListClass, &gamelists::Tokens::Destruct<TokenListClass>, &TokensThrough::Abi::SerializeThrough<TokensThrough>> {};
 // The script's #define list (004D6340).
 struct DefineListClass final
-    : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &SerializeCListThrough<DefinesThrough>> {};
+    : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &DefinesThrough::Abi::SerializeThrough<DefinesThrough>> {};
 
 // A unit memory's object records.
 struct MemoryObjectArrayClass final
-    : CompiledCollection<MemoryObjectArrayClass, &ObjectValues::Destruct<MemoryObjectArrayClass>, &SerializeCArray<ObjectValues>> {};
+    : CompiledCollection<MemoryObjectArrayClass, &ObjectValues::Destruct<MemoryObjectArrayClass>, &ObjectValues::Serialize> {};
 // The client maps' engine object pointers.
 struct ClientObjectPtrArrayClass final
-    : CompiledCollection<ClientObjectPtrArrayClass, &gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>, &SerializeCArray<gamearrays::ObjectPtrs>> {};
+    : CompiledCollection<ClientObjectPtrArrayClass, &gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>, &gamearrays::ObjectPtrs::Serialize> {};
 // A map object client's effect records.
 struct EffectObjectArrayClass final
-    : CompiledCollection<EffectObjectArrayClass, &EffectObjects::Destruct<EffectObjectArrayClass>, &SerializeCArray<gamearrays::Particles>> {};
+    : CompiledCollection<EffectObjectArrayClass, &EffectObjects::Destruct<EffectObjectArrayClass>, &gamearrays::Particles::Serialize> {};
 // CArray<SSCCmd> (a command block).
 struct CommandArrayClass
-    : CompiledCollection<CommandArrayClass, &Commands::Destruct<CommandArrayClass>, &SerializeCArray<BuiltCommands>> {};
+    : CompiledCollection<CommandArrayClass, &Commands::Destruct<CommandArrayClass>, &BuiltCommands::Serialize> {};
 
 } // namespace gameslots
 

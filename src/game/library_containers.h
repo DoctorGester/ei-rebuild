@@ -72,9 +72,7 @@ static_assert(sizeof(ShownItemNodes::Node) == sizeof(BriefingShownItem));
 // _Construct(p, value) of a RefPtr (0060AA80; ECX p, EDX value): a copy with one more reference,
 // nothing for a null p.
 void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
-// _Construct(p, value) of a held engine object (004FB680; thiscall on p, RET 4): the pointer copied,
-// its count raised when not null; returns p.
-CEngineObject** __fastcall ConstructHeldObject(CEngineObject** p, void*, CEngineObject* const* value);
+// (_Construct(p, value) of a held engine object, 004FB680, is HeldEngineObject::Construct.)
 
 // ---- CString's destructor and the unwind helpers ---------------------------------------------------
 

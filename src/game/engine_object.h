@@ -74,6 +74,21 @@ public:
     std::uint32_t prototypeId_;
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
+
+// A counted engine object pointer (a texture, a light, a particle source) as the original's helpers
+// take it: by address, thiscall on the pointer.
+struct HeldEngineObject {
+    CEngineObject* object;
+
+    static HeldEngineObject* Of(CEngineObject** pointer) { return reinterpret_cast<HeldEngineObject*>(pointer); }
+    // 004EBE60 (RET 4; device_helpers.cpp; byte-identical to 00429B50 and 0056F1A0, a particle
+    // source's): takes `value`, counted first, then the old one released through its slot 4.
+    void Assign(CEngineObject* value);
+    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; library_containers.cpp):
+    // the pointer copied, its count raised when not null; returns this.
+    HeldEngineObject* Construct(CEngineObject* const* value);
+};
+static_assert(sizeof(HeldEngineObject) == 4);
 // 0040CB20 (camera_object.cpp): the engine object's constructor body (inlined in most classes).
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 // 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World

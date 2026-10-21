@@ -40,6 +40,8 @@ struct AlignedArray {
 
     T& operator[](int index) { return data[index]; }
     const T& operator[](int index) const { return data[index]; }
+    // The out-of-line element access (005BDD50, RET 4): element `index`, unchecked.
+    T& ElementAt(int index) { return data[index]; }
 
     static T* Allocate(int count) {
         return static_cast<T*>(AllocAligned32(static_cast<std::size_t>(count * static_cast<int>(sizeof(T)))));
@@ -122,6 +124,8 @@ struct AlignedArray {
         if (index >= size) SetSize(index + 1);
         data[index] = value;
     }
+    // The copies that take the element by reference (00452C40, RET 8).
+    void SetAtGrowRef(int index, const T* value) { SetAtGrow(index, *value); }
 
     // Add (inlined at its call sites): SetSize(size + 1), then the new element; its index.
     int Add(T value) {

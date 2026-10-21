@@ -199,7 +199,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         CEngineObject* held = item;
         if (item) ++item->refCount_;
         if (items.Finish() != items.EndOfStorage()) {
-            if (items.Finish()) libcontainers::ConstructHeldObject(items.Finish(), nullptr, &held);
+            if (items.Finish()) HeldEngineObject::Of(items.Finish())->Construct(&held);
             ++items.Finish();
         } else {
             items.InsertOverflow<recordvec::EngineObjectRefElement>(items.Finish(), held, 1);   // 00428A20

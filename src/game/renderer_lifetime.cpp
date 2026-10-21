@@ -232,13 +232,13 @@ EI_REPLACE_METHOD(0x00504780, CSceneRenderer::RestoreSurfaces);
 // --- The device object's counted holder (+0x20) ----------------------------------------------------
 
 // 00504E20 (RET 4). The holder takes `device` (one more reference), then the old one is released.
-void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device) {
-    CTextureDevice* old = *holder;
-    *holder = device;
-    if (device) device->AddRef();
+void HeldDevice::Assign(CTextureDevice* value) {
+    CTextureDevice* old = device;
+    device = value;
+    if (value) value->AddRef();
     if (old) old->Release();
 }
-EI_REWRITTEN(0x00504E20, DeviceHolderAssign);
+EI_REWRITTEN(0x00504E20, HeldDevice::Assign);
 
 // --- Texture holders -----------------------------------------------------------------------------
 
@@ -250,21 +250,21 @@ int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
 }
 EI_REWRITTEN(0x00500970, TextureHolderEnsureLoaded);
 
-void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char* name) {
-    if (CTexture* old = *holder) {
-        *holder = nullptr;
+void HeldTexture::Load(int kind, const char* name) {
+    if (CTexture* old = texture) {
+        texture = nullptr;
         old->Release();
     }
     auto* manager = TheTextureManager();
-    auto* texture = manager->FindTypedTexture(kind, name);
-    if (!texture) texture = manager->NewTextureOfType(kind);
-    texture->name_ = name;
-    CTexture* old = *holder;
-    *holder = texture;
-    if (texture) ++texture->refCount_;
+    auto* found = manager->FindTypedTexture(kind, name);
+    if (!found) found = manager->NewTextureOfType(kind);
+    found->name_ = name;
+    CTexture* old = texture;
+    texture = found;
+    if (found) ++found->refCount_;
     if (old) old->Release();
 }
-EI_REWRITTEN(0x00500A00, TextureHolderLoad);
+EI_REWRITTEN(0x00500A00, HeldTexture::Load);
 
 EI_REWRITTEN(0x00504F60, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REWRITTEN(0x00505140, lib::AlignedArray<std::uint32_t>::Construct);

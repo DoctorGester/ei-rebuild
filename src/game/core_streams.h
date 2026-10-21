@@ -132,6 +132,9 @@ public:
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
     std::uint32_t ReadImpl(void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to (capacity + size) * 2)
+    // The slot above as registered: the slot is void, but 004A53F0 leaves the new position in EAX
+    // and callers return it (CPlayerClient::SendResume, TakeExit, ...).
+    std::uint32_t WriteImpl(const void* buffer, std::uint32_t size);
     void Seek(std::uint32_t position) override;                        // 3: 004A5490 (then EndBits)
     void SeekImpl(std::uint32_t position);   // body of the slot above (registered by member pointer)
     std::uint32_t Size() override;                                     // 4: 00417390 (size_)
@@ -220,10 +223,8 @@ constexpr std::uintptr_t kMemoryStreamVtable = CMemoryStream::kVtableAddress;
 
 // CRefObject root (vtable 0073BB68).
 void __fastcall RefObjectDestructBase(void* self);                                 // 00412720, 00413430
-void* __fastcall RefObjectDeletingDestructor(void* self, void* edx, unsigned flags); // 00412730 (slot 0)
 // Abstract reference-counted value (vtable 0073BB58).
 void* __fastcall RefValueConstructBase(void* self);                                // 00419720, returns this
-void* __fastcall RefValueDeletingDestructor(void* self, void* edx, unsigned flags);  // 00412700 (slot 0)
 
 // 0047B940 (and its copy 004D9ED0). Allocates room for `count` pointers on a 32-byte boundary; the block returned by
 // operator new is stored just before the aligned pointer (freed through it by 0047B620).

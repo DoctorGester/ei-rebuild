@@ -2,6 +2,7 @@
 // handler (0065C930), and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
 // docs/notes/items_spells.md (A-H19).
 #include "ui.h"
+#include "ui_screens.h"
 
 #include "asset_text.h"
 #include "originals_library.h"
@@ -88,14 +89,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
     inputHandled_ = true;
 }
 
-namespace {
-void __fastcall EditFieldKeyDown(void* input, void*, int key, int repeat, int flags) {
-    reinterpret_cast<CUiEditField*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_))
-        ->OnKeyDown(key, repeat, flags);
-}
-} // namespace
-
-EI_REPLACE(0x0065C610, EditFieldKeyDown);
+EI_REPLACE_METHOD(0x0065C610, InputForward<&CUiEditField::OnKeyDown>::Call);
 
 // --- A-H19: 0065C010 and 0065C930 --------------------------------------------------------------------
 
@@ -184,14 +178,7 @@ void CUiEditField::OnChar(int key, int, int) {
     inputHandled_ = true;
 }
 
-namespace {
-void __fastcall EditFieldChar(void* input, void*, int key, int repeat, int flags) {
-    reinterpret_cast<CUiEditField*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_))
-        ->OnChar(key, repeat, flags);
-}
-} // namespace
-
-EI_REPLACE(0x0065C930, EditFieldChar);
+EI_REPLACE_METHOD(0x0065C930, InputForward<&CUiEditField::OnChar>::Call);
 
 // --- 0065C1A0 / 0065C290 / 0065C2D0 (A-H25): the look, the text and the focus -----------------------
 

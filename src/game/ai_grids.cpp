@@ -224,8 +224,7 @@ void AIDirtyRect::Reset() {
 }
 EI_REPLACE_METHOD(0x005B40F0, AIDirtyRect::Reset);
 
-AITerrainType* __fastcall TerrainTypeAt(AITerrainType** types, void*, int index) { return *types + index; }
-EI_REWRITTEN(0x005BDD50, TerrainTypeAt);
+EI_REWRITTEN(0x005BDD50, lib::AlignedArray<AITerrainType>::ElementAt);
 
 // ---- The event table ------------------------------------------------------------------------------
 

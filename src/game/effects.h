@@ -423,9 +423,7 @@ using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
 // 007A9BE0: an MFC-style array with a vtable (0073C584, constructor 00468D60).
 using ParticleSpriteArray = mfc::CArray<ParticleSprite>;   // SetSize 00497D50 is the template's
 
-// 00497D40. The list position's particle, advancing the position (MFC GetNext); __thiscall on the
-// list, which it does not use.
-Particle** __fastcall NextParticle(void* list, void*, mfc::CTypedPtrList<Particle>::Node** position);
+// (00497D40, the list position's particle with the position advanced, is the list's GetNext.)
 
 // 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
 // through the renderer (slot 11). __thiscall on the renderer.

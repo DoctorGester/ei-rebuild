@@ -32,7 +32,7 @@ class CObject3D;        // map_object_figures.h
 
 namespace figure {
 // 0044C490 / 00454360 (figure_slots.cpp): a record whose only member to destroy is the CString at +4
-// (and its scalar deleting destructor, mfc::impl::ScalarDelete over this).
+// (and its scalar deleting destructor, mfc::impl::ScalarDeleting over this).
 void __fastcall NamedRecordDestruct(std::uint8_t* self);
 // 005AD870 (figure_slots.cpp): an aligned array's four fields cleared; returns it.
 void* __fastcall ClearArray(std::uint32_t* self);

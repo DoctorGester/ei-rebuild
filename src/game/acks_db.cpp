@@ -66,33 +66,30 @@ template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 
 // The original gathers the eligible entries into a temporary vector first; counting them and
 // taking the chosen one by index gives the same speech and the same rand() draws.
-const SpeechRecord* __fastcall PickSpeech(const SpeechList* list, void*, int roll) {
-    if (!list) return nullptr;
+const SpeechRecord* Speeches::Pick(int roll) const {
     int count = 0;
-    for (const SpeechRecord* s = list->begin(); s != list->end(); ++s)
+    for (const SpeechRecord* s = begin(); s != end(); ++s)
         if (s->chance >= roll) ++count;
     if (count == 0) return nullptr;
     int chosen = gamecrt::rand() * count / 0x7FFF % count;
-    for (const SpeechRecord* s = list->begin();; ++s)
+    for (const SpeechRecord* s = begin();; ++s)
         if (s->chance >= roll && chosen-- == 0) return s;
 }
-EI_REWRITTEN(0x006D8780, PickSpeech);
+EI_REWRITTEN(0x006D8780, Speeches::Pick);
 
-const SpeechRecord* __fastcall PickEnvironmentSpeech(const stlp::vector<EnvironmentSpeech>* list, void*,
-                                                     std::uint32_t environment, int roll) {
-    if (!list) return nullptr;
+const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int roll) const {
     auto eligible = [&](const EnvironmentSpeech& s) {
         return (s.environment & environment) == environment && s.speech.chance >= roll;
     };
     int count = 0;
-    for (const EnvironmentSpeech* s = list->begin(); s != list->end(); ++s)
+    for (const EnvironmentSpeech* s = begin(); s != end(); ++s)
         if (eligible(*s)) ++count;
     if (count == 0) return nullptr;
     int chosen = gamecrt::rand() * count / 0x7FFF % count;
-    for (const EnvironmentSpeech* s = list->begin();; ++s)
+    for (const EnvironmentSpeech* s = begin();; ++s)
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }
-EI_REWRITTEN(0x006D88E0, PickEnvironmentSpeech);
+EI_REWRITTEN(0x006D88E0, EnvironmentSpeeches::Pick);
 
 // 0xFF stops the unit's speech. A party unit walking slowly says its own kinds (PartyKind). 0x25 /
 // 0x26 only play weapons\timecrash.wav at the unit; 0x23 / 0x24 play weapons\crash.wav and go on.
@@ -117,7 +114,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     }
     AckDatabase& db = Database();
     const SpeechList* list = nullptr;
-    const stlp::vector<EnvironmentSpeech>* environmentList = nullptr;
+    const EnvironmentSpeeches* environmentList = nullptr;
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
             TheSoundManager()->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
@@ -154,9 +151,9 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         std::uint32_t animationKind = animation->key & 0x3C0000;
         if (animationKind != 0x100000 && animationKind != 0x140000 && animationKind != 0x180000) return nullptr;
         std::uint32_t environment = TheClientWorld()->EnvironmentFlags(unit);
-        speech = PickEnvironmentSpeech(environmentList, nullptr, environment, Roll());
+        speech = environmentList->Pick(environment, Roll());
     } else {
-        speech = PickSpeech(list, nullptr, Roll());
+        speech = list->Pick(Roll());
     }
     if (speech) unit->Controller()->Say(speech, static_cast<int>(kind));
     return speech;
@@ -237,7 +234,7 @@ void ChunkArchive::SerializeSpeechList(int id, void* list, void*) {
 }
 void ChunkArchive::SerializeEnvironmentSpeeches(int id, void* list, void*) {
     ChunkArchive* ar = this;
-    ListField(ar, id, static_cast<stlp::vector<EnvironmentSpeech>*>(list), &recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
+    ListField(ar, id, static_cast<EnvironmentSpeeches*>(list), &recordvec::EnvironmentSpeechVector::ResizeDefault, [ar](EnvironmentSpeech* speech) {
         SpeechFields(ar, &speech->speech);
         ar->Field(10, &speech->environment, 4);
     });

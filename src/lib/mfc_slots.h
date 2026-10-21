@@ -23,12 +23,16 @@ struct DestructTarget<void(__fastcall*)(T*)> {
 };
 
 // `Destruct` on the object, its memory freed when bit 0 of `flags` is set (RET 4); returns the object.
+// Registered as ScalarDeleting<&Destruct>::Delete: `this` is the object, of Destruct's parameter type.
 template <auto Destruct>
-void* __fastcall ScalarDelete(void* self, void*, unsigned flags) {
-    Destruct(static_cast<typename DestructTarget<decltype(Destruct)>::Type*>(self));
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
+struct ScalarDeleting {
+    void* Delete(unsigned flags) {
+        void* self = this;
+        Destruct(static_cast<typename DestructTarget<decltype(Destruct)>::Type*>(self));
+        if (flags & 1) gamecrt::operator_delete(self);
+        return self;
+    }
+};
 
 // std::exception's destructor (006E7DA8), which the exception classes' own destructors jump to (0040C4A0,
 // 0040C4D0, 0040C500, 0041F760).
@@ -41,37 +45,29 @@ void __fastcall ExceptionDestruct(libcrt::Exception* self);
 // instantiation's (mfc_array.h, mfc_list.h): its element and how SetSize / NewNode build one.
 
 // The count (loading: ReadCount, then SetSize(count, -1)), then the elements in one block.
-template <typename Abi>
-void __fastcall SerializeCArray(typename Abi::Array* self, void*, CArchive* ar) {
-    if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(self->size));
-    else self->SetSize(static_cast<int>(ar->ReadCount()), -1);
-    unsigned bytes = static_cast<unsigned>(self->size) * static_cast<unsigned>(sizeof(typename Abi::Element));
-    if (!ar->IsLoading()) ar->Write(self->data, bytes);
-    else ar->Read(self->data, bytes);
-}
-
-template <typename List>
-struct ListElements;
 template <typename T, typename E>
-struct ListElements<CList<T, E>> {
-    using Type = E;
-};
+void ArrayAbi<T, E>::Serialize(CArchive* ar) {
+    if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(this->size));
+    else this->SetSize(static_cast<int>(ar->ReadCount()), -1);
+    unsigned bytes = static_cast<unsigned>(this->size) * static_cast<unsigned>(sizeof(T));
+    if (!ar->IsLoading()) ar->Write(this->data, bytes);
+    else ar->Read(this->data, bytes);
+}
 
 // The count, then each element from the head. Loading reads each into a local (built as the
 // element's constructor builds it; plain data is left as it was) and adds it at the tail (the node's
 // element constructed, then assigned).
-template <typename Abi>
-void __fastcall SerializeCList(typename Abi::List* self, void*, CArchive* ar) {
-    using T = typename Abi::Element;
+template <typename T, typename E>
+void ListAbi<T, E>::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(self->count));
-        for (auto* node = self->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
+        ar->WriteCount(static_cast<unsigned long>(this->count));
+        for (auto* node = this->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
     } else {
         for (unsigned long n = ar->ReadCount(); n--;) {
             T value;
-            ListElements<typename Abi::List>::Type::Construct(&value, 1);
+            E::Construct(&value, 1);
             ar->Read(&value, sizeof(T));
-            self->AddTail(value);
+            this->AddTail(value);
         }
     }
 }
@@ -91,12 +87,12 @@ struct ListTemporary {
     static void Destroy(T* p) { DestroyFn(p); }
 };
 
+template <typename T, typename E>
 template <typename Through>
-void __fastcall SerializeCListThrough(typename Through::Abi::List* self, void*, CArchive* ar) {
-    using T = typename Through::T;
+void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
     if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(self->count));
-        for (auto* node = self->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
+        ar->WriteCount(static_cast<unsigned long>(this->count));
+        for (auto* node = this->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
         return;
     }
     for (unsigned long n = ar->ReadCount(); n--;) {
@@ -104,11 +100,11 @@ void __fastcall SerializeCListThrough(typename Through::Abi::List* self, void*, 
         T* value = reinterpret_cast<T*>(storage);
         Through::Init(value);
         ar->Read(value, sizeof(T));
-        auto* node = self->NewNode(self->tail, nullptr);
+        auto* node = this->NewNode(this->tail, nullptr);
         Through::Assign(&node->data, value);
-        if (self->tail) self->tail->next = node;
-        else self->head = node;
-        self->tail = node;
+        if (this->tail) this->tail->next = node;
+        else this->head = node;
+        this->tail = node;
         Through::Destroy(value);
     }
 }
@@ -116,21 +112,20 @@ void __fastcall SerializeCListThrough(typename Through::Abi::List* self, void*, 
 // 007085AF SerializeElements<CString> (__stdcall, RET 0xC): each string stored (operator<<) or
 // loaded (operator>>).
 void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count);
-// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings.
-void __fastcall SerializeStringArray(Strings::Array* self, void*, CArchive* ar);
+// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings
+// (mfc_array.cpp).
+template <>
+void Strings::Serialize(CArchive* ar);
 
 // The count, then (when there are any) key and value of each association, bucket by bucket. Loading
 // reads each pair and sets it (operator[]).
-template <typename Abi>
-void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
-    using Assoc = typename Abi::Assoc;
-    using K = decltype(Assoc::key);
-    using V = decltype(Assoc::value);
+template <typename K, typename V>
+void MapAbi<K, V>::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(self->count));
-        if (self->count == 0) return;
-        for (std::uint32_t bucket = 0; bucket < self->hashSize; ++bucket)
-            for (Assoc* assoc = self->table[bucket]; assoc; assoc = assoc->next) {
+        ar->WriteCount(static_cast<unsigned long>(this->count));
+        if (this->count == 0) return;
+        for (std::uint32_t bucket = 0; bucket < this->hashSize; ++bucket)
+            for (Assoc* assoc = this->table[bucket]; assoc; assoc = assoc->next) {
                 ar->Write(&assoc->key, sizeof(K));
                 ar->Write(&assoc->value, sizeof(V));
             }
@@ -140,7 +135,7 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
             V value;
             ar->Read(&key, sizeof(K));
             ar->Read(&value, sizeof(V));
-            self->ElementAt(key) = value;
+            this->ElementAt(key) = value;
         }
     }
 }
@@ -168,7 +163,7 @@ using ei::CompiledVtable;
 template <typename F>
 struct SerializeTarget;
 template <typename T>
-struct SerializeTarget<void(__fastcall*)(T*, void*, CArchive*)> {
+struct SerializeTarget<void (T::*)(CArchive*)> {
     using Type = T;
 };
 
@@ -182,7 +177,7 @@ public:
         Destroy(reinterpret_cast<typename DestructTarget<decltype(Destroy)>::Type*>(this));
     }
     virtual void Serialize(CArchive& archive) {                                             // 2
-        Store(reinterpret_cast<typename SerializeTarget<decltype(Store)>::Type*>(this), nullptr, &archive);
+        (reinterpret_cast<typename SerializeTarget<decltype(Store)>::Type*>(this)->*Store)(&archive);
     }
 
     static void operator delete(void* p) { gamecrt::operator_delete(p); }
@@ -218,127 +213,127 @@ using List30 = ListAbi<Bytes<0x30>>;
 
 // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
 struct IntArrayClass final
-    : CompiledCollection<IntArrayClass, &ArrayHeader<IntArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<IntArrayClass, &ArrayHeader<IntArrayClass>::Destruct, &Plain4::Serialize> {};
 // The interface's unit pointer arrays
 struct UnitPtrArrayClass final
-    : CompiledCollection<UnitPtrArrayClass, &ArrayHeader<UnitPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<UnitPtrArrayClass, &ArrayHeader<UnitPtrArrayClass>::Destruct, &Plain4::Serialize> {};
 // CArray<float> (the motions' step speeds, the radius tree's keys, the terrain's level arrays)
 struct FloatArrayClass final
-    : CompiledCollection<FloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<FloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &Plain4::Serialize> {};
 // The script commands' float arguments (a CArray<float> subclass)
 struct ArgFloatArrayClass final
-    : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &Plain4::Serialize> {};
 // The script's float variables
 struct ScriptFloatsClass
-    : CompiledCollection<ScriptFloatsClass, &ArrayHeader<ScriptFloatsClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<ScriptFloatsClass, &ArrayHeader<ScriptFloatsClass>::Destruct, &Plain4::Serialize> {};
 // The float values of the script's variables (ScriptVars, ScriptNamedValues<float>; base ScriptFloatsClass)
 struct ScriptFloatValuesClass final : ScriptFloatsClass {
     static void* Vtable() { return CompiledVtable<ScriptFloatValuesClass>(); }
 };
 // A script area's parts
 struct ScriptAreaClass
-    : CompiledCollection<ScriptAreaClass, &ArrayHeader<ScriptAreaClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<ScriptAreaClass, &ArrayHeader<ScriptAreaClass>::Destruct, &Plain20::Serialize> {};
 // The array a script area element holds (base ScriptAreaClass)
 struct ScriptAreaPartsClass final : ScriptAreaClass {
     static void* Vtable() { return CompiledVtable<ScriptAreaPartsClass>(); }
 };
 // The script's if-then blocks
 struct ScriptIfThenArrayClass
-    : CompiledCollection<ScriptIfThenArrayClass, &ArrayHeader<ScriptIfThenArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<ScriptIfThenArrayClass, &ArrayHeader<ScriptIfThenArrayClass>::Destruct, &Plain8::Serialize> {};
 // A definition's if-then pairs as the parser builds them (ScriptIfThens; base ScriptIfThenArrayClass)
 struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
     static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
 };
 // The script's party slots
 struct PartySlotArrayClass final
-    : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &SerializeCArray<Placements>> {};
+    : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &Placements::Serialize> {};
 // The AI's look records
 struct AiLookArrayClass
-    : CompiledCollection<AiLookArrayClass, &ArrayHeader<AiLookArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+    : CompiledCollection<AiLookArrayClass, &ArrayHeader<AiLookArrayClass>::Destruct, &Plain16::Serialize> {};
 // The array inside the AI's 32-byte look records (base AiLookArrayClass)
 struct AiLookRecordArrayClass final : AiLookArrayClass {
     static void* Vtable() { return CompiledVtable<AiLookRecordArrayClass>(); }
 };
 // The weather and lightning sprites
 struct SpriteArrayClass final
-    : CompiledCollection<SpriteArrayClass, &ArrayHeader<SpriteArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<SpriteArrayClass, &ArrayHeader<SpriteArrayClass>::Destruct, &Plain8::Serialize> {};
 // A figure's bone links
 struct BoneLinkArrayClass final
-    : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &SerializeCArray<KeyFrames>> {};
+    : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &KeyFrames::Serialize> {};
 // The base vtable the element arrays' destructors restore (patrols, motion records)
 struct ArrayBaseClass
-    : CompiledCollection<ArrayBaseClass, &ArrayHeader<ArrayBaseClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<ArrayBaseClass, &ArrayHeader<ArrayBaseClass>::Destruct, &Plain20::Serialize> {};
 // A patrol's waypoints
 struct WaypointArrayClass final : ArrayBaseClass {
     static void* Vtable() { return CompiledVtable<WaypointArrayClass>(); }
 };
 // A unit's point lists
 struct PointArrayClass final
-    : CompiledCollection<PointArrayClass, &ArrayHeader<PointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<PointArrayClass, &ArrayHeader<PointArrayClass>::Destruct, &Plain8::Serialize> {};
 // A unit's attack options
 struct AttackOptionArrayClass final
-    : CompiledCollection<AttackOptionArrayClass, &ArrayHeader<AttackOptionArrayClass>::Destruct, &SerializeCArray<Plain40>> {};
+    : CompiledCollection<AttackOptionArrayClass, &ArrayHeader<AttackOptionArrayClass>::Destruct, &Plain40::Serialize> {};
 // A unit's animation steps
 struct AnimationStepsClass
-    : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &SerializeCArray<AnimationSteps>> {};
+    : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &AnimationSteps::Serialize> {};
 // The animation steps a motion copies
 struct AnimationStepsCopyClass final : AnimationStepsClass {
     static void* Vtable() { return CompiledVtable<AnimationStepsCopyClass>(); }
 };
 // The AI map's cell rows
 struct CellRowArrayClass final
-    : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &Plain4::Serialize> {};
 // The AI map's area lists (CArray<{int, int}>)
 struct AreaListClass final
-    : CompiledCollection<AreaListClass, &ArrayHeader<AreaListClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<AreaListClass, &ArrayHeader<AreaListClass>::Destruct, &Plain8::Serialize> {};
 // CArray<CString> (the script's string variables)
 struct StringArrayClass final
-    : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &SerializeStringArray> {};
+    : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
 // CPtrList (the lists the code builds on the stack; blocks of 10)
 struct PtrListClass final
-    : CompiledCollection<PtrListClass, &PtrList::Destruct<PtrListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<PtrListClass, &PtrList::Destruct<PtrListClass>, &PtrList::Serialize> {};
 // The item and object pointer lists (CTypedPtrList)
 struct ItemListClass final
-    : CompiledCollection<ItemListClass, &PtrList::Destruct<ItemListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<ItemListClass, &PtrList::Destruct<ItemListClass>, &PtrList::Serialize> {};
 // A pointer list built around each item creation (world quests)
 struct TempListClass final
-    : CompiledCollection<TempListClass, &PtrList::Destruct<TempListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<TempListClass, &PtrList::Destruct<TempListClass>, &PtrList::Serialize> {};
 // The units' path cell lists
 struct CellListClass final
-    : CompiledCollection<CellListClass, &PtrList::Destruct<CellListClass>, &SerializeCList<List8>> {};
+    : CompiledCollection<CellListClass, &PtrList::Destruct<CellListClass>, &List8::Serialize> {};
 // The loot lists
 struct LootListClass final
-    : CompiledCollection<LootListClass, &PtrList::Destruct<LootListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<LootListClass, &PtrList::Destruct<LootListClass>, &PtrList::Serialize> {};
 // The client maps' platform lists
 struct PlatformListClass final
-    : CompiledCollection<PlatformListClass, &PtrList::Destruct<PlatformListClass>, &SerializeCList<List4C>> {};
+    : CompiledCollection<PlatformListClass, &PtrList::Destruct<PlatformListClass>, &List4C::Serialize> {};
 // The client map's lists (world_client_maps 0056FD40)
 struct ClientListClass final
-    : CompiledCollection<ClientListClass, &PtrList::Destruct<ClientListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<ClientListClass, &PtrList::Destruct<ClientListClass>, &PtrList::Serialize> {};
 // 00570EA0's list
 struct ClientList2Class final
-    : CompiledCollection<ClientList2Class, &PtrList::Destruct<ClientList2Class>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<ClientList2Class, &PtrList::Destruct<ClientList2Class>, &PtrList::Serialize> {};
 // 005715D0's list
 struct ClientList3Class final
-    : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &PtrList::Serialize> {};
 // The AI map's node lists
 struct NodeListClass final
-    : CompiledCollection<NodeListClass, &PtrList::Destruct<NodeListClass>, &SerializeCList<List1C>> {};
+    : CompiledCollection<NodeListClass, &PtrList::Destruct<NodeListClass>, &List1C::Serialize> {};
 // The AI's block cost lists
 struct BlockCostListClass final
-    : CompiledCollection<BlockCostListClass, &PtrList::Destruct<BlockCostListClass>, &SerializeCList<List12>> {};
+    : CompiledCollection<BlockCostListClass, &PtrList::Destruct<BlockCostListClass>, &List12::Serialize> {};
 // The AI map's lists
 struct AiMapListClass final
-    : CompiledCollection<AiMapListClass, &PtrList::Destruct<AiMapListClass>, &SerializeCList<List8>> {};
+    : CompiledCollection<AiMapListClass, &PtrList::Destruct<AiMapListClass>, &List8::Serialize> {};
 // The AI plan's waypoint lists
 struct WaypointListClass final
-    : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &SerializeCList<List12>> {};
+    : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &List12::Serialize> {};
 // The list a static initialiser builds (005CDAD0)
 struct StaticListClass final
-    : CompiledCollection<StaticListClass, &PtrList::Destruct<StaticListClass>, &SerializeCList<List30>> {};
+    : CompiledCollection<StaticListClass, &PtrList::Destruct<StaticListClass>, &List30::Serialize> {};
 // The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
 struct DwordMapClass final
-    : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &SerializeCMap<Map32>> {};
+    : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &Map32::Serialize> {};
 
 // The animation list's copy constructor of the steps' array alone (00556870): the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
@@ -410,218 +405,218 @@ using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, I
 // Arrays whose elements need nothing.
 // Inside the scene loader's 0x120-byte node records (00454F80).
 struct NodeItemsAClass final
-    : CompiledCollection<NodeItemsAClass, &ArrayHeader<NodeItemsAClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<NodeItemsAClass, &ArrayHeader<NodeItemsAClass>::Destruct, &Plain20::Serialize> {};
 struct NodeItemsBClass final
-    : CompiledCollection<NodeItemsBClass, &ArrayHeader<NodeItemsBClass>::Destruct, &SerializeCArray<Plain24>> {};
+    : CompiledCollection<NodeItemsBClass, &ArrayHeader<NodeItemsBClass>::Destruct, &Plain24::Serialize> {};
 struct NodeItemsCClass final
-    : CompiledCollection<NodeItemsCClass, &ArrayHeader<NodeItemsCClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<NodeItemsCClass, &ArrayHeader<NodeItemsCClass>::Destruct, &Plain4::Serialize> {};
 // The scene loader's {id, value} links.
 struct TextureLinkArrayClass final
-    : CompiledCollection<TextureLinkArrayClass, &ArrayHeader<TextureLinkArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<TextureLinkArrayClass, &ArrayHeader<TextureLinkArrayClass>::Destruct, &Plain8::Serialize> {};
 // The scene meshes' corner records (IndexMeshCorners).
 struct MeshCornerArrayClass final
-    : CompiledCollection<MeshCornerArrayClass, &ArrayHeader<MeshCornerArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+    : CompiledCollection<MeshCornerArrayClass, &ArrayHeader<MeshCornerArrayClass>::Destruct, &Plain16::Serialize> {};
 // 12-byte points: animation node normals, use spots, terrain sector data.
 struct Vector3ArrayClass final
-    : CompiledCollection<Vector3ArrayClass, &ArrayHeader<Vector3ArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<Vector3ArrayClass, &ArrayHeader<Vector3ArrayClass>::Destruct, &Plain12::Serialize> {};
 // A trap's circles (map_spec, magic_trap).
 struct TrapCircleArrayClass
-    : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<TrapCircleArrayClass, &ArrayHeader<TrapCircleArrayClass>::Destruct, &Plain12::Serialize> {};
 // A trap's points.
 struct TrapPointArrayClass
-    : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<TrapPointArrayClass, &ArrayHeader<TrapPointArrayClass>::Destruct, &Plain8::Serialize> {};
 // A script command's object arguments (script_destroy).
 struct ArgObjectsBaseClass
-    : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &Plain4::Serialize> {};
 // A script command's object arguments, the derived class (script_copy).
 struct ArgObjectsClass final : ArgObjectsBaseClass {
     static void* Vtable() { return CompiledVtable<ArgObjectsClass>(); }
 };
 // A script command's group arguments.
 struct ArgGroupsBaseClass
-    : CompiledCollection<ArgGroupsBaseClass, &ArrayHeader<ArgGroupsBaseClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<ArgGroupsBaseClass, &ArrayHeader<ArgGroupsBaseClass>::Destruct, &Plain4::Serialize> {};
 // A script command's group arguments, the derived class.
 struct ArgGroupsClass final : ArgGroupsBaseClass {
     static void* Vtable() { return CompiledVtable<ArgGroupsClass>(); }
 };
 // A script command's bindings.
 struct BindingsBaseClass
-    : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &Plain12::Serialize> {};
 // A map object's effects.
 struct EffectArrayClass final
-    : CompiledCollection<EffectArrayClass, &ArrayHeader<EffectArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<EffectArrayClass, &ArrayHeader<EffectArrayClass>::Destruct, &Plain20::Serialize> {};
 // A map object's effect sounds.
 struct EffectSoundArrayClass final
-    : CompiledCollection<EffectSoundArrayClass, &ArrayHeader<EffectSoundArrayClass>::Destruct, &SerializeCArray<SoundRecords>> {};
+    : CompiledCollection<EffectSoundArrayClass, &ArrayHeader<EffectSoundArrayClass>::Destruct, &SoundRecords::Serialize> {};
 // A 3D object's frames.
 struct FrameArrayClass final
-    : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &SerializeCArray<Plain56>> {};
+    : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &Plain56::Serialize> {};
 // A unit's motion (UnitMotion's points and waypoints): the arrays the unit's constructor builds are derived
 // instantiations of the ones they are destroyed as (game.exe's 0073EB9C / 0073EB90 over 0073EBA8 / 0073EBB4).
 struct MotionPointArrayClass
-    : CompiledCollection<MotionPointArrayClass, &ArrayHeader<MotionPointArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+    : CompiledCollection<MotionPointArrayClass, &ArrayHeader<MotionPointArrayClass>::Destruct, &Plain28::Serialize> {};
 struct MotionPointsClass final : MotionPointArrayClass {
     static void* Vtable() { return CompiledVtable<MotionPointsClass>(); }
 };
 struct MotionWaypointBaseClass
-    : CompiledCollection<MotionWaypointBaseClass, &ArrayHeader<MotionWaypointBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<MotionWaypointBaseClass, &ArrayHeader<MotionWaypointBaseClass>::Destruct, &Plain12::Serialize> {};
 struct MotionWaypointArrayClass final : MotionWaypointBaseClass {
     static void* Vtable() { return CompiledVtable<MotionWaypointArrayClass>(); }
 };
 // A unit's carried objects (CUnit +0x49C).
 struct CarriedArrayClass final
-    : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &Plain4::Serialize> {};
 // CArray<int> of quest item ids (world_party).
 struct IdArrayClass final
-    : CompiledCollection<IdArrayClass, &ArrayHeader<IdArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<IdArrayClass, &ArrayHeader<IdArrayClass>::Destruct, &Plain4::Serialize> {};
 // A unit's skin layers (ComposeSkin).
 struct SkinLayerArrayClass final
-    : CompiledCollection<SkinLayerArrayClass, &ArrayHeader<SkinLayerArrayClass>::Destruct, &SerializeCArray<PathRecords>> {};
+    : CompiledCollection<SkinLayerArrayClass, &ArrayHeader<SkinLayerArrayClass>::Destruct, &PathRecords::Serialize> {};
 // The world's countdowns.
 struct CountdownArrayClass final
-    : CompiledCollection<CountdownArrayClass, &ArrayHeader<CountdownArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+    : CompiledCollection<CountdownArrayClass, &ArrayHeader<CountdownArrayClass>::Destruct, &Plain16::Serialize> {};
 // The server's and interface's party unit arrays.
 struct PartyUnitArrayClass final
-    : CompiledCollection<PartyUnitArrayClass, &ArrayHeader<PartyUnitArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<PartyUnitArrayClass, &ArrayHeader<PartyUnitArrayClass>::Destruct, &Plain4::Serialize> {};
 // A sector's occluders.
 struct SectorOccluderArrayClass final
-    : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &Plain8::Serialize> {};
 // The sector spiral's cells.
 struct SpiralCellArrayClass final
-    : CompiledCollection<SpiralCellArrayClass, &ArrayHeader<SpiralCellArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<SpiralCellArrayClass, &ArrayHeader<SpiralCellArrayClass>::Destruct, &Plain8::Serialize> {};
 struct SmoothEdgeArrayClass final
-    : CompiledCollection<SmoothEdgeArrayClass, &ArrayHeader<SmoothEdgeArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<SmoothEdgeArrayClass, &ArrayHeader<SmoothEdgeArrayClass>::Destruct, &Plain20::Serialize> {};
 struct SmoothCopyArrayClass final
-    : CompiledCollection<SmoothCopyArrayClass, &ArrayHeader<SmoothCopyArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<SmoothCopyArrayClass, &ArrayHeader<SmoothCopyArrayClass>::Destruct, &Plain8::Serialize> {};
 struct SmoothStepArrayClass final
-    : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &SerializeCArray<Plain36>> {};
+    : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &Plain36::Serialize> {};
 // The objectives window's exits.
 struct ObjectiveExitArrayClass final
-    : CompiledCollection<ObjectiveExitArrayClass, &ArrayHeader<ObjectiveExitArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+    : CompiledCollection<ObjectiveExitArrayClass, &ArrayHeader<ObjectiveExitArrayClass>::Destruct, &Plain28::Serialize> {};
 // An item strip's CArray<char*>.
 struct ItemStripArrayClass final
-    : CompiledCollection<ItemStripArrayClass, &ArrayHeader<ItemStripArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<ItemStripArrayClass, &ArrayHeader<ItemStripArrayClass>::Destruct, &Plain4::Serialize> {};
 // The HUD's quick item entries.
 struct QuickEntryArrayClass final
-    : CompiledCollection<QuickEntryArrayClass, &ArrayHeader<QuickEntryArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<QuickEntryArrayClass, &ArrayHeader<QuickEntryArrayClass>::Destruct, &Plain12::Serialize> {};
 // The scroll text's token pointers.
 struct TokenPtrArrayClass final
-    : CompiledCollection<TokenPtrArrayClass, &ArrayHeader<TokenPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<TokenPtrArrayClass, &ArrayHeader<TokenPtrArrayClass>::Destruct, &Plain4::Serialize> {};
 // The scroll text's line pointers.
 struct LinePtrArrayClass final
-    : CompiledCollection<LinePtrArrayClass, &ArrayHeader<LinePtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<LinePtrArrayClass, &ArrayHeader<LinePtrArrayClass>::Destruct, &Plain4::Serialize> {};
 // The terrain builder's arrays (006CBE60).
 struct TerrainArrayAClass final
-    : CompiledCollection<TerrainArrayAClass, &ArrayHeader<TerrainArrayAClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<TerrainArrayAClass, &ArrayHeader<TerrainArrayAClass>::Destruct, &Plain4::Serialize> {};
 // (006CC2A0, 006CC3E0).
 struct TerrainArrayBClass final
-    : CompiledCollection<TerrainArrayBClass, &ArrayHeader<TerrainArrayBClass>::Destruct, &SerializeCArray<Plain16>> {};
+    : CompiledCollection<TerrainArrayBClass, &ArrayHeader<TerrainArrayBClass>::Destruct, &Plain16::Serialize> {};
 // (006CC530).
 struct TerrainArrayCClass final
-    : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<TerrainArrayCClass, &ArrayHeader<TerrainArrayCClass>::Destruct, &Plain4::Serialize> {};
 
 // A model or animation file's arrays (the loader's, 00474F30..00476AB0).
 struct RotKeyArrayClass final
-    : CompiledCollection<RotKeyArrayClass, &ArrayHeader<RotKeyArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<RotKeyArrayClass, &ArrayHeader<RotKeyArrayClass>::Destruct, &Plain20::Serialize> {};
 struct PosKeyArrayClass final
-    : CompiledCollection<PosKeyArrayClass, &ArrayHeader<PosKeyArrayClass>::Destruct, &SerializeCArray<Plain24>> {};
+    : CompiledCollection<PosKeyArrayClass, &ArrayHeader<PosKeyArrayClass>::Destruct, &Plain24::Serialize> {};
 struct MorphHeadArrayClass final
-    : CompiledCollection<MorphHeadArrayClass, &ArrayHeader<MorphHeadArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+    : CompiledCollection<MorphHeadArrayClass, &ArrayHeader<MorphHeadArrayClass>::Destruct, &Plain8::Serialize> {};
 struct NormalArrayClass final
-    : CompiledCollection<NormalArrayClass, &ArrayHeader<NormalArrayClass>::Destruct, &SerializeCArray<Plain20>> {};
+    : CompiledCollection<NormalArrayClass, &ArrayHeader<NormalArrayClass>::Destruct, &Plain20::Serialize> {};
 struct FilePointArrayClass final
-    : CompiledCollection<FilePointArrayClass, &ArrayHeader<FilePointArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<FilePointArrayClass, &ArrayHeader<FilePointArrayClass>::Destruct, &Plain12::Serialize> {};
 struct FileUvArrayClass final
-    : CompiledCollection<FileUvArrayClass, &ArrayHeader<FileUvArrayClass>::Destruct, &SerializeCArray<Plain12>> {};
+    : CompiledCollection<FileUvArrayClass, &ArrayHeader<FileUvArrayClass>::Destruct, &Plain12::Serialize> {};
 struct FileFaceArrayClass final
-    : CompiledCollection<FileFaceArrayClass, &ArrayHeader<FileFaceArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+    : CompiledCollection<FileFaceArrayClass, &ArrayHeader<FileFaceArrayClass>::Destruct, &Plain28::Serialize> {};
 struct IndexArrayClass final
-    : CompiledCollection<IndexArrayClass, &ArrayHeader<IndexArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+    : CompiledCollection<IndexArrayClass, &ArrayHeader<IndexArrayClass>::Destruct, &Plain4::Serialize> {};
 
 // Lists whose elements need nothing.
 // A figure bone's children and an animation state's bones.
-struct BoneListClass final : CompiledCollection<BoneListClass, &PtrList::Destruct<BoneListClass>, &SerializeCList<PtrList>> {};
+struct BoneListClass final : CompiledCollection<BoneListClass, &PtrList::Destruct<BoneListClass>, &PtrList::Serialize> {};
 // An animation state's queue.
 struct AnimationStateListClass final
-    : CompiledCollection<AnimationStateListClass, &PtrList::Destruct<AnimationStateListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<AnimationStateListClass, &PtrList::Destruct<AnimationStateListClass>, &PtrList::Serialize> {};
 // A 3D object's effect sources.
 struct Object3DListClass final
-    : CompiledCollection<Object3DListClass, &PtrList::Destruct<Object3DListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<Object3DListClass, &PtrList::Destruct<Object3DListClass>, &PtrList::Serialize> {};
 // The client world's and the sectors' object lists.
 struct ClientObjectListClass final
-    : CompiledCollection<ClientObjectListClass, &PtrList::Destruct<ClientObjectListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<ClientObjectListClass, &PtrList::Destruct<ClientObjectListClass>, &PtrList::Serialize> {};
 // CWorldServer::AwardExperience's list.
 struct ExperienceListClass final
-    : CompiledCollection<ExperienceListClass, &PtrList::Destruct<ExperienceListClass>, &SerializeCList<List8>> {};
+    : CompiledCollection<ExperienceListClass, &PtrList::Destruct<ExperienceListClass>, &List8::Serialize> {};
 // AIAttention::Choose's list.
 struct AttentionListClass final
-    : CompiledCollection<AttentionListClass, &PtrList::Destruct<AttentionListClass>, &SerializeCList<AttentionList>> {};
+    : CompiledCollection<AttentionListClass, &PtrList::Destruct<AttentionListClass>, &AttentionList::Serialize> {};
 // A player's list.
 struct PlayerListClass final
-    : CompiledCollection<PlayerListClass, &PtrList::Destruct<PlayerListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<PlayerListClass, &PtrList::Destruct<PlayerListClass>, &PtrList::Serialize> {};
 // The texture manager's list.
 struct TextureListClass final
-    : CompiledCollection<TextureListClass, &PtrList::Destruct<TextureListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<TextureListClass, &PtrList::Destruct<TextureListClass>, &PtrList::Serialize> {};
 // The sound manager's list.
 struct SoundListClass final
-    : CompiledCollection<SoundListClass, &PtrList::Destruct<SoundListClass>, &SerializeCList<PtrList>> {};
+    : CompiledCollection<SoundListClass, &PtrList::Destruct<SoundListClass>, &PtrList::Serialize> {};
 
 // Maps whose elements need nothing.
 // LoadFigureRegistry's map.
 struct FigureRegistryMapClass final
-    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &SerializeCMap<Map32>> {};
+    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &Map32::Serialize> {};
 // IndexMeshCorners' maps.
 struct CornerMapAClass final
-    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &SerializeCMap<Map64x64>> {};
+    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &Map64x64::Serialize> {};
 struct CornerMapBClass final
-    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &SerializeCMap<Map64x32>> {};
+    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &Map64x32::Serialize> {};
 struct CornerMapCClass final
-    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &SerializeCMap<Map32>> {};
+    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &Map32::Serialize> {};
 
 // Arrays whose elements own something.
 // A fake unit's 20-byte CObject elements (FakeUnitConstruct).
 struct FakeUnitBoneArraysClass final
-    : CompiledCollection<FakeUnitBoneArraysClass, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, &SerializeCArray<OwnedBoneLinkArrays>> {};
+    : CompiledCollection<FakeUnitBoneArraysClass, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, &OwnedBoneLinkArrays::Serialize> {};
 // The scene loader's 0x1C-byte CObject elements (SceneInfo::Load).
 struct SceneObjectArrayClass final
-    : CompiledCollection<SceneObjectArrayClass, &SceneObjects::Destruct<SceneObjectArrayClass>, &SerializeCArray<OwnedDwordMaps>> {};
+    : CompiledCollection<SceneObjectArrayClass, &SceneObjects::Destruct<SceneObjectArrayClass>, &OwnedDwordMaps::Serialize> {};
 // The terrain's CByteArray elements (Serialize 006C4790).
 struct TerrainByteArraysClass final
-    : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &SerializeCArray<ByteArrays>> {};
+    : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
 // The scene loader's 20-byte records with an aligned block at +4.
 struct AlignedAt4ArrayClass final
-    : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &SerializeCArray<AlignedAt4Records>> {};
+    : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &AlignedAt4Records::Serialize> {};
 // An animation node's 24-byte records with an aligned block at +8.
 struct AlignedAt8ArrayClass final
-    : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &SerializeCArray<AlignedAt8Records>> {};
+    : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &AlignedAt8Records::Serialize> {};
 // The scene loader's {id, CString}.
 struct TextureNameArrayClass final
-    : CompiledCollection<TextureNameArrayClass, &TextureNames::Destruct<TextureNameArrayClass>, &SerializeCArray<NamedStrings>> {};
+    : CompiledCollection<TextureNameArrayClass, &TextureNames::Destruct<TextureNameArrayClass>, &NamedStrings::Serialize> {};
 // A unit's 0x18-byte memory records, a CString at +0x14.
 struct MemoryRecordArrayClass final
-    : CompiledCollection<MemoryRecordArrayClass, &MemoryRecords::Destruct<MemoryRecordArrayClass>, &SerializeCArray<MemoryCallRecords>> {};
+    : CompiledCollection<MemoryRecordArrayClass, &MemoryRecords::Destruct<MemoryRecordArrayClass>, &MemoryCallRecords::Serialize> {};
 // The global map's 0x18-byte points, CStrings at +0x10, +0x14.
 struct GlobalMapPointArrayClass final
-    : CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPoints::Destruct<GlobalMapPointArrayClass>, &SerializeCArray<GlobalMapPointRecords>> {};
+    : CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPoints::Destruct<GlobalMapPointArrayClass>, &GlobalMapPointRecords::Serialize> {};
 // The same layout.
 struct GlobalMapPathArrayClass final
-    : CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPoints::Destruct<GlobalMapPathArrayClass>, &SerializeCArray<GlobalMapPointRecords>> {};
+    : CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPoints::Destruct<GlobalMapPathArrayClass>, &GlobalMapPointRecords::Serialize> {};
 // The global map's 16-byte entries, CStrings at +8, +0xC.
 struct GlobalMapZoneArrayClass final
-    : CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZones::Destruct<GlobalMapZoneArrayClass>, &SerializeCArray<GlobalMapZoneRecords>> {};
+    : CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZones::Destruct<GlobalMapZoneArrayClass>, &GlobalMapZoneRecords::Serialize> {};
 // Patrols (32 bytes, a waypoint array at +0xC).
 struct PatrolArrayClass
-    : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &SerializeCArray<OwnedPatrols>> {};
+    : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &OwnedPatrols::Serialize> {};
 // A unit record behaviour's patrols (mapspec::Patrol elements): derived from PatrolArrayClass.
 struct BehaviourPatrolsArrayClass final : PatrolArrayClass {
     static void* Vtable() { return CompiledVtable<BehaviourPatrolsArrayClass>(); }
 };
 // The map database's allods (0x2C bytes: six CStrings, an id array).
 struct AllodArrayClass final
-    : CompiledCollection<AllodArrayClass, &OwnedAllods::Destruct<AllodArrayClass>, &SerializeCArray<OwnedAllods>> {};
+    : CompiledCollection<AllodArrayClass, &OwnedAllods::Destruct<AllodArrayClass>, &OwnedAllods::Serialize> {};
 // The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
 struct ScriptAreaArrayClass final
-    : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &SerializeCArray<ScriptAreas>> {};
+    : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};
 
 // A map trap record's areas (12-byte elements; the magic trap's circles).
 struct TrapAreasArrayClass final : TrapCircleArrayClass {

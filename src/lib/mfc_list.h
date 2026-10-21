@@ -37,6 +37,13 @@ struct ListAbi : CList<T, E> {
     using List = CList<T, E>;
     using Node = typename List::Node;
 
+    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count, then each element from the
+    // head. Loading reads each into a local and adds it at the tail.
+    void Serialize(CArchive* ar);
+    // The same stored form, loading through a temporary of `Through` (a ListTemporary, mfc_slots.h).
+    template <typename Through>
+    void SerializeThrough(CArchive* ar);
+
     // The instantiations' NewNode(pPrev, pNext) (RET 8: the node, its element constructed), FreeNode(pNode)
     // (RET 4: the element destroyed, the node onto the free list; the last one frees every block),
     // RemoveAt(position) (RET 4: unlinked, then FreeNode) and RemoveAll (plain RET: the elements
@@ -129,6 +136,10 @@ template <typename K, typename V>
 struct MapAbi : CMap<K, V> {
     using Map = CMap<K, V>;
     using Assoc = typename Map::Assoc;
+
+    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count, then (when there are any)
+    // key and value of each association, bucket by bucket. Loading reads each pair and sets it.
+    void Serialize(CArchive* ar);
 
     // The instantiations' InitHashTable, GetAssocAt, NewAssoc, operator[] (ElementAt) and RemoveAll
     // (elements without destructors) are CMap's own members (mfc.h), registered through this type.

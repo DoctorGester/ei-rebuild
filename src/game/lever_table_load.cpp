@@ -42,8 +42,7 @@ int LeverRecordTable::Load(const char* folder) {
     ChunkArchive archive;
     archive.Construct();
     archive.Open(&local.stream, 1, 1);
-    app::DeviceListArchive(&archive, nullptr, 1, reinterpret_cast<stlp::vector<LeverRecord>*>(this),
-                           static_cast<int>(size));
+    archive.SerializeLevers(1, reinterpret_cast<stlp::vector<LeverRecord>*>(this), static_cast<int>(size));
     archive.Close(&local.stream);
     for (LeverRecord* record = begin; record != end; ++record) {
         stlp::string key(static_cast<const char*>(record->name));

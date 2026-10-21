@@ -1660,10 +1660,10 @@ int CWorldClient::LoadZone(CStream* block) {
     if (skyDome_) {
         CTexture** holder = &skyDome_->texture;
         if (cave == kCave) {
-            TextureHolderLoad(holder, nullptr, kSkyTextureKind, worlddata::CaveSkyText());
+            HeldTexture::Of(holder)->Load(kSkyTextureKind, worlddata::CaveSkyText());
             skyDome_->turns = 0;
         } else {
-            TextureHolderLoad(holder, nullptr, kSkyTextureKind, worlddata::OpenSkyText());
+            HeldTexture::Of(holder)->Load(kSkyTextureKind, worlddata::OpenSkyText());
             skyDome_->turns = 1;
         }
     }

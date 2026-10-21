@@ -117,11 +117,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     CTexture** glow = &glowTexture_;
     CTexture** main = &texture_;
     if (demon) {
-        TextureHolderLoad(glow, nullptr, 6, "DemonLight");
-        TextureHolderLoad(main, nullptr, 6, "DemonLightning");
+        HeldTexture::Of(glow)->Load(6, "DemonLight");
+        HeldTexture::Of(main)->Load(6, "DemonLightning");
     } else {
-        TextureHolderLoad(glow, nullptr, 6, "SmtgLight");
-        TextureHolderLoad(main, nullptr, 6, "Lightning");
+        HeldTexture::Of(glow)->Load(6, "SmtgLight");
+        HeldTexture::Of(main)->Load(6, "Lightning");
     }
 }
 

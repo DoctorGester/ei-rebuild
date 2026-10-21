@@ -67,7 +67,7 @@ CUnitShape* CUnitShape::Copy() {
 }
 EI_REPLACE_METHOD(0x005B34F0, CUnitShape::Copy);
 
-CUnitShape* __fastcall CreateUnitShape(void*, void*, const UnitShapeHandle* handle) {
+CUnitShape* __stdcall CreateUnitShape(const UnitShapeHandle* handle) {
     CUnitShape* shape = NewShape();
     if (!shape) return nullptr;
     return shape->Construct(handle->height);

@@ -62,7 +62,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
 }
 
 EI_REWRITTEN(0x005BD7F0, UnitShapeCache::Get);
-CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(this, nullptr, handle); }
+CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
 
 UnitShapeCache* UnitShapeCache::Construct() {
     new (this) UnitShapeCache;   // the vtable (the map's default constructor only nulls its bucket vector)

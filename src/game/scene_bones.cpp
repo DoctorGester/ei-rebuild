@@ -146,8 +146,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 // (0x120 bytes), the low word of `frames` the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
-    aligned::DwordArraySetAtGrowRef(reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&skin->bones), nullptr,   // 00452C40
-                                    skin->bones.size, reinterpret_cast<const std::uint32_t*>(&added));
+    skin->bones.SetAtGrowRef(skin->bones.size, &added);   // 00452C40
     bone = added;
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);

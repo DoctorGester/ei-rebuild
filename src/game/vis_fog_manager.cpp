@@ -7,7 +7,7 @@
 // docs/notes/script.md (A-S11).
 #include "effects.h"
 #include "model.h"     // CSceneRenderer
-#include "texture.h"   // TextureHolderEnsureLoaded, TextureHolderLoad
+#include "texture.h"   // TextureHolderEnsureLoaded, HeldTexture
 #include "world.h"     // ClientArrayManager
 
 #include "ei/hook.h"
@@ -59,7 +59,7 @@ EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
-    TextureHolderLoad(TextureHolder(self), nullptr, kFogTextureKind, FogTextureName());
+    HeldTexture::Of(TextureHolder(self))->Load(kFogTextureKind, FogTextureName());
     FogTile* tiles = FogTiles();
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];

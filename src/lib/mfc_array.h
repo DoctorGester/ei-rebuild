@@ -23,6 +23,8 @@
 
 namespace mfc::impl {
 
+struct CArchive;   // mfc_archive.h
+
 // An element seen only as its bytes (plain data whose type the array code never looks into).
 template <std::size_t N>
 struct Bytes {
@@ -88,6 +90,10 @@ template <typename T, typename E = PlainElements<T>>
 struct ArrayAbi : CArray<T, E> {
     using Element = T;
     using Array = CArray<T, E>;
+
+    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count (loading: ReadCount, then
+    // SetSize(count, -1)), then the elements in one block.
+    void Serialize(CArchive* ar);
 
     // The instantiations' SetSize(nNewSize, nGrowBy) (RET 8), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
     // (ARG_TYPE a reference: the element's address), Copy(const CArray&) (RET 4), RemoveAt(nIndex, nCount)

@@ -257,9 +257,6 @@ EI_REWRITTEN(0x005BC970, CAIMap::MarkVisibleCells);
 namespace {
 // The shape cache's map (UnitShapes()->shapes, 007C2F78): an STLport hash_map<ShapeHandle, RefPtr>,
 // the game's instantiation gamehash::ShapeTable (find 005BE320, find_or_insert 005BE730).
-using ShapePair = UnitShapeCache::Map::Pair;   // pair<const ShapeHandle, RefPtr> (0x14 bytes)
-static_assert(sizeof(ShapePair) == 0x14);
-
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
         if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
@@ -267,19 +264,19 @@ void ReleaseHandle(ShapeHandle* handle) {
 }
 } // namespace
 
-ShapePair* __fastcall ConstructShapePair(ShapePair* pair, void*, const ShapeHandle* key, const RefPtr* value) {
-    ShapeHandle& to = const_cast<ShapeHandle&>(pair->key);
-    to.cache = key->cache;
-    to.ref = key->ref;
+ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
+    ShapeHandle& to = const_cast<ShapeHandle&>(key);
+    to.cache = from->cache;
+    to.ref = from->ref;
     if (to.ref) ++to.ref->refs_;
-    to.key = key->key;
-    to.height = key->height;
-    pair->value.Share(value->ptr);
-    return pair;
+    to.key = from->key;
+    to.height = from->height;
+    value.Share(shared->ptr);
+    return this;
 }
-EI_REWRITTEN(0x005BE370, ConstructShapePair);
+EI_REWRITTEN(0x005BE370, ShapePair::Construct);
 
-void __fastcall DestroyShapePair(ShapePair* pair) {
+void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair) {
     pair->value.Destroy();
     ReleaseHandle(const_cast<ShapeHandle*>(&pair->key));
 }
@@ -307,7 +304,7 @@ void* CAIMap::UnitShape(float standingHeight) {
         shape = UnitShapes()->CreateShape(&handle);
         RefPtr none = {nullptr};
         ShapePair pair;
-        ConstructShapePair(&pair, nullptr, &handle, &none);
+        pair.Construct(&handle, &none);
         RefPtr* slot = &map->FindOrInsert(pair).value;
         DestroyShapePair(&pair);
         none.Destroy();

@@ -94,10 +94,11 @@ LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last
 }
 EI_REWRITTEN(0x00465B20, RecordsCopyForward);
 
-// 00465090: the list in chunk `id` of the archive, one chunk 1 per record (emptied and resized
-// to the number of chunks when loading).
-void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVector* list, int /*unused*/) {
-    ChunkArchive* ar = static_cast<ChunkArchive*>(archive);
+} // namespace app
+
+void ChunkArchive::SerializeLevers(int id, stlp::vector<LeverRecord>* list, int /*unused*/) {
+    using namespace app;
+    ChunkArchive* ar = this;
     if (!ar->EnterChunk(id)) return;
     int n;
     if (ar->loading_) {
@@ -114,11 +115,9 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
         ar->Current()->occurrence = i + 1;
         LeverRecord* record = list->begin() + i;
         if (!ar->EnterChunk(1)) continue;
-        record->Archive(static_cast<ChunkArchive*>(archive));
+        record->Archive(ar);
         ar->LeaveChunk();
     }
     ar->LeaveChunk();
 }
-EI_REWRITTEN(0x00465090, DeviceListArchive);
-
-} // namespace app
+EI_REWRITTEN(0x00465090, ChunkArchive::SerializeLevers);

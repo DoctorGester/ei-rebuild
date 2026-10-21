@@ -16,8 +16,6 @@ namespace aligned {
 std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
 void __fastcall ArrayAt8Free(void* self);   // 00454380 (aligned_arrays.cpp)
 void __fastcall ArrayAt4Free(void* self);   // 004543C0
-// 00452C40 (RET 8; aligned_arrays.cpp): SetAtGrow(index, *value) on an aligned dword array.
-void __fastcall DwordArraySetAtGrowRef(lib::AlignedArray<std::uint32_t>* a, void*, int index, const std::uint32_t* value);
 } // namespace aligned
 
 namespace zone {
@@ -98,38 +96,38 @@ using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nu
 // +0x00: the compiler's vtable (C19). The areas (+0x194) are mfc::impl::ScriptAreaArrayClass, the definitions (+0x8C)
 // recordarrays::DefinitionArrayClass.
 struct PointLightArrayClass final
-    : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &mfc::impl::SerializeCArray<PointLights>> {};
+    : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
 
 // The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
 struct ObjectPtrArrayBaseClass
-    : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &mfc::impl::SerializeCArray<ObjectPtrs>> {};
+    : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
 // The global arrays the static initialisers construct (their constructors and the exit functions' destructors are
 // registered in game_arrays.cpp, so static_init.cpp calls them).
 // The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
 struct ParticleDepthArrayClass final
-    : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain8>> {};
+    : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
 // The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h; 007C2FF8).
 struct SpiralOffsetArrayClass final
-    : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain4>> {};
+    : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::Plain4::Serialize> {};
 // The script quest's objectives (CArray<ScriptQuestObjective>, script.h; 007AA608).
 struct ObjectiveArrayClass final
-    : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &mfc::impl::SerializeCArray<Objectives>> {};
+    : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &Objectives::Serialize> {};
 // The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
 struct SmoothNodeArrayClass final
-    : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::SerializeCArray<mfc::impl::Plain8>> {};
+    : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
 
 // The vtable 004C3B20 restores (CArray<ScriptGroup>).
 struct GroupArrayClass final
-    : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &mfc::impl::SerializeCArray<Groups>> {};
+    : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &Groups::Serialize> {};
 
 // The script variables' string and group arrays (script_arrays.cpp's constructors; the float values are
 // mfc::impl::ScriptFloatValuesClass): their destructors store the plain arrays' tables back (StringArrayClass,
 // GroupArrayClass). The strings' also serve every variable set's names.
 struct ScriptStringValuesClass final
-    : mfc::impl::CompiledCollection<ScriptStringValuesClass, &ScriptNamesDestruct, &mfc::impl::SerializeStringArray> {};
+    : mfc::impl::CompiledCollection<ScriptStringValuesClass, &ScriptNamesDestruct, &mfc::impl::Strings::Serialize> {};
 struct ScriptGroupValuesClass final
-    : mfc::impl::CompiledCollection<ScriptGroupValuesClass, &ScriptGroupArrayDestruct, &mfc::impl::SerializeCArray<Groups>> {};
+    : mfc::impl::CompiledCollection<ScriptGroupValuesClass, &ScriptGroupArrayDestruct, &Groups::Serialize> {};
 
 } // namespace gamearrays
 
@@ -139,7 +137,7 @@ namespace mfc::impl {
 // A zone's exits, the table a map record's items (0073C400) and the worlds' exit arrays restore; the destructor
 // 00460490 frees each exit's target string.
 struct ExitArrayClass
-    : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &SerializeCArray<gamearrays::Exits>> {};
+    : CompiledCollection<ExitArrayClass, &ExitTargets::Destruct<ExitArrayClass>, &gamearrays::Exits::Serialize> {};
 // The array inside a map record (constructor 004607E0): derived from ExitArrayClass.
 struct MapRecordItemsClass final : ExitArrayClass {
     static void* Vtable() { return CompiledVtable<MapRecordItemsClass>(); }
@@ -147,10 +145,10 @@ struct MapRecordItemsClass final : ExitArrayClass {
 // CArray<ScriptObjectRef> as a script group's base: the destructor body of 004C2290 (the references released, the
 // storage freed).
 struct ObjectRefArrayClass final
-    : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &SerializeCArray<gamearrays::ObjectRefs>> {};
+    : CompiledCollection<ObjectRefArrayClass, &gamearrays::DestructGroupBody, &gamearrays::ObjectRefs::Serialize> {};
 // A script group (ScriptGroup): its destructor (004BC9A0) stores ObjectRefArrayClass' table.
 struct ScriptGroupClass final
-    : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &SerializeCArray<gamearrays::ObjectRefs>> {};
+    : CompiledCollection<ScriptGroupClass, &ScriptRefArrayDestruct, &gamearrays::ObjectRefs::Serialize> {};
 // A save's shared object pointers (constructor 005985C0): derived from ObjectPtrArrayBaseClass.
 struct ObjectPtrArrayClass final : gamearrays::ObjectPtrArrayBaseClass {
     static void* Vtable() { return CompiledVtable<ObjectPtrArrayClass>(); }

@@ -423,8 +423,7 @@ void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::SpeechLis
 }
 EI_REWRITTEN(0x005DFC20, WriteSpeechLines);
 
-void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
-                                            const stlp::vector<acks::EnvironmentSpeech>* list) {
+void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     mfc::CString line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);

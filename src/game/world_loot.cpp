@@ -27,11 +27,8 @@ constexpr int kClassQuestItem = 0x14;                     // given to player 0 i
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 using GivenItems = mfc::CTypedPtrList<CItem>;
 
-// 0059A670 (a byte-identical copy of NextParticle, effects.h): the item at `position`, which moves on.
-CItem* NextItem(GivenItems* list, GivenItems::Node** position) {
-    return *reinterpret_cast<CItem**>(
-        NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
-}
+// 0059A670 (a byte-identical copy of the particle list's GetNext): the item at `position`, which moves on.
+CItem* NextItem(GivenItems* list, GivenItems::Node** position) { return list->GetNext(*position); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
 

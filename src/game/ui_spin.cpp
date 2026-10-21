@@ -2,6 +2,7 @@
 // See ui.h and docs/notes/items_spells.md (A-H19).
 
 #include "ui.h"
+#include "ui_screens.h"
 #include "game_strings.h"
 
 #include "originals_ui.h"
@@ -74,11 +75,4 @@ void CUiSpin::OnLButtonDown(int, int, int) {
     SetValue(value_ + 1);
 }
 
-namespace {
-void __fastcall SpinLeftDown(void* input, void*, int flags, int x, int y) {
-    reinterpret_cast<CUiSpin*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_))
-        ->OnLButtonDown(flags, x, y);
-}
-} // namespace
-
-EI_REPLACE(0x0065BFD0, SpinLeftDown);
+EI_REPLACE_METHOD(0x0065BFD0, InputForward<&CUiSpin::OnLButtonDown>::Call);

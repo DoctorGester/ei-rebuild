@@ -44,12 +44,13 @@ EI_REWRITTEN(0x00562770, RefObjectDestructBase);
 EI_REWRITTEN(0x0058FBE0, RefObjectDestructBase);
 EI_REWRITTEN(0x005B3590, RefObjectDestructBase);
 
-void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
-    SetVtable(self, CRefCounted::kVtableAddress);
-    return DeleteIf(self, flags);
+CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
+    SetVtable(this, kVtableAddress);
+    DeleteIf(this, flags);
+    return this;
 }
-EI_REPLACE(0x00412730, RefObjectDeletingDestructor);
-EI_REPLACE(0x005B3570, RefObjectDeletingDestructor);   // S13: the unit shape's (calls its copy 005B3590)
+EI_REPLACE_METHOD(0x00412730, CRefCounted::RootDeletingDestruct);
+EI_REPLACE_METHOD(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
     SetVtable(self, CRefObject::kVtableAddress);
@@ -57,14 +58,14 @@ void* __fastcall RefValueConstructBase(void* self) {
 }
 EI_REWRITTEN(0x00419720, RefValueConstructBase);
 
-// The original calls 00412720 (the root's destructor body) out of line.
-void* __fastcall RefValueDeletingDestructor(void* self, void*, unsigned flags) {
-    RefObjectDestructBase(self);
-    return DeleteIf(self, flags);
+CRefObject* CRefObject::ValueDeletingDestruct(unsigned flags) {
+    RefObjectDestructBase(this);
+    DeleteIf(this, flags);
+    return this;
 }
-EI_REPLACE(0x00412700, RefValueDeletingDestructor);
-EI_REPLACE(0x00562750, RefValueDeletingDestructor);   // byte-identical copies (A-W12)
-EI_REPLACE(0x0058FBC0, RefValueDeletingDestructor);
+EI_REPLACE_METHOD(0x00412700, CRefObject::ValueDeletingDestruct);
+EI_REPLACE_METHOD(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
+EI_REPLACE_METHOD(0x0058FBC0, CRefObject::ValueDeletingDestruct);
 
 // --- CStream -----------------------------------------------------------------------------------
 

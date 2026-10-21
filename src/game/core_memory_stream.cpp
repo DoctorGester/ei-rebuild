@@ -10,14 +10,6 @@
 
 namespace {
 
-// Virtual slots are registered through shims (rewrite-guide rule 4).
-// The slot is void, but 004A53F0 leaves the new position in EAX and callers return it
-// (CPlayerClient::SendResume, TakeExit, ...).
-std::uint32_t __fastcall MemoryStreamWriteHook(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
-    self->CMemoryStream::Write(buffer, size);
-    return self->position_;
-}
-
 // The format header's magic number and version are written and read as four bytes each.
 constexpr std::uint32_t kHeaderFieldBytes = 4;
 // Sizes above this are written in four bytes (bit 0 set), others in two.
@@ -54,7 +46,11 @@ void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
     position_ += size;
     if (!(size_ > position_)) size_ = position_;
 }
-EI_REPLACE(0x004A53F0, MemoryStreamWriteHook);
+std::uint32_t CMemoryStream::WriteImpl(const void* buffer, std::uint32_t size) {
+    CMemoryStream::Write(buffer, size);
+    return position_;
+}
+EI_REPLACE_METHOD(0x004A53F0, CMemoryStream::WriteImpl);
 
 void CMemoryStream::SeekImpl(std::uint32_t position) {
     position_ = position;

@@ -66,7 +66,7 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         forward->PathTo(x, y, path);
         backward->PathTo(x, y, &scratch);
         PathCellList reversed;
-        PathCellsAppend(path, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
+        path->Append(scratch.Reversed(&reversed));
         DestroyList(reversed);
         PathCellsRemoveRepeats(path);
         // The original's cells keep the stack word under SearchPathTo's local cell (SearchBest's

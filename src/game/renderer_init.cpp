@@ -235,7 +235,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
         device = static_cast<CTextureDevice*>(memory)->Construct(static_cast<HWND__*>(window), driverId, settings->fullScreen_, settings->resolutionX_,
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
-    DeviceHolderAssign(&device_, nullptr, device);
+    HeldDevice::Of(&device_)->Assign(device);
     DeviceSetPipeline(&device_->pipeline_, pipeline_);
 
     FillMatrixStacks(this);

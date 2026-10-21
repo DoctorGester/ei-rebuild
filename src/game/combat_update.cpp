@@ -242,7 +242,7 @@ int CUnitServer::UpdateServer() {
                 if (!player || player->Server()->refreshPending_ != 0) {
                     bored = 0;
                 } else {
-                    PlayerMessage(ConnectionOf(player), nullptr, unit, kRemarkBored);
+                    PlayerMessage(ConnectionOf(player), unit, kRemarkBored);
                     bored = 400;
                 }
             }

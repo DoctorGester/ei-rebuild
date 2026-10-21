@@ -3,6 +3,7 @@
 // or science level again every quarter second while the button stays down. See docs/notes/ui.md,
 // section 5.
 #include "ui_camp.h"
+#include "ui_screens.h"
 
 #include "unit.h"
 
@@ -109,8 +110,6 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         UiCapture(interface_) = CaptureValue(InputOf(this));
     }
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);
 
 // --- 00626C30: the left button released (input slot 3) ---------------------------------------------
@@ -121,13 +120,15 @@ void CTradePanel::OnLButtonUp(int, int, int) {
     holdTime_ = 0.0f;
 }
 namespace {
-// The original leaves 0 in EAX.
-int __fastcall TradeLButtonUp(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CTradePanel>(input)->OnLButtonUp(buttons, x, y);
-    return 0;
-}
+// The panel's input sub-object (window + 0x94): 00626C30 (input slot, RET 0xC) leaves 0 in EAX.
+struct TradePanelInput {
+    int OnLButtonUp(int buttons, int x, int y) {
+        WindowFromInput<CTradePanel>(this)->OnLButtonUp(buttons, x, y);
+        return 0;
+    }
+};
 } // namespace
-EI_REPLACE(0x00626C30, TradeLButtonUp);
+EI_REPLACE_METHOD(0x00626C30, TradePanelInput::OnLButtonUp);
 
 // --- 00626C50: the held school / science button (slot 24) -------------------------------------------
 

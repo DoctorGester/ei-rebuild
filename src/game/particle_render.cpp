@@ -82,17 +82,12 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-// 00497D40.
-Particle** __fastcall NextParticle(void*, void*, mfc::CTypedPtrList<Particle>::Node** position) {
-    mfc::CTypedPtrList<Particle>::Node* node = *position;
-    *position = node->next;
-    return &node->data;
-}
-EI_REPLACE(0x00497D40, NextParticle);
+// 00497D40: the list's GetNext (the list itself not read).
+EI_REPLACE_METHOD(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
 // Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
-EI_REPLACE(0x0059A040, NextParticle);
-EI_REPLACE(0x0059A670, NextParticle);
-EI_REPLACE(0x005BD340, NextParticle);
+EI_REPLACE_METHOD(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REPLACE_METHOD(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REPLACE_METHOD(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
 
 // 00497CE0.
 int __fastcall BindParticleTexture(void* renderer, void*, int stage, CTexture** holder) {
@@ -131,7 +126,7 @@ int CParticleSource::Draw(void* renderer) {
         float u = static_cast<float>(D(EI_ONE) - D(t));
         ParticleVertex* vertex = Vertices().data;
         do {
-            const Particle* p = *NextParticle(&particles, nullptr, &cursor);
+            const Particle* p = particles.GetNext(cursor);
             vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
             vertex->y = static_cast<float>(D(u) * D(p->prevPos.y) + D(t) * D(p->pos.y));
             vertex->z = static_cast<float>(D(u) * D(p->prevPos.z) + D(t) * D(p->pos.z));

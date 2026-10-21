@@ -20,6 +20,7 @@
 
 class CRefObject;
 struct ClassTemplate;
+struct LeverRecord;
 struct PartyInPlace;
 struct PartyManagerEntry;
 struct QuestBriefingRecord;
@@ -145,6 +146,9 @@ public:
     // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
     void SerializeSpeechList(int id, void* list, void* unused);
     void SerializeEnvironmentSpeeches(int id, void* list, void* unused);
+    // 00465090 (RET 0xC; app_device_list.cpp): the lever records as chunk `id`, one chunk 1 per
+    // record (emptied and resized to the number of chunks when loading). The last argument is not read.
+    void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
 
     // The item database's vectors (item_db_load.cpp, A-H18; RET 0xC, the third
     // argument unused): 006A7C20 quick items (0x8C bytes), 006A7D20 loot (0x7C), 006A7E10 quest

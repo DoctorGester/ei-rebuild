@@ -61,18 +61,18 @@ mapspec::Behaviour* mapspec::Behaviour::DeleteScalar(unsigned deleteFlags) {
 }
 EI_REWRITTEN(0x005DA290, mapspec::Behaviour::DeleteScalar);
 
-using mfc::impl::ScalarDelete;
-EI_REWRITTEN(0x005754E0, ScalarDelete<&ObjectHolderRelease>);
-EI_REWRITTEN(0x00575510, ScalarDelete<&ObjectHolderRelease>);
-EI_REWRITTEN(0x005768A0, ScalarDelete<&ObjectHolderRelease>);
-EI_REWRITTEN(0x0059DDB0, ScalarDelete<&ObjectHolderRelease>);
+using mfc::impl::ScalarDeleting;
+EI_REWRITTEN(0x005754E0, ScalarDeleting<&ObjectHolderRelease>::Delete);
+EI_REWRITTEN(0x00575510, ScalarDeleting<&ObjectHolderRelease>::Delete);
+EI_REWRITTEN(0x005768A0, ScalarDeleting<&ObjectHolderRelease>::Delete);
+EI_REWRITTEN(0x0059DDB0, ScalarDeleting<&ObjectHolderRelease>::Delete);
 
 // ---- MFC collections (S13) ----------------------------------------------------------------------
 
-EI_REWRITTEN(0x00571E50, ScalarDelete<&mfc::impl::PtrList::Destruct<mfc::impl::PlatformListClass>>);
-EI_REWRITTEN(0x00571ED0, ScalarDelete<&recordarrays::WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>>);
-EI_REWRITTEN(0x0059B430, ScalarDelete<&CSectorMap::DestructSectors>);
-EI_REWRITTEN(0x0059B4F0, ScalarDelete<&gamelists::SharedObjects::Destruct<gameslots::SharedObjectListClass>>);
-EI_REWRITTEN(0x005B1B30, ScalarDelete<&mfc::impl::PtrList::Destruct<mfc::impl::BlockCostListClass>>);
-EI_REWRITTEN(0x005B1B50, ScalarDelete<&mfc::impl::PtrList::Destruct<mfc::impl::AiMapListClass>>);
-EI_REWRITTEN(0x005BE070, ScalarDelete<&mfc::impl::PtrList::Destruct<mfc::impl::WaypointListClass>>);
+EI_REWRITTEN(0x00571E50, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::PlatformListClass>>::Delete);
+EI_REWRITTEN(0x00571ED0, ScalarDeleting<&recordarrays::WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>>::Delete);
+EI_REWRITTEN(0x0059B430, ScalarDeleting<&CSectorMap::DestructSectors>::Delete);
+EI_REWRITTEN(0x0059B4F0, ScalarDeleting<&gamelists::SharedObjects::Destruct<gameslots::SharedObjectListClass>>::Delete);
+EI_REWRITTEN(0x005B1B30, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::BlockCostListClass>>::Delete);
+EI_REWRITTEN(0x005B1B50, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::AiMapListClass>>::Delete);
+EI_REWRITTEN(0x005BE070, ScalarDeleting<&mfc::impl::PtrList::Destruct<mfc::impl::WaypointListClass>>::Delete);

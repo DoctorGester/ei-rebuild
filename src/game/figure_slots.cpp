@@ -26,13 +26,13 @@ int __fastcall FakeFigureAnswerOne(void*) { return 1; }
 EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
 
 // 00453470: CFigure's scalar deleting destructor (its body 0059F030).
-EI_REPLACE(0x00453470, mfc::impl::ScalarDelete<&FigureDestructBodyOriginal>);
+EI_REPLACE_METHOD(0x00453470, mfc::impl::ScalarDeleting<&FigureDestructBodyOriginal>::Delete);
 
 // 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
 // deleting destructor.
 void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
-EI_REWRITTEN(0x00454360, mfc::impl::ScalarDelete<&NamedRecordDestruct>);
+EI_REWRITTEN(0x00454360, mfc::impl::ScalarDeleting<&NamedRecordDestruct>::Delete);
 
 // 004533E0: a 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
 void* __fastcall ClearArray(std::uint32_t* self) {

@@ -19,11 +19,15 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value) {
     if (p) p->FromRawCounted(value->ptr);
 }
 
-CEngineObject** __fastcall ConstructHeldObject(CEngineObject** p, void*, CEngineObject* const* value) {
-    *p = *value;
-    if (*p) ++(*p)->refCount_;
-    return p;
+} // namespace libcontainers
+
+HeldEngineObject* HeldEngineObject::Construct(CEngineObject* const* value) {
+    object = *value;
+    if (object) ++object->refCount_;
+    return this;
 }
+
+namespace libcontainers {
 
 void __fastcall DestroyCString(mfc::CString* self) { self->~CString(); }
 
@@ -64,9 +68,9 @@ EI_REWRITTEN(0x004F69F0, SetRootVtable);
 EI_REWRITTEN(0x005F9680, DestroyCString);
 EI_REWRITTEN(0x005FBE20, DestroyCString);
 EI_REWRITTEN(0x0060AA80, ConstructRefPtr);
-EI_REWRITTEN(0x004FB680, ConstructHeldObject);
+EI_REWRITTEN(0x004FB680, HeldEngineObject::Construct);
 EI_REWRITTEN(0x00429060, ConstructRefPtr);
-EI_REWRITTEN(0x004298F0, ConstructHeldObject);
+EI_REWRITTEN(0x004298F0, HeldEngineObject::Construct);
 EI_REWRITTEN(0x0060A010, ShownItemNodes::CreateNode);
 EI_REWRITTEN(0x005F9570, KeyedTextsNodes::Destruct);
 EI_REWRITTEN(0x00478F10, StreamQueue::Destruct);

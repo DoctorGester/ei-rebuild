@@ -34,10 +34,7 @@ EI_REWRITTEN(0x00452EB0, Dwords::SetSize);
 
 // ---- SetAtGrow(index, value) -------------------------------------------------------------------
 EI_REPLACE_METHOD(0x00452FC0, Words::SetAtGrow);
-void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value) {
-    a->SetAtGrow(index, *value);
-}
-EI_REWRITTEN(0x00452C40, DwordArraySetAtGrowRef);
+EI_REWRITTEN(0x00452C40, Dwords::SetAtGrowRef);
 EI_REWRITTEN(0x004538D0, Dwords::SetAtGrow);
 EI_REWRITTEN(0x0051EE50, Dwords::SetAtGrow);
 EI_REWRITTEN(0x0059CCE0, Dwords::SetAtGrow);

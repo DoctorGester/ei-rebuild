@@ -66,5 +66,3 @@ struct AIDirtyRect {
     int minY, maxY;
 };
 
-// 005BDD50 (thiscall on the terrain type array CAIMap + 0xFC, RET 4): the address of type `index`.
-AITerrainType* __fastcall TerrainTypeAt(AITerrainType** types, void*, int index);

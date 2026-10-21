@@ -18,8 +18,7 @@ namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
 namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
 namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
-namespace acks { struct EnvironmentSpeech; }   // acks_db.h
-namespace stlp { template <typename T> class vector; }
+namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 
 namespace console {
 
@@ -287,9 +286,8 @@ void __fastcall Rate(CStringArray* args);          // 005E0990 rate
 void __fastcall LocalRate(CStringArray* args);     // 005E0A10 localrate
 // 005DFC20 / 005DFCE0 (ECX the file, EDX the list; a null list writes nothing): generateacks'
 // lines for a speech list / an environment speech list. See console_commands.cpp.
-void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const stlp::vector<SpeechRecord>* list);
-void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
-                                            const stlp::vector<acks::EnvironmentSpeech>* list);
+void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::Speeches* list);
+void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

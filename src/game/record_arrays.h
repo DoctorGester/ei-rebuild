@@ -62,7 +62,7 @@ struct FaceGroupElements {
 using FaceGroups = ArrayAbi<scene::FaceGroup, FaceGroupElements>;
 // CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50), its vtable the compiler's (C19, mfc_slots.h).
 struct FaceGroupArrayClass final
-    : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &mfc::impl::SerializeCArray<FaceGroups>> {};
+    : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
 // ---- Records -------------------------------------------------------------------------------------
 
@@ -93,17 +93,17 @@ inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct
 using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
 // CArray<Behaviour> (the server unit's brain).
 struct BehaviourArrayClass final
-    : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &mfc::impl::SerializeCArray<Behaviours>> {};
+    : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &Behaviours::Serialize> {};
 
 // A fake unit's 0x220-byte figure parts, 0x18C-byte scene records and 0x9C-byte records (FakeUnitConstruct).
 struct FakeUnitPartArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>, &mfc::impl::SerializeCArray<FigureParts>> {};
+    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};
 struct FakeUnitSceneRecordArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitSceneRecordArrayClass, &mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>,
-                                    &mfc::impl::SerializeCArray<SceneMeshes>> {};
+                                    &SceneMeshes::Serialize> {};
 struct FakeUnitRecord9CArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
-                                    &mfc::impl::SerializeCArray<Materials>> {};
+                                    &Materials::Serialize> {};
 
 // CStringArray over the part names of a map object (the server companion's, the object's own). 004698C0
 // (and 004698A0 calling it; RET 8, S16): GetAt by value, the element copy-constructed into `result`,
@@ -138,7 +138,7 @@ struct BindingArrayClass final : mfc::impl::BindingsBaseClass {
 using Definitions = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 // CScript's definitions (+0x8C; destructor 004CB310).
 struct DefinitionArrayClass final
-    : mfc::impl::CompiledCollection<DefinitionArrayClass, &gamearrays::Definitions::Destruct<DefinitionArrayClass>, &mfc::impl::SerializeCArray<Definitions>> {};
+    : mfc::impl::CompiledCollection<DefinitionArrayClass, &gamearrays::Definitions::Destruct<DefinitionArrayClass>, &Definitions::Serialize> {};
 using Runs = ArrayAbi<ScriptRun, EachElements<ScriptRun, nullptr, gamelists::DestroyRun>>;
 using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::DestroyDecl>>;
 
@@ -147,26 +147,26 @@ using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::
 
 // CArray<SceneNode> (destructor 004514B0).
 struct SceneNodeArrayClass final
-    : mfc::impl::CompiledCollection<SceneNodeArrayClass, &SceneNodes::Destruct<SceneNodeArrayClass>, &mfc::impl::SerializeCArray<SceneNodes>> {};
+    : mfc::impl::CompiledCollection<SceneNodeArrayClass, &SceneNodes::Destruct<SceneNodeArrayClass>, &SceneNodes::Serialize> {};
 // The nested calls' base array (destructors 004C5180 / 004CCF70).
 struct SubCallBaseClass
-    : mfc::impl::CompiledCollection<SubCallBaseClass, &SubCalls::Destruct<SubCallBaseClass>, &mfc::impl::SerializeCArray<SubCalls>> {};
+    : mfc::impl::CompiledCollection<SubCallBaseClass, &SubCalls::Destruct<SubCallBaseClass>, &SubCalls::Serialize> {};
 // A command's nested calls (copy constructor 004CCD90): derived from SubCallBaseClass.
 struct SubCallArrayClass final : SubCallBaseClass {
     static void* Vtable() { return mfc::impl::CompiledVtable<SubCallArrayClass>(); }
 };
 // CArray<DeltaField> (destructor 0050FBC0).
 struct DeltaFieldArrayClass final
-    : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &mfc::impl::SerializeCArray<DeltaFields>> {};
+    : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
 using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
 // The terrain's 16-byte records, an aligned block at +0 (006C4C40).
 struct TerrainAlignedArrayClass final
-    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::SerializeCArray<mfc::impl::AlignedArrays>> {};
+    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::AlignedArrays::Serialize> {};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 // A terrain sector's vertex records (destructor 006C4690).
 struct SectorVertexArrayClass final
-    : mfc::impl::CompiledCollection<SectorVertexArrayClass, &SectorVertices::Destruct<SectorVertexArrayClass>, &mfc::impl::SerializeCArray<SectorVertices>> {};
+    : mfc::impl::CompiledCollection<SectorVertexArrayClass, &SectorVertices::Destruct<SectorVertexArrayClass>, &SectorVertices::Serialize> {};
 
 // The client world's water levels, CArray<CArray<float>> (vtable 0073F730, mfc::impl::
 // ClientMapArrayClass; Serialize 00571240): each element an empty CArray<float> (00575690),
@@ -186,9 +186,9 @@ namespace mfc::impl {
 
 // The client world's water levels (destructor 005711E0).
 struct ClientMapArrayClass final
-    : CompiledCollection<ClientMapArrayClass, &recordarrays::WaterLevels::Destruct<ClientMapArrayClass>, &SerializeCArray<recordarrays::WaterLevels>> {};
+    : CompiledCollection<ClientMapArrayClass, &recordarrays::WaterLevels::Destruct<ClientMapArrayClass>, &recordarrays::WaterLevels::Serialize> {};
 // The AI map's sectors (destructor 00599330, the sector map's DestructSectors).
 struct SectorArrayClass final
-    : CompiledCollection<SectorArrayClass, &CSectorMap::DestructSectors, &SerializeCArray<recordarrays::Sectors>> {};
+    : CompiledCollection<SectorArrayClass, &CSectorMap::DestructSectors, &recordarrays::Sectors::Serialize> {};
 
 } // namespace mfc::impl

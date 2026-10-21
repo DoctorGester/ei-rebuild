@@ -466,7 +466,7 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
         forward.PathTo(x, y, chain);
         backward.PathTo(x, y, &scratch);
         PathCellList reversed;
-        PathCellsAppend(chain, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
+        chain->Append(scratch.Reversed(&reversed));
         DestroyPathList(reversed);
         PathCellsRemoveRepeats(chain);
     }

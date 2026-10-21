@@ -398,13 +398,10 @@ void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
 }
 
 // Entry points on the input sub-object.
-BOOL __fastcall ItemStripWheel(void* input, void*, int keys, int delta, int x, int y) {
-    return WindowFromInput<CUiItemStrip>(input)->OnWheel(keys, static_cast<short>(delta), x, y);
-}
 EI_REPLACE_METHOD(0x00620E10, InputForward<&CUiItemStrip::OnLButtonDown>::Call);
 EI_REPLACE_METHOD(0x00621010, InputForward<&CUiItemStrip::OnLButtonUp>::Call);
 EI_REPLACE_METHOD(0x00620F10, InputForward<&CUiItemStrip::OnMouseMove>::Call);
-EI_REPLACE(0x006210F0, ItemStripWheel);
+EI_REPLACE_METHOD(0x006210F0, InputForward<&CUiItemStrip::OnWheel>::Call);
 EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>::Call);
 
 // --- Heroes' skills ---------------------------------------------------------------------------

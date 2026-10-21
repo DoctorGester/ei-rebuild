@@ -21,17 +21,16 @@ RefPtr* ShapeTable::At(const ShapeCacheHandle* handle) {
     RefPtr none{nullptr};
     alignas(ShapePair) unsigned char storage[sizeof(ShapePair)];
     ShapePair* pair = reinterpret_cast<ShapePair*>(storage);
-    ConstructShapePair(pair, nullptr, handle, &none);
+    pair->Construct(handle, &none);
     RefPtr* result = &FindOrInsert(*pair).value;
     DestroyShapePair(pair);
     return result;
 }
 
-FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Value* self, void*, const std::uint32_t* key,
-                                                         const FiguredTable* table) {
-    self->key = *key;
-    self->mapped.CopyConstruct(*table);
-    return self;
+FiguredGroupPair* FiguredGroupPair::Construct(const std::uint32_t* from, const FiguredTable* table) {
+    key = *from;
+    mapped.CopyConstruct(*table);
+    return this;
 }
 
 } // namespace gamehash
