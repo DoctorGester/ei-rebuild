@@ -12,6 +12,10 @@
 #include "originals_library.h"
 #include "lib/mfc_list.h"
 
+#include <type_traits>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 namespace {
 
 using ObjectMap = CBaseManager::ObjectMap;
@@ -123,8 +127,24 @@ void ForgetPosition(CBaseManager* m, int id) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
+// The containers have no destructors (the bodies free them), and their default constructors only
+// null the hash maps' bucket vectors, which SetUpBaseManager builds anyway: the C++ constructor and
+// destructor below build and free them as the bodies do.
+static_assert(std::is_trivially_destructible_v<ObjectMap> && std::is_trivially_destructible_v<PositionMap> &&
+              std::is_trivially_destructible_v<SpareMap> && std::is_trivially_destructible_v<SpareCountMap>);
+static_assert(std::is_trivially_default_constructible_v<ObjectList> && std::is_trivially_destructible_v<ObjectList>);
+
 CBaseManager* CBaseManager::ConstructBase() {
     ei::SetVtable(this, CEngineObject::kVtableAddress);   // the inlined CEngineObject constructor
+    SetUpBaseManager();
+    ei::SetVtable(this, kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x00402B20, CBaseManager::ConstructBase);
+
+CBaseManager::CBaseManager() { SetUpBaseManager(); }
+
+void CBaseManager::SetUpBaseManager() {
     ClearFields();
     objects_.Construct(100);
     maxId_ = 0;
@@ -141,17 +161,22 @@ CBaseManager* CBaseManager::ConstructBase() {
     BuildTable(spareCounts_, maxSpareCountType_);
     idLow_ = 0;
     context_ = nullptr;
-    ei::SetVtable(this, kVtableAddress);
     idHigh_ = 2000000000;
     reservedA_ = -1;
     reservedB_ = -1;
     lastId_ = -1;
-    return this;
 }
-EI_REPLACE_METHOD(0x00402B20, CBaseManager::ConstructBase);
 
 void CBaseManager::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
+    TearDownBaseManager();
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x00402DF0, CBaseManager::DestructBody);
+
+CBaseManager::~CBaseManager() { TearDownBaseManager(); }
+
+void CBaseManager::TearDownBaseManager() {
     CBaseManager::Destroy();
     spareCounts_.Destroy();
     spares_.Destroy();
@@ -159,9 +184,7 @@ void CBaseManager::DestructBody() {
     objectList_.vtable = mfc::impl::TempListClass::Vtable();   // ~CPtrList
     objectList_.RemoveAll();
     objects_.Destroy();
-    DestructBase();
 }
-EI_REPLACE_METHOD(0x00402DF0, CBaseManager::DestructBody);
 
 CBaseManager* CBaseManager::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -294,6 +317,18 @@ int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
     object->SetOwner(nullptr);
     return RemoveObject(object);
 }
+
+// The slots whose bodies are registered by member pointer.
+void CBaseManager::Load(void* stream) { LoadImpl(stream); }
+void CBaseManager::Save(void* stream) { SaveImpl(stream); }
+BOOL CBaseManager::Init(void* context) { return InitImpl(context); }
+BOOL CBaseManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
+BOOL CBaseManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
+void* CBaseManager::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
+bool CBaseManager::CloseFile(void* data) { return CloseFileImpl(data); }
+BOOL CBaseManager::HasFile(const char* name) { return HasFileImpl(name); }
+CEngineObject* CBaseManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
+int CBaseManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).

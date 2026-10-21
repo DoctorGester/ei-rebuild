@@ -511,22 +511,29 @@ constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 // with its name and GetLastError.
 void __cdecl DeleteComposedTextures();
 
-// vtable 00743CB0, class id 0x26. Slots 16-22 are CResourceManager's.
+// Class id 0x26. Slots 16-22 are CResourceManager's. A real virtual class: the compiler makes its
+// vtable (C19; game.exe's 00743CB0 is retired).
 class CTextureManager : public CResourceManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743CB0);
     static constexpr std::uintptr_t kCacheVtableAddress = std::uintptr_t(0x00743D18);   // cache_'s CPtrList
 
     // texture_manager_lifetime.cpp (A-H23).
-    // 00691140. CResourceManager's constructor body, an empty cache (blocks of 10), no shadow
-    // surface or device, +0xD8 / +0xE8 / +0xEC 0. Returns this.
+    // 00691140. CResourceManager's constructor, an empty cache (blocks of 10), no shadow surface
+    // or device, +0xD8 / +0xE8 / +0xEC 0.
+    CTextureManager();
+    // 00691250. The shadow surface released, every cached texture destroyed (slot 3) and deleted,
+    // the cache emptied, the composed textures deleted, the device dropped,
+    // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor.
+    ~CTextureManager() override;
+    // The registrations (C20 retires them): 00691140 the constructor in place (returns this),
+    // 00691250 the destructor, 00691230 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CTextureManager* Construct();
-    // 00691250. The destructor body: the shadow surface released, every cached texture destroyed
-    // (slot 3) and deleted, the cache emptied, the composed textures deleted, the device dropped,
-    // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor body.
-    // 00691230: slot 0.
     void Destruct();
     CTextureManager* DeletingDestruct(unsigned flags);
+    const char* GetClassName() override;     // 11: 00691210 "CTextureManager"
+    int GetClassId() override;               // 12: 00691220 (0x26)
+    const char* GetFolderName() override;    // 25: 00691200 "textures"
     // 2: 00691500 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails), the composed textures deleted, then the three texture archives of
     // the text resources' folder added (slot 16): "textures.res", "redress.res", "menus.res". All
