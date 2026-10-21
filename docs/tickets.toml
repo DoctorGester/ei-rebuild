@@ -2298,7 +2298,7 @@ id = "C16a"
 title = "x87:: maths helpers to std:: at the call sites (C16 follow-up)"
 group = "cleanup"
 depends = ["C16"]
-note = "C16 made x87::fsqrt / fsin / fcos / fpatan / flog / flog10 plain wrappers of std::sqrt / sin / cos / atan2 / log / log10 (goldens the same, docs/notes/cleanup-tooling.md 'SSE2 build'). Replace the ~480 call sites with the std:: names and drop the wrappers. Keep the double argument: where the argument is a float expression write std::sqrt(static_cast<double>(x)) etc. (std::sqrt(float) is sqrtf, another function on 53-bit threads). x87::fistp stays (FISTP's 0x80000000 for NaN / out of range) and x87::fexp stays (VC6's inline exp parts the goldens). Mechanical: Sonnet; goldens and ei_vectors must stay the same."
+note = "C16 made x87::fsqrt a plain wrapper of std::sqrt (FSQRT at the precision control on this target; goldens the same, docs/notes/cleanup-tooling.md 'SSE2 build'). Replace its call sites with std::sqrt and drop the wrapper. Keep the double argument: where the argument is a float expression write std::sqrt(static_cast<double>(x)) (std::sqrt(float) is sqrtf, another function on 53-bit threads). fsin / fcos / fpatan / flog / flog10 stay instructions: C16's commit 1faab7c4 (std:: maths, goldens the same in the suite but not provably bit-exact: the CRT gives 53-bit results where the instructions give 64) was left out of main. x87::fistp stays (lrint reads the FP environment per call, SV10j) and x87::fexp stays (VC6's inline exp parts the goldens). Mechanical: Sonnet; goldens and ei_vectors must stay the same."
 
 [[ticket]]
 id = "C16b"
