@@ -1609,6 +1609,15 @@ depends = ["SV5d5"]
 files = ["tests/verify/harness_clock.cpp src/game/sound_music.cpp src/game/sound_manager_lifetime.cpp"]
 note = "SV5d5 found net_pair_quest's flake (C13b3) on the original and the image alike: UpdateMusic 006B5350 picks a fight's combat track (PickName, a GlobalRandom draw) only when CurrentStreamName 006BAEA0 does not report it playing, and the calm branch runs only while nothing plays; the stream thread (006BB910) sets that state as it plays, in real time, so the draw count followed the machine's load. net_pair_quest now plays with 'music 0' (AudioStreaming answered 0). Every other scenario with fights and streamed music keeps the exposure. Make the stream state the main thread sees follow the virtual clock in the harness (both the original and the image), e.g. the stream thread's progress and fades advanced from the main loop as harness_clock does for sample ends; re-record only the goldens it changes (docs/notes/sound.md, Non-determinism)."
 
+[[ticket]]
+id = "SV10f"
+title = "Image runs from a folder without dgVoodoo's DLLs, so the DirectX check takes the native path"
+group = "verification"
+size = 0.5
+model = "opus"
+files = ["tools/run_all.py tools/work.py src/game/app_dxversion.cpp"]
+note = "User 2026-10-21 (\"Yeah\", after: the standalone has no dgVoodoo dependency). The image (ei_standalone.exe) always draws with our D3D11 renderer, but the harness runs it from run\\vanilla (and run\\rebirth), the copies the original game.exe also uses, which hold dgVoodoo's DDraw.dll / D3D8.dll / D3D9.dll / D3DImm.dll. So app::GetDxVersion (0045E310) loads dgVoodoo's DDraw.dll and D3D8.dll only to read a version: 0.45-1.3 s of every image run's start-up (SV10b's profile), the largest part left. With the system's DDRAW.DLL, PF3's native path already takes DirectX 7 as given (app_dxversion.cpp). Give the image runs a run folder without dgVoodoo's DLLs (the rest of the install as now; links or a filtered copy, made by run_all's prepare like run\\<install>), so the check behaves as for a player with the standalone in a clean folder. The original game.exe runs (--no-hooks) keep dgVoodoo: it draws them. Check: the log's 'native run' line in image runs, start-up before/after from the TIMING: lines (before from main's latest runs), work.py test --golden --jobs 4 0 differ on both installs. Watch for anything else the image loads from the install folder (mss32, binkw32, mp3dec.asi stay)."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
