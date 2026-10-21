@@ -27,6 +27,19 @@ GIT_FLAGS = 0x00004000 | 0x08000000 if os.name == 'nt' else 0
 NOTES_PER_TICKET = 3
 HISTORY = 40
 PASSED = ('PASS', 'PASS*')
+
+_PAIR = {}   # scenario file -> whether it is a pair (a "peer" line: two games, two slots; run_all.games_of)
+
+
+def games_of(worktree, scenario):
+    path = os.path.join(worktree or '', 'tests', 'scenarios', scenario + '.txt')
+    if path not in _PAIR:
+        try:
+            with open(path, encoding='utf-8', errors='replace') as f:
+                _PAIR[path] = any(line.split()[:1] == ['peer'] and len(line.split()) > 1 for line in f)
+        except OSError:
+            _PAIR[path] = False
+    return 2 if _PAIR[path] else 1
 STATIC = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
           '/board.css': ('board.css', 'text/css; charset=utf-8')}
 TICKET_BOARD = os.path.join(TOOLS, 'tickets_board', 'index.html')    # the published ticket board's page
@@ -192,6 +205,7 @@ class Board:
             'elapsed': span(b['started'], b['finished']) if b['finished'] else seconds_since(b['started']) if b['state'] == 'running' else None,
             'total': len(runs), 'queued': sum(r['state'] == 'queued' for r in runs),
             'running': sum(r['state'] == 'running' for r in runs), 'done': len(done),
+            'games_running': sum(games_of(b['worktree'], r['scenario']) for r in runs if r['state'] == 'running'),
             'passed': len(done) - len(failed), 'failed': len(failed),
             'expected': sum(r['expected'] or 0 for r in runs),
         }
