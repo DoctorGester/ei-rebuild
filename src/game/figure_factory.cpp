@@ -78,7 +78,7 @@ void* Create(int classId) {
     }
     case 0x44: {
         void* o = gamecrt::operator_new(0x230);
-        return o ? static_cast<CSkyObject*>(o)->Construct() : nullptr;
+        return o ? new (o) CSkyObject() : nullptr;
     }
     case 0x300B: {
         void* o = gamecrt::operator_new(0x78);

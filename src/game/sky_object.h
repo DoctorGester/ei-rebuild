@@ -1,20 +1,23 @@
 #pragma once
 
-// The sky dome (A-S7): CSkyObject (004D9110-004D9360, vtable 0073D5B8, 0x230 bytes, figure class
-// 0x44's constructor in the figure factory 005AA8E0) is a figure part mesh (CFigure base, 0x1C0
-// bytes, vtable 0073C224) with seven aligned arrays, and CSky (004D9680-004D9DE0), the world view's
-// holder that lights and draws it. sky_object.cpp. Names from GetClassName ("CSkyObject"); the
-// rest provisional.
+// The sky dome (A-S7): CSkyObject (004D9110-004D9360, 0x230 bytes, figure class 0x44's constructor
+// in the figure factory 005AA8E0) is a figure part mesh (CFigureMesh, figure_mesh.h) with one more
+// aligned array, and CSky (004D9680-004D9DE0), the world view's holder that lights and draws it.
+// sky_object.cpp. A real virtual class: the compiler makes its vtable (C19; game.exe's 0073D5B8 is
+// retired). Names from GetClassName ("CSkyObject"); the rest provisional.
 
 #include "core_transform.h"
-#include "figure_mesh.h"   // VertexPacket
+#include "figure_mesh.h"   // CFigureMesh
 #include "model.h"         // Matrix4, CSceneRenderer
 
 #include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
 struct SkyColour {
@@ -22,26 +25,42 @@ struct SkyColour {
 };
 static_assert(sizeof(SkyColour) == 16);
 
-class CSkyObject : public CTransformObject {
+class CSkyObject : public CFigureMesh {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D5B8);
-    static constexpr std::uintptr_t kFigureVtableAddress = std::uintptr_t(0x0073C224);
+    // 004D9110. The figure's constructor (CFigureMesh's: in the original 005AABC0's work with its
+    // vtable 0073C224 and its Create 0059F210), the haze empty, then the sky's Create (slot 2,
+    // 005A6C70: the same CreateMesh).
+    CSkyObject();
+    // 004D92B0. The mesh's arrays and the haze freed (last first), then the figure's destructor
+    // (CFigureMesh's: 0059F030's work).
+    ~CSkyObject() override;
+    // The deleting destructor (slot 0, 004D9290) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // 11: 004D9270 "CSkyObject" (0078DB14). 12: 004D9280 (0x20).
-    const char* GetClassName() override;
-    int GetClassId() override;
-    // The figure mesh's slots (vtable 0073D5B8 as 0073C1C4): 18 0059F0F0 the copy (arguments not
-    // declared); 19 005A2490 (RET 0x10) loads the mesh from memory at *cursor once (flag 0x20):
-    // "FIG" data through slot 20 (LoadFig), other data through slot 21 (LoadOld).
-    virtual void CopyFigure() = 0;
-    virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;
+    // The vtable (game.exe's 0073D5B8, retired; the class 0x42 mesh's 0073C1C4 but for 0, 11 and
+    // 12). The slots the sky does not override are CTransformObject's (1, 4-6, 8-10, 13, 14).
+    int Create() override;       // 2: 005A6C70 (CreateMesh)
+    void Destroy() override;     // 3: 005A6C80 (ClearMesh)
+    const char* GetName() override;        // 7: 00453440 (the name at +0x120)
+    const char* GetClassName() override;   // 11: 004D9270 "CSkyObject" (0078DB14)
+    int GetClassId() override;             // 12: 004D9280 (0x20)
+    // 15: 0059F510 SetPose. 16 / 17: 0059F710 / 0059F8F0, the mesh written to / read from an MFC
+    // CFile (SaveToFile / LoadFromFile).
+    void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override;
+    void SaveTransform(void* file) override;
+    void LoadTransform(void* file) override;
+    // The figure mesh's own slots (CFigureObjectVirtuals' 18-21, then 22 / 23), CFigureMesh's bodies.
+    virtual void CopyFigure(const CFigureMesh* other);                          // 18: 0059F0F0
+    virtual void LoadFromMemory(char** cursor, float s, float t, float u);      // 19: 005A2490
+    virtual void LoadFig(char** cursor, float s, float t, float u);             // 20: 005A2500
+    virtual void LoadOld(char** cursor, float s, float t, float u);             // 21: 005A3800
+    virtual void MirrorX();                                                     // 22: 005A4B30
+    virtual void MirrorY();                                                     // 23: 005A4BF0
 
-    // 004D9110. The constructor body: the figure's (its transform base, names, arrays, vtable
-    // 0073C224, its Create 0059F210), the sky's arrays empty, vtable 0073D5B8, its Create
-    // (slot 2, 005A6C70). Returns this.
+    // The registrations (C20 retires them): 004D9110 constructs in place (returns this), 004D92B0
+    // the destructor, 004D9290 (slot 0) the destructor, then operator delete when bit 0 of `flags`
+    // is set (returns this).
     CSkyObject* Construct();
-    // 004D92B0. The destructor body: the sky's arrays freed (last first), then the figure's
-    // (0059F030). 004D9290: slot 0's scalar deleting destructor (returns this).
     void Destruct();
     CSkyObject* DeletingDestruct(unsigned flags);
 
@@ -49,37 +68,18 @@ public:
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
     // A vertex without haze gets `ambient` as its diffuse colour (alpha 0) and no specular; the
     // others get it with alpha 0xFF and a specular of alpha haze * 255 and `light` * max(0,
-    // normal . direction)^2 * 150. Components truncated (_ftol); `unused` is not read.
+    // normal . direction)^2 * 150. Components truncated (_ftol); `unused` is not read. The colours
+    // are the mesh's colorsA_ (diffuse) and colorsB_ (specular), one per vertex.
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
 
-    Matrix4 matrix_;                              // +0x54 world matrix (CSky::Draw builds it)
-    // From here the figure mesh's fields (figure_mesh.h, CFigureMesh), which the figure code reads.
-    std::uint8_t drawer_[4];                      // +0x94 CFigureMesh::drawer_
-    std::uint32_t figureOwner_;                   // +0x98 CFigureMesh::owner_; 0 when constructed
-    std::uint8_t meshFields_[0x120 - 0x9C];       // +0x9C CFigureMesh::buffers_ .. the pose matrix
-    mfc::CString name_;                           // +0x120 (CFigure's slot 7)
-    mfc::CString directory_;                      // +0x124 CFigureMesh::directory_ (LoadSky empties it)
-    lib::AlignedArray<std::uint32_t> offsets_;      // +0x128 CFigureMesh::offsets_
-    lib::AlignedArray<std::uint32_t> diffuse_;      // +0x138 a colour per vertex
-    lib::AlignedArray<std::uint32_t> specular_;     // +0x148 a colour per vertex
-    std::uint8_t meshHeader_[0x188 - 0x158];        // +0x158 CFigureMesh: the header dwords, centre, box, radius
-    std::uint8_t bounds_[0x38];                     // +0x188 CFigureMesh::bounds_; cleared when constructed
-    lib::AlignedArray<VertexPacket> vertices_;      // +0x1C0 four vertices per packet (x, y, z, w rows)
-    lib::AlignedArray<VertexPacket> normals_;       // +0x1D0
-    lib::AlignedArray<std::uint32_t> corners_;      // +0x1E0 CFigureMesh::corners_
-    lib::AlignedArray<std::uint32_t> words_;        // +0x1F0 CFigureMesh::words_
-    lib::AlignedArray<std::uint32_t> indices_;      // +0x200 CFigureMesh::indices_
-    lib::AlignedArray<std::uint32_t> texCoords_;    // +0x210 CFigureMesh::texCoords_
+    // The mesh's fields (CFigureMesh): worldMatrix_ the world matrix CSky::Draw builds, name_
+    // "nask0", directory_ emptied by LoadSky, the vertices and normals four per packet.
     lib::AlignedArray<float> distances_;            // +0x220 haze per vertex
 };
-static_assert(offsetof(CSkyObject, matrix_) == 0x54);
-static_assert(offsetof(CSkyObject, figureOwner_) == 0x98);
-static_assert(offsetof(CSkyObject, name_) == 0x120);
-static_assert(offsetof(CSkyObject, diffuse_) == 0x138);
-static_assert(offsetof(CSkyObject, specular_) == 0x148);
-static_assert(offsetof(CSkyObject, bounds_) == 0x188);
+static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
+static_assert(offsetof(CSkyObject, colorsA_) == 0x138);
+static_assert(offsetof(CSkyObject, colorsB_) == 0x148);
 static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
-static_assert(offsetof(CSkyObject, words_) == 0x1F0);
 static_assert(offsetof(CSkyObject, distances_) == 0x220);
 static_assert(sizeof(CSkyObject) == 0x230);
 

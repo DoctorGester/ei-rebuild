@@ -81,7 +81,9 @@ struct FigureLights {
 // the local and world position and rotation). The parts of an object's figure (CObject3D::parts)
 // are these. Its own slots 18-21 are reached through CFigureObjectVirtuals below; the slot bodies
 // are plain members registered by address, so none takes a base virtual's name (Create is
-// CreateMesh, CopyFrom CopyFigure).
+// CreateMesh, CopyFrom CopyFigure). The classes 0x41-0x43 are built by the constructor bodies, which
+// store game.exe's vtables; the sky (class 0x44, sky_object.h) derives from it with C++ constructors
+// and the compiler's vtable (C19), through the protected constructor and destructor below.
 class CFigureMesh : public CTransformObject {
 public:
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
@@ -154,10 +156,10 @@ public:
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
     void CopyFigure(const CFigureMesh* other);
-    // 0059F510 (slot 15, RET 8): sets the rotation (slot 14 with `q` = w, x, y, z), rotates the
-    // position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110) and rebuilds the rotation
-    // matrix at +0xE0 from the stored quaternion (+0x44).
-    void SetPose(const float* q, const float* offset);
+    // 0059F510 (slot 15, CTransformObject::UpdateWorld's place; RET 8): sets the rotation (slot 14
+    // with `rotation`), rotates the position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110)
+    // and rebuilds the rotation matrix at +0xE0 from the stored quaternion (+0x44).
+    void SetPose(const Quaternion& rotation, const Vector3& offset);
 
     // Lifetime (figure_mesh_life.cpp, A-W13).
     // 005AABC0. The constructor body the classes 0x41-0x43 share (the factory, figure_factory.cpp):
@@ -192,6 +194,24 @@ public:
     void SetDrawer(FigureMeshDrawer* drawer);
     // 0059F3D0 (RET 4). The object whose part the mesh is (object_).
     void SetObject(CObject3D* object);
+
+protected:
+    // 005AABC0 as C++, for a class whose vtable is the compiler's (CSkyObject): SetUpFigure, then
+    // CreateMesh.
+    CFigureMesh();
+    // 0059F030's work without the vtables: TearDownFigure, then the names (members) and the engine
+    // object's destructor.
+    ~CFigureMesh() override;
+
+private:
+    // The constructor's and ConstructBase's shared work: the engine object's fields, identity
+    // rotations, no object, empty offset and colour arrays, no bounds (the names are constructed
+    // before it).
+    void SetUpFigure();
+    // The destructors' shared work: Clear, then the colour and offset arrays freed.
+    void TearDownFigure();
+
+public:
 
     // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part
     // was last drawn), 0x80 hidden; type_ the class id (0x41-0x44). CTransformObject: localPosition_

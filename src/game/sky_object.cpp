@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "game_data.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <new>
@@ -27,9 +28,12 @@ constexpr float kColourScale = 255.0f;   // 0073C370
 constexpr float kLightScale = 150.0f;    // 0073D618
 constexpr float kHorizon = 1.0f;         // 0073B84C
 
-// A vertex's row `row` (x 0, y 1, z 2) in its packet.
+// A vertex's row `row` (x 0, y 1, z 2) in its packet: of the positions, of the normals.
 float Row(const lib::AlignedArray<VertexPacket>& packets, int vertex, int row) {
     return packets.data[vertex / 4].block[row][vertex % 4];
+}
+float Row(const lib::AlignedArray<NormalPacket>& packets, int vertex, int row) {
+    return std::bit_cast<float>(packets.data[vertex / 4].w[row * 4 + vertex % 4]);
 }
 
 // _ftol: truncation.
@@ -37,20 +41,7 @@ std::uint32_t Truncate(float v) { return static_cast<std::uint32_t>(static_cast<
 
 } // namespace
 
-const char* CSkyObject::GetClassName() { return kClassName; }
-int CSkyObject::GetClassId() { return kClassId; }
-
-CSkyObject* CSkyObject::Construct() {
-    ConstructBase();
-    figureOwner_ = 0;
-    new (&name_) mfc::CString();
-    new (&directory_) mfc::CString();
-    offsets_.Construct();
-    diffuse_.Construct();
-    specular_.Construct();
-    std::memset(bounds_, 0, sizeof(bounds_));
-    ei::SetVtable(this, kFigureVtableAddress);
-    Create();
+CSkyObject::CSkyObject() {
     vertices_.Construct();
     normals_.Construct();
     corners_.Construct();
@@ -58,13 +49,10 @@ CSkyObject* CSkyObject::Construct() {
     indices_.Construct();
     texCoords_.Construct();
     distances_.Construct();
-    ei::SetVtable(this, kVtableAddress);
-    Create();
-    return this;
+    CreateMesh();
 }
-EI_REPLACE_METHOD(0x004D9110, CSkyObject::Construct);
 
-void CSkyObject::Destruct() {
+CSkyObject::~CSkyObject() {
     distances_.FreeData();
     texCoords_.FreeData();
     indices_.FreeData();
@@ -72,12 +60,33 @@ void CSkyObject::Destruct() {
     corners_.FreeData();
     normals_.FreeData();
     vertices_.FreeData();
-    FigureDestructBodyOriginal(this);
 }
+
+int CSkyObject::Create() { return CreateMesh(); }
+void CSkyObject::Destroy() { ClearMesh(); }
+const char* CSkyObject::GetName() { return name_; }
+const char* CSkyObject::GetClassName() { return kClassName; }
+int CSkyObject::GetClassId() { return kClassId; }
+void CSkyObject::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
+    SetPose(parentRotation, parentPosition);
+}
+void CSkyObject::SaveTransform(void* file) { SaveToFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CSkyObject::LoadTransform(void* file) { LoadFromFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CSkyObject::CopyFigure(const CFigureMesh* other) { CFigureMesh::CopyFigure(other); }
+void CSkyObject::LoadFromMemory(char** cursor, float s, float t, float u) { CFigureMesh::LoadFromMemory(cursor, s, t, u); }
+void CSkyObject::LoadFig(char** cursor, float s, float t, float u) { CFigureMesh::LoadFig(cursor, s, t, u); }
+void CSkyObject::LoadOld(char** cursor, float s, float t, float u) { CFigureMesh::LoadOld(cursor, s, t, u); }
+void CSkyObject::MirrorX() { CFigureMesh::MirrorX(); }
+void CSkyObject::MirrorY() { CFigureMesh::MirrorY(); }
+
+CSkyObject* CSkyObject::Construct() { return new (this) CSkyObject(); }
+EI_REPLACE_METHOD(0x004D9110, CSkyObject::Construct);
+
+void CSkyObject::Destruct() { this->CSkyObject::~CSkyObject(); }
 EI_REPLACE_METHOD(0x004D92B0, CSkyObject::Destruct);
 
 CSkyObject* CSkyObject::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CSkyObject::~CSkyObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -88,7 +97,7 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
     const std::uint32_t g = Truncate(ambient.g * kColourScale);
     const std::uint32_t b = Truncate(ambient.b * kColourScale);
     const std::uint32_t lit = ((r | 0xFFFFFF00u) << 8 | g) << 8 | b;
-    const int count = diffuse_.size;
+    const int count = colorsA_.size;
     if (distances_.size != count) {
         distances_.SetSize(count);
         for (int i = 0; i < distances_.size; ++i) {
@@ -96,15 +105,15 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
             distances_.data[i] = static_cast<float>(z >= kHorizon ? std::sqrt(-Row(normals_, i, 2)) : 0.0f);
         }
     }
-    for (int i = 0; i < diffuse_.size; ++i) {
+    for (int i = 0; i < colorsA_.size; ++i) {
         const float x = Row(normals_, i, 0);
         const float y = Row(normals_, i, 1);
         const float z = Row(normals_, i, 2);
         const float distance = distances_.data[i];
         EI_NAN_AUDIT(distance);
         if (distance == 0.0f) {
-            specular_.data[i] = 0;
-            diffuse_.data[i] = (r << 8 | g) << 8 | b;
+            colorsB_.data[i] = 0;
+            colorsA_.data[i] = (r << 8 | g) << 8 | b;
             continue;
         }
         float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction[0], direction[1], direction[2]);
@@ -114,8 +123,8 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
         specular = specular << 8 | Truncate(light.r * strength * kLightScale);
         specular = specular << 8 | Truncate(light.g * strength * kLightScale);
         specular = specular << 8 | Truncate(light.b * strength * kLightScale);
-        specular_.data[i] = specular;
-        diffuse_.data[i] = lit;
+        colorsB_.data[i] = specular;
+        colorsA_.data[i] = lit;
     }
     render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
 }
@@ -156,7 +165,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
         object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(static_cast<double>(GameTime()) * kSkyTurnRate));
     }
     object->localPosition_ = Vector3{x, y, z};
-    float* m = object->matrix_.m;
+    float* m = object->worldMatrix_.m;
     object->localRotation_.ToMatrix(m);
     m[3] = object->localPosition_.x;
     m[7] = object->localPosition_.y;

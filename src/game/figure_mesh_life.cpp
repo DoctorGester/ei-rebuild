@@ -29,8 +29,7 @@ CEngineObject* AsObject(FigureMeshDrawer* drawer) { return reinterpret_cast<CEng
 
 // --- Construction -------------------------------------------------------------------------------
 
-CFigureMesh* CFigureMesh::ConstructBase() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+void CFigureMesh::SetUpFigure() {
     refCount_ = 0;
     id_ = -1;
     prototypeId_ = 0;
@@ -39,20 +38,28 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     owner_ = nullptr;
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
     object_ = nullptr;
-    new (&name_) mfc::CString();
-    new (&directory_) mfc::CString();
     offsets_.Construct();
     colorsA_.Construct();
     colorsB_.Construct();
     std::memset(&bounds_, 0, sizeof(bounds_));
     std::memset(&boxPivot_, 0, sizeof(boxPivot_));
+}
+
+CFigureMesh* CFigureMesh::ConstructBase() {
+    new (&name_) mfc::CString();
+    new (&directory_) mfc::CString();
+    SetUpFigure();
     ei::SetVtable(this, kBaseVtableAddress);
     CreateMesh();
     return this;
 }
 EI_REPLACE_METHOD(0x005AABC0, CFigureMesh::ConstructBase);
+
+CFigureMesh::CFigureMesh() {
+    SetUpFigure();
+    CreateMesh();
+}
 
 int CFigureMesh::CreateMesh() {
     radius_ = 0.0f;
@@ -119,18 +126,24 @@ EI_REPLACE_METHOD(0x005A6E10, CFigureMesh::ClearSharedMesh);
 
 // --- Destruction --------------------------------------------------------------------------------
 
-void CFigureMesh::DestructBase() {
-    ei::SetVtable(this, kBaseVtableAddress);
+void CFigureMesh::TearDownFigure() {
     Clear();
     colorsB_.FreeData();
     colorsA_.FreeData();
     offsets_.FreeData();
+}
+
+void CFigureMesh::DestructBase() {
+    ei::SetVtable(this, kBaseVtableAddress);
+    TearDownFigure();
     directory_.~CString();
     name_.~CString();
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     CEngineObject::DestructBase();
 }
 EI_REPLACE_METHOD(0x0059F030, CFigureMesh::DestructBase);
+
+CFigureMesh::~CFigureMesh() { TearDownFigure(); }
 
 void CFigureMesh::DestructMesh() {
     ei::SetVtable(this, kMeshVtableAddress);
