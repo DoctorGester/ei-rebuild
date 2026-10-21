@@ -4,4 +4,4 @@ file,section,raw
 *sealed*,bss,0
 *sealed*,data,0
 *sealed*,iat,0
-src/game/unit_hits.cpp,rdata,3
+*sealed*,rdata,0

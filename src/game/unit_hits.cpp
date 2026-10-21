@@ -64,7 +64,7 @@ const char* const kDead = " HL is dead";
 constexpr std::uintptr_t kArmourFirstPiece = std::uintptr_t(0x0073E09C);
 constexpr std::uintptr_t kArmourSecondPiece = std::uintptr_t(0x0073E0A0);
 constexpr std::uintptr_t kArmourOuterLayer = std::uintptr_t(0x0073E0A4);
-int ArmourTable(std::uintptr_t address) { return *reinterpret_cast<const int*>(address); }
+int ArmourTable(std::uintptr_t address) { return *ei::GamePointer<const int>(address); }
 
 float& ItemFloat(CEngineObject* item, int offset) {
     return *reinterpret_cast<float*>(reinterpret_cast<char*>(item) + offset);
