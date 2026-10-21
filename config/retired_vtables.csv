@@ -51,6 +51,8 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
+0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
 0073FB88,26,CFigureManager,src/game/figure_manager.h,
 0073FBF0,22,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
 0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)

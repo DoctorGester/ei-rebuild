@@ -14,16 +14,40 @@
 
 #include <windows.h>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 #include <cstddef>
 #include <cstdint>
 
 class CLight;        // spell.h
 
+// The figure mesh drawer's base (game.exe's 0073FB44, retired; slots 2, 3, 11 and 12 pure): an
+// engine object with the mesh it draws. No object of the base alone exists.
+struct FigureDrawerBase : CEngineObject {
+    // The deleting destructors (slot 0) free into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The registrations (C20 retires them): 005A70C0 the destructor, 005A70A0 (slot 0 of the base,
+    // RET 4) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    void DestructDrawerBase();
+    FigureDrawerBase* DeletingDestructBase(unsigned flags);
+
+    CFigureMesh* mesh_;         // +0x1C the mesh it draws
+
+protected:
+    // 005A7010's part: the engine object's fields (no references, id -1, no owner), no mesh.
+    FigureDrawerBase();
+    // 005A70C0's work: no mesh, then the engine object's.
+    ~FigureDrawerBase() override;
+};
+
 // The drawer of a figure mesh (CFigureMesh::drawer_; its draws 005A7A70 / 005A7640, 005A7160
 // advances its animation, 005A7290 finishes a draw). It is an engine object of class 0x36,
 // "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory 0042D700 makes one
-// for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure.
-struct FigureMeshDrawer {
+// for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
+// class (C19): the compiler makes its vtable (game.exe's 0073FB10 is retired). flags_ gets the bits
+// of 00790C0C when the mesh is animated.
+struct FigureMeshDrawer : FigureDrawerBase {
     // 0x005A7640 (figure_part_draw_plain.cpp).
     int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
     // 0x005A7A70 (figure_part_draw.cpp).
@@ -31,25 +55,28 @@ struct FigureMeshDrawer {
                 CTexture* textureA, CTexture* textureB);
     // 0x005A7290 (figure_part_bounds.cpp).
     void DrawBounds(CSceneRenderer* renderer);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB10);
-    // Its base (slots 2, 3, 11 and 12 pure): the mesh pointer alone.
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073FB44);
 
-    // 005A7010 (figure_drawer.cpp, A-W14). The constructor body: the engine object's fields (no
-    // references, id -1, no owner), no mesh, the vtable. Returns this.
+    // figure_drawer.cpp (A-W14). 005A7010: FigureDrawerBase's constructor (the class adds nothing).
+    FigureMeshDrawer();
+    // 005A7080's work: no flags, then the base's destructor.
+    ~FigureMeshDrawer() override;
+
+    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
+    int Create() override;                 // 2: 005A70E0 CreateDrawer
+    void Destroy() override;               // 3: 005A7130 DestroyDrawer
+    const char* GetClassName() override;   // 11: 005A7040 "CFigureClientSpecific" (world_class_slots.cpp)
+    int GetClassId() override;             // 12: 005A7050 (0x36)
+
+    // The registrations (C20 retires them): 005A7010 the constructor in place (returns this; the
+    // client-specific factory, misc_400.cpp), 005A7080 the destructor, 005A7060 (slot 0, RET 4) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     FigureMeshDrawer* Construct();
-    // 005A7080 / 005A70C0. The destructor bodies of the class and of its base: the base's vtable,
-    // no mesh (the class's own also clears the flags), then the engine object's body (00455930).
     void Destruct();
-    void DestructBase();
-    // 005A7060 / 005A70A0 (slot 0 of the two vtables, RET 4): the bodies above, the memory freed
-    // when bit 0 of the flags is set. Return this.
     FigureMeshDrawer* DeletingDestruct(unsigned flags);
-    FigureMeshDrawer* DeletingDestructBase(unsigned flags);
     // 005A70E0 (slot 2). No flags; +0x30 becomes (1, 1, 1). Returns 1.
-    int Create();
+    int CreateDrawer();
     // 005A7130 (slot 3). No mesh, no flags.
-    void Destroy();
+    void DestroyDrawer();
 
     // 005A7160 (RET 4; figure_drawer.cpp; the draws call it through its address for the animated
     // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
@@ -57,10 +84,6 @@ struct FigureMeshDrawer {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    std::uint8_t unused_00[8];
-    std::uint32_t flags_;       // +0x08 gets the bits of 00790C0C when the mesh is animated
-    std::uint8_t unused_0C[0x1C - 0x0C];
-    CFigureMesh* mesh_;         // +0x1C the mesh it draws
     RECT screen_;               // +0x20 where the mesh was last drawn
     Vector3 spare30_;           // +0x30 (1, 1, 1) after Create; nothing reads it
 };
