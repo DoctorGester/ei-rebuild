@@ -207,19 +207,19 @@ Connection* Connection::Clone() {
     copy->address_ = address_;
     std::memcpy(&copy->sendInterval_, &sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
     for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
-    netlists::CopyConstruct<FreedIds, FreedIdsElement>(&copy->freedIds_, nullptr, &freedIds_);   // 00437930
+    static_cast<netlists::FreedBatchAbi*>(&copy->freedIds_)->CopyConstruct(&freedIds_);   // 00437930
     copy->freedTimer_ = freedTimer_;
     static_cast<trees::SentIds*>(&copy->bySentId_)->CopyConstruct(&bySentId_);   // 00437AA0
     static_cast<trees::Objects*>(&copy->byObject_)->CopyConstruct(&byObject_);
     for (int i = 0; i < 11; ++i) static_cast<trees::Entries*>(&copy->priorities_[i])->CopyConstruct(&priorities_[i]);
-    netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->history_, nullptr, &history_);   // 00437F60
-    netlists::CopyConstruct<SentPacket, PacketRecordElement>(&copy->acknowledged_, nullptr, &acknowledged_);
+    static_cast<netlists::SentPacketAbi*>(&copy->history_)->CopyConstruct(&history_);   // 00437F60
+    static_cast<netlists::SentPacketAbi*>(&copy->acknowledged_)->CopyConstruct(&acknowledged_);
     static_cast<trees::Records*>(&copy->records_)->CopyConstruct(&records_);
     static_cast<trees::Attached*>(&copy->attached_)->CopyConstruct(&attached_);
     copy->headerSequence_ = headerSequence_;
     copy->incomingSequence_ = incomingSequence_;
-    netlists::CopyConstruct<ReliableChunk, ChunkElement>(&copy->headers_, nullptr, &headers_);   // 00438690
-    netlists::CopyConstruct<ReliableChunk, ChunkElement>(&copy->incoming_, nullptr, &incoming_);
+    static_cast<netlists::ChunkAbi*>(&copy->headers_)->CopyConstruct(&headers_);   // 00438690
+    static_cast<netlists::ChunkAbi*>(&copy->incoming_)->CopyConstruct(&incoming_);
     copy->ackMask_ = ackMask_;
     copy->ackBase_ = ackBase_;
     copy->reliableOut_.ConstructCopy(&reliableOut_);

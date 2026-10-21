@@ -203,7 +203,7 @@ int CPlayerClient::OnUnitControl() {
         const bool lit = (unit->flags_ & kUnitFlagLit) != 0;
         if (lit == (kind == 1)) return 1;
         unit->flags_ ^= kUnitFlagLit;
-        static_cast<CObject3DSpecific*>(unit->Object3D()->attached)->SetLit(kind == 1 ? 1 : 0);
+        unit->Object3D()->attached->SetLit(kind == 1 ? 1 : 0);
         return 1;
     }
     case 3:
@@ -217,10 +217,10 @@ int CPlayerClient::OnUnitControl() {
 int CPlayerClient::OnObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::ObjectMap::Node* node = Owner()->knownObjects_.Find(id);
+    CPlayer::MapObjectMap::Node* node = Owner()->knownObjects_.Find(id);
     if (!node) return 0;
-    CEngineObject* object = node->value;
-    if (static_cast<CMapObject*>(object)->ReadState(1, &in_) == 0) return 0;
+    CMapObject* object = node->value;
+    if (object->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
     if (classId == kPlatformClassA || classId == kPlatformClassB)
         ClientWorld()->RefreshPlatforms(object);   // the client's own
@@ -232,9 +232,9 @@ int CPlayerClient::OnObjectRemoved() {
     in_.Read(&id, 4);
     CPlayer* player = Owner();
     if (CPlayer::UnitMap::Node* unit = player->units_.Find(id)) unit->value->SetPlayer(nullptr);
-    CPlayer::ObjectMap::Node* node = player->knownObjects_.Find(id);
+    CPlayer::MapObjectMap::Node* node = player->knownObjects_.Find(id);
     if (!node) return 0;
-    CEngineObject* object = node->value;
+    CMapObject* object = node->value;
     player->knownObjects_.Erase(player->knownObjects_.Find(id));
     object->flags_ |= kFlagGone;
     object->Release();
@@ -268,18 +268,18 @@ int CPlayerClient::OnTimedObjectAdded() {
 int CPlayerClient::OnTimedObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::ObjectMap::Node* node = Owner()->knownTimed_.Find(id);
+    CPlayer::TimedObjectMap::Node* node = Owner()->knownTimed_.Find(id);
     if (!node) return 0;
-    return static_cast<CEffect*>(node->value)->Receive(1, &in_) != 0 ? 1 : 0;
+    return node->value->Receive(1, &in_) != 0 ? 1 : 0;
 }
 
 int CPlayerClient::OnTimedObjectRemoved() {
     int id;
     in_.Read(&id, 4);
     CPlayer* player = Owner();
-    CPlayer::ObjectMap::Node* node = player->knownTimed_.Find(id);
+    CPlayer::TimedObjectMap::Node* node = player->knownTimed_.Find(id);
     if (!node) return 0;
-    CEngineObject* object = node->value;
+    CEffect* object = node->value;
     player->knownTimed_.Erase(player->knownTimed_.Find(id));
     object->flags_ |= kFlagGone;
     object->Release();
@@ -324,7 +324,7 @@ void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
     if (!IsMultiplayerClient()) return;
     CParty* party = Owner()->Party();
     if (party->members_.size != 1 || static_cast<int>(party->members_.data[0].unitId) != unit->id_) return;
-    auto* login = static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr);
+    auto* login = net::GameClient()->player_.Get();
     login->id_ = unit->player ? unit->id_ : -1;
     ++login->version_;
 }

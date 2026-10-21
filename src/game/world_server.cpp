@@ -293,18 +293,18 @@ double CWorldServer::ServerRawSurfaceHeight(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     return AIMap()->TopHeightAt(&point);
 }
-EI_REPLACE_METHOD(0x0058A390, CWorldServer::ServerRawSurfaceHeight);
+EI_REWRITTEN(0x0058A390, CWorldServer::ServerRawSurfaceHeight);
 
 double CWorldServer::ServerGroundHeight(float x, float y) { return GridHeightAt(x, y); }
-EI_REPLACE_METHOD(0x0058A3D0, CWorldServer::ServerGroundHeight);
+EI_REWRITTEN(0x0058A3D0, CWorldServer::ServerGroundHeight);
 
 double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
-EI_REPLACE_METHOD(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
+EI_REWRITTEN(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
 EI_REWRITTEN(0x00594180, CWorldServer::GetPlayer);
-EI_REPLACE_METHOD(0x00594220, CWorldServer::GridHeight);
+EI_REWRITTEN(0x00594220, CWorldServer::GridHeight);
 EI_REWRITTEN(0x00591740, CWorldServer::CountLivingMercs);
 EI_REWRITTEN(0x005949D0, CWorldServer::IsObjectShared);
 EI_REWRITTEN(0x00594A30, CWorldServer::CollectSharedObjects);

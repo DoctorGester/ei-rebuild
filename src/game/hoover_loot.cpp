@@ -6,6 +6,7 @@
 // is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
 // docs/notes/objects.md ("Rewritten").
 #include "item.h"
+#include "object.h"
 #include "object_tables.h"
 #include "random.h"
 #include "unit.h"
@@ -73,8 +74,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* cunit, PtrList* drops, PtrList* items,
-                                 void* /*unused*/, int* gold) {
+int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* items, void* /*unused*/, int* gold) {
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = world->ItemFactory();
@@ -123,4 +123,4 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, CWorld* world, CUnit* 
     cunit->flags_ |= 0x100000;
     return 1;
 }
-EI_REWRITTEN(0x00461CB0, HooverCollectLoot);
+EI_REWRITTEN(0x00461CB0, CHoover::CollectLoot);

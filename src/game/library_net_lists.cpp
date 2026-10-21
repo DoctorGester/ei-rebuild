@@ -25,12 +25,11 @@ void PacketRecordElement::Default(PacketRecord* p) {
     p->rolledBack = 0;
 }
 
-ClientsNode** __fastcall FindClientByAddress(ClientsNode** out, void*, ClientsNode* first, ClientsNode* last,
-                                             const net::NetAddress* address) {
+ClientsIterator* ClientsIterator::FindByAddress(ClientsNode* first, ClientsNode* last, const net::NetAddress* address) {
     while (first != last && std::memcmp(&first->connection->address_, address, sizeof(net::NetAddress)) != 0)
         first = first->next;
-    *out = first;
-    return out;
+    node = first;
+    return this;
 }
 
 net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connection* connection) {
@@ -42,7 +41,7 @@ net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connectio
 
 using namespace netlists;
 
-EI_REWRITTEN(0x0043D780, FindClientByAddress);
+EI_REWRITTEN(0x0043D780, ClientsIterator::FindByAddress);
 EI_REWRITTEN(0x0043D7D0, InitClientRef);
 EI_REWRITTEN(0x00437F30, SentPacketAbi::Erase);
 EI_REWRITTEN(0x004390C0, FreedBatchAbi::Erase);
@@ -53,6 +52,6 @@ EI_REWRITTEN(0x00438F60, SentItemAbi::InsertDefault);
 EI_REWRITTEN(0x00439000, FreedBatchAbi::InsertDefault);
 EI_REWRITTEN(0x004397E0, SentPacketAbi::InsertDefault);
 EI_REWRITTEN(0x00439C80, ChunkAbi::InsertDefault);
-EI_REWRITTEN(0x00437930, (CopyConstruct<FreedIds, FreedIdsElement>));
-EI_REWRITTEN(0x00437F60, (CopyConstruct<PacketRecord, PacketRecordElement>));
-EI_REWRITTEN(0x00438690, (CopyConstruct<net::ReliableChunk, ChunkElement>));
+EI_REWRITTEN(0x00437930, FreedBatchAbi::CopyConstruct);
+EI_REWRITTEN(0x00437F60, SentPacketAbi::CopyConstruct);
+EI_REWRITTEN(0x00438690, ChunkAbi::CopyConstruct);

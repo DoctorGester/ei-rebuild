@@ -43,10 +43,6 @@
 namespace {
 using ei::SetVtable;
 
-// Vtables.
-constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
-constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
-
 constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
 constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
@@ -382,12 +378,12 @@ EI_REPLACE_METHOD(0x0052E2A0, CUnit::DeletingDestructor);
 
 CMapObjectServer* CMapObjectServer::Construct() {
     InitEngineObject(this);
-    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    SetVtable(this, CMapObjectCompanion::BaseVtable());
     owner = nullptr;
     ConstructString(&name78);
     ConstructString(&name7C);
     strings.Construct();
-    SetVtable(this, CMapObjectServer::kVtableAddress);
+    SetVtable(this, CMapObjectServer::Vtable());
     owner = nullptr;
     vitals.Reset();
     return this;
@@ -395,14 +391,14 @@ CMapObjectServer* CMapObjectServer::Construct() {
 EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
-    SetVtable(this, CMapObjectServer::kVtableAddress);
+    SetVtable(this, CMapObjectServer::Vtable());
     vitals.Reset();
     strings.SetSize(0, -1);
     owner = nullptr;
     strings.Destruct();
     name7C.~CString();
     name78.~CString();
-    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    SetVtable(this, CMapObjectCompanion::BaseVtable());
     owner = nullptr;
     CEngineObject::DestructBase();
 }
@@ -423,7 +419,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     sounds.maxSize = 0;
     sounds.size = 0;
     light = nullptr;
-    SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
+    SetVtable(this, CMapObjectClientSpecific::Vtable());
     lightStateA = 0;
     lightStateB = 0;
     return this;
@@ -431,7 +427,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
 EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
-    SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
+    SetVtable(this, CMapObjectClientSpecific::Vtable());
     lightStateA = 0;
     lightStateB = 0;
     mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
@@ -441,8 +437,7 @@ void CMapObjectClientSpecific::DestructBody() {
             shown->flags_ |= 0x80;
             LightManager()->RemoveLight(light);
             if (CUnit* unit = Unit()) {
-                if (CEngineObject* half = unit->Object3D()->attached)
-                    static_cast<CObject3DSpecific*>(half)->SetLit(0);
+                if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
             }
         }
         int id = light->id_;
@@ -458,7 +453,7 @@ void CMapObjectClientSpecific::DestructBody() {
             if (data[i].source) data[i].source->Release();
         gamecrt::operator_delete(particles.data);
     }
-    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    SetVtable(this, CMapObjectCompanion::BaseVtable());
     owner = nullptr;
     CEngineObject::DestructBase();
 }
@@ -467,7 +462,7 @@ EI_REWRITTEN(0x00510560, CMapObjectClientSpecific::DestructBody);
 // --- The server unit controller ---------------------------------------------------------------
 
 void CUnitServer::DestructBody() {
-    SetVtable(this, kUnitServerVtable);
+    SetVtable(this, CUnitServer::Vtable());
     ResetController();
     AIBrain* b = Brain();
     b->Init();
@@ -497,7 +492,7 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
-    SetVtable(this, kControllerVtable);
+    SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     CEngineObject::DestructBase();
 }

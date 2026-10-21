@@ -32,6 +32,10 @@
 
 namespace net {
 
+class BindingMessage;
+class FileMessage;
+class PlayerMessage;
+
 // An STLport vector of counted pointers (start, finish, end of storage), as the file and party
 // messages embed it.
 using RefVector = stlp::vector<RefPtr>;
@@ -60,7 +64,7 @@ public:
     std::uint8_t unused_25[3];
     std::uint32_t state_;        // +0x28 4 when made; the player record's state
     std::int32_t id_;            // +0x2C -1 when made; the player record's id
-    RefPtr binding_;             // +0x30 the server's binding for this login (not sent)
+    RefPtrTo<BindingMessage> binding_;   // +0x30 the server's binding for this login (not sent)
 };
 static_assert(offsetof(LoginMessage, name_) == 0x0C);
 static_assert(offsetof(LoginMessage, host_) == 0x24);
@@ -181,8 +185,8 @@ public:
     std::uint8_t unused_1D[3];
     std::uint32_t acceptedRevision_; // +0x20 the partner's revision accepted
     std::uint32_t revision_;         // +0x24 1 when made
-    RefPtr player_;                  // +0x28 the offering player's record
-    RefPtr partner_;                 // +0x2C the partner's record
+    RefPtrTo<PlayerMessage> player_;    // +0x28 the offering player's record
+    RefPtrTo<PlayerMessage> partner_;   // +0x2C the partner's record
     std::uint8_t trading_;           // +0x30 in a trade (server side; not sent)
     std::uint8_t unused_31[3];
 };
@@ -304,6 +308,8 @@ public:
 
     RefPtr& PlayerRef() { return first_; }
     RefPtr& ConnectionRef() { return second_; }
+    // The bound player record.
+    PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
 };
 static_assert(sizeof(BindingMessage) == 0x14);
 
@@ -396,7 +402,7 @@ public:
     static Message* __fastcall Create();        // 004166F0
     void Destruct();                            // 004168E0
 
-    RefPtr file_;                        // +0x0C the file message
+    RefPtrTo<FileMessage> file_;   // +0x0C the file message
     std::uint16_t index_;                // +0x10
     std::uint8_t data_[kDataSize];       // +0x12
     std::uint8_t unused_52[2];
@@ -442,10 +448,10 @@ public:
     static Message* __fastcall Create();        // 00416DF0
     void Destruct();                            // 00416FC0
 
-    RefPtr player_;              // +0x0C the first offer's player (not sent)
-    RefPtr partner_;             // +0x10 its partner (not sent)
-    RefPtr offer_;               // +0x14 PartyMessage
-    RefPtr partnerOffer_;        // +0x18 PartyMessage
+    RefPtrTo<PlayerMessage> player_;       // +0x0C the first offer's player (not sent)
+    RefPtrTo<PlayerMessage> partner_;      // +0x10 its partner (not sent)
+    RefPtrTo<PartyMessage> offer_;         // +0x14
+    RefPtrTo<PartyMessage> partnerOffer_;  // +0x18
     std::uint8_t done_;          // +0x1C both sides accepted
     std::uint8_t unused_1D[3];
     std::uint32_t revision_;         // +0x20 the first offer's revision traded

@@ -429,17 +429,20 @@ struct MobRecords {
 };
 static_assert(offsetof(MobRecords, maxId) == 0x14);
 
-// mob_reader.cpp. 00481F00 (thiscall on the file's root chunk, RET 0xC): reads the .mob file's
-// top-level chunks: the scripts (0xACCEECCA plain, 0xACCEECCB encoded) into `scripts`, the weather
-// (0xABD0: wind and time of day, applied to the server), the records (0xB000) into `records`, the
-// players (0xDDDDDDD1) into `diplomacy`. Returns the last 0xC000 (true) / 0xD000 (false) seen,
-// true without either (AL).
-bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplomacy* diplomacy,
-                              mfc::CString* scripts);
-// 00481660 (thiscall on the root chunk, RET 8): reads the file, applies its player relations,
-// makes every record's world object (traps learn their hostile players, units their alarm
-// records), frees the records, then loads the scripts unless `keepIds`' low byte is set. Returns
-// true (AL). The first argument is not used.
-bool __fastcall LoadMobFile(Chunk* root, void*, void* unused, int keepIds);
+// A .mob file's root chunk (mob_reader.cpp; CWorldServer::LoadMapObjects opens it).
+class MobFile : public RootChunk {
+public:
+    // 00481F00 (RET 0xC): reads the file's top-level chunks: the scripts (0xACCEECCA plain,
+    // 0xACCEECCB encoded) into `scripts`, the weather (0xABD0: wind and time of day, applied to the
+    // server), the records (0xB000) into `records`, the players (0xDDDDDDD1) into `diplomacy`.
+    // Returns the last 0xC000 (true) / 0xD000 (false) seen, true without either (AL).
+    bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts);
+    // 00481660 (RET 8): reads the file, applies its player relations, makes every record's world
+    // object (traps learn their hostile players, units their alarm records), frees the records, then
+    // loads the scripts unless `keepIds`' low byte is set. Returns true (AL). The first argument
+    // (the world) is not used.
+    bool Load(void* unused, int keepIds);
+};
+static_assert(sizeof(MobFile) == sizeof(RootChunk));
 
 } // namespace mapspec

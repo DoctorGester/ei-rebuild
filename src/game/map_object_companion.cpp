@@ -75,7 +75,7 @@ int CMapObjectServer::Update() {
     } while (i < owner->effectCount);
     return 0;
 }
-EI_REPLACE_METHOD(0x00515820, CMapObjectServer::Update);
+EI_REWRITTEN(0x00515820, CMapObjectServer::Update);
 
 std::uintptr_t CMapObjectServer::SetData(const void* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
@@ -92,7 +92,7 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00515980, CMapObjectServer::TakeHit);
+EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
 
 // --- CMapObjectClientSpecific ----------------------------------------------------------------
 
@@ -162,4 +162,4 @@ int CMapObjectClientSpecific::Update() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00510890, CMapObjectClientSpecific::Update);
+EI_REWRITTEN(0x00510890, CMapObjectClientSpecific::Update);

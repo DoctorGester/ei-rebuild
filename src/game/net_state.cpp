@@ -1,7 +1,7 @@
 // The network state writers of map objects (0050EAF0) and units (0052EC70): the virtual slot
 // that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
-// docs/notes/units.md ("Network state"). They are registered as free functions (thiscall as
-// fastcall): the slots are virtual (rewrite-guide rule 4).
+// docs/notes/units.md ("Network state"). The slots are virtual; their bodies are the *Impl members,
+// registered by member pointer (rewrite-guide rule 4).
 #include "net_delta.h"
 
 #include "ai_map.h"
@@ -26,9 +26,6 @@
 
 namespace {
 
-CMapObject* AsMapObject(std::uint8_t* object) { return reinterpret_cast<CMapObject*>(object); }
-CUnit* AsUnit(std::uint8_t* unit) { return reinterpret_cast<CUnit*>(unit); }
-DeltaState* StateOf(std::uint8_t* object) { return AsMapObject(object)->NetState(); }   // +0x1C4
 // The world (ObjectWorld) as the base class.
 CWorld* WorldOf(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object)); }
 // The unit's player (CUnit::player, a CPlayer).
@@ -45,27 +42,26 @@ void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value,
 
 } // namespace
 
-void __fastcall MapObjectWriteNetState(std::uint8_t* object) {
-    CMapObject* self = AsMapObject(object);
-    DeltaState* state = StateOf(object);
+void CMapObject::WriteNetStateImpl() {
+    DeltaState* state = NetState();   // +0x1C4
     if (DeltaField* field = state->BeginField(0)) {
-        field->WriteDelta(&self->packedVitals, 0x18);   // 00523700
+        field->WriteDelta(&packedVitals, 0x18);   // 00523700
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        field->WriteDelta(&self->scale, 0xC);
+        field->WriteDelta(&scale, 0xC);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(2)) {
-        PutByte(field, static_cast<std::uint8_t>((self->flags_ >> 3) & 1));
-        field->WriteDelta(&self->localPosition_.x, 0xC);
-        field->WriteDelta(&self->localRotation_, 0x10);
+        PutByte(field, static_cast<std::uint8_t>((flags_ >> 3) & 1));
+        field->WriteDelta(&localPosition_.x, 0xC);
+        field->WriteDelta(&localRotation_, 0x10);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
-        PutByte(field, static_cast<std::uint8_t>(self->effectCount));
-        for (int i = 0; i < self->effectCount; ++i) {
-            MapEffect* effect = &self->effects[i];
+        PutByte(field, static_cast<std::uint8_t>(effectCount));
+        for (int i = 0; i < effectCount; ++i) {
+            MapEffect* effect = &effects[i];
             field->WriteBoth(&effect->type, 1);
             field->WriteBoth(&effect->power, 1);
             field->WriteBoth(&effect->ticksLeft, 2);
@@ -75,10 +71,10 @@ void __fastcall MapObjectWriteNetState(std::uint8_t* object) {
     }
 }
 
-void __fastcall UnitWriteNetState(std::uint8_t* object) {
-    MapObjectWriteNetState(object);
-    CUnit* unit = AsUnit(object);
-    DeltaState* state = StateOf(object);
+void CUnit::WriteNetStateImpl() {
+    CMapObject::WriteNetStateImpl();
+    CUnit* unit = this;
+    DeltaState* state = NetState();
     if (DeltaField* field = state->BeginField(4)) {
         field->WriteDelta(unit->Params(), 0x108);   // 00523720
         field->EndField();
@@ -163,21 +159,20 @@ std::uint32_t SnapshotConsumed() {
 
 } // namespace
 
-std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first) {
-    CMapObject* self = AsMapObject(object);
-    DeltaState* state = StateOf(object);
+std::uint32_t CMapObject::ReadNetStateImpl(int first) {
+    DeltaState* state = NetState();
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
-        short before = self->PackedVitals()->hitPoints;   // +0x17E
-        field->ReadDelta(&self->packedVitals, 0x18);   // 00523710
+        short before = PackedVitals()->hitPoints;   // +0x17E
+        field->ReadDelta(&packedVitals, 0x18);   // 00523710
         complete = SnapshotConsumed();
         field->EndField();
-        if (before != self->PackedVitals()->hitPoints || first == 1) ObjectSlots(self)->RefreshWounds();
+        if (before != PackedVitals()->hitPoints || first == 1) RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        Vector3 scale;   // the figure scale (00517700)
-        field->ReadDelta(&scale, 0xC);
-        ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
+        Vector3 figureScale;   // the figure scale (00517700)
+        field->ReadDelta(&figureScale, 0xC);
+        ObjectSetFigureScaleOriginal(this, nullptr, &figureScale.x);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -185,15 +180,15 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         char hidden;
         field->ReadDelta(&hidden, 1);
         if (hidden)
-            self->flags_ |= 8;
+            flags_ |= 8;
         else
-            self->flags_ &= ~8u;
+            flags_ &= ~8u;
         Vector3 position;
         field->ReadDelta(&position, 0xC);
-        field->ReadDelta(&self->localRotation_, 0x10);
-        CWorld* world = WorldOf(object);
-        world->MoveObject(self, &position.x);
-        ObjectSlots(self)->PlaceOnGround(self->localPosition_.z);
+        field->ReadDelta(&localRotation_, 0x10);
+        CWorld* world = WorldOf(this);
+        world->MoveObject(this, &position.x);
+        PlaceOnGround(localPosition_.z);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -202,17 +197,17 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
     std::uint32_t countWord = 0;   // (one byte read into a word whose upper bytes the original leaves)
     field->ReadDelta(&countWord, 1);
     int count = static_cast<int>(countWord & 0xFF);
-    self->SetEffectCount(count);
-    for (int i = 0; i < self->effectCount; ++i) {
-        MapEffect* effect = &self->effects[i];
+    SetEffectCount(count);
+    for (int i = 0; i < effectCount; ++i) {
+        MapEffect* effect = &effects[i];
         effect->ticksLeft = 0;
         field->ReadRaw(&effect->type, 1);
         field->ReadRaw(&effect->power, 1);
         field->ReadRaw(&effect->ticksLeft, 2);
         field->ReadRaw(&effect->ending, 1);
     }
-    if (self->GetClassId() != world::kClassUnit)
-        CompanionOf(self->companion)->EffectsChanged(first == 0 ? 1 : 0);
+    if (GetClassId() != world::kClassUnit)
+        CompanionOf(companion)->EffectsChanged(first == 0 ? 1 : 0);
     complete &= SnapshotConsumed();
     field->EndField();
     return complete;
@@ -242,11 +237,11 @@ bool Exceeds(float v) {
 
 } // namespace
 
-std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first) {
-    CUnit* unit = AsUnit(object);
+std::uint32_t CUnit::ReadNetStateImpl(int first) {
+    CUnit* unit = this;
     float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
-    std::uint32_t complete = MapObjectReadNetState(object, nullptr, first);
-    DeltaState* state = StateOf(object);
+    std::uint32_t complete = CMapObject::ReadNetStateImpl(first);
+    DeltaState* state = NetState();
     bool gotItems = false;
     bool changed = false;
     std::uint32_t ids4[4];
@@ -256,7 +251,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
         field->ReadDelta(unit->Params(), 0x108);   // 00523730
         // Slot 55 (IsDead): a dead unit skips the stat reactions.
-        if (!ObjectSlots(unit)->IsDead() && first == 1) {
+        if (!unit->IsDead() && first == 1) {
             bool any = false;
             for (int k = 0; k < 6; ++k) {
                 float now = StatFraction(unit, k);
@@ -345,11 +340,11 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         path2->ForgetObject(unit->id_);
         float walk, run;
         unit->GetMoveSpeeds(&walk, &run);
-        UnitMotion* motion = unit->Motion();   // +0x27C
-        motion->segment = -1;
-        motion->speedScale = walk;
-        motion->baseTurnRate = run;
-        motion->Build(path2);
+        UnitMotion* walker = unit->Motion();   // +0x27C
+        walker->segment = -1;
+        walker->speedScale = walk;
+        walker->baseTurnRate = run;
+        walker->Build(path2);
         unit->MarkChanged(10);
         unit->Controller()->MotionChanged();
         complete &= SnapshotConsumed();
@@ -408,7 +403,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     return complete;
 }
 
-EI_REPLACE(0x0052EF90, UnitReadNetState);
-EI_REPLACE(0x0050EC30, MapObjectReadNetState);
-EI_REPLACE(0x0050EAF0, MapObjectWriteNetState);
-EI_REPLACE(0x0052EC70, UnitWriteNetState);
+EI_REPLACE_METHOD(0x0052EF90, CUnit::ReadNetStateImpl);
+EI_REPLACE_METHOD(0x0050EC30, CMapObject::ReadNetStateImpl);
+EI_REPLACE_METHOD(0x0050EAF0, CMapObject::WriteNetStateImpl);
+EI_REPLACE_METHOD(0x0052EC70, CUnit::WriteNetStateImpl);

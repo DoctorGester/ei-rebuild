@@ -98,7 +98,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
     for (;;) {
         if (node == sentinel) return;
         auto* binding = static_cast<BindingMessage*>(node->data.ptr);
-        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        auto* player = binding->Player();
         if (Live(player) && player->host_) break;
         node = node->next;
     }

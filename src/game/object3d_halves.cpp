@@ -64,7 +64,7 @@ void CObject3DClientSpecific::ClearShadow() {
     }
     indices.capacity = 0;
     indices.size = 0;
-    CEngineObject* old = texture;
+    CTexture* old = texture;
     texture = nullptr;
     if (old) old->Release();
     bounds[3] = 0.0f;

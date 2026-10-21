@@ -83,7 +83,6 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
     self->interface_ = ui;
 }
 
-CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); }
 
 } // namespace
 
@@ -109,13 +108,13 @@ EI_REWRITTEN(0x005FD120, CUiSurface::ReleaseContents);
 // "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
 // picture holder (004EFC60); its size is the picture's, the screen rectangle (0, 0, width, height),
 // flag 1.
-char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString name) {
-    CUiSurface* self = AsSurface(raw);
+CUiSurface* CUiSurface::ConstructFromPicture(CInterface3D* ui, mfc::CString name) {
+    CUiSurface* self = this;
     ui_native::Forget(self);
     self->holder_ = nullptr;
     self->vtable_ = UiSurfaceClass::Vtable();
     self->background_ = 0;
-    self->interface_ = static_cast<CInterface3D*>(ui);
+    self->interface_ = ui;
     CBaseManager* manager = TheTextureManager();
     void* picture;
     {
@@ -138,9 +137,9 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     self->kept_ = nullptr;
     self->keptSize_ = 0;
     self->flags_ |= CUiSurface::kFromPicture;
-    return raw;
+    return this;
 }
-EI_REWRITTEN(0x005FCF80, UiSurfaceFromPicture);
+EI_REWRITTEN(0x005FCF80, CUiSurface::ConstructFromPicture);
 
 // 005FCC00 (the scale flag is a byte).
 CUiSurface* CUiSurface::Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {

@@ -59,7 +59,7 @@ void CWorld::DestroyManagers() {
     DeleteManager(manager4C_);
     DeleteManager(manager48_);
 }
-EI_REPLACE_METHOD(0x0055F8E0, CWorld::DestroyManagers);
+EI_REWRITTEN(0x0055F8E0, CWorld::DestroyManagers);
 
 // ---- The managers' own small slots (0055F310-0055F400, A-U8) -------------------------------------
 // GetClassName (11) / GetClassId (12) and the destructors of the player manager, the effect manager

@@ -238,7 +238,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     if (stream->version_ < kVersion93C) return;
     WriteCopy(stream, waitFrame);    // sic: written, not read
 }
-EI_REPLACE_METHOD(0x00555D10, CUnitServer::LoadServer);
+EI_REWRITTEN(0x00555D10, CUnitServer::LoadServer);
 
 void CUnitServer::SaveServer(CStream* stream) {
     WriteCopy(stream, frozen);
@@ -292,4 +292,4 @@ void CUnitServer::SaveServer(CStream* stream) {
     stream->Write(&pendingHit, 0x3C);
     WriteCopy(stream, waitFrame);
 }
-EI_REPLACE_METHOD(0x005561C0, CUnitServer::SaveServer);
+EI_REWRITTEN(0x005561C0, CUnitServer::SaveServer);

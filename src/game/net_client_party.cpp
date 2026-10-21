@@ -76,7 +76,7 @@ EI_REWRITTEN(0x00429FC0, FindSameMessage);
 void __fastcall ClientPublishParty(ClientSession* self) {
     CParty* party = self->parties_[0].Party();
     // Read again at each use, as the original does.
-    auto state = [self] { return static_cast<PartyMessage*>(self->party_.ptr); };
+    auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
     RefVector* messages = &state()->members_;
 
@@ -137,7 +137,7 @@ EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 // 0041E220: the received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
 // player and its player our partner, and it is live. Null without one.
 void* __fastcall ClientFindParty(ClientSession* self) {
-    auto* ours = static_cast<PartyMessage*>(self->party_.ptr);
+    auto* ours = self->party_.Get();
     if (!ours) return nullptr;
     for (OfferNode* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
         auto* other = static_cast<PartyMessage*>(node->data.ptr);
@@ -150,10 +150,10 @@ EI_REWRITTEN(0x0041E220, ClientFindParty);
 
 // 0041E180: an accepted offer is unaccepted with its version moved on, so it is sent again.
 void __fastcall ClientCommitParty(ClientSession* self) {
-    auto* state = static_cast<PartyMessage*>(self->party_.ptr);
+    auto* state = self->party_.Get();
     if (!state || !state->accepted_) return;
     state->accepted_ = 0;
-    ++static_cast<PartyMessage*>(self->party_.ptr)->version_;
+    ++self->party_.Get()->version_;
 }
 EI_REWRITTEN(0x0041E180, ClientCommitParty);
 

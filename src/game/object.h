@@ -53,8 +53,15 @@ const char* __fastcall FigureGetName(const CEngineObject* figure);       // 0045
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 004547C0
 
 // "CHoover" (class id 0x1F, vtable 0073C434): no fields of its own seen.
+class CItem;    // item.h
+class CUnit;    // unit.h
+class CWorld;   // world.h
 class CHoover : public CEngineObject {
 public:
+    // 00461CB0 (RET 0x18; hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
+    // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
+    int CollectLoot(CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
+                    mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
     CHoover* DeleteScalar(unsigned flags);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C434);
 

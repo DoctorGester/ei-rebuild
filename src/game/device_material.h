@@ -5,6 +5,7 @@
 // docs/notes/models.md ("Material draw").
 
 #include "engine_object.h"
+#include "texture.h"
 
 #include "lib/stlp.h"
 
@@ -16,7 +17,7 @@ class CRenderPreset;   // model.h
 // A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
 // reference), destroyed by releasing the texture (0051E3D0) and freeing the name.
 struct MaterialStage {
-    explicit MaterialStage(CEngineObject* stageTexture) : name("", ""), texture(stageTexture) {
+    explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {
         if (texture) ++texture->refCount_;
     }
     MaterialStage(const MaterialStage& other)
@@ -32,7 +33,7 @@ struct MaterialStage {
     // D3DTSS_TEXTURETRANSFORMFLAGS to D3DTTFF_COUNT2).
     std::uint32_t texCoordIndex = 0;
     stlp::string name;              // +0x04 the texture's name (empty for the wounds stages)
-    CEngineObject* texture;         // +0x10 a CTexture (counted), looked up by name on first use
+    CTexture* texture;              // +0x10 counted, looked up by name on first use
 };
 static_assert(sizeof(MaterialStage) == 0x14 && offsetof(MaterialStage, texture) == 0x10);
 

@@ -6,6 +6,7 @@
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
 // a counted pointer at +0x5C; then the ISAAC generator is seeded and +0x70 set up.
 #include "world.h"
+#include "world_class.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"
 
@@ -103,7 +104,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->countdowns_.RemoveAll();
     return 1;
 }
-EI_REPLACE(0x0055EE40, WorldCreateManagers);
+EI_REWRITTEN(0x0055EE40, WorldCreateManagers);
 
 CWorld* CWorld::ConstructBase() {
     ClearFields();
@@ -111,7 +112,7 @@ CWorld* CWorld::ConstructBase() {
     shared5C_.ptr = nullptr;
     netSession_.ptr = nullptr;
     countdowns_.Construct(mfc::impl::CountdownArrayClass::Vtable());
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     players_ = nullptr;
     manager3C_ = nullptr;
     manager40_ = nullptr;
@@ -135,4 +136,4 @@ EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 CMapObject* CWorld::FindMapObject(int id) {
     return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects
 }
-EI_REPLACE_METHOD(0x0055FAE0, CWorld::FindMapObject);
+EI_REWRITTEN(0x0055FAE0, CWorld::FindMapObject);

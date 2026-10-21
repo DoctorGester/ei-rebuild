@@ -61,8 +61,7 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
 }
 EI_REPLACE_METHOD(0x00484B40, CParticleSource::PartPoint);
 
-Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
-    auto* object = static_cast<CObject3D*>(objectArg);
+Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     if (!object) {
         out->x = 0.0f;
         out->y = 0.0f;
@@ -90,7 +89,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
 EI_REWRITTEN(0x00484C00, CParticleSource::AttachmentPoint);
 
 Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
-    auto* object = static_cast<CObject3D*>(attachedTo);
+    CObject3D* object = attachedTo;
     if (!object) {
         out->x = 0.0f;
         out->y = 0.0f;
@@ -114,9 +113,8 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
 }
 EI_REWRITTEN(0x00485280, CParticleSource::AttachmentOffset);
 
-void CParticleSource::Attach(void* objectArg) {
-    auto* object = static_cast<CObject3D*>(objectArg);
-    auto* old = static_cast<CObject3D*>(attachedTo);
+void CParticleSource::Attach(CObject3D* object) {
+    CObject3D* old = attachedTo;
     if (old == object) {
         if (!old) origin = localPosition_;
         return;
@@ -144,7 +142,7 @@ void CParticleSource::Attach(void* objectArg) {
     }
     object->ComputeBounds();
     // Adds the source and calls Attach(object) again (already attached: nothing).
-    static_cast<CObject3D*>(attachedTo)->AddEffectSource(this);
+    attachedTo->AddEffectSource(this);
     Vector3 point;
     AttachmentPoint(&point, attachedTo);
     origin = point;

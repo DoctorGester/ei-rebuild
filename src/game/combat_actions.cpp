@@ -263,7 +263,7 @@ BOOL CUnitServer::Heal(float amount) {
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was healed")->PutChar(10)->Apply(kLogEndLine);
     return 1;
 }
-EI_REPLACE_METHOD(0x005543B0, CUnitServer::Heal);
+EI_REWRITTEN(0x005543B0, CUnitServer::Heal);
 
 std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (!attacker) return 0;

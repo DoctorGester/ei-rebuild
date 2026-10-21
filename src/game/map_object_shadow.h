@@ -211,7 +211,7 @@ public:
     lib::AlignedArray<VertexPacket> vertices;      // +0x4C
     lib::AlignedArray<DecalTexCoord> texCoords;    // +0x5C
     lib::AlignedArray<std::uint16_t> indices;      // +0x6C
-    CEngineObject* texture;         // +0x7C the shadow texture (counted)
+    CTexture* texture;              // +0x7C the shadow texture (counted)
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // +0x90 the shadow's bounds (the scene object's slot 7), the
                                     //       centre relative to the object
@@ -264,4 +264,5 @@ inline void CObject3DClientSpecific::ClearWoundsMaterial() {
 #include "map_object_figures.h"   // CObject3D
 
 // The 3D object's half (+0x94) on the client.
-inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }
+// (CObject3DSpecific is its slot view: the same object.)
+inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return reinterpret_cast<CObject3DClientSpecific*>(attached); }

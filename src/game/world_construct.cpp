@@ -15,6 +15,7 @@
 #include "object_diplomacy.h"
 #include "originals_world.h"
 #include "registry.h"
+#include "world_class.h"
 #include "world_class_slots.h"
 #include "engine_object_class.h"
 #include "script.h"
@@ -30,8 +31,6 @@
 namespace {
 
 // The instantiations' vtables the constructors write.
-constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
-constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
 constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);         // CByteArray
 constexpr std::uintptr_t kWordArrayVtable = std::uintptr_t(0x00745F78);         // CWordArray
 
@@ -111,7 +110,7 @@ CWorldServer* CWorldServer::Construct() {
     ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
     ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
-    ei::SetVtable(this, kServerVtable);
+    ei::SetVtable(this, Vtable());
     ResetState();
     return this;
 }
@@ -166,7 +165,7 @@ CWorldClient* CWorldClient::Construct() {
     list7BC_.Construct();
     for (mfc::CString* name : {&appName_, &windowClass_, &windowTitle_, &pausedTitle_}) new (name) mfc::CString();
     flags_ |= kClientFlags;
-    ei::SetVtable(this, kClientVtable);
+    ei::SetVtable(this, Vtable());
     debugFlags_ = kClientDebugFlags;
     worldValue_ = -1;
     camera_ = nullptr;

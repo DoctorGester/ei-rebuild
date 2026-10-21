@@ -32,9 +32,8 @@ std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 } // namespace
 
-int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const IntPoint* points,
-                                   RasterTarget* target) {
-    const MeshBuffers& buffers = mesh->buffers_;
+int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, RasterTarget* target) {
+    const MeshBuffers& buffers = buffers_;
     PointArray& uv = TexturePoints();
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
@@ -61,5 +60,5 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
     return buffers.vertexCount * 4;
 }
 
-EI_REWRITTEN(0x005A0E80, RasteriseFigureMesh);
+EI_REWRITTEN(0x005A0E80, CFigureMesh::Rasterise);
 EI_REPLACE(0x005A1170, FreeTexturePoints);

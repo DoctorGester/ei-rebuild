@@ -129,7 +129,7 @@ int CUnitClientSpecific::UpdateClient() {
         StartIdleAnimation(0);
     return 1;
 }
-EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);
+EI_REWRITTEN(0x005341A0, CUnitClientSpecific::UpdateClient);
 
 // --- Fade-in, level and wounds slots ----------------------------------------------------------
 
@@ -148,14 +148,14 @@ int CUnitClientSpecific::FiguresLoaded() {
     SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 1;
 }
-EI_REPLACE_METHOD(0x005344E0, CUnitClientSpecific::FiguresLoaded);
+EI_REWRITTEN(0x005344E0, CUnitClientSpecific::FiguresLoaded);
 
 int CUnitClientSpecific::RestartFadeIn() {
     fadeIn = 0.0f;
     SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 0;
 }
-EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
+EI_REWRITTEN(0x005344A0, CUnitClientSpecific::RestartFadeIn);
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
@@ -165,7 +165,7 @@ int CUnitClientSpecific::Level() {
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.
     return x87::RoundToInt(level);
 }
-EI_REPLACE_METHOD(0x00539160, CUnitClientSpecific::Level);
+EI_REWRITTEN(0x00539160, CUnitClientSpecific::Level);
 
 int CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
@@ -177,4 +177,4 @@ int CUnitClientSpecific::RefreshWounds() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00537360, CUnitClientSpecific::RefreshWounds);
+EI_REWRITTEN(0x00537360, CUnitClientSpecific::RefreshWounds);

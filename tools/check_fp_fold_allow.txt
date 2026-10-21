@@ -6,3 +6,4 @@
 0.7071067811865476 libcrt::CiPow  # _CIpow (006E81C2) normalises the mantissa to [sqrt(1/2), sqrt(2)): the routine's own bound (our reformulation of FYL2X's 64-bit product), not a fold
 0.001 ::RemoveOutdatedEffects  # the same addon.dll double (100181D5) when the verify build does not inline it into AddEffectImpl
 0.46511627906976744 ::TimeGain  # R18's smooth camera: kGainReference, (2000 / 55) / (1000 / 55 + 60), the option's own time per call (not in the original), not a fold
+0.06666666666666667 CWorldServer::SetTimeSpeedImpl  # CWorld::SetTimeSpeedImpl (0055FB50) inlined once its slot became the compiled tag's (C19): 0055FB50's own double 1/15 (0073F3C8), run-time product as in the original, not a fold

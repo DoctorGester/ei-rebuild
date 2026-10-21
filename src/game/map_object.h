@@ -186,6 +186,11 @@ public:
     virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from (0050F730 GroundPoint); returns `out`
     virtual std::uint32_t ReadNetState(int first);   // 49 (RET 4): 0050EC30 (units 0052EF90)
     virtual void WriteNetState();      // 50: 0050EAF0 (units 0052EC70)
+    // net_state.cpp: the bodies of the two slots above (registered by member pointer): the fields 0-3
+    // written into / read from the DeltaState (+0x1C4); the reader's result says whether every
+    // field's snapshot was consumed.
+    std::uint32_t ReadNetStateImpl(int first);
+    void WriteNetStateImpl();
     // 51 (RET 4; units 0052F740). 0050F020 (map_object.cpp): z = ground height at (x, y) + `offset`.
     virtual void PlaceOnGround(float offset);
     void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
@@ -377,13 +382,6 @@ static_assert(offsetof(CMapObject, name2) == 0x1A8 && offsetof(CMapObject, baseS
 static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
 static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
 static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
-// net_state.cpp. 0050EAF0 / 0050EC30 (slots 50 / 49): the map object's network state writer and reader
-// (fields 0-3; the reader's result says whether every field's snapshot was consumed).
-void __fastcall MapObjectWriteNetState(std::uint8_t* object);
-std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first);
-// 0052EC70 / 0052EF90 (CUnit's slots 50 / 49): the unit's (the map object's fields, then its own).
-void __fastcall UnitWriteNetState(std::uint8_t* object);
-std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first);
 
 // The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
 // hand it to the light calls (add, remove, aim, IsLit) as their `this`.
@@ -405,7 +403,9 @@ public:
     void HitNothing(int, int);
     int QueryNothing(int, int);
     void IgnoreArgument(int);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DC54);
+    // The base's compiled table (CompanionBaseClass, map_object_companion_slots.cpp; game.exe's 0073DC54): the
+    // companions' constructors store it first, their destructor bodies last.
+    static void* BaseVtable();
 
     virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
     virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
@@ -422,12 +422,12 @@ public:
     virtual std::uintptr_t SetLightMode(int mode);
 
     // map_object_companion_slots.cpp: the base's own bodies of CEngineObject's slots (other names,
-    // so they are no overrides). 00510730: the destructor body (the base's vtable, no map object,
+    // so they are no overrides). 00510730: the destructor body (BaseVtable(), no map object,
     // the engine object's). 00510710 (slot 0, RET 4): that, then operator delete with flags bit 0;
     // returns this. 00510750 / 00510760 (slots 2 / 3): no map object (Create returns 1). 005106E0
     // (slot 6, the per-tick update): 0.
     void DestructCompanion();
-    CMapObjectCompanion* DeleteCompanion(unsigned flags);
+    CMapObjectCompanion* DeletingDestruct(unsigned flags);
     int CreateCompanion();
     void DestroyCompanion();
     int UpdateCompanion();

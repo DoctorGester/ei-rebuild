@@ -127,9 +127,6 @@ static void* MakeTrampoline(std::uintptr_t address, int stolen) {
 
 // game.exe 1.06 (Russian, GOG / Rebirth starter\Engine copy): PE timestamp 2001-03-26 09:36:51.
 static constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;
-// game.exe's code section (.text): where a registration's address lies.
-static constexpr std::uintptr_t kCodeBegin = 0x00401000;
-static constexpr std::uintptr_t kCodeEnd = 0x0073A670;
 
 // The harness's patches of game code (NoteHarnessPatch). A fixed array: the harness may note one
 // before this file's dynamic initialisers have run.
@@ -360,7 +357,7 @@ int InstallHooks() {
         }
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = standalone ? nullptr : FileBytesAt(file, h->address);
-        const bool inCode = standalone ? h->address - kCodeBegin < kCodeEnd - kCodeBegin : orig != nullptr;
+        const bool inCode = standalone ? InGameText(h->address) : orig != nullptr;
         std::uint32_t size = FunctionSizeAt(h->address);
         char why[256];
         // One hook per address: a second registration of the same kind (two plain replacements, two
@@ -433,7 +430,6 @@ int InstallHooks() {
 // and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
 // has applied its own patches from a hook on the WinMain call. The standalone image calls InstallHooks
 // from EiStandaloneMain (standalone.cpp).
-static constexpr std::uintptr_t kWinMain = 0x00456440;
 void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();
@@ -446,7 +442,7 @@ static void __stdcall OnWinMain() {
     // EiStandaloneMain).
     SetProcessDPIAware();
     DWORD old;
-    auto* p = reinterpret_cast<unsigned char*>(kWinMain);
+    auto* p = reinterpret_cast<unsigned char*>(kGameWinMain);
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     std::memcpy(p, g_winMainBytes, 5);
     VirtualProtect(p, 5, old, &old);
@@ -470,12 +466,12 @@ __declspec(naked) static void WinMainStub() {
 }
 
 void InstallHooksAtWinMain() {
-    auto* p = reinterpret_cast<unsigned char*>(kWinMain);
+    auto* p = reinterpret_cast<unsigned char*>(kGameWinMain);
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     std::memcpy(g_winMainBytes, p, 5);
     p[0] = 0xE9;
-    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(&WinMainStub) - (kWinMain + 5));
+    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(&WinMainStub) - (kGameWinMain + 5));
     std::memcpy(p + 1, &rel, 4);
     VirtualProtect(p, 5, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);

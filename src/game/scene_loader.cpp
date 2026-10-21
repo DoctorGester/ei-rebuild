@@ -98,8 +98,6 @@ using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
 using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
 
-// The value of `key` in `map`, inserted as 0 when missing (CMap::operator[], 00476050).
-std::uint32_t& At(DwordMap& map, std::uint32_t key) { return map.ElementAt(key); }
 
 } // namespace
 
@@ -219,11 +217,11 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
             m.texCoords.Add(UvBits{{u, v}});
             m.sources.Add(face->position[corner]);   // 00476640
         }
-        At(m.index, key) = static_cast<std::uint32_t>(m.positions.size - 1);
-        At(m.seen, key) = 1;
+        m.index.ElementAt(key) = static_cast<std::uint32_t>(m.positions.size - 1);
+        m.seen.ElementAt(key) = 1;
     }
-    meshFace->vertex[corner] = At(m.index, key);
-    meshFace->vertex2[corner] = At(m.index, key);
+    meshFace->vertex[corner] = m.index.ElementAt(key);
+    meshFace->vertex2[corner] = m.index.ElementAt(key);
 }
 
 class Loader {

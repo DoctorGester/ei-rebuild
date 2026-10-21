@@ -25,6 +25,8 @@ class CItem;    // item.h
 class CParty;   // party.h
 class CPlayerClient;   // player_client.h
 class CUnit;    // unit.h
+class CMapObject;   // map_object.h
+class CEffect;      // world_effect.h
 namespace netlink {
 class NetLink;  // net_link.h
 }
@@ -360,8 +362,10 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
 class CPlayer : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743104);
-    // The world objects the player knows, by id, each counted once (player_sync.cpp).
-    using ObjectMap = stlp::hash_map<int, CEngineObject*, stlp::IntHash>;
+    // The world objects the player knows, by id, each counted once (player_sync.cpp): the map
+    // objects and the timed objects (effects).
+    using MapObjectMap = stlp::hash_map<int, CMapObject*, stlp::IntHash>;
+    using TimedObjectMap = stlp::hash_map<int, CEffect*, stlp::IntHash>;
     using UnitMap = stlp::hash_map<int, CUnit*, stlp::IntHash>;
 
     // 00664BF0. Constructor body: the maps (NextPrime(100) buckets each; their functor bytes are
@@ -442,11 +446,11 @@ public:
     netlink::NetLink* link_;                    // +0x1C the connection to the player's client, null: none
     CPlayerConnection* connection_;             // +0x20 CPlayerServer / CPlayerClient (counted)
     int playerId_;                              // +0x24 player number (0 = the local player)
-    ObjectMap knownObjects_;                    // +0x28 map objects sent to the client
+    MapObjectMap knownObjects_;                      // +0x28 map objects sent to the client
     int maxObjectId_;                           // +0x3C highest id put in knownObjects_
     UnitMap units_;                             // +0x40 the player's units by id (counted)
     int maxUnitId_;                             // +0x54 highest id put in units_
-    ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
+    TimedObjectMap knownTimed_;                    // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
     PartyStorage party_;                        // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)

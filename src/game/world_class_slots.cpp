@@ -47,13 +47,13 @@ constexpr int kUiObjectId = 0x45;
 
 const char* __fastcall WorldClientClassName(CWorldClient*) { return kWorldClientName; }
 int __fastcall WorldClientClassId(CWorldClient*) { return kWorldClientId; }
-EI_REPLACE(0x005619E0, WorldClientClassName);
-EI_REPLACE(0x005619F0, WorldClientClassId);
+EI_REWRITTEN(0x005619E0, WorldClientClassName);
+EI_REWRITTEN(0x005619F0, WorldClientClassId);
 
 const char* __fastcall WorldServerClassName(CWorldServer*) { return kWorldServerName; }
 int __fastcall WorldServerClassId(CWorldServer*) { return kWorldServerId; }
-EI_REPLACE(0x0058A410, WorldServerClassName);
-EI_REPLACE(0x0058A420, WorldServerClassId);
+EI_REWRITTEN(0x0058A410, WorldServerClassName);
+EI_REWRITTEN(0x0058A420, WorldServerClassId);
 
 const char* __fastcall BridgeManagerClassName(PlatformSet*) { return kBridgeManagerName; }
 int __fastcall BridgeManagerClassId(PlatformSet*) { return kBridgeManagerId; }
@@ -118,8 +118,8 @@ EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
 int __fastcall WorldBaseRunTick(CWorld*) { return 1; }
 int __fastcall WorldServerIsServer(CWorldServer*) { return 1; }
 int __fastcall PartyBaseCreate(CEngineObject*) { return 1; }
-EI_REPLACE(0x0055FAD0, WorldBaseRunTick);
-EI_REPLACE(0x0058A380, WorldServerIsServer);
+EI_REWRITTEN(0x0055FAD0, WorldBaseRunTick);
+EI_REWRITTEN(0x0058A380, WorldServerIsServer);
 EI_REPLACE(0x0055E930, PartyBaseCreate);
 
 const char* __fastcall WorldClientTexturePath(CWorldClient* self) { return self->texturePath_; }
@@ -129,13 +129,13 @@ CBaseManager* __fastcall WorldClientLightManager(CWorldClient* self) { return se
 CParticleManager* __fastcall WorldClientParticleManager(CWorldClient* self) { return self->particleManager_; }
 CEngineObject* __fastcall WorldClientManager194(CWorldClient* self) { return self->manager194_; }
 CEngineObject* __fastcall WorldClientManager198(CWorldClient* self) { return self->manager198_; }
-EI_REPLACE(0x00561890, WorldClientTexturePath);
-EI_REPLACE(0x00561980, WorldClientMaterialManager);
-EI_REPLACE(0x00561990, WorldClientTextureManager);
-EI_REPLACE(0x005619A0, WorldClientLightManager);
-EI_REPLACE(0x005619B0, WorldClientParticleManager);
-EI_REPLACE(0x005619C0, WorldClientManager194);
-EI_REPLACE(0x005619D0, WorldClientManager198);
+EI_REWRITTEN(0x00561890, WorldClientTexturePath);
+EI_REWRITTEN(0x00561980, WorldClientMaterialManager);
+EI_REWRITTEN(0x00561990, WorldClientTextureManager);
+EI_REWRITTEN(0x005619A0, WorldClientLightManager);
+EI_REWRITTEN(0x005619B0, WorldClientParticleManager);
+EI_REWRITTEN(0x005619C0, WorldClientManager194);
+EI_REWRITTEN(0x005619D0, WorldClientManager198);
 
 void CWorldClient::MoveObjectImpl(CEngineObject* object, const float* position) {
     objectGrid_.Move(object, position);
@@ -143,8 +143,8 @@ void CWorldClient::MoveObjectImpl(CEngineObject* object, const float* position) 
 void CWorldClient::MoveObject2Impl(CEngineObject* object, const float* position) {
     secondGrid_.Move2(object, position);
 }
-EI_REPLACE_METHOD(0x005618A0, CWorldClient::MoveObjectImpl);
-EI_REPLACE_METHOD(0x005618C0, CWorldClient::MoveObject2Impl);
+EI_REWRITTEN(0x005618A0, CWorldClient::MoveObjectImpl);
+EI_REWRITTEN(0x005618C0, CWorldClient::MoveObject2Impl);
 
 EI_REPLACE_METHOD(0x00562D70, CBaseManager::InitImpl);   // the lightning manager's Init
 EI_REPLACE_METHOD(0x00562DA0, CBaseManager::InitImpl);   // the vis-fog manager's Init (ClientArrayManager)

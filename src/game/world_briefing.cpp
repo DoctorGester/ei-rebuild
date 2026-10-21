@@ -288,8 +288,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    QuestDatabaseLoad(reinterpret_cast<char*>(&TheQuestDatabase()), nullptr,   // 006AE8E0 (its result not read)
-                      static_cast<CTextManager*>(texts)->cursor_);
+    TheQuestDatabase().LoadRegistry(static_cast<CTextManager*>(texts)->cursor_);   // 006AE8E0 (its result not read)
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();

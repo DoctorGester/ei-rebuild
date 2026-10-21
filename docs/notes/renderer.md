@@ -982,7 +982,7 @@ across runs; the goldens check the game state.
    (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active() and not ClassicShadows(); the harness's
    `shadowbuild full` makes them as before, for A/B frames and timings): RenderShadow still projects the parts'
    points (bounds, quad), reads whether a part is keyed (`KeyedParts`, which the original read in the raster's loop)
-   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / RasteriseFigureMesh, BlurShadow /
+   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`) and, after SetTexture and EdgeFade, the
    ClassicShadowDecal / DrawFlatBlocks pair are skipped. A switch to classic needs the textures again, and objects
    with flags 0x600 (animated, then static: class 0x54 map objects, 2 at zone1's start, 4-8 in bz1g) are not rebuilt

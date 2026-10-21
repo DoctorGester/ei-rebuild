@@ -493,9 +493,9 @@ void AnnounceHost(const char* zone) {
         slot.Share(record);
     }
     const char* text1 = formatted;
-    auto* shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+    net::HostMessage* shared = net::GameServer()->hostInfo_.Get();
     shared->address_.Assign(text1);
-    shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+    shared = net::GameServer()->hostInfo_.Get();
     shared->zone_.Assign(zone);
     net::GameServer()->AnnounceToGuests(kServerMessageZone, zone);
 }
@@ -660,7 +660,7 @@ namespace {
 
 // The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
 // game state request to the server (a change goes out with a new version_).
-net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
+net::LoginMessage* LocalLogin() { return net::GameClient()->player_.Get(); }
 // The server world's player list (a CPlayerManager): the number of players registered.
 int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
 
@@ -1002,7 +1002,7 @@ void GameFlow::SwitchMultiplayerZone() {
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
-            auto* announced = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+            net::HostMessage* announced = net::GameServer()->hostInfo_.Get();
             if (Active(announced)) net::GameServer()->AnnounceToGuests(kServerDropClient, announced->zone_.data());
             RefPtr& handle = net::GameServer()->hostInfo_;
             if (handle.ptr) {
@@ -1043,9 +1043,9 @@ void GameFlow::SwitchMultiplayerZone() {
         requestTarget_ = zone7C_;
         RequestParty()->Assign(records.Party());
     } else {
-        auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
+        net::HostMessage* host = net::GameClient()->info_;
         if (Active(host)) records.Party()->zone_ = host->zone_.data();
-        host = static_cast<net::HostMessage*>(net::GameClient()->info_);
+        host = net::GameClient()->info_;
         if (Active(host)) {
             state_ = 5;
             requestTarget_ = host->address_.data();
@@ -1874,7 +1874,7 @@ void GameFlow::UpdateFromServer() {
     else
         variables->Clear();
     VariableSet(variables, kConstructionVariable, construction);
-    if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
+    if (net::MapMessage* map = net::GameClient()->map_) {
         if (Active(map)) FlowLoadQuestsOriginal(map->text_.data());
     }
 

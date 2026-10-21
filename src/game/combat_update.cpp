@@ -293,7 +293,7 @@ int CUnitServer::UpdateServer() {
     AdvanceAnimation();
     return 1;
 }
-EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
+EI_REWRITTEN(0x00552300, CUnitServer::UpdateServer);
 
 // --- The state of the unit's animation --------------------------------------------------------
 
