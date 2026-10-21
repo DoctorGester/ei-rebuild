@@ -162,6 +162,10 @@ add_custom_command(OUTPUT ${EI_IMAGE_RESOURCES}
 set_source_files_properties(${EI_IMAGE_RESOURCES} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 add_executable(ei_standalone src/standalone/host.cpp ${EI_IMAGE_RESOURCES})
 target_include_directories(ei_standalone PRIVATE src)
+# Temporary (user 2026-10-21): a fixed preferred base above game.exe's range, so ASLR never loads the host inside
+# 0x400000-0x7D7000 (one build landed at 004E0000, leaving part of the guard unreserved). Relocations stay
+# (/FIXED:NO), so a taken base still loads elsewhere.
+target_link_options(ei_standalone PRIVATE /DYNAMICBASE:NO /FIXED:NO /BASE:0x01000000)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
 # the families' sources, their checks, and a stub for the hook registrations. build.cmd runs it.
