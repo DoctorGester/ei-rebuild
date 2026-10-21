@@ -57,7 +57,8 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 ### How it runs
 
 - **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is an ordinary exe
-  (S18k: default base, relocatable) that reads no game.exe. **The guard**: first thing in main it reserves every free
+  (S18k: relocatable; since 2026-10-21 temporarily a fixed preferred base 0x01000000 without ASLR, so it never
+  loads inside game.exe's range) that reads no game.exe. **The guard**: first thing in main it reserves every free
   part of game.exe's range 0x400000-0x7D7000 (game_data.h's `kImageBegin`-`kImageEnd`) with no access, so nothing is
   allocated there later and a stray game address faults and is named: the host's `OnGameRange` (`ei_standalone: read
   of game.exe's headers|code|data|.rsrc at ... by ...`, or `no code at ... before ei_hook.dll's missing-code report`),
