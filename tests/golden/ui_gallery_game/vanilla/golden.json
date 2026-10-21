@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_gallery_game",
+  "install": "vanilla",
+  "recorded": "2026-10-21",
+  "commit": "65da082e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 3,
+  "reason": "N4: interface gallery (every window family captured), 3 original runs: plain, jitter 1, jitter 2,fill",
+  "saves": "6 decoded saves (tools/savefile.py), the same in 3 runs"
+}

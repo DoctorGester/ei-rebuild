@@ -1,0 +1,85 @@
+# Interface gallery, multiplayer (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the
+# steps of ui_mp_host, held still (freeze) and captured. Frames: hero_stats (a new hero's statistics
+# page), connect (the connection screen's game list, its row selected; CMpConnectScreen 00741CD0),
+# briefing (the base screen of the hosted game with
+# the player list, CChatWindow), chat_typed (the chat line open, typed text and its caret,
+# CChatOverlay) and chat_sent (the sent line shown over the briefing). Nothing reaches another
+# machine: the harness gives each game its own UDP port (tests/verify/harness_net.h). The made hero
+# (1.mp) goes to the run's overlay.
+timeout 120
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+move 400 20
+frames 5
+freeze
+capture hero_stats
+unfreeze
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# The list: row 0 (region 14), sorted by name (region 6).
+clickregion 14
+frames 5
+clickregion 6
+frames 5
+clickregion 14
+frames 5
+move 400 20
+frames 5
+freeze
+capture connect
+unfreeze
+
+# Host (region 0).
+clickregion 0
+waitwindow 25 briefing
+frames 10
+move 400 20
+frames 5
+freeze
+capture briefing
+unfreeze
+
+# The chat line: opened, typed, the caret moved; then sent.
+key enter
+frames 5
+key h
+key e
+key l
+key l
+key o
+key left
+frames 5
+freeze
+capture chat_typed
+unfreeze
+key enterchar
+wait 1000
+freeze
+capture chat_sent
+unfreeze
+key backspace
+frames 5
+wait 800
+waitwindow 3 briefing
+report
+quit

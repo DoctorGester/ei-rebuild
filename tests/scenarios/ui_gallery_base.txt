@@ -1,0 +1,50 @@
+# Interface gallery, a base's dialogue (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the
+# steps of ui_base_topic, held still (freeze) and captured. Frames: base (the base screen of bz1g,
+# the briefing window), base_topics (Smith's topics and "goodbye" after a click on him), base_phrase
+# (the dialogue's phrase text), base_rewards (after the phrases: the rewards). Smith's topic "M4"
+# is opened with its script variable (FindTopics reads "b.<person>.<topic>" = 1), as in ui_base_topic.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("Smith"))
+console @GSSetVar(0,"b.Smith.M4",1)
+console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
+waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
+waitunit 10 Smith
+freeze
+capture base
+unfreeze
+clickunit Smith
+frames 10
+freeze
+capture base_topics
+unfreeze
+# The topic (region 0): the people walk to their places, then the phrases (a click each).
+clickregion 0
+wait 4000
+freeze
+capture base_phrase
+unfreeze
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+# Esc: the rest of the phrases, then the rewards; Esc again finishes the topic.
+key esc
+wait 800
+freeze
+capture base_rewards
+unfreeze
+key esc
+wait 800
+check IsAlive(GetLeader())
+report
+quit

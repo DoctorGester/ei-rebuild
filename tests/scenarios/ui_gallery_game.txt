@@ -1,0 +1,147 @@
+# Interface gallery, in a game (ticket N4; docs/notes/ui-native.md, "N4: the gallery"): the battle
+# screen's windows, each held still (freeze) and captured. Frames: hud (unit panel, the map with its
+# marker pixels, the top, movement and weapon panels, the frame rate surface of "fps on"),
+# quest_notice (a quest line in the message log), top_page2 (the top panel's second page), hud_tip
+# (the movement panel's tooltip), console (the console window: lines, the typed line and its
+# caret), objectives (the zone page with a quest), help (the objectives' help page), escmenu (the
+# escape menu over the greyed backdrop), save (the save window: list, picture, the name edit field),
+# load (the load window's list with two
+# saves and a picture), view (screen 7, the debug view). The hero cannot be hurt (zone1's wolf).
+reject Script error
+waitmenu
+console fps on
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+wait 500
+move 400 300
+frames 5
+freeze
+capture hud
+unfreeze
+
+# A held quest: its notice goes to the message log (and the objectives list it).
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
+wait 300
+freeze
+capture quest_notice
+unfreeze
+# The top panel's second page (230, 10), then back to the first (200, 10).
+click 230 10
+frames 5
+move 400 300
+frames 5
+freeze
+capture top_page2
+unfreeze
+click 200 10
+frames 5
+
+# The movement panel's inner button's tooltip.
+move 10 590
+wait 2500
+freeze
+capture hud_tip
+unfreeze
+move 400 300
+frames 5
+
+# The console window: a command run, then a half-typed line with the caret moved.
+key grave
+key l
+key a
+key s
+key t
+key f
+key p
+key s
+key enterchar
+waitexpect 10 Current FPS:
+key h
+key e
+key l
+key p
+key left
+frames 5
+freeze
+capture console
+unfreeze
+key end
+key backspace
+key backspace
+key backspace
+key backspace
+key grave
+frames 5
+
+# Objectives (TAB) and their help (H).
+key tab
+waitwindow 10 objectives
+frames 5
+freeze
+capture objectives
+unfreeze
+key h
+waitwindow 10 help
+frames 10
+freeze
+capture help
+unfreeze
+key esc
+waitwindow 10 objectives
+key esc
+waitwindow 10 battle
+
+# The escape menu over the greyed backdrop.
+key esc
+waitwindow 10 escmenu
+move 400 20
+frames 5
+freeze
+capture escmenu
+unfreeze
+# Save (rectangles from menus.reg): the new save's entry selected, its name edited (the edit field).
+click 395 120
+waitwindow 10 saveload
+key end
+key backspace
+frames 5
+move 400 20
+frames 5
+freeze
+capture save
+unfreeze
+# OK (region 0) saves into a new folder (the status surface shows the "saving" notice during the
+# save, 00655550; not captured: it is gone by the next frame) and closes the windows.
+clickregion 0
+waitline 15 Saved save1
+waitwindow 10 battle
+# Load: two saves in the list, the first one's picture shown. Cancel (region 1) closes the escape
+# menu too.
+key esc
+waitwindow 10 escmenu
+click 395 187
+waitwindow 10 saveload
+move 400 20
+frames 5
+freeze
+capture load
+unfreeze
+clickregion 1
+waitwindow 10 battle
+
+# The debug view (screen 7, as the global map's buttons ask for screens; the party leaves the world
+# with the request, so the leader is no longer alive to the script).
+screen 7
+waitwindow 15 view
+frames 5
+freeze
+capture view
+unfreeze
+report
+quit
