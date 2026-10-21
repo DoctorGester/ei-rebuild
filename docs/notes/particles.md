@@ -58,8 +58,10 @@ Every function carries its address in its source comment (grep it); the per-func
   shared pool) cannot be compared against the original in place; the Stun wrapper asks the carrier's slot 55 once more before running the
   callback.
 
-Only the `RET 4` / `RET 8` no-op stubs 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
-004965D0 are not rewritten.
+The `RET 4` no-op element callbacks 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
+004965D0 are one member, `TickNone`. Create stores member pointers to our callbacks (`EmitCallback`, `UpdateCallback`, `ElementCallback`
+in effects.h: CParticleSource has no base, so each is a plain 4-byte code address, as the original's); the short-function registrations
+at the old addresses stay, though nothing in the image calls them now.
 
 ## Floating point
 

@@ -152,6 +152,12 @@ public:
     int Tick();                                     // 00496EB0: 1 while the source stays alive
     void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
 
+    // The callbacks Create stores (+0x1E0 emit, +0x1E4 update, +0x1E8 element): __thiscall members
+    // below. Emit fills a particle from the pool (0 returns it), update moves one (0 drops it).
+    using EmitCallback = int (CParticleSource::*)(Particle* p, int index);
+    using UpdateCallback = int (CParticleSource::*)(Particle* p);
+    using ElementCallback = void (CParticleSource::*)(ParticleElement* e);
+
     // --- per-particle callbacks (+0x1E4 update, +0x1E0 emit), __thiscall, return 0 to drop ---
     int UpdateFalling(Particle* p);                 // 0048F670 (types 0x2034-0x2037)
     int UpdateCloud(Particle* p);                   // 0048B570 (PoisonFog and similar)
@@ -279,6 +285,7 @@ public:
     void TickNuke(ParticleElement* e);              // 004892E0
     void TickTendril(ParticleElement* e);           // 0048EE20 (0x2010)
     void TickMushroom(ParticleElement* e);          // 00488F00 (Mushroom, Transform)
+    void TickNone(ParticleElement* e);              // 00485530 and ten more: does nothing (particle_create.cpp)
 
     // --- small setters the game calls on sources ---
     void ScaleSize(float factor);                   // 00485480
@@ -365,9 +372,9 @@ public:
     int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
     int frameRectCapacity;          // +0x1D8
     int frameRectGrowBy;            // +0x1DC
-    void* emitFn;                   // +0x1E0
-    void* updateFn;                 // +0x1E4
-    void* elementFn;                // +0x1E8
+    EmitCallback emitFn;            // +0x1E0
+    UpdateCallback updateFn;        // +0x1E4
+    ElementCallback elementFn;      // +0x1E8
     void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
@@ -381,6 +388,7 @@ static_assert(offsetof(CParticleSource, boundsFlags) == 0x17C);
 static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
 static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
+static_assert(sizeof(CParticleSource::EmitCallback) == 4);   // single inheritance: a plain code address
 static_assert(sizeof(CParticleSource) == 0x1F0);
 
 // 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
