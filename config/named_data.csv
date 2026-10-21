@@ -29,7 +29,7 @@ address,size,name,file
 00784752,1,g_movieMode,src/game/app_helpers.cpp
 00784755,1,g_littleNonLocalMemory,src/game/app_main.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
-00787080,944,kActionDefinitions,src/game/ui_options.cpp
+00787070,960,kActionDefinitions,src/game/ui.h
 00787430,624,kOptionDefinitions,src/game/ui_options.cpp
 00787C8C,48,kBranchFrequencies,src/game/lightning.cpp
 0078A5DC,64,kBlastAlpha,src/game/particle_callbacks.cpp

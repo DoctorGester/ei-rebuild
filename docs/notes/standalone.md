@@ -161,9 +161,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 1605 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1604 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 866 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 865 point into .data, 739 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -335,9 +335,13 @@ kinds given.
   (script_effects.cpp), `AmbientSoundClass` (terrain_ambience.cpp, written by CountAmbientVariants: not const). (3) Lone
   variables, guards and scratch arrays (lightning's noise curves, terrain's animation speeds and light-block lists, the
   mouse drag, shot counter, party id counter, ...); a header's global is `inline T g_x = /*addr*/ {};`.
+  A table that follows another (the key actions 00787070 right after the 88 key names from 007857B0, whose code took the actions'
+  address as the names' end) is one extent to the code that indexes across: the check cannot see an address literal at a
+  start. The first run of the image crashed in key_bindings reading zeroed names; name the whole run of tables, and take an
+  end as begin + count.
   Left for later: objects a static initialiser stores into (floats such as 007C7D20 are the C18j `constexpr float` form),
   members of the camera 0079B2A8 (0079B2B0, 0079B2C4, 0079B388, 0079B3C4), the scene renderer 007AF060 (007AF064), the client
-  and server world blocks (007AF604, 007AFCA4, 007AFFAC, 007AFFC4), the mission script (007C2CD0), the CWordArray 0079B668
+  and server world blocks (007AF604, 007AFCA4, 007AFFAC, 007AFFC4), the mission script (007C2CD0), the Esc menu's rectangles 007C80A8 (inside the menus' block 007C8048 that LoadMenuRects fills by its base: a first try named them zero and the Esc menu's buttons went dead), the CWordArray 0079B668
   (0079B66C), the singleton pointers of game_singletons.h, the loading movie 007C5520 (static initialisers store into it).
 - **The harness in game.exe**: the original suite (`--no-hooks`) runs game.exe's own code, which never touches our
   named globals. A harness step there must read game.exe's copy (`ei::OriginalGameData<T>(address)`, tests/ only)

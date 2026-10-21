@@ -1060,8 +1060,6 @@
 {DataId(0x00786F9C), DataId(0x00787A40)},
 {DataId(0x00786FE4), DataId(0x00787A3C)},
 {DataId(0x0078702C), DataId(0x00787A38)},
-// the first string pointer of the key table at 00787070 (the action definitions after it are named, C18h)
-{DataId(0x00787074), DataId(0x0079B298)},
 // the script language: comment tokens (0078BC8C) and the keyword / function table (0078BCA0): names and argument type strings
 {DataId(0x0078BC8C), DataId(0x0078D72C)},
 {DataId(0x0078BC90), DataId(0x0078D728)},

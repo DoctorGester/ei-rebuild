@@ -87,7 +87,6 @@ REVIEWED_DATA = [
                                  'descriptors (".PAV...")'),
     # .data
     (0x007857B4, 0x0078706C, 88, 'the key bindings\' command table (007857B0, 0x48-byte entries): names'),
-    (0x00787074, 0x00787074, 1, 'the first string pointer of the key table at 00787070 (the action definitions after it are named, C18h)'),
     (0x0078BC8C, 0x0078CAA8, 442, 'the script language: comment tokens (0078BC8C) and the keyword / function table '
                                   '(0078BCA0): names and argument type strings'),
     (0x0078F7EC, 0x0078F824, 15, 'a table of folder names ("animals\\", ...; "" at 0079B298)'),

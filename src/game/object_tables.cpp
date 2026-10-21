@@ -110,7 +110,7 @@ EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 
 // The command table (key_bindings.cpp's Key entries, 0x48 bytes each; the actions' table follows it).
 constexpr std::uintptr_t kCommandTable = ei::DataId(0x007857B0);
-constexpr std::uintptr_t kCommandTableEnd = ei::DataId(0x00787070);
+constexpr std::uintptr_t kCommandTableEnd = kCommandTable + 88 * 0x48;
 
 void* __fastcall FindCommandByKey(int key) {
     const auto* keys = ei::GamePointer<const signed char>(0x0079BF70);
