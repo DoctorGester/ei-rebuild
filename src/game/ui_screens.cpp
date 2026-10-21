@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "item.h"
 #include "unit.h"
+#include "party.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -433,9 +434,8 @@ bool HeroCanUseSpell(void* stats, char* spell) {
 void CCampScreen::BestPartySkill(int school, int* skill, int* mana) {
     int bestSkill = 0;
     int bestMana = 0;
-    for (int i = 0; i < *reinterpret_cast<int*>(LocalPlayerData() + 0x34); ++i) {
-        char* heroes = *reinterpret_cast<char**>(LocalPlayerData() + 0x30);
-        void* stats = heroes + i * 0x784 + 0x20;
+    for (int i = 0; i < LocalPlayerData()->members_.size; ++i) {
+        void* stats = &LocalPlayerData()->members_.data[i].stats;
         int value = HeroSchoolSkill(stats, school);
         if (!(bestSkill > value)) bestSkill = value;
         int units = HeroManaUnits(stats);
@@ -491,8 +491,7 @@ void CMpHeroScreen::VirtualChooseFigure(const char* prototype) {
 
 void CMpHeroScreen::ClampHeroSelection() {
     if (heroIndex_ < 0) heroIndex_ = 0;
-    const RecordTable& heroes = MpHeroes();
-    auto count = static_cast<std::uint32_t>(static_cast<int>(heroes.end - heroes.begin) / kMpHeroSize);
+    auto count = static_cast<std::uint32_t>(SavedHeroCount());
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     int selected = heroIndex_;
     // Ten rows are visible.
@@ -571,7 +570,7 @@ bool CMpHeroScreen::CanEquip(char* item, int) {
 }
 EI_REPLACE_METHOD(0x006188E0, CMpHeroScreen::CanEquip);
 
-char* CMpHeroScreen::GetHero() { return *reinterpret_cast<char**>(LocalPlayerData() + 0x30); }
+PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data; }
 EI_REPLACE_METHOD(0x00616900, CMpHeroScreen::GetHero);
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {

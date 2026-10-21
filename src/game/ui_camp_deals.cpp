@@ -53,7 +53,7 @@ constexpr int kArmorClass = 0x3005;
 constexpr int kQuickItemClass = 0x3006;
 
 CParty* PartyOf(void* list) { return static_cast<CParty*>(list); }
-CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
+CParty* PlayerParty() { return LocalPlayerData(); }
 CItem* ItemAt(CParty* party, int index) { return party->items_.data[index]; }
 int ItemCount(const CParty* party) { return party->items_.size; }
 // The prototype index an item's packed id carries (its high word).

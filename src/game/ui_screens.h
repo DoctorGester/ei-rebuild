@@ -338,7 +338,7 @@ public:
     // equips a weapon, armour or spell container; then refreshes.
     void OnItemChosen(CItem* item, int mode);
     // 00616900. Virtual slot 51: the local player's first hero (+0x30 of the player data).
-    char* GetHero();
+    PartyUnitRecord* GetHero();
     // 006188E0. Virtual slot 43: whether the hero can take `item`; spell containers need the
     // spell's skill and mana (the camp's own version is 006100E0, not rewritten).
     bool CanEquip(char* item, int mode);
@@ -791,8 +791,6 @@ static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
 static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
 static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
-// The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).
-inline const RecordTable& MpHeroes() { return reinterpret_cast<const RecordTable&>(TheSavedParties().entries_); }
 constexpr int kMpHeroSize = 0x74;
 // A multiplayer hero record: its party (CParty, 0x70 bytes) and file name.
 struct MpHeroRecord {
@@ -825,9 +823,12 @@ struct MpHeroRecord {
     mfc::CString file;               // +0x70
 };
 static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
+// The multiplayer heroes: the vector of SavedParties (TheSavedParties(), world.h).
+inline MpHeroRecord* SavedHero(int index) { return TheSavedParties().entries_ + index; }
+inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().finish_ - TheSavedParties().entries_); }
 
 // The multiplayer heroes (007C82A0; constructed by the static initialiser 0065F580): their folder,
-// the records (MpHeroes() above) and the current hero.
+// the records (SavedHero above) and the current hero.
 struct MpHeroRoster {
     // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the current one
     // (MpHeroRecord's assignment, inlined in the original).

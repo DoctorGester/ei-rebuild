@@ -94,11 +94,8 @@ void SavedParties::SaveAll() {
     if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
         return;
     ClearSaveFolder(folder_);
-    // The entries are MpHeroRecords (world_game.cpp declares the same 0x74-byte records as
-    // SavedPartyEntry); the count is read again after each write.
-    auto* begin = reinterpret_cast<MpHeroRecord*>(entries_);
-    for (unsigned i = 0; i < static_cast<unsigned>(reinterpret_cast<MpHeroRecord*>(finish_) - begin); ++i)
-        begin[i].WriteFile(folder_);
+    // The count is read again after each write.
+    for (unsigned i = 0; i < static_cast<unsigned>(finish_ - entries_); ++i) entries_[i].WriteFile(folder_);
 }
 EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
@@ -107,18 +104,18 @@ SavedParties* SavedParties::Construct() {
     entries_ = nullptr;
     finish_ = nullptr;
     eos_ = nullptr;
-    reinterpret_cast<MpHeroRecord*>(outsideGame_)->Construct();
+    OutsideGame()->Construct();
     return this;
 }
 EI_REPLACE_METHOD(0x0065F580, SavedParties::Construct);
 
 void SavedParties::Destruct() {
-    reinterpret_cast<MpHeroRecord*>(outsideGame_)->Destruct();
-    auto* begin = reinterpret_cast<MpHeroRecord*>(entries_);
-    auto* end = reinterpret_cast<MpHeroRecord*>(finish_);
+    OutsideGame()->Destruct();
+    MpHeroRecord* begin = entries_;
+    MpHeroRecord* end = finish_;
     for (MpHeroRecord* entry = begin; entry != end; ++entry) entry->Destruct();
     if (begin != nullptr)
-        stlp::deallocate(begin, static_cast<std::size_t>(reinterpret_cast<MpHeroRecord*>(eos_) - begin) * sizeof(MpHeroRecord));
+        stlp::deallocate(begin, static_cast<std::size_t>(eos_ - begin) * sizeof(MpHeroRecord));
     folder_.~CString();
 }
 EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);

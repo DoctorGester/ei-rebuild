@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "party.h"
 #include "world.h"
 #include "world_glue.h"
 #include "game_data.h"
@@ -45,13 +46,6 @@ constexpr int kGameOverResult = 0x20000;
 // 006091C0: the chat window shows itself (thiscall, plain RET).
 __declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
 
-// The local player's unit records as the party order follows them (LocalPlayerData).
-struct LocalPartyRecords {
-    std::uint8_t unused_00[0x30];
-    PartyUnitRecord* records;        // +0x30 0x784 bytes each, the unit's id at +0x1C
-    int count;                       // +0x34
-};
-LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(LocalPlayerData()); }
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
 const char* ZoneTopicFormat() { return "b.%s"; }
@@ -126,13 +120,13 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
 // --- 00602C90: slot 29 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
-    LocalPartyRecords* player = LocalRecords();
-    int count = player->count;
+    CParty* player = LocalPlayerData();
+    int count = player->members_.size;
     if (count == 0) return;
     int place = 0;
     int record = 0;
     for (; record < count; ++record) {
-        int id = RecordUnitId(player->records[record]);
+        int id = RecordUnitId(player->members_.data[record]);
         if (unit->id_ == id) break;
         if (place < party_.size && reinterpret_cast<CUnit*>(party_.data[place])->id_ == id) ++place;
     }
@@ -153,7 +147,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         party_.SetSize(size + 1, -1);
         party_.data[size] = reinterpret_cast<std::uintptr_t>(unit);
     }
-    if (unit->id_ != RecordUnitId(player->records[0])) return;
+    if (unit->id_ != RecordUnitId(player->members_.data[0])) return;
 
     leader_ = unit;
     TheClientWorld()->Select(unit);

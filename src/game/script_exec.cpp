@@ -1132,8 +1132,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::CString to(cmd->stringArgs.data[1]);
             CParty* fromRecords = PartyForScript(player, &from);
             CParty* toRecords = PartyForScript(player, &to);
-            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
-            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
+            PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from));
+            PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     target->CopyItemsFrom(source, toRecords);

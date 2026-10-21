@@ -46,7 +46,7 @@ const char* const kSelectVoiceKey = "lmp_select_voice";
 float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
-// The multiplayer heroes object (its vector at +4 is MpHeroes()).
+// The multiplayer heroes object (its vector at +4: SavedHero).
 void* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return ei::GamePointer<void>(0x0073FAA4); }
@@ -185,9 +185,9 @@ EI_REPLACE_METHOD(0x00617820, CMpHeroScreen::Update);
 void CMpHeroScreen::Close() {
     static_cast<SavedParties*>(MpHeroesObject())->SaveAll();
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
-    auto* party = reinterpret_cast<PartyRecords*>(LocalPlayerData());
-    for (int i = 0; i < party->count; ++i) {
-        auto* record = reinterpret_cast<std::uint8_t*>(&party->records[i]);
+    auto* party = LocalPlayerData();
+    for (int i = 0; i < party->members_.size; ++i) {
+        auto* record = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
         int size = records.size;
         records.SetSize(size + 1, -1);
         records.data[size] = record;
@@ -266,9 +266,9 @@ CUiMesh* SelectionFrame(CUiWindow& window) {
     return window.SceneMesh(kSelectionFrame);
 }
 // A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
-CParty* MpHero(std::uint32_t index) { return reinterpret_cast<CParty*>(MpHeroes().begin + index * kMpHeroSize); }
+CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
 std::uint32_t MpHeroCount() {
-    return static_cast<std::uint32_t>(static_cast<int>(MpHeroes().end - MpHeroes().begin) / kMpHeroSize);
+    return static_cast<std::uint32_t>(SavedHeroCount());
 }
 } // namespace
 
@@ -337,7 +337,7 @@ constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview 
 void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
-    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* player = LocalPlayerData();
     if (player->members_.size == 0) {
         player->Clear(1, 0);
         player->AddMember(kHeroName, kHumanHero, game::EmptyText());
@@ -374,7 +374,7 @@ EI_REWRITTEN(0x00616E20, CMpHeroScreen::MakePreview);
 
 void CMpHeroScreen::ShowHero(int index) {
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
-    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* player = LocalPlayerData();
     if (player->members_.size > 0) {
         int size = records.size;
         records.SetSize(size + 1, -1);

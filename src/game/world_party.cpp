@@ -297,7 +297,7 @@ void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
         if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
             CParty* party = reinterpret_cast<WorldPlayer*>(unit->player)->Party();
-            if (reinterpret_cast<PartyRecords*>(party)->Find(unit->id_)) {
+            if (party->Find(unit->id_)) {
                 CEngineObject* source = party->ItemManager()->FindObject(link->itemId);
                 if (source) --static_cast<CItem*>(source)->count_;
             }

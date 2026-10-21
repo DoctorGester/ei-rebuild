@@ -48,7 +48,7 @@ namespace {
 // --- Helpers ---------------------------------------------------------------------------------
 
 // The local player's items (the party the client glue's 00578BA0 returns).
-CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
+CParty* PlayerParty() { return LocalPlayerData(); }
 
 // Item `i` of a party's item list, and the list's count.
 std::uint8_t* ItemOf(CParty* list, int i) { return reinterpret_cast<std::uint8_t*>(list->items_.data[i]); }
@@ -810,7 +810,7 @@ void CCampPages::Close() {
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
     RecordPtrArray records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
-    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* player = LocalPlayerData();
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
         record->unitId += kRecordBias;

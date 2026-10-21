@@ -764,7 +764,7 @@ void CMpConnectScreen::Create() {
             nameEdit_->SetLook(3, 0, 1, kNameLength, TextColour(), kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
-    mfc::CString name(reinterpret_cast<CParty*>(LocalPlayerData())->members_.data[0].texts[0]);
+    mfc::CString name(LocalPlayerData()->members_.data[0].texts[0]);
     {
         const int end = name.Find(NameEnd());
         if (end >= 0) name = name.Left(end);

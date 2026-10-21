@@ -8,6 +8,7 @@
 #include "ui_cursor.h"
 #include "core_streams.h"
 #include "game_strings.h"
+#include "party.h"
 #include "unit.h"
 #include "world.h"
 
@@ -34,15 +35,6 @@ const char* AutoSaveName() { return "savea"; }
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 constexpr int kMessageLogChild = 9;
 
-// The fields of the local player's block (LocalPlayerData) the screen saves.
-struct LocalPlayerBlock {
-    std::uint8_t unused_00[0x30];
-    PartyUnitRecord* records;        // +0x30 the party's unit records (0x784 bytes each)
-    int recordCount;                 // +0x34
-    std::uint8_t unused_38[0x50 - 0x38];
-    int savedWithScreen;             // +0x50 saved with the screen (Create reads it back and drops it)
-};
-LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
@@ -143,7 +135,7 @@ void CBattleScreen::SaveState() {
     }
     stream->Write(&Map(map_)->zoom_, 4);
     stream->Write(&interface_->serverFlag_, 1);
-    stream->Write(&reinterpret_cast<const LocalPlayerBlock*>(LocalPlayerData())->savedWithScreen, 4);
+    stream->Write(&LocalPlayerData()->money_, 4);   // the party's +0x50 (Create reads it back and drops it)
     const char* text = TopPanel(topPanel_)->pageTexts_[0];
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
     stream->Write(&exitPending_, 1);
@@ -169,14 +161,14 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
             static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
         return;
     }
-    LocalPlayerBlock* player = LocalPlayer();
+    CParty* player = LocalPlayerData();
     auto& party = party_;
     // The unit's place: after the party units whose records come before its record.
     int place = 0;
     int record = 0;
     bool found = false;
-    for (; record < player->recordCount; ++record) {
-        int id = static_cast<int>(player->records[record].unitId);
+    for (; record < player->members_.size; ++record) {
+        int id = static_cast<int>(player->members_.data[record].unitId);
         if (unit->id_ == id) {
             found = true;
             break;
@@ -193,7 +185,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
             std::memmove(&party.data[place + 1], &party.data[place], (count - place) * sizeof(party.data[0]));
         }
         party.data[place] = unit;
-        selected = player->records[record].selected != 0;
+        selected = player->members_.data[record].selected != 0;
     } else {
         int count = party.size;
         party.SetSize(count + 1, -1);

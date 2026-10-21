@@ -132,32 +132,6 @@ static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
 static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
 static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
-// The player's list of party unit records (player + 0x70; 0x70 bytes, constructor 00661050,
-// destructor 006611D0; the party 007AA5A0 hands its records to / takes them from one).
-struct PartyRecords {
-    // 006621B0 (player_messages.cpp). The record of the unit with id `unitId`, or null.
-    PartyUnitRecord* Find(int unitId) const;
-
-    std::uint8_t unused_00[0x2C];
-    // +0x2C an MFC CArray of the unit records (its vtable here, records / count its data / size;
-    // 00664160 destroys it).
-    void* recordArrayVtable;         // +0x2C
-    PartyUnitRecord* records;        // +0x30
-    int count;                       // +0x34
-    std::uint8_t unused_38[0x40 - 0x38];
-    std::uint8_t array40[0x54 - 0x40];   // +0x40 an array (006643F0 destroys it)
-    NamedFloatTable variables;       // +0x54 the party's variables ("zs.<zone>" visited, quests)
-    mfc::CString zone;               // +0x68 the zone the party is in
-    int entrance;                    // +0x6C the zone exit it arrives by (EnterZone)
-};
-static_assert(offsetof(PartyRecords, recordArrayVtable) == 0x2C);
-static_assert(offsetof(PartyRecords, records) == 0x30);
-static_assert(offsetof(PartyRecords, count) == 0x34);
-static_assert(offsetof(PartyRecords, array40) == 0x40);
-static_assert(offsetof(PartyRecords, variables) == 0x54);
-static_assert(offsetof(PartyRecords, zone) == 0x68);
-static_assert(sizeof(PartyRecords) == 0x70);
-
 // One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
 // part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
 struct UnitBodyPart {

@@ -47,7 +47,7 @@ CItem* FirstOf(CItem* const* data, int count) { return count > 0 ? data[0] : nul
 
 void CMpHeroScreen::ChooseFigure(const char* prototype) {
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
-    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* player = LocalPlayerData();
     // The attributes and height to keep (copied as dwords).
     float strength = kDefaultAttribute;
     float dexterity = kDefaultAttribute;

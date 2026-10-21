@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
+#include "party.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -401,13 +402,8 @@ void CBriefingScreen::MarkPeople() {
 }
 
 void CBriefingScreen::LeaveIfExitOpen() {
-    struct PartyRecords {
-        std::uint8_t unused_00[0x30];
-        void* records;               // +0x30 the unit records (0x784 bytes each)
-        int count;                   // +0x34
-    };
-    const auto* party = reinterpret_cast<const PartyRecords*>(LocalPlayerData());
-    if (!exitPending_ || party->count <= 0) return;
+    CParty* party = LocalPlayerData();
+    if (!exitPending_ || party->members_.size <= 0) return;
     mfc::CString zone(GameExitTarget(exit_));
     if (Compare(zone, NoZone()) == 0) return;
     mfc::CString variable(ZoneVariablePrefix());
@@ -418,7 +414,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
     mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);
-    records[0] = static_cast<std::uint8_t*>(party->records);
+    records[0] = reinterpret_cast<std::uint8_t*>(party->members_.data);
     if (GamePartyInExit(&records, exit_, &second)) {
         InterfaceHasScreen() = false;
         GameLeaveThroughExit(exit_);

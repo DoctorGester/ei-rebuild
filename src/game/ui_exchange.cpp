@@ -33,7 +33,7 @@ net::PartyMessage* LiveOffer() {
     auto* offer = static_cast<net::PartyMessage*>(net::GameClient()->party_.ptr);
     return offer && !(offer->flags7_ & CRefObject::kDetached) ? offer : nullptr;
 }
-CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
+CParty* LocalParty() { return LocalPlayerData(); }
 } // namespace
 
 // --- 0062C8F0 / 0062C920: closing, message box answers -----------------------------------------------
@@ -103,11 +103,11 @@ EI_REPLACE_METHOD(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Cal
 
 void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
     PartyReleaseItemsOriginal(LocalPlayerData());
-    auto* local = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* local = LocalPlayerData();
     ReturnAll(local, partyC);
-    ReturnAll(reinterpret_cast<CParty*>(LocalPlayerData()), partyB);
+    ReturnAll(LocalPlayerData(), partyB);
     int money = partyB->Money() - partyA->Money() + partyC->Money();
-    reinterpret_cast<CParty*>(LocalPlayerData())->Money() = money;
+    LocalPlayerData()->Money() = money;
     GameRejoin();
 }
 EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);

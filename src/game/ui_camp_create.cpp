@@ -88,7 +88,7 @@ constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
 const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
-CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
+CParty* LocalParty() { return LocalPlayerData(); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
 CUiContainer* AsContainer(CCampPages* camp) { return reinterpret_cast<CUiContainer*>(camp); }
 

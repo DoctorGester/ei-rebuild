@@ -34,6 +34,7 @@
 #include <cstring>
 #include <bit>
 #include "originals_ui.h"
+#include "party.h"
 #include "world.h"
 #include "world_glue.h"
 #include "lib/mfc_array.h"
@@ -341,9 +342,9 @@ void CBattleScreen::Update() {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
         mfc::CArray<std::uint8_t*> records = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
         mfc::CArray<std::uint8_t*> second = {ei::GamePointer<void>(0x0073FAA4), nullptr, 0, 0, 0};
-        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
-        for (int i = 0; i < data->count; ++i)
-            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->records[i]));   // 0059D2E0
+        CParty* data = LocalPlayerData();
+        for (int i = 0; i < data->members_.size; ++i)
+            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? reinterpret_cast<CMessageBox*>(memory)->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)

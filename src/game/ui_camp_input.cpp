@@ -100,7 +100,7 @@ void CCampPages::OnMessageResult(int result) {
     PartyUnitRecord* hero = ShownHero(this);
     if (static_cast<int>(hero->weaponCount) <= 0) return;
     CItem* weapon = hero->weapons[0];
-    CItem* item = reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(weapon, 0, 1);
+    CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);
     hero->RemoveWeapon(weapon);   // 00660A50: the weapon list's Remove
     hero->weaponIndex = 0xFFFFFFFFu;
     static_cast<CUiItemStrip*>(itemStrip_)->ScrollToItem(item);

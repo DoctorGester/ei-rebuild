@@ -304,7 +304,7 @@ void CHudTopPanel::ShowItems() {
 
     mfc::CString& text = pageTexts_[1];
     text.Empty();
-    auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
+    auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
         TextsGetString(texts, nullptr, "format_money", &format);
         line.Format(format, static_cast<int>(party->money_));

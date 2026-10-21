@@ -71,8 +71,7 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 
 
 int HeroCount() {
-    const RecordTable& heroes = MpHeroes();
-    return static_cast<int>(heroes.end - heroes.begin) / kMpHeroSize;
+    return SavedHeroCount();
 }
 
 // The first entry of one of a hero record's item arrays (data, count), or null when it is empty.
@@ -125,7 +124,7 @@ PartyUnitRecord* HeroRecordOf(CMpHeroScreen* screen) { return reinterpret_cast<P
 // A multiplayer hero's name: the text 0 of its party's first member record (the original reads
 // the members' data pointer at +0x30 and takes the CString there).
 mfc::CString& MpHeroName(int index) {
-    auto* hero = reinterpret_cast<MpHeroRecord*>(MpHeroes().begin + index * kMpHeroSize);
+    auto* hero = SavedHero(index);
     return hero->Party()->members_.data->texts[0];
 }
 
@@ -165,7 +164,7 @@ void CMpHeroScreen::FinishRename() {
     base.TrimRight();
     typed = base + typed;
     name = typed;
-    reinterpret_cast<MpHeroRecord*>(MpHeroes().begin + heroIndex_ * kMpHeroSize)->WriteFile(HeroesFolder());   // 00662AC0
+    SavedHero(heroIndex_)->WriteFile(HeroesFolder());   // 00662AC0
     CloseRenameEdit();
     CallShowHero(heroIndex_);
 }
@@ -652,7 +651,7 @@ void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
     if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
         MpHeroRecord* hero = MpHeroesBegin() + heroIndex_;
-        hero->Party()->Assign(reinterpret_cast<CParty*>(LocalPlayerData()));
+        hero->Party()->Assign(LocalPlayerData());
         hero->WriteFile(HeroesFolder());
     }
     SetMode(this, nullptr, kModeList);
@@ -712,7 +711,7 @@ void CMpHeroScreen::AddNewHero() {
         auto* container = hero->spells[0];
         auto* spell = reinterpret_cast<char*>(container->spell_);
         if (spell && !HeroCanUseSpell(hero->stats, spell)) {
-            reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(static_cast<CItem*>(container), 0, 1);
+            LocalPlayerData()->AddItem(static_cast<CItem*>(container), 0, 1);
             hero->RemoveSpell(container);
         }
     }
@@ -734,7 +733,7 @@ void CMpHeroScreen::AddNewHero() {
     pattern.Format(HeroFilePattern(), static_cast<const char*>(MpHeroesFolder()));
     int highest = HighestFileNumber(pattern);
     record->file.Format(HeroFileFormat(), highest + 1);
-    record->Party()->Assign(reinterpret_cast<CParty*>(LocalPlayerData()));
+    record->Party()->Assign(LocalPlayerData());
     record->WriteFile(HeroesFolder());
     RefreshHeroScroll();
     DrawHeroList();
