@@ -194,6 +194,10 @@ public:
     Vector3* EyePoint(Vector3* out) override;              // 48: 005303A0 StandPoint
     std::uint32_t ReadNetState(int first) override;        // 49: 0052EF90 (net_state.cpp)
     void WriteNetState() override;                         // 50: 0052EC70 (net_state.cpp)
+    // net_state.cpp: the bodies of the two slots above (registered by member pointer): the map
+    // object's fields, then the unit's own.
+    std::uint32_t ReadNetStateImpl(int first);
+    void WriteNetStateImpl();
     Vector3* PositionAt(Vector3* out, int time) override;  // 52: 0052FCC0 PositionAtImpl
     Vector3* AimPoint(Vector3* out) override;              // 53: 0052FDF0 AimPointImpl
     int IsLargeUnit() override;              // 54: 00446890 obstacle
