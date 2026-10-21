@@ -145,7 +145,6 @@ EI_REWRITTEN(0x0050FBC0, DeltaFields::Destruct<DeltaFieldArrayClass>);
 EI_REWRITTEN(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REWRITTEN(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
 EI_REWRITTEN(0x006C4690, SectorVertices::Destruct<SectorVertexArrayClass>);
-EI_REWRITTEN(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
 // A fake unit's arrays (the tags are record_arrays.h's; mfc_slots.h has the element policies).
 EI_REWRITTEN(0x0044FE80, mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>);
 EI_REWRITTEN(0x004500F0, mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>);
@@ -161,7 +160,6 @@ EI_REPLACE(0x006B5980, ScalarDelete<&Themes::Destruct<ThemeArrayClass>>);
 EI_REWRITTEN(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
 EI_REWRITTEN(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
 EI_REWRITTEN(0x006C4E80, ScalarDelete<&SectorVertices::Destruct<SectorVertexArrayClass>>);
-EI_REPLACE(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
 EI_REWRITTEN(0x00452890, ScalarDelete<&mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>>);
 EI_REWRITTEN(0x004528B0, ScalarDelete<&mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>);
 EI_REWRITTEN(0x004528F0, ScalarDelete<&mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>);

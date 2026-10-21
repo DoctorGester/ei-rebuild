@@ -1,5 +1,6 @@
 vtable,slots,class,file,note
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
@@ -40,17 +41,28 @@ vtable,slots,class,file,note
 0073CA0C,15,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
 0073D310,3,GroupArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptGroup>)
+0073D340,3,RunListClass,src/game/game_slots.h,CList (the script's runs)
+0073D34C,3,DefinitionListClass,src/game/game_slots.h,CList (the script's instances)
+0073D364,3,DeclListClass,src/game/game_slots.h,CList (the script's command blocks)
+0073D370,3,LightningListClass,src/game/game_slots.h,CList (the script's lightnings)
+0073D37C,3,FxSourceListClass,src/game/game_slots.h,CList (the script's FX sources)
+0073D388,3,ParticleSourceListClass,src/game/game_slots.h,CList (the script's particle sources)
 0073D3A0,3,PointLightArrayClass,src/game/game_arrays.h,CArray (the script's point lights)
 0073D3B8,3,DefinitionArrayClass,src/game/record_arrays.h,CArray (the script's definitions)
 0073D3C4,3,ScriptAreaArrayClass,src/lib/mfc_slots.h,CArray (the script's areas)
+0073D3D0,3,CommandArrayClass,src/game/game_slots.h,CArray (a command block)
 0073D3F4,3,ArgObjectsBaseClass,src/lib/mfc_slots.h,CArray (a script command's object arguments)
 0073D400,3,ArgGroupsBaseClass,src/lib/mfc_slots.h,CArray (a script command's group arguments)
 0073D40C,3,BindingsBaseClass,src/lib/mfc_slots.h,CArray (a script command's bindings)
 0073D418,3,SubCallBaseClass,src/game/record_arrays.h,CArray (a command's nested calls; the base)
+0073D424,3,TokenListClass,src/game/game_slots.h,CList (the script parser's tokens)
+0073D43C,3,GroupListClass,src/game/game_slots.h,CList (CScript's temporary groups)
+0073D448,3,ObjectRefListClass,src/game/game_slots.h,CList (CScript's temporary objects)
 0073D478,3,ArgGroupsClass,src/lib/mfc_slots.h,CArray (a script command's group arguments; derived from 0073D400)
 0073D484,3,ArgObjectsClass,src/lib/mfc_slots.h,CArray (a script command's object arguments; derived from 0073D3F4)
 0073D49C,3,BindingArrayClass,src/game/record_arrays.h,CArray (a command's binding arrays; derived from 0073D40C)
 0073D4A8,3,SubCallArrayClass,src/game/record_arrays.h,CArray (a command's nested calls; derived from 0073D418)
+0073D4C0,3,DefineListClass,src/game/game_slots.h,CList (the script's #define list)
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
@@ -67,6 +79,7 @@ vtable,slots,class,file,note
 0073DB94,3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
 0073DBA0,3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
 0073DC3C,3,EffectSoundArrayClass,src/lib/mfc_slots.h,CArray (a map object's effect sounds)
+0073DC48,3,EffectObjectArrayClass,src/game/game_slots.h,CArray (a map object client's effect records)
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
@@ -77,6 +90,7 @@ vtable,slots,class,file,note
 0073E548,61,CTrapObject,src/game/trap_object.h,
 0073E63C,43,MagicTrap,src/game/magic_trap.h,
 0073E6E8,18,MagicTrap,src/game/magic_trap.h,the tail of 0073E63C (a byte match)
+0073E730,3,VictimListClass,src/game/game_slots.h,CList (a magic trap's victims)
 0073E740,61,Lever,src/game/lever.h,
 0073E834,7,CTorchObject,src/game/torch.h,
 0073E850,54,CTorchObject,src/game/torch.h,the tail of 0073E834 (a byte match)
@@ -91,15 +105,20 @@ vtable,slots,class,file,note
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
 0073EBD4,3,IdArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> of quest item ids (world_party))
 0073EEA0,3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
+0073F010,3,ArmourSpellListClass,src/game/game_slots.h,CList (the armour spells)
+0073F028,3,OwnedRefListClass,src/game/game_slots.h,CList (a map object controller's counted pointers)
 0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
+0073F058,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
+0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
 0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
+0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
 0073F644,25,CParticleManager,src/game/effects.h,
 0073F754,3,BloodPrint,src/game/ground_print.h,
 0073F760,3,Footprint,src/game/ground_print.h,
@@ -109,6 +128,8 @@ vtable,slots,class,file,note
 0073F7F8,42,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
+0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
+0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
@@ -146,6 +167,7 @@ vtable,slots,class,file,note
 00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,
 007440F0,13,CSoundManager,src/game/sound.h,
+00744124,3,WaveListClass,src/game/game_slots.h,CList (the sound cache's wave records)
 00744130,3,SoundListClass,src/lib/mfc_slots.h,CList (the sound manager's list)
 00744184,3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
 007441A8,3,TerrainByteArraysClass,src/lib/mfc_slots.h,CArray (a terrain sector's CByteArray elements)

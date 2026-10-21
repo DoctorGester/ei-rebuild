@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "game_lists.h"
 #include "record_arrays.h"
+#include "game/game_slots.h"
 
 void __fastcall DestroyFigureManager(char* manager);   // figure_model_destroy.cpp (005AA1C0)
 void __fastcall ObjectHolderRelease(CEngineObject** self);   // refptr_copies.cpp
@@ -39,7 +40,7 @@ constexpr auto ClientArrayDestruct = ArrayDestruct<recordarrays::WaterLevels, mf
 void __fastcall SectorArrayDestruct(void* array) {
     CSectorMap::DestructSectors(static_cast<mfc::CArray<Sector, SectorElements>*>(array));
 }
-constexpr auto ArrayElementListDestruct = ListDestruct<gamelists::SharedObjects, gamelists::SharedObjectListClass>;
+constexpr auto ArrayElementListDestruct = ListDestruct<gamelists::SharedObjects, gameslots::SharedObjectListClass>;
 constexpr auto BlockCostListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::BlockCostListClass>;
 constexpr auto AIMapListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::AiMapListClass>;
 constexpr auto WaypointListDestruct = ListDestruct<mfc::impl::PtrList, mfc::impl::WaypointListClass>;
@@ -96,7 +97,7 @@ void* __fastcall SectorArrayDelete(void* self, void*, unsigned flags) { return D
 EI_REPLACE(0x0059B430, SectorArrayDelete);
 
 void* __fastcall ArrayElementListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, ArrayElementListDestruct); }
-EI_REPLACE(0x0059B4F0, ArrayElementListDelete);
+EI_REWRITTEN(0x0059B4F0, ArrayElementListDelete);
 
 void* __fastcall BlockCostListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, BlockCostListDestruct); }
 EI_REPLACE(0x005B1B30, BlockCostListDelete);

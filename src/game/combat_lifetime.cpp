@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
+#include "game/game_slots.h"
 
 #include <bit>
 #include <cstddef>
@@ -24,13 +25,9 @@ namespace {
 // The vtables the constructors and destructors install.
 constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);   // the abstract controller
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
-void* const kArmourSpellListVtable = ei::GamePointer<void>(0x0073F010);
-void* const kModeListVtable = ei::GamePointer<void>(0x0073F028);
 void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
 void* const kAttackOptionsVtable = ei::GamePointer<void>(0x0073F040);
-void* const kObjectListVtable = ei::GamePointer<void>(0x0073E730);
 void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
-void* const kReportsBaseVtable = ei::GamePointer<void>(0x0073F058);
 void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
 
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
@@ -63,14 +60,14 @@ void InitAction(UnitAction& action) {
 // The empty CList of counted object references the memory keeps (00556C80 with blocks of 10).
 void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
-    list.vtable = kObjectListVtable;
+    list.vtable = gameslots::VictimListClass::Vtable();
     list.blockSize = kBlockSize;
 }
 
 // Its destructor: the vtable, each element released and cleared (0052CEC0 / 0052D030), then
 // RemoveAll.
 void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
-    list.vtable = kObjectListVtable;
+    list.vtable = gameslots::VictimListClass::Vtable();
     for (auto* node = list.head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
@@ -111,7 +108,7 @@ CUnitServer* CUnitServer::Construct() {
     followedLeader = nullptr;
     followsLeader = 0;
     armourSpells = {};
-    armourSpells.vtable = kArmourSpellListVtable;
+    armourSpells.vtable = gameslots::ArmourSpellListClass::Vtable();
     armourSpells.blockSize = kBlockSize;
     moveAnimationKey = kNoAnimationKey;
     InitSteps(moveAnimation);
@@ -172,7 +169,7 @@ AIBrain* AIBrain::Construct() {
     target = nullptr;
     seen = nullptr;
     modes = {};
-    modes.vtable = kModeListVtable;
+    modes.vtable = gameslots::OwnedRefListClass::Vtable();
     modes.blockSize = kBlockSize;
     current = nullptr;
     alarmRecords = {};
@@ -203,7 +200,7 @@ void AIMemory::Destruct() {
         for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // 00558CC0(0)
         gamecrt::operator_delete(calls.data);
     }
-    reports.vtable = kReportsBaseVtable;
+    reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();
     if (reports.data) {
         for (int i = 0; i < reports.size; ++i) {   // 00558CA0(0): the reference released
             if (reports.data[i].object) reports.data[i].object->Release();
@@ -229,7 +226,7 @@ void AIBrain::Destruct() {
         gamecrt::operator_delete(alarmRecords.data);
     }
     if (current) current->Release();
-    modes.vtable = kModeListVtable;   // the destructor writes the same vtable
+    modes.vtable = gameslots::OwnedRefListClass::Vtable();   // the destructor writes the same vtable
     for (auto* node = modes.head; node; node = node->next) reinterpret_cast<RefPtr*>(&node->data)->Destroy();
     modes.RemoveAll();
     if (seen) seen->Release();

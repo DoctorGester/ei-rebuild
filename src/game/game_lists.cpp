@@ -1,6 +1,7 @@
 // The CList<T> instantiations that destroy game elements (game_lists.h), registered at their library
 // addresses (ticket S7; the plain ones are in lib/mfc_list.cpp).
 #include "game/game_lists.h"
+#include "game/game_slots.h"
 #include "game/originals_script.h"
 #include "game/record_arrays.h"
 
@@ -23,29 +24,29 @@ EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*,
     self->tail = node;
     return node;
 }
-EI_REWRITTEN(0x004C92C0, ObjectRefs::Destruct<TempObjectListClass>);
-EI_REWRITTEN(0x004C8E20, Groups::Destruct<TempGroupListClass>);
-EI_REWRITTEN(0x004C7560, Decls::Destruct<DeclListClass>);
-EI_REWRITTEN(0x004C8520, Runs::Destruct<RunListClass>);
-EI_REWRITTEN(0x004C7E30, Definitions::Destruct<InstanceListClass>);
-EI_REWRITTEN(0x004C6760, Lightnings::Destruct<LightningListClass>);
-EI_REWRITTEN(0x004C6410, FxSources::Destruct<FxSourceListClass>);
-EI_REWRITTEN(0x004C6120, ParticleSources::Destruct<ParticleSourceListClass>);
+EI_REWRITTEN(0x004C92C0, ObjectRefs::Destruct<gameslots::ObjectRefListClass>);
+EI_REWRITTEN(0x004C8E20, Groups::Destruct<gameslots::GroupListClass>);
+EI_REWRITTEN(0x004C7560, Decls::Destruct<gameslots::DeclListClass>);
+EI_REWRITTEN(0x004C8520, Runs::Destruct<gameslots::RunListClass>);
+EI_REWRITTEN(0x004C7E30, Definitions::Destruct<gameslots::DefinitionListClass>);
+EI_REWRITTEN(0x004C6760, Lightnings::Destruct<gameslots::LightningListClass>);
+EI_REWRITTEN(0x004C6410, FxSources::Destruct<gameslots::FxSourceListClass>);
+EI_REWRITTEN(0x004C6120, ParticleSources::Destruct<gameslots::ParticleSourceListClass>);
 EI_REWRITTEN(0x004C6040, ParticleSources::RemoveAt);
 EI_REWRITTEN(0x004C6370, FxSources::RemoveAt);
 EI_REWRITTEN(0x004C6680, Lightnings::RemoveAt);
-EI_REWRITTEN(0x004CA260, Tokens::Destruct<TokenListClass>);
+EI_REWRITTEN(0x004CA260, Tokens::Destruct<gameslots::TokenListClass>);
 EI_REWRITTEN(0x004CD9B0, Definitions::FreeNode);
 EI_REWRITTEN(0x004CDAB0, Runs::FreeNode);
 EI_REWRITTEN(0x004C54A0, ScriptDeclDestruct);
 EI_REWRITTEN(0x0059CAD0, SharedObjects::FreeNode);
-EI_REWRITTEN(0x0059A3C0, SharedObjects::Destruct<SharedObjectListClass>);
+EI_REWRITTEN(0x0059A3C0, SharedObjects::Destruct<gameslots::SharedObjectListClass>);
 EI_REWRITTEN(0x00558B80, Holders::FreeNode);
 EI_REWRITTEN(0x00558020, Holders::RemoveAll);
 EI_REWRITTEN(0x0059C810, Refs::FreeNode);
 EI_REWRITTEN(0x00599CC0, Refs::RemoveAt);
 EI_REWRITTEN(0x00598EF0, Refs::RemoveAll);
-EI_REWRITTEN(0x005575F0, OwnedRefs::Destruct<OwnedRefListClass>);
+EI_REWRITTEN(0x005575F0, OwnedRefs::Destruct<gameslots::OwnedRefListClass>);
 EI_REWRITTEN(0x0052CE20, ObjectRefs::FreeNode);
 EI_REWRITTEN(0x00599FA0, CountedAddTail);
 

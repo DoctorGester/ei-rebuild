@@ -30,36 +30,38 @@ EI_REWRITTEN(0x00556D90, ObjectValues::Destruct<MemoryObjectArrayClass>);
 EI_REWRITTEN(0x00511BB0, EffectObjects::Destruct<EffectObjectArrayClass>);
 EI_REWRITTEN(0x00558070, gamelists::Holders::Destruct<ArmourSpellListClass>);
 EI_REWRITTEN(0x00427600, gamelists::EngineObjects::Destruct<ItemObjectListClass>);
+EI_REWRITTEN(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
 EI_REWRITTEN(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Class>);
 EI_REWRITTEN(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
 // ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------
 
 // Over the destructors above.
-EI_REPLACE(0x00429160, ScalarDelete<&gamelists::EngineObjects::Destruct<ItemObjectListClass>>);
-EI_REPLACE(0x00571EF0, ScalarDelete<&gamelists::EngineObjects::Destruct<ClientObjectList2Class>>);
-EI_REPLACE(0x004CB6D0, ScalarDelete<&gamelists::ObjectRefs::Destruct<ObjectRefListClass>>);
-EI_REPLACE(0x0052CC30, ScalarDelete<&gamelists::ObjectRefs::Destruct<VictimListClass>>);
-EI_REPLACE(0x00571E70, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>>);
+EI_REWRITTEN(0x00429160, ScalarDelete<&gamelists::EngineObjects::Destruct<ItemObjectListClass>>);
+EI_REWRITTEN(0x00571EF0, ScalarDelete<&gamelists::EngineObjects::Destruct<ClientObjectList2Class>>);
+EI_REWRITTEN(0x004CB6D0, ScalarDelete<&gamelists::ObjectRefs::Destruct<ObjectRefListClass>>);
+EI_REWRITTEN(0x0052CC30, ScalarDelete<&gamelists::ObjectRefs::Destruct<VictimListClass>>);
+EI_REWRITTEN(0x00571E70, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>>);
 EI_REPLACE(0x005989B0, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>);
 EI_REPLACE(0x00556AB0, ScalarDelete<&ObjectValues::Destruct<MemoryObjectArrayClass>>);
-EI_REPLACE(0x00558700, ScalarDelete<&ObjectValues::Destruct<MemoryObjectArrayClass>>);
-EI_REPLACE(0x00511FF0, ScalarDelete<&EffectObjects::Destruct<EffectObjectArrayClass>>);
-EI_REPLACE(0x00558820, ScalarDelete<&gamelists::Holders::Destruct<ArmourSpellListClass>>);
+EI_REWRITTEN(0x00558700, ScalarDelete<&ObjectValues::Destruct<MemoryObjectArrayClass>>);
+EI_REWRITTEN(0x00511FF0, ScalarDelete<&EffectObjects::Destruct<EffectObjectArrayClass>>);
+EI_REWRITTEN(0x00558820, ScalarDelete<&gamelists::Holders::Destruct<ArmourSpellListClass>>);
+EI_REWRITTEN(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
 EI_REPLACE(0x0059B3F0, ScalarDelete<&gamelists::Refs::Destruct<RefListAClass>>);
-EI_REPLACE(0x0059B490, ScalarDelete<&gamelists::Refs::Destruct<RefListBClass>>);
+EI_REWRITTEN(0x0059B490, ScalarDelete<&gamelists::Refs::Destruct<RefListBClass>>);
 EI_REPLACE(0x004C1A20, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
 EI_REWRITTEN(0x004CB130, ScalarDelete<&gamearrays::PointLights::Destruct<gamearrays::PointLightArrayClass>>);
-EI_REPLACE(0x004CB1E0, ScalarDelete<&gamelists::ParticleSources::Destruct<ParticleSourceListClass>>);
-EI_REPLACE(0x004CB200, ScalarDelete<&gamelists::FxSources::Destruct<FxSourceListClass>>);
-EI_REPLACE(0x004CB290, ScalarDelete<&gamelists::Lightnings::Destruct<LightningListClass>>);
+EI_REWRITTEN(0x004CB1E0, ScalarDelete<&gamelists::ParticleSources::Destruct<ParticleSourceListClass>>);
+EI_REWRITTEN(0x004CB200, ScalarDelete<&gamelists::FxSources::Destruct<FxSourceListClass>>);
+EI_REWRITTEN(0x004CB290, ScalarDelete<&gamelists::Lightnings::Destruct<LightningListClass>>);
 EI_REPLACE(0x004C1A40, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
 EI_REWRITTEN(0x004CB2F0, ScalarDelete<&Definitions::Destruct<recordarrays::DefinitionArrayClass>>);
-EI_REPLACE(0x004CB440, ScalarDelete<&gamelists::Definitions::Destruct<DefinitionListClass>>);
-EI_REPLACE(0x004CB550, ScalarDelete<&gamelists::Runs::Destruct<RunListClass>>);
-EI_REPLACE(0x004CB6B0, ScalarDelete<&GroupList::Destruct<GroupListClass>>);
-EI_REPLACE(0x004CB2B0, ScalarDelete<&DeclList::Destruct<DeclListClass>>);
+EI_REWRITTEN(0x004CB440, ScalarDelete<&gamelists::Definitions::Destruct<DefinitionListClass>>);
+EI_REWRITTEN(0x004CB550, ScalarDelete<&gamelists::Runs::Destruct<RunListClass>>);
+EI_REWRITTEN(0x004CB6B0, ScalarDelete<&GroupList::Destruct<GroupListClass>>);
+EI_REWRITTEN(0x004CB2B0, ScalarDelete<&DeclList::Destruct<DeclListClass>>);
 EI_REPLACE(0x004C18C0, ScalarDelete<&Commands::Destruct<CommandArrayClass>>);
-EI_REPLACE(0x004CB0F0, ScalarDelete<&Commands::Destruct<CommandArrayClass>>);
+EI_REWRITTEN(0x004CB0F0, ScalarDelete<&Commands::Destruct<CommandArrayClass>>);
 
 // Over destructors registered elsewhere.
 
@@ -69,17 +71,17 @@ EI_REPLACE(0x004C1860, ScalarDelete<&ScriptNamesDestruct>);   // 004BC810
 EI_REPLACE(0x004C18A0, ScalarDelete<&ScriptGroupArrayDestruct>);   // 004BCA20
 EI_REPLACE(0x004CAFB0, ScalarDelete<&GroupDestruct>);   // 004C2290
 EI_REWRITTEN(0x004CB010, ScalarDelete<&gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>>);   // 004C3B20
-EI_REPLACE(0x004CB7B0, ScalarDelete<&gamelists::Tokens::Destruct<gamelists::TokenListClass>>);   // 004CA260
-EI_REPLACE(0x004D6590, ScalarDelete<&ScriptDefinesDestruct>);   // 004D6340
+EI_REWRITTEN(0x004CB7B0, ScalarDelete<&gamelists::Tokens::Destruct<TokenListClass>>);   // 004CA260
+EI_REWRITTEN(0x004D6590, ScalarDelete<&ScriptDefinesDestruct>);   // 004D6340
 
 // A map object controller's counted pointers, the world's shared object pointers.
-EI_REPLACE(0x00558780, ScalarDelete<&gamelists::OwnedRefs::Destruct<gamelists::OwnedRefListClass>>);   // 005575F0
+EI_REWRITTEN(0x00558780, ScalarDelete<&gamelists::OwnedRefs::Destruct<OwnedRefListClass>>);   // 005575F0
 EI_REWRITTEN(0x0059B4D0, ScalarDelete<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>);   // 0059A100
 
 // ---- Serialize (vtable slot 2) -------------------------------------------------------------------
 
 // Arrays whose elements SetSize builds and destroys through the game's code.
-EI_REPLACE(0x005701F0, SerializeCArray<gamearrays::ObjectPtrs>);   // the client maps' object pointers
+EI_REWRITTEN(0x005701F0, SerializeCArray<gamearrays::ObjectPtrs>);   // the client maps' object pointers
 EI_REPLACE(0x0059A170, SerializeCArray<gamearrays::ObjectPtrs>);   // the world's shared object pointers
 EI_REPLACE(0x004C2310, SerializeCArray<gamearrays::ObjectRefs>);   // a script group (ScriptGroup::Serialize)
 EI_REPLACE(0x004C3BE0, SerializeCArray<gamearrays::Groups>);       // the script's group variables
@@ -87,30 +89,30 @@ EI_REPLACE(0x004C5E60, SerializeCArray<gamearrays::PointLights>);  // the script
 EI_REPLACE(0x004C9E20, SerializeCArray<gamearrays::Objectives>);   // a quest's objectives
 EI_REPLACE(0x00460270, SerializeCArray<gamearrays::Exits>);        // a zone's exits
 EI_REPLACE(0x0045FEB0, SerializeCArray<BuiltZoneRecords>);         // the map database's zones
-EI_REPLACE(0x00511C30, SerializeCArray<gamearrays::Particles>);    // a map object client's effect particles
+EI_REWRITTEN(0x00511C30, SerializeCArray<gamearrays::Particles>);    // a map object client's effect particles
 EI_REPLACE(0x00556E10, SerializeCArray<ObjectValues>);             // a unit memory's object records
 EI_REPLACE(0x004C55C0, SerializeCArray<BuiltCommands>);            // a command block
 
 // Lists whose loader builds, assigns and releases a temporary (S6d).
 using mfc::impl::SerializeCListThrough;
-EI_REPLACE(0x00427690, SerializeCListThrough<EngineObjectsThrough>);    // ItemObjectListClass
-EI_REPLACE(0x00571420, SerializeCListThrough<EngineObjectsThrough>);    // ClientObjectList2Class
-EI_REPLACE(0x004C9350, SerializeCListThrough<ObjectRefsThrough>);       // ObjectRefListClass
-EI_REPLACE(0x0052C740, SerializeCListThrough<VictimsThrough>);          // VictimListClass
-EI_REPLACE(0x005576C0, SerializeCListThrough<OwnedRefsThrough>);        // gamelists::OwnedRefListClass
+EI_REWRITTEN(0x00427690, SerializeCListThrough<EngineObjectsThrough>);    // ItemObjectListClass
+EI_REWRITTEN(0x00571420, SerializeCListThrough<EngineObjectsThrough>);    // ClientObjectList2Class
+EI_REWRITTEN(0x004C9350, SerializeCListThrough<ObjectRefsThrough>);       // ObjectRefListClass
+EI_REWRITTEN(0x0052C740, SerializeCListThrough<VictimsThrough>);          // VictimListClass
+EI_REWRITTEN(0x005576C0, SerializeCListThrough<OwnedRefsThrough>);        // gamelists::OwnedRefListClass
 EI_REPLACE(0x00598FD0, SerializeCListThrough<RefsThrough>);             // RefListAClass
-EI_REPLACE(0x00599DF0, SerializeCListThrough<RefsThrough>);             // RefListBClass
-EI_REPLACE(0x00558100, SerializeCListThrough<ArmourSpellsThrough>);     // ArmourSpellListClass
-EI_REPLACE(0x004C61C0, SerializeCListThrough<ParticleSourcesThrough>);  // ParticleSourceListClass
-EI_REPLACE(0x004C64C0, SerializeCListThrough<FxSourcesThrough>);        // FxSourceListClass
-EI_REPLACE(0x004C6800, SerializeCListThrough<LightningsThrough>);       // LightningListClass
-EI_REPLACE(0x004C7640, SerializeCListThrough<DeclsThrough>);            // DeclListClass
-EI_REPLACE(0x004C7F60, SerializeCListThrough<DefinitionsThrough>);      // DefinitionListClass
-EI_REPLACE(0x004C8640, SerializeCListThrough<RunsThrough>);             // RunListClass
-EI_REPLACE(0x004C8F00, SerializeCListThrough<GroupsThrough>);           // GroupListClass
-EI_REPLACE(0x004CA2E0, SerializeCListThrough<TokensThrough>);           // gamelists::TokenListClass
-EI_REPLACE(0x004D63E0, SerializeCListThrough<DefinesThrough>);          // DefineListClass
-EI_REPLACE(0x0059A4A0, SerializeCListThrough<SharedObjectsThrough>);    // gamelists::SharedObjectListClass
-EI_REPLACE(0x006BC920, SerializeCListThrough<WavesThrough>);            // the sound cache's CList<WaveRecord>
+EI_REWRITTEN(0x00599DF0, SerializeCListThrough<RefsThrough>);             // RefListBClass
+EI_REWRITTEN(0x00558100, SerializeCListThrough<ArmourSpellsThrough>);     // ArmourSpellListClass
+EI_REWRITTEN(0x004C61C0, SerializeCListThrough<ParticleSourcesThrough>);  // ParticleSourceListClass
+EI_REWRITTEN(0x004C64C0, SerializeCListThrough<FxSourcesThrough>);        // FxSourceListClass
+EI_REWRITTEN(0x004C6800, SerializeCListThrough<LightningsThrough>);       // LightningListClass
+EI_REWRITTEN(0x004C7640, SerializeCListThrough<DeclsThrough>);            // DeclListClass
+EI_REWRITTEN(0x004C7F60, SerializeCListThrough<DefinitionsThrough>);      // DefinitionListClass
+EI_REWRITTEN(0x004C8640, SerializeCListThrough<RunsThrough>);             // RunListClass
+EI_REWRITTEN(0x004C8F00, SerializeCListThrough<GroupsThrough>);           // GroupListClass
+EI_REWRITTEN(0x004CA2E0, SerializeCListThrough<TokensThrough>);           // gamelists::TokenListClass
+EI_REWRITTEN(0x004D63E0, SerializeCListThrough<DefinesThrough>);          // DefineListClass
+EI_REWRITTEN(0x0059A4A0, SerializeCListThrough<SharedObjectsThrough>);    // gamelists::SharedObjectListClass
+EI_REWRITTEN(0x006BC920, SerializeCListThrough<WavesThrough>);            // the sound cache's CList<WaveRecord>
 
 } // namespace gameslots

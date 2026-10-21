@@ -22,6 +22,7 @@
 #include "originals_library.h"
 #include "game_lists.h"
 #include "game_data.h"
+#include "game/game_slots.h"
 
 #include <cstdint>
 #include <cstring>
@@ -67,7 +68,7 @@ void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) { pa
 
 // 004CA260: the token list's destructor (gamelists::Tokens').
 void TokensDestruct(ScriptTokenList* tokens) {
-    gamelists::Tokens::Destruct<gamelists::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
+    gamelists::Tokens::Destruct<gameslots::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
 }
 
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
@@ -711,7 +712,7 @@ EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
 // ---- Load ---------------------------------------------------------------------------------------
 
 BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
-    ScriptTokenList tokens{ei::GamePointer<void>(0x0073D424), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ScriptTokenList tokens{gameslots::TokenListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LocalDefinition definition;
     ScriptDefinition* decl = definition.Get();
     ScriptDecl* worldScript = nullptr;
@@ -723,7 +724,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     // Preprocess line by line: "#define name value" lines are collected (and become empty), the
     // other lines get the defines substituted. The text is replaced by the result.
     {
-        ScriptDefineList defines{ei::GamePointer<void>(0x0073D4C0), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        ScriptDefineList defines{gameslots::DefineListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         mfc::CString result, line;
         ScriptDefine define;
         const char* keyword = "#define";

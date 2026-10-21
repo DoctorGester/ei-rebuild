@@ -162,9 +162,6 @@ using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
 // The terrain's 16-byte records, an aligned block at +0 (006C4C40).
 struct TerrainAlignedArrayClass final
     : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, &mfc::impl::SerializeCArray<mfc::impl::AlignedArrays>> {};
-struct WaveListClass {   // the sound cache's CList<WaveRecord> (destructor 006BC870)
-    static void* Vtable() { return ei::GamePointer<void>(0x00744124); }
-};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 // A terrain sector's vertex records (destructor 006C4690).

@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "game_lists.h"
+#include "game/game_slots.h"
 
 #include <cstring>
 #include <new>
@@ -46,21 +47,21 @@ ScriptNamedValues<T>* Named(mfc::CArray<T>* values) { return reinterpret_cast<Sc
 
 CScript* CScript::Construct() {
     ConstructArray(&pointLights_, scriptvtable::kPointLights);
-    ConstructList(&particles_, scriptvtable::kParticleList);
-    ConstructList(&fxSources_, scriptvtable::kFxSourceList);
-    ConstructList(&lightning_, scriptvtable::kLightningList);
-    ConstructList(&blocks_, scriptvtable::kBlockList);
+    ConstructList(&particles_, gameslots::ParticleSourceListClass::Vtable());
+    ConstructList(&fxSources_, gameslots::FxSourceListClass::Vtable());
+    ConstructList(&lightning_, gameslots::LightningListClass::Vtable());
+    ConstructList(&blocks_, gameslots::DeclListClass::Vtable());
     ConstructArray(&definitions_, scriptvtable::kDefinitions);
     ScriptFloatsConstruct(Named(&globals_.floats));
     ScriptStringsConstruct(Named(&globals_.strings));
     ScriptObjectsConstruct(Named(&globals_.objects));
     ScriptGroupsConstruct(Named(&globals_.groups));
-    ConstructList(&instances_, scriptvtable::kInstanceList);
-    ConstructList(&runs_, scriptvtable::kRunList);
-    ConstructList(&worldBlocks_, scriptvtable::kBlockList);
+    ConstructList(&instances_, gameslots::DefinitionListClass::Vtable());
+    ConstructList(&runs_, gameslots::RunListClass::Vtable());
+    ConstructList(&worldBlocks_, gameslots::DeclListClass::Vtable());
     ConstructArray(&areas_, scriptvtable::kAreas);
-    ConstructList(&tempGroups_, scriptvtable::kTempGroupList);
-    ConstructList(&tempObjects_, scriptvtable::kTempObjectList);
+    ConstructList(&tempGroups_, gameslots::GroupListClass::Vtable());
+    ConstructList(&tempObjects_, gameslots::ObjectRefListClass::Vtable());
     new (&errorText_) mfc::CString();
 
     // 256 point light slots, zeroed (again) after the array made them.

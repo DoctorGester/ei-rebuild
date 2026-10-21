@@ -76,42 +76,6 @@ using Groups = ListAbi<ScriptGroup, EachElements<ScriptGroup, gamearrays::InitGr
 // the object gains a reference); returns the node.
 EngineObjects::Node* __fastcall CountedAddTail(EngineObjects::List* self, void*, CEngineObject* object);
 
-// The lists' vtables.
-struct OwnedRefListClass {   // a map object controller's counted pointer list (005575F0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F028); }
-};
-struct TokenListClass {   // the script parser's tokens (004CA260)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D424); }
-};
-struct SharedObjectListClass {   // the world server's shared objects (0059A3C0)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FA10); }
-};
-
-// CScript's lists (their destructors, S13b: 004C92C0, 004C8E20, 004C7560, 004C8520, 004C7E30,
-// 004C6760, 004C6410, 004C6120).
-struct TempObjectListClass {   // +0x1CC
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D448); }
-};
-struct TempGroupListClass {   // +0x1B0
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D43C); }
-};
-struct DeclListClass {   // +0x70 and +0x178
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D364); }
-};
-struct RunListClass {   // +0x15C
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D340); }
-};
-struct InstanceListClass {   // +0x140
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D34C); }
-};
-struct LightningListClass {   // +0x4C
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D370); }
-};
-struct FxSourceListClass {   // +0x30
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D37C); }
-};
-struct ParticleSourceListClass {   // +0x14
-    static void* Vtable() { return ei::GamePointer<void>(0x0073D388); }
-};
+// The lists' vtables are game_slots.h's (gameslots::*ListClass).
 
 } // namespace gamelists
