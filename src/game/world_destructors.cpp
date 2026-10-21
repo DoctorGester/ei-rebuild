@@ -154,18 +154,25 @@ CWorld* CWorld::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0055EC60, CWorld::DeletingDestruct);
 
-void CParticleManager::Destruct() {
-    ei::SetVtable(this, worlddata::kParticleManagerVtable);
+CParticleManager::CParticleManager() {
+    mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
+    held_.Construct(100);   // 005725E0
+    maxHeldId_ = 0;
+    ParticleManagerClearQuietStart(this);   // 004981A0
+}
+
+CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
     held_.Destroy();
     freeParticles.vtable = ei::GamePointer<void>(kParticleListVtable);
     freeParticles.RemoveAll();
-    CBaseManager::DestructBody();
 }
+
+void CParticleManager::Destruct() { this->CParticleManager::~CParticleManager(); }
 EI_REPLACE_METHOD(0x005627C0, CParticleManager::Destruct);
 
 CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CParticleManager::~CParticleManager();
     return DeleteIf(this, flags);
 }
 EI_REPLACE_METHOD(0x005627A0, CParticleManager::DeletingDestruct);

@@ -34,21 +34,18 @@ enum ServerObjectType {
 
 // --- CServerSpecificManager ---------------------------------------------------------------------
 
-CServerSpecificManager* CServerSpecificManager::Construct() {
-    ConstructBase();
-    ei::SetVtable(this, kVtableAddress);
-    return this;
-}
+CServerSpecificManager::CServerSpecificManager() {}
+
+CServerSpecificManager* CServerSpecificManager::Construct() { return new (this) CServerSpecificManager(); }
 EI_REPLACE_METHOD(0x004D6900, CServerSpecificManager::Construct);
 
-void CServerSpecificManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
-    DestructBody();
-}
+CServerSpecificManager::~CServerSpecificManager() {}
+
+void CServerSpecificManager::Destruct() { this->CServerSpecificManager::~CServerSpecificManager(); }
 EI_REPLACE_METHOD(0x004D6960, CServerSpecificManager::Destruct);
 
 CServerSpecificManager* CServerSpecificManager::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->CServerSpecificManager::~CServerSpecificManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -56,6 +53,7 @@ EI_REPLACE_METHOD(0x004D6940, CServerSpecificManager::DeletingDestruct);
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
+CEngineObject* CServerSpecificManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
 // which ResolveBlocker reads, and others the saves write (SV7d3, SV7b2).

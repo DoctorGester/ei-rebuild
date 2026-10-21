@@ -24,6 +24,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 class CMemoryStream;   // core_streams.h
 class CSceneRenderer;  // model.h
 struct TLVertex;       // clip.h
@@ -65,7 +67,8 @@ static_assert(sizeof(ParticleElement) == 0x38);
 class CParticleSource;
 class CObject3D;
 
-// The particle manager (vtable 0073F644, 0xE8 bytes; the client world's +0x19C and *007AF754;
+// The particle manager (0xE8 bytes; the client world's +0x19C and *007AF754; a real virtual class:
+// the compiler makes its vtable, C19, game.exe's 0073F644 is retired;
 // CParticleSource +0x14 points to it): a CBaseManager whose objects are the sources (objectList_).
 // It keeps a pool of free particles, an MFC list at +0xB0 (taken from the head, returned to the
 // tail), and holds one reference on every source made through CreateSource (`held_`, by id) until
@@ -79,6 +82,18 @@ void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 class CParticleManager : public CBaseManager {
 public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
+
+    // CBaseManager's constructor, an empty pool (blocks of 10), an empty held table (Construct(100),
+    // 005725E0), maxHeldId_ 0, then 004981A0 (quietStart cleared). Inlined in the client world's
+    // manager set-up (world_client_maps.cpp); world_destructors.cpp.
+    CParticleManager();
+    // 005627C0 (S13a). Destroy, the members last to first (`held_`'s nodes and buckets, the free
+    // particles' list emptied), then CBaseManager's destructor.
+    ~CParticleManager() override;
+    const char* GetClassName() override;           // 11: 00562780 "CParticleManager"
+    int GetClassId() override;                     // 12: 00562790 (0x2C)
+    // 14: 004981B0 (particle_create.cpp, NewParticleSource). A new source of `type`.
+    CEngineObject* NewObject(int type) override;
 
     // 2: 00497FC0. quietStart cleared, then CBaseManager::Create; returns 1 / 0.
     int Create() override;
@@ -99,11 +114,9 @@ public:
     // 00498630. Every held source nobody else references (refCount_ 1) is released and leaves
     // `held_` (the client's zone load).
     void ReleaseUnheld();
-    // 005627C0 (S13a, world_destructors.cpp). The destructor's body: the vtable, Destroy, the
-    // members last to first (`held_`'s nodes and buckets, the free particles' list emptied), then
-    // CBaseManager's body.
+    // The registrations (C20 retires them): 005627C0 the destructor, 005627A0 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void Destruct();
-    // 005627A0 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
     CParticleManager* DeletingDestruct(unsigned flags);
 
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0

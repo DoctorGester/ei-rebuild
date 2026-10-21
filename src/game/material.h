@@ -80,21 +80,28 @@ static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) =
               offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
               offsetof(CMaterial, name3) == 0x94 && sizeof(CMaterial) == 0x9C);
 
-// The material manager (vtable 00743C38, class id 0x27, "CMaterialManager", 0xD0 bytes; the world's
-// *007AF740; material.cpp): a resource manager of CMaterial objects with a table of colours by key
-// (filled by its Create, 0068E640, Rebirth-patched).
+// The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's *007AF740;
+// material.cpp): a resource manager of CMaterial objects with a table of colours by key (filled by
+// its Create, 0068E640, Rebirth-patched). A real virtual class: the compiler makes its vtable (C19,
+// game.exe's 00743C38 is retired).
 class CMaterialManager : public CResourceManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743C38);
-
     using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
 
-    // 0068E3F0. CResourceManager's constructor body and an empty colour table (NextPrime(100) = 193 buckets).
-    // Returns this.
+    // 0068E3F0. CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
+    // buckets).
+    CMaterialManager();
+    // 0068E540. The colour table freed, then CResourceManager's destructor.
+    ~CMaterialManager() override;
+    const char* GetClassName() override;     // 11: 0068E500 "CMaterialManager"
+    int GetClassId() override;               // 12: 0068E510 (0x27)
+    const char* GetFolderName() override;    // 25: 0068E4F0 "materials"
+
+    // The registrations (C20 retires them): 0068E3F0 the constructor in place (returns this),
+    // 0068E540 the destructor, 0068E520 (slot 0) the destructor, then operator delete when bit 0
+    // of `flags` is set (returns this).
     CMaterialManager* Construct();
-    // 0068E540. The destructor body: the colour table freed, then CResourceManager's.
     void Destruct();
-    // 0068E520. Slot 0.
     CMaterialManager* DeletingDestruct(unsigned flags);
     // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails); the archive "materials.res" of the text folder (007AF45C) added;

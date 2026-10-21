@@ -112,11 +112,8 @@ inline float& LastLitHour() { return ei::GameData<float>(0x0078FF38); }
 // Vtables Setup stores while it inlines the constructors.
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
 constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);
-constexpr std::uintptr_t kParticleManagerVtable = std::uintptr_t(0x0073F644);
 constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
-constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // the list manager's CList
-constexpr std::uintptr_t kClientListManagerVtable = std::uintptr_t(0x0073F5B8);
-constexpr std::uintptr_t kClientArrayManagerVtable = std::uintptr_t(0x0073F554);
+constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // the lightning manager's CList
 constexpr std::uintptr_t kPlatformListVtable = std::uintptr_t(0x0073F548);       // the platform set's CList
 constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   // the array manager's CList
 
@@ -130,10 +127,7 @@ inline void* BaseFolderString() { return &TheDiscFolder(); }
 inline const char* ConfiguredDataPath() { return ei::GameData<const char* const>(0x0079BC90); }
 inline const char* ConfiguredTextPath() { return ei::GameData<const char* const>(0x0079BC94); }
 inline const char* ConfiguredBasePath() { return ei::GameData<const char* const>(0x0079BC98); }
-// The vtables WorldCreateManagers stores after the base manager's constructor: the player list
-// (+0x38) and the timed objects (+0x48); and the counted helper's (+0x5C).
-constexpr std::uintptr_t kPlayerListVtable = std::uintptr_t(0x0073F328);
-constexpr std::uintptr_t kTimedObjectsVtable = std::uintptr_t(0x0073F2C4);
+// The counted helper's vtable (+0x5C), which WorldCreateManagers stores.
 constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------

@@ -177,6 +177,8 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
 }
 EI_REPLACE_METHOD(0x00468680, CLightningManager::NewObjectImpl);
 
+CEngineObject* CLightningManager::NewObject(int type) { return NewObjectImpl(type); }
+
 // 00468810: the destructor body: reset like slot 3, the branches destroyed, the main segment's
 // points freed, the texture references released again (both null by then), the engine object's
 // body.
