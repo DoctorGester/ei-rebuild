@@ -194,8 +194,8 @@ void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
     ready = 0;
     eye = *&self->position;
     float scale = static_cast<float>(kOne / (static_cast<double>(kOne) * kHalf));
-    cellX = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf)));
-    cellY = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf)));
+    cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf));
+    cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf));
     std::uint8_t* memory = brain->memory;
     RefreshHook(this, nullptr, self, memory);
     for (auto* node = brain->visible.head; node;) {

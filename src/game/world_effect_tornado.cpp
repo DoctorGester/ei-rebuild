@@ -105,7 +105,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
         way.y = static_cast<float>(way.y * scale);
         way.z = static_cast<float>(way.z * scale);
         float ticks = static_cast<float>(length / speed);
-        long rounded = std::lrint(ticks);   // FISTP
+        long rounded = x87::RoundToInt(ticks);   // FISTP
         framesLeft_ = rounded < 0 ? 0 : static_cast<int>(rounded);
     }
     velocity_ = way;

@@ -7,6 +7,7 @@
 #include "object_tables.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
@@ -50,7 +51,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
         CEngineObject* piece = unit->armor[i];   // 00530830
         if (!piece) continue;
         float condition = std::bit_cast<float>(static_cast<CItem*>(piece)->condition_);
-        if (std::lrint(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
+        if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
     }
 }
 EI_REPLACE_METHOD(0x00523300, UnitStats::RebuildArmourLayers);
@@ -64,7 +65,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::i
         for (int j = top; j >= 0; --j) {
             if (body.layers[j].state >= kLayerThere) value += body.layers[j].absorb[k];
         }
-        out[1 + k] = static_cast<std::int16_t>(std::lrint(static_cast<float>(value)));
+        out[1 + k] = static_cast<std::int16_t>(x87::RoundToInt(static_cast<float>(value)));
     }
 }
 EI_REPLACE_METHOD(0x00523020, UnitStats::PackBodyProtection);

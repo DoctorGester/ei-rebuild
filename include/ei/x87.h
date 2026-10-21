@@ -159,4 +159,26 @@ __declspec(naked) inline int __cdecl fistp(float) {
     __asm ret
 }
 
+// std::lrint the way the original rounds: FLD of the value, FISTP dword under the FPU's current rounding
+// control (the precision control does not change the result). The UCRT's lrint / lrintf read the x87 and
+// SSE control words on every call (acrt_fenv_get_control, SV10j); in the int range the results are the
+// same for every rounding and precision (and the PE / IE status flags too). Where they differ: NaN, an
+// infinity or a value that rounds outside the int range gives FISTP's integer indefinite 0x80000000 (the
+// original's value) and sets IE, where lrint gives its own value and sets errno to EDOM.
+__declspec(naked) inline int __cdecl RoundToInt(float) {
+    __asm sub esp, 4
+    __asm fld dword ptr [esp + 8]
+    __asm fistp dword ptr [esp]
+    __asm pop eax
+    __asm ret
+}
+
+__declspec(naked) inline int __cdecl RoundToInt(double) {
+    __asm sub esp, 4
+    __asm fld qword ptr [esp + 8]
+    __asm fistp dword ptr [esp]
+    __asm pop eax
+    __asm ret
+}
+
 } // namespace x87

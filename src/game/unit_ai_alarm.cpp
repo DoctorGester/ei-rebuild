@@ -67,8 +67,8 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
     for (int i = 0; i < record->patrols.size; ++i) {
         const mapspec::Patrol& patrol = record->patrols.data[i];
         double cell = static_cast<double>(kOne) * kHalf;
-        long cellX = std::lrint(static_cast<float>(kOne / cell * patrol.position.x));
-        long cellY = std::lrint(static_cast<float>(kOne / cell * patrol.position.y));
+        long cellX = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.x));
+        long cellY = x87::RoundToInt(static_cast<float>(kOne / cell * patrol.position.y));
         PatrolPoint point{};
         point.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
         point.position.y = static_cast<float>((static_cast<double>(cellY) + kHalf) * cell);
