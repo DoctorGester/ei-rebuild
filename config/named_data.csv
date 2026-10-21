@@ -281,6 +281,11 @@ address,size,name,file
 007C2F58,8,g_spiral,src/game/ai_plan.cpp
 007C2F60,1,g_spiralGuard,src/game/ai_plan.cpp
 007C2F68,1,g_guard,src/game/ai_water_patch.cpp
+007C2FC0,20,g_spiralLengths,src/game/sector_spiral.cpp
+007C2FD8,28,g_spiralRadii,src/game/sector_spiral.cpp
+007C2FF8,20,g_spiralOffsets,src/game/sector_spiral.cpp
+007C3038,28,g_smoothPool,src/game/ai_path_smooth.cpp
+007C3058,4860,g_smoothTables,src/game/ai_path_smooth.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp

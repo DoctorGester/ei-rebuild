@@ -175,12 +175,11 @@ bool CSectorMap::Remove(CMapObject* object) {
 EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
 
 namespace {
-// Spiral of sector offsets ordered by distance, with a radius-to-length table. Globals at
-// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 (RadiusTree::Find) maps a radius to
-// a table index.
-const RadiusTree* Spiral() { return ei::GamePointer<const RadiusTree>(0x007C2FD8); }
-const int* SpiralLengths() { return ei::GameData<const int* const>(0x007C2FC4); }
-const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* const>(0x007C2FFC); }
+// Spiral of sector offsets ordered by distance, with a radius-to-length table (sector_spiral.cpp);
+// 005BF7D0 (RadiusTree::Find) maps a radius to a table index.
+const RadiusTree* Spiral() { return SpiralRadiusTree(); }
+const int* SpiralLengths() { return SpiralLengthArray()->data; }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data->x; }
 } // namespace
 
 int RadiusTree::Find(float radius) const {
