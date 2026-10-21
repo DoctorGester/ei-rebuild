@@ -31,7 +31,6 @@ static_assert(sizeof(SectorOccluder) == 8);
 
 constexpr std::uintptr_t kSectorVtable = std::uintptr_t(0x0073FADC);
 constexpr std::uintptr_t kSectorOccluderArrayVtable = std::uintptr_t(0x0073FAE0);
-constexpr std::uintptr_t kSectorObjectListVtable = std::uintptr_t(0x0073F530);   // world.h ObjectPtrListVtable
 
 struct __declspec(novtable) Sector {
     virtual ~Sector() {}                         // 0: 0059E080

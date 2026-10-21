@@ -180,7 +180,6 @@ stlp::NameMap& QuestBriefings();   // database_globals.cpp
 // The vtables of the lists and arrays the world server builds on the stack: CPtrList of items
 // (0073BE80), CList of experience shares (0073FAB0), CArray of unit record pointers (0073FAA4).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
-constexpr std::uintptr_t kShareListVtable = std::uintptr_t(0x0073FAB0);
 
 // ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }

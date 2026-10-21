@@ -183,7 +183,7 @@ int CWorldServer::LoadMobFile(const char* file) {
 void CWorldServer::ClearMapObjects() {
     // The objects are collected first (an MFC list, block size 10), then removed one by one.
     mfc::CTypedPtrList<CEngineObject> pending;
-    pending.vtable = ObjectPtrListVtable();
+    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
     pending.head = nullptr;
     pending.tail = nullptr;
     pending.count = 0;
@@ -211,7 +211,7 @@ void CWorldServer::ClearMapObjects() {
 
     countdowns_.RemoveAll();
 
-    pending.vtable = ObjectPtrListVtable();
+    pending.vtable = mfc::impl::ClientObjectListClass::Vtable();
     pending.RemoveAll();   // 00570470 (the list destructor's body)
 }
 

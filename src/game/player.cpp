@@ -15,17 +15,16 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
-// The vtable of the recharge list (an MFC CList instantiation; Serialize 00666050).
-constexpr std::uintptr_t kRechargeListVtable = std::uintptr_t(0x00743138);
 // The given items' list is a CPtrList (vtable 0073BE80, the pointer lists the units fill).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
 
 template <typename T>
-void InitList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
-    list.vtable = ei::GamePointer<void>(vtableAddress);
+void InitList(mfc::CList<T>& list, void* vtable) {
+    list.vtable = vtable;
     list.tail = nullptr;
     list.count = 0;
     list.head = nullptr;
@@ -47,9 +46,9 @@ CPlayer* CPlayer::Construct() {
     knownTimed_.InitBuckets(100);
     maxTimedId_ = 0;
     Party()->Construct();
-    InitList(items_, kItemListVtable);
+    InitList(items_, ei::GamePointer<void>(kItemListVtable));
     partyId_ = 0;
-    InitList(recharging_, kRechargeListVtable);
+    InitList(recharging_, mfc::impl::PlayerListClass::Vtable());   // an MFC CList instantiation
     ei::SetVtable(this, kVtableAddress);
     connection_ = nullptr;
     logTraffic_ = 0;
@@ -76,7 +75,7 @@ void CPlayer::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
     DestroyPlayer();
     Party()->Destroy();
-    recharging_.vtable = ei::GamePointer<void>(kRechargeListVtable);
+    recharging_.vtable = mfc::impl::PlayerListClass::Vtable();
     recharging_.RemoveAll();
     items_.vtable = ei::GamePointer<void>(kItemListVtable);
     items_.RemoveAll();

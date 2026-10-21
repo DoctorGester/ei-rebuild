@@ -200,6 +200,18 @@ protected:
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
+// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
+struct Attention12 {
+    int id;
+    int value;
+    int extra;
+};
+inline void InitAttention12(Attention12* p) {
+    p->value = 0;
+    p->id = -1;
+}
+using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
@@ -333,24 +345,24 @@ struct AnimationStateListClass final
 // A 3D object's effect sources.
 struct Object3DListClass final
     : CompiledCollection<Object3DListClass, &PtrList::Destruct<Object3DListClass>, &SerializeCList<PtrList>> {};
-struct ClientObjectListClass {   // the client world's and the sectors' object lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073F530); }
-};
-struct ExperienceListClass {   // CWorldServer::AwardExperience's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FAB0); }
-};
-struct AttentionListClass {   // AIAttention::Choose's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073FF34); }
-};
-struct PlayerListClass {   // a player's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00743138); }
-};
-struct TextureListClass {   // the texture manager's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00743D18); }
-};
-struct SoundListClass {   // the sound manager's list
-    static void* Vtable() { return ei::GamePointer<void>(0x00744130); }
-};
+// The client world's and the sectors' object lists.
+struct ClientObjectListClass final
+    : CompiledCollection<ClientObjectListClass, &PtrList::Destruct<ClientObjectListClass>, &SerializeCList<PtrList>> {};
+// CWorldServer::AwardExperience's list.
+struct ExperienceListClass final
+    : CompiledCollection<ExperienceListClass, &PtrList::Destruct<ExperienceListClass>, &SerializeCList<List8>> {};
+// AIAttention::Choose's list.
+struct AttentionListClass final
+    : CompiledCollection<AttentionListClass, &PtrList::Destruct<AttentionListClass>, &SerializeCList<AttentionList>> {};
+// A player's list.
+struct PlayerListClass final
+    : CompiledCollection<PlayerListClass, &PtrList::Destruct<PlayerListClass>, &SerializeCList<PtrList>> {};
+// The texture manager's list.
+struct TextureListClass final
+    : CompiledCollection<TextureListClass, &PtrList::Destruct<TextureListClass>, &SerializeCList<PtrList>> {};
+// The sound manager's list.
+struct SoundListClass final
+    : CompiledCollection<SoundListClass, &PtrList::Destruct<SoundListClass>, &SerializeCList<PtrList>> {};
 
 // Maps whose elements need nothing.
 // LoadFigureRegistry's map.
@@ -468,17 +480,6 @@ using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
 using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
 using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
 
-// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
-struct Attention12 {
-    int id;
-    int value;
-    int extra;
-};
-inline void InitAttention12(Attention12* p) {
-    p->value = 0;
-    p->id = -1;
-}
-using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 using List30 = ListAbi<Bytes<0x30>>;
 
 // A map trap record's areas (12-byte elements; the magic trap's circles).

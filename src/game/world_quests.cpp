@@ -362,7 +362,7 @@ double Weight(CUnitServer* controller) {
 // weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.Size() == 0) return;
-    ShareList list{ei::GamePointer<void>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ShareList list{mfc::impl::ExperienceListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
         if (!p->Server() || p->Party()->members_.size != 1) return nullptr;
         return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unitId));
@@ -416,7 +416,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         --it.manager->refCount_;
         it.manager = nullptr;
     }
-    list.vtable = ei::GamePointer<void>(worlddata::kShareListVtable);
+    list.vtable = mfc::impl::ExperienceListClass::Vtable();
     list.RemoveAll();   // 0059D5C0
 }
 

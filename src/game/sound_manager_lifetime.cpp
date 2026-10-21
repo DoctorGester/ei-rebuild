@@ -16,6 +16,7 @@
 #include "ei/vcall.h"
 #include "lib/mfc_thread.h"
 #include "game_data.h"
+#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <new>
@@ -147,7 +148,6 @@ EI_REPLACE(0x006BA950, SoundStreamRead);
 
 namespace {
 
-constexpr std::uintptr_t kWaveSourceListVtable = std::uintptr_t(0x00744130);
 constexpr std::uintptr_t kCacheListVtable = std::uintptr_t(0x00744124);
 constexpr int kListBlockSize = 10;
 constexpr unsigned kMapBuckets = 100;
@@ -166,8 +166,8 @@ using AilVoidFn = void(__stdcall*)();
 AilVoidFn AilStartup() { return ei::GameData<AilVoidFn>(0x0073B7D4); }
 AilVoidFn AilShutdown() { return ei::GameData<AilVoidFn>(0x0073B7D0); }
 
-template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, std::uintptr_t vtableAddress) {
-    list.vtable = ei::GamePointer<void>(vtableAddress);
+template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, void* vtable) {
+    list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;
@@ -208,7 +208,7 @@ CSoundManager::CSoundManager() {
     streamReader.Construct();
     soundRegistry.Construct();
     registry0CC.Construct();
-    ConstructList(waveSources, kWaveSourceListVtable);
+    ConstructList(waveSources, mfc::impl::SoundListClass::Vtable());
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -224,7 +224,7 @@ CSoundManager::CSoundManager() {
                               reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
     libcrt::ConstructElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceConstruct),
                               reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
-    ConstructList(cacheList, kCacheListVtable);
+    ConstructList(cacheList, ei::GamePointer<void>(kCacheListVtable));
     // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
     cache.Construct(kMapBuckets, 0, 0, 0);
@@ -254,7 +254,7 @@ CSoundManager::~CSoundManager() {
     gameapi::DeleteCriticalSection(Lock(nameLock));
     markers2.FreeData();
     markers.FreeData();
-    waveSources.vtable = ei::GamePointer<void>(kWaveSourceListVtable);
+    waveSources.vtable = mfc::impl::SoundListClass::Vtable();
     waveSources.RemoveAll();
     registry0CC.Destroy();
     soundRegistry.Destroy();

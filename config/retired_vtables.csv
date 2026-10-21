@@ -81,6 +81,7 @@ vtable,slots,class,file,note
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
+0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F644,25,CParticleManager,src/game/effects.h,
@@ -93,6 +94,7 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
+0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
@@ -103,6 +105,7 @@ vtable,slots,class,file,note
 0073FE10,3,SmoothCopyArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' copies)
 0073FE1C,3,SmoothStepArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' steps)
 0073FE28,3,SmoothEdgeArrayClass,src/lib/mfc_slots.h,CArray (the path smoothing tables' edges)
+0073FF34,3,AttentionListClass,src/lib/mfc_slots.h,CList (AIAttention::Choose's list)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
@@ -110,6 +113,7 @@ vtable,slots,class,file,note
 007428A0,3,QuickEntryArrayClass,src/lib/mfc_slots.h,CArray (the HUD's quick item entries)
 00742F08,3,LinePtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's line pointers)
 00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
+00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,9,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,
@@ -118,9 +122,11 @@ vtable,slots,class,file,note
 00743BB4,13,CMaterial,src/game/material.h,
 00743C38,26,CMaterialManager,src/game/material.h,
 00743CB0,26,CTextureManager,src/game/texture.h,
+00743D18,3,TextureListClass,src/lib/mfc_slots.h,CList (the texture manager's list)
 00743D24,13,CTexture,src/game/texture.h,
 00744098,13,CMusicSystem,src/game/sound.h,
 007440F0,13,CSoundManager,src/game/sound.h,
+00744130,3,SoundListClass,src/lib/mfc_slots.h,CList (the sound manager's list)
 00744184,3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
 007441B4,3,TerrainAlignedArrayClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records with an aligned block)
 00744210,3,TerrainArrayAClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CBE60)

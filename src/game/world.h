@@ -87,9 +87,6 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
-// 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
-// (SendFreshObjects, world_map.cpp; world_zone.cpp).
-inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
 
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.

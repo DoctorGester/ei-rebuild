@@ -75,7 +75,7 @@ EI_REWRITTEN(0x005C0060, Sector::FreeOccluder);
 void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) {
-        sectors->objects = {ei::GamePointer<void>(kSectorObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->occluders.Construct(kSectorOccluderArrayVtable);
         ei::SetVtable(sectors, kSectorVtable);

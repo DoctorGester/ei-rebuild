@@ -19,6 +19,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/mfc_slots.h"
 
 #include <initializer_list>
 #include <new>
@@ -48,8 +49,8 @@ constexpr int kClientConstant228 = 10;
 // CList's constructor as inlined (or 0059A340 / 0056FD70): the instantiation's vtable, empty, no
 // blocks.
 template <typename T>
-void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
-    list.vtable = ei::GamePointer<void>(vtableAddress);
+void ConstructList(mfc::CList<T>& list, void* vtable) {
+    list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;
@@ -57,6 +58,8 @@ void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) {
     list.blocks = nullptr;
     list.blockSize = kListBlockSize;
 }
+template <typename T>
+void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) { ConstructList(list, ei::GamePointer<void>(vtableAddress)); }
 
 // An engine object's fields as its (inlined) constructor sets them, with the class's vtable.
 void ConstructEngineObject(CEngineObject* object, std::uintptr_t vtable) {
@@ -112,7 +115,7 @@ CWorldClient* CWorldClient::Construct() {
     countedA0_.Construct(kCountedArrayVtable);
     heroes_.Construct();
     objects_.Construct();
-    ConstructList(dynamicObjects_, reinterpret_cast<std::uintptr_t>(ObjectPtrListVtable()));
+    ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());
     dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
     screenEntries_.Construct();

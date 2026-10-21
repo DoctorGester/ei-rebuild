@@ -26,6 +26,7 @@
 #include "originals_library.h"
 #include "originals_core.h"
 #include "originals_ai.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -240,7 +241,7 @@ namespace {
 
 void CWorldServer::SendFreshObjects() {
     mfc::CTypedPtrList<CEngineObject> fresh;
-    fresh.vtable = ObjectPtrListVtable();
+    fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
     fresh.head = nullptr;
     fresh.tail = nullptr;
     fresh.count = 0;
@@ -285,7 +286,7 @@ void CWorldServer::SendFreshObjects() {
     state->WriteTo(header);
     static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
-    fresh.vtable = ObjectPtrListVtable();
+    fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
     fresh.RemoveAll();
 }
 

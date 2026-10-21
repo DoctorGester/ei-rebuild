@@ -217,7 +217,7 @@ void Sector::Destruct() {
     occluders.FreeData();
     units.vtable = mfc::PtrListVtable();
     units.RemoveAll();
-    objects.vtable = ei::GamePointer<void>(kSectorObjectListVtable);
+    objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
     objects.RemoveAll();
 }
 EI_REWRITTEN(0x005BFCD0, Sector::Destruct);
@@ -252,7 +252,7 @@ void CWorldClient::Destruct() {
     reinterpret_cast<stlp::vector<ScreenEntry>*>(&hits_)->FreeStorage();
     screenEntries_.Destroy();
     dynamicNodes_.Destroy();
-    dynamicObjects_.vtable = ObjectPtrListVtable();
+    dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
     dynamicObjects_.RemoveAll();
     objects_.Destroy();
     DestroySectorList(&heroes_);
