@@ -10,6 +10,18 @@
 
 namespace mfc::impl {
 
+// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
+// loop, 007085AF; here so the vectors build, which links no registration file, has it for StringArrayClass).
+void __fastcall SerializeStringArray(Strings::Array* self, void*, CArchive* ar) {
+    if (!ar->IsLoading()) {
+        ar->WriteCount(static_cast<unsigned long>(self->size));
+        for (int i = 0; i < self->size; ++i) StoreText(*ar, self->data[i]);
+    } else {
+        self->SetSize(static_cast<int>(ar->ReadCount()), -1);
+        for (int i = 0; i < self->size; ++i) LoadText(*ar, self->data[i]);
+    }
+}
+
 // ---- Constructors and destructors of arrays whose elements need nothing ---------------------------
 
 // The constructor: the vtable, the rest zero (22 instantiations).
@@ -19,7 +31,6 @@ EI_REWRITTEN(0x00475860, ArrayHeader<PosKeyArrayClass>::Construct);
 EI_REWRITTEN(0x00475BC0, ArrayHeader<MorphHeadArrayClass>::Construct);
 EI_REWRITTEN(0x00476930, ArrayHeader<NormalArrayClass>::Construct);
 EI_REWRITTEN(0x004BB000, ArrayHeader<PartySlotArrayClass>::Construct);
-EI_REWRITTEN(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);
 EI_REWRITTEN(0x004C59A0, ArrayHeader<ScriptIfThenArrayClass>::Construct);
 EI_REWRITTEN(0x004CD080, ArrayHeader<FloatArrayClass>::Construct);
 EI_REWRITTEN(0x004D5990, ArrayHeader<ArgFloatArrayClass>::Construct);
@@ -28,10 +39,6 @@ EI_REWRITTEN(0x00556850, ArrayHeader<AnimationStepsCopyClass>::Construct);
 EI_REWRITTEN(0x00556D70, ArrayHeader<MotionPointArrayClass>::Construct);
 EI_REWRITTEN(0x00557230, ArrayHeader<PointArrayClass>::Construct);
 EI_REWRITTEN(0x00557B60, ArrayHeader<AnimationStepsClass>::Construct);
-EI_REWRITTEN(0x0056FFE0, ArrayHeader<ExitArrayClass>::Construct);
-EI_REWRITTEN(0x005711C0, ArrayHeader<ClientMapArrayClass>::Construct);
-EI_REWRITTEN(0x005985C0, ArrayHeader<ObjectPtrArrayClass>::Construct);
-EI_REWRITTEN(0x005BD1C0, ArrayHeader<SectorArrayClass>::Construct);
 EI_REWRITTEN(0x005BD1E0, ArrayHeader<CellRowArrayClass>::Construct);
 EI_REPLACE(0x005C1760, ArrayHeader<IntArrayClass>::Construct);
 EI_REWRITTEN(0x005FAF80, ArrayHeader<UnitPtrArrayClass>::Construct);
@@ -80,7 +87,6 @@ EI_REWRITTEN(0x00539910, PathRecords::ConstructElements);
 EI_REWRITTEN(0x00512520, SoundRecords::ConstructElements);
 EI_REWRITTEN(0x00558AB0, AnimationSteps::ConstructElements);
 EI_REWRITTEN(0x004CEE80, QuestObjectives::ConstructElements);
-EI_REWRITTEN(0x004CC9B0, ScriptGroups::ConstructElements);
 EI_REWRITTEN(0x005124D0, Particles::ConstructElements);
 EI_REWRITTEN(0x0046F110, Plain8::ConstructElements);
 EI_REWRITTEN(0x004CD4A0, Plain8::ConstructElements);
@@ -133,7 +139,6 @@ EI_REWRITTEN(0x00453730, KeyFrames::ConstructElements);
 EI_REWRITTEN(0x004553F0, NamedDwords::ConstructElements);
 EI_REWRITTEN(0x004606A0, Exits3C::ConstructElements);
 EI_REWRITTEN(0x00460720, Allods::ConstructElements);
-EI_REWRITTEN(0x004607E0, MapRecords::ConstructElements);
 EI_REWRITTEN(0x004534F0, BoneLinkArrays::ConstructElements);
 EI_REWRITTEN(0x0045E180, Patrols::ConstructElements);
 EI_REWRITTEN(0x004CC870, Plain4::ConstructElements);

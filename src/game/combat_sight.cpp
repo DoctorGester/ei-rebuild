@@ -21,6 +21,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -262,11 +263,11 @@ EI_REWRITTEN(0x0054C2F0, CUnitServer::CanActFrom);
 namespace {
 void InitSteps(AnimationSteps* steps) {
     std::memset(steps, 0, sizeof(*steps));
-    steps->vtable = kAnimationStepsVtable;
+    steps->vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
 }
 
 void DestroySteps(AnimationSteps* steps) {
-    steps->vtable = kAnimationStepsBaseVtable;
+    steps->vtable = mfc::impl::AnimationStepsClass::Vtable();
     if (steps->steps) gamecrt::operator_delete(steps->steps);
 }
 
@@ -476,7 +477,7 @@ EI_REWRITTEN(0x0054CA40, CUnitServer::PlanAction);
 bool CUnitServer::CanPlanAction(const UnitAction* order) {
     OrderPlan plan;
     std::memset(&plan, 0, sizeof(plan));
-    plan.animation.vtable = kAnimationStepsVtable;
+    plan.animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     CEngineObject* target = order->target;
     if (IsUnit(target)) target->flags_ |= kFlagPlanned;
     bool result = PlanAction(order, &plan);

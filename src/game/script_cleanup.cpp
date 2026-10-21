@@ -10,6 +10,7 @@
 #include "originals_script.h"
 #include "world.h"
 #include "game_singletons.h"
+#include "game_arrays.h"
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
@@ -77,7 +78,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
         DestroyGroupVariables(vars);
         ScriptNamesDestruct(&vars.objectNames);
-        vars.objects.vtable = scriptvtable::kRefsBase;
+        vars.objects.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
         if (vars.objects.data) {
             gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
             gamecrt::operator_delete(vars.objects.data);
@@ -85,7 +86,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         ScriptNamesDestruct(&vars.stringNames);
         ScriptNamesDestruct(&vars.strings);
         ScriptNamesDestruct(&vars.floatNames);
-        vars.floats.vtable = scriptvtable::kFloatsBase;
+        vars.floats.vtable = mfc::impl::ScriptFloatsClass::Vtable();
         if (vars.floats.data) gamecrt::operator_delete(vars.floats.data);
     }
 }

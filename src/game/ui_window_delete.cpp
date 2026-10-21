@@ -30,8 +30,8 @@ void** InputSideBaseVtable() { return ei::GamePointer<void*>(0x007401D0); }
 void** ItemInfoPanelVtable() { return ei::GamePointer<void*>(0x007404DC); }
 void** ItemInfoPanelInputVtable() { return ei::GamePointer<void*>(0x007404A8); }
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // CArray<char*>
-void* PartyArrayVtable() { return ei::GamePointer<void>(0x007402AC); }       // the battle screen's party
-void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }       // CDWordArray
+void* PartyArrayVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }       // the battle screen's party
+void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }       // CDWordArray
 void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }   // CArray<ObjectiveExit>
 
 // An STLport vector's storage back to the node pool (its elements already destroyed).

@@ -26,6 +26,7 @@
 #include "originals_script.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -129,7 +130,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
     // Several targets: the units around the caster (or `from`), the requested target first.
     CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     UnitList units;
-    units.vtable = mfc::PtrListVtable();
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.count = 0;
     units.free = nullptr;
     units.tail = nullptr;
@@ -225,7 +226,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
         --targets;
     }
 
-    units.vtable = mfc::PtrListVtable();
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.RemoveAll();
 }
 

@@ -17,9 +17,6 @@ struct PlatformSet;   // game/world.h
 
 namespace gameslots {
 
-// A script group's destructor body as a free function (004C2290).
-void __fastcall GroupDestruct(ScriptGroup* group);
-
 // 00561840: CBridgeManager's slot 3 (Destroy): the face list emptied (Clear's body without its 1).
 void __fastcall BridgeManagerDestroy(PlatformSet* set);
 
@@ -138,7 +135,7 @@ inline void CopyLightning(ScriptLightning* to, const ScriptLightning* from) { *t
 
 // Command blocks (the commands' array header, then ScriptDecl's assignment), definitions, runs
 // (their four leading fields zero, then the variables), groups.
-inline void InitDecl(ScriptDecl* p) { mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&p->commands); }
+inline void InitDecl(ScriptDecl* p);   // defined below the tags
 inline void AssignDecl(ScriptDecl* to, const ScriptDecl* from) { to->ScriptDeclAssign(from); }
 inline void AssignDefinition(ScriptDefinition* to, const ScriptDefinition* from) { to->ScriptDefinitionAssign(from); }
 inline void InitRunTemporary(ScriptRun* p) {
@@ -292,4 +289,20 @@ struct EffectObjectArrayClass final
 struct CommandArrayClass
     : CompiledCollection<CommandArrayClass, &Commands::Destruct<CommandArrayClass>, &SerializeCArray<BuiltCommands>> {};
 
+} // namespace gameslots
+
+namespace mfc::impl {
+// A script block's commands (constructor of the command blocks, 004CEB20): derived from CommandArrayClass.
+struct ScriptCommandsClass final : gameslots::CommandArrayClass {
+    static void* Vtable() { return CompiledVtable<ScriptCommandsClass>(); }
+};
+// The script blocks (ScriptDecl, 24 bytes: the commands' array at +0) of the command block lists and arrays.
+using CommandBlock = WithArray<0x18, 0, ScriptCommandsClass>;
+using CommandBlocks = InitElements<CommandBlock, InitWithArray<0x18, 0, ScriptCommandsClass>>;
+using CommandBlockList = ListAbi<CommandBlock, CommandBlocks>;
+using CommandBlockArray = ArrayAbi<CommandBlock, CommandBlocks>;
+} // namespace mfc::impl
+
+namespace gameslots {
+inline void InitDecl(ScriptDecl* p) { mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&p->commands); }
 } // namespace gameslots

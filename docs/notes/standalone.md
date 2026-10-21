@@ -832,6 +832,33 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     PlatformList, Client / Client2 / Client3, NodeList, BlockCostList, AiMapList, WaypointList, StaticList, DwordMap,
     ScriptCommands): the shared base tags (mfc::PtrListVtable / DWordArrayVtable) and the element aliases that name them
     in mfc_array.h need their dependencies reordered first.
+- **Batch 11's families** (2026-10-21): 43 more container tags, 6,323 -> 6,194 code cells (6,218 after the 35 library tags,
+  then the 8 game ones), 76 slot registrations EI_REWRITTEN (62 + 14): the rest of mfc_array.h's and mfc_list.h's tags.
+  - **Library tags** (35, defined in mfc_slots.h after the element policies and the base tags PtrList / IntArray, which
+    the batch moved ahead of the users): IntArray, UnitPtrArray, ArgFloatArray, ScriptFloats, ScriptArea with the derived
+    ScriptAreaParts, ScriptIfThenArray, PartySlotArray, AiLookArray with AiLookRecordArray, SpriteArray, BoneLinkArray,
+    ArrayBase with WaypointArray, PointArray, AttackOptionArray, AnimationSteps with AnimationStepsCopy, CellRowArray,
+    StringArray, and the lists PtrList, ItemList, TempList, CellList, LootList, PlatformList, ClientList / 2 / 3, NodeList,
+    BlockCostList, AiMapList, WaypointList, StaticList, plus DwordMap. mfc_array.h and mfc_list.h only declare them
+    (the element policies and aliases name them), so a translation unit that calls `Tag::Vtable()` or instantiates an
+    alias over them includes lib/mfc_slots.h (MSVC instantiates the alias' element functions where the alias is
+    named: an incomplete tag fails there). Removed: lib/mfc.h's PtrListVtable / DWordArrayVtable, combat_plan.h's
+    kAnimationStepsVtable / kAnimationStepsBaseVtable, script.h's kFloatsBase / kStringsBase.
+  - **Game tags** (8, mfc::impl classes defined in the game header that has their elements): game_arrays.h (ExitArray with
+    the derived MapRecordItems, ObjectRefArray, ScriptGroup, the derived ObjectPtrArray), game_slots.h (the derived
+    ScriptCommands), record_arrays.h (ClientMapArray, SectorArray). The element aliases that name them moved with them
+    (MapRecords, ScriptGroups, SharedObject*, CommandBlock*): a lib header cannot name a tag it does not define. The lib
+    registrations over them (Construct of the arrays, ConstructElements / NewNode of the aliases, ExitTargets::Destruct)
+    moved to game_arrays.cpp, record_arrays.cpp (ClientMap) and game_slots.cpp. The Sector array's Construct is in
+    sector_map.cpp: its table's destructor is CSectorMap::DestructSectors, which tests/vectors does not link.
+    gameslots::GroupDestruct became gamearrays::DestructGroupBody (inline, so the vectors build links the tags).
+    Raw constants gone: flowdata::kExitArrayVtable / kExitArrayBaseVtable, world_construct.cpp's kZoneExitArrayVtable,
+    world_destructors.cpp's kWaterLevelsVtable, sector_map.h's kSectorArrayVtable, world.h's ObjectsVtable, script.h's
+    kRefs / kRefsBase and the literals in script_load.cpp, script_runtime_helpers.cpp and script_vars_append.cpp.
+  - **Left raw**: AreaList 0073F9E0 (game.exe's CSectorMap table 0073F9DC is listed with four slots in vtables.csv, so
+    the retirement check refuses a table that shares them), FloatArray 0073D3E8 (static_init.cpp stores it), the script variables' derived tables
+    (script.h's kFloats 0073D2E0, kStrings 0073D2D4, kGroups 0073D304, kIfThen 0073D430: not tags of the two headers),
+    and the batch 10 skips (0073D024, 0073FDEC, 0073FE34, 0073D46C, 0073FAE0, RefListA 0073FA4C).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
