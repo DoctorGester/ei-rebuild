@@ -49,7 +49,7 @@ constexpr float kMinComponent = 0.01f;                     // 0073C548
 // The world clock: whole ticks (FILD) and the fraction of the current one.
 float GameTickFraction() { return ei::GameData<const float>(0x007AFCA8); }
 // The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size (007441D0).
-float SunStepScale() { return ei::GameData<const float>(0x007C8964); }
+constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 float CellSize() { return 1.0f /*007441D0*/; }
 
 inline bool SignClear(float v) {
@@ -255,8 +255,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunSlopeY = static_cast<float>(up / y);
     sunRunX = static_cast<float>(x / up);
     sunRunY = static_cast<float>(y / up);
-    sunStepX = x87::fistp(static_cast<float>(terrain::SunStepScale() * x / terrain::CellSize()));
-    sunStepY = x87::fistp(static_cast<float>(terrain::SunStepScale() * y / terrain::CellSize()));
+    sunStepX = x87::fistp(static_cast<float>(terrain::kSunStepScale * x / terrain::CellSize()));
+    sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y / terrain::CellSize()));
     sun = light;
     if (lightInterval <= 0) {
         for (SectorCache::Node* node = sectorCache.head; node; node = node->next) node->data->built &= ~terrain::kLit;

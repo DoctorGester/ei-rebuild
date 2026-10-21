@@ -437,6 +437,19 @@ kinds given.
       kIdentityRotation 007A9C30, face_normal's kDegenerateNormal 007A9C98, weather_particles' five scalars
       007AED98-007AEDA8 and its seed tables 0078DEA4 / 0078DF24, and weather_noise's five sway curves
       007ABB98-007AED98 (one type, WeatherNoiseCurve; the draw evaluates a segment through MotionCubic).
+      C18l named the camera's pi / 2, zero vector and identity rotation (camera.h: 0079B2A4, 0079B5C8, 0079B5B8),
+      the scene loader's zero vector 0079B9B0 (scene_loader.h), the angle constants and unit vectors of ground_print
+      (007C8998 / 007C899C), sound_manager (007C8808), terrain_* (007C8908, 007C8930, 007C8964, the wave scales
+      007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
+      ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
+      zero its first dword). A product or quotient of two named constants that the original computes at run time
+      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are: 007AF3E8 and
+      007C53C4 store the address of the log stream 007C5810 (a constructed object, not yet a name), 007C2F24 is a
+      function-local guard (run-time state), 0079B2A0 (2 pi) and the folds that only game.exe's own code reads (the
+      per-window pi / 2 and 1 / 1 copies in 007C7B70-007C8844) are no hand code's; sky_object 007AA890 /
+      007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
+      (007AF0E0-007AF110, 007AF1C0-007AF238) and torch_spec 007AF2D0 wait for C19 batch 4's conversions.
+      gen_static_init reads a parenthesised negative literal in a fold; named_data takes a negative single number.
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
       initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
       initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no

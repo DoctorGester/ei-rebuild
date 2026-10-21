@@ -561,6 +561,9 @@ def stored_values(img, decoded):
         return values[a] if a in values else img.dword(a)
 
     def operand(text):
+        text = text.strip()
+        if text.startswith('(') and text.endswith(')') and text.count('(') == 1:   # a negative literal: (-0.3f /*addr*/)
+            text = text[1:-1]
         m = rdata.TAG.fullmatch(text.strip())
         if m:
             single = m.group(3) or m.group(1).rstrip(')').endswith(('f', 'F'))

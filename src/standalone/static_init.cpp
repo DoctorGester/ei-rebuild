@@ -576,9 +576,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0049E740);
     // 0049E760: stores; 4 left out
     d.Begin(0x0049E760);
-    // 0049EE60: stores
+    // 0049EE60: stores; 1 left out
     d.Begin(0x0049EE60);
-    d.Store(0x007A9D40, 0);
     // 0049F820: stores
     d.Begin(0x0049F820);
     d.Store(0x007AA570, 0);
@@ -2154,12 +2153,8 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x004013D0);
     // 00666CA0: stores; 3 left out
     d.Begin(0x00666CA0);
-    // 00666CC0: stores
+    // 00666CC0: stores; 4 left out
     d.Begin(0x00666CC0);
-    d.Store(0x007C8388, 0x3F800000);
-    d.Store(0x007C838C, 0);
-    d.Store(0x007C8390, 0);
-    d.Store(0x007C8394, 0);
     // 00666CF0: float fold
     d.Begin(0x00666CF0);
     d.StoreFloat(0x007C8384, 1.0f /*0074316C*/ / 1.0f /*00743168*/);
@@ -2455,9 +2450,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 006BE310: float fold
+    // 006BE310: float fold; 1 left out
     d.Begin(0x006BE310);
-    d.StoreFloat(0x007C8808, 3.1415927f /*007440D8*/ * 0.5f /*0073B86C*/);
     // 006B5C80: stores; 3 left out
     d.Begin(0x006B5C80);
     // 006BDD70: guarded atexit
@@ -2482,9 +2476,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BF430);
     // 006BF460: float fold; 1 left out
     d.Begin(0x006BF460);
-    // 006BF480: float fold
+    // 006BF480: float fold; 1 left out
     d.Begin(0x006BF480);
-    d.StoreFloat(0x007C8908, 1.0f /*0073B84C*/ / 15.0f /*0074417C*/);
     // 006BFA00: stores + atexit
     d.Begin(0x006BFA00);
     d.Store(0x007C88F8, 0);
@@ -2508,45 +2501,31 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 006C5340: float fold
+    // 006C5340: float fold; 1 left out
     d.Begin(0x006C5340);
-    d.StoreFloat(0x007C8930, 3.1415927f /*007441C8*/ * 0.5f /*0073B86C*/);
-    // 006C52D0: stores
+    // 006C52D0: stores; 3 left out
     d.Begin(0x006C52D0);
-    d.Store(0x007C8988, 0);
-    d.Store(0x007C898C, 0);
-    d.Store(0x007C8990, 0);
-    // 006C52F0: stores
+    // 006C52F0: stores; 4 left out
     d.Begin(0x006C52F0);
-    d.Store(0x007C8978, 0x3F800000);
-    d.Store(0x007C897C, 0);
-    d.Store(0x007C8980, 0);
-    d.Store(0x007C8984, 0);
     // 006C5320: float fold; 1 left out
     d.Begin(0x006C5320);
-    // 006C5360: float fold
+    // 006C5360: float fold; 1 left out
     d.Begin(0x006C5360);
-    d.StoreFloat(0x007C8970, 1.0f /*007441D0*/ * 0.3f /*0073C54C*/);
-    // 006C5380: float fold
+    // 006C5380: float fold; 1 left out
     d.Begin(0x006C5380);
-    d.StoreFloat(0x007C896C, 3.1415927f /*007441C8*/ * 0.14285715f /*0073CDCC*/);
-    // 006C53A0: float fold
+    // 006C53A0: float fold; 1 left out
     d.Begin(0x006C53A0);
-    d.StoreFloat(0x007C8968, d.Float(0x007C896C) * (-0.33333334f /*00742800*/));
-    // 006C5410: float fold
+    // 006C5410: float fold; 1 left out
     d.Begin(0x006C5410);
-    d.StoreFloat(0x007C8964, 1.0f /*007441D0*/ * 95.0f /*00741F08*/);
     // 006CE650: guarded atexit
     d.Begin(0x006CE650);
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 006CEC80: float fold
+    // 006CEC80: float fold; 1 left out
     d.Begin(0x006CEC80);
-    d.StoreFloat(0x007C8998, 3.1415927f /*00744240*/ + 3.1415927f /*00744240*/);
-    // 006CEC90: float fold
+    // 006CEC90: float fold; 1 left out
     d.Begin(0x006CEC90);
-    d.StoreFloat(0x007C899C, 3.1415927f /*00744240*/ * 0.5f /*0073B86C*/);
     // 006CEC30: stores; 3 left out
     d.Begin(0x006CEC30);
     // 006CEC50: stores; 4 left out

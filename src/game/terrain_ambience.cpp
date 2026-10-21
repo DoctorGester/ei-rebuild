@@ -67,7 +67,7 @@ constexpr double kTwoToMinus32 = 2.3283064370807974e-10;   // 0073C468
 
 float CellSize() { return 1.0f /*007441D0*/; }
 // pi / 2 (007C8930, a static initialiser from 007441C8 * 0.5).
-float HalfPi() { return ei::GameData<const float>(0x007C8930); }
+constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
@@ -93,8 +93,8 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     if (c > 1.0f) c = 1.0f;
     else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
     double angle = Acos(c);
-    if (angle > HalfPi()) angle = kPi - angle;
-    angle = kPercent / HalfPi() * angle;
+    if (angle > kHalfPi) angle = kPi - angle;
+    angle = kPercent / kHalfPi * angle;
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;
     return static_cast<float>(angle);
 }

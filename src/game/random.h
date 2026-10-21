@@ -9,8 +9,8 @@
 // must stay bit-exact. 0x814 bytes.
 class IsaacRandom {
 public:
-    // The game's generator (007A9D40).
-    static IsaacRandom& Global() { return ei::GameData<IsaacRandom>(0x007A9D40); }
+    // The game's generator (random.cpp).
+    static IsaacRandom& Global();
 
     // 004667F0. Next 32-bit random value.
     std::uint32_t Next();

@@ -61,6 +61,7 @@ address,size,name,file
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
 007A9C98,12,kDegenerateNormal,src/game/face_normal.cpp
+007A9D40,2068,g_random,src/game/random.cpp
 007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
 007AC598,2560,g_swayXByPlace,src/game/weather_noise.cpp
 007ACF98,2560,g_swayZByHeight,src/game/weather_noise.cpp
@@ -71,3 +72,15 @@ address,size,name,file
 007AEDA0,4,kSnowRise,src/game/weather_particles.cpp
 007AEDA4,4,kRainRise,src/game/weather_particles.cpp
 007AEDA8,4,kCellSize,src/game/weather_particles.cpp
+007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
+007C8808,4,kHalfPi,src/game/sound_manager.cpp
+007C8908,4,kWaterFalloff,src/game/terrain_lighting.cpp
+007C8930,4,kHalfPi,src/game/terrain_ambience.cpp
+007C8964,4,kSunStepScale,src/game/terrain_animation.cpp
+007C8968,4,kWaveSpeedScale,src/game/terrain_landscape.cpp
+007C896C,4,kWaveDirectionScale,src/game/terrain_landscape.cpp
+007C8970,4,kWaveHeightScale,src/game/terrain_landscape.cpp
+007C8978,16,kIdentityRotation,src/game/terrain_landscape.cpp
+007C8988,12,kZeroPosition,src/game/terrain_landscape.cpp
+007C8998,4,kTwoPi,src/game/ground_print.cpp
+007C899C,4,kHalfPi,src/game/ground_print.cpp

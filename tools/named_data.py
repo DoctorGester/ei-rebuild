@@ -66,6 +66,7 @@ TYPES = {
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
     'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
     'Vector3': 'fff', 'Quaternion': 'ffff',
+    'IsaacRandom': 'I' * 0x205,   # random.h: seeded_, count_, results_[256], memory_[256], a_, b_, c_
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
@@ -337,9 +338,10 @@ def definitions(sources=None):
             if m.group(6) == '{':
                 body = braced(s.raw, m.end() - 1)
             else:   # one pointer (its string literal(s)) or one number, up to the `;`
-                end = next((e.start() for e in re.finditer(r'"(?:\\.|[^"\\\n])*"|;', s.code[m.end() - 1:])
+                at = m.start(6)   # a number's sign included
+                end = next((e.start() for e in re.finditer(r'"(?:\\.|[^"\\\n])*"|;', s.code[at:])
                             if e.group() == ';'), None)
-                body = s.raw[m.end() - 1:m.end() - 1 + end] if end is not None else None
+                body = s.raw[at:at + end] if end is not None else None
             type_ = m.group(1) + ('*' if '*' in m.group(2) else '')
             start = max(s.code.rfind(c, 0, m.start(1)) for c in ';{}')   # where the declaration begins
             const = bool(re.search(r'\bconst(?:expr)?\b', s.code[start + 1:m.start(1)] + m.group(2)))
