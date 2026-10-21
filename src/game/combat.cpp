@@ -249,7 +249,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, std::int16_t* out) {
 EI_REPLACE_METHOD(0x0054BB20, CUnitServer::GetSpellDamage);
 
 CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
-    auto* item = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+    auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item) return nullptr;
     if (item->GetClassId() != kClassQuickItem) return nullptr;
     if (item->GetCategory() == 5 || item->GetCategory() == 8) return item;
@@ -259,7 +259,7 @@ EI_REPLACE_METHOD(0x0054B7C0, CUnitServer::SpellCarrier);
 
 bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
-    auto* item = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+    auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != kClassQuickItem) return false;
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
     return item->GetCategory() == 8;
@@ -268,7 +268,7 @@ EI_REPLACE_METHOD(0x0054B820, CUnitServer::IsScrollSource);
 
 void* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
-    auto* item = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+    auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != kClassQuickItem) return nullptr;
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return nullptr;
     return item->spell_;
@@ -279,7 +279,7 @@ bool CUnitServer::IsFighting() {
     if (action.kind == 4 || action.kind == 5) {
         void* spell = nullptr;
         if (action.source & kQuickItemSource) {
-            auto* item = static_cast<CItem*>(unit->GetQuickItem(action.source & ~kQuickItemSource));
+            auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
             if (item && item->GetClassId() == kClassQuickItem && (item->GetCategory() == 5 || item->GetCategory() == 8))
                 spell = item->spell_;
         } else {
@@ -300,7 +300,7 @@ EI_REPLACE_METHOD(0x0054B580, CUnitServer::IsFighting);
 bool CUnitServer::CanCast(const UnitAction* order) {
     std::uint32_t source = order->source;
     if (source & kQuickItemSource) {
-        auto* item = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
+        auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != kClassQuickItem) return false;
         if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
         void* spell = item->spell_;
@@ -644,7 +644,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         stats.flags |= 0x10;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
-        CEngineObject* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
+        CItem* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
                 if (attacker->type_ != kUnitTypeHero) {

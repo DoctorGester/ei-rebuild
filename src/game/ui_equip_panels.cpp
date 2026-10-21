@@ -23,7 +23,7 @@ constexpr int kTopicSecond = 3;
 constexpr int kTopicEntry = 1;
 
 // `item`'s place among the first `count` entries of `list`, or -1.
-int IndexIn(CEngineObject* const* list, int count, const CItem* item) {
+int IndexIn(CItem* const* list, int count, const CItem* item) {
     for (int i = 0; i < count; ++i)
         if (list[i] == item) return i;
     return -1;
@@ -87,11 +87,11 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     PartyUnitRecord* hero = ShownHero(owner_);
     if (region < kWeaponSlots) {
         *topic = kTopicWeapon;
-        if (region < static_cast<int>(hero->weaponCount)) return static_cast<CItem*>(hero->weapons[region]);
+        if (region < static_cast<int>(hero->weaponCount)) return hero->weapons[region];
     } else if (region < kQuickSlots) {
         *topic = kTopicSecond;
         int fromEnd = kQuickSlots - 1 - region;
-        if (fromEnd < static_cast<int>(hero->quickItemCount)) return static_cast<CItem*>(hero->quickItems[fromEnd]);
+        if (fromEnd < static_cast<int>(hero->quickItemCount)) return hero->quickItems[fromEnd];
     }
     if (!body_ || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
@@ -111,6 +111,6 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     if (region < 0 || region >= kQuickSlots) return nullptr;
     *topic = kTopicEntry;
     if (region >= static_cast<int>(hero->spellCount)) return nullptr;
-    return static_cast<CItem*>(hero->spells[region]);
+    return hero->spells[region];
 }
 EI_REPLACE_METHOD(0x00622D40, CHeroQuickStrip::ItemAt);

@@ -46,7 +46,7 @@ void SetDefaults(PartyUnitRecord& record) {
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
     for (mfc::CString& text : texts) new (&text) mfc::CString();
-    for (CEngineObject*** data : {&weapons, &quickItems, &armor, &spells}) {
+    for (CItem*** data : {&weapons, &quickItems, &armor, &spells}) {
         AlignedPtrArray& list = ItemList(*data);
         list.data = nullptr;
         list.growBy = 0;

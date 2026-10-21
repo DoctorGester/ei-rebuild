@@ -40,7 +40,7 @@ constexpr int kExpensive = 12000;           // cost above which a step is flagge
 } // namespace
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
-    mfc::CTypedPtrList<CEngineObject> nearby{};
+    mfc::CTypedPtrList<CUnit> nearby{};
     nearby.vtable = ei::GamePointer<void>(0x0073D454);
     nearby.blockSize = 10;
     float unitHeight = unit->standingHeight;
@@ -48,7 +48,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
 
     CUnit* blocker = nullptr;
     for (auto* node = nearby.head; node;) {
-        CUnit* other = static_cast<CUnit*>(node->data);
+        CUnit* other = node->data;
         node = node->next;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;

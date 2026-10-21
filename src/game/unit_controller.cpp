@@ -16,7 +16,7 @@ constexpr std::uint32_t kFlagRelationsChanged = 0x80000;   // flags_
 constexpr int kPartRelations = 11;                          // MarkChanged parts
 constexpr int kPartPath = 10;
 
-void ReleaseSlots(CEngineObject** slots, int count) {
+void ReleaseSlots(CItem** slots, int count) {
     for (int i = 0; i < count; ++i) {
         if (slots[i]) slots[i]->Release();
         slots[i] = nullptr;

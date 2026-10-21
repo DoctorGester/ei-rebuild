@@ -184,7 +184,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         double best = kFar;
         Vector3 nearest{};      // the original leaves it unset when there is none (then 1e30 is never inside)
         for (auto* node = brain->memory.visible.head; node; node = node->next) {
-            auto* other = static_cast<CUnit*>(node->data);
+            auto* other = node->data;
             if (!other->player) continue;
             const Vector3* me = PositionOf(brain->owner->unit);
             double oy = static_cast<double>(me->y) - other->position.y;

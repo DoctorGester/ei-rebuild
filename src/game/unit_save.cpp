@@ -49,7 +49,8 @@ void WriteString(CStream* stream, const char* text) {
     stream->Write(text, static_cast<unsigned>(std::strlen(text) + 1));
 }
 
-void WriteItemIds(CStream* stream, CEngineObject* const* items, int count) {
+template <typename T>
+void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
@@ -74,17 +75,17 @@ CWorld* ContextWorld(CUnit* unit) { return static_cast<CWorld*>(unit->ManagerCon
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
 CEngineObject* ReadItem(CUnit* unit, CStream* stream) {
-    CEngineObject* manager = ContextWorld(unit)->ItemFactory();
+    CBaseManager* manager = ContextWorld(unit)->ItemFactory();
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* item = static_cast<CBaseManager*>(manager)->FindObject(id);
+    CEngineObject* item = manager->FindObject(id);
     if (item) ++item->refCount_;
     return item;
 }
 
-void ReadItems(CUnit* unit, CStream* stream, CEngineObject** slots, int count) {
-    for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
+void ReadItems(CUnit* unit, CStream* stream, CItem** slots, int count) {
+    for (int i = 0; i < count; ++i) slots[i] = static_cast<CItem*>(ReadItem(unit, stream));
 }
 
 void ZeroSlots(CEngineObject** slots, int count) {

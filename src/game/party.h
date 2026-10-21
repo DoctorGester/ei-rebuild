@@ -32,7 +32,8 @@ struct PartyUnitRecord;   // unit.h
 
 // A unit record's item list (its data pointer, then count, capacity and grow-by) as the aligned
 // pointer array it is.
-inline AlignedPtrArray& ItemList(CEngineObject**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
+template <typename T>
+inline AlignedPtrArray& ItemList(T**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty*& LoadingParty() { return ei::GameData<CParty*>(0x007C8344); }

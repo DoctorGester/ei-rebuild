@@ -144,7 +144,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     case 7:
         if (hero->weaponIndex < hero->weaponCount) {
             info->kind = kWeapon;
-            info->weapon = static_cast<CItem*>(hero->weapons[hero->weaponIndex]);
+            info->weapon = hero->weapons[hero->weaponIndex];
             info->text = row == 6 ? kAttack : kDefence;
         }
         break;

@@ -145,7 +145,7 @@ void ClearAction(UnitAction* order) {
 }
 
 // A CPtrList on the stack (vtable 0073D454), as 005468D0 fills it.
-using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
+using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 } // namespace
 
 // --- Small helpers -----------------------------------------------------------------------------

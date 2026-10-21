@@ -435,7 +435,7 @@ double CWorldClient::ClientSurfaceHeight(float x, float y) {
 }
 
 void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
-    CEngineObject* object = static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
+    CEngineObject* object = MapObjectManager()->FindObject(static_cast<unsigned>(id));
     if (!object || object->GetClassId() != world::kClassUnit) return;
     if (numbers_) numbers_->Add(id, value, kind);
 }
@@ -585,9 +585,9 @@ void CWorldClient::ClearMaps() {
     }
     SessionPlayerClear(Session());
     if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
-    static_cast<CBaseManager*>(manager3C_)->FreeSpares();
-    static_cast<CBaseManager*>(manager40_)->FreeSpares();
-    static_cast<CBaseManager*>(manager44_)->FreeSpares();
+    manager3C_->FreeSpares();
+    manager40_->FreeSpares();
+    manager44_->FreeSpares();
 }
 
 namespace {
@@ -596,7 +596,7 @@ using Collect = HitCollector* (HitCollector::*)(std::uint8_t*, std::uint8_t*, vo
 CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.finish = hits.start;   // erase(begin, end): __copy of nothing
-    CBaseManager* manager = static_cast<CBaseManager*>(client->MapObjectManager());
+    CBaseManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
     (functor.*collect)(reinterpret_cast<std::uint8_t*>(screen.head->next), reinterpret_cast<std::uint8_t*>(screen.head),
@@ -641,7 +641,7 @@ CEngineObject* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
     while (object->GetClassId() != world::kClassUnit) {
         do {
             if (++client->hitCursor_ == client->hits_.finish) return nullptr;
-            object = static_cast<CBaseManager*>(client->manager40_)->FindObject(client->hitCursor_->objectId);
+            object = client->manager40_->FindObject(client->hitCursor_->objectId);
         } while (!object);
     }
     return object;
@@ -663,7 +663,7 @@ CEngineObject* CWorldClient::UnitAt2(const long* point) {
 
 void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
     for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
-        CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(node->data.objectId);
+        CEngineObject* object = manager40_->FindObject(node->data.objectId);
         if (!object) continue;
         if (!MapObjectOf(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
         SectorList::Insert(out->End(), object);
@@ -714,7 +714,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                 parts.SetAtGrow(parts.GetSize(), name);
             }
         }
-        auto* manager = static_cast<CBaseManager*>(MapObjectManager());
+        auto* manager = MapObjectManager();
         auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
         auto* prototype = reinterpret_cast<std::uint8_t*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
@@ -743,7 +743,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
-            CEngineObject* armour = record->armor[j];
+            CItem* armour = record->armor[j];
             if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) static_cast<CUnit*>(unit)->EquipArmour(armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
@@ -1059,7 +1059,7 @@ void Unhighlight(CEngineObject* object) {
 void CWorldClient::Deselect(CEngineObject* object) {
     stlp::list<void*>& selected = list7BC_;
     using Node = stlp::list<void*>::Node;
-    auto* objects = static_cast<CBaseManager*>(manager40_);
+    auto* objects = manager40_;
     if (!object) {
         for (Node* node = selected.head->next; node != selected.head; node = node->next) {
             CEngineObject* found = objects->FindObject(static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(node->data)));
@@ -1259,7 +1259,7 @@ int CWorldClient::Setup() {
     zoneName_ = worlddata::GipathText();
 
     manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
-    static_cast<CBaseManager*>(manager44_)->Init(this);
+    manager44_->Init(this);
     textureManager_ = MakeCounted<CTextureManager>(0xF0, ConstructOn<CTextureManager, &CTextureManager::Construct>);
     textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
     manager188_ = MakeCounted<CBaseManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
@@ -1391,7 +1391,7 @@ int CWorldClient::Setup() {
 // ---- References for a zone load (005630B0) -------------------------------------------------------
 
 void CWorldClient::ReferenceItemsAndSpells() {
-    if (ItemFactory()) ReferenceEveryObject(static_cast<CBaseManager*>(ItemFactory()));
+    if (ItemFactory()) ReferenceEveryObject(ItemFactory());
     // The original tests the item factory again before walking the spells.
     if (ItemFactory()) ReferenceEveryObject(SpellManager());
 }
@@ -1414,8 +1414,8 @@ void ReleaseEveryObject(CBaseManager* manager) {
 
 void CWorldClient::ReleaseItemsAndSpells() {
     if (ItemFactory()) {
-        ReleaseEveryObject(static_cast<CBaseManager*>(ItemFactory()));
-        static_cast<CBaseManager*>(ItemFactory())->DestroyAll();
+        ReleaseEveryObject(ItemFactory());
+        ItemFactory()->DestroyAll();
     }
     if (SpellManager()) {
         ReleaseEveryObject(SpellManager());
@@ -1430,8 +1430,8 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     if (block->Size() != 0) {
         manager4C_->Load(block);
         itemManager_->Load(block);
-        static_cast<CBaseManager*>(manager4C_)->LoadObjects(block);
-        static_cast<CBaseManager*>(itemManager_)->LoadObjects(block);
+        manager4C_->LoadObjects(block);
+        itemManager_->LoadObjects(block);
         ReferenceItemsAndSpells();
     }
     return 1;
@@ -1466,7 +1466,7 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
     block->ok_ = 1;
     if (!LoadManagerObjects(SpellManager(), block)) return 0;
-    return LoadManagerObjects(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
+    return LoadManagerObjects(ItemFactory(), block) != 0;
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 

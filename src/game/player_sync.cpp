@@ -293,7 +293,7 @@ int CPlayerServer::SendPartyState() {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto* node = BrainOf(unit)->memory.nearby.head; node != nullptr;) {
-                auto* other = static_cast<CUnit*>(node->data);
+                auto* other = node->data;
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
                 if (BrainOf(other)->AggressionEnemy() == unit) refreshPending_ = 2;

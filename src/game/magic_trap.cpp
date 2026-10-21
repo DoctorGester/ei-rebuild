@@ -42,11 +42,11 @@ CMapObject* AsMapObject(CEngineObject* unit) { return static_cast<CMapObject*>(u
 bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 
 // The units inside (+0x268): an MFC CList whose elements are counted references.
-using VictimList = mfc::CTypedPtrList<CEngineObject>;
+using VictimList = mfc::CTypedPtrList<CUnit>;
 using VictimNode = VictimList::Node;
 
 // MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
-using PtrList = mfc::CTypedPtrList<CEngineObject>;
+using PtrList = mfc::CTypedPtrList<CUnit>;
 using PtrNode = PtrList::Node;
 PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
@@ -77,7 +77,7 @@ bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
     return false;
 }
 
-void Append(PtrList* list, CEngineObject* unit) {
+void Append(PtrList* list, CUnit* unit) {
     PtrNode* node = list->NewNode(list->tail, nullptr);
     node->data = unit;
     if (list->tail) list->tail->next = node;
@@ -109,7 +109,7 @@ void MagicTrap::UpdateVictims() {
     FindTrapVictims(context, &area, sides, &found);
     for (PtrNode* node = found.head; node;) {
         PtrNode* next = node->next;
-        CEngineObject* unit = node->data;
+        CUnit* unit = node->data;
         VictimNode* known = victims->head;
         while (known && known->data != unit) known = known->next;
         if (!known) {
@@ -129,8 +129,8 @@ void MagicTrap::UpdateVictims() {
 EI_REPLACE_METHOD(0x0052A680, MagicTrap::UpdateVictims);
 
 void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
-                                mfc::CTypedPtrList<CEngineObject>* out) {
-    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+                                mfc::CTypedPtrList<CUnit>* out) {
+    using UnitList = mfc::CTypedPtrList<CUnit>;
     out->RemoveAll();
     CSectorMap* sectors = static_cast<CWorldServer*>(context)->Sectors();
     UnitList found{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
@@ -139,10 +139,10 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
         Vector3 point = {circle.x, circle.y, 0.0f};
         sectors->FindUnitsInRadius(&point, &found, circle.radius);
         for (UnitList::Node* node = found.head; node;) {
-            CEngineObject* unit = node->data;
+            CUnit* unit = node->data;
             node = node->next;
             if (IsDead(unit)) continue;
-            int side = static_cast<CUnit*>(unit)->side;
+            int side = unit->side;
             if (sides & (1u << (side & 31))) out->AddTail(unit);   // SHL by CL: the count is taken mod 32
         }
     }
@@ -157,8 +157,8 @@ constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell +0x3C (targetFlags
 constexpr float kFar = 1e30f;                        // 0073E73C, a squared distance
 } // namespace
 
-void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
-    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
+    using UnitList = mfc::CTypedPtrList<CUnit>;
     if (units->count == 0 || !spell) return;
     const Vector3& origin = position;
     Vector3 from = {origin.x, origin.y, origin.z};
@@ -174,9 +174,9 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
     } else {
         if (singleTarget != 0) {
             if (!units->head) return;
-            CEngineObject* closest = nullptr;
+            CUnit* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
-                CEngineObject* unit = node->data;
+                CUnit* unit = node->data;
                 float dx = AsMapObject(unit)->position.x - origin.x;
                 float dy = AsMapObject(unit)->position.y - origin.y;
                 float dz = AsMapObject(unit)->position.z - origin.z;
@@ -189,7 +189,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         }
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
-            CEngineObject* unit = node->data;
+            CUnit* unit = node->data;
             TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
                                    &AsMapObject(unit)->position, 0);
             node = next;

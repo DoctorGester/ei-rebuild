@@ -825,8 +825,8 @@ public:
     bool RemoveFromSectors(CEngineObject* object);
     // 004BA0E0 (RET 8). CSectorMap::Move, through its address (Rebirth patches it; AL).
     bool MoveInSectors(CEngineObject* object, const Vector3* position);
-    // 004BA100 (RET 0xC). CSectorMap::FindUnitsInRadius into `result` (a CTypedPtrList<CEngineObject>).
-    void FindUnitsInRadius(const Vector3* position, void* result, float radius);
+    // 004BA100 (RET 0xC). CSectorMap::FindUnitsInRadius into `result` (a CTypedPtrList<CUnit>).
+    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
 
     // 005B80F0. Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).

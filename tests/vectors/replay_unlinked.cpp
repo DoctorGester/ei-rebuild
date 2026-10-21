@@ -68,7 +68,7 @@ mapspec::Behaviour* __fastcall mapspec::BehaviourConstruct(mapspec::Behaviour*) 
 void __fastcall mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
-void CSectorMap::FindUnitsInRadius(const Vector3*, mfc::CTypedPtrList<CEngineObject>*, float)
+void CSectorMap::FindUnitsInRadius(const Vector3*, mfc::CTypedPtrList<CUnit>*, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
 CRefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")

@@ -155,7 +155,7 @@ struct LocalUnitMotion {
 using SpotArray = mfc::CArray<float[3]>;
 
 // A CPtrList on the stack (vtable 0073D454, blocks of 10).
-using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
+using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 
 // The messages of a unit's player (CPlayer::connection_).
 void* PlayerConnection(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }

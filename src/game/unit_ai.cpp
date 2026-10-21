@@ -62,7 +62,8 @@ GameOstream*& ConsoleStream() { return ei::GameData<GameOstream*>(0x007C54E8); }
 
 
 // 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
-void DestructRefs(CEngineObject** refs, int count) {
+template <typename T>
+void DestructRefs(T** refs, int count) {
     gamearrays::ObjectRefs::DestructElements(reinterpret_cast<ScriptObjectRef*>(refs), count);
 }
 
@@ -153,7 +154,7 @@ void AIBrain::Think() {
     CUnit* unit = owner->unit;
     memory.seesEnemy = 0;
     for (auto* node = memory.visible.head; node;) {
-        CEngineObject* other = node->data;
+        CUnit* other = node->data;
         node = node->next;
         if (unit->IsHostileTo(reinterpret_cast<CUnit*>(other)) && IsGone(other) == 0) {
             memory.seesEnemy = 1;
@@ -580,6 +581,6 @@ void AIBrain::SetSeen(CEngineObject* object) {
         CallAllies(&owner->unit->position);
     }
     if (!alerted && alertMode == 1) alerted = 1;
-    if (object && object->GetClassId() == kClassUnit) memory.ForceSee(owner->unit, object);
+    if (object && object->GetClassId() == kClassUnit) memory.ForceSee(owner->unit, static_cast<CUnit*>(object));
 }
 EI_REPLACE_METHOD(0x005D7E90, AIBrain::SetSeen);

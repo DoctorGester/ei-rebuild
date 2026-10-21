@@ -38,13 +38,14 @@ namespace {
 using Construct = void* (__fastcall*)(void*);
 
 // operator new, the constructor (null without memory), an optional vtable, the reference.
-CEngineObject* Make(std::size_t size, Construct construct, const void* vtable) {
+template <typename R = CEngineObject>
+R* Make(std::size_t size, Construct construct, const void* vtable) {
     void* memory = gamecrt::operator_new(size);
-    CEngineObject* object = nullptr;
+    R* object = nullptr;
     if (memory) {
-        object = static_cast<CEngineObject*>(construct(memory));
+        object = static_cast<R*>(construct(memory));
         if (vtable) {
-            object = static_cast<CEngineObject*>(memory);
+            object = static_cast<R*>(memory);
             ei::SetVtable(object, vtable);
         }
     }
@@ -53,7 +54,7 @@ CEngineObject* Make(std::size_t size, Construct construct, const void* vtable) {
 }
 
 // A manager attached to the world (its slot 13), after the world holds it.
-void Attach(CEngineObject* manager, CWorld* world) { static_cast<CBaseManager*>(manager)->Init(world); }
+void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
 } // namespace
 
@@ -69,21 +70,21 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kPlayerListVtable));
+    world->players_ = Make<CBaseManager>(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kPlayerListVtable));
     Attach(world->players_, world);
-    world->manager40_ = Make(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
+    world->manager40_ = Make<CBaseManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
     Attach(world->manager40_, world);
-    world->manager3C_ = Make(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
+    world->manager3C_ = Make<CBaseManager>(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kTimedObjectsVtable));
+    world->manager48_ = Make<CBaseManager>(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, ei::GamePointer<void>(worlddata::kTimedObjectsVtable));
     Attach(world->manager48_, world);
     world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
     world->manager50_->Create();
-    world->manager4C_ = Make(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
+    world->manager4C_ = Make<CBaseManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
     Attach(world->manager4C_, world);
     world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
     world->manager58_->Create();
-    world->itemManager_ = Make(CItemManager::kSize, ConstructOn<CResourceManager, &CResourceManager::Construct>,   // 00674D90
+    world->itemManager_ = Make<CBaseManager>(CItemManager::kSize, ConstructOn<CResourceManager, &CResourceManager::Construct>,   // 00674D90
                                ei::GamePointer<void>(CItemManager::kVtableAddress));
     Attach(world->itemManager_, world);
 
@@ -133,6 +134,6 @@ CUnit* CWorld::FindUnit(int id) {
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
 
 CEngineObject* CWorld::FindMapObject(int id) {
-    return static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
+    return MapObjectManager()->FindObject(static_cast<unsigned>(id));
 }
 EI_REPLACE_METHOD(0x0055FAE0, CWorld::FindMapObject);

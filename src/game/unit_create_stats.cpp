@@ -519,9 +519,9 @@ float LevelAsFloat(const UnitStats* stats, int index) {
 
 // The skill bonus byte (skill 0 or 1) of the unit's weapon in hand, or 0.
 float WeaponBonus(CUnit* unit, int skill) {
-    CEngineObject* weapon = unit->GetWeapon(unit->activeWeapon);
+    CItem* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return kZero;
-    const auto* record = reinterpret_cast<const itemdb::WeaponRecord*>(static_cast<CItem*>(weapon)->GetPrototype());
+    const auto* record = reinterpret_cast<const itemdb::WeaponRecord*>(weapon->GetPrototype());
     return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
 }
 } // namespace
