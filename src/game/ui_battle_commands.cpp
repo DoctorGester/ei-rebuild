@@ -273,7 +273,7 @@ EI_REWRITTEN(0x00637750, CBattleScreen::UseAtPoint);
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
-    auto* unit = static_cast<CUnit*>(TheObjectManager()->FindObject(id));
+    CUnit* unit = UnitWithId(TheObjectManager(), id);
     if (!unit) return;
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));
@@ -299,7 +299,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
             auto post = [this](const char* part) {
                 CHudTopPanel* top = topPanel_;
                 top->PageText(0) += part;
-                if (top->page_ == 0) static_cast<CUiScrollText*>((void*)top->owner_->children_.data[9])->AddText(part);
+                if (top->page_ == 0) top->owner_->MessageLog()->AddText(part);
             };
             post(line);
             post(text);

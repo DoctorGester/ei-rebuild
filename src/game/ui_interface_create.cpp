@@ -39,7 +39,7 @@ void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 
 // A new CFont without a handle (null when the memory cannot be had).
 ui_gdi::GameFont* NewFont() {
-    auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(sizeof(ui_gdi::GameFont)));
+    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (!font) return nullptr;
     font->handle = nullptr;
     font->vtable = FontVtable();
@@ -119,10 +119,10 @@ void CInterface3D::Create(CTextureDevice* device) {
 
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
-    auto* window = static_cast<console::ConsoleWindow*>(gamecrt::operator_new(sizeof(console::ConsoleWindow)));
+    auto* window = gamecrt::operator_new_as<console::ConsoleWindow>();
     console_ = window ? window->Construct(&width_) : nullptr;
     DebugInfoPanel()->Init(this);
-    auto* chat = static_cast<CChatOverlay*>(gamecrt::operator_new(sizeof(CChatOverlay)));
+    auto* chat = gamecrt::operator_new_as<CChatOverlay>();
     root_ = chat ? chat->Construct(this) : nullptr;
     mouseX_ = 0;
     mouseCapture_ = nullptr;
@@ -134,7 +134,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     queuedWindow_ = nullptr;
     drawing_ = true;
     mouseY_ = 0;
-    auto* fade = static_cast<CScreenFade*>(gamecrt::operator_new(sizeof(CScreenFade)));
+    auto* fade = gamecrt::operator_new_as<CScreenFade>();
     fade_ = fade ? fade->Construct() : nullptr;
     hudPanelsIn_[0] = 0;
     hudPanelsIn_[1] = 0;

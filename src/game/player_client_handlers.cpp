@@ -32,7 +32,6 @@ namespace {
 
 constexpr int kStateLoggedIn = 2;
 constexpr int kGameStateBetweenZones = 3;
-constexpr int kUnitClassId = 0x50;
 constexpr int kPlatformClassA = 0x54;
 constexpr int kPlatformClassB = 0x5D;
 constexpr std::uint32_t kFlagGone = 1;              // a removed object's flags_
@@ -247,7 +246,7 @@ int CPlayerClient::OnUnitDied() {
     int id;
     in_.Read(&id, 4);
     CEngineObject* object = TheObjectManager()->FindObject(static_cast<unsigned>(id));
-    if (object && object->GetClassId() == kUnitClassId) static_cast<CUnit*>(object)->Controller()->Died();
+    if (CUnit* unit = UnitOrNull(object)) unit->Controller()->Died();
     return 1;
 }
 

@@ -450,10 +450,8 @@ void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
 
 void CWorldClient::LoadUnitFaces() {
     for (SectorListNode* node = objects_.head->next; node != objects_.head; node = node->next) {
-        CEngineObject* object = node->data;
-        if (object->GetClassId() != world::kClassUnit) continue;
-        if (!node->data) continue;   // the original tests the pointer after the class call
-        static_cast<CUnit*>(node->data)->ClientController()->LoadFaceTexture();
+        // The original tests the pointer after the class call (the list holds no null).
+        if (CUnit* unit = UnitOrNull(node->data)) unit->ClientController()->LoadFaceTexture();
     }
 }
 

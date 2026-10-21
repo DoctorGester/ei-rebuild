@@ -150,7 +150,7 @@ namespace {
 
 // A texture holder as 004EFA60 starts one (vtable, device, no surface yet), on the game's heap.
 CDXSurface* StartTextureHolder(CTextureDevice* device) {
-    auto* holder = static_cast<CDXSurface*>(gamecrt::operator_new(sizeof(CDXSurface)));
+    auto* holder = gamecrt::operator_new_as<CDXSurface>();
     if (!holder) return nullptr;
     holder->refCount = 0;
     holder->result = 0;

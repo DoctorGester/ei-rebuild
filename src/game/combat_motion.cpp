@@ -403,7 +403,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             // A pause: an emote of its +1 byte (passed as the misaligned dword at step + 1).
             std::uint32_t value;
             std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
-            static_cast<AnimationSteps*>((void*)&steps)->AddEmote((int)value);
+            steps.AddEmote((int)value);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
             steps.Add(*blank.Construct());

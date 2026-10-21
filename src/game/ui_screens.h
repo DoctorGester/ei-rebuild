@@ -933,7 +933,7 @@ static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);
 static_assert(offsetof(CUiScrollingSurface, speed_) == 0x48);
 static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
-class CCreditsScreen {
+class CCreditsScreen : public CUiContainer {
 public:
     void OnLButtonDown(int flags, int x, int y);   // 0062BFE0
     void OnKeyDown(int key, int repeat, int flags);   // 0062C010
@@ -962,7 +962,6 @@ public:
     // closed (005DBF70).
     void OnMessageResult(int result);
 
-    CUiContainer window;
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written

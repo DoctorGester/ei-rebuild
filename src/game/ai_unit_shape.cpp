@@ -23,7 +23,7 @@ void SetVtable(CUnitShape* shape, std::uintptr_t vtable) { ei::SetVtable(static_
 // operator new and the counted header's constructor: no references, no flags (the original
 // writes them before it tests the allocation).
 CUnitShape* NewShape() {
-    auto* shape = static_cast<CUnitShape*>(gamecrt::operator_new(sizeof(CUnitShape)));
+    auto* shape = gamecrt::operator_new_as<CUnitShape>();
     shape->refs_ = 0;
     shape->flags6_ = 0;
     shape->flags7_ = 0;

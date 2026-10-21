@@ -164,7 +164,7 @@ void AssignTexture(CTexture** slot, CTexture* value) {
 
 // The material's constructor, inlined by 0051C3D0: the counted root's fields, then its own.
 WoundsMaterial* NewWoundsMaterial() {
-    auto* material = static_cast<WoundsMaterial*>(gamecrt::operator_new(sizeof(WoundsMaterial)));
+    auto* material = gamecrt::operator_new_as<WoundsMaterial>();
     if (!material) return nullptr;
     material->refCount = 0;
     ei::SetVtable(material, WoundsMaterial::kRootVtableAddress);

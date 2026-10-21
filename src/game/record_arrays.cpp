@@ -116,7 +116,7 @@ void AssignSubCalls(ScriptSubCalls* self, const ScriptSubCalls* source) {
 void InitSubCall(ScriptSubCall* p) {
     p->type = 0;
     p->argIndex = 0;
-    auto* cmd = static_cast<SSCCmd*>(gamecrt::operator_new(sizeof(SSCCmd)));
+    auto* cmd = gamecrt::operator_new_as<SSCCmd>();
     p->cmd = cmd ? cmd->Construct() : nullptr;
 }
 

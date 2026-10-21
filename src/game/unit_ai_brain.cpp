@@ -46,7 +46,7 @@ const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 // allocation) and its vtable installed.
 template <typename Mode>
 Mode* NewMode(void* vtable) {
-    auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
+    auto* mode = gamecrt::operator_new_as<Mode>();
     if (mode) {
         mode->refs = 0;
         mode->refsHigh = 0;

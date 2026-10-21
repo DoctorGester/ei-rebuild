@@ -72,8 +72,8 @@ constexpr int kCombatInfoSlot = 50;
 
 // The speed shown: (00742408 * speed) * 00742AEC unrounded, the speed from 0052FAF0 (mode 3) for a
 // unit outside the group, else from 0052FA20.
-double ShownSpeed(void* unit, int outsideGroup) {
-    const double speed = outsideGroup ? static_cast<CUnit*>(unit)->MoveSpeedFor(3) : static_cast<CUnit*>(unit)->MoveSpeed2();
+double ShownSpeed(CUnit* unit, int outsideGroup) {
+    const double speed = outsideGroup ? unit->MoveSpeedFor(3) : unit->MoveSpeed2();
     return static_cast<double>(1.0f /*00742408*/) * speed * 7.5f /*00742AEC*/;
 }
 

@@ -264,7 +264,7 @@ void CEffectParticle::Reset() {
 
 Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
-    CEngineObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
+    CMapObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
     if (static_cast<const ScriptGroup*>(group)->Contains(object) == 0) {
         // Not in the group: far away.
@@ -273,7 +273,7 @@ Vector3* CEffectParticle::Position(void* group) {
         worldPosition_.z = 0.0f;
         return &worldPosition_;
     }
-    const Vector3& at = static_cast<CTransformObject*>(object)->localPosition_;
+    const Vector3& at = object->localPosition_;
     float x = localPosition_.x + at.x;
     float y = at.y + localPosition_.y;
     float z = at.z + localPosition_.z;
@@ -573,9 +573,9 @@ void CEffectLightning::Reset() {
 }
 
 void CEffectLightning::UpdateEnds() {
-    CEngineObject* target = WorldOf(this)->ObjectWithId(toObject_);
+    CMapObject* target = WorldOf(this)->ObjectWithId(toObject_);
     if (target != nullptr) {
-        std::memcpy(&to_, &static_cast<CTransformObject*>(target)->localPosition_, sizeof(Vector3));
+        std::memcpy(&to_, &target->localPosition_, sizeof(Vector3));
         to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
     CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);

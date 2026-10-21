@@ -143,7 +143,7 @@ void CBattleScreen::Create() {
     }
 
     // The screen's own input handler (vtable 00741154, 0x0C bytes).
-    auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(sizeof(UiInputSide)));
+    auto* input = gamecrt::operator_new_as<UiInputSide>();
     if (input) {
         input->vtable_ = ei::GamePointer<void*>(0x00741154);
         input->owner_ = interface_;
@@ -237,7 +237,7 @@ void CBattleScreen::Create() {
                                                                           RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
                          : nullptr;
     AddChild(messageLog_);
-    static_cast<CUiScrollText*>(messageLog_)->align_ = 1;
+    messageLog_->align_ = 1;
 
     {
         CHudTopPanel* panel = nullptr;
@@ -263,7 +263,7 @@ void CBattleScreen::Create() {
         if (top->page_ == 0) {
             // The owner is this screen (a container; CBattleScreen declares it as a window).
             auto* owner = top->owner_;
-            static_cast<CUiScrollText*>(owner->children_.data[9])->AddText(text);
+            owner->MessageLog()->AddText(text);
         }
     }
     TopPanelShowPageOriginal(topPanel_);

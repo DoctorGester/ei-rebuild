@@ -207,11 +207,11 @@ void HitWhileMoving(CUnitServer* c) {
         if (step.animation == 0xFF) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
-            static_cast<AnimationSteps*>((void*)&fall)->AddEmote((int)emote);
+            fall.AddEmote((int)emote);
         } else if (step.variant == 0xFF) {
             std::uint32_t head;
             std::memcpy(&head, &step, 4);
-            static_cast<AnimationSteps*>((void*)&fall)->AddStep((int)head, step.duration);
+            fall.AddStep((int)head, step.duration);
         } else {
             fall.SetAtGrow(fall.count, step);
         }

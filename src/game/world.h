@@ -66,8 +66,8 @@ class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 // hoover_loot.cpp. 00461CB0 (RET 0x18; ECX the world's hoover, not read): the loot of the dead
 // `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
-int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, char* unit, void* dropList, void* itemList,
-                                 void* unused, int* gold);
+int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
+                                 mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
 class CWorldServer;
 
 namespace world {
@@ -195,7 +195,7 @@ public:
     virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
-    virtual CEngineObject* DuplicateItem(CEngineObject* item);
+    virtual CItem* DuplicateItem(CItem* item);
     virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.
@@ -224,7 +224,7 @@ public:
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
     virtual void Unused39();              // 39: 0055EC40 returns 0 in both
     // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
-    virtual CEngineObject* ObjectWithId(int id);
+    virtual CMapObject* ObjectWithId(int id);
     // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
     // unit_client_path.cpp reach it through VCall).
     virtual void MoveObject(CEngineObject* object, const float* position);
@@ -237,7 +237,7 @@ public:
     void GetTime(float* hours, float* speed);
     // 0055FAE0 (RET 4; world_create.cpp; the client's slot 40). The map object manager's (slot 19)
     // object with this id, or null.
-    CEngineObject* FindMapObject(int id);
+    CMapObject* FindMapObject(int id);
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
     // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
@@ -398,7 +398,7 @@ using SharedObjectList = mfc::CList<SharedObject>;
 class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
-    CEngineObject* FindObject(unsigned id);
+    CMapObject* FindObject(unsigned id);
     // 005927C0 (RET 4; world_units.cpp). Creates the object a creation message (+0x48 its kind)
     // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
     // into the object maps, the update map and the sector map; sounds (3), lights (2) and kind 4
@@ -656,7 +656,7 @@ public:
     // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
     // game quest items go to player 0); the gold is added to the player. False for no player, a
     // living owned unit, or nothing to take.
-    bool Loot(CEngineObject* object, CPlayer* player);
+    bool Loot(CUnit* unit, CPlayer* player);
     // 00593D60. The local player (id 0) loots every dead unit, which is then removed (both
     // through the global server 007AFF60). Nothing without a local player.
     void LootDeadUnits();
@@ -720,7 +720,7 @@ public:
     // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
-    CEngineObject* CopyItem(CEngineObject* item);
+    CItem* CopyItem(CItem* item);
     // 00594F30 (RET 4). Puts `item` (an item whose state changed) on counted_, once; null is
     // ignored.
     void AddCounted(CEngineObject* item);
@@ -1337,7 +1337,7 @@ public:
     void ApplyObjectVariables();
     // 0056D9F0. Flags describing the current environment for `unit`: unit state (+0x268), island
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
-    std::uint32_t EnvironmentFlags(CEngineObject* unit);
+    std::uint32_t EnvironmentFlags(CUnit* unit);
 
     // world_client_view.cpp
     // 0056A990 (RET 0x18). Walks one object list (a map sector's, the deferred unit list at

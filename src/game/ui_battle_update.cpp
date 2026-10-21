@@ -616,7 +616,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     top->PageText(0) += line;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;
-        static_cast<CUiScrollText*>((void*)screen->children_[9])->AddText(line);
+        screen->MessageLog()->AddText(line);
     }
     clock_->highlight_ = true;
     int sound = static_cast<int>(value);

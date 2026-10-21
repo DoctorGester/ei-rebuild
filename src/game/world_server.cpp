@@ -79,9 +79,9 @@ void ObjectIdMap::Set(const unsigned& key, CEngineObject* const& value) {
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
-CEngineObject* CWorldServer::FindObject(unsigned id) {
+CMapObject* CWorldServer::FindObject(unsigned id) {
     auto* node = objects_.map.Find(id);
-    return node ? node->value : nullptr;
+    return node ? ObjectSlots(node->value) : nullptr;   // objects_ holds map objects (CreateObject)
 }
 
 CPlayer* CWorldServer::GetPlayer(int id) {

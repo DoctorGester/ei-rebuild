@@ -423,8 +423,9 @@ EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 void CUnitServer::UseSkill(CMapObject* target) {
     CWorldServer* world = ServerWorld();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
-        if (!target || target->GetClassId() != kClassUnit) return;
-        if (CPlayer* player = unit->player) TheServerWorld()->Loot(target, player);
+        CUnit* looted = UnitOrNull(target);
+        if (!looted) return;
+        if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
@@ -462,13 +463,13 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case 0: {
         ItemUse record = {1, 0, 0};
         auto* items = world->ItemFactory();
-        CEngineObject* studied = items->FindObject(action.param);
+        CItem* studied = FindItem(items, action.param);
         record = {1, 0, 0};
         if (studied) {
             ItemUse scratch;
-            if (static_cast<CItem*>(studied)->GetUse(&scratch)->kind != 0) {
+            if (studied->GetUse(&scratch)->kind != 0) {
                 ItemUse scratch2;
-                const ItemUse* found = static_cast<CItem*>(studied)->GetUse(&scratch2);
+                const ItemUse* found = studied->GetUse(&scratch2);
                 record = *found;
             }
         }

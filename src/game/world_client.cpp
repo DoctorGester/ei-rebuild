@@ -267,7 +267,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 
 void CWorldClient::SummonBird() {
     if (!owned1B0_) {
-        auto* memory = static_cast<CEffectMoshka*>(gamecrt::operator_new(sizeof(CEffectMoshka)));
+        auto* memory = gamecrt::operator_new_as<CEffectMoshka>();
         owned1B0_ = memory ? memory->Construct() : nullptr;
     }
     TimedSlots(owned1B0_)->Reset();
@@ -320,9 +320,9 @@ float* CWorldClient::ExitCentre(float* out, int index) {
     return out;
 }
 
-std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
+std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     std::uint32_t flags = 0;
-    switch (static_cast<std::uint32_t>(static_cast<CUnit*>(unit)->moveMode2)) {
+    switch (static_cast<std::uint32_t>(unit->moveMode2)) {
     case 0: flags = 8; break;
     case 1: flags = 4; break;
     case 2: flags = 2; break;

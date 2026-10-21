@@ -177,10 +177,11 @@ bool Loot(Call* call) {
     int number = Ftol(Floats(call)[0]);
     CPlayer* player = GetPlayer(number);
     if (!player) return Report("Loot", "There is no player with number %d", number);
-    CEngineObject* unit = ObjectArg(call, 0);
-    if (!unit) return Report("Loot", "Object doesn't exist");
-    if (!IsUnit(unit)) return Report("Loot", "Object must be a unit");
-    if (ObjectSlots(unit)->IsDead() == 0) return Report("Loot", "Object must be dead");
+    CEngineObject* object = ObjectArg(call, 0);
+    if (!object) return Report("Loot", "Object doesn't exist");
+    CUnit* unit = UnitOrNull(object);   // IsUnit's test
+    if (!unit) return Report("Loot", "Object must be a unit");
+    if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
     TheServerWorld()->Loot(unit, player);
     WorldRemoveObject(TheServerWorld(), nullptr, unit->id_);
     return true;

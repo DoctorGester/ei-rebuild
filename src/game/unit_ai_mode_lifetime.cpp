@@ -104,7 +104,7 @@ EI_REWRITTEN(0x005D9590, PatrolPointArray::CopyAt);
 // allocation's null test; the abstract base's vtable stands while the points are copied, each
 // through a temporary copy of the source point (PatrolPointArray::CopyAt) whose looks are freed after.
 PatrolMode* PatrolMode::Clone() {
-    auto* clone = static_cast<PatrolMode*>(gamecrt::operator_new(sizeof(PatrolMode)));
+    auto* clone = gamecrt::operator_new_as<PatrolMode>();
     std::memset(&clone->refs, 0, 4);
     if (!clone) return nullptr;
     clone->vtable = aimode::kBaseVtable;
@@ -135,7 +135,7 @@ PatrolMode* PatrolMode::Clone() {
 EI_REPLACE_METHOD(0x005D0F90, PatrolMode::Clone);
 
 FearMode* FearMode::Clone() {
-    auto* clone = static_cast<FearMode*>(gamecrt::operator_new(sizeof(FearMode)));
+    auto* clone = gamecrt::operator_new_as<FearMode>();
     std::memset(&clone->refs, 0, 4);
     if (!clone) return nullptr;
     clone->vtable = aimode::kActionBaseVtable;

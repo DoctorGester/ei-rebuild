@@ -107,7 +107,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
                 break;
             }
             if (!format) {
-                format = static_cast<UiFormatToken*>(gamecrt::operator_new(sizeof(UiFormatToken)));
+                format = gamecrt::operator_new_as<UiFormatToken>();
                 if (format) {
                     ei::SetVtable(format, FormatTokenClass::Vtable());
                     format->type_ = kFormatType;
@@ -135,7 +135,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         }
         if (format) Append(tokens_, format);
         if (word) {
-            auto* w = static_cast<UiWordToken*>(gamecrt::operator_new(sizeof(UiWordToken)));
+            auto* w = gamecrt::operator_new_as<UiWordToken>();
             if (w) {
                 ei::SetVtable(w, TextTokenClass::Vtable());   // the base, replaced by the word's
                 w->type_ = 0;
@@ -377,7 +377,7 @@ void CUiScrollText::Layout() {
 
     for (int t = 0; t < tokens_.size; ++t) {
         // (The original does not check the allocation.)
-        auto* line = static_cast<UiTextLine*>(gamecrt::operator_new(sizeof(UiTextLine)));
+        auto* line = gamecrt::operator_new_as<UiTextLine>();
         int height = heights[font];
         line->firstToken_ = t;
         line->height_ = height;

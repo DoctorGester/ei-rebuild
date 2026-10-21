@@ -651,7 +651,7 @@ EI_REPLACE_METHOD(0x0062B300, InputForward<&CEscMenu::OnKeyDown>::Call);
 // --- CCreditsScreen ---------------------------------------------------------------------------
 
 void CCreditsScreen::Close() {
-    if (fromGame_) window.interface_->SetPendingValue(0xCCCCCCCC);
+    if (fromGame_) interface_->SetPendingValue(0xCCCCCCCC);
     else uiorig::LeaveGame();
 }
 

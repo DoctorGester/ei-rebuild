@@ -35,9 +35,6 @@ constexpr int kVersionPendingHit = 0x69;
 constexpr int kVersion93C = 0x73;
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
-// The map objects' manager (007AFFA0, the world server's +0x40).
-void* UnitManager() { return WorldObjectManager(); }
-
 template <typename T>
 void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
@@ -63,10 +60,16 @@ __declspec(naked) void __fastcall PlanSave(void*, void*, CStream*) EI_ORIGINAL(0
 // 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
 
 // Resolves an id read from the stream in `manager` (-1: none).
-CEngineObject* ReadObject(CStream* stream, void* manager) {
+CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     int id;
     stream->Read(&id, 4);
-    return id == -1 ? nullptr : static_cast<CBaseManager*>(manager)->FindObject(id);
+    return id == -1 ? nullptr : manager->FindObject(id);
+}
+// The same for a unit's id in the map objects' manager.
+CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
+    int id;
+    stream->Read(&id, 4);
+    return id == -1 ? nullptr : UnitWithId(objects, id);
 }
 
 void LoadOrder(CStream* stream, UnitAction* order) {
@@ -119,7 +122,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 
 namespace {
 // The item manager (007AFFB4, the world server's +0x54), which resolves the armour spells' item ids.
-void* ItemManager() { return TheServerWorld()->itemManager_; }
+CBaseManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
 void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
@@ -206,12 +209,12 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&sinkSpeed, 4);
 
     // The context's (the world's) slot 14: the timed objects.
-    void* effects = WorldContext()->TimedObjectManager();
+    CBaseManager* effects = WorldContext()->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
-    void* units = UnitManager();
-    AssignCounted(followedLeader, static_cast<CUnit*>(ReadObject(stream, units)));
+    // The map objects' manager (007AFFA0, the world server's +0x40).
+    AssignCounted(followedLeader, ReadUnit(stream, WorldObjectManager()));
 
     if (stream->version_ < kVersion180) return;
     stream->Read(&actingCheckTime, 4);

@@ -247,7 +247,7 @@ namespace {
 } // namespace
 
 void ThrowGameError(const char* format, ...) {
-    auto* error = static_cast<GameError*>(gamecrt::operator_new(sizeof(GameError)));
+    auto* error = gamecrt::operator_new_as<GameError>();
     va_list args;
     va_start(args, format);
     if (error) GameErrorFormat(error, format, args);
@@ -256,7 +256,7 @@ void ThrowGameError(const char* format, ...) {
 }
 
 void ThrowGameErrorResult(long result, const char* format, ...) {
-    auto* error = static_cast<GameError*>(gamecrt::operator_new(sizeof(GameError)));
+    auto* error = gamecrt::operator_new_as<GameError>();
     va_list args;
     va_start(args, format);
     if (error) GameErrorFormatResult(error, result, format, args);

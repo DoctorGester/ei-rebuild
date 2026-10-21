@@ -51,7 +51,7 @@ bool DirectlyControlled(const CUnit* unit) {
 CUnit* LeaderOf(const CUnit* unit) {
     AIBrain* brain = unit->ServerController()->Brain();
     CMapObject* leader = nullptr;
-    if (auto* mode = static_cast<PlayerMode*>(brain->FindMode(kModePlayer))) leader = mode->leader;
+    if (auto* mode = brain->FindPlayerMode()) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
     return static_cast<CUnit*>(leader);
 }
@@ -142,7 +142,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 node = node->next;
                 if (other == unit) continue;
                 AIBrain* theirs = other->ServerController()->Brain();
-                auto* mode = static_cast<PlayerMode*>(theirs->FindMode(kModePlayer));
+                auto* mode = theirs->FindPlayerMode();
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
                 if (theirs->target) {
@@ -226,13 +226,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     if (!player) return true;
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
         CUnit* member = node->value;
-        PlayerMode* mode = nullptr;
-        for (auto* entry = member->ServerController()->Brain()->modes.head; entry; entry = entry->next) {
-            if (entry->data->GetType() == kModePlayer) {
-                mode = static_cast<PlayerMode*>(entry->data);
-                break;
-            }
-        }
+        PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
         // The original reads the leader of a unit without a Player mode at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
         double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;

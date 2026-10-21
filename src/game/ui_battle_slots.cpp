@@ -34,7 +34,6 @@ bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
-constexpr int kMessageLogChild = 9;
 
 
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
@@ -105,7 +104,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].Empty();
         if (panel->page_ == 0)
-            static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
+            panel->owner_->MessageLog()->SetText(game::EmptyText());
         return;
     }
     auto& party = party_;
@@ -159,7 +158,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].Empty();
         if (panel->page_ == 0)
-            static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
+            panel->owner_->MessageLog()->SetText(game::EmptyText());
         return;
     }
     CParty* player = LocalPlayerData();
@@ -219,7 +218,7 @@ void CBattleScreen::OnMessageResult(int result) {
         GameLeaveThroughExit(pendingExit_);
         break;
     case kGameOverLoad: {
-        auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
+        auto* window = gamecrt::operator_new_as<CSaveLoadWindow>();
         if (window) {
             window->CUiContainer::Construct(interface_);
             window->entriesBegin_ = nullptr;

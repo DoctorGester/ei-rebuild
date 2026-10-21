@@ -12,7 +12,7 @@ constexpr int kTamedPriority = 100000000;
 
 // The clones' common part: the abstract action base's vtable while the members are copied.
 PlayerMode* CloneWith(const PlayerMode* self, void* vtable) {
-    auto* copy = static_cast<PlayerMode*>(gamecrt::operator_new(sizeof(PlayerMode)));
+    auto* copy = gamecrt::operator_new_as<PlayerMode>();
     copy->refs = 0;   // written before the test, as the original does
     copy->refsHigh = 0;
     if (!copy) return nullptr;

@@ -237,7 +237,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     if (Get<void*>(itemBytes, 0x1C) == nullptr) {
         // A new turning state with a random glow phase. The original writes the count before
         // checking the allocation.
-        auto* turn = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
+        auto* turn = gamecrt::operator_new_as<ItemTurn>();
         reinterpret_cast<volatile int*>(turn)[1] = 0;
         if (turn) turn->vtable = ei::GamePointer<void>(0x007403F8);
         turn->angle = 0.0f;

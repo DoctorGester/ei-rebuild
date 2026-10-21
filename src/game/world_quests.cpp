@@ -487,7 +487,7 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
 
 // A fresh item record (ItemSourceRef, item.h) for the item's link (+0x1C).
 ItemSourceRef* NewItemRecord(bool refValueBase) {
-    auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
+    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
     memory->refs = 0;   // before the null test
     if (!memory) return nullptr;
     if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());

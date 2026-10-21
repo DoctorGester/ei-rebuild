@@ -29,8 +29,6 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-// The message log, the battle screen's child window 9.
-void* MessageLog(CBattleScreen* screen) { return screen->children_.data[9]; }
 
 } // namespace
 
@@ -99,7 +97,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     line += "\n";   // "\n"
     name = line;
     PageText(0) += name;
-    if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(name);
+    if (page_ == 0) owner_->MessageLog()->AddText(name);
 }
 EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
@@ -117,6 +115,6 @@ void CHudTopPanel::AddMoney(int money) {
     line += "\n";   // "\n"
     text = line;
     PageText(0) += text;
-    if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(text);
+    if (page_ == 0) owner_->MessageLog()->AddText(text);
 }
 EI_REWRITTEN(0x0064A630, CHudTopPanel::AddMoney);

@@ -67,8 +67,6 @@ bool BarRatio(int value, int maximum, float* ratio) {
     return *ratio > 0.0f;
 }
 
-// The battle screen's message log (its tenth child window).
-CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data[9]); }
 
 // The local view, whose SetUnitFlag438 (0066AF30) sets a unit's +0x438 flag and sends it to the server.
 CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
@@ -268,7 +266,7 @@ void CHudTopPanel::ShowPage() {
         button->tint_[1] = tint;
         button->tint_[2] = tint;
     }
-    CUiScrollText* log = MessageLog(owner_);
+    CUiScrollText* log = owner_->MessageLog();
     if (page_ == 0) {
         log->SetText(pageTexts_[0]);
         log->CallSetPosition(log->maxPosition_);
@@ -322,7 +320,7 @@ void CHudTopPanel::ShowItems() {
     }
     merged.RemoveAll();
     if (page_ == 1) {
-        CUiScrollText* log = MessageLog(owner_);
+        CUiScrollText* log = owner_->MessageLog();
         log->SetText(text);
         log->CallSetPosition(0);
     }
@@ -339,7 +337,7 @@ void CHudTopPanel::Layout() {
     SpritePlaceOriginal(sceneObjects_.data[4], nullptr, 230.0f, 10.0f - offset, 10.0f);
     SpritePlaceOriginal(sceneObjects_.data[5], nullptr, 400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
-    MessageLog(owner_)->CallSetRect(&rect);
+    owner_->MessageLog()->CallSetRect(&rect);
     for (int i = 1; i < regions_.size; ++i) {
         regions_.data[i]->offsetX_ = 0;
         regions_.data[i]->offsetY_ = -offset_;

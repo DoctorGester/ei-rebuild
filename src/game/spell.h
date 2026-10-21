@@ -569,6 +569,8 @@ public:
     // 23: 0068DAD0. CBaseManager::CreateObject, then flags_ bit 7 cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
     CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
+    // The light registered under `id` (every object the factory makes is a CLight), or null.
+    CLight* LightWithId(unsigned id) const { return static_cast<CLight*>(FindObject(id)); }
 
     std::uint32_t unused_B0[4];    // +0xB0
     CEngineObject* held_;           // +0xC0 released by the destructor

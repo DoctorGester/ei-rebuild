@@ -102,7 +102,7 @@ CMapObjectServer* ServerHalf(CEngineObject* object) {
 
 // 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
 // as the original left it.
-double UnitGroundHeight(CEngineObject* unit, float x, float y) { return static_cast<CUnit*>(unit)->GroundHeight(x, y); }
+double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeight(x, y); }
 
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
@@ -243,7 +243,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
-        if (o->GetClassId() == kClassUnit) *result = static_cast<float>(UnitGroundHeight(o, x, y) + z);
+        if (CUnit* unit = UnitOrNull(o)) *result = static_cast<float>(UnitGroundHeight(unit, x, y) + z);   // (o is not null)
         else *result = TheServerWorld()->GridHeight(x, y) + z;
         return;
     }

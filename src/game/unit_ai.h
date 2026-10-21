@@ -659,7 +659,7 @@ void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream
 // unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's
 // object handed to `out` with a reference (the list's own reference released). Returns `out`.
 using CorpseList = mfc::CTypedPtrList<CUnit>;
-AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out);
+AIRefTo<CUnit>* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRefTo<CUnit>* out);
 
 class CSpell;
 namespace console {
@@ -1068,8 +1068,8 @@ struct AIBrain {
     // 005D5DD0. The mode of type `type` in the mode list, or null.
     AIMode* FindMode(int type);
     // 005D5E30 / 005D5E60. The Patrol / Player mode, or null.
-    AIMode* FindPatrolMode();
-    AIMode* FindPlayerMode();
+    PatrolMode* FindPatrolMode();
+    PlayerMode* FindPlayerMode();   // (the Tamed mode is a Player mode too)
     // 005D5EE0. The Player mode's target (+0x0C of the mode), or null.
     CUnit* PlayerModeLeader();
     // 005D5E90. The same, or the action target while following (action 6).
@@ -1199,7 +1199,7 @@ struct AIBrain {
     // filter bit 0.
     void CallAllies(const Vector3* point);
     void ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
-    AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on the memory's corpses
+    AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);                                     // 005D8D50 on the memory's corpses
 
     CUnitServer* owner;             // +0x000
     int action;                     // +0x004

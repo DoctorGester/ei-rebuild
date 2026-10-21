@@ -601,14 +601,14 @@ static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
-// The item of a weapon slot (CUnit::weapons, PartyUnitRecord::weapons) as the weapon it is: the slots
-// hold CItemWeapon only, and the original calls the weapon's methods without a class test.
-inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
-
 // The object as a unit when it is one (class id kClassUnit; one GetClassId call), else null.
 inline CUnit* UnitOrNull(CEngineObject* object) {
     return object && object->GetClassId() == kClassUnit ? static_cast<CUnit*>(object) : nullptr;
 }
+
+// The object `objects` registered under a unit's id (the party's and the players' unit ids, a
+// unit's speech), or null; the original takes it as a unit without a class test.
+inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return static_cast<CUnit*>(objects->FindObject(id)); }
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 

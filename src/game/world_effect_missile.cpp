@@ -65,7 +65,7 @@ bool SnapshotReadToEnd() {
 int CEffectMissile::Steer() {
     int flying = 1;
     CWorld* world = WorldOf(this);
-    auto* target = static_cast<CMapObject*>(world->ObjectWithId(targetId_));
+    CMapObject* target = world->ObjectWithId(targetId_);
     if (target == nullptr) {
         velocity_ = Vector3{0.0f, 0.0f, 0.0f};
         flying = 0;
@@ -314,9 +314,9 @@ int CEffectArrowFigure::Tick() {
     CWorld* world = WorldOf(this);
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
-        CEngineObject* target = world->ObjectWithId(targetId_);
+        CMapObject* target = world->ObjectWithId(targetId_);
         CEngineObject* caster = WorldFindUnit(world, nullptr, casterId_);
-        if (target != nullptr) ObjectSlots(target)->ReceiveHit(&hit_, caster, caster);
+        if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
     return arrived_ == 0 ? 1 : 0;
 }
