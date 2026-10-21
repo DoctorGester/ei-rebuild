@@ -93,6 +93,7 @@ REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
+ORIGINAL_READ = re.compile(r'\bOriginalGameData\s*<[^<>()]*>\s*\(\s*$')   # just before a literal
 
 
 def image(path):
@@ -529,7 +530,9 @@ def check(img, update, img_path):
         for m in LITERAL.finditer(code):
             a = int(m.group(1), 16)
             d = inside(a)
-            if d and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
+            # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
+            original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
+            if d and not original_read and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

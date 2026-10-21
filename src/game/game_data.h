@@ -85,6 +85,14 @@ T& GameData(std::uintptr_t address) {
 }
 #endif
 
+// game.exe's own copy of an object we have named (C18), for the harness in game.exe's --no-hooks runs: there the game
+// uses its copy and our named global is never touched. Not in the image (nothing of game.exe is there). named_data.py
+// lets a literal through only as this call's argument, and only in tests/.
+template <typename T>
+T& OriginalGameData(std::uintptr_t address) {
+    return *reinterpret_cast<T*>(address);
+}
+
 // A pointer `offset` bytes into an object whose members are not declared yet (a half-built screen).
 inline std::uint8_t* OffsetPtr(void* base, int offset) { return static_cast<std::uint8_t*>(base) + offset; }
 

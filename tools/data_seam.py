@@ -37,7 +37,8 @@ TOPS = ('src', 'tests', 'include')
 # file's 0079C000) as S18b moved "bss" alone. Both are sealed.
 SECTIONS = [('iat', 0x0073B000, 0x0073B820), ('rdata', 0x0073B820, 0x00783000), ('data', 0x00783000, 0x0079BF70),
             ('bss', 0x0079BF70, 0x007CD000), ('rsrc', 0x007CD000, 0x007D7000)]
-OPENERS = {'GameAddress', 'GameData', 'GamePointer', 'DataId'}
+# OriginalGameData: the harness's read of game.exe's own copy of a named object in its --no-hooks runs (game_data.h).
+OPENERS = {'GameAddress', 'GameData', 'GamePointer', 'DataId', 'OriginalGameData'}
 # The visitor operations of the generated static initialisers and exit functions whose first argument is
 # a data address, and At (any argument).
 GENERATED = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
