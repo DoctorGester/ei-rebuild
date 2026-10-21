@@ -81,6 +81,14 @@ RefPtr* __fastcall ShapeSlot(ShapeTable* self, void*, const ShapeCacheHandle* ha
 
 // 005BCCB0 (returns this): a handle that has resolved nothing: no reference, no cache, key -1 (the
 // height is left as it is).
-ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self);
+inline ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
+    self->ref = nullptr;
+    self->cache = nullptr;
+    self->key = 0xFFFFFFFFu;
+    return self;
+}
+
+// The cache's map as the table the instantiations above run on (the same 0x14 bytes).
+inline ShapeTable* ShapesOf(UnitShapeCache* cache) { return reinterpret_cast<ShapeTable*>(&cache->shapes); }
 
 } // namespace gamehash

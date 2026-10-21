@@ -114,8 +114,8 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     mfc::CFileFind finder;
     BOOL more = finder.FindFile(pattern, 0);
     while (more) {
-        more = CFileFindNext(&finder);
-        if (CFileFindIsDotsOriginal(&finder)) continue;
+        more = finder.FindNext();
+        if (finder.IsDots()) continue;
         if (Matches(finder, kAttributeSystem) || Matches(finder, kAttributeHidden)) continue;
         if (Matches(finder, kAttributeDirectory)) {
             CStringSlot path, sub;

@@ -18,11 +18,16 @@ namespace console { class CStringArray; }
 namespace stlp { class string; }
 
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
 __declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
-__declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
+// The CRT's _mbsinc (006E9947) and _mbscmp (006E848B) on char strings.
+inline const char* __cdecl MbsInc(const char* p) {
+    return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
+}
+inline int __cdecl GameMbscmp(const char* a, const char* b) {
+    return libcrt::Mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
 // MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
 inline void* __fastcall StringArrayConstruct(void* array) {
     static_cast<mfc::CStringArray*>(array)->Construct();
@@ -37,19 +42,12 @@ inline void __fastcall StringArraySetSize(void* array, void*, int count, int gro
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
 __declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
-// The CRT's memmove (cdecl, returns the destination).
-__declspec(naked) inline void* __cdecl GameMemmove(void* /*to*/, const void* /*from*/, std::size_t /*n*/)
-    EI_ORIGINAL(0x006E79A0)
 // mfc::CString::~CString (00700970) on a string given as raw memory.
 inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
 // MFC CWnd::DestroyWindow 007051A1 (plain RET; nonzero when the window was destroyed): CWnd's destructor
 // (mfc::impl::CWnd, src/lib/mfc_window.cpp) on a window still attached; no game window is a CWnd.
 __declspec(naked) inline int __fastcall CWndDestroyWindow(void* /*wnd*/) EI_ORIGINAL(0x007051A1)
 
-// MFC: CFileFind::FindNextFile / GetFileTitle, CFile::Write (CString::Mid(first) is a member of mfc::CString).
-__declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
-__declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
-                                                                  mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
 // The CRT's x87 intrinsics _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
 // exponent in ST0), here with ordinary double arguments: the same bodies as acos 006E7334 / asin
 // 006E83D4 and libcrt::CiPow.
@@ -58,10 +56,6 @@ inline double CIasin(double s) { return libcrt::CiAsin(s); }
 inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
-// CRT _mbscmp (plain RET, EAX: <0, 0, >0); src/lib/crt.cpp includes this header for gamecrt::mbscmp.
-__declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
-// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
-__declspec(naked) inline void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
 // MFC CStringArray::SetAtGrow(index, const char*) 006FEBCE / (index, const CString&) 006FEBFA (both RET 8, EAX not a
 // result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
 inline void __fastcall StringArraySetAtGrowTextOriginal(void* array, void*, int index, const char* text) {
@@ -89,9 +83,6 @@ inline int __fastcall CStringFindTextOriginal(const void* string, void*, const c
 // CPlex::FreeDataChain 006FE90F (plain RET, ECX = chain head; mfc::PlexFreeDataChain is the forwarder).
 inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
 
-// C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
-__declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
-
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004C98F0: pointer list AddTail (RET 4, EAX not a result). 0041FCD0: list end() iterator written to `out` (RET 4,
@@ -114,21 +105,10 @@ inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mf
 inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
     return ::new (out) mfc::CString(*left + right);
 }
-// MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
-// result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
-// 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's
-// members.
-__declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
-// 006E661A: CFileFind::IsDots (plain RET, EAX 0 / 1).
-__declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*find*/) EI_ORIGINAL(0x006E661A)
-// GetFilePath into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
+// MFC CFileFind: mfc::CFileFind's members (lib/mfc.h). GetFilePath (006E6722) into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
 inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, mfc::CString* out) {
     return ::new (out) mfc::CString(static_cast<const mfc::CFileFind*>(find)->GetFilePath());
 }
-// 006E88FC: the CRT's qsort (cdecl, plain RET, no result).
-__declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::size_t /*count*/, std::size_t /*size*/,
-                                                        int(__cdecl* /*compare*/)(const void*, const void*))
-    EI_ORIGINAL(0x006E88FC)
 // 00700D4C: CString::operator+=(const char*) (RET 4, returns
 // this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
 inline void* __fastcall CStringAppendTextOriginal(void* string, void*, const char* text) {
@@ -154,7 +134,3 @@ inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return
 // SetAtGrow(index, value) on 16-bit elements (the value pushed as a dword).
 __declspec(naked) inline void __fastcall WordsSetAtGrow(lib::AlignedArray<std::uint16_t>* /*array*/, void*, int /*index*/,
                                                         int /*value*/) EI_ORIGINAL(0x00452FC0)
-// C3n. 00461190 (rewritten as CStream::ReadString; thiscall on the stream, RET 4): reads a string from the stream and
-// constructs it as a CString at `out` (raw storage the size of a CString), returning it.
-__declspec(naked) inline mfc::CString* __fastcall StreamReadString(CStream* /*stream*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x00461190)

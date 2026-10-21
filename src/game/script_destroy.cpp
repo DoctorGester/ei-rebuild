@@ -19,6 +19,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "record_arrays.h"
+#include "world.h"
 
 #include <cstdint>
 
@@ -43,7 +44,6 @@ inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal(
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
 void __fastcall GroupBody(void* a0) { static_cast<ScriptGroup*>(a0)->DestructBody(); }
-__declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
 
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {
@@ -161,7 +161,7 @@ EI_REPLACE_METHOD(0x004CE230, ScriptSubCall::DestroyElement);
 // A particle source's object: removed from the world's timed objects, then released.
 void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
     if (*slot) {
-        WorldRemoveTimed(reinterpret_cast<void*>(0x007AFF60), nullptr, (*slot)->id_);
+        reinterpret_cast<CWorldServer*>(0x007AFF60)->RemoveTimedObject((*slot)->id_);
         (*slot)->Release();
     }
     *slot = nullptr;
@@ -170,7 +170,7 @@ void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
 EI_REPLACE(0x004CE270, ScriptParticleDestroy);
 
 void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags) {
-    FxSourceBody(source);
+    static_cast<ScriptFxSource*>(source)->ScriptFxSourceDestruct();
     return Finish(source, flags);
 }
 EI_REPLACE(0x004CE2B0, ScriptFxSourceDestroy);

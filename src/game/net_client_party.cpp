@@ -5,6 +5,7 @@
 #include "library_containers.h"
 #include "net_messages.h"
 #include "core_refcount.h"
+#include "game_lists.h"
 #include "item.h"
 #include "party.h"
 #include "record_lists.h"
@@ -119,7 +120,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
             PushBack(&current->members_, same);
             if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);   // 00429080
             --previous.Finish();
-            RefPtrDestroyAt(previous.end(), nullptr, 0);
+            RefPtrRelease(previous.end());   // 004292A0 with flags 0
         } else {
             PushBack(&current->members_, &ref);
         }

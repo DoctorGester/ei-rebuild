@@ -119,6 +119,8 @@ add_executable(ei_vectors
     src/lib/mfc.cpp
     src/lib/mfc_archive.cpp
     src/lib/mfc_array.cpp
+    src/lib/mfc_coll.cpp
+    src/lib/mfc_file.cpp
     src/lib/mfc_list.cpp
     src/lib/mfc_string.cpp
     src/lib/rebirth.cpp

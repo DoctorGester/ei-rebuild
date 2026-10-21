@@ -467,7 +467,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
         }
         call.Destruct();
         int after = calls->size - i - 1;
-        if (after != 0) GameMemmove(&calls->data[i], &calls->data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+        if (after != 0) libcrt::Memmove(&calls->data[i], &calls->data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
         --calls->size;
         --i;
     }
@@ -482,7 +482,7 @@ void AIBrain::UpdateMemory(CUnitServer* who) {
         // The element's destructor (00558CE0): release the object.
         if (entry->object) entry->object->Release();
         entry->object = nullptr;
-        if (after != 0) GameMemmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
+        if (after != 0) libcrt::Memmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
         --reports.size;
         --i;
     }

@@ -53,8 +53,3 @@ __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*
 // addresses so the verify wrappers see the calls (all thiscall on the mode; RET 4 / 8 / 8 / 8).
 struct AIBrain;
 __declspec(naked) inline void __fastcall PlayerUpdateCombatOriginal(void* /*mode*/, void*, AIBrain*) EI_ORIGINAL(0x005D4170)
-// 005B8BA0 (rewritten as CAIMap::CellMark; RET 0x14): the passability mark of cell (x, y) at `level` (scratch state
-// carried from level to level); EAX the mark.
-__declspec(naked) inline std::uint32_t __fastcall AIMapCellMarkOriginal(CAIMap*, void*, void* /*scratch*/, int /*level*/,
-                                                                        int /*levelHeight*/, int /*x*/, int /*y*/)
-    EI_ORIGINAL(0x005B8BA0)

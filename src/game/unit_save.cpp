@@ -1,5 +1,6 @@
 // CUnit's Load and Save slots (vtable 0073EA8C slots 9 and 10). See unit.h and
 // docs/notes/units.md ("Creation, databases, save").
+#include "base_manager.h"
 #include "unit.h"
 
 #include "ai_motion.h"
@@ -55,7 +56,7 @@ void WriteItemIds(CStream* stream, CEngineObject* const* items, int count) {
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
 void ReadStringInto(CStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(stream, nullptr, storage);
+    mfc::CString* read = stream->ReadString(storage);
     target = *read;
     read->~CString();
 }
@@ -77,7 +78,7 @@ CEngineObject* ReadItem(CUnit* unit, CStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* item = ManagerFindObject(manager, nullptr, id);
+    CEngineObject* item = static_cast<CBaseManager*>(manager)->FindObject(id);
     if (item) ++item->refCount_;
     return item;
 }

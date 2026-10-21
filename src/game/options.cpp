@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "win_registry.h"
 
@@ -362,9 +363,9 @@ void GameOptions::LoadFromRegistry(const char* path) {
         resolution = GetString(key, l.Key(field::kKeyVideo), game::Text(0x007854DC), resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
-            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(GameAtoi(resolution.Left(x))));
+            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(libcrt::Atoi(resolution.Left(x))));
             l.SetBits(field::kResolutionY,
-                      static_cast<std::uint32_t>(GameAtoi(Ops(resolution).Right(Length(resolution) - x - 1))));
+                      static_cast<std::uint32_t>(libcrt::Atoi(Ops(resolution).Right(Length(resolution) - x - 1))));
         }
     }
     l.Read(kVideoValues);

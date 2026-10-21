@@ -1,5 +1,5 @@
 // The work board page: polls /api/status and draws the tickets view and the test-runs view.
-const POLL_MS = 3000;
+const POLL_MS = 1000;   // a running game's count stops within about a second of its end (the scheduler notices in 0.5 s)
 const ACTIVE_STATES = ['running', 'review'];
 const state = { view: 'tickets', q: '' };
 try { const v = location.hash.slice(1); if (v === 'runs' || v === 'tickets') state.view = v; } catch (e) {}
@@ -90,6 +90,9 @@ function ticketCard(t, also = []) {
   if (a) {
     sub.push(`<span class="who" title="${esc(a.agent)}\n${esc(a.worktree)}\n${esc(a.branch || '')}">${esc(shortAgent(a.agent))}${a.open ? '' : ' (ended)'}</span>`);
     sub.push(`on it ${ageOf(a.started)}`);
+    const d = a.diff;
+    if (d && d.files) sub.push(`<span class="diffstat mono" title="${d.files} file${d.files > 1 ? 's' : ''} changed against main, uncommitted edits included">` +
+      `<span class="add">+${d.added.toLocaleString('en-US')}</span> <span class="del">−${d.removed.toLocaleString('en-US')}</span></span>`);
     if (a.branch && !defaultBranch(a)) sub.push(`<span class="mono">${esc(a.branch)}</span>`);
   }
   if (t.group_name) sub.push(esc(t.group_name));
@@ -328,4 +331,10 @@ function tickAll() {
     el.classList.toggle('over', secs > exp);
   }
 }
-poll(); setInterval(poll, POLL_MS); setInterval(tickAll, 1000);
+// One request at a time, the next POLL_MS after the last answer; none while the tab is hidden.
+async function pollLoop() {
+  if (!document.hidden) await poll();
+  setTimeout(pollLoop, POLL_MS);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+pollLoop(); setInterval(tickAll, 1000);

@@ -3,6 +3,7 @@
 //
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
+#include "core_streams.h"
 #include "ui.h"
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
@@ -117,7 +118,7 @@ void CBattleScreen::Create() {
             int unused;
             stream->Read(&unused, 4);
             alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
-            mfc::CString* text = StreamReadString(stream, nullptr, raw);
+            mfc::CString* text = stream->ReadString(raw);
             savedText = *text;
             text->~CString();
         }

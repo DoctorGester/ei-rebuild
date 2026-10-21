@@ -21,7 +21,7 @@ CEngineObject* ObjectRegistry::FindObject(int id) { return WorldFindObjectOrigin
 ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60); }
 
 // The game's CRT.
-void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
+void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
@@ -286,7 +286,7 @@ void ScriptGroup::Remove(CEngineObject* object) {
     // RemoveAt(i, 1).
     int after = size - i - 1;
     Clear(&data[i]);
-    if (after != 0) GameMemmove(&data[i], &data[i + 1], after * 4);
+    if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], after * 4);
     --size;
 }
 EI_REPLACE_METHOD(0x004B2E60, ScriptGroup::Remove);
@@ -308,7 +308,7 @@ void ScriptGroup::Insert(CEngineObject* object) {
     // InsertAt(low, object).
     Resize(oldSize + 1);
     ScriptObjectRef* d = data;
-    if (low < oldSize) GameMemmove(&d[low + 1], &d[low], (oldSize - low) * 4);
+    if (low < oldSize) libcrt::Memmove(&d[low + 1], &d[low], (oldSize - low) * 4);
     d[low].object = nullptr;
     ++object->refCount_;
     d[low].object = object;
@@ -329,7 +329,7 @@ void ScriptGroup::RemoveDeleted() {
         } else {
             int after = size - i - 1;
             Clear(&data[i]);
-            if (after != 0) GameMemmove(&data[i], &data[i + 1], after * 4);
+            if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], after * 4);
             --size;
         }
     } while (i < size);

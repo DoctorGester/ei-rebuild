@@ -66,7 +66,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         if (n >= npos) n = npos;
         {
             stlp::string digits(s.data() + first, s.data() + first + n);
-            number = GameAtoi(digits.data());
+            number = libcrt::Atoi(digits.data());
         }
         std::size_t m = s.size() < colon ? s.size() : colon;
         stlp::string host(s.data(), s.data() + m);

@@ -250,7 +250,7 @@ namespace {
 // two halves of the item's +0x18, -1.
 CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)static_cast<CItemManager*>(a0)->MakeItem(a2, a3, a4, a5); }
 // 00599FA0. CTypedPtrList<CRefPtr> AddTail: the list holds a reference (gamelists::CountedAddTail).
-void CountedAddTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
+void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
     gamelists::CountedAddTail(mfc::impl::ListAs<gamelists::EngineObjects>(list), nullptr, object);
 }
 
@@ -269,7 +269,7 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;
     float maximum = source->chargeMax_;
-    if (maximum > current && copy && !counted_.Find(copy)) CountedAddTail(&counted_, copy);
+    if (maximum > current && copy && !counted_.Find(copy)) AddCountedTail(&counted_, copy);
     return copy;
 }
 
@@ -295,7 +295,7 @@ CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
 
 void CWorldServer::AddCounted(CEngineObject* item) {
     if (!item || counted_.Find(item)) return;
-    CountedAddTail(&counted_, item);   // the original inlines the same AddTail
+    AddCountedTail(&counted_, item);   // the original inlines the same AddTail
 }
 
 EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);

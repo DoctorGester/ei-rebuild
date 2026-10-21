@@ -34,13 +34,6 @@ FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Val
     return self;
 }
 
-ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
-    self->ref = nullptr;
-    self->cache = nullptr;
-    self->key = 0xFFFFFFFFu;
-    return self;
-}
-
 } // namespace gamehash
 
 namespace {

@@ -29,7 +29,7 @@ bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CR
 // drivers' erase (0047A380); the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
 // pool's free (00404D70).
 using RefList = stlp::list<RefPtr>;
-void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
+void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 

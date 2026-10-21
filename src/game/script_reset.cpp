@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "record_arrays.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -25,18 +26,11 @@ namespace {
 
 // ---- Original code ------------------------------------------------------------------------------
 
-// 004CD690: the lightning list's DestructElements (__stdcall (first, count); ScriptLightningElementsDestruct,
-// script_effects, which ei_vectors does not link).
-__declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 
 // The world (007AFF60): timed objects.
-struct World {
-    void RemoveTimedObject(int id);       // 0058E5D0
-};
-void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
-World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
+CWorldServer* TheWorld() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
 
 // CList::RemoveAll as the reset inlines it: each element destroyed in place, the list emptied
 // and its blocks freed.
@@ -108,7 +102,7 @@ void __fastcall ScriptReset(CScript* script) {
 
     RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestroy(source, nullptr, 0); });
     RemoveAll(script->particles_, [](ScriptParticleSource* source) { ScriptParticleDestroy(&source->object, nullptr, 0); });
-    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
+    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { ScriptLightningElementsDestruct(bolt, 1); });
 
     mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(script->areas_).SetSize(0, -1);
     script->nextParticleId_ = -2;

@@ -13,13 +13,17 @@ git branches the open assignments point at, and serves the pages in this folder.
     GET /api/batch/<id>        one batch with all its games
     GET /api/processes         scheduler / server alive or not (heartbeat age)
 """
-import datetime, http.server, importlib, json, os, socketserver, subprocess, sys, threading, time
+import datetime, http.server, importlib, json, os, re, socketserver, subprocess, sys, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
 HEARTBEAT_SECONDS = 5
 ALIVE_SECONDS = 20               # a process whose heartbeat is older than this counts as not running
 GIT_TTL = 10                     # seconds a `git for-each-ref` result is reused
+DIFF_TTL = 30                    # seconds a worktree's diff stat is reused (refreshed off the request threads)
+DIFF_RE = re.compile(r'(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?')
+# Windows: git for the diff stats runs below normal priority and without a console window.
+GIT_FLAGS = 0x00004000 | 0x08000000 if os.name == 'nt' else 0
 NOTES_PER_TICKET = 3
 HISTORY = 40
 PASSED = ('PASS', 'PASS*')
@@ -63,6 +67,28 @@ def jdict(text):
         return {}
 
 
+def shortstat(worktree):
+    """{files, added, removed} of `worktree` against its merge base with main, or None. --no-optional-locks: the
+    worker's own git commands never find index.lock taken by the board."""
+    def git(*args):
+        p = subprocess.run(['git', '--no-optional-locks', '-C', worktree, *args], capture_output=True, text=True,
+                           encoding='utf-8', errors='replace', timeout=20, creationflags=GIT_FLAGS)
+        return p.stdout.strip() if p.returncode == 0 else None
+    try:
+        top = git('rev-parse', '--show-toplevel')   # a leftover folder of a removed worktree would answer for main
+        if not top or os.path.normcase(os.path.abspath(top)) != os.path.normcase(os.path.abspath(worktree)):
+            return None
+        base = git('merge-base', 'main', 'HEAD')
+        out = git('diff', '--shortstat', base) if base else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out is None:
+        return None
+    m = DIFF_RE.search(out)
+    return {'files': int(m.group(1)), 'added': int(m.group(2) or 0), 'removed': int(m.group(3) or 0)} if m else \
+        {'files': 0, 'added': 0, 'removed': 0}
+
+
 class Board:
     """The data behind the endpoints. One instance; the caches are shared by the request threads."""
 
@@ -73,6 +99,8 @@ class Board:
         self.lock = threading.Lock()
         self.toml_cache = (None, None)       # (mtime/size key, (groups, tickets))
         self.git_cache = (None, {})          # (monotonic time of the call, {branch: commit})
+        self.diff_cache = {}                 # worktree -> (monotonic time, {files, added, removed} or None)
+        self.diff_busy = False               # a refresh thread is running
 
     # ---- sources
 
@@ -125,6 +153,31 @@ class Board:
             self.git_cache = (time.monotonic(), out)
             return out
 
+    def diff_stats(self, worktrees):
+        """{worktree: {files, added, removed}}: each worktree against the commit its branch left main at, uncommitted edits
+        included (untracked files not). A request never waits on git: stale entries are refreshed by one background
+        thread at a time, at most every DIFF_TTL seconds, and the request gets what the cache has."""
+        now = time.monotonic()
+        with self.lock:
+            stale = [w for w in worktrees if now - self.diff_cache.get(w, (-DIFF_TTL, None))[0] >= DIFF_TTL]
+            if stale and not self.diff_busy:
+                self.diff_busy = True
+                threading.Thread(target=self.refresh_diffs, args=(stale,), daemon=True).start()
+            return {w: self.diff_cache[w][1] for w in worktrees if w in self.diff_cache and self.diff_cache[w][1]}
+
+    def refresh_diffs(self, worktrees):
+        try:
+            main = os.path.normcase(os.path.abspath(self.main))
+            for w in worktrees:
+                stat = None
+                if os.path.isdir(w) and os.path.normcase(os.path.abspath(w)) != main:
+                    stat = shortstat(w)
+                with self.lock:
+                    self.diff_cache[w] = (time.monotonic(), stat)
+        finally:
+            with self.lock:
+                self.diff_busy = False
+
     # ---- batches
 
     def batch_json(self, db, b, games=False):
@@ -169,6 +222,7 @@ class Board:
         gname = {g['key']: g['name'] for g in groups}
         branches = self.branches()
         assign = {a['ticket']: a for a in db.execute('SELECT * FROM assignment WHERE ended IS NULL')}
+        diffs = self.diff_stats(sorted({a['worktree'] for a in assign.values() if a['worktree']}))
         ended = {}
         for a in db.execute('SELECT * FROM assignment WHERE ended IS NOT NULL ORDER BY id'):
             ended[a['ticket']] = a
@@ -188,7 +242,8 @@ class Board:
 
         def assignment(a):
             return {'agent': a['agent'], 'worktree': a['worktree'], 'branch': a['branch'], 'started': a['started'],
-                    'ended': a['ended'], 'open': a['ended'] is None}
+                    'ended': a['ended'], 'open': a['ended'] is None,
+                    'diff': diffs.get(a['worktree']) if a['ended'] is None else None}
 
         out = []
         for t in tickets:

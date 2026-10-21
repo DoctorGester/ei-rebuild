@@ -60,7 +60,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
                 std::int8_t* row = marks.rows[y];
-                row[x] = static_cast<std::int8_t>(AIMapCellMarkOriginal(this, nullptr, scratch, level, levelHeight, x, y));
+                row[x] = static_cast<std::int8_t>(CellMark(scratch, level, levelHeight, x, y));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);

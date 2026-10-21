@@ -1,6 +1,7 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "game_lists.h"
 #include "base_manager.h"
 #include "hash_tables_400.h"
 #include "object_diplomacy.h"
@@ -130,16 +131,14 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
 namespace {
 
-// 0059DDE0 (RET 4) / 0059DD90 (RET 4). Destructors of a shared-object element and of a missile's
-// counted pointer (flags 0: in place).
-__declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
+// 0059DD90 (RET 4) with flags 0: a missile's counted pointer released in place (RefPtrRelease).
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto* node = list.head; node; node = node->next) MissilePtrDestruct(&node->data, nullptr, 0);
+    for (auto* node = list.head; node; node = node->next) RefPtrRelease(reinterpret_cast<RefPtr*>(&node->data));
     list.RemoveAll();   // the elements were destroyed above; this frees the blocks
 }
 

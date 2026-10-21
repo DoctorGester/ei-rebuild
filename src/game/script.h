@@ -448,9 +448,6 @@ public:
 
     // Not rewritten (forwarders).
     struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
-    // 004BCC60 (ScriptRunWorldScript): through the address, which the vector replay stands in for
-    // (tests/vectors/replay_script_load.cpp; the runtime is not replayed).
-    void RunWorldScript(struct ScriptDecl* block);
 
     // Fields used by the loader.
     mfc::CArray<struct ScriptDefinition>& Scripts() { return definitions_; }

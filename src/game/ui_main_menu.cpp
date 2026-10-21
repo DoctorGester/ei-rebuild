@@ -212,7 +212,7 @@ EI_REPLACE_METHOD(0x00632940, CMainMenu::OnMessageResult);
 // --- 00633400 / 00633540: the mouse move and the keys -------------------------------------------
 
 void CMainMenu::OnMouseMove(int buttons, int x, int y) {
-    if (auto* stones = reinterpret_cast<CObject3D*>(ManagerFindObject(ObjectManager(), nullptr, kStonesObject))) {
+    if (auto* stones = reinterpret_cast<CObject3D*>(static_cast<CBaseManager*>(ObjectManager())->FindObject(kStonesObject))) {
         int region = RegionAt(x, y);
         mfc::CString name(stones->name);
         if (region != hovered_) {

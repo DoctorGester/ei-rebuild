@@ -1,12 +1,13 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
 #include "item.h"
 #include "party.h"
-#include "party_record_lookup.h"
 #include "random.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -245,9 +246,9 @@ void CPlayerServer::SetFlag70(std::uint8_t value) { flag70_ = value; }
 
 // --- Party records -------------------------------------------------------------------------------
 
-std::uint8_t* PartyRecords::Find(int unitId) const {
+PartyUnitRecord* PartyRecords::Find(int unitId) const {
     for (int i = 0; i < count; ++i)
-        if (*reinterpret_cast<const int*>(records + i * 0x784 + 0x1C) == unitId) return records + i * 0x784;
+        if (records[i].unitId == static_cast<std::uint32_t>(unitId)) return &records[i];
     return nullptr;
 }
 
@@ -263,7 +264,7 @@ void CPlayer::Tick() {
         auto* current = node;
         node = node->next;
         int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
-        CEngineObject* object = ManagerFindObject(Party()->ItemManager(), nullptr, id);
+        CEngineObject* object = static_cast<CBaseManager*>(Party()->ItemManager())->FindObject(id);
         if (object == nullptr || object->RunTick() == 0) objects_.RemoveAt(current);
     }
     connection_->TickDone();

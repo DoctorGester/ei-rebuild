@@ -37,7 +37,7 @@ void __cdecl DeleteComposedTextures() {
     if (!find.FindFile(pattern, 0)) return;
     int more;
     do {
-        more = CFileFindNext(&find);
+        more = find.FindNext();
         BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());   // 006E6722, the path released after
         if (!deleted) {
             const mfc::CString name = find.GetFileName();   // 006E684B

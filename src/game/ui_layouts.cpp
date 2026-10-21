@@ -694,7 +694,7 @@ void CCreditsScreen::Build() {
         currentLine_ = lines_.End();
     } else {
         mfc::CString script;
-        GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
+        libcrt::Memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, game::Text(0x00784340)}};   // "\n"

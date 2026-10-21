@@ -253,7 +253,8 @@
 //                             "render new,present,classicshadows" starts with the classic ones. Ignored
 //                             in a run of the original code
 //   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
-//                             casting into it and the ground and some meshes sampling it (render::
+//                             casting into it, the ground and some meshes sampling it, and every object
+//                             whose shadow the game draws and that was drawn casting into it (render::
 //                             ShadowState). Skipped in a run of the original code
 //   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
 //                             the default) or built and uploaded every frame (off), from the next
@@ -330,6 +331,7 @@
 #include "harness_install.h"
 #include "harness_net.h"
 #include "harness_pair.h"
+#include "harness_timing.h"
 #include "ui_census.h"
 #include "../vectors/vectors.h"
 
@@ -1076,15 +1078,26 @@ constexpr std::uintptr_t kClientSegmentCall = 0x00457368;
 constexpr std::uintptr_t kClientSegment = 0x005641F0;
 using WorldUpdate = int(__fastcall*)(void*, void*);
 int __fastcall HeldServerUpdate(void* server, void*) {
-    const int result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
+    int result;
+    {
+        timing::Scope scope(timing::Server);
+        result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
+    }
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
-    digest::AfterWorldUpdate(server);   // a state record when its period says so
+    {
+        timing::Scope scope(timing::Digest);
+        digest::AfterWorldUpdate(server);   // a state record when its period says so
+    }
     watch::AfterWorldUpdate();          // EI_WATCH_CUNIT (harness_watch.h)
     watch::ScrubStack();                // EI_STACK_SCRUB (harness_watch.h)
     return result;
 }
 int __fastcall HeldClientSegment(void* client, void*) {
-    const int result = reinterpret_cast<WorldUpdate>(kClientSegment)(client, nullptr);
+    int result;
+    {
+        timing::Scope scope(timing::Client);
+        result = reinterpret_cast<WorldUpdate>(kClientSegment)(client, nullptr);
+    }
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     return result;
 }
@@ -1186,6 +1199,7 @@ void WriteReport() {
     netlocal::Report(f);
     pair::Report(f);
     input::Report(f);
+    timing::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -2203,6 +2217,8 @@ CreateWindowExAFn g_createA;
 CreateWindowExWFn g_createW;
 
 void Conceal(HWND window);
+void NoteWindowThread(DWORD thread);
+bool TopLevel(DWORD style, HWND parent);
 
 BOOL WINAPI Show(HWND window, int command) {
     switch (command) {
@@ -2212,6 +2228,8 @@ BOOL WINAPI Show(HWND window, int command) {
     default: break;
     }
     if (command != SW_HIDE) Conceal(window);   // also a window not made through CreateWindowEx
+    if (window && TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), GetParent(window)))
+        NoteWindowThread(GetWindowThreadProcessId(window, nullptr));
     return g_show(window, command);
 }
 BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT flags) {
@@ -2268,6 +2286,7 @@ HWND WINAPI CreateA(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, 
     if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
     HWND window = g_createA(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
     Conceal(window);
+    if (window && TopLevel(style, parent)) NoteWindowThread(GetCurrentThreadId());
     return window;
 }
 HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
@@ -2275,6 +2294,7 @@ HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x
     if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
     HWND window = g_createW(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
     Conceal(window);
+    if (window && TopLevel(style, parent)) NoteWindowThread(GetCurrentThreadId());
     return window;
 }
 
@@ -2306,14 +2326,28 @@ void Install() {
     Patch("CreateWindowExW", &CreateW, &g_createW);
 }
 
+// The windows' cloak states as DWM last reported them. The query is a call into DWM, which waits
+// while DWM is busy (SV10: in net_pair_quest some 6 s of the main thread's 150 s, five queries a
+// second): it is made on the sweeps (Watch) and for a window not asked about yet.
+std::vector<std::pair<HWND, DWORD>> g_cloakStates;
+DWORD CloakState(HWND window, bool ask) {
+    auto it = std::find_if(g_cloakStates.begin(), g_cloakStates.end(), [&](const auto& s) { return s.first == window; });
+    if (it != g_cloakStates.end() && !ask) return it->second;
+    DWORD cloaked = 0;
+    if (g_dwmGet) g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+    if (it != g_cloakStates.end()) it->second = cloaked;
+    else g_cloakStates.emplace_back(window, cloaked);
+    return cloaked;
+}
+
 // What of a top-level window of the game the user could see, empty when nothing: shown (visible,
-// not cloaked or minimised, on a monitor), a taskbar button, the foreground window.
-std::string Seen(HWND window) {
+// not cloaked or minimised, on a monitor), a taskbar button, the foreground window. `ask`: DWM is
+// asked for the cloak state, else its last answer for the window counts.
+std::string Seen(HWND window, bool ask) {
     std::string seen;
     if (!IsWindowVisible(window)) return seen;
     const DWORD exStyle = static_cast<DWORD>(GetWindowLongA(window, GWL_EXSTYLE));
-    DWORD cloaked = 0;
-    if (g_dwmGet) g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+    const DWORD cloaked = CloakState(window, ask);
     RECT rect{}, both{};
     const RECT screen{GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
                       GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
@@ -2337,27 +2371,66 @@ unsigned g_checks;          // checks of the game's windows so far
 std::string g_firstSeen;    // the first thing seen, for the report
 std::string g_lastSeen;     // logged when it changes
 
-BOOL CALLBACK CheckWindow(HWND window, LPARAM seen) {
+// The threads that own top-level windows of the game: each that made or showed one (CreateA, CreateW,
+// Show) and each a sweep of the desktop found one of. (A thread id can be reused by another process's
+// thread once its thread ends: the windows' process is checked too.)
+constexpr int kMaxWindowThreads = 64;
+SRWLOCK g_windowThreadsLock = SRWLOCK_INIT;
+DWORD g_windowThreads[kMaxWindowThreads];
+int g_windowThreadCount = 0;
+void NoteWindowThread(DWORD thread) {
+    AcquireSRWLockExclusive(&g_windowThreadsLock);
+    bool known = false;
+    for (int i = 0; i < g_windowThreadCount && !known; ++i) known = g_windowThreads[i] == thread;
+    if (!known && g_windowThreadCount < kMaxWindowThreads) g_windowThreads[g_windowThreadCount++] = thread;
+    ReleaseSRWLockExclusive(&g_windowThreadsLock);
+}
+
+// One check: the first thing seen, and whether it is a sweep (DWM asked again).
+struct Check {
+    std::string seen;
+    bool sweep = false;
+};
+
+BOOL CALLBACK CheckWindow(HWND window, LPARAM parameter) {
     DWORD process = 0;
-    GetWindowThreadProcessId(window, &process);
+    const DWORD thread = GetWindowThreadProcessId(window, &process);
     if (process != GetCurrentProcessId()) return TRUE;
-    std::string& first = *reinterpret_cast<std::string*>(seen);
-    if (first.empty()) first = Seen(window);
+    NoteWindowThread(thread);
+    Check& check = *reinterpret_cast<Check*>(parameter);
+    if (check.seen.empty()) check.seen = Seen(window, check.sweep);
     return TRUE;
 }
 
 // Every top-level window of the process checked (at most every 200 ms of real time, from the main
 // loop's peeks; logged when what is seen changes). Without concealment only the foreground matters,
-// as before WB12: a harness game never takes it (SV1c).
+// as before WB12: a harness game never takes it (SV1c). A check walks the windows of the threads
+// that own the game's windows with the cloak states last reported; every tenth (every 2 s) is a sweep:
+// every top-level window of the desktop (for a window of a thread not known yet) and DWM asked again
+// (SV10: a sweep at every check cost 0.4-2 ms of wall time a frame in the original's runs and some 6%
+// of net_pair_quest's main thread in the image's, mostly waiting for DWM's answers).
+constexpr unsigned kSweepEvery = 10;
 void Watch(HWND game) {
     static ULONGLONG next = 0;
     const ULONGLONG now = GetTickCount64();
     if (now < next) return;
     next = now + 200;
+    Check check;
+    check.sweep = g_checks % kSweepEvery == 0;
+    if (g_conceal && check.sweep) {
+        EnumWindows(&CheckWindow, reinterpret_cast<LPARAM>(&check));
+    } else if (g_conceal) {
+        DWORD threads[kMaxWindowThreads];
+        AcquireSRWLockShared(&g_windowThreadsLock);
+        const int count = g_windowThreadCount;
+        std::copy(g_windowThreads, g_windowThreads + count, threads);
+        ReleaseSRWLockShared(&g_windowThreadsLock);
+        for (int i = 0; i < count; ++i) EnumThreadWindows(threads[i], &CheckWindow, reinterpret_cast<LPARAM>(&check));
+    } else if (GetForegroundWindow() == game) {
+        check.seen = "the game window is the foreground window";
+    }
+    const std::string seen = check.seen;
     ++g_checks;
-    std::string seen;
-    if (g_conceal) EnumWindows(&CheckWindow, reinterpret_cast<LPARAM>(&seen));
-    else if (GetForegroundWindow() == game) seen = "the game window is the foreground window";
     if (seen == g_lastSeen) return;
     g_lastSeen = seen;
     if (seen.empty()) {
@@ -3163,16 +3236,18 @@ void RunSteps() {
                 continue;
             }
             render::ShadowInfo info = render::ShadowState();
-            char text[240];
+            char text[320];
             std::snprintf(text, sizeof(text),
                           "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
-                          "ground batches sampling it (at least %d casters)",
+                          "ground batches sampling it (at least %d casters); shadowed objects not drawn %d, drawn but "
+                          "not cast %d",
                           info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
                           static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
-                          info.receivingTerrain, least);
+                          info.receivingTerrain, least, info.offScreen, info.lost);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
-            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1)
+            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
+                info.lost > 0)
                 g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
             if (!render::Active()) {
@@ -3640,7 +3715,10 @@ std::string WindowSizeStep(const std::string& argument) {
 void KeepGameWindowActive() {
     HWND window = GameWindow();
     if (!window) return;
-    noforeground::Watch(window);
+    {
+        timing::Scope scope(timing::WindowChecks);
+        noforeground::Watch(window);
+    }
     if (!g_gameWindowProc) {
         g_gameWindowProc = reinterpret_cast<WNDPROC>(
             SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
@@ -3712,6 +3790,8 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     if (afterFrame) {
         ++g_frames;
         if (census::Enabled()) census::Frame();
+        timing::FrameEnd();
+        timing::Scope scope(timing::PairWait);
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
@@ -3721,6 +3801,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());
         g_winMainLoop = IsWinMainLoop(_ReturnAddress());
+        timing::Scope scope(timing::Steps);
         RunSteps();
         g_inStep = false;
     }

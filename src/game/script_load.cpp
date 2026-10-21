@@ -7,6 +7,8 @@
 // original's pieces. The original inlines CArray::SetSize(n, -1) and CList::AddTail into most
 // loaders; both are written out here (InlineSetSize, AppendNode) with the instantiation's own
 // element helpers, which are called through their addresses (MFC template code, config/library.csv).
+#include "base_manager.h"
+#include "core_streams.h"
 #include "script.h"
 #include "script_array.h"
 
@@ -32,17 +34,14 @@ namespace {
 
 // ---- Original code called by the loaders ---------------------------------------------------------
 
-// Loaders of the 004B range, __thiscall with the stream. 004B18B0 point light (0x20 slot) and
-// 004B1B40 FX source (list node data): not rewritten. 004B3AD0 ScriptVars, 004B5FE0 SSCCmd and
-// 004BB590 one if-then pair of an instance: rewritten below, called through their addresses.
-__declspec(naked) void __fastcall PointLightLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B18B0)
-__declspec(naked) void __fastcall FxSourceLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1B40)
-// 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
-// address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
+// Loaders of the 004B range, __thiscall with the stream: 004B18B0 point light (0x20 slot) and
+// 004B1B40 FX source (list node data) are script_effects.cpp's; 004B3AD0 ScriptVars, 004B5FE0 SSCCmd
+// and 004BB590 one if-then pair of an instance are rewritten below. 00461190 (CStream::ReadString):
+// bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
+CEngineObject* RegistryObject(int id) { return static_cast<CBaseManager*>(*reinterpret_cast<void**>(0x007AFFA8))->FindObject(id); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
@@ -323,7 +322,7 @@ EI_REPLACE_METHOD(0x004B6330, ScriptSubCall::Load);
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     alignas(4) unsigned char temporary[sizeof(mfc::CString)];
-    *out = *StreamReadString(reinterpret_cast<CStream*>(stream), nullptr, temporary);
+    *out = *reinterpret_cast<CStream*>(stream)->ReadString(temporary);
     reinterpret_cast<mfc::CString*>(temporary)->~CString();
 }
 EI_REPLACE(0x004B3D10, ScriptStringLoad);
@@ -477,7 +476,7 @@ void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
     for (ListNode* node = list->head; node;) {
         char* data = node->data.bytes;
         node = node->next;
-        FxSourceLoad(data, nullptr, stream);
+        reinterpret_cast<ScriptFxSource*>(data)->ScriptFxSourceLoad(stream);
     }
 }
 EI_REPLACE(0x004CA5D0, ScriptFxSourcesLoad);
@@ -620,9 +619,8 @@ void CScript::LoadState(ScriptStream* stream) {
     LoadingScript() = this;
 
     // Point lights (+0x00; 0x20-byte slots).
-    auto* lights = Raw(&pointLights_);
     mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);   // 004C5CB0
-    for (int i = 0; i < lights->size; ++i) PointLightLoad(lights->data + i * 0x20, nullptr, stream);
+    for (int i = 0; i < pointLights_.size; ++i) pointLights_.data[i].ScriptPointLightLoad(stream);
 
     ScriptParticlesLoad(reinterpret_cast<RawList*>(&particles_), stream);
     ScriptFxSourcesLoad(reinterpret_cast<RawList*>(&fxSources_), stream);

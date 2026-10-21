@@ -172,9 +172,9 @@ ClassFactory PartyRecordFactory() { return reinterpret_cast<ClassFactory>(0x0045
 // 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
-// The camera: 0040D0A0 (RET 0x10) Init, 0040FB30 (RET 4) the update, 0040EB60 / 0040EFB0 (RET 4) a
-// frame written to / read from the camera file at a time in ticks.
-__declspec(naked) void __fastcall CameraUpdateAt(CCamera*, void*, float /*seconds*/) EI_ORIGINAL(0x0040FB30)
+// The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
+// camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) as the frame calls it through a pointer.
+void __fastcall CameraUpdateOf(CCamera* camera, void*, float seconds) { camera->Update(seconds); }
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
@@ -272,11 +272,11 @@ void ReadCommandLine(const char* commandLine) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find(game::Text(0x007848E0)) == 0) {   // "-benchmark_"
             mfc::CString frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = GameAtoi(frames);
+            options->numberOfFrames_ = libcrt::Atoi(frames);
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find(game::Text(0x007848D0)) == 0) {   // "-devicetarget_"
             mfc::CString driver = Tail(arguments[i], 14);
-            options->driverIndex_ = GameAtoi(driver);
+            options->driverIndex_ = libcrt::Atoi(driver);
         }
     }
 }
@@ -506,7 +506,7 @@ Fn CallTarget(const unsigned char& call, Fn fallback) {
 using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
 CameraUpdate FrameCameraUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) return reinterpret_cast<CameraUpdate>(hook);
-    return CallTarget<CameraUpdate>(Global<const unsigned char>(0x00457595), &CameraUpdateAt);
+    return CallTarget<CameraUpdate>(Global<const unsigned char>(0x00457595), &CameraUpdateOf);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
 WorldUpdate ServerUpdate() {
@@ -571,7 +571,7 @@ bool RunWorlds() {
             if (!ClientSegment()(Client(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
-            CameraUpdateAt(Camera(), nullptr, CameraSeconds(tick));
+            Camera()->Update(CameraSeconds(tick));
             net::Pump();
             continue;
         }
@@ -649,7 +649,7 @@ bool RunPass() {
         CCamera* camera = Camera();
         std::uint32_t tick = TickLength();
         while (elapsed > tick) {
-            CameraUpdateAt(camera, nullptr, CameraSeconds(tick));
+            camera->Update(CameraSeconds(tick));
             tick = TickLength();
             elapsed -= tick;
         }

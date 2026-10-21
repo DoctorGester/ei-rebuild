@@ -71,7 +71,7 @@ BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray
     console::CStringArray codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
     temp.SetSize(codes.GetSize(), -1);
-    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
     return 1;
 }
 
@@ -100,7 +100,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
         ok = ini->GetList(section, key, &codes, kListSeparator);
         if (ok) {
             temp.SetSize(codes.GetSize(), -1);
-            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
         }
     }
     if (ok) {
@@ -239,7 +239,7 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = codes.GetSize();
     out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
     return 1;
 }
 EI_REPLACE_METHOD(0x00696830, CIniFile::GetIntArray);
@@ -264,7 +264,7 @@ BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArra
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     reinterpret_cast<MfcDWords*>(out)->SetSize(codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
-        out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+        out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
     return 1;
 }
 EI_REPLACE_METHOD(0x00696D80, CIniFile::GetMfcDWordArray);

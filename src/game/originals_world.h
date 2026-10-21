@@ -46,8 +46,6 @@ __declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void
 // 0055FB00 (RET 4): the world's object with this id when it is a unit (type 0x50), else null.
 __declspec(naked) inline CEngineObject* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
     EI_ORIGINAL(0x0055FB00)
-// 0058E5D0 (rewritten as CWorldServer::RemoveTimedObject; RET 4): EAX on return is not a result.
-__declspec(naked) inline void __fastcall WorldRemoveTimed(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
 
 // C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at
 // 007AF788; ECX is not read, so the callers' flow argument was a dummy.

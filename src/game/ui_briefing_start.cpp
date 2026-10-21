@@ -119,7 +119,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         return;
     }
     if (Compare(topic_.Left(kConstructorPrefix), ConstructorTopic()) == 0) {
-        int constructor = GameAtoi(console::Ops(topic_).Mid(kConstructorNumber));
+        int constructor = libcrt::Atoi(console::Ops(topic_).Mid(kConstructorNumber));
         if (ClassTemplatesFind(ClassTemplates(), nullptr, constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);

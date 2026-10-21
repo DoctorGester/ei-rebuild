@@ -459,6 +459,23 @@ depends = ["R16j1"]
 files = ["src/render/render_shadows.cpp"]
 note = "User 2026-10-20: 'the new shadows are quite a bit harder than the original one, see the shadow of the town gate'. The old shadows are 64 x 64 textures stretched over each object's shadow quad and, with the shadow option on 'blurred' (mode 2, 0079BD0C), blurred twice on the CPU (2DintMMX BlurShadow / BlurShadow2, map_object_shadow.cpp ~358): a penumbra of a few texels of a 64-texel image, so about a tenth of the object's size, wide on a building. The map is 4096 texels over the visible ground (about 72 units) with 3 x 3 PCF, an edge of a few hundredths of a unit. Make the edge soft: contact-hardening (PCSS: blocker search, penumbra from the receiver's distance to the blocker times the sun's chosen angular size, Poisson-disc taps, rotated per pixel) so a shadow is sharp where an object meets the ground and soft away from it; tune the largest penumbra to look like the old one on the town gate (render_shadows' town_map vs town_classic). Keep the classic option unchanged, and the GPU cost of the map pass + sampling within about 0.3 ms at 4K (render_stats). Show the user the town gate, the fight and a slope before / after."
 
+[[ticket]]
+id = "SV10e"
+title = "Harness build's renderer read-backs (CheckUpload, gamma ramp check) sampled instead of every time"
+group = "renderer"
+size = 0.5
+model = "sonnet"
+files = ["src/render/render_blit.cpp src/render/render_window.cpp"]
+note = "SV10 profile (render_stats, image): the verify build's CheckUpload (render_blit.cpp: every cursor / fill / movie image upload read back from the GPU and compared, with ReadPassState) is ~3% of the main thread, a GPU stall each time; the gamma ramp check reads the presented frame back after each ramp change. Check the first N uploads of each kind and then every 16th (and every one in scenarios that ask, e.g. render_* ones), so a mismatch still shows within a run. No golden reads them (the digest is game state, captures read the frame through their own path); keep the log's counts. Gain ~3% of draw-heavy runs."
+
+[[ticket]]
+id = "R16j3"
+title = "Shadow map: darkness where shadows overlap, and point lights (campfire) against the classic decals"
+group = "renderer"
+depends = ["R16j1"]
+files = ["src/render/render_shadows.cpp"]
+note = "Found in R16j1 (renderer.md section 13 item 10): no caster is missing; the user's 'missing' ruin and fern shadows are classic-decal effects. (1) Classic decals stack: overlapping objects each darken by half, the dirt under the fight's ruin is at 21% of its lit brightness classic and 43% with the map (kStrength 0.5, one sun). Options: a darker kStrength, or ambient-occlusion-like extra darkening where the map's blocker is close; show the user. (2) The classic direction sums the sun and the point lights in reach (0051CE60 LightDirection), so near the town's campfire shadows point away from the fire; the map has the sun only. Options: per point light a small cube or spot map for the strongest one or two lights near the camera (R16i territory), or leave. Wants the user's call; crops in build/R16j1. User 2026-10-21 on (1): 'Color-wise shadows looked about the same I think?' - keep kStrength 0.5, no extra darkening where shadows overlap. What is left is (2), point lights, which goes with R16i (GPU lighting)."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -1536,6 +1553,52 @@ depends = ["SV5d3"]
 files = ["tests/scenarios/net_pair_quest.txt tests/scenarios/peer/net_pair_quest.txt tests/verify/harness_pair.h"]
 note = "User 2026-10-20 asked whether net_pair_quest's run time had been improved: it has not. work.db's run table: 30 s before SV5d3 added the quest, then 130-240 s every run (standalone 133-238, vanilla 143-214; two games each, timeout 480 against the 60 s default), the longest scenario in both suites. The time goes to: the hero walking across zone9 to the old camp and back (lookat + clickground steps repeated because fights stop the walk, frames 150 each), the ten undead's fights, the briefing clicked through with wait 4000 / 800 steps (twice), and the 60 s of game time before CompleteZone's awards reach the clients (frames 400). Measure each part from the run's ei_hook.log timestamps first, then shorten without losing what the scenario reaches (CompleteZone 00418ED0, kind 0 / 1 awards, ClientOnAward 0041EF90, OnMaster 0041ACA0): e.g. the game's own speed-up (harness speed / the virtual clock if the pair can run on it), fewer and shorter walk steps, waitwindow instead of fixed waits. Only inputs the original handles. Goldens re-recorded only if the steps change; vanilla and image goldens must still agree. It also flakes on the original: C13b3 (2026-10-20) saw net_pair_quest vanilla's golden differ once (random count 233 against 222 at tick 19472; two fresh reruns the same), and R16d reran it on the original again, so workers spend extra 3-minute runs confirming a flake on code they never touched. Find the timing that moves the random count in the two-process pair and make the scenario deterministic (or wait on an event instead of a frame count there)."
 
+[[ticket]]
+id = "SV10"
+title = "Faster harness runs: measure where a run's wall time goes, then cut it"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tests/verify/harness*.cpp tests/verify/harness_clock.* tools/run_all.py tools/work_sched.py"]
+note = "User 2026-10-21: 'if we are running the game tests with a virtual clock, can't we run them even faster? Any downsides?' Every scenario already runs on the virtual clock (no scenario says realtime), so game time is not waited for: net_pair_quest plays about 18 minutes of game time (19,472 world updates) in about 165 s. What bounds a run is the cost of each frame: net_pair_quest's standalone run drew 6,479 frames in 165 s (about 25 ms a frame, 40 fps) at 4K with 4 games sharing the machine; startup to the menu is about 4 s. Step 1 (no golden changes): measure per frame where the time goes (render and present at 4K, the game's update, the state digest every 20 updates, the harness's checks, the GPU shared by 4-16 games, the pair's mailbox waits) on the image and the original, plus startup and shutdown. Step 2: propose cuts with their downsides for the user before changing goldens, e.g. more world updates per drawn pass (changes the interleaving of client ticks and server updates: all goldens re-recorded, the original must pace the same way), skipping draws no step reads (picking, captures and the classic shadows read what is drawn), a smaller back buffer outside capture scenarios (UI layout and click positions depend on it), cheaper digests, faster startup. Report numbers and a recommendation; implement only the cuts that keep goldens unchanged."
+
+[[ticket]]
+id = "SV10a"
+title = "Pair lockstep: each game's frame step runs while the other game takes its turn (goldens unchanged by design)"
+group = "verification"
+size = 1
+model = "opus"
+depends = ["SV5d5"]
+files = ["tests/verify/harness_pair.* tests/verify/harness.cpp src/game/app_main.cpp include/ei/main_loop.h"]
+note = "SV10 measured: the two games of a pair never run at once (harness_pair.h: side 0's frame n+1 starts when side 1's frame n has ended), so a frame of net_pair_quest costs both games' frames: 19.3 ms median = 8-10 ms of each game's own work + 11-12 ms waiting (TIMING: pair wait), image and original alike; the pairs are the suite's longest runs (net_pair_quest bounds the suite's wall). Of a game's own frame, the drawing (app::FrameStep 00458010: the interface's Draw, EndScene, cursor, present) is 75-85%. Hand the turn on just before the frame step instead of at the after-frame peek, and wait for the next turn at the after-frame peek as now: the steps, the message pump, the worlds' updates and net::Pump stay inside the turn, so every mailbox operation and signal happens in the same order and frame as now and the goldens hold, while one game draws as the other updates. A frame then costs about max(A, B) instead of A + B: net_pair_* about 40-45% shorter (net_pair_quest ~140 s -> ~80 s at 4 games). Needs a hook point before FrameStep in the rewritten loop (app_main.cpp RunPass, ei::mainloop::g_harnessHooks) and the CALL of 00458010 in the original's WinMain redirected. Guard: a mailbox call (Bind, SendTo, RecvFrom, Close) or Signal / Signaled between the hand-off and the next turn fails the run (CInterface3D::Draw runs CloseAllPending, which can leave a game: if that ever reaches the network the guard says so). Check: the five net_pair goldens on both installs, image and --no-hooks --fresh, plain and under jitter. User 2026-10-21: do it (after SV5d5)."
+
+[[ticket]]
+id = "SV10b"
+title = "Harness start-up: shaders compiled at build time; the start-up's DirectDraw probing and sound open measured"
+group = "verification"
+size = 1
+model = "opus"
+files = ["src/render/render_shaders* src/render/render.cpp src/game/app_startup*"]
+note = "SV10 measured start-up (process start to the first frame) at 1.5-2.3 s for the image and 2.3-3.2 s for the original, about a third of the suite's game time (124 runs, median 6-7 s). Image profile of the 2.1 s: d3dcompiler compiling the renderer's shaders at every start 0.35 s (sokol's _sg_d3d11_compile_shader; compile to bytecode at build time, e.g. fxc / D3DCompile in a build step, and hand sokol the bytecode: no golden reads it, the product starts faster too), app::GetDxVersion's DirectDraw / Direct3D probing 0.45 s (the game's own check, ported; a harness answer would leave the product's code untested at start, so only with the user's word), the sound device open through AIL_waveOutOpen 0.3 s (the game's; muting it later changes nothing, not opening it changes the sounds that play and with them random draws: goldens), the exe check through imagehlp (FUN_00640060) 0.18 s. Gain of the shader part: ~0.35 s a run, ~45 s of slot time per suite. User 2026-10-21: do the faster start-up; the sound device open stays (not skipped). The GetDxVersion probe skip waits on the user (asked what it buys)."
+
+[[ticket]]
+id = "SV10c"
+title = "Proposal (user decides; all goldens re-recorded): more world updates per drawn frame on the virtual clock"
+group = "verification"
+size = 2
+model = "opus"
+files = ["tests/verify/harness_clock.* tests/verify/harness.cpp tests/golden"]
+note = "Dropped (user 2026-10-21): don't change the number of drawn frames; make the frames faster instead (R16 renderer tickets). SV10: a frame costs 6-9 ms, of which the five world updates (server 0.2-3 ms, client 1-4 ms) are a third or less and the drawing the rest, so game time per wall second grows almost in step with the updates a frame runs: 10 instead of 5 (the virtual clock's frame-time read adds 10 ticks; RunWorlds already runs whatever backlog it gets, the original's loop too, capped by kLongestPassTicks) would cut the frames of a long scenario about in half and its in-game wall time by ~35-45% (net_pair_quest's ~6,400 frames, render_stats, the zone walks). Downsides: the client ticks and server updates interleave differently, the camera's per-pass update and the client speed balance see other steps, the client's particles draw random numbers per drawn frame: every golden changes and must be re-recorded from the original paced the same way (the harness moves the original's clock too, so it follows); scenarios' frame counts ('frames N', waits on frames) then mean more game time and some steps may land differently (re-check the scenarios that count frames). The cap kLongestPassTicks (5) must allow it in both, or the clock gives 5 and the loop is asked twice."
+
+[[ticket]]
+id = "SV10d"
+title = "Proposal (user decides; goldens re-recorded): draw only the frames a step reads"
+group = "verification"
+size = 2
+model = "opus"
+files = ["tests/verify/harness.cpp tests/verify/harness_capture.cpp tests/golden"]
+note = "Dropped (user 2026-10-21): don't change the number of drawn frames; make the frames faster instead (R16 renderer tickets). SV10: the drawing is 70-85% of a frame's wall time (the game's own CPU drawing: terrain projection, mesh lighting, classic shadow textures, GDI text; our renderer's submission ~6%; the GPU ~0.7 ms at 4K). Skipping the frame step (00458010 / app::FrameStep) on frames no step reads would make those frames 3-5x cheaper. But drawing changes state the digest reads: the client's particles draw ISAAC numbers while drawn (shared with the server's AI), CollectVisible sets the client units' 'model kept loaded' flag 0x400 from what is in view, the classic shadows and picking (clickunit, the cursor over units) read what was drawn, and captures need their frame. So every golden changes (re-record from the original skipping the same frames, harness-redirected CALL in WinMain), and code reached only while drawing loses coverage on skipped frames (draw every Nth frame, and always around steps that click, pick or capture). Lower priority than SV10a / SV10c."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -2143,7 +2206,15 @@ title = "C13b3 leftovers: ei_vectors-linked shapes, mfc.cpp's ei_vectors branch,
 group = "cleanup"
 model = "opus"
 depends = ["C13b3"]
-note = "After C13b3 (364 EI_ORIGINAL forwarders by check_cleanup, 369 in direct_calls.py --report -v --cast --loose --library). Kept on purpose: Rebirth-patched (131 + 4 patched-over), skip list (90), vector recorders (49), replay stand-ins and vector-replay callees (5), harness-replaced entries (2). Convertible with work: (1) ai_movement.cpp's shape cache forwarders (ShapeHandleInit, ShapeMapFind, ShapeIteratorInit, ShapeMapInsert, ShapeCacheGet): ei_vectors links ai_movement without game_hashes.cpp; link it (tests/vectors) or move the calls. (2) The other 'ei_vectors links the caller without the target' rows (30: script_load / script_group / script_destroy / script_reset / script_parse, quaternion, random, the CRT originals in originals_library.h). (3) lib/mfc.cpp CFile / CFileFind / CStringArray / ExceptionLink rows are the ei_vectors #else branch; CFileFindNext / CFileFindTitle (target not found). (4) 20 'no registration' rows (map_spec_unit PatrolDelete, net_lobby QueryConstructAt / QueriesCopy, RefPtrDestroyAt, CWndDestroyWindow, renderer_sprites SetSize4, ui_saveload EntryConstruct, world_map MissilePtrDestruct, the mfc_file / mfc_time CRT calls): rewrite or register first. (5) originals_render.h DrawMesh / DrawMesh2 (CTextureDevice::DrawMeshBlocks / 2, argument lists differ) after the R16 renderer work. (6) PartyRecords::Find (unit.h and party_record_lookup.h declare two PartyRecords structs: one type). (7) CameraUpdateAt (compared as a Rebirth call target), FreeSortedSectors (an atexit entry with no C++ body), ScriptRunWorldScript (replay stand-in). (8) tests/verify forwarders stay: a vanilla (no-hooks) run must call the game's own code, so HarnessLoadUnitFaces, HarnessMappedResourceConstruct and the blink / pick / class-template ones keep their addresses (C13b3 tried world->LoadUnitFaces(): render_blink vanilla crashed at 00533AAE)."
+note = "After C13b3 (364 EI_ORIGINAL forwarders by check_cleanup, 369 in direct_calls.py --report -v --cast --loose --library). Kept on purpose: Rebirth-patched (131 + 4 patched-over), skip list (90), vector recorders (49), replay stand-ins and vector-replay callees (5), harness-replaced entries (2). Convertible with work: (1) ai_movement.cpp's shape cache forwarders (ShapeHandleInit, ShapeMapFind, ShapeIteratorInit, ShapeMapInsert, ShapeCacheGet): ei_vectors links ai_movement without game_hashes.cpp; link it (tests/vectors) or move the calls. (2) The other 'ei_vectors links the caller without the target' rows (30: script_load / script_group / script_destroy / script_reset / script_parse, quaternion, random, the CRT originals in originals_library.h). (3) lib/mfc.cpp CFile / CFileFind / CStringArray / ExceptionLink rows are the ei_vectors #else branch; CFileFindNext / CFileFindTitle (target not found). (4) 20 'no registration' rows (map_spec_unit PatrolDelete, net_lobby QueryConstructAt / QueriesCopy, RefPtrDestroyAt, CWndDestroyWindow, renderer_sprites SetSize4, ui_saveload EntryConstruct, world_map MissilePtrDestruct, the mfc_file / mfc_time CRT calls): rewrite or register first. (5) originals_render.h DrawMesh / DrawMesh2 (CTextureDevice::DrawMeshBlocks / 2, argument lists differ) after the R16 renderer work. (6) PartyRecords::Find (unit.h and party_record_lookup.h declare two PartyRecords structs: one type). (7) CameraUpdateAt (compared as a Rebirth call target), FreeSortedSectors (an atexit entry with no C++ body), ScriptRunWorldScript (replay stand-in). (8) tests/verify forwarders stay: a vanilla (no-hooks) run must call the game's own code, so HarnessLoadUnitFaces, HarnessMappedResourceConstruct and the blink / pick / class-template ones keep their addresses (C13b3 tried world->LoadUnitFaces(): render_blink vanilla crashed at 00533AAE). Result (C13b3x, 2026-10-21): EI_ORIGINAL forwarders 364 -> 294 (check_cleanup); direct_calls --report -v --cast --loose --library: 301 in scope, 299 left, 2 convertible kept (ManagerFindObject for world_client_draw.cpp, HarnessLoadUnitFaces). Done: (1)-(4), (6), (7) except CWndDestroyWindow (needs afxMapHWND / CWnd::Detach ported) and FreeSortedSectors (only body is the generated Exit006C9270); CrtThreadDataOriginal stays (vanilla harness reads the rand seed through it). direct_calls.py accepts targets tests/vectors/replay_*.cpp define; ei_vectors links mfc_file.cpp / mfc_coll.cpp; stops in replay_unlinked.cpp. Left: (5) DrawMesh / DrawMesh2 and ManagerFindObject after R16 (C13b3y), (8) tests/verify. See docs/notes/cleanup-tooling.md."
+
+[[ticket]]
+id = "C13b3y"
+title = "Render forwarders after R16: DrawMesh / DrawMesh2, ManagerFindObject; CWnd::DestroyWindow"
+group = "cleanup"
+model = "sonnet"
+depends = ["C13b3x"]
+note = "After C13b3x (294 EI_ORIGINAL forwarders). Once the R16 renderer work in src/render / world_client_draw.cpp is merged: (1) originals_render.h DrawMesh / DrawMesh2 -> CTextureDevice::DrawMeshBlocks / DrawMeshBlocks2 (argument lists differ: give the callers the member signature); (2) originals_core.h ManagerFindObject (00403F40): its one caller is world_client_draw.cpp -> static_cast<CBaseManager*>(x)->FindObject(id). Optional: (3) CWndDestroyWindow (007051A1, unreachable in the image) once afxMapHWND (007048B7) and CWnd::Detach (007049A7) are ported. Check with python tools/direct_calls.py --report -v --cast --loose --library after build.cmd verify; --golden after each."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

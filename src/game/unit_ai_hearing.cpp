@@ -12,6 +12,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 
@@ -31,7 +32,7 @@ mfc::CString& TextOf(AICallRecord& call) { return *reinterpret_cast<mfc::CString
 void RemoveCall(AICallArray* calls, int index) {
     calls->data[index].Destruct();
     int after = calls->size - index - 1;
-    if (after != 0) GameMemmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+    if (after != 0) libcrt::Memmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
     --calls->size;
 }
 

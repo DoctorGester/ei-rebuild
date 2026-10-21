@@ -72,8 +72,6 @@ lib::AlignedArray<SpriteSortRecord>& Records() { return *reinterpret_cast<lib::A
 lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFC8); }
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
-// The aligned array SetSize for 4-byte elements (00505270; thiscall: size, growth or -1).
-__declspec(naked) void __fastcall SetSize4(lib::AlignedArray<SpriteSortRecord*>*, void*, int, int) EI_ORIGINAL(0x00505270)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
 
@@ -186,7 +184,7 @@ int SortBackToFront() {
     TLVertex* corners = CornersCopy().data;
     int sprites = CornersCopy().size / 4;
     Records().SetSize(sprites, -1);
-    SetSize4(&Order(), nullptr, sprites, -1);
+    Order().SetSize(sprites, -1);
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
         SpriteSortRecord* record = Records().data + kept;
@@ -197,7 +195,7 @@ int SortBackToFront() {
         Order().data[kept] = record;
         ++kept;
     }
-    SetSize4(&Spare(), nullptr, kept, -1);
+    Spare().SetSize(kept, -1);
 
     auto* sorted = Order().data;
     auto* other = Spare().data;

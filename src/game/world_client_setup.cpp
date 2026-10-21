@@ -58,7 +58,7 @@ void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, D
     int previous = 0;
     for (int i = 0; i < keys.size; ++i) {
         hour = console::Ops(keys[i]).Mid(4, 2);
-        int index = GameAtoi(hour);
+        int index = libcrt::Atoi(hour);
         values.SetSize(0, -1);      // the sky section frees the block inline (the same state)
         ini.GetIntArray(section, keys[i], &values);
         LightColour& to = table[index];

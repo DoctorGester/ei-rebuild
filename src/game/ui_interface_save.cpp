@@ -26,7 +26,7 @@ int Version(const void* stream) { return *reinterpret_cast<const int*>(static_ca
 void ReadInto(void* stream, mfc::CString* field) {
     alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
     auto* text = reinterpret_cast<mfc::CString*>(storage);
-    *field = *StreamReadString(static_cast<CStream*>(stream), nullptr, text);
+    *field = *static_cast<CStream*>(stream)->ReadString(text);
     text->~CString();
 }
 

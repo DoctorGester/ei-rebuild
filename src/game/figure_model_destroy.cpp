@@ -26,7 +26,7 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
 }
 
 // 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
-void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
+void __fastcall Deallocate(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // 00406590: deallocates `count` pointers (the buckets).
 void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 

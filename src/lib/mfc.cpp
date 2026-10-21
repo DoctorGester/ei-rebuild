@@ -2,6 +2,7 @@
 #include "mfc_try.h"
 #include "mfc_archive.h"
 #include "mfc_coll.h"
+#include "mfc_exception.h"
 #include "mfc_file.h"
 #include "mfc_string.h"
 #include "mfc_time.h"
@@ -97,6 +98,7 @@ int CString::Find(char c, int start) const { return Impl(this)->Find(c, start); 
 #ifndef EI_VECTORS_REPLAY
 const CString& CString::operator+=(const CString& s) { *Impl(this) += *Impl(&s); return *this; }   // 00700D88
 const CString& CString::operator+=(const char* s) { *Impl(this) += s; return *this; }              // 00700D4C
+#endif
 
 namespace {
 impl::CFile* Impl(CFile* file) { return reinterpret_cast<impl::CFile*>(file); }
@@ -116,6 +118,7 @@ unsigned CFile::Read(void* buffer, unsigned count) { return Impl(this)->Read(buf
 void CFile::Write(const void* buffer, unsigned count) { Impl(this)->Write(buffer, count); }      // 0070133F
 void CFile::Close() { Impl(this)->Close(); }                                        // 00701403
 
+#ifndef EI_VECTORS_REPLAY   // ei_vectors does not link mfc_time.cpp
 CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int second, int dst) {   // 006FE3BB
     reinterpret_cast<impl::CTime*>(this)->Construct(year, month, day, hour, minute, second, dst);
     return this;
@@ -125,6 +128,7 @@ CString CTime::Format(const char* format) const {                               
     Place(result, reinterpret_cast<const impl::CTime*>(this)->Format(format));
     return result;
 }
+#endif
 
 CFileFind::CFileFind() { Impl(this)->Construct(); }                                 // 006E6370
 CFileFind::~CFileFind() { Impl(this)->Destruct(); }                                 // 006E63AD
@@ -140,6 +144,14 @@ CString CFileFind::GetFileName() const {                                        
     Place(result, Impl(this)->GetFileName());
     return result;
 }
+CString CFileFind::GetTitle() const {                                               // 006E67BA
+    CString result(CString::kUnset);
+    Place(result, Impl(this)->GetFileTitle());
+    return result;
+}
+BOOL CFileFind::FindNext() { return Impl(this)->FindNextFile(); }                   // 006E6653
+BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }                     // 006E661A
+void CFileFind::Close() { Impl(this)->Close(); }                                    // 006E63E9
 
 void CStringArray::Construct() { Impl(this)->Construct(); }                         // 006FE925
 void CStringArray::Destruct() { Impl(this)->Destruct(); }                           // 006FE958
@@ -152,20 +164,6 @@ int CStringArray::Append(const CStringArray& source) { return Impl(this)->Append
 void CStringArray::InsertAt(int index, const CString& value, int count) {                                        // 006FED03
     Impl(this)->InsertAt(index, *Impl(&value), count);
 }
-#else
-// ei_vectors uses these (random.cpp, record_arrays.cpp) without mfc_file.cpp / mfc_coll.cpp.
-__declspec(naked) CFile::CFile() EI_ORIGINAL(0x00701036)
-__declspec(naked) CFile::~CFile() EI_ORIGINAL(0x0070112B)
-__declspec(naked) BOOL CFile::Open(const char*, unsigned, void*) EI_ORIGINAL(0x007011E8)
-__declspec(naked) void CFile::Close() EI_ORIGINAL(0x00701403)
-__declspec(naked) CFileFind::CFileFind() EI_ORIGINAL(0x006E6370)
-__declspec(naked) CFileFind::~CFileFind() EI_ORIGINAL(0x006E63AD)
-__declspec(naked) BOOL CFileFind::FindFile(const char*, unsigned long) EI_ORIGINAL(0x006E6433)
-__declspec(naked) CString CFileFind::GetFilePath() const EI_ORIGINAL(0x006E6722)
-__declspec(naked) unsigned long CFileFind::GetLength() const EI_ORIGINAL(0x006E68AA)
-__declspec(naked) void CStringArray::Construct() EI_ORIGINAL(0x006FE925)
-__declspec(naked) void CStringArray::Destruct() EI_ORIGINAL(0x006FE958)
-#endif
 
 namespace {
 impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive*>(archive); }
@@ -208,11 +206,9 @@ CString __stdcall operator+(char a, const CString& b) {                // 006FD5
 }
 #endif
 
-// AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
-__declspec(naked) ExceptionLink::ExceptionLink() EI_ORIGINAL(0x007020F1)
-namespace {
-__declspec(naked) void __cdecl TryCleanupAt() EI_ORIGINAL(0x0070212F)
-}
-ExceptionLink::~ExceptionLink() { TryCleanupAt(); }
+// AFX_EXCEPTION_LINK (mfc_try.h): the constructor (007020F1), and AfxTryCleanup (0070212F) for the
+// destructor.
+ExceptionLink::ExceptionLink() { ConstructExceptionLink(this); }
+ExceptionLink::~ExceptionLink() { TryCleanup(); }
 
 } // namespace mfc

@@ -35,7 +35,6 @@ using namespace scriptparse;
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
 __declspec(naked) int __cdecl CScript::Error(CScript*, int, int, const char*, ...) EI_ORIGINAL(0x004CF470)
 #endif
-__declspec(naked) void CScript::RunWorldScript(ScriptDecl*) EI_ORIGINAL(0x004BCC60)
 void SSCCmd::Clear() { ScriptCmdClear(this); }
 void SSCCmd::Destruct() { ScriptCmdDestruct(this); }
 
@@ -853,7 +852,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         }
     }
 
-    if (worldScript && runWorldScript) RunWorldScript(worldScript);
+    if (worldScript && runWorldScript) ScriptRunWorldScript(this, nullptr, worldScript);   // 004BCC60
     LoadedFlag() = 1;
     ++FileCount();
     TokensDestruct(&tokens);

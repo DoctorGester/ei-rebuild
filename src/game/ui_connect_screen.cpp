@@ -124,7 +124,7 @@ struct LocalQueries {
         stlp::vector<net::Query>& list = queries.list;
         for (net::Query* query = list.begin(); query != list.end(); ++query) query->reply.DestructGrowing();
         if (list.begin())
-            StlNodeFreeOriginal(list.begin(), static_cast<std::size_t>(list.EndOfStorage() - list.begin()) * sizeof(net::Query));
+            libcrt::NodeDeallocate(list.begin(), static_cast<std::size_t>(list.EndOfStorage() - list.begin()) * sizeof(net::Query));
     }
     LocalQueries(const LocalQueries&) = delete;
     LocalQueries& operator=(const LocalQueries&) = delete;

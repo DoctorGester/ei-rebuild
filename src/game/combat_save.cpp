@@ -2,6 +2,7 @@
 // docs/notes/combat.md ("Rewritten").
 #include "ai_alarm.h"
 #include "ai_map.h"
+#include "base_manager.h"
 #include "combat.h"
 
 #include "map_object.h"
@@ -63,7 +64,7 @@ __declspec(naked) void __fastcall PlanSave(void*, void*, CStream*) EI_ORIGINAL(0
 CEngineObject* ReadObject(CStream* stream, void* manager) {
     int id;
     stream->Read(&id, 4);
-    return id == -1 ? nullptr : ManagerFindObject(manager, nullptr, id);
+    return id == -1 ? nullptr : static_cast<CBaseManager*>(manager)->FindObject(id);
 }
 
 void LoadOrder(CStream* stream, UnitAction* order) {

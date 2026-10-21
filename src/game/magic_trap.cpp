@@ -3,6 +3,7 @@
 // (0052A2C0), the constructor and destructor body (00529DD0 / 00529F90), Save and Load (0052B070 /
 // 0052ADC0), Create / Destroy (0052A100 / 0052A200), the update (0052AC20), firing (0052AB30) and
 // forgetting a removed object (0052AC90). See magic_trap.h and docs/notes/units.md ("Magic traps").
+#include "base_manager.h"
 #include "magic_trap.h"
 
 #include "engine_object.h"
@@ -370,7 +371,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&value, 4);
-    SetSpell(this, value == -1 ? nullptr : ManagerFindObject(manager, nullptr, value));
+    SetSpell(this, value == -1 ? nullptr : static_cast<CBaseManager*>(manager)->FindObject(value));
     stream->Read(&value, 4);
     area.SetSize(value, -1);
     for (int i = 0; i < area.size; ++i) stream->Read(&area.data[i], sizeof(TrapCircle));

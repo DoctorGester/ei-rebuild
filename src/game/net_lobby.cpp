@@ -40,12 +40,10 @@ constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 // Growing buffers.
 
 // STLport containers (library): the query vector (00443E30 construct, 004439C0 insert overflow,
-// 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize).
-__declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x00443E30)
+// 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize; recordvec::QueryElement).
 // The game's stlp::vector<Query> instantiation: 004439C0 _M_insert_overflow(pos, x, n), 00443BF0
 // operator=, 004442B0 erase(first, last), 00444090 resize(n).
 using QueryList = stlp::vector<Query>;
-__declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*/, Query* /*dest*/, const void* /*unused*/, int /*unused*/) EI_ORIGINAL(0x00443FF0)
 
 
 // "<text>\n" and a flush.
@@ -443,7 +441,7 @@ void ClientBase::Ask(const NetAddress* address) {
     if (FindQuery(queries_, address) == v.end()) {
         // push_back of a default query, inlined.
         if (v.end() != v.EndOfStorage()) {
-            QueryConstructAt(v.end());
+            stlp::ConstructDefaultAt<Query, recordvec::QueryElement>(v.end());
             ++v.Finish();
         } else {
             Query temporary;
@@ -489,7 +487,7 @@ void ClientBase::Forget(const NetAddress* address) {
     Query* q = FindQuery(queries_, address);
     if (q != v.end()) {
         // erase(q), inlined: the tail copied down, the last query destroyed.
-        if (q + 1 != v.end()) QueriesCopy(q + 1, v.end(), q, address, 0);
+        if (q + 1 != v.end()) stlp::CopyAssignTagged<Query, recordvec::QueryElement>(q + 1, v.end(), q, address, nullptr);
         --v.Finish();
         v.end()->QueryDelete(0);
     }

@@ -121,7 +121,7 @@ EI_REPLACE(0x005DDBE0, ConsolePos);
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(game::Text(0x0079256C));   // "Invalid parameters"
-    Interface()->SetConsoleHistory(GameAtoi((*args)[0]));
+    Interface()->SetConsoleHistory(libcrt::Atoi((*args)[0]));
 }
 EI_REPLACE(0x005DDF80, History);
 
@@ -190,7 +190,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
-        player = GetPlayer(GameAtoi((*args)[0]));
+        player = GetPlayer(libcrt::Atoi((*args)[0]));
     if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
 
     mfc::CString line;
@@ -217,7 +217,7 @@ EI_REPLACE(0x005DEA00, ListVar);
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine(game::Text(0x007926E4));   // usage
-    WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
+    WorldPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
     if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
     CPlayerServer* state = player->server;
     if (!state) return PrintLine(game::Text(0x00792690));
@@ -279,12 +279,12 @@ void __fastcall Give(CStringArray* args) {
         PrintLine(game::Text(0x00792784));   // "give [NPlayer] money [NMoney]"
         return PrintLine(game::Text(0x00792768));
     }
-    WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
+    WorldPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
     if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
     CPlayerServer* state = player->server;
     if (!state) return PrintLine(game::Text(0x00792690));
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
-        int amount = GameAtoi((*args)[2]);
+        int amount = libcrt::Atoi((*args)[2]);
         player->Party()->Money() += amount;
         return state->SendParty();
     }
@@ -357,7 +357,7 @@ EI_REPLACE(0x005DF5B0, LootAll);
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
     if (args->GetSize() <= 0) return PrintLine(game::Text(0x00792B40));   // "FADEOUT nMillSec"
-    Interface()->fade_->Start(GameAtoi((*args)[0]));
+    Interface()->fade_->Start(libcrt::Atoi((*args)[0]));
     PrintLine(game::Text(0x00792B54));   // "Ok"
 }
 EI_REPLACE(0x005DF8E0, FadeOut);
@@ -371,13 +371,13 @@ void __fastcall Net(CStringArray* args) {
     }
     if (Mbsicmp((*args)[0], game::Text(0x00792B68)) == 0) {   // client
         mfc::CString value((*args)[1]);
-        LocalPlayer()->logTraffic = GameAtoi(value);
+        LocalPlayer()->logTraffic = libcrt::Atoi(value);
     }
     if (Mbsicmp((*args)[0], game::Text(0x00792450)) == 0) {   // server
-        if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = GameAtoi((*args)[1]);
+        if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], game::Text(0x00792B60)) == 0)     // time
-        *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
+        *reinterpret_cast<int*>(0x0079BC60) = libcrt::Atoi((*args)[1]);
     if (Mbsicmp((*args)[0], game::Text(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);
@@ -444,7 +444,7 @@ void __fastcall Days(CStringArray* args) {
         }
         return true;
     };
-    auto number = [&](int i, int first, int count) { return GameAtoi(Ops((*args)[i]).Mid(first, count)); };
+    auto number = [&](int i, int first, int count) { return libcrt::Atoi(Ops((*args)[i]).Mid(first, count)); };
     if (args->GetSize() >= 2 && Length((*args)[0]) >= 8 && Length((*args)[1]) >= 8 && digits(0) && digits(1)) {
         int year = number(0, 4, 4);
         if (year >= 1900) {
@@ -526,7 +526,7 @@ namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
 void SetRate(CStringArray* args, int* rate, std::uintptr_t usage) {
     if (args->GetSize() != 1) return PrintLine(game::Text(usage));
-    int value = GameAtoi((*args)[0]);
+    int value = libcrt::Atoi((*args)[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;
     *rate = value;

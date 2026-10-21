@@ -64,10 +64,10 @@ directly), library code and not yet ported, and lists the "differ" group (declar
 (grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
 ones directly.
 
-## Retiring container forwarders (C13b1-C13b3)
+## Retiring container forwarders (C13b1-C13b3x)
 
 Measure with `python tools/direct_calls.py --report -v --cast --loose --library` after a `build.cmd verify` (it reads the map);
-check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798; C13b3: to 365). Forwarders to library containers go once the
+check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798; C13b3: to 365; C13b3x: to 294). Forwarders to library containers go once the
 storage is typed; then the call is the container's member or its ABI type's static member. The helpers this uses:
 
 - `mfc::impl::ArrayAs<Abi>(array)` (lib/mfc_array.h) views a `CArray<T>` as the policy instantiation `Abi` registers (same element
@@ -90,7 +90,38 @@ storage is typed; then the call is the container's member or its ABI type's stat
   so the verify wrapper runs" no longer holds a forwarder; tests/verify's do stay (a vanilla run must call the game's own code).
 
 Left on purpose: Rebirth-patched callees, the skip list, the vector recorders and replay stand-ins, harness-replaced entries,
-WordsSetAtGrow and ViewStackDestroyRange. Follow-up C13b3x lists what is left.
+WordsSetAtGrow and ViewStackDestroyRange.
+
+C13b3x took check_cleanup's count from 364 to 294 (direct_calls.py: 301 in scope, 299 left, 2 convertible but kept). What made the
+rest convertible:
+
+- `ei_vectors` links the caller without the target: direct_calls.py now also accepts a target that a `tests/vectors/replay_*.cpp`
+  defines, so a replay-linked caller calls the target and `tests/vectors/replay_unlinked.cpp` gets an `EI_UNLINKED("name")` stop
+  for each target the replay does not link (a call exits with "not linked into the replay"). replay_crt.cpp's stand-ins are now
+  definitions of `libcrt::Mbsinc` / `Mbscmp` / `Atoi` and the others, replay_script_load.cpp's of `ScriptRunWorldScript`.
+- lib/mfc.cpp's CFile / CFileFind / CStringArray are no longer an `#else` branch: `ei_vectors` links mfc_file.cpp and mfc_coll.cpp.
+  `mfc::CFileFind` has `FindNext` / `GetTitle` / `IsDots` / `Close` (not `FindNextFile` / `GetFileTitle`: Windows' headers define
+  those as macros). mfc_file.cpp / mfc_time.cpp call the host CRT only (the hook build's game-CRT branch is gone).
+- No-registration rows rewritten: a patrol's destructor (`DestroyPatrol`), net_lobby's query vector through
+  `stlp::ConstructDefaultAt` / `CopyAssignTagged<Query, recordvec::QueryElement>`, ui_saveload's `ConstructCopyAt`, counted-pointer
+  holders through `RefPtrRelease`, renderer_sprites' `lib::AlignedArray::SetSize`.
+- One `PartyRecords` (unit.h; player_messages.cpp has `Find`), `CCamera::Update` called directly (`CameraUpdateOf` is the image's
+  fallback for the frame's call target), the shape cache through `gamehash::InitShapeHandle` / `ShapesOf` and `CAIMap::CellMark`.
+
+Still forwarders after C13b3x, and why:
+
+- `CrtThreadDataOriginal` (006F00D1): in a vanilla game.exe run the harness reads rand's seed through `libcrt::RandState()`, whose
+  non-image path is the game CRT's thread data.
+- `CWndDestroyWindow` (007051A1): unreachable in the image; porting it needs afxMapHWND (007048B7) and `CWnd::Detach` (007049A7).
+- `FreeSortedSectors` (006C9270): its only body is the generated static-exit function `Exit006C9270`; no C++ body to call.
+- `ManagerFindObject` (00403F40): its one caller is world_client_draw.cpp, left for the renderer work (R16).
+- `DrawMesh` / `DrawMesh2` (originals_render.h): `CTextureDevice::DrawMeshBlocks` / `2` take other argument lists; after R16.
+- tests/verify (`HarnessLoadUnitFaces`, `HarnessMappedResourceConstruct`, blink / pick / class templates): a vanilla run must call
+  the game's own code.
+- crt.cpp's `gamecrt::` names that replay_crt.cpp defines again (operator new / delete, malloc, free, strncpy, strncmp, strnicmp),
+  `tolower` / `isdigit` / `isspace` (called by record_crt.cpp), `write` (target overloaded), mfc.cpp's `PlexCreate` /
+  `PlexFreeDataChain` (replay_mfc.cpp), `SectorMapAdd` / `GameAtExit` (replay stand-ins), `SeedAt` / `rand` (the harness replaces
+  them).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 

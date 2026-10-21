@@ -24,10 +24,8 @@ namespace {
 
 
 struct World {
-    void RemoveTimedObject(int id);       // 0058E5D0
     void AddTimedObject(void* object);    // 0058E520
 };
-void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_cast<CEngineObject*>(object)); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
@@ -132,7 +130,7 @@ void CScript::DeleteArea(int id) {
         gamearrays::DestroyArea(&areas[i]);   // 004BCF10: the parts freed
         if (after) {
             areas = areas_.data;
-            GameMemmove(&areas[i], &areas[i + 1], after * kAreaSize);
+            libcrt::Memmove(&areas[i], &areas[i + 1], after * kAreaSize);
         }
         --areas_.size;
         --i;   // the next area moved into this slot
@@ -152,7 +150,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
         ScriptPointLight* light = &Lights(this)[i];
         if (!light->object) break;
         if (light->id == id) {
-            TheWorld()->RemoveTimedObject(Lights(this)[i].object->id_);
+            WorldServer()->RemoveTimedObject(Lights(this)[i].object->id_);
             Lights(this)[i].object->Release();
             break;
         }
@@ -207,7 +205,7 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
     for (int i = 0; i < LightCount(this); ++i) {
         ScriptPointLight* light = &Lights(this)[i];
         if (!light->object || light->id != id) continue;
-        TheWorld()->RemoveTimedObject(light->object->id_);
+        WorldServer()->RemoveTimedObject(light->object->id_);
         Lights(this)[i].object->Release();
         Lights(this)[i].object = nullptr;
         return;

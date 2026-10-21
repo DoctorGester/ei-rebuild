@@ -708,12 +708,27 @@ struct Snapshot {
     std::string zone;
 };
 
+// The map nodes of the record before the last, reused for the next one: a record has some 1,500
+// entities, and making and freeing their nodes and field vectors was about half the digest's samples
+// (SV10; reusing them takes ~20% off its time). A reused node keeps its vector's room; Read inserts in
+// about key order, so a key mostly gets the node it had.
+State g_spare;
+Entity& Slot(State& state, const Key& key) {
+    if (g_spare.empty()) return state[key];
+    State::node_type node = g_spare.extract(g_spare.begin());
+    node.key() = key;
+    node.mapped().description.clear();
+    node.mapped().fields.clear();
+    auto placed = state.insert(std::move(node));
+    return placed.position->second;   // an entity of that key already there: it, as state[key] gives
+}
+
 void Read(CWorldServer* w, Snapshot& s) {
     Builder b;
-    b.entity = &s.state[{kWorld, 0}];
+    b.entity = &Slot(s.state, {kWorld, 0});
     b.entity->description = "world";
     ReadWorld(w, b);
-    b.entity = &s.state[{kRandom, 0}];
+    b.entity = &Slot(s.state, {kRandom, 0});
     b.entity->description = "random";
     ReadRandom(b);
     s.zone = Text(w->zoneName_);
@@ -723,7 +738,7 @@ void Read(CWorldServer* w, Snapshot& s) {
         PlayerIterator it;
         for (WorldPlayer* p = it.First(w->players_); p; p = it.Next()) {
             players[p] = p->id;
-            b.entity = &s.state[{kPlayer, p->id}];
+            b.entity = &Slot(s.state, {kPlayer, p->id});
             b.entity->description = "player";
             ReadPlayer(p, b);
         }
@@ -741,7 +756,7 @@ void Read(CWorldServer* w, Snapshot& s) {
     std::sort(objects.begin(), objects.end(), [](const auto& a, const auto& c) { return a.first < c.first; });
     for (const auto& [id, object] : objects) {
         const bool mapObject = mapObjects.count(id) != 0;
-        b.entity = &s.state[{kObject, static_cast<int>(id)}];
+        b.entity = &Slot(s.state, {kObject, static_cast<int>(id)});
         b.entity->description = Describe(object, mapObject);
         ReadObject(object, mapObject, players, b);
     }
@@ -763,25 +778,25 @@ void Read(CWorldServer* w, Snapshot& s) {
     int place = 0;
     for (auto* n = w->projectiles_.head; n; n = n->next, ++place) {
         if (!n->data) continue;
-        b.entity = &s.state[{kMissile, place}];
+        b.entity = &Slot(s.state, {kMissile, place});
         b.entity->description = DescribeMissile(n->data);
         ReadMissile(n->data, b);
     }
 
-    b.entity = &s.state[{kEvents, 0}];
+    b.entity = &Slot(s.state, {kEvents, 0});
     b.entity->description = "events";
     ReadEvents(w->AIEvents(), b);
 
-    b.entity = &s.state[{kScript, 0}];
+    b.entity = &Slot(s.state, {kScript, 0});
     b.entity->description = "script";
     ReadScript(MissionScriptObject(), b);
 
     std::vector<CUnit*> clientUnits;
-    b.entity = &s.state[{kClient, 0}];
+    b.entity = &Slot(s.state, {kClient, 0});
     b.entity->description = "client";
     ReadClientWorld(ClientWorldObject(), b, clientUnits);
     for (CUnit* u : clientUnits) {
-        b.entity = &s.state[{kClientUnit, u->id_}];
+        b.entity = &Slot(s.state, {kClientUnit, u->id_});
         b.entity->description = Describe(u, true);
         ReadClientUnit(u, b);
     }
@@ -927,6 +942,8 @@ void TakeRecord() {
     clock::RandomNote("digest %u update %u hash %08X", g_records, g_updates, s.all);
     ++g_records;
     g_lastHash = s.all;
+    g_spare.clear();
+    g_spare.swap(g_previous);
     g_previous = std::move(s.state);
 }
 

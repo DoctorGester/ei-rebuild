@@ -8,6 +8,7 @@
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <bit>
 #include <cstring>
@@ -128,7 +129,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     std::memcpy(controller + 0x24C, &b39, 2);
     std::memcpy(controller + 0x24E, &b39, 2);
     for (const auto& c : kControllerCopies2) SetDword(controller, c[1], Dword(r, c[0]));
-    GameMemmove(controller + 0x270, r + field::kBytes54, 7);
+    libcrt::Memmove(controller + 0x270, r + field::kBytes54, 7);
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
@@ -146,7 +147,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
         SetDword(controller, 0x2C0 + i * 8, v);
         SetDword(controller, 0x2C4 + i * 8, v);
     }
-    GameMemmove(controller + 0x8A8, r + field::kBytesA4, 3);
+    libcrt::Memmove(controller + 0x8A8, r + field::kBytesA4, 3);
 
     for (int i = 0; i < Count(r, field::kSpells); ++i) unit->AddSpell(factory->CreateSpell(Ids(r, field::kSpells)[i], SpellOwner()));
     AddItems(r, unit, factory);

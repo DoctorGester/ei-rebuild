@@ -107,11 +107,11 @@ EI_VECTOR_CHECK_BYTES("@GameCrtCtype", CheckCtype);
 
 } // namespace ei::vectors::crt
 
-// The game CRT's multibyte functions and atoi, which CString::FormatV reaches through its forwarders
-// (src/lib/mfc_string.cpp; the loader's QualifyName formats "!%i!%s"; vsprintf is crt_format.cpp's
-// port). The multibyte answers depend on the
-// code page's lead bytes, which no record holds, so only ASCII is answered (as every code page does)
-// and a byte above 0x7F stops the replay.
+// The game CRT's multibyte functions and atoi, which CString::FormatV and the loader's name lookups call
+// (src/lib/mfc_string.cpp, script_parse.cpp; the loader's QualifyName formats "!%i!%s"; vsprintf is
+// crt_format.cpp's port): ei_vectors' own libcrt:: versions (crt.cpp's ports read the game CRT's data).
+// The multibyte answers depend on the code page's lead bytes, which no record holds, so only ASCII is
+// answered (as every code page does) and a byte above 0x7F stops the replay.
 namespace {
 
 [[noreturn]] void NotAscii(const char* what) {
@@ -125,22 +125,21 @@ unsigned char Ascii(unsigned c, const char* what) {
     return static_cast<unsigned char>(c);
 }
 
-std::size_t __cdecl ReplayMbclen(const unsigned char* c) {
+} // namespace
+
+std::size_t __cdecl libcrt::Mbclen(const unsigned char* c) {
     Ascii(*c, "_mbclen");
     return 1;
 }
-EI_REPLACE(0x006ECC98, ReplayMbclen);
 
-const char* __cdecl ReplayMbsinc(const char* p) {
-    Ascii(static_cast<unsigned char>(*p), "_mbsinc");
-    return p + 1;
+unsigned char* __cdecl libcrt::Mbsinc(const unsigned char* p) {
+    Ascii(*p, "_mbsinc");
+    return const_cast<unsigned char*>(p + 1);
 }
-EI_REPLACE(0x006E9947, ReplayMbsinc);
 
-int __cdecl ReplayIsmbcdigit(unsigned c) { return Ascii(c, "_ismbcdigit") >= '0' && c <= '9'; }
-EI_REPLACE(0x006ECE1A, ReplayIsmbcdigit);
+int __cdecl libcrt::Ismbcdigit(unsigned c) { return Ascii(c, "_ismbcdigit") >= '0' && c <= '9'; }
 
-int __cdecl ReplayMbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
+int __cdecl libcrt::Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
     for (; n; --n, ++a, ++b) {
         Ascii(*a, "_mbsncmp");
         Ascii(*b, "_mbsncmp");
@@ -149,10 +148,9 @@ int __cdecl ReplayMbsncmp(const unsigned char* a, const unsigned char* b, std::s
     }
     return 0;
 }
-EI_REPLACE(0x006ECD2B, ReplayMbsncmp);
 
 // _mbscmp (the loader's name lookups): strcmp's -1 / 0 / 1 when no lead byte is met.
-int __cdecl ReplayMbscmp(const unsigned char* a, const unsigned char* b) {
+int __cdecl libcrt::Mbscmp(const unsigned char* a, const unsigned char* b) {
     for (;; ++a, ++b) {
         Ascii(*a, "_mbscmp");
         Ascii(*b, "_mbscmp");
@@ -160,9 +158,5 @@ int __cdecl ReplayMbscmp(const unsigned char* a, const unsigned char* b) {
         if (!*a) return 0;
     }
 }
-EI_REPLACE(0x006E848B, ReplayMbscmp);
 
-int __cdecl ReplayAtoi(const char* text) { return std::atoi(text); }
-EI_REPLACE(0x006E80D8, ReplayAtoi);
-
-} // namespace
+int __cdecl libcrt::Atoi(const char* text) { return std::atoi(text); }

@@ -194,7 +194,7 @@ namespace {
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(WorldStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(stream, nullptr, storage);
+    mfc::CString* read = stream->ReadString(storage);
     target = *read;
     read->~CString();
 }
@@ -232,7 +232,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CEngineObject* object = ManagerFindObject(manager40_, nullptr, id);
+        CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(id);
         auto* mapObject = static_cast<CMapObject*>(object);
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
@@ -338,7 +338,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
-            CEngineObject* object = ManagerFindObject(items, nullptr, id);
+            CEngineObject* object = static_cast<CBaseManager*>(items)->FindObject(id);
             if (!object) continue;
             player->items.AddTail(object);
             ++object->refCount_;
@@ -459,7 +459,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id == -1) break;
-                CEngineObject* object = ManagerFindObject(manager48_, nullptr, id);
+                CEngineObject* object = static_cast<CBaseManager*>(manager48_)->FindObject(id);
                 ++object->refCount_;
                 MarkNew(object, nullptr);
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -496,7 +496,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id < 0) break;
-                CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
+                CEngineObject* item = static_cast<CBaseManager*>(itemManager_)->FindObject(id);
                 if (!item) continue;
                 auto* node = counted_.NewNode(nullptr, counted_.head);
                 ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
@@ -515,7 +515,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     stream->Read(&id, 4);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
-                    CEngineObject* object = ManagerFindObject(ItemFactory(), nullptr, id);
+                    CEngineObject* object = static_cast<CBaseManager*>(ItemFactory())->FindObject(id);
                     if (!object) continue;
                     auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
                     // The count's whole dword is cleared, before the null test.
@@ -544,7 +544,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-                    mfc::CString* name = StreamReadString(stream, nullptr, storage);
+                    mfc::CString* name = stream->ReadString(storage);
                     StringArraySetAtGrowStringOriginal(&mobFiles_, nullptr, mobFiles_.size, name);
                     name->~CString();
                 }
@@ -806,7 +806,7 @@ void SharedObject::Load(WorldStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CEngineObject* object = ManagerFindObject(WorldItemManager(), nullptr, id);
+        CEngineObject* object = static_cast<CBaseManager*>(WorldItemManager())->FindObject(id);
         if (object) Append(entry->objects, object);   // the original inlines the SetSize
     }
 }

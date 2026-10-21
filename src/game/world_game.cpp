@@ -1330,13 +1330,13 @@ void __fastcall ClearSaveFolder(const char* path) {
         found = finder.FindFile(pattern, 0);
     }
     while (found) {
-        found = CFileFindNext(&finder);
+        found = finder.FindNext();
         alignas(mfc::CString) std::uint8_t name[sizeof(mfc::CString)];
         mfc::CString* file = CFileFindPathOriginal(&finder, nullptr, reinterpret_cast<mfc::CString*>(name));
         ImportDeleteFile()(*file);
         file->~CString();
     }
-    CFileFindCloseOriginal(&finder);
+    finder.Close();
 }
 
 bool __fastcall NameInList(const char* const* list, const char* name) {
@@ -1797,7 +1797,7 @@ int CurrentSaveSize() {
     if (find.FindFile(pattern, 0)) {
         int more;
         do {
-            more = CFileFindNext(&find);
+            more = find.FindNext();
             total += static_cast<int>(find.GetLength());
         } while (more);
     }
@@ -2154,9 +2154,8 @@ void GameFlow::BuildZoneTable() {
         more = find.FindFile(pattern, 0);
     }
     while (more) {
-        more = CFileFindNext(&find);
-        mfc::CString name;
-        CFileFindTitle(&find, nullptr, &name);
+        more = find.FindNext();
+        mfc::CString name = find.GetTitle();
         name.MakeLower();
         RegisterQuests(name);
         UnloadQuestTexts();
@@ -2171,7 +2170,7 @@ void GameFlow::BuildZoneTable() {
             entry.id = allod;
         }
     }
-    CFileFindCloseOriginal(&find);
+    find.Close();
 }
 EI_REPLACE_METHOD(0x0057F560, GameFlow::BuildZoneTable);
 

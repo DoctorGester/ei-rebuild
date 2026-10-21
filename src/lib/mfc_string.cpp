@@ -1,10 +1,11 @@
 // MFC 4.2's CString and CFixedAlloc, registered at their library addresses (mfc_string.h).
 #include "mfc_string.h"
 
+#include "crt.h"
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
-#include "game/originals_library.h"   // GameAtoi, MbsInc
+#include "game/originals_library.h"   // MbsInc
 
 #include <cstring>
 #include <new>
@@ -18,17 +19,8 @@ namespace {
 
 using uchar = unsigned char;
 
-// The game CRT's multibyte-aware string functions (their behaviour follows the CRT's code page).
-__declspec(naked) uchar* __cdecl MbsChr(const uchar*, unsigned) EI_ORIGINAL(0x006EC6F2)        // _mbschr
-__declspec(naked) uchar* __cdecl MbsRChr(const uchar*, unsigned) EI_ORIGINAL(0x006EC99C)       // _mbsrchr
-__declspec(naked) uchar* __cdecl MbsStr(const uchar*, const uchar*) EI_ORIGINAL(0x006ECAB3)    // _mbsstr
-__declspec(naked) uchar* __cdecl MbsPBrk(const uchar*, const uchar*) EI_ORIGINAL(0x006EC789)   // _mbspbrk
-__declspec(naked) uchar* __cdecl MbsLwr(uchar*) EI_ORIGINAL(0x006EC8A8)                        // _mbslwr
-__declspec(naked) int __cdecl MbsNCmp(const uchar*, const uchar*, std::size_t) EI_ORIGINAL(0x006ECD2B)  // _mbsncmp
-__declspec(naked) std::size_t __cdecl MbcLen(const uchar*) EI_ORIGINAL(0x006ECC98)            // _mbclen
-__declspec(naked) int __cdecl IsMbcDigit(unsigned) EI_ORIGINAL(0x006ECE1A)                     // _ismbcdigit
-__declspec(naked) int __cdecl IsMbcSpace(unsigned) EI_ORIGINAL(0x006ECEA9)                     // _ismbcspace
-__declspec(naked) std::size_t __cdecl WcsLen(const wchar_t*) EI_ORIGINAL(0x006EC6D5)          // wcslen
+// The game CRT's vsprintf. Its multibyte-aware string functions (libcrt::Mbschr and the others, crt.h)
+// follow the CRT's code page.
 __declspec(naked) int __cdecl VSPrintF(char*, const char*, va_list) EI_ORIGINAL(0x006ECC47)   // vsprintf
 
 // The string helpers take the CRT's char arguments the way the library passes them.
@@ -36,9 +28,9 @@ const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
 uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
 char* Inc(const char* p) { return const_cast<char*>(::MbsInc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
-bool Contains(const char* set, char c) { return MbsChr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
-bool IsSpace(char c) { return IsMbcSpace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
-bool IsDigit(char c) { return IsMbcDigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+bool Contains(const char* set, char c) { return libcrt::Mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
+bool IsSpace(char c) { return libcrt::Ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+bool IsDigit(char c) { return libcrt::Ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
 // The reference count updates and lstrlen go through the import table, as the library's do (ei_vectors
 // has no game image: the API itself).
@@ -406,7 +398,7 @@ int CString::Find(char c) const { return Find(c, 0); }
 
 int CString::Find(char c, int start) const {
     if (start >= GetData()->dataLength) return -1;
-    const uchar* found = MbsChr(U(data_ + start), static_cast<uchar>(c));
+    const uchar* found = libcrt::Mbschr(U(data_ + start), static_cast<uchar>(c));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
@@ -414,17 +406,17 @@ int CString::Find(const char* sub) const { return Find(sub, 0); }
 
 int CString::Find(const char* sub, int start) const {
     if (start > GetData()->dataLength) return -1;
-    const uchar* found = MbsStr(U(data_ + start), U(sub));
+    const uchar* found = libcrt::Mbsstr(U(data_ + start), U(sub));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
 int CString::ReverseFind(char c) const {
-    const uchar* found = MbsRChr(U(data_), static_cast<uchar>(c));
+    const uchar* found = libcrt::Mbsrchr(U(data_), static_cast<uchar>(c));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
 int CString::FindOneOf(const char* set) const {
-    const uchar* found = MbsPBrk(U(data_), U(set));
+    const uchar* found = libcrt::Mbspbrk(U(data_), U(set));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
@@ -463,7 +455,7 @@ CString CString::Left(int count) const {
 
 void CString::MakeLower() {
     CopyBeforeWrite();
-    MbsLwr(U(data_));
+    libcrt::Mbslwr(U(data_));
 }
 
 // The destination steps by _mbsinc over the byte just copied (MFC's own way).
@@ -569,7 +561,7 @@ void CString::FormatV(const char* format, va_list arguments) {
     for (const char* p = format; *p != '\0'; p = Inc(p)) {
         // A '%' and a "%%" count as text.
         if (*p != '%' || *(p = Inc(p)) == '%') {
-            maxLength += static_cast<int>(MbcLen(U(p)));
+            maxLength += static_cast<int>(libcrt::Mbclen(U(p)));
             continue;
         }
         int itemLength = 0;
@@ -581,7 +573,7 @@ void CString::FormatV(const char* format, va_list arguments) {
             else break;
         }
         if (width == 0) {
-            width = GameAtoi(p);
+            width = libcrt::Atoi(p);
             for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
         }
         int precision = 0;
@@ -591,12 +583,12 @@ void CString::FormatV(const char* format, va_list arguments) {
                 precision = va_arg(arguments, int);
                 p = Inc(p);
             } else {
-                precision = GameAtoi(p);
+                precision = libcrt::Atoi(p);
                 for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
             }
         }
         int modifier = 0;
-        if (MbsNCmp(U(p), U("I64"), 3) == 0) {
+        if (libcrt::Mbsncmp(U(p), U("I64"), 3) == 0) {
             p += 3;
             modifier = kForceInt64;
         } else {
@@ -638,7 +630,7 @@ void CString::FormatV(const char* format, va_list arguments) {
             if (!text) {
                 itemLength = 6;
             } else {
-                itemLength = static_cast<int>(WcsLen(text));
+                itemLength = static_cast<int>(libcrt::Wcslen(text));
                 if (itemLength < 1) itemLength = 1;
             }
             break;

@@ -31,7 +31,7 @@ import run_all
 import work
 
 IDLE_EXIT = float(os.environ.get('WORK_SCHED_IDLE', '120'))
-TICK = 0.5           # seconds between scheduling passes
+TICK = 0.5           # seconds between scheduling passes at most (a finished game wakes the loop at once)
 CHECK_EVERY = 5      # seconds between heartbeats and submitter checks
 CODE_FILES = ('work_sched.py', 'run_all.py', 'work.py')    # in the main checkout's tools: a change restarts the scheduler
 UNKNOWN_SECONDS = 1000   # expected time of a run run_times.json does not have (as run_all: new ones first)
@@ -265,6 +265,7 @@ class Scheduler:
         self.games = {}            # run id -> {batch, slots, folder, alone, thread}
         self.finishing = {}        # batch id -> thread writing its summary (frame comparisons take minutes)
         self.events = queue.Queue()
+        self.wake = threading.Event()        # set with every event: the loop's wait ends at once
         self.args = {}             # batch id -> parsed run_all arguments (None: unusable)
         self.arg_errors = {}       # batch id -> why run_all did not take them
         self.last_check = 0.0
@@ -309,6 +310,10 @@ class Scheduler:
             if b['submitter'] and not pid_alive(b['submitter']):
                 cancel(self.db, b['id'])
                 self.log(f'batch #{b["id"]}: its work.py test (pid {b["submitter"]}) is gone; queued runs cancelled')
+
+    def post(self, event):
+        self.events.put(event)
+        self.wake.set()
 
     def collect(self):
         while True:
@@ -426,10 +431,10 @@ class Scheduler:
 
     def play(self, batch, run, retries):
         try:
-            value = self.runner(batch, run, retries, lambda n: self.events.put(('attempt', run['id'], n)))
+            value = self.runner(batch, run, retries, lambda n: self.post(('attempt', run['id'], n)))
         except Exception as e:
             value = ('ERROR', 0.0, [f'{type(e).__name__}: {e}'], {}, [])
-        self.events.put(('done', run['id'], value))
+        self.post(('done', run['id'], value))
 
     def finish_batches(self):
         rows = self.db.execute(
@@ -475,7 +480,7 @@ class Scheduler:
             text, code = out.getvalue(), 0 if ok else 1
         except Exception:
             text, code = '\n' + traceback.format_exc(), 1
-        self.events.put(('summary', b['id'], (text, code)))
+        self.post(('summary', b['id'], (text, code)))
 
     def write_finish(self, batch_id, text, code):
         with work.transaction(self.db):
@@ -569,7 +574,8 @@ def cmd_scheduler(db, args):
                     log('20 errors in a row; waiting for the games and exiting')
                     s.wait_games()
                     return 1
-            time.sleep(TICK)
+            s.wake.wait(TICK)
+            s.wake.clear()
     finally:
         run_all._unlock(lock)
 

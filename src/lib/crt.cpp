@@ -24,7 +24,7 @@ __declspec(naked) void __cdecl free(void*) EI_ORIGINAL(0x006EA8AD)
 #endif
 
 __declspec(naked) int __cdecl rand() EI_ORIGINAL(0x006E77F7)
-__declspec(naked) void __cdecl srand(unsigned) EI_ORIGINAL(0x006E77EA)
+void __cdecl srand(unsigned seed) { libcrt::Srand(seed); }
 #ifndef EI_VECTORS_REPLAY
 __declspec(naked) int __cdecl tolower(int) EI_ORIGINAL(0x006EBA53)
 #endif
@@ -40,9 +40,7 @@ __declspec(naked) int __cdecl isdigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl isspace(int) EI_ORIGINAL(0x006E93CE)
 #endif
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
-int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
-    return GameMbscmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
+int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
 
 #ifndef EI_VECTORS_REPLAY
 namespace {
@@ -75,11 +73,13 @@ const int* CaseFoldTable() {
 }
 #endif
 
-__declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)
+double __cdecl acos(double c) { return libcrt::CiAcos(c); }
 
 __declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
 
-__declspec(naked) std::size_t __cdecl fwrite(const void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E968B)
+std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
+    return libcrt::Fwrite(from, size, count, file);
+}
 
 } // namespace gamecrt
 

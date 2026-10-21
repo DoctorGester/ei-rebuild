@@ -21,6 +21,7 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/stlp_string.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
@@ -83,7 +84,7 @@ const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
-inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
+inline char* __fastcall NodeAllocate(int a0) { return (char*)libcrt::NodeAllocate((std::size_t)a0); }
 
 
 // --- The dressed units ---------------------------------------------------------------------------
