@@ -28,6 +28,7 @@ vtable,slots,class,file,note
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FB88,26,CFigureManager,src/game/figure_manager.h,
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007432E0,7,CMappedResource,src/game/resource.h,

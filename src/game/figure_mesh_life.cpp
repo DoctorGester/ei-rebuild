@@ -200,13 +200,14 @@ EI_REPLACE_METHOD(0x0059F3D0, CFigureMesh::SetObject);
 
 // --- The figure manager -------------------------------------------------------------------------
 
-CFigureManager* CFigureManager::Construct() {
-    CResourceManager::Construct();
-    models_.InitBuckets(100);
-    ei::SetVtable(this, kVtableAddress);
-    return this;
-}
+CFigureManager::CFigureManager() { models_.InitBuckets(100); }
+
+CFigureManager* CFigureManager::Construct() { return new (this) CFigureManager(); }
 EI_REPLACE_METHOD(0x005AA070, CFigureManager::Construct);
+
+CEngineObject* CFigureManager::NewObject(int type) {
+    return static_cast<CEngineObject*>(::CreateFigureObject(this, nullptr, type));
+}
 
 CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
