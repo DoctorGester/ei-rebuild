@@ -256,8 +256,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             // The unit's six dwords at +0x4B0 come from its prototype's model record (+0x2C). A
             // prototype or model out of range is read through null, as in the original.
             auto* prototype = unitdb::PrototypeRecord(object->prototypeId_);
-            auto* model = reinterpret_cast<const UnitModelRecord*>(
-                unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+            auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
             std::memcpy(static_cast<CUnit*>(object)->actionSpeeds, model->actionSpeeds, 24);
         }
 

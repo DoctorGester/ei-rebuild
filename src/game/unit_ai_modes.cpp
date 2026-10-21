@@ -467,7 +467,7 @@ void SuspectionMode::Leave(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D2310, SuspectionMode::Leave);
 
 int AggressionMode::Evaluate(AIBrain* brain) {
-    chosen = nullptr;
+    chosen.object = nullptr;
     if (fixed) {
         if (enemy && IsGone(enemy) != 0) {
             enemy.Assign(nullptr);
@@ -487,9 +487,9 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         if (!enemy) return kNoPriority;
         if (IsGone(enemy) == 0 && enemy->GetClassId() == kClassUnit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
-            enemyPart = -1;
-            chosen = enemy;
-            return chosen ? 10000 : kNoPriority;
+            chosen.part = -1;
+            chosen.object = enemy;
+            return chosen.object ? 10000 : kNoPriority;
         }
         if (enemy) {
             enemy.Reset();
@@ -506,32 +506,32 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());
-    brain->ChooseTarget(&enemyPart, &Candidates(), &self->position, 0, 0);
-    CEngineObject* best = chosen;
+    brain->ChooseTarget(&chosen, &Candidates(), &self->position, 0, 0);
+    CEngineObject* best = chosen.object;
     if (best != enemy) {
         if (enemy) enemy->Release();
         enemy = nullptr;
         if (best) ++best->refCount_;
         enemy = best;
     }
-    return chosen ? 10000 : kNoPriority;
+    return chosen.object ? 10000 : kNoPriority;
 }
 EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 
 void AggressionMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
-    if (!chosen) return;
-    brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
-    int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
-    brain->attention.CurrentAttack(brain, attack);
-    if (reinterpret_cast<CEngineObject*>(attack[1]) == chosen && attack[0] == enemyPart) return;
-    if (!chosen) return;
-    attack[1] = 0;
-    attack[0] = -1;
-    brain->attention.CurrentAttack(brain, attack);
-    CEngineObject* object = chosen;
-    if (object == reinterpret_cast<CEngineObject*>(attack[1]) && enemyPart == attack[0]) return;
-    int part = enemyPart;
+    if (!chosen.object) return;
+    brain->CallAllies(&static_cast<CMapObject*>(chosen.object)->position);
+    AITargetChoice attack{-1, nullptr};     // what the brain is attacking now
+    brain->attention.CurrentAttack(brain, &attack);
+    if (attack.object == chosen.object && attack.part == chosen.part) return;
+    if (!chosen.object) return;
+    attack.object = nullptr;
+    attack.part = -1;
+    brain->attention.CurrentAttack(brain, &attack);
+    CEngineObject* object = chosen.object;
+    if (object == attack.object && chosen.part == attack.part) return;
+    int part = chosen.part;
     if (part == -1) {
         brain->AttackTarget(object);
         return;

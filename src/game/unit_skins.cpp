@@ -49,7 +49,7 @@ const UnitPrototypeRecord* UnitPrototype(std::uint32_t index) {
     return unitdb::PrototypeRecord(index);
 }
 const UnitModelRecord* UnitModel(std::uint32_t index) {
-    return reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
+    return unitdb::ModelRecord(index);
 }
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
     return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));

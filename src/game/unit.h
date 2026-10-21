@@ -27,6 +27,7 @@ class CPlayer;   // player_messages.h
 struct UnitStats;
 struct UnitParams;
 struct UnitPrototypeRecord;   // unit_db.h
+struct UnitModelRecord;       // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -271,7 +272,7 @@ public:
     // 00530930. The unit's prototype record (index prototypeId_), or null.
     UnitPrototypeRecord* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
-    char* GetPrototypeModel();
+    UnitModelRecord* GetPrototypeModel();
     // 005309E0. The prototype record of index unknown_23C, or null.
     UnitPrototypeRecord* GetPrototype23C();
     // 005308A0. Stores the index of prototype record `record` in unknown_23C.
@@ -689,6 +690,10 @@ inline UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return reinterpret_cast<UnitPrototypeRecord*>(Prototypes().RecordAt(index, kPrototypeSize));
 }
 const RecordTable& Models();
+// Model record `index` of Models(), or null past the end.
+inline UnitModelRecord* ModelRecord(std::uint32_t index) {
+    return reinterpret_cast<UnitModelRecord*>(Models().RecordAt(index, kModelSize));
+}
 const RecordTable& Skills();
 const RecordTable& SkillLevels();
 const RecordTable& ModelLevels();   // the models' level records (007AF3B8)

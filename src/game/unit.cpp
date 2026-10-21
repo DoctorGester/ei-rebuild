@@ -390,11 +390,10 @@ EI_REPLACE_METHOD(0x005302F0, CUnit::ModeSpeed);
 UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId_); }
 EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 
-char* CUnit::GetPrototypeModel() {
+UnitModelRecord* CUnit::GetPrototypeModel() {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId_);
     if (!prototype) return nullptr;
-    return unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex),
-                               unitdb::kModelSize);
+    return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 EI_REPLACE_METHOD(0x00530970, CUnit::GetPrototypeModel);
 

@@ -464,7 +464,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             out->damageType = WeaponDamageType(weapon->prototypeId_);
         } else {
             out->weaponType = Combat().naturalWeapon;
-            const auto* model = reinterpret_cast<const UnitModelRecord*>(self->GetPrototypeModel());
+            const auto* model = self->GetPrototypeModel();
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
@@ -703,7 +703,7 @@ void CUnitServer::UpdateSizeClasses() {
         return;
     }
     float load = static_cast<float>(unit->BodyExtent());
-    const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+    const auto* model = unit->GetPrototypeModel();
     double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);

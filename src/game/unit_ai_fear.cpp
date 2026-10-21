@@ -289,10 +289,10 @@ void FearMode::Execute(AIBrain* brain) {
         AIObjectList candidates{};
         candidates.vtable = mfc::impl::PtrListClass::Vtable();
         candidates.blockSize = 10;
-        int best[2] = {-1, 0};      // {part, object}
+        AITargetChoice best{-1, nullptr};
         Vector3 at = *PositionOf(brain->owner->unit);
-        brain->ChooseTarget(best, &candidates, &at, 1, 1);
-        if (best[1]) brain->attention.ApplyAttack(brain, best);
+        brain->ChooseTarget(&best, &candidates, &at, 1, 1);
+        if (best.object) brain->attention.ApplyAttack(brain, &best);
         candidates.RemoveAll();
 
         if (brain->action == AIBrain::kActionNone) {
@@ -322,13 +322,13 @@ void FearMode::Execute(AIBrain* brain) {
 
 EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
 
-void AIAttention::ApplyAttack(AIBrain* brain, const int* partAndObject) {
-    auto* object = reinterpret_cast<CEngineObject*>(partAndObject[1]);
+void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
+    CEngineObject* object = choice->object;
     if (!object) return;
-    int now[2] = {-1, 0};
-    CurrentAttack(brain, now);
-    if (object == reinterpret_cast<CEngineObject*>(now[1]) && partAndObject[0] == now[0]) return;
-    int part = partAndObject[0];
+    AITargetChoice now{-1, nullptr};
+    CurrentAttack(brain, &now);
+    if (object == now.object && choice->part == now.part) return;
+    int part = choice->part;
     if (part == -1) {
         brain->AttackTarget(object);
         return;

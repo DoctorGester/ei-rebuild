@@ -18,12 +18,12 @@ using AttackOrder = AIOrder;
 
 } // namespace
 
-void AIAttention::CurrentAttack(AIBrain* brain, int* partAndObject) {
-    auto*& object = reinterpret_cast<CEngineObject*&>(partAndObject[1]);
+void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
+    CEngineObject*& object = choice->object;
     if (brain->action == AIBrain::kActionAttack) {
-        partAndObject[0] = -1;
+        choice->part = -1;
     } else if (brain->action == AIBrain::kActionCast) {
-        partAndObject[0] = brain->actionTime;     // the spell being cast
+        choice->part = brain->actionTime;     // the spell being cast
     } else {
         object = nullptr;
         return;
@@ -37,15 +37,15 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
     mfc::CTypedPtrList<CUnit> candidates{};
     candidates.vtable = mfc::impl::PtrListClass::Vtable();
     candidates.blockSize = 10;
-    int best[2] = {-1, 0};          // {part, object}
+    AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->position;
-    brain->ChooseTarget(best, &candidates, &from, 1, unused);
-    auto* chosen = reinterpret_cast<CEngineObject*>(best[1]);
+    brain->ChooseTarget(&best, &candidates, &from, 1, unused);
+    CEngineObject* chosen = best.object;
     if (chosen) {
-        int now[2] = {-1, 0};
-        CurrentAttack(brain, now);
-        if (best[1] != now[1] || best[0] != now[0]) {
-            int part = best[0];
+        AITargetChoice now{-1, nullptr};
+        CurrentAttack(brain, &now);
+        if (best.object != now.object || best.part != now.part) {
+            int part = best.part;
             if (part == -1) {
                 brain->action = AIBrain::kActionAttack;
                 brain->target.Assign(chosen);

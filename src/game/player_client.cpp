@@ -619,8 +619,7 @@ int CPlayerClient::OnNewObject() {
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
-        auto* modelRecord = reinterpret_cast<const UnitModelRecord*>(
-            unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+        auto* modelRecord = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
         unit->defaultScale.x = 0.0f;
         unit->defaultScale.y = modelRecord->height;
         unit->defaultScale.z = 0.0f;

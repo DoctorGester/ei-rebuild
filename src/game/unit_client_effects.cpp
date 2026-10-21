@@ -100,7 +100,7 @@ std::uint32_t DecalVariant() { return static_cast<std::uint32_t>(gamecrt::rand()
 std::uint32_t DecalKind(std::uint32_t variant, std::uint32_t blood) { return variant | (blood + 0xFFFF) << 16; }
 
 const UnitModelRecord* ModelOf(CUnit* unit) {
-    return reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+    return unit->GetPrototypeModel();
 }
 
 // The smaller of the unit's two horizontal extents (the original's select keeps +0x148 for NaN).
