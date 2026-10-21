@@ -233,8 +233,8 @@ void Light(Part& part) {
     for (int i = 0; i < part.lights->count; ++i) {
         CLight* light = part.lights->data[i];
         Vector3 moved;
-        TransformPoint(g_lastInverse, &light->position_.x, &moved.x);
-        std::memcpy(&light->localPosition_, &moved, sizeof(moved));
+        TransformPoint(g_lastInverse, &light->localPosition_.x, &moved.x);
+        std::memcpy(&light->worldPosition_, &moved, sizeof(moved));
         LightForMaterial(light, part.material, ambient);
     }
     if (CLight* sun = worlddata::SceneSun()) {

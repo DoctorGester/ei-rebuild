@@ -445,9 +445,9 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     static_cast<CLight*>(light)->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);
     auto* point = static_cast<CLight*>(light);
-    point->position_.x = mapObject->localPosition_.x;
-    point->position_.y = mapObject->localPosition_.y;
-    point->position_.z = kLightHeight + mapObject->localPosition_.z;
+    point->localPosition_.x = mapObject->localPosition_.x;
+    point->localPosition_.y = mapObject->localPosition_.y;
+    point->localPosition_.z = kLightHeight + mapObject->localPosition_.z;
     point->range_ = radius;
     double squared = static_cast<double>(radius) * radius;
     point->rangeSquared_ = static_cast<float>(squared);

@@ -74,7 +74,7 @@ BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     color_[1] = color->y;
     color_[2] = color->z;
     pointPosition_ = *position;
-    position_ = *position;
+    localPosition_ = *position;
     flags_ |= kFlagChanged;
     return 1;
 }
@@ -87,7 +87,7 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     color_[2] = color->z;
     direction_ = *direction;
     const Vector3 target = *direction;
-    reinterpret_cast<CTransformObject*>(this)->TiltTowards(target);
+    TiltTowards(target);
     flags_ |= kFlagChanged;
     return 1;
 }
@@ -185,7 +185,7 @@ CEngineObject* CLightFactory::NewObjectImpl(int type) {
         return nullptr;
     }
     // Allocated zeroed (SV7b6a): the constructor leaves the transform's positions, and nothing sets a
-    // directional light's position_; the terrain's sun lighting reads its z (ShadeSun, under water), so
+    // directional light's localPosition_; the terrain's sun lighting reads its z (ShadeSun, under water), so
     // heap leftovers there (a NaN) darkened the shallow water's sun light by the heap's history.
     void* memory = gamecrt::operator_new_zeroed(sizeof(CLight));
     CLight* light = memory ? static_cast<CLight*>(memory)->Construct() : nullptr;
