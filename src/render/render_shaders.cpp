@@ -36,6 +36,8 @@ namespace {
 #include "shaders/ui_grey_ps.h"
 #include "shaders/ui_copy_ps.h"
 #include "shaders/ui_blit_ps.h"
+#include "shaders/perf_overlay_vs.h"
+#include "shaders/perf_overlay_ps.h"
 
 static_assert(kSmoothSamples == 8, "a depth_from_multisampled shader for each count up to it (CMakeLists.txt)");
 
@@ -56,6 +58,7 @@ const ShaderBytecode kUiComposeShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_compose_
 const ShaderBytecode kUiGreyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_grey_ps)};
 const ShaderBytecode kUiCopyShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_copy_ps)};
 const ShaderBytecode kUiBlitShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_blit_ps)};
+const ShaderBytecode kPerfOverlayShader{SG_RANGE(perf_overlay_vs), SG_RANGE(perf_overlay_ps)};
 
 ShaderBytecode DepthFromMultisampledShader(int samples) {
     switch (samples) {

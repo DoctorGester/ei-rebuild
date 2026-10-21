@@ -89,6 +89,12 @@ bool ClassicShadows();
 // word "smoothcamera" or SetSmoothCamera (from the next pass). Off: the game's camera.
 void SetSmoothCamera(bool on);
 bool SmoothCamera();
+// The performance overlay (R21, render_perf.h; renderer.md section 15): frames a second, frame and GPU times,
+// draws, drawn over the presented frame in the game window (never into the frame target, so no capture or
+// screenshot holds it). Switched by the settings file (directdraw_holder.cpp); off by default. The harness
+// build has none: PerfOverlaySupported() is false there and SetPerfOverlay keeps it off.
+bool PerfOverlaySupported();
+void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (CLight::direction_, z
 // negative by day), from CWorldClient::Render. Without it no shadow map is made.
 void ShadowSun(const float direction[3]);
