@@ -919,7 +919,7 @@ across runs; the goldens check the game state.
    CPU / wall ms per frame, renderstats): fight 18.6 / 19.0, mostly the server's AI path search (LocalSearch,
    CAIMap::FindPath); town 8.8 / 9.1: by profile figure lighting in 3DfpFPU (17% of the samples; R16i), the x87
    control word set around every libcrt math call (the CRT's ctrlfp 9%: Hypot in the camera's ClampAboveObjects;
-   SV10i), the ground decals' projection and clipping (DecalBuilder; R16e) and the device's per-corner work for meshes
+   gone with SV10i, Hypot 1.6% after), the ground decals' projection and clipping (DecalBuilder; R16e) and the device's per-corner work for meshes
    the new renderer draws from the hand-over anyway (FillCorners, the clipper, fog: R16k, measured smaller than the
    profile suggested: 0.1-0.5 ms a frame for the whole device mesh path, item 11). The renderer's own CPU
    (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame

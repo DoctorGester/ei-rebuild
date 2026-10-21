@@ -51,26 +51,25 @@ bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & 
 // masked, the caller's precision kept, so their FADD / FSUB / FMUL / FSQRT round to the caller's
 // precision (24 bits on the game's main thread). The bodies compute at 53 bits and round with Round where
 // the original's instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
-// (_hypot computes at 64 bits: `precision`.)
+// (_hypot computes at 64 bits: `precision`.) The word is loaded only when it differs from the caller's,
+// and put back only then (SV10i: FNSTCW / FLDCW, not __control87_2's conversions; the same words).
 class MathControlWord {
 public:
-    explicit MathControlWord(unsigned precision = _PC_53) {
-        __control87_2(0, 0, &saved_, nullptr);
-        single_ = (saved_ & _MCW_PC) == _PC_24;
-        rounding_ = saved_ & _MCW_RC;
-        unsigned ignored;
-        __control87_2(_RC_NEAR | precision | _MCW_EM, _MCW_RC | _MCW_PC | _MCW_EM, &ignored, nullptr);
+    explicit MathControlWord(std::uint32_t precision = x87::kPrecision53) : saved_(x87::ControlWord()) {
+        const std::uint32_t wanted =
+            (saved_ & ~(x87::kRoundingBits | x87::kPrecisionBits)) | x87::kRoundNear | precision | x87::kExceptionMasks;
+        changed_ = wanted != saved_;
+        if (changed_) x87::SetControlWord(wanted);
     }
     ~MathControlWord() {
-        unsigned ignored;
-        __control87_2(saved_, _MCW_RC | _MCW_PC | _MCW_EM, &ignored, nullptr);
+        if (changed_) x87::SetControlWord(saved_);
     }
     MathControlWord(const MathControlWord&) = delete;
     MathControlWord& operator=(const MathControlWord&) = delete;
 
     // A result of an x87 add, subtract, multiply or square root at the caller's precision.
     double Round(double value) const {
-        if (!single_) return value;
+        if ((saved_ & x87::kPrecisionBits) != x87::kPrecision24) return value;
         volatile float stored = static_cast<float>(value);
         return stored;
     }
@@ -80,17 +79,41 @@ public:
     double Overflow(bool negative) const {
         const double infinity = FromBits(kInfinity);
         const double largest = DBL_MAX;
+        const std::uint32_t rounding = saved_ & x87::kRoundingBits;
         double size = infinity;
-        if (rounding_ == _RC_CHOP || (rounding_ == _RC_UP && negative) || (rounding_ == _RC_DOWN && !negative))
+        if (rounding == x87::kRoundChop || (rounding == x87::kRoundUp && negative) ||
+            (rounding == x87::kRoundDown && !negative))
             size = largest;
         return negative ? -size : size;
     }
 
 private:
-    unsigned saved_ = 0;
-    unsigned rounding_ = _RC_NEAR;
-    bool single_ = false;
+    std::uint32_t saved_;
+    bool changed_ = false;
 };
+
+// frexp and ldexp by the bits for normal doubles (both exact, so the same results as std::frexp /
+// std::ldexp, which save, set and restore the control word around every call: SV10i); zeros,
+// subnormals, infinities and NaNs, and results outside the normal range, go to them.
+constexpr std::uint64_t kExponentBits = 0x7FF0000000000000ull;
+
+double Mantissa(double value, int* exponent) {
+    const std::uint64_t bits = Bits(value);
+    const unsigned biased = Exponent(bits);
+    if (biased == 0 || biased == 0x7FF) return std::frexp(value, exponent);
+    *exponent = static_cast<int>(biased) - 1022;
+    return FromBits((bits & ~kExponentBits) | (std::uint64_t(1022) << 52));
+}
+
+double Scale(double value, int exponent) {
+    const std::uint64_t bits = Bits(value);
+    const int biased = static_cast<int>(Exponent(bits));
+    if (biased != 0 && biased != 0x7FF && exponent > -2046 && exponent < 2046) {
+        const int scaled = biased + exponent;
+        if (scaled > 0 && scaled < 0x7FF) return FromBits((bits & ~kExponentBits) | (std::uint64_t(scaled) << 52));
+    }
+    return std::ldexp(value, exponent);
+}
 
 // What the CRT's integer test (006E8395) says of y: 0 not an integer, 1 odd, 2 even (from the bits: the
 // caller's precision must not round y * 0.5).
@@ -214,7 +237,7 @@ double __cdecl CiPow(double x, double y) {
     // t = y log2(x), FYL2X's 64-bit product, as y k + y log2(m) for x = m 2^k, m in [sqrt(1/2), sqrt(2)),
     // with the products' rounding errors kept apart: t - n then keeps the low bits a double t would lose.
     int k = 0;
-    double m = std::frexp(x, &k);
+    double m = Mantissa(x, &k);
     if (m < 0.70710678118654752) {
         m *= 2.0;
         --k;
@@ -231,7 +254,7 @@ double __cdecl CiPow(double x, double y) {
     }
     const double whole = RoundToEven(exponent);
     const double fraction = control.Round(((kPart - whole) + mPart) + (kError + mError));
-    const double power = std::ldexp(control.Round(std::exp2(fraction)), static_cast<int>(whole));
+    const double power = Scale(control.Round(std::exp2(fraction)), static_cast<int>(whole));
     if (IsInfinite(Bits(power))) return control.Overflow(negate);
     return negate ? -power : power;
 }
@@ -313,26 +336,26 @@ double __cdecl Hypot(double x, double y) {
     const double sizeY = std::fabs(y);
     const double larger = sizeY > sizeX ? sizeY : sizeX;
     if (larger == 0.0) return 0.0;
-    const MathControlWord control(_PC_64);
+    const MathControlWord control(x87::kPrecision64);
     const volatile double a = sizeX / larger;
     const volatile double b = sizeY / larger;
     const volatile double sum = a * a + b * b;
     const volatile double root = x87::fsqrt(sum);
     int rootExponent = 0;
     int largerExponent = 0;
-    const double rootMantissa = std::frexp(root, &rootExponent);
-    const volatile double product = rootMantissa * std::frexp(larger, &largerExponent);
+    const double rootMantissa = Mantissa(root, &rootExponent);
+    const volatile double product = rootMantissa * Mantissa(larger, &largerExponent);
     int productExponent = 0;
-    const double productMantissa = std::frexp(product, &productExponent);
+    const double productMantissa = Mantissa(product, &productExponent);
     const int exponent = productExponent + rootExponent + largerExponent;   // result = mantissa 2^exponent
     if (exponent < -1021) {
         // Below the normal range: the masked underflow's denormalised result, the 53-bit significand
         // shifted down with the dropped bits cut off (not rounded).
-        const std::uint64_t significand = static_cast<std::uint64_t>(std::ldexp(productMantissa, 53));
+        const std::uint64_t significand = static_cast<std::uint64_t>(Scale(productMantissa, 53));
         const int shift = -1021 - exponent;
         return FromBits(shift >= 64 ? 0 : significand >> shift);
     }
-    const double result = std::ldexp(product, rootExponent + largerExponent);
+    const double result = Scale(product, rootExponent + largerExponent);
     if (IsInfinite(Bits(result))) return control.Overflow(false);
     return result;
 }

@@ -121,6 +121,34 @@ __declspec(naked) inline double __cdecl fpatan(double /*y*/, double /*x*/) {
     __asm ret
 }
 
+// The control word as the FPU holds it (FNSTCW / FLDCW): bits 0-5 the exception masks, 8-9 the
+// precision, 10-11 the rounding, 12 the infinity control; bit 6 reads as 1 and bits 7 and 13-15 as 0
+// whatever was loaded. The CRT's __control87_2 runs the same two instructions around converting the
+// word to its abstract form and back, which keeps every bit the FPU keeps, and costs ~10x more
+// (SV10i: the libcrt maths around every Vector3::Length).
+constexpr std::uint32_t kExceptionMasks = 0x003F;
+constexpr std::uint32_t kPrecisionBits = 0x0300;
+constexpr std::uint32_t kPrecision24 = 0x0000;
+constexpr std::uint32_t kPrecision53 = 0x0200;
+constexpr std::uint32_t kPrecision64 = 0x0300;
+constexpr std::uint32_t kRoundingBits = 0x0C00;
+constexpr std::uint32_t kRoundNear = 0x0000;
+constexpr std::uint32_t kRoundDown = 0x0400;
+constexpr std::uint32_t kRoundUp = 0x0800;
+constexpr std::uint32_t kRoundChop = 0x0C00;
+
+__declspec(naked) inline std::uint32_t __cdecl ControlWord() {
+    __asm push 0
+    __asm fnstcw word ptr [esp]
+    __asm pop eax
+    __asm ret
+}
+
+__declspec(naked) inline void __cdecl SetControlWord(std::uint32_t /*word*/) {
+    __asm fldcw word ptr [esp + 4]
+    __asm ret
+}
+
 // FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
 // a C++ cast, which truncates.
 __declspec(naked) inline int __cdecl fistp(float) {

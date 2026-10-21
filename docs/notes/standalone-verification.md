@@ -481,6 +481,19 @@ samples (`tools/profile_report.py`). 2026-10-21, Ryzen 9 7950X (16 cores), RTX 4
   8.4 / 11.7 s a run before, 0.03 s after; games running 0.8 / 0.5 of 4 before, 3.7 / 3.1 after; report after the
   game 8.5 / 12.1 s before, 1.9 / 2.1 s after (packing, outside the slot). For a 124-run suite that is ~900 instead
   of ~1,750 slot-seconds; a lone suite's wall stays net_pair_quest's, the freed slots go to other batches.
+- **The x87 control word around the libcrt maths (SV10i).** R16h's town profile: the UCRT's `ctrlfp` 9% of the main
+  thread's samples, nearly all under `frexp` (Hypot from Vector3::Length, the camera's ClampAboveObjects over every
+  object near it): std::frexp / std::ldexp save, set and restore the control word on every call, and Hypot made four
+  of them plus its own three __control87_2 calls. Now (docs/notes/standalone.md, "x87 entries") frexp / ldexp of
+  normal doubles go by the bits and MathControlWord / FpuGuard / _controlfp use FNSTCW and load a word only when it
+  differs; results and words the same (an old-against-new check over every control word, goldens). By profile
+  (EI_PROFILE=1, render_stats' town): Hypot 13.5% of the samples (ctrlfp 9.0, frexp 9.7 total, set_exp 1.6) before,
+  1.6% after (ctrlfp gone); the fight had ctrlfp + control87_2 at 1.2%, now neither. Main-thread CPU / wall ms per
+  frame (renderstats): town 15.46 / 18.68, fight 21.98 / 24.30 in main's last run (a loaded machine: its menu 6.91)
+  against town 8.19 / 8.40, fight 19.36 / 19.22 after (menu 3.76); the load moves these more than the change, which by
+  the profile takes ~12% of the town's main thread (about 1 ms of R16h's quiet 8.8 ms) and ~1% of the fight's. Left:
+  the UCRT's `acrt_fenv_get_control` 1.6% of the town (std::lrint reads the FP environment on every call: the AI's
+  and the scripts' roundings; ticket SV10j).
 - Proposals (tickets SV10a-SV10e): the pair overlap (SV10a, above) and start-up (SV10b) done; more world updates per
   drawn frame and drawing only frames a step reads dropped (user: frames get faster, not fewer); the harness
   build's renderer checks (SV10e) open.

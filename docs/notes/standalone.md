@@ -193,7 +193,14 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's precision;
   pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; fmod is exact (keeps the CRT loader's NaN payload);
   `_hypothlp` runs at 64 bits with every step stored to a double and a denormal result cut off. errno / _matherr are
-  not reproduced.
+  not reproduced. The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord /
+  SetControlWord), put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set
+  and restore the word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Vector3::Length).
+  The FPU keeps bits 0-5 and 8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form
+  round-trips, so the words are the same. Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
+  file and the new one compiled side by side) on 50M calls of Hypot, CiPow, CiAcos, CiAsin and StackFmod under every
+  precision, rounding and infinity control: results, control word after, x87 status flags and errno all the same;
+  a one-line mutation (Hypot at 53 bits) differs. No vectors of this file exist (the crt family is formatting).
 - **Exceptions** (crt_except.cpp): _CxxThrowException 006E7819 raises 0xE06D7363 with the thrower's ThrowInfo, so
   the exe's catch tables and ours match; MSVC 6 std::exception (vtable 00747290, "Unknown exception").
 - **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
