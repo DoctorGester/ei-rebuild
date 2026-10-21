@@ -13,10 +13,30 @@
 #include <cstddef>
 #include <cstdint>
 
-// The abstract stream (vtable 0073F8C8: constructor 00580DD0, destructor body 00580DF0, slots 7 / 8
-// pure). 0x1C bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error.
-class __declspec(novtable) BufferedStream : public GameBuffer {
+// The abstract stream (constructor 00580DD0, destructor body 00580DF0, slots 7 / 8 pure). 0x1C
+// bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error. BufferedStream
+// and BufferedFile are real virtual classes: the compiler makes their vtables (C19; game.exe's
+// 0073F8C8 and 0073F8A4 are retired). The slots' bodies keep their names (registered at their
+// addresses, rewrite-guide rule 4); the overrides call them.
+class BufferedStream : public GameBuffer {
 public:
+    // 00580DD0. No block, base 0, flags 0 (the other pointers are left).
+    BufferedStream() {
+        base = 0;
+        begin = nullptr;
+        flags = 0;
+    }
+    // 00580DF0 (slot 5 with BufferedFile's): ReleaseBlock.
+    ~BufferedStream() override { ReleaseBlock(); }
+    // The deleting destructor (slot 5) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }                  // 0
+    void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }                // 1
+    std::uint32_t Commit() override;                                                          // 2
+    int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }   // 3
+    int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }   // 4
+    std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }      // 6
     // 004DB0F0 (slot 6, RET 4). Moves the cursor to file position `position`: inside the window in place,
     // else Flush and Rebase. Returns the cursor as it was before (EAX of the in-window path; the other
     // path leaves no meaningful value and its callers ignore it).
@@ -32,29 +52,27 @@ public:
     // 004DAFC0 (slot 1, RET 4). A new block of size + 0x400 bytes, unless the window is larger, with the
     // old block's bytes (no file access).
     void ReserveWriteWindow(std::int32_t size);
-    // The slots of both vtables (0073F8C8, 0073F8A4), registered at their addresses (rewrite-guide rule 4).
     // 004DAE30 (slot 0, RET 4). Room to read `size` bytes: a window smaller than `size` grows to
     // size + 0x400 (when that is not smaller) and is reloaded at `base`; otherwise Rebase.
     void ReserveReadWindow(std::int32_t size);
-    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size);           // 7
-    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size);  // 8
+    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;           // 7
+    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;  // 8
 
     // 004DAAF0. Writes the window's bytes up to the cursor back when they are unwritten (error bit on a
     // short write); `high` follows the cursor upwards.
     void Flush();
     // 004DAC80. Flush, then the block freed (begin = null; the other pointers left).
     void ReleaseBlock();
-    // 00580DD0 (the quest registration 005809D0). Constructor: this vtable, no block, base 0,
-    // flags 0 (the other pointers are left). Returns this.
+    // 00580DD0 for game.exe's derived constructors: the constructor's fields (the vtable is the
+    // derived class's). Returns this.
     BufferedStream* Construct();
-    // 00580DF0. Destructor body: this vtable, ReleaseBlock, then the view base's vtable.
+    // 00580DF0. Destructor body: ReleaseBlock (the original stores this vtable before and the view
+    // base's after).
     void DestructBody();
     // 00580E40 (RET 4): DestructBody, then operator delete when bit 0 of `flags` is set.
     BufferedStream* DeletingDestruct(unsigned deleteFlags);
     // BeginWrite (00580EE0) is GameBuffer's: the quest file loader calls it on a growing buffer.
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F8C8);
-    static constexpr std::uintptr_t kBaseVtableAddress = GameBuffer::kViewBaseVtableAddress;
     // 004DB040 (slot 2). Moves the window so that it starts at the cursor's file position (Flush,
     // then a reload there) unless it already does.
     void Rebase();
@@ -71,9 +89,19 @@ static_assert(sizeof(BufferedStream) == 0x1C);
 // 004DB040 (slot 2). Rebase.
 void __fastcall BufferedStreamCommit(BufferedStream* self);
 
-// The file stream (vtable 0073F8A4, destructor body 00580E60). 0x20 bytes.
-class __declspec(novtable) BufferedFile : public BufferedStream {
+// The file stream (destructor body 00580E60). 0x20 bytes.
+class BufferedFile : public BufferedStream {
 public:
+    // The constructor the quest file loader inlines: BufferedStream's, no file.
+    BufferedFile() : file(nullptr) {}
+    // 00580E60: Close, then BufferedStream's.
+    ~BufferedFile() override { Close(); }
+
+    int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }   // 7
+    int WriteAt(std::int32_t position, const void* from, std::uint32_t size) override {   // 8
+        return WriteAtFile(position, from, size);
+    }
+
     int WriteAtFile(std::int32_t position, const void* from, std::uint32_t size);
     // 004DB5E0 / 004DB630 (slots 7 / 8, RET 0xC). fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
@@ -83,12 +111,11 @@ public:
     // 004DB700 (RET 0xC). Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
-    // 00580E60. Destructor body: this vtable, Close, then BufferedStream's.
+    // 00580E60. Destructor body: Close, then BufferedStream's (the original stores this class's,
+    // BufferedStream's and the view base's vtables in turn).
     void DestructFile();
     // 00580EC0 (RET 4): DestructFile, then operator delete when bit 0 of `flags` is set.
     BufferedFile* DeletingDestructFile(unsigned deleteFlags);
-
-    static constexpr std::uintptr_t kFileVtableAddress = std::uintptr_t(0x0073F8A4);
 
     gamecrt::CrtFile* file;   // +0x1C
 };
