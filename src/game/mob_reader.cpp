@@ -89,8 +89,7 @@ Spec* NewRecord(std::uint32_t id) {
 
 // 0xB000: every record chunk inside `parent` is read into a new record, keyed by its id.
 void ReadRecords(Chunk* parent, MobRecords* records) {
-    Chunk chunk;
-    chunk.Construct(parent);
+    Chunk chunk(parent);
     do {
         chunk.ReadHeader();
         if (Spec* spec = NewRecord(chunk.id_)) {
@@ -100,13 +99,11 @@ void ReadRecords(Chunk* parent, MobRecords* records) {
             records->byId[spec->id] = spec;
         }
     } while (parent->size_ != parent->consumed_);
-    chunk.Destruct();
 }
 
 // 0xABD0: wind direction and strength and the time of day (two more values are read and unused).
 void ReadWeather(Chunk* parent) {
-    Chunk chunk;
-    chunk.Construct(parent);
+    Chunk chunk(parent);
     Vector3 direction = {0.0f, 1.0f, 0.0f};
     chunk.ReadHeader();
     Vector3 read;
@@ -124,19 +121,16 @@ void ReadWeather(Chunk* parent) {
     server->CWorldServer::SetTimeImpl(time);
     float limit = MobWindLimit();
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
-    chunk.Destruct();
 }
 
 // 0xDDDDDDD1: the relation table (0x1000 bytes) and the player names.
 void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
-    Chunk chunk;
-    chunk.Construct(parent);
+    Chunk chunk(parent);
     chunk.ReadHeader();
     chunk.ReadBytes(diplomacy->relations, sizeof(diplomacy->relations));
     chunk.ReadHeader();
     diplomacy->names.SetSize(0, -1);
     chunk.ReadStringArray(&diplomacy->names);
-    chunk.Destruct();
 }
 
 // The scripts' text, plain or encoded.
@@ -155,8 +149,7 @@ bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplo
                               mfc::CString* scripts) {
     bool flag = true;
     root->ReadHeader();
-    Chunk child;
-    child.Construct(root);
+    Chunk child(root);
     do {
         child.ReadHeader();
         const std::uint32_t id = child.id_;
@@ -174,7 +167,6 @@ bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplo
         else if (id == kChunkFlagOff) flag = false;
         child.SkipContent();
     } while (root->size_ != root->consumed_);
-    child.Destruct();
     return flag;
 }
 EI_REPLACE(0x00481F00, ReadMobChunks);

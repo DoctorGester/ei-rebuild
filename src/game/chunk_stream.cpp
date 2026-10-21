@@ -6,7 +6,6 @@
 #include "console.h"   // CStringArray
 
 #include "ei/hook.h"
-#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/stlp.h"
 #include "mob_script_decoder.h"
 #include "originals_engine.h"
@@ -57,18 +56,10 @@ struct TextDecoder {
 
 } // namespace
 
-Chunk* Chunk::Construct(Chunk* parent) {
-    consumed_ = 0;
-    size_ = 0;
-    id_ = 0;
-    start_ = 0;
-    ei::SetVtable(this, kVtableAddress);
-    parent_ = parent;
-    return this;
-}
+Chunk* Chunk::Construct(Chunk* parent) { return new (this) Chunk(parent); }
 EI_REPLACE_METHOD(0x0042BEC0, Chunk::Construct);
 
-void Chunk::Destruct() { ei::SetVtable(this, kVtableAddress); }
+void Chunk::Destruct() {}
 EI_REPLACE_METHOD(0x0042BEF0, Chunk::Destruct);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
@@ -81,6 +72,8 @@ void Chunk::Advance(int bytes) {
     consumed_ += bytes;
 }
 EI_REPLACE_METHOD(0x0042BF00, Chunk::Advance);
+
+void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
 
 void* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
 EI_REPLACE(0x0042BF40, ChunkFileHook);
@@ -322,8 +315,7 @@ void Chunk::ReadStringArray(void* strings) {
     auto* array = static_cast<console::CStringArray*>(strings);
     std::uint32_t count;
     ReadCounted(this, &count, 4);
-    Chunk child;
-    child.Construct(this);
+    Chunk child(this);
     array->SetSize(0, -1);
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
@@ -368,11 +360,9 @@ int RootChunk::Open(mfc::CString path, unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0042D160, RootChunk::Open);
 
-void RootChunk::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
-    file_.~CFile();
-    ei::SetVtable(this, Chunk::kVtableAddress);
-}
+void* RootChunk::File() { return &file_; }   // 0042D260 (short_functions.cpp)
+
+void RootChunk::Destruct() { file_.~CFile(); }
 EI_REPLACE_METHOD(0x0042D270, RootChunk::Destruct);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.

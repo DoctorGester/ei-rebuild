@@ -7,9 +7,9 @@
 // virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
 // embeds. Names provisional; see docs/notes/core.md.
 //
-// Chunks are built by the game's constructor bodies (or Construct below), which store the game's
-// vtables; the classes are __declspec(novtable), so a Chunk local or member is plain storage until
-// then (see core_streams.h).
+// Chunk and RootChunk are real virtual classes: the compiler makes their vtables (C19; game.exe's
+// 0073BE94, 0073BE9C and the .mob root's 0073FAD4 are retired). The map specs' records and child
+// chunks (map_spec.h) begin with a Chunk and store their own game vtables over it.
 
 #include "maths.h"
 #include "lib/mfc.h"
@@ -17,9 +17,12 @@
 #include <cstddef>
 #include <cstdint>
 
-class __declspec(novtable) Chunk {
+class Chunk {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BE94);
+    // A chunk before it is set up (a record's member before its constructor body runs).
+    Chunk() = default;
+    // 0042BEC0. Nothing read or written yet, under `parent`.
+    explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
 
     // 0: 0042BEE0 (empty). Called by ForEachChild for each child header read; the readers (the
     // zone's object records, map_spec.h) read the chunk's value by its id.
@@ -27,9 +30,11 @@ public:
     // 1: 0042BF40. The file (an MFC CFile): the parent's, or null without a parent.
     virtual void* File();
 
-    // 0042BEC0. Returns this.
+    // 0042BEC0 for the records that begin with a chunk (map_spec.h): the constructor in place.
+    // Returns this.
     Chunk* Construct(Chunk* parent);
-    // 0042BEF0. Destructor body: restores the vtable.
+    // 0042BEF0. Destructor body: the original restores Chunk's vtable before the storage goes;
+    // nothing is left to do.
     void Destruct();
     // 0042BF00. Counts `bytes` as consumed here and in every parent.
     void Advance(int bytes);
@@ -83,18 +88,19 @@ static_assert(offsetof(Chunk, id_) == 0x04);
 static_assert(offsetof(Chunk, parent_) == 0x14);
 static_assert(sizeof(Chunk) == 0x18);
 
-// The root chunk of a file (vtable 0073BE9C, constructor 0042D1C0): slot 1 returns its CFile.
-class __declspec(novtable) RootChunk : public Chunk {
+// The root chunk of a file: slot 1 returns its CFile. The .mob object file's root
+// (CWorldServer::LoadMapObjects, game.exe's vtable 0073FAD4 with the same slots) is one too.
+class RootChunk : public Chunk {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BE9C);
-    // The .mob object file's root (same slot 1; CWorldServer::LoadMapObjects builds it inline).
-    static constexpr std::uintptr_t kMapObjectFileVtableAddress = std::uintptr_t(0x0073FAD4);
+    // 0042D1C0. No parent, the file closed.
+    RootChunk() : Chunk(nullptr) {}
 
     void* File() override;   // 1: 0042D260 (&file_)
 
     // 0042D160. Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
     int Open(mfc::CString path, unsigned flags);
-    // 0042D270. Destructor body: the root's vtable, the CFile destroyed, then the chunk's vtable.
+    // 0042D270. Destructor body: the CFile destroyed (the original stores the root's vtable before
+    // and the chunk's after).
     void Destruct();
 
     mfc::CFile file_;        // +0x18
