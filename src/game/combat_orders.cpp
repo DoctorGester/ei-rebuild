@@ -38,8 +38,6 @@ constexpr float kReachHeight = 1.5f;    // 0073C51C
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-
 AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
 
 // The prototype records behind a spell and a unit.
@@ -120,8 +118,8 @@ void CUnitServer::FinishCast() {
         float left = static_cast<float>(-needed + *mana);
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
-        float capped = LessOrUnordered(left, maximum) ? left : maximum;
-        float result = LessOrUnordered(kZero, capped) ? capped : kZero;
+        float capped = left >= maximum ? maximum : left;
+        float result = capped <= kZero ? kZero : capped;
         std::memcpy(mana, &result, sizeof(float));
         (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
         unit->MarkChanged(0);
@@ -190,7 +188,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
                 auto* victim = static_cast<CUnit*>(other);
                 double height =
                     static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->height)) + victim->position.z;
-                if (!LessOrUnordered(height, kReachHeight)) {
+                if (height >= kReachHeight) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
                     ReleaseTarget(&action2);

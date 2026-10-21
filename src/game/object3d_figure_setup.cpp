@@ -58,8 +58,8 @@ void ClearBoxes(FootprintPart* boxes, int count) {
 
 // The original's branch-free selects: the stored candidate replaces the bound when the comparison
 // sets C0 (it lies beyond the bound, or one of them is NaN).
-float Higher(float bound, float v) { return !(bound >= v) ? v : bound; }
-float Lower(float bound, float v) { return !(v >= bound) ? v : bound; }
+float Higher(float bound, float v) { return bound >= v ? bound : v; }
+float Lower(float bound, float v) { return v >= bound ? bound : v; }
 } // namespace
 
 // MFC CArray<FootprintPart>::SetSize(count, -1), inlined by the original.

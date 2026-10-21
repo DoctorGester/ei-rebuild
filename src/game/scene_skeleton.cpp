@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "originals_render.h"
 #include "originals_engine.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -38,9 +39,8 @@ void __stdcall ConstructFrameRecords(void* records, int count) {
 bool SameAsZero(const Vector3& v) {
     Vector3 zero;
     std::memcpy(&zero, &ZeroVector(), sizeof(zero));
-    // FCOMP and TEST AH,0x40: equal or unordered counts as equal.
-    auto same = [](float a, float b) { return !(a < b) && !(a > b); };
-    return same(v.x, zero.x) && same(v.y, zero.y) && same(v.z, zero.z);
+    EI_NAN_AUDIT(v.x, v.y, v.z);
+    return v.x == zero.x && v.y == zero.y && v.z == zero.z;
 }
 
 // The frame array (MFC CArray of NodeFrame; elements constructed by 00453730, never destroyed).

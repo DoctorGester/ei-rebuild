@@ -18,6 +18,7 @@
 #include "originals_render.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -41,8 +42,6 @@ constexpr float kFogCellSize = 1.0f;                                    // 0073D
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
 IsaacRandom& GlobalRandom() { return ei::GameData<IsaacRandom>(0x007A9D40); }
-
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 // Reads a float back from memory, as the original does after storing it (the compiler would
 // otherwise reuse the unrounded register value).
@@ -208,12 +207,12 @@ void CVisibilityFog::ComputeBounds() {
     boundsMax = {-kFar, -kFar, -kFar};
     cells.ForEach([this](CellMap::Node* n) {
         const Vector3& p = n->value.pos;
-        boundsMin.x = LessOrUnordered(p.x, boundsMin.x) ? p.x : boundsMin.x;
-        boundsMin.y = LessOrUnordered(p.y, boundsMin.y) ? p.y : boundsMin.y;
-        boundsMin.z = LessOrUnordered(p.z, boundsMin.z) ? p.z : boundsMin.z;
-        boundsMax.x = LessOrUnordered(boundsMax.x, p.x) ? p.x : boundsMax.x;
-        boundsMax.y = LessOrUnordered(boundsMax.y, p.y) ? p.y : boundsMax.y;
-        boundsMax.z = LessOrUnordered(boundsMax.z, p.z) ? p.z : boundsMax.z;
+        boundsMin.x = p.x >= boundsMin.x ? boundsMin.x : p.x;
+        boundsMin.y = p.y >= boundsMin.y ? boundsMin.y : p.y;
+        boundsMin.z = p.z >= boundsMin.z ? boundsMin.z : p.z;
+        boundsMax.x = boundsMax.x >= p.x ? boundsMax.x : p.x;
+        boundsMax.y = boundsMax.y >= p.y ? boundsMax.y : p.y;
+        boundsMax.z = boundsMax.z >= p.z ? boundsMax.z : p.z;
     });
     boundsMax.x = Load(boundsMax.x) + kHalf;
     boundsMax.y = Load(boundsMax.y) + kHalf;
@@ -264,7 +263,8 @@ int CVisibilityFog::UpdateCells() {
             cell.alpha = kOne - (kOne - cell.alpha) * kHalf;
         else
             cell.alpha = cell.alpha * kHalf;
-        if (LessOrUnordered(Load(cell.alpha), kFogMinAlpha)) {
+        EI_NAN_AUDIT(cell.alpha);
+        if (Load(cell.alpha) < kFogMinAlpha) {
             if (dead.Finish() == dead.EndOfStorage()) {
                 KeyVectorInsertOverflow(&dead, dead.Finish(), &n->key, 1);
             } else {

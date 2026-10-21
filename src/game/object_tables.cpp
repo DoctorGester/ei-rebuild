@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 #include <new>
@@ -57,22 +58,11 @@ float NamedFloatTable::Get(const char* name) {
 }
 EI_REPLACE_METHOD(0x00460AF0, NamedFloatTable::Get);
 
-namespace {
-
-// FCOMP against 0 sets C3 for equal and for unordered operands.
-bool ZeroOrNaN(float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
-    bits &= 0x7FFFFFFFu;
-    return bits == 0 || bits > 0x7F800000u;
-}
-
-} // namespace
-
 void NamedFloatTable::Set(const char* name, float value) {
     if (!*name) return;
     mfc::CString key(name);
-    if (ZeroOrNaN(value)) {
+    EI_NAN_AUDIT(value);
+    if (value == 0.0f) {
         EraseKey(key);
         return;
     }

@@ -12,6 +12,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 namespace {
 
@@ -221,9 +222,6 @@ namespace {
 // 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
 inline double __fastcall StripFrameTime(void* w) { return WindowFrameTimeOriginal(w); }
 
-// FCOMP; TEST AH,0x40: equal, or unordered.
-bool EqualOrNaN(float a, float b) { return !(a < b) && !(a > b); }
-
 } // namespace
 
 void CUiItemStrip::Update() {
@@ -243,7 +241,8 @@ void CUiItemStrip::Update() {
     // An arrow held: one slot at once, then one more every `repeat` seconds.
     if (scrollDirection_ != 0) {
         int steps = 0;
-        if (EqualOrNaN(scrollTimer_, zero)) {
+        EI_NAN_AUDIT(scrollTimer_);
+        if (scrollTimer_ == zero) {
             steps = 1;
             const std::uint32_t first = 0x3A83126F;   // 0.001
             std::memcpy(&scrollTimer_, &first, 4);
@@ -257,7 +256,8 @@ void CUiItemStrip::Update() {
         pending_ = scrollDirection_ == 1 ? pending_ - static_cast<float>(steps) : static_cast<float>(steps) + pending_;
     }
 
-    if (!EqualOrNaN(pending_, zero)) {
+    EI_NAN_AUDIT(pending_);
+    if (pending_ != zero) {
         float speed;
         if (std::fabs(pending_) > nearDistance) {
             // Far: accelerate towards the target up to the top speed, but no faster than reaches
@@ -305,7 +305,8 @@ void CUiItemStrip::Update() {
             pending_ = 0.0f;
         }
     }
-    if (EqualOrNaN(pending_, zero)) velocity_ = 0.0f;
+    EI_NAN_AUDIT(pending_);
+    if (pending_ == zero) velocity_ = 0.0f;
 
     CallRebuildList();
     // Kept within [0, size - 7].

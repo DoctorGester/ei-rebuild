@@ -18,6 +18,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "texture.h"
+#include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -80,13 +81,6 @@ TLVertex* VertexData() { return Vertices().data; }
 constexpr int kScreenStack = 1;
 constexpr int kClipStack = 2;
 
-// FCOMP with 0.0 (0073B858) then C3: equal, or unordered.
-bool ZeroOrNaN(const float* value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, value, 4);
-    return (bits & 0x7FFFFFFFu) == 0 || ((bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0);
-}
-
 // *out = *offset + *value: FLD the offset, FADD the coordinate, FSTP.
 void AddOffset(const float* offset, const float* value, float* out) { *out = *offset + *value; }
 
@@ -106,7 +100,8 @@ void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
 void FillCorners(const MeshArgs& a) {
     TLVertex* v = VertexData();
     const ProjectedVertex* projected = Projected().data;
-    bool moved = !(ZeroOrNaN(a.uOffset) && ZeroOrNaN(a.vOffset));
+    EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
+    bool moved = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
     for (int i = 0; i < a.cornerCount; ++i, ++v) {
         const MeshCorner& c = a.corners[i];
         std::memcpy(&v->x, &projected[c.position], 16);
@@ -189,7 +184,8 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     m.cornerCount = a.cornerCount;
     m.indices = a.indices;
     m.indexCount = a.indexCount;
-    m.moveUv = !(ZeroOrNaN(a.uOffset) && ZeroOrNaN(a.vOffset));
+    EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
+    m.moveUv = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
     m.uOffset = *a.uOffset;
     m.vOffset = *a.vOffset;
     // The screen stack (1): the clip-space stack (2, which the clipping draws use) times the

@@ -224,7 +224,7 @@ std::uint8_t& SortedSectorsGuard() { return ei::GameData<std::uint8_t>(0x007C894
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01
 // with its sign (_copysign of the double 0.01f).
-float AwayFromZero(float v) { return !(std::fabs(v) >= kMinComponent) ? std::copysign(kMinComponent, v) : v; }
+float AwayFromZero(float v) { return std::fabs(v) >= kMinComponent ? v : std::copysign(kMinComponent, v); }
 
 } // namespace
 

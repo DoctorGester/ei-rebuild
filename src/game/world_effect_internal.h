@@ -17,6 +17,7 @@
 #include "originals_world.h"
 #include "originals_script.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <concepts>
 #include <cstdint>
@@ -56,16 +57,10 @@ inline float FromBits(std::uint32_t u) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> inline float FromBits(T) = delete;
-// FCOMP against 0.0 then TEST AH,40h: "equal" also when the value is NaN (unordered sets C3).
-inline bool EqualsZeroOrNaN(const float& v) {
-    std::uint32_t u = Bits(v);
-    if ((u & 0x7FFFFFFFu) == 0) return true;
-    return (u & 0x7F800000u) == 0x7F800000u && (u & 0x007FFFFFu) != 0;
-}
-// The inline test after every velocity change: moving unless all three components compare equal
-// to 0.0 (NaN compares equal here).
+// The inline test after every velocity change: moving unless all three components are 0.
 inline int IsMoving(const Vector3& v) {
-    return EqualsZeroOrNaN(v.x) && EqualsZeroOrNaN(v.y) && EqualsZeroOrNaN(v.z) ? 0 : 1;
+    EI_NAN_AUDIT(v.x, v.y, v.z);
+    return v.x == 0.0f && v.y == 0.0f && v.z == 0.0f ? 0 : 1;
 }
 
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or

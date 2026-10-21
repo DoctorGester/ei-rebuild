@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -83,10 +84,8 @@ std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // The original's branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
 float Select(float a, float b, float ifLess, float otherwise) {
-    return std::bit_cast<float>(!(a >= b) ? Bits(ifLess) : Bits(otherwise));
+    return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
 }
-
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 IsaacRandom& Random() { return ei::GameData<IsaacRandom>(0x007A9D40); }
 
@@ -398,17 +397,17 @@ namespace {
 // The height band (key bits) of a blow at height `h` on the attacker's body: low up to 0.4 of its
 // height, middle up to 0.8, high up to its top; anywhere else the key stays middle.
 std::uint32_t BandAt(double h, float base, float size, float top) {
-    if (!LessOrUnordered(h, base)) {
+    if (h >= base) {
         double low = static_cast<double>(size) * kLowerPart + base;
         if (!(h > low)) return kKeyLow;
     }
     double low = static_cast<double>(size) * kLowerPart + base;
-    if (!LessOrUnordered(h, low)) {
+    if (h >= low) {
         double middle = static_cast<double>(size) * kUpperPart + base;
         if (!(h > middle)) return kKeyMiddle;
     }
     double middle = static_cast<double>(size) * kUpperPart + base;
-    if (!LessOrUnordered(h, middle) && !(h > top)) return kKeyHigh;
+    if (h >= middle && !(h > top)) return kKeyHigh;
     return kKeyMiddle;
 }
 
@@ -483,13 +482,15 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double blow;
     double myTopValue = static_cast<double>(mySize) + myBase;
     float myTop = static_cast<float>(myTopValue);
-    if (LessOrUnordered(myTopValue, theirBase)) {
+    EI_NAN_AUDIT(myTopValue, theirBase);
+    if (myTopValue < theirBase) {
         blow = static_cast<double>(theirBase) - myTop;
         key = kKeyHigh;
     } else {
         double theirTopValue = static_cast<double>(theirSize) + theirBase;
         float theirTop = static_cast<float>(theirTopValue);
-        if (LessOrUnordered(theirTopValue, myBase)) {
+        EI_NAN_AUDIT(theirTopValue, myBase);
+        if (theirTopValue < myBase) {
             blow = static_cast<double>(myBase) - theirTopValue;
             key = kKeyLow;
         } else {
@@ -535,8 +536,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     // Beyond close range the slope of the blow decides instead.
     double slope = blow / reach;
     if (reach > kNearReach) {
+        EI_NAN_AUDIT(slope);
         if (slope > kSteepUp) key = kKeyHigh;
-        else if (LessOrUnordered(slope, kSteepDown)) key = kKeyLow;
+        else if (slope < kSteepDown) key = kKeyLow;
         else key = kKeyMiddle;
     }
     key |= kKeyBlow;

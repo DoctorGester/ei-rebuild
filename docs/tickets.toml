@@ -2353,6 +2353,13 @@ group = "cleanup"
 depends = ["C16c"]
 note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)'. C16c made the x87::IsNaN / CompareStatus sites plain comparisons with EI_NAN_AUDIT; left are the helpers that keep the original's NaN results without IsNaN: LessOrUnordered (combat*, effects*, particle_*, quaternion, terrain, unit_vitals, world_client SelectLess), ZeroOrUnordered, NonZero, EqualOrNaN (ui_item_strip, unit_record), IsZeroOrNaN (unit_stats, world_effect_sequence), AtMostOne / AtLeastZero / AtMostZero, ClampToMap, the ZeroOrNaN bit tests in device_mesh / object_tables / scene_bones, about 30 files. Same rule (rewrite guide 8): the plain comparison the source had, EI_NAN_AUDIT where the NaN result changes, the NaN-keeping plain form where it reads as naturally; check a NaN can never hang a loop. Goldens --golden 0 differ and no 'NaN audit' line in the runs' logs. Opus (judgement per site)."
 
+[[ticket]]
+id = "C16f"
+title = "NaN audit, part 3: the inline !(a >= b) and !(a < b) && !(a > b) forms"
+group = "cleanup"
+depends = ["C16e"]
+note = "docs/notes/cleanup-tooling.md 'NaN audit (C16c)' and its C16e item. C16e converted the named helpers; left are the inline NaN-keeping forms of the earlier port: about 380 lines with a negated comparison (!(a >= b), !(x > y): ai_footprint, ai_map, ai_motion, camera, camera_motion, lightning*, figure_mesh, ui_item_strip, ...; some are integer tests and stay) and about 35 equal-or-NaN tests written !(a < b) && !(a > b) or !(a < 0 || a > 0) (effects_weather, exit_area, lightning_draw, model_db, party_members, ui_camp, unit_vitals, world_game, ...), plus the shadow / decal helpers C16e left for R16e1 (device_shadow OneOrNaN, terrain_shadow AtMostZero, terrain_decal Lower / Raised). Same rule (rewrite guide 8): plain comparison with EI_NAN_AUDIT where the NaN result changes, the exact plain form (a >= b ? x : y) where it reads as naturally, loops must end on a NaN. Goldens --golden 0 differ, no 'NaN audit' line in the runs' logs. Opus; split by area if large."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]

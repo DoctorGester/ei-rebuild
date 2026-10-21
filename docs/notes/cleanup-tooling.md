@@ -226,9 +226,17 @@ checks) the check stays (`x87::IsNaN`): none of the ~116 sites was one, so `IsNa
   height marks a moved object changed, a NaN hash key height never matches (each lookup adds an entry), `CCamera::StopMotion` keeps
   a NaN turn / tilt rate where the inlined SetTurnRate(0) replaced it. The suite has none: goldens identical (110), and the audit
   line appears in no run's ei_hook.log.
-- Not converted (follow-up C16e): the NaN-aware `!(a >= b)` helpers of the earlier port (`LessOrUnordered`, `ZeroOrUnordered`,
-  `EqualOrNaN` in ui_item_strip / unit_record, `NonZero`, `AtMostOne`, ... in about 30 files), which keep the original's NaN results
-  without `IsNaN`.
+- **The `!(a >= b)` helpers (C16e).** The earlier port's NaN-keeping helpers are gone (`LessOrUnordered`, `ZeroOrUnordered`,
+  `NonZero`, `IsNonZero`, `Equal` / `EqualOrUnordered` / `EqualOrNaN`, `IsZeroOrNaN`, the `ZeroOrNaN` bit tests, `Below`, the `same`
+  lambdas, world_client's `NaN`; 44 files). A test is the plain `<` / `==` / `!=` with `EI_NAN_AUDIT` (about 70 sites), or the
+  exact plain form where it reads as naturally: a negated less-than is `a >= b`; the size-class ladder (combat) tests from the top
+  (`size >= kSizeLarge` first); a select (`Select`, `SelectLess`, `PickIfLess`, `Max`, `AtMostOne`, `AtLeastZero`, `ClampToMap`,
+  `MaxZero`, `Max0`, `KeepLower` / `KeepHigher`, `Higher` / `Lower`, the bounds folds) is `a >= b ? otherwise : ifLess`, which is
+  the C0 mask's result for a NaN too. No audit where a NaN gives the same result either way (`if (x != 0) x = 15 / x`: 15 / NaN is
+  that NaN; `1 / plane[8]`) or cannot occur (integer-sourced draws). Loops: the modifier ring's rejection loop (particle_emitters
+  `PlaceModifierPoints`) now ends on a NaN length (the original drew again for ever); the others are bounded (tries, iteration
+  counts). Left: the shadow / decal files (device_shadow `OneOrNaN`, terrain_shadow `AtMostZero`, terrain_decal `Lower` /
+  `Raised`: R16e1's area at the time) and the inline `!(a >= b)` / `!(a < b) && !(a > b)` forms (C16f).
 
 **Main-thread CPU per frame** (render_stats, vanilla 4K, best of three alternating runs on a shared machine, ms): SSE2 against x87
 menu 2.49 / 2.47, zone1 5.13 / 6.02, fight 18.07 / 19.10, town 7.39 / 7.98, camp 3.94 / 3.98, map 0.96 / 1.03: 0-15% less in

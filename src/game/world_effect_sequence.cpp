@@ -9,6 +9,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "game_data.h"
+#include "lib/nan_audit.h"
 
 #include <cstring>
 
@@ -52,12 +53,6 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-bool IsZeroOrNaN(const float& v) {
-    std::uint32_t u;
-    std::memcpy(&u, &v, 4);
-    if ((u & 0x7FFFFFFFu) == 0) return true;
-    return (u & 0x7F800000u) == 0x7F800000u && (u & 0x007FFFFFu) != 0;
-}
 
 } // namespace
 
@@ -104,7 +99,8 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     field->ReadFloat16(&radius_);
     field->ReadFloat16x3(&velocity_.x);
     field->ReadDelta(&noFade_, 1);
-    moving_ = IsZeroOrNaN(velocity_.x) && IsZeroOrNaN(velocity_.y) && IsZeroOrNaN(velocity_.z) ? 0 : 1;
+    EI_NAN_AUDIT(velocity_.x, velocity_.y, velocity_.z);
+    moving_ = velocity_.x == 0.0f && velocity_.y == 0.0f && velocity_.z == 0.0f ? 0 : 1;
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
     Start(update);

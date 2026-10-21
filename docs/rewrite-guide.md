@@ -112,8 +112,9 @@ comes from a bug we already hit.
    NaN, `EI_NAN_AUDIT(values...)` (`lib/nan_audit.h`) logs the first NaN per site to ei_hook.log in the verify and debug
    builds. Where an equally plain form keeps the original's NaN result (`a > b`; `x < low ? x : low` for a bound a NaN never
    replaces; `if (!(gap > limit)) break;` for a loop a NaN must still end), prefer it. addon.dll was built by an IEEE
-   compiler (its tests read C2): its status tests are exact plain comparisons. Not yet converted: the `!(a >= b)` helpers
-   of the earlier port (`LessOrUnordered`, `ZeroOrUnordered`, ...), ticket C16e.
+   compiler (its tests read C2): its status tests are exact plain comparisons. A select whose C0 mask picks `ifLess` is
+   `a >= b ? otherwise : ifLess` (exact for NaN). Not yet converted: the inline `!(a >= b)` / `!(a < b) && !(a > b)`
+   forms of the earlier port, ticket C16f.
 9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
    EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
    ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten

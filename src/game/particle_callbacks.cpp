@@ -1345,9 +1345,9 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             boundsMin.x = PickIfLess(q->pos.x, boundsMin.x);
             boundsMin.y = PickIfLess(q->pos.y, boundsMin.y);
             boundsMin.z = PickIfLess(q->pos.z, boundsMin.z);
-            boundsMax.x = !(boundsMax.x >= q->pos.x) ? q->pos.x : boundsMax.x;
-            boundsMax.y = !(boundsMax.y >= q->pos.y) ? q->pos.y : boundsMax.y;
-            boundsMax.z = !(boundsMax.z >= q->pos.z) ? q->pos.z : boundsMax.z;
+            boundsMax.x = boundsMax.x >= q->pos.x ? boundsMax.x : q->pos.x;
+            boundsMax.y = boundsMax.y >= q->pos.y ? boundsMax.y : q->pos.y;
+            boundsMax.z = boundsMax.z >= q->pos.z ? boundsMax.z : q->pos.z;
             particles.AddTail(q);
         }
     }
@@ -3766,8 +3766,6 @@ namespace {
 const std::int32_t* ModifierAlphaIn() { return ei::GamePointer<const std::int32_t>(0x0078A800); }     // by tick
 const std::int32_t* ModifierAlphaOut() { return ei::GamePointer<const std::int32_t>(0x0078A88C); }    // by tick
 
-// x87 FCOMP's "below" (also taken when unordered).
-bool Below(double a, double b) { return !(a >= b); }
 
 } // namespace
 
@@ -3782,7 +3780,8 @@ int CParticleSource::UpdateModifier(Particle* p) {
         const ParticleElement& e = elements[p->state];
         std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
         SetBits(&p->size, 0x3F800000);
-        if (Below(D(size), D(EI_P_ZERO))) {
+        EI_NAN_AUDIT(size);
+        if (size < EI_P_ZERO) {
             p->size = static_cast<float>(oldSize * D(0.9345794f /*0073CEA8*/));    // 1 / 1.07
             p->color = (static_cast<std::uint32_t>(ModifierAlphaIn()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         } else {
@@ -3828,7 +3827,7 @@ void CParticleSource::TickModifier(ParticleElement* e) {
     e->pos.y = static_cast<float>(D(offset[1]) + D(origin.y));
     e->pos.z = static_cast<float>(D(offset[2]) + D(origin.z));
     e->pos.z = static_cast<float>(D(spreadMin.x) + D(e->pos.z));
-    double k = Below(D(size), D(EI_P_ZERO)) ? D(1.4f /*0073CDF8*/) : D(0.71428573f /*0073CEAC*/);    // 1.4 / 1 / 1.4
+    double k = size >= EI_P_ZERO ? D(0.71428573f /*0073CEAC*/) : D(1.4f /*0073CDF8*/);    // 1 / 1.4, 1.4
     for (int i = 0; i < 3; ++i) offset[i] = static_cast<float>(k * D(offset[i]));
 }
 EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);

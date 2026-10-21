@@ -28,6 +28,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cstring>
@@ -90,8 +91,6 @@ constexpr int kShoutCannotDo = 0x0E;
 
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
-bool LessOrUnordered(double a, double b) { return !(a >= b); }
-bool ZeroOrUnordered(double a) { return !(a < 0.0 || a > 0.0); }
 bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
 bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
@@ -217,7 +216,7 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
             auto* other = static_cast<CUnit*>(target);
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
                 double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
-                if (!LessOrUnordered(height, kHeightLimit)) return false;
+                if (height >= kHeightLimit) return false;
             }
         }
     }
@@ -323,7 +322,8 @@ bool CUnitServer::StartMove() {
     offset.y = unit->position.y - action.point.y;
     offset.z = unit->position.z - action.point.z;
     double lengthSq = LengthSquaredZYX(offset);
-    if (LessOrUnordered(lengthSq, kArrived)) {
+    EI_NAN_AUDIT(lengthSq);
+    if (lengthSq < kArrived) {
         action.Reset();
         if (action2.kind == kOrderEmpty) Idle();
         bool result = StartQueuedOrder();
@@ -347,7 +347,8 @@ bool CUnitServer::StartMove() {
         if (!found) {
             double dy = static_cast<double>(action.point.y) - unit->position.y;
             double dx = static_cast<double>(action.point.x) - unit->position.x;
-            close = LessOrUnordered(LengthSquared2DUnrounded(dx, dy), kLong);
+            EI_NAN_AUDIT(dx, dy);
+            close = LengthSquared2DUnrounded(dx, dy) < kLong;
         }
         if (close) arrived = true;
         else ReportPath(&motion, found);
@@ -567,10 +568,10 @@ EI_REPLACE_METHOD(0x0054DD70, CUnitServer::ContinueAction);
 
 namespace {
 // The unit's attack interval: the weapon prototype's +0x6C (or stats +0x8C truncated) scaled by
-// 15 / stats +0x30 (unscaled when that is 0 or NaN), rounded.
+// 15 / stats +0x30 (unscaled when that is 0), rounded.
 int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     float factor = self->Combat().rate;
-    if (!ZeroOrUnordered(factor)) factor = kFifteen / factor;
+    if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
     int base;
     if (weapon) {
         base = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(weapon->GetPrototype())->category);
@@ -598,7 +599,7 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
     if (other->sizeClass != 0) return false;
     if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
     double height = static_cast<double>(PrototypeHeight(other)) + other->position.z;
-    return !LessOrUnordered(height, kHeightLimit);
+    return height >= kHeightLimit;
 }
 } // namespace
 
@@ -761,7 +762,7 @@ void CUnitServer::ApproachTarget() {
     Vector3 aim;
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
-        if (!LessOrUnordered(static_cast<double>(reach) * reach, DistanceSquaredXYUnrounded<double>(aim, unit->position)) &&
+        if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->position) &&
             CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != kStateTurning) StandIdle(this);
@@ -841,8 +842,7 @@ void CUnitServer::ApproachTarget() {
     }
     float closingF = static_cast<float>(closing);
     float floor = std::bit_cast<float>(kMinClosingBits);
-    float divisor = std::bit_cast<float>(LessOrUnordered(floor, closingF) ? std::bit_cast<std::uint32_t>(static_cast<float>(closingF))
-                                                                           : kMinClosingBits);
+    float divisor = std::bit_cast<float>(closingF <= floor ? kMinClosingBits : std::bit_cast<std::uint32_t>(closingF));
     float eta = static_cast<float>((static_cast<double>(distance) - reach) / divisor);
     int ticks = x87::fistp(eta);
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
@@ -883,7 +883,8 @@ void CUnitServer::ApproachTarget() {
     double fy = static_cast<double>(goal.y) - h * motion.targetY;
     double fx = static_cast<double>(goal.x) - headX;
     aiMap->refreshUnits = savedFlag;
-    if (LessOrUnordered(static_cast<double>(reach) * reach, LengthSquared2DUnrounded(fx, fy))) {
+    EI_NAN_AUDIT(reach, fx, fy);
+    if (static_cast<double>(reach) * reach < LengthSquared2DUnrounded(fx, fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         static_cast<AIPath*>(path)->Clear();
