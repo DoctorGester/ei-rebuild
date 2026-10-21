@@ -56,7 +56,6 @@ CAnimationNode* CAnimationNode::Construct() {
     spare010_[1] = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00506710, CAnimationNode::Construct);
 
 void CAnimationNode::DestructBody() {
     if (mesh_) {
@@ -85,4 +84,3 @@ void CAnimationNode::DestructBody() {
     spareName008_.~CString();
     name_.~CString();
 }
-EI_REPLACE_METHOD(0x005068C0, CAnimationNode::DestructBody);

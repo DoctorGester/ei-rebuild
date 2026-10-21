@@ -75,12 +75,10 @@ BOOL CSpell::InitFromPrototype(const char* prototype) {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REPLACE_METHOD(0x0068B430, CSpell::InitFromPrototype);
 
 char* CSpell::GetPrototype() {
     return Spells().RecordAt(prototypeId_ >> 16, kSpellSize);
 }
-EI_REPLACE_METHOD(0x0068BA20, CSpell::GetPrototype);
 
 int CSpell::GetModifierCount() {
     for (int i = 0; i < 8; ++i) {
@@ -88,7 +86,6 @@ int CSpell::GetModifierCount() {
     }
     return 8;
 }
-EI_REPLACE_METHOD(0x0068BA60, CSpell::GetModifierCount);
 
 bool CSpell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
@@ -102,7 +99,6 @@ bool CSpell::HasCastFlagModifier() {
     }
     return false;
 }
-EI_REPLACE_METHOD(0x0068B7C0, CSpell::HasCastFlagModifier);
 
 int CSpell::GetDamageType() {
     switch (prototypeId_ >> 16) {
@@ -112,7 +108,6 @@ int CSpell::GetDamageType() {
     default: return 6;
     }
 }
-EI_REPLACE_METHOD(0x0068B700, CSpell::GetDamageType);
 
 bool CSpell::IsOffensive() {
     switch (prototypeId_ >> 16) {
@@ -148,7 +143,6 @@ bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const
     if ((flags & 0x20) && std::strcmp(name, kMoli) == 0) return false;
     return true;
 }
-EI_REPLACE_METHOD(0x0068B4C0, CSpell::CanAffect);
 
 BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
@@ -214,7 +208,6 @@ void CLight::SetLitColors(const float* source, float scale) {
     litColors_[1][3] = kOne;
     litColors_[1][2] = scale * b[2] * color_[2];
 }
-EI_REPLACE_METHOD(0x0068D280, CLight::SetLitColors);
 
 char* __stdcall SpellCodeByName(const char* name) {
     const RecordTable& spells = Spells();
@@ -230,7 +223,6 @@ char* __stdcall SpellCodeByName(const char* name) {
     }
     return nullptr;
 }
-EI_REPLACE(0x006893F0, SpellCodeByName);
 
 char* __stdcall SpellModifierCodeByName(const char* name) {
     const RecordTable& modifiers = SpellModifiers();
@@ -246,4 +238,3 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
     }
     return nullptr;
 }
-EI_REPLACE(0x006894B0, SpellModifierCodeByName);

@@ -359,7 +359,6 @@ int CScript::FindScript(const char* name) {
         ++name;
     }
 }
-EI_REPLACE_METHOD(0x004D3780, CScript::FindScript);
 
 // ---- #define ------------------------------------------------------------------------------------
 

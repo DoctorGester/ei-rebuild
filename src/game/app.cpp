@@ -52,7 +52,7 @@ libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8)
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
 // (pointer at 007AF784).
-CDirectInputMouse* TheMouse() { return ei::GameData<CDirectInputMouse*>(0x0079BA08); }
+CDirectInputMouse* TheMouse() { return Mouse(); }
 
 std::uint8_t& ActiveFlag() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
 std::uint8_t& ActivationSeen() { return ei::GameData<std::uint8_t>(0x0079BC5D); }
@@ -233,19 +233,17 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     }
     return WindowProc(MainWindow(), message, wParam, lParam);
 }
-EI_REPLACE(0x00457970, DispatchInput);
 
 void __cdecl PumpMessages() {
     MSG msg;
     while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         WindowProc(MainWindow(), msg.message, msg.wParam, msg.lParam);
 }
-EI_REPLACE(0x00458220, PumpMessages);
 
 int __cdecl StartFirstMap() {
-    const auto& cmdMap = ei::GameData<mfc::CString>(0x0079BA10);    // map on the command line
-    const auto& cmdMode = ei::GameData<mfc::CString>(0x0079BA14);   // empty: main menu
-    const auto& cmdScript = ei::GameData<mfc::CString>(0x0079BA18);
+    const auto& cmdMap = CommandLineMap();    // map on the command line
+    const auto& cmdMode = CommandLineMob();   // empty: main menu
+    const auto& cmdScript = CommandLineScript();
     mfc::CString map;
     map = Length(cmdMap) != 0 ? cmdMap : ei::GameData<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(static_cast<const char*>(cmdMode),
@@ -276,7 +274,6 @@ int __cdecl StartFirstMap() {
     static_cast<CScript*>(script)->GetError(&error);
     return game::FatalError("%s, line %i", static_cast<const char*>(error.text), error.line);
 }
-EI_REPLACE(0x00456140, StartFirstMap);
 
 // ---- FatalError (00480080) ---------------------------------------------------------------------
 
@@ -298,7 +295,6 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
     gameapi::SetCursor(cursor);
     return answer;
 }
-EI_REPLACE(0x004560D0, ShowMessageBox);
 
 namespace {
 
@@ -351,7 +347,6 @@ int __cdecl FatalErrorCode(long result, const char* format, ...) {
     va_end(args);
     return value;
 }
-EI_REPLACE(0x004800E0, FatalErrorCode);
 
 // ---- The operator new handler (00455A30) -------------------------------------------------------
 

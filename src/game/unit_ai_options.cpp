@@ -207,11 +207,6 @@ double __fastcall OptionWeight(const AIAttackOption* option) { return option->We
 } // namespace
 
 EI_REPLACE_METHOD(0x005CEED0, AIAttention::Build);
-EI_REPLACE_METHOD(0x005CEA30, AIAttention::InitOption);
 EI_REPLACE_METHOD(0x005CEA60, AIAttention::AddWeaponOption);
 EI_REPLACE_METHOD(0x005CEBD0, AIAttention::AddSpellOption);
-EI_REPLACE_METHOD(0x005CEDC0, AIAttention::SpellKind);
 EI_REPLACE(0x005CE9B0, OptionWeight);
-EI_REPLACE_METHOD(0x005D9250, AIAttackOptions::SetSize);
-EI_REPLACE_METHOD(0x005CE860, AIAttackOption::Load);
-EI_REPLACE_METHOD(0x005CE920, AIAttackOption::Save);

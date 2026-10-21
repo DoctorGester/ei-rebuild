@@ -521,11 +521,6 @@ static_assert(offsetof(CMusicSystem, credits) == 0x30);
 static_assert(offsetof(CMusicSystem, holding) == 0x44);
 static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
 static_assert(sizeof(CMusicSystem) == 0x58);
-// 006B4470 / 006B4480 (slots 11, 12): "CMusicSystem" (007967F4), class id 0xE.
-const char* __fastcall MusicSystemClassName(CMusicSystem* self);
-// 006B6290 / 006B62A0 (slots 11, 12): "CSoundManager" (007968C0), class id 0xE.
-const char* __fastcall SoundManagerClassName(CSoundManager* self);
-int __fastcall SoundManagerClassId(CSoundManager* self);
 // 006BA950. The music stream file's read callback (__stdcall, handed to the ASI decoder by the
 // stream fill 006BB3A0; stream thread): seeks to `offset` unless it is negative, then reads up to
 // `size` bytes, cut at the end of the file. Returns the byte count (0 when the read fails); the
@@ -537,7 +532,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, in
 // channels" 2. Returns 1.
 using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
 int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
-int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {
 }

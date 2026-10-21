@@ -43,6 +43,7 @@
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "lib/vecmath.h"
 #include "originals_core.h"
 #include "originals_effects.h"
@@ -66,6 +67,79 @@ using options::GameOptions;
 
 namespace app {
 std::uint32_t __cdecl GetDxVersion();
+
+// ---- The application's globals that the static initialisers set (app.h) ----------------------------------------
+
+// The command line's CStrings, built by the static initialisers 00455CE0-00455DA0 in the list's order and destroyed
+// by the exit functions they register with the game's atexit; the mouse object's pointer, null at the start, as
+// 00455DD0 leaves it, and released by its exit function (docs/notes/standalone.md, "The static initialisers'
+// objects"). The initialisers and exit functions are ported on the names and registered at their addresses.
+constinit lib::StaticObject<mfc::CString> g_movieFolder = /*0079BA0C*/ {};
+constinit lib::StaticObject<mfc::CString> g_commandLineMap = /*0079BA10*/ {};
+constinit lib::StaticObject<mfc::CString> g_commandLineMob = /*0079BA14*/ {};
+constinit lib::StaticObject<mfc::CString> g_commandLineScript = /*0079BA18*/ {};
+constinit lib::StaticObject<mfc::CString> g_cameraFile = /*0079BA1C*/ {};
+constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
+
+mfc::CString& MovieFolder() { return *g_movieFolder; }
+mfc::CString& CommandLineMap() { return *g_commandLineMap; }
+mfc::CString& CommandLineMob() { return *g_commandLineMob; }
+mfc::CString& CommandLineScript() { return *g_commandLineScript; }
+mfc::CString& CameraFile() { return *g_cameraFile; }
+CDirectInputMouse*& Mouse() { return g_mouse; }
+
+namespace {
+
+using AtExitFunction = void(__cdecl*)();
+
+// The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
+void __cdecl ConstructCameraFile() {   // 00455CE0
+    g_cameraFile.Construct();
+    GameAtExit(ei::Code<AtExitFunction>(0x00455D00));
+}
+void __cdecl ConstructCommandLineScript() {   // 00455D10
+    g_commandLineScript.Construct();
+    GameAtExit(ei::Code<AtExitFunction>(0x00455D30));
+}
+void __cdecl ConstructCommandLineMob() {   // 00455D40
+    g_commandLineMob.Construct();
+    GameAtExit(ei::Code<AtExitFunction>(0x00455D60));
+}
+void __cdecl ConstructCommandLineMap() {   // 00455D70
+    g_commandLineMap.Construct();
+    GameAtExit(ei::Code<AtExitFunction>(0x00455D90));
+}
+void __cdecl ConstructMovieFolder() {   // 00455DA0
+    g_movieFolder.Construct(".\\capture\\");
+    GameAtExit(ei::Code<AtExitFunction>(0x00455DC0));
+}
+
+// The exit functions.
+void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }                 // 00455D00
+void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }   // 00455D30
+void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }         // 00455D60
+void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }         // 00455D90
+void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }               // 00455DC0
+// 00455DF0: the mouse's reference dropped (ShutDown has already taken it: null at exit).
+void __cdecl ReleaseMouseAtExit() {
+    if (CDirectInputMouse* mouse = g_mouse)
+        if (--mouse->references_ == 0) mouse->DeletingDestruct(1);
+}
+
+} // namespace
+
+EI_REPLACE(0x00455CE0, ConstructCameraFile);
+EI_REPLACE(0x00455D10, ConstructCommandLineScript);
+EI_REPLACE(0x00455D40, ConstructCommandLineMob);
+EI_REPLACE(0x00455D70, ConstructCommandLineMap);
+EI_REPLACE(0x00455DA0, ConstructMovieFolder);
+EI_REPLACE(0x00455D00, DestroyCameraFile);
+EI_REPLACE(0x00455D30, DestroyCommandLineScript);
+EI_REPLACE(0x00455D60, DestroyCommandLineMob);
+EI_REPLACE(0x00455D90, DestroyCommandLineMap);
+EI_REPLACE(0x00455DC0, DestroyMovieFolder);
+EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
+
 namespace {
 
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
@@ -77,14 +151,6 @@ double Step(double value) {
 }
 
 // ---- The application's globals ---------------------------------------------------------------------
-
-// What the command line gave: the folder of the movie frames ("-moviepath_"), a map (".mpr"), a mob
-// file (".mob"), a script (".scr") and the camera file (".cam"; ".\camera.cam" without one).
-mfc::CString& MovieFolder() { return ei::GameData<mfc::CString>(0x0079BA0C); }
-mfc::CString& CommandLineMap() { return ei::GameData<mfc::CString>(0x0079BA10); }
-mfc::CString& CommandLineMob() { return ei::GameData<mfc::CString>(0x0079BA14); }
-mfc::CString& CommandLineScript() { return ei::GameData<mfc::CString>(0x0079BA18); }
-mfc::CString& CameraFile() { return ei::GameData<mfc::CString>(0x0079BA1C); }
 
 // The window: its class atom, class name and title (0x100 bytes each, from the string table), the
 // instance and the window.
@@ -100,10 +166,10 @@ constexpr int kIcon = 0x69;
 
 // The registry key of the options and the folders: where the game was started, the disc's, the
 // text resources' and the data folder (the last three are set from the options).
-mfc::CString& RegistryRoot() { return ei::GameData<mfc::CString>(0x007AF450); }
-mfc::CString& StartFolder() { return ei::GameData<mfc::CString>(0x007AF454); }
-mfc::CString& DiscFolder() { return ei::GameData<mfc::CString>(0x007AF458); }
-mfc::CString& TextFolder() { return ei::GameData<mfc::CString>(0x007AF45C); }
+mfc::CString& RegistryRoot() { return TheRegistryRoot(); }
+mfc::CString& StartFolder() { return TheStartFolder(); }
+mfc::CString& DiscFolder() { return TheDiscFolder(); }
+mfc::CString& TextFolder() { return TheTextFolder(); }
 
 // The window's activation as the window procedure left it (app.cpp).
 std::uint8_t& Active() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
@@ -134,7 +200,6 @@ constexpr DWORD kLittleMemory = 0x800000;
 const char*& LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
 
 // The objects.
-CDirectInputMouse*& Mouse() { return ei::GameData<CDirectInputMouse*>(0x0079BA08); }
 void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
 void* LogicSettingsObject() { return &ei::GameData<char>(0x007C53F8); }
 void* QuestDatabaseObject() { return &ei::GameData<char>(0x007C87A8); }

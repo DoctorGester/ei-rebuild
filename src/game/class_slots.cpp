@@ -79,12 +79,10 @@ LightningSegment* LightningSegment::Construct() {
     points.growBy = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00468900, LightningSegment::Construct);
 
 void LightningSegment::Destruct() {
     if (points.data) LightningPointArray::Free(points.data);
 }
-EI_REPLACE_METHOD(0x00468920, LightningSegment::Destruct);
 
 int CLightningManager::Create() {
     if (!LightningNoiseLoaded()) {

@@ -56,7 +56,6 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     self->timers_.Insert(self->timers_.End(), entry);
     DestroyInline(&entry.ref);
 }
-EI_REPLACE_METHOD(0x0041D1A0, ClientSession::AddTimed);
 
 // 0041D260: sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(int kind, const char* text) {
@@ -147,6 +146,5 @@ double ClientSession::BufferRatioImpl(GameBuffer* buffer) {
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
     return static_cast<double>(streamSize()) / static_cast<double>(divisor);
 }
-EI_REPLACE_METHOD(0x0041D9A0, ClientSession::BufferRatioImpl);
 
 } // namespace net

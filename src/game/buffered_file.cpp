@@ -46,14 +46,12 @@ void BufferedStream::Flush() {
     if (static_cast<std::uint32_t>(WriteAt(base, begin, size)) != size) flags |= kFlagError;
     if (cur > high) high = cur;
 }
-EI_REPLACE_METHOD(0x004DAAF0, BufferedStream::Flush);
 
 void BufferedStream::ReleaseBlock() {
     Flush();
     if (begin) gamecrt::operator_delete(begin);
     begin = nullptr;
 }
-EI_REPLACE_METHOD(0x004DAC80, BufferedStream::ReleaseBlock);
 
 BufferedStream* BufferedStream::Construct() {
     base = 0;
@@ -61,17 +59,14 @@ BufferedStream* BufferedStream::Construct() {
     flags = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00580DD0, BufferedStream::Construct);
 
 void BufferedStream::DestructBody() { ReleaseBlock(); }
-EI_REPLACE_METHOD(0x00580DF0, BufferedStream::DestructBody);
 
 BufferedStream* BufferedStream::DeletingDestruct(unsigned deleteFlags) {
     DestructBody();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00580E40, BufferedStream::DeletingDestruct);
 
 std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
     flags |= kFlagUnwritten;
@@ -80,7 +75,6 @@ std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
         ReserveWrite(size);
     return cur;
 }
-EI_REPLACE_METHOD(0x00580EE0, GameBuffer::BeginWrite);
 
 void BufferedStream::MoveWindow(std::int32_t position) {
     std::int32_t room = Capacity();
@@ -106,9 +100,6 @@ std::uint32_t BufferedStream::Commit() {
     return 0;
 }
 
-void __fastcall BufferedStreamCommit(BufferedStream* self) { self->Rebase(); }
-EI_REPLACE(0x004DB040, BufferedStreamCommit);
-
 // --- Slots ---------------------------------------------------------------------------------------
 
 void BufferedStream::ReserveReadWindow(std::int32_t size) {
@@ -124,13 +115,11 @@ void BufferedStream::ReserveReadWindow(std::int32_t size) {
     Flush();
     MoveWindow(position);
 }
-EI_REPLACE_METHOD(0x004DAE30, BufferedStream::ReserveReadWindow);
 
 void BufferedStream::ReserveWriteWindow(std::int32_t size) {
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
     if (!(grown < Capacity())) ::Reallocate(this, grown);
 }
-EI_REPLACE_METHOD(0x004DAFC0, BufferedStream::ReserveWriteWindow);
 
 int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
     if (size > static_cast<std::uint32_t>(Capacity())) {
@@ -156,7 +145,6 @@ int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
     cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE_METHOD(0x004DB200, BufferedStream::ReadMoreWindow);
 
 int BufferedStream::WriteMoreWindow(const void* from, std::uint32_t size) {
     if (size > static_cast<std::uint32_t>(Capacity())) {
@@ -175,7 +163,6 @@ int BufferedStream::WriteMoreWindow(const void* from, std::uint32_t size) {
     cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE_METHOD(0x004DB420, BufferedStream::WriteMoreWindow);
 
 std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
     std::uint8_t* old = cur;
@@ -190,7 +177,6 @@ std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
     Rebase();
     return old;
 }
-EI_REPLACE_METHOD(0x004DB0F0, BufferedStream::SeekWindow);
 
 // --- The file ------------------------------------------------------------------------------------
 
@@ -199,34 +185,29 @@ int BufferedFile::ReadAtFile(std::int32_t position, void* to, std::uint32_t size
     if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
     return static_cast<int>(libcrt::Fread(to, 1, size, file));
 }
-EI_REPLACE_METHOD(0x004DB5E0, BufferedFile::ReadAtFile);
 
 int BufferedFile::WriteAtFile(std::int32_t position, const void* from, std::uint32_t size) {
     if (!file) return 0;
     if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
     return static_cast<int>(gamecrt::fwrite(from, 1, size, file));
 }
-EI_REPLACE_METHOD(0x004DB630, BufferedFile::WriteAtFile);
 
 void BufferedFile::Close() {
     ReleaseBlock();
     if (file) libcrt::Fclose(file);
     file = nullptr;
 }
-EI_REPLACE_METHOD(0x004DB680, BufferedFile::Close);
 
 void BufferedFile::DestructFile() {
     Close();
     ReleaseBlock();
 }
-EI_REPLACE_METHOD(0x00580E60, BufferedFile::DestructFile);
 
 BufferedFile* BufferedFile::DeletingDestructFile(unsigned deleteFlags) {
     DestructFile();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00580EC0, BufferedFile::DeletingDestructFile);
 
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();
@@ -247,7 +228,6 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
     base = 0;
     MoveWindow(0);
 }
-EI_REPLACE_METHOD(0x004DB700, BufferedFile::Open);
 
 // --- The fixed view's empty slots ----------------------------------------------------------------
 

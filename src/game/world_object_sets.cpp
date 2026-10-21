@@ -66,16 +66,12 @@ bool address_order::ObjectBefore(std::uint32_t a, std::uint32_t b) {
     return a < b;
 }
 
-// 0047B770 (RET 8): SetSize(n, growBy): 0 frees the block; growing copies the elements.
-EI_REPLACE_METHOD(0x0047B770, ObjectSet::SetSize);
-
 // 0047B880 (RET 8): the sort's SetSize(n, growBy): no special case for 0 (an empty block is
 // allocated), and growing does not keep the elements.
 EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
 // 0047B120 (ECX shift, EDX source, RET 4): one counting pass of the radix sort.
 void __fastcall ObjectSetRadixPass(int shift, ObjectSet* src, ObjectSet* dst) { CountingPass(shift, *src, *dst); }
-EI_REPLACE(0x0047B120, ObjectSetRadixPass);
 
 // 0047ADF0: sorts the set (four byte passes, low byte first, through the scratch array) and drops
 // the duplicates. By id (address_order::ById) a comparison sort, without the scratch array.

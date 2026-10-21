@@ -9,7 +9,22 @@
 #include <cstdarg>
 #include <cstddef>
 
+class CDirectInputMouse;   // ui_cursor.h
+namespace mfc {
+class CString;
+} // namespace mfc
+
 namespace app {
+
+// The application's globals (app_main.cpp): what the command line gave, the folder of the movie frames
+// ("-moviepath_"), a map (".mpr"), a mob file (".mob"), a script (".scr") and the camera file (".cam"); and the
+// mouse object (WinMain keeps one reference).
+mfc::CString& MovieFolder();
+mfc::CString& CommandLineMap();
+mfc::CString& CommandLineMob();
+mfc::CString& CommandLineScript();
+mfc::CString& CameraFile();
+CDirectInputMouse*& Mouse();
 
 // 00457D40. The game window's procedure (also called directly by the pump and the dispatcher).
 LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);

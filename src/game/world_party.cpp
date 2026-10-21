@@ -307,10 +307,8 @@ void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     }
     --item->count_;
 }
-EI_REPLACE_METHOD(0x00595020, CWorldServer::UseItemUp);
 EI_REPLACE_METHOD(0x00594F30, CWorldServer::AddCounted);
 EI_REPLACE_METHOD(0x00594AB0, CWorldServer::CreateItemNamed);
-EI_REPLACE_METHOD(0x00594BC0, CWorldServer::CreateSpellNamed);
 EI_REPLACE_METHOD(0x005901E0, CWorldServer::TakeZoneQuestItems);
 EI_REPLACE_METHOD(0x00590460, CWorldServer::RestorePlayerItems);
 EI_REPLACE_METHOD(0x00590700, CWorldServer::Redeploy);

@@ -37,7 +37,6 @@ AnimationTrack* AnimationTrack::Construct() {
     DestroyTrack();
     return this;
 }
-EI_REPLACE_METHOD(0x0050A5D0, AnimationTrack::Construct);
 
 void AnimationTrack::DestroyTrack() {
     animation = nullptr;
@@ -68,7 +67,6 @@ void AnimationTrack::DestructBody() {
     frames.FreeData();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0050A720, AnimationTrack::DestructBody);
 
 AnimationTrack* AnimationTrack::DeleteTrack(unsigned flags) {
     DestructBody();
@@ -94,4 +92,3 @@ void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
         *cursor += vertexCount * static_cast<int>(sizeof(Vector3));
     }
 }
-EI_REPLACE_METHOD(0x0050AAF0, AnimationTrack::LoadKeyFrames);

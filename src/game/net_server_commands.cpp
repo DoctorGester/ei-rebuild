@@ -121,7 +121,6 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
     }
 }
 
-EI_REPLACE_METHOD(0x00419F90, ServerSession::IsHostConnection);
 EI_REPLACE(0x0041B690, ServerOnObjectAdded);
 EI_REPLACE(0x0041B2A0, ServerOnCommand);
 

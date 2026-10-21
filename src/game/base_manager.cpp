@@ -140,7 +140,6 @@ CBaseManager* CBaseManager::ConstructBase() {
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x00402B20, CBaseManager::ConstructBase);
 
 CBaseManager::CBaseManager() { SetUpBaseManager(); }
 
@@ -172,7 +171,6 @@ void CBaseManager::DestructBody() {
     TearDownBaseManager();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00402DF0, CBaseManager::DestructBody);
 
 CBaseManager::~CBaseManager() { TearDownBaseManager(); }
 
@@ -363,7 +361,6 @@ CEngineObject* CBaseManager::FindObject(unsigned id) const {
 EI_REPLACE_METHOD(0x00403F40, CBaseManager::FindObject);
 
 void CBaseManager::SetContext(void* context) { context_ = context; }
-EI_REPLACE_METHOD(0x00403720, CBaseManager::SetContext);
 
 CEngineObject* CBaseManager::Unregister(int id) {
     ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id));
@@ -373,7 +370,6 @@ CEngineObject* CBaseManager::Unregister(int id) {
     ForgetPosition(this, id);
     return object;
 }
-EI_REPLACE_METHOD(0x004039B0, CBaseManager::Unregister);
 
 int CBaseManager::RegisterInstant(CEngineObject* object) {
     int id = NextFreeId(this);
@@ -389,7 +385,6 @@ int CBaseManager::RegisterInstant(CEngineObject* object) {
     object->SetOwner(this);
     return id;
 }
-EI_REPLACE_METHOD(0x00403BD0, CBaseManager::RegisterInstant);
 
 int CBaseManager::RemoveObject(CEngineObject* object) {
     int id = object->id_;
@@ -431,7 +426,6 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     spareCounts_.FindOrInsert({type, 0})->value = count;
     return 0;
 }
-EI_REPLACE_METHOD(0x00404040, CBaseManager::RemoveObject);
 
 // Each type's list deletes its objects (slot 0), is emptied (RemoveAll, inlined) and deleted (its
 // slot 1); then the spares and spare counts tables are emptied.
@@ -454,7 +448,6 @@ void CBaseManager::FreeSpares() {
     maxSpareCountType_ = 0;
     spareCounts_.Clear();
 }
-EI_REPLACE_METHOD(0x00404410, CBaseManager::FreeSpares);
 
 // --- Saving and loading -------------------------------------------------------------------------
 
@@ -509,7 +502,6 @@ void CBaseManager::LoadObjects(void* stream) {
         object->Load(stream);
     }
 }
-EI_REPLACE_METHOD(0x004047E0, CBaseManager::LoadObjects);
 
 // {id, [1 byte if the id is the end mark], object data (slot 10)} per object in list order, then
 // the end mark and a 0 byte.
@@ -532,7 +524,6 @@ void CBaseManager::SaveObjects(void* stream) {
     char zero = 0;
     out->Write(&zero, 1);
 }
-EI_REPLACE_METHOD(0x00404860, CBaseManager::SaveObjects);
 
 void CBaseManager::ReleaseUnused() {
     for (ObjectNode* node = objectList_.head; node;) {
@@ -544,7 +535,6 @@ void CBaseManager::ReleaseUnused() {
         }
     }
 }
-EI_REPLACE_METHOD(0x004048F0, CBaseManager::ReleaseUnused);
 
 // --- ObjectListIterator -------------------------------------------------------------------------
 
@@ -560,7 +550,6 @@ CEngineObject* ObjectListIterator::First(CBaseManager* list) {
     position = node->next;
     return node->data;
 }
-EI_REPLACE_METHOD(0x00404920, ObjectListIterator::First);
 
 // The object at the position (moving it on), or null at the end.
 CEngineObject* ObjectListIterator::Next() {
@@ -569,7 +558,3 @@ CEngineObject* ObjectListIterator::Next() {
     position = node->next;
     return node->data;
 }
-EI_REPLACE_METHOD(0x00404960, ObjectListIterator::Next);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x004BAA30, ObjectListIterator::Next);

@@ -104,7 +104,6 @@ UnitPickInput* UnitPickInput::Construct(CInterface3D* ui) {
     vtable_ = Vtable();
     return this;
 }
-EI_REPLACE_METHOD(0x005EB8C0, UnitPickInput::Construct);
 
 void UnitPickInput::Destruct() {
     picked_.vtable = DwordArrayVtable();

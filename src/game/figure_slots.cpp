@@ -35,20 +35,13 @@ EI_REPLACE(0x00453470, FigureDelete);
 // 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
 // deleting destructor.
 void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
-EI_REPLACE(0x0044C490, NamedRecordDestruct);
 void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags) {
     NamedRecordDestruct(self);
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }
-EI_REPLACE(0x00454360, NamedRecordDelete);
 
 // 004533E0: a 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
-void* __fastcall ClearRecord38(void* self) {
-    std::memset(self, 0, 0x38);
-    return self;
-}
-EI_REPLACE(0x004533E0, ClearRecord38);
 void* __fastcall ClearArray(std::uint32_t* self) {
     self[0] = 0;
     self[3] = 0;
@@ -56,11 +49,5 @@ void* __fastcall ClearArray(std::uint32_t* self) {
     self[1] = 0;
     return self;
 }
-EI_REPLACE(0x00453490, ClearArray);
-EI_REPLACE(0x005AD870, ClearArray);   // byte-identical copy (A-W12)
-
-// 0044C480: the address of the member at +0x8C.
-void* __fastcall MemberAt8C(std::uint8_t* self) { return self + 0x8C; }
-EI_REPLACE(0x0044C480, MemberAt8C);
 
 } // namespace figure

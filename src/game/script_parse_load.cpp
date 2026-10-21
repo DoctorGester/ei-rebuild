@@ -253,7 +253,6 @@ SSCCmd* SSCCmd::Construct() {
     calledScript = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x004D0A50, SSCCmd::Construct);
 
 // ---- LoadFunction -------------------------------------------------------------------------------
 

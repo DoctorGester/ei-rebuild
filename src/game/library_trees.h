@@ -87,10 +87,4 @@ static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18
 using HeroItemCache = ItemObjectCache;
 HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);
 
-// 004F4CD0: LinkPartHeader() as operator[]'s default value: the 0x50 bytes zeroed.
-void __fastcall ZeroLinkHeader(LinkPartHeader* p);
-// 005F8FC0: the model cache's destructor as the item screens' unwinding runs it: every cached model
-// released (005EC010), then the map destroyed.
-void __fastcall ReleaseModelCache(ItemCache::Tree* self);
-
 } // namespace lib_trees

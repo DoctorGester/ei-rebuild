@@ -17,7 +17,6 @@ void MapEffect::Load(CStream* stream) {
     stream->Read(&value, 4);
     stream->Read(&strength, 4);
 }
-EI_REPLACE_METHOD(0x00688550, MapEffect::Load);
 
 void MapEffect::Save(CStream* stream) const {
     stream->Write(&type, 1);
@@ -26,7 +25,6 @@ void MapEffect::Save(CStream* stream) const {
     stream->Write(&value, 4);
     stream->Write(&strength, 4);
 }
-EI_REPLACE_METHOD(0x006885A0, MapEffect::Save);
 
 // flags_ is read through the stream argument's own stack slot: a read that writes nothing leaves
 // the stream's address there (kept).

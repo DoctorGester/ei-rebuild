@@ -110,9 +110,6 @@ struct SameObject {
     bool operator()(const RefPtr& a, const RefPtr& b) const { return a.ptr == b.ptr; }
 };
 
-// remove(value) (00427320; RET 4) of a CountedRef list: every element holding the same object.
-void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value);
-
 // remove(value) (00570400; RET 4) of a HeldObject list (the client sector grid's cells): every
 // element that is the same object, erased through 00572270.
 void __fastcall ListRemoveHeld(list<CEngineObject*>* self, void*, CEngineObject* const* value);

@@ -79,14 +79,7 @@ AILook* AILook::ScriptAILookConstruct(float newAngle, float newWait, float newTi
     return this;
 }
 
-EI_REPLACE_METHOD(0x004BA1C0, GuardMode::ScriptGuardModeConstruct);
-EI_REPLACE_METHOD(0x004BA360, SentryMode::ScriptSentryModeConstruct);
-EI_REPLACE_METHOD(0x004BA450, FollowMode::ScriptFollowModeConstruct);
 EI_REPLACE_METHOD(0x004BA610, SuspectionMode::ScriptSuspectionModeConstruct);
-EI_REPLACE_METHOD(0x004BA710, AggressionMode::ScriptAggressionModeConstruct);
-EI_REPLACE_METHOD(0x004BA830, AggressionMode::ScriptRevengeModeConstruct);
-EI_REPLACE_METHOD(0x004BA920, CorpseWatcherMode::ScriptCorpseWatcherModeConstruct);
-EI_REPLACE_METHOD(0x004BA1A0, AILook::ScriptAILookConstruct);
 
 // ---- The modes' own slots (004BA250-004BA9B0) ----------------------------------------------------
 
@@ -269,12 +262,6 @@ CorpseWatcherMode* CorpseWatcherMode::CorpseWatcherDeletingDestruct(int flags) {
     return DeleteIf(this, flags);
 }
 
-EI_REPLACE_METHOD(0x004BA320, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA330, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA440, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA6A0, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA700, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA9B0, AIMode::DestructToRoot);
 EI_REPLACE_METHOD(0x004BA340, AIMode::DeletingDestructBase);
 EI_REPLACE_METHOD(0x004BA680, AIMode::DeletingDestructBase);
 EI_REPLACE_METHOD(0x004BA410, AIMode::SentryType);
@@ -291,7 +278,6 @@ EI_REPLACE_METHOD(0x004BA420, SentryMode::SentryDeletingDestruct);
 EI_REPLACE_METHOD(0x004BA4A0, FollowMode::FollowClone);
 EI_REPLACE_METHOD(0x004BA510, FollowMode::FollowReset);
 EI_REPLACE_METHOD(0x004BA590, FollowMode::FollowDeletingDestruct);
-EI_REPLACE_METHOD(0x004BA5B0, FollowMode::FollowDestruct);
 EI_REPLACE_METHOD(0x004BA630, SuspectionMode::SuspectionClone);
 EI_REPLACE_METHOD(0x004BA6B0, SuspectionMode::SuspectionReset);
 EI_REPLACE_METHOD(0x004BA6E0, SuspectionMode::SuspectionDeletingDestruct);
@@ -299,7 +285,6 @@ EI_REPLACE_METHOD(0x004BA730, AggressionMode::AggressionClone);
 EI_REPLACE_METHOD(0x004BA7C0, AggressionMode::AggressionReset);
 EI_REPLACE_METHOD(0x004BA870, AggressionMode::AggressionObjectDeleted);
 EI_REPLACE_METHOD(0x004BA8A0, AggressionMode::AggressionDeletingDestruct);
-EI_REPLACE_METHOD(0x004BA8C0, AggressionMode::AggressionDestruct);
 EI_REPLACE_METHOD(0x004BA930, CorpseWatcherMode::CorpseWatcherClone);
 EI_REPLACE_METHOD(0x004BA950, CorpseWatcherMode::CorpseWatcherReset);
 EI_REPLACE_METHOD(0x004BA990, CorpseWatcherMode::CorpseWatcherDeletingDestruct);

@@ -133,7 +133,6 @@ unsigned CBinkVideo::Frame(char toPrimary) {
     const BinkHeader* header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
-EI_REPLACE_METHOD(0x005DBD80, CBinkVideo::Frame);
 
 // --- The movie players outside the frame (005DB3F0, 005DA400) -----------------------------------
 
@@ -255,7 +254,6 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     CursorShowOriginal(TheCursor(), nullptr, 1);
     return escaped ? 0 : 1;
 }
-EI_REPLACE(0x005DB3F0, PlayMovie);
 
 // 005DA400 (fastcall: the loading progress as a frame number; plain RET). The loading screen's movie
 // (the file named by 00791EE0, opened once into 007C5550 with its surface holder 007C551C, the
@@ -322,7 +320,6 @@ void __fastcall ShowLoadingMovie(int progress) {
     TheCursor()->SaveBackground(1);
     TheCursor()->ReleaseLock();
 }
-EI_REPLACE(0x005DA400, ShowLoadingMovie);
 
 // --- Opening a movie for the frame's player (005DBA50) ----------------------------------------------
 
@@ -368,7 +365,6 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x005DBA50, CBinkVideo::Open);
 
 // --- Closing (A-W14) --------------------------------------------------------------------------------
 
@@ -381,7 +377,6 @@ void CloseLoadingMovie() {
     if (holder) holder->Release();
     CursorShowOriginal(TheCursor(), nullptr, 1);
 }
-EI_REPLACE(0x005DA3C0, CloseLoadingMovie);
 
 CBinkVideo* CBinkVideo::Construct() {
     holder = nullptr;
@@ -401,7 +396,6 @@ void CBinkVideo::Close() {
     TheCursor()->SaveBackground(1);
     CursorShowOriginal(TheCursor(), nullptr, 1);
 }
-EI_REPLACE_METHOD(0x005DBF70, CBinkVideo::Close);
 
 void CBinkVideo::Destruct() { Close(); }
 EI_REPLACE_METHOD(0x005DB350, CBinkVideo::Destruct);

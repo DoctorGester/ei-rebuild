@@ -70,9 +70,6 @@ void __stdcall GameSetUnitHeight(int id, float z);
 std::uint8_t GameServerPaused();
 void __stdcall GameSetServerPaused(int paused);
 
-// The camera's (the client world's, 007AF7C8).
-// 005787C0. The recorded path stops playing (flag 0x20 off).
-void GameStopCameraPath();
 // 005787D0. Recording stops: CameraCloseFile, the client world's flag 0x10 off.
 void GameStopCameraRecording();
 // 005787F0 (RET 4). The client world's flag 0x10 on, then CameraOpenFile(name); its result.
@@ -113,10 +110,6 @@ void __stdcall GameLeaveThroughExit(int exit);
 // 00578B00 (RET 4) / 00578B20. The interface's close-all flag (007C7D94, CInterface3D +0x44) set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
-// 005793E0 (RET 4; the single-player start). The server's zone torn down, the client world's local
-// session given the loopback pair for `player` (CWorldClient::SetPlayer), then the local view's
-// +0x84 set and its party-taken flag cleared.
-void __stdcall GameStartLocalSession(std::uint8_t* player);
 // 00578B70 (RET 8). The local player's variables whose names start with `prefix`, into `out`.
 void __stdcall GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
 // 00578BC0. CWorldClient::LocalView.
@@ -125,8 +118,5 @@ std::uint8_t* GameLocalView();
 int __stdcall GameSendFlag10(int value);
 // 00578D50. The client world's pause flag.
 std::uint8_t GameClientPaused();
-// 00578D60 / 00578D70 (RET 4). The map edge fade (0079BD34), in ST0 / stored as it comes.
-double GameMapEdgeFade();
-void __stdcall GameSetMapEdgeFade(float value);
 // 00578E20. The client world's text resources (+0x1D0).
 ClientTexts* GameClientTexts();

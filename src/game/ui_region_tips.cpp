@@ -55,7 +55,6 @@ EI_REPLACE_METHOD(0x005FC6B0, CUiRegion::SetTipString);
 void CUiRegion::SetTipText(const char* text) {
     if (tip_) tip_->SetText(text);
 }
-EI_REPLACE_METHOD(0x005FC690, CUiRegion::SetTipText);
 
 // --- 005FC600: the destructor body --------------------------------------------------------------
 

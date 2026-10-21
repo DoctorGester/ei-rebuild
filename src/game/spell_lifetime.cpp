@@ -33,7 +33,6 @@ MapEffect* MapEffect::Construct() {
     ending = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00688510, MapEffect::Construct);
 
 // --- CSpell --------------------------------------------------------------------------------------
 
@@ -53,14 +52,12 @@ CSpell* CSpell::Construct() {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return this;
 }
-EI_REPLACE_METHOD(0x0068B1F0, CSpell::Construct);
 
 void CSpell::Destruct() {
     SetVtable(this, kVtableAddress);
     ClearModifiers();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0068B2C0, CSpell::Destruct);
 
 CSpell* CSpell::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -87,7 +84,6 @@ CSpellEffect* CSpellEffect::Construct() {
     footprintStamped = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x0067E510, CSpellEffect::Construct);
 
 void CSpellEffect::Destruct() {
     SetVtable(this, kVtableAddress);
@@ -107,7 +103,6 @@ void CSpellEffect::Destruct() {
     target = nullptr;
     SetVtable(this, kBaseVtableAddress);
 }
-EI_REPLACE_METHOD(0x0067E5D0, CSpellEffect::Destruct);
 
 CSpellEffect* CSpellEffect::DeletingDestruct(unsigned deleteFlags) {
     Destruct();
@@ -141,7 +136,6 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CEngineObject* ne
     state = 0;
     silentEnd = flagA4;
 }
-EI_REPLACE_METHOD(0x0067ECB0, CSpellEffect::Init);
 
 BOOL CSpellEffect::Forget(CEngineObject* object) {
     if (target == object) return 0;
@@ -151,7 +145,6 @@ BOOL CSpellEffect::Forget(CEngineObject* object) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0067EF00, CSpellEffect::Forget);
 
 // --- 00688530 (A-H25): an effect's tick --------------------------------------------------------------
 
@@ -159,4 +152,3 @@ int MapEffect::Tick() {
     --ticksLeft;
     return ticksLeft > 0 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x00688530, MapEffect::Tick);

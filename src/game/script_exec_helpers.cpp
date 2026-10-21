@@ -200,7 +200,6 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     light->steps = x87::fistp(f[4]);
     LightStep(light, &f[1], &static_cast<CEffectPointLight*>(light->object)->localPosition_.x);
 }
-EI_REPLACE_METHOD(0x004BD820, CScript::MovePointLight);
 
 void CScript::DeletePointLight(const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs.data[0]);
@@ -213,7 +212,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x004BD920, CScript::DeletePointLight);
 
 // ---- QFinish ------------------------------------------------------------------------------------
 
@@ -230,7 +228,7 @@ static_assert(sizeof(QuestObjective) == 12);
 
 QuestObjective* QuestObjectives() { return ei::GameData<QuestObjective*>(0x007AA60C); }
 int QuestObjectiveCount() { return ei::GameData<int>(0x007AA610); }
-mfc::CString& QuestName() { return ei::GameData<mfc::CString>(0x007AA61C); }   // QStart's name
+mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
@@ -322,3 +320,20 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     QuestName() = game::EmptyText();   // the empty string constant
 }
 EI_REPLACE(0x004BAAB0, ScriptQuestFinish);
+
+// ---- The quest's name (script.h) -----------------------------------------------------------------------------------
+
+// Built empty by the static initialiser 004B1790 in the list's order, which registers the exit function 004B17B0 that
+// destroys it (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<mfc::CString> g_scriptQuestName = /*007AA61C*/ {};
+
+namespace {
+void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }   // 004B17B0
+void __cdecl ConstructScriptQuestName() {                               // 004B1790
+    g_scriptQuestName.Construct();
+    GameAtExit(ei::Code<void(__cdecl*)()>(0x004B17B0));
+}
+} // namespace
+
+EI_REPLACE(0x004B1790, ConstructScriptQuestName);
+EI_REPLACE(0x004B17B0, DestroyScriptQuestName);

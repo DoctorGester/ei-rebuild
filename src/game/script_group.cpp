@@ -74,11 +74,8 @@ void ScriptGroup::OrderById() { g_byId = true; }
 // ---- ScriptObjectRef ----------------------------------------------------------------------------
 
 void ScriptObjectRef::Reset() { Clear(this); }
-EI_REPLACE_METHOD(0x004B24B0, ScriptObjectRef::Reset);
-EI_REPLACE_METHOD(0x004B5AE0, ScriptObjectRef::Reset);
 
 void ScriptObjectRef::Assign(CEngineObject* newObject) { Store(this, newObject); }
-EI_REPLACE_METHOD(0x004B24D0, ScriptObjectRef::Assign);
 
 CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
     CEngineObject* o = other.object;
@@ -86,21 +83,18 @@ CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
     AddRef(o);
     return o;
 }
-EI_REPLACE_METHOD(0x004B2500, ScriptObjectRef::Construct);
 
 CUnit* ScriptObjectRef::AsUnit() const {
     CEngineObject* o = object;
     if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o);
     return nullptr;
 }
-EI_REPLACE_METHOD(0x004B2530, ScriptObjectRef::AsUnit);
 
 void* ScriptObjectRef::GetUnitPerception() const {
     CEngineObject* o = object;
     if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o)->controller;
     return nullptr;
 }
-EI_REPLACE_METHOD(0x004B2550, ScriptObjectRef::GetUnitPerception);
 
 void ScriptObjectRef::ReleaseIfDeleted() {
     if (object && (object->flags_ & kDeleted)) {
@@ -108,7 +102,6 @@ void ScriptObjectRef::ReleaseIfDeleted() {
         object = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x004B2570, ScriptObjectRef::ReleaseIfDeleted);
 
 void ScriptObjectRef::Load(ScriptStream* stream) {
     int id;
@@ -126,7 +119,6 @@ void ScriptObjectRef::Save(ScriptStream* stream) const {
     if (object) id = object->id_;
     stream->Write(&id, 4);
 }
-EI_REPLACE_METHOD(0x004B25F0, ScriptObjectRef::Save);
 
 // ---- ScriptGroup --------------------------------------------------------------------------------
 
@@ -277,7 +269,6 @@ int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
         if (data[i].object == o) return i;
     return -1;
 }
-EI_REPLACE_METHOD(0x004B2DA0, ScriptGroup::IndexOf);
 
 void ScriptGroup::Remove(CEngineObject* object) {
     int i = 0;
@@ -290,7 +281,6 @@ void ScriptGroup::Remove(CEngineObject* object) {
     if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], after * 4);
     --size;
 }
-EI_REPLACE_METHOD(0x004B2E60, ScriptGroup::Remove);
 
 void ScriptGroup::Insert(CEngineObject* object) {
     int oldSize = size;
@@ -335,7 +325,6 @@ void ScriptGroup::RemoveDeleted() {
         }
     } while (i < size);
 }
-EI_REPLACE_METHOD(0x004B3110, ScriptGroup::RemoveDeleted);
 
 void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CUnit>* list) {
     for (auto* node = list->head; node;) {
@@ -371,7 +360,6 @@ BOOL ScriptGroup::Contains(CEngineObject* object) const {
         if (data[i].object == object) return 1;
     return 0;
 }
-EI_REPLACE_METHOD(0x004B3330, ScriptGroup::Contains);
 
 void ScriptGroup::Load(ScriptStream* stream) {
     int count;

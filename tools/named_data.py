@@ -71,11 +71,18 @@ TYPES = {
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
     'MaterialKindFile': 'iP',
+    # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
+    # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
+    'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
+    'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
+    'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
+    # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
+    'lib::StaticObject<mfc::CString>': 'I',
 }
-# `T name[dims] = /*address*/ {`, for one pointer `const char* const name = /*address*/ "text";`, for one number
+# `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
 # type's `*` (and a const after it) joins the element type: `const char* const kX[]` is a table of `char*`.
-DEF = re.compile(r'(?<![\w:])([\w:]+)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
+DEF = re.compile(r'(?<![\w:])([\w:]+(?:<(?:[^<>;=(){}]|<[^<>;=(){}]*>)*>)?)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
 TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with no such tag has no definition
 # The initialiser's tokens where its element type holds a pointer: a string literal (adjacent ones joined), a number,
 # a name (`&` optional: another named range, a function of ours with a registration, or nullptr).
@@ -106,6 +113,15 @@ def braced(text, start):
     return None
 
 
+def element_format(type_):
+    """TYPES' format of an element type; a template instantiation's is its template's (`lib::AlignedArray<T>`); a
+    pointer to another type is a pointer element ('P': `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`)."""
+    found = TYPES.get(type_, TYPES.get(re.sub(r'<.*>$', '', type_)))
+    if found is None and type_.endswith('*'):
+        return 'P'
+    return found
+
+
 class Definition:
     def __init__(self, path, line, type_, name, dims, address, body, const=True):
         self.path, self.line, self.type, self.name, self.dims, self.address, self.body, self.const = \
@@ -124,7 +140,7 @@ class Definition:
         if self.type == 'char':
             self.pack_names()
             return
-        fmt = TYPES.get(self.type)
+        fmt = element_format(self.type)
         if fmt is None:
             self.problem = f'{self.type} is no element type tools/named_data.py knows (TYPES)'
             return

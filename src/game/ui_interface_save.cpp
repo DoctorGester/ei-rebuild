@@ -116,4 +116,3 @@ void CInterface3D::SaveState(CStream* stream) {
     stream->Write(&value, 4);
     stream->Write(savedText_, static_cast<std::uint32_t>(std::strlen(savedText_) + 1));
 }
-EI_REPLACE_METHOD(0x005F85C0, CInterface3D::SaveState);

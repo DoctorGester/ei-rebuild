@@ -134,3 +134,19 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
     return hr;
 }
 EI_REPLACE(0x0049B4B0, DeviceDrawLineStrip);
+
+// The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers 0049B460 and
+// 0049B6E0 leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
+// initialisers' objects"). 0049B730's array (007A9CA8) is never used: config/unread_data.csv.
+constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
+constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
+
+namespace {
+void __cdecl FreeLineVertices() {   // 0049B490
+    if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
+}
+void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }   // 0049B710
+} // namespace
+
+EI_REPLACE(0x0049B490, FreeLineVertices);
+EI_REPLACE(0x0049B710, FreeLineProjected);

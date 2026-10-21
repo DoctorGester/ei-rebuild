@@ -279,22 +279,4 @@ int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
     return written;
 }
 
-EI_REPLACE_METHOD(0x00708832, CArchive::Read);
-EI_REPLACE_METHOD(0x00708941, CArchive::Write);
-EI_REPLACE_METHOD(0x007089D1, CArchive::Flush);
-EI_REPLACE_METHOD(0x00708A4D, CArchive::FillBuffer);
-EI_REPLACE_METHOD(0x00708B0F, CArchive::WriteCount);
-EI_REPLACE_METHOD(0x00708B3D, CArchive::ReadCount);
-EI_REPLACE_METHOD(0x006E6214, CArchive::StoreByte);
-EI_REPLACE_METHOD(0x006E6237, CArchive::StoreWord);
-EI_REPLACE_METHOD(0x006E625E, CArchive::StoreDword);
-EI_REPLACE_METHOD(0x006E6284, CArchive::LoadByte);
-EI_REPLACE_METHOD(0x006E62B3, CArchive::LoadWord);
-EI_REPLACE_METHOD(0x006E62E6, CArchive::LoadDword);
-EI_REPLACE(0x007084C0, ReadStringLength);
-EI_REPLACE(0x00708447, StoreText);
-EI_REPLACE(0x00708517, LoadText);
-EI_REPLACE(0x00700B20, AssignWide);
-EI_REPLACE(0x00700F63, WideToMultiByte);
-
 } // namespace mfc::impl

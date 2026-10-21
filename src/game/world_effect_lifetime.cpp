@@ -51,8 +51,6 @@ DeltaField* DeltaField::Construct() {
     out[1].ConstructQueueStream();
     return this;
 }
-EI_REPLACE_METHOD(0x00677EC0, DeltaField::Construct);
-EI_REPLACE_METHOD(0x0066A300, DeltaField::Construct);
 
 void DeltaField::Empty() {
     snapshot[0].Resize(0);
@@ -85,14 +83,11 @@ void CEffect::DestructEffect() {
     SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00675FB0, CEffect::DestructEffect);
-EI_REPLACE_METHOD(0x0067B390, CEffect::DestructEffect);   // the missile base's copy
 
 CEffect* CEffect::Construct() {
     ConstructEffect();
     return this;
 }
-EI_REPLACE_METHOD(0x0067B050, CEffect::Construct);
 
 CEffect* CEffect::DeletingDestructEffect(unsigned flags) {
     DestructEffect();
@@ -116,7 +111,6 @@ CEffectSound* CEffectSound::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00675DD0, CEffectSound::Construct);
 
 void CEffectSound::Destruct() {
     SetVtable(this, Vtable());
@@ -124,7 +118,6 @@ void CEffectSound::Destruct() {
     Reset();   // again through slot 18
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x006760A0, CEffectSound::Destruct);
 
 CEffectSound* CEffectSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00676080, CEffectSound::DeletingDestruct);
@@ -142,7 +135,6 @@ CEffectSoundSeq* CEffectSoundSeq::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00676760, CEffectSoundSeq::Construct);
 
 void CEffectSoundSeq::Destruct() {
     SetVtable(this, Vtable());
@@ -169,7 +161,6 @@ CEffectAmbientSound* CEffectAmbientSound::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00677510, CEffectAmbientSound::Construct);
 
 void CEffectAmbientSound::Destruct() {
     SetVtable(this, Vtable());
@@ -194,7 +185,6 @@ CEffectPointLight* CEffectPointLight::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00677D30, CEffectPointLight::Construct);
 
 void CEffectPointLight::Destruct() {
     SetVtable(this, Vtable());
@@ -202,7 +192,6 @@ void CEffectPointLight::Destruct() {
     ReleaseIfSet(light_);
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x00677FC0, CEffectPointLight::Destruct);
 
 CEffectPointLight* CEffectPointLight::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00677FA0, CEffectPointLight::DeletingDestruct);
@@ -218,7 +207,6 @@ CEffectParticle* CEffectParticle::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x006787B0, CEffectParticle::Construct);
 
 void CEffectParticle::Destruct() {
     SetVtable(this, Vtable());
@@ -226,7 +214,6 @@ void CEffectParticle::Destruct() {
     ReleaseIfSet(source_);
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x00678990, CEffectParticle::Destruct);
 
 CEffectParticle* CEffectParticle::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00678970, CEffectParticle::DeletingDestruct);
@@ -242,7 +229,6 @@ CEffectWall* CEffectWall::Construct() {
     Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x006797E0, CEffectWall::Construct);
 
 void CEffectWall::Destruct() {
     SetVtable(this, Vtable());
@@ -252,7 +238,6 @@ void CEffectWall::Destruct() {
     ReleaseIfSet(source_);
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x006799E0, CEffectWall::Destruct);
 
 CEffectWall* CEffectWall::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x006799C0, CEffectWall::DeletingDestruct);
@@ -269,7 +254,6 @@ CEffectLightning* CEffectLightning::Construct() {
     flag_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00679FC0, CEffectLightning::Construct);
 
 void CEffectLightning::Destruct() {
     SetVtable(this, Vtable());
@@ -277,7 +261,6 @@ void CEffectLightning::Destruct() {
     ReleaseIfSet(bolt_);
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x0067A0B0, CEffectLightning::Destruct);
 
 CEffectLightning* CEffectLightning::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x0067A090, CEffectLightning::DeletingDestruct);

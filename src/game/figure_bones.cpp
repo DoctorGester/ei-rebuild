@@ -57,4 +57,3 @@ void FigureBone::Place(const Vector3* origin) {
         child->Place(origin);
     }
 }
-EI_REPLACE_METHOD(0x0050C230, FigureBone::Place);

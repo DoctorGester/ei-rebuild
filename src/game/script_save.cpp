@@ -68,7 +68,6 @@ void ScriptDecl::Save(ScriptStream* stream) const {
     WriteInt(stream, commands.size);
     for (int i = 0; i < commands.size; ++i) commands.data[i].Save(stream);
 }
-EI_REPLACE_METHOD(0x004C1230, ScriptDecl::Save);
 
 template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
     WriteInt(stream, values.size);
@@ -77,7 +76,6 @@ template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
         WriteName(stream, names, i);
     }
 }
-EI_REPLACE_METHOD(0x004C2EF0, ScriptNamedValues<float>::Save);
 
 template <> void ScriptNamedValues<mfc::CString>::Save(ScriptStream* stream) const {
     WriteInt(stream, values.size);
@@ -86,7 +84,6 @@ template <> void ScriptNamedValues<mfc::CString>::Save(ScriptStream* stream) con
         WriteName(stream, names, i);
     }
 }
-EI_REPLACE_METHOD(0x004C33C0, ScriptNamedValues<mfc::CString>::Save);
 
 template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const {
     WriteInt(stream, values.size);
@@ -95,7 +92,6 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) 
         WriteName(stream, names, i);
     }
 }
-EI_REPLACE_METHOD(0x004C38C0, ScriptNamedValues<ScriptObjectRef>::Save);
 
 template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const {
     WriteInt(stream, values.size);
@@ -107,7 +103,6 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) cons
         WriteName(stream, names, i);
     }
 }
-EI_REPLACE_METHOD(0x004C4330, ScriptNamedValues<ScriptGroup>::Save);
 
 void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream) {
     WriteInt(stream, areas->size);
@@ -118,7 +113,6 @@ void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStre
         for (int k = 0; k < area.parts.size; ++k) stream->Write(&area.parts.data[k], sizeof(ScriptAreaPart));
     }
 }
-EI_REPLACE(0x004CAEC0, ScriptAreasSave);
 
 // A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
 void ScriptDefinition::Save(ScriptStream* stream) const {
@@ -133,7 +127,6 @@ void ScriptDefinition::Save(ScriptStream* stream) const {
     }
     WriteVars(stream, &vars);
 }
-EI_REPLACE_METHOD(0x004BBFE0, ScriptDefinition::Save);
 
 // A run (CScript::runs_). Its instance is found by the address of the killed flag (the node's
 // data) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
@@ -150,7 +143,6 @@ void ScriptRun::Save(ScriptStream* stream) const {
     WriteInt(stream, node ? instance : -1);
     WriteVars(stream, &vars);
 }
-EI_REPLACE_METHOD(0x004BB320, ScriptRun::Save);
 
 void CScript::SaveState(ScriptStream* stream) {
     SavingScript() = this;

@@ -17,31 +17,6 @@ void __fastcall GroupDestruct(ScriptGroup* group) { group->DestructBody(); }
 void __fastcall BridgeManagerDestroy(PlatformSet* set) { set->list.RemoveAll(); }
 EI_REPLACE(0x00561840, BridgeManagerDestroy);
 
-// ---- Destructors ----------------------------------------------------------------------------------
-
-// Engine object lists (released through slot 4) and object reference lists (released and cleared).
-EI_REPLACE(0x00427600, gamelists::EngineObjects::Destruct<ItemObjectListClass>);
-EI_REPLACE(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Class>);
-EI_REPLACE(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
-
-// Object pointers and records holding objects.
-EI_REPLACE(0x00570180, gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>);
-EI_REPLACE(0x005989D0, gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>);
-EI_REPLACE(0x00556AD0, ObjectValues::Destruct<MemoryObjectArrayClass>);
-EI_REPLACE(0x00556D90, ObjectValues::Destruct<MemoryObjectArrayClass>);
-EI_REPLACE(0x00511BB0, EffectObjects::Destruct<EffectObjectArrayClass>);
-EI_REPLACE(0x00558070, gamelists::Holders::Destruct<ArmourSpellListClass>);
-
-// Counted pointer lists (the plain release).
-EI_REPLACE(0x00598F40, gamelists::Refs::Destruct<RefListAClass>);
-EI_REPLACE(0x00599D60, gamelists::Refs::Destruct<RefListBClass>);
-
-// The script's point lights, effects, definitions, runs, groups and command blocks.
-// (The vtable destructors 004CB150 / 004CB310 / 004CB650 are registered in game_arrays.cpp; one registration per address.)
-EI_REPLACE(0x004BE250, gamearrays::PointLights::Destruct<PointLightArrayClass>);
-EI_REPLACE(0x004BE2E0, Definitions::Destruct<DefinitionArrayClass>);
-EI_REPLACE(0x004C18E0, Commands::Destruct<CommandArrayClass>);
-
 // ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------
 
 // Over the destructors above.

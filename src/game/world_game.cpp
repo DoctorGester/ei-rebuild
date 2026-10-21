@@ -298,7 +298,7 @@ constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
 
-const mfc::CString& MoviesFolder() { return ei::GameData<const mfc::CString>(0x007AF458); }
+const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 
 
 // 005DB3F0. Plays a movie file (ECX path, EDX 0, five flags).
@@ -923,10 +923,6 @@ constexpr std::uint32_t kScriptsChunk = 0xA000;          // the .mob file's scri
 constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script text, packed and XORed
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 
-// The decoder (mob_script_decoder.h): 00598940 constructs an empty vector<char> (allocator by
-// pointer); 0042D2C0 / 00598D80 free them (FreeStorage); 004D8E10 (RET 4) decodes `input` into `text` and the
-// CString, called through its address so its verify wrapper sees the zone's scripts.
-using CharVector = stlp::vector<char>;
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
@@ -1189,13 +1185,13 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
 
 namespace {
 
-// The zone table (007AFDE0: a vector of 12-byte {first, second, id}, two CStrings and an int).
+// The zone table: a vector of 12-byte {first, second, id}, two CStrings and an int. Empty at the start, as the static
+// initialiser 0057F460 leaves it; the exit function it registers destroys it (docs/notes/standalone.md, "The static
+// initialisers' objects").
 using ZoneEntry = recordvec::ZoneTableEntry;
-struct ZoneTable {
-    ZoneEntry* start;
-    ZoneEntry* finish;
-    ZoneEntry* end;
-};
+using ZoneTable = stlp::vector<ZoneEntry>;
+constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
+void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }   // 0057F4A0
 using OutStrings = stlp::vector<stlp::string>;
 
 bool SameText(const char* a, const char* b) {
@@ -1222,11 +1218,11 @@ struct EntryPicks {
 
 void __stdcall PickZones(void* outArg, int id, const char* exclude) {
     auto* out = static_cast<OutStrings*>(outArg);
-    ZoneTable& table = ei::GameData<ZoneTable>(0x007AFDE0);
-    int total = static_cast<int>(table.finish - table.start);
+    const ZoneTable& table = g_zoneTable;
+    int total = static_cast<int>(table.size());
     EntryPicks pending(total);
     EntryPicks group(total);
-    for (ZoneEntry* e = table.start; e != table.finish; ++e)
+    for (ZoneEntry* e = table.begin(); e != table.end(); ++e)
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
         // The group of the first pending entry's second name, in table order.
@@ -1776,10 +1772,6 @@ EI_REPLACE(0x0057BC30, CurrentSaveSize);
 
 // ---- After starting the sessions (0057EB10) -----------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void GameFlow::AfterServerStart() {
     UseResources(true);
     // The variables of the party outside a game (007C82B0 + 0x54) start empty. Rebirth's
@@ -1850,10 +1842,9 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 void GameFlow::UpdateFromServer() {
     if (!Active(net::GameClient())) return;
     if (void* texts = TheTextManager()) {
-        auto* files = ei::GamePointer<std::uint8_t*>(0x007AFDD0);
-        for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
-            static_cast<CTextManager*>(texts)->RemoveSource(*reinterpret_cast<const char**>(file));
-        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(reinterpret_cast<stlp::vector<stlp::string>*>(files));   // 00581860
+        for (const stlp::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
+            static_cast<CTextManager*>(texts)->RemoveSource(file->data());
+        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);   // 00581860
     }
     auto* clientWorld = TheClientWorld();
     WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
@@ -2068,8 +2059,7 @@ const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<con
 
 // 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
 void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
-    recordvec::ZoneTableVector::InsertOverflow(reinterpret_cast<stlp::vector<recordvec::ZoneTableEntry>*>(table), nullptr, pos,
-                                               value, count);
+    recordvec::ZoneTableVector::InsertOverflow(table, nullptr, pos, value, count);
 }
 
 // The allod of a map name: the first list that has it.
@@ -2081,23 +2071,23 @@ int AllodOfMap(const char* map) {
 
 // push_back of an entry with two empty names (its id is not set, as in the original).
 void AppendEmptyEntry(ZoneTable& table) {
-    if (table.finish != table.end) {
-        if (table.finish) {
-            new (&table.finish->first) mfc::CString();
-            new (&table.finish->second) mfc::CString();
+    if (table.Finish() != table.EndOfStorage()) {
+        if (table.Finish()) {
+            new (&table.Finish()->first) mfc::CString();
+            new (&table.Finish()->second) mfc::CString();
         }
-        ++table.finish;
+        ++table.Finish();
         return;
     }
     ZoneEntry empty{};   // destroyed from the last name
-    ZoneTableInsertOverflow(&table, table.finish, &empty, 1);
+    ZoneTableInsertOverflow(&table, table.Finish(), &empty, 1);
 }
 
 } // namespace
 
 void GameFlow::BuildZoneTable() {
-    ZoneTable& table = ei::GameData<ZoneTable>(0x007AFDE0);
-    if (table.finish != table.start) return;
+    ZoneTable& table = g_zoneTable;
+    if (table.end() != table.begin()) return;
     mfc::CFileFind find;
     int more;
     {
@@ -2118,7 +2108,7 @@ void GameFlow::BuildZoneTable() {
             map = RecordMap(record);
             const int allod = AllodOfMap(map);
             AppendEmptyEntry(table);
-            ZoneEntry& entry = table.finish[-1];
+            ZoneEntry& entry = table.Finish()[-1];
             entry.first = name;
             entry.second = map;
             entry.id = allod;
@@ -2127,12 +2117,11 @@ void GameFlow::BuildZoneTable() {
     find.Close();
 }
 EI_REPLACE_METHOD(0x0057F560, GameFlow::BuildZoneTable);
+EI_REPLACE(0x0057F4A0, DestroyZoneTable);
 
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
-EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
-EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
@@ -2141,19 +2130,11 @@ EI_REPLACE(0x0057F850, PickZones);
 EI_REPLACE(0x00579E60, LoadMission);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
-EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
-EI_REPLACE(0x00581630, RequestZone);
-EI_REPLACE_METHOD(0x00581660, GameFlow::CloseSessions);
-EI_REPLACE_METHOD(0x0057ECA0, GameFlow::DropSessions);
-EI_REPLACE_METHOD(0x0057ED00, GameFlow::EndSession);
-EI_REPLACE_METHOD(0x005816C0, GameFlow::RequestState3);
 EI_REPLACE_METHOD(0x005816D0, GameFlow::RequestLoad);
 EI_REPLACE_METHOD(0x00581700, GameFlow::RequestZoneChange);
 EI_REPLACE_METHOD(0x00581730, GameFlow::RequestPartyZone5);
 EI_REPLACE_METHOD(0x00581760, GameFlow::RequestPartyZone6);
-EI_REPLACE_METHOD(0x00581620, GameFlow::DisconnectClient);
-EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);
 EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);

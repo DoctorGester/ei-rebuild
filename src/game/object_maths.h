@@ -14,7 +14,4 @@ Vector3* __fastcall CrossProduct(Vector3* out, const Vector3& a, const Vector3& 
 // 0044A230. `out` = a - b; same convention.
 Vector3* __fastcall SubtractVectors(Vector3* out, const Vector3& a, const Vector3& b);
 
-// 0044CC10. `out` = a - b in 2D; same convention.
-Vector2* __fastcall SubtractVectors2(Vector2* out, const Vector2& a, const Vector2& b);
-
 // 00448A10 is a byte-identical copy of ScaleVector (00410770, core_maths.h); registered there too.

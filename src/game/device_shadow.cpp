@@ -131,4 +131,3 @@ int CTextureDevice::DrawFlatBlocks(const void* positions, const char* uvs, int b
     render::EndFlatDrawTime();
     return result;
 }
-EI_REPLACE_METHOD(0x004EA4A0, CTextureDevice::DrawFlatBlocks);

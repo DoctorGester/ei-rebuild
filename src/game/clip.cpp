@@ -90,7 +90,6 @@ void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVert
     out->color = LerpColor(a->color, b->color, t);
     out->specular = LerpColor(a->specular, b->specular, t);
 }
-EI_REPLACE(0x0042E4D0, LerpVertex);
 
 int __fastcall ClipXBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<0, false>(v, vertexCount, indices, count, limit);
@@ -110,12 +109,6 @@ int __fastcall ClipZBelow(int, TLVertex* v, int* vertexCount, std::uint16_t* ind
 int __fastcall ClipZAbove(int, TLVertex* v, int* vertexCount, std::uint16_t* indices, int* count, float limit) {
     return ClipPlane<2, true>(v, vertexCount, indices, count, limit);
 }
-EI_REPLACE(0x0042DB70, ClipXBelow);
-EI_REPLACE(0x0042DD00, ClipXAbove);
-EI_REPLACE(0x0042DE90, ClipYBelow);
-EI_REPLACE(0x0042E020, ClipYAbove);
-EI_REPLACE(0x0042E1B0, ClipZBelow);
-EI_REPLACE(0x0042E340, ClipZAbove);
 
 int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, std::uint16_t* tri,
                             int* vertexCount, int* indexCount, float xMax, float yMax) {
@@ -148,6 +141,5 @@ int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, st
     }
     return 1;
 }
-EI_REPLACE(0x0042D910, ClipTriangle);
 
 } // namespace clip

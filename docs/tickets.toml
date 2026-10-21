@@ -2586,7 +2586,7 @@ title = "Named data: static-init objects with exit functions (the destructor rul
 group = "cleanup"
 model = "opus"
 depends = ["C18j"]
-note = "C18j left the objects whose initialiser calls a constructor or registers an exit function at their addresses (about 220 store statements next to hand-named objects, e.g. renderer_lines' buffers 007A9CA8 / 007A9CB8 / 007A9CC8 / 007A9CE0, link_mesh_draw 007AEED0, device_buffers 007AEDE0-007AEE30, the CString globals 0079BA08-0079BA1C copied from 00796E48, world_briefing / world_game 007AFDC0-007AFDF8). Set the rule for exit functions as C18j did for stores (docs/notes/standalone.md 'The static initialisers' objects'): the exit function ported by hand on the name and registered at its address (or the atexit and exit function left out by gen_static_init when the definition's own C++ destructor takes their place; mind the exit order against the game's atexit list and the CRT heap), the constructor as constant initialisation or a hand-ported initialiser in list order. Objects with game.exe's vtable (particle draw order 007A9C50, CArray family) wait for C19. Apply to one area, then file sonnet batches."
+note = "Done (docs/notes/standalone.md, 'Objects with exit functions'): constinit definitions with no C++ destructor; the exit function ported on the name and registered at its address (the initialiser's AtExit keeps its list place); a constructor with a run-time result through lib::StaticObject<T> and a hand-ported initialiser registered at its address. Named: device_buffers 007AEDE0-007AEE30, link_mesh_draw 007AEED0, renderer_lines 007A9CE0 / 007A9CB8, quest files / folders 007AFDD0 / 007AFDC0, zone table 007AFDE0, item_stock scratch vectors 007C8640-007C8680, app's command-line CStrings and mouse 0079BA08-0079BA1C, folder strings 007AF450-007AF460 (+ guard 007AF438), script quest name 007AA61C. Unread arrays with a free exit (007A9CA8, 007AEDF0) left out with their atexit. Game data addresses 2021 -> 1947. Waits for C19: 007A9C50, CArrays 007A9CC8 / 007AA608, CMemoryStream 007AFDF8, the log ostream 007C5810 (so 007AF3E8 / 007C53C4 / 007C54E8). Follow-ups C18k1-C18k4."
 
 [[ticket]]
 id = "C18l"
@@ -2616,7 +2616,7 @@ id = "C20c"
 title = "Registrations: measure what still needs each EI_REPLACE, drop the ones nothing reads"
 group = "cleanup"
 model = "opus"
-note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check."
+note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check. Result (C20c, 2026-10-21): tools/registration_readers.py prints the split by reader (--unread, --files, --list R, --drop). Registrations 9,347 -> 5,258 (progress.py EI_REPLACE 9,304 -> 5,253; after merging C19 batch 4): 4,090 dropped in src/lib + src/hook (1,419), src/game a-l (1,222), m-z (1,450). Left, by first reader: vtable cells 2,202, check_fp_fold only 1,754 (C20d), static init 325, forwarders 270, code literals 143 (C20f), harness 20, vectors 18, static init list 8, short generator 6, CRT/MFC/throwinfo cells 7, verify/vectors forwarders 9, exit generator 1, unread 495 (430 in the files C19 batch 4 held and the map objects', 65 generated short functions: C20e). Dead functions left by the drops: C20g. check_fp_fold.py --linked writes the registrations it links through; one template needed an explicit instantiation (AckTable<ExtraAcks>::RecordAt); config/standalone_unreachable.csv gained 00780E08 (import name text read as 00570000). Missed reader found by the goldens: static_init.cpp writes callbacks without leading zeros (0x5C4210, SmoothTable::Construct): the tool reads six-digit literals too; standalone_gaps skips src/standalone and check_static_init does not check that a callback it passes has code. Goldens 121 the same, original suite 114 the same."
 
 [[ticket]]
 id = "C22"
@@ -2624,6 +2624,67 @@ title = "Comments cleanup: describe what the code does, drop porting history"
 group = "cleanup"
 model = "sonnet"
 note = "User 2026-10-21: 'We should also eventually do a massive comments cleanup.' Measured on main: src/ has 980 files, 252k lines, ~51k comment lines (~20%), ~23k game.exe addresses inside comments, ~1,460 ticket ids (S18i, C11 ...) and ~1,660 mentions of 'the original'. Aim: comments say what the code does and why (behaviour the original relies on, x87 rounding points, layout constraints still real); porting history, ticket ids, 'was a shim / hook' notes and addresses nothing needs go. Addresses stay only where a registration or a harness name still needs them (after C20c) or as a single tag per function if the user wants traceability: decide the rule with the user first, write it in docs/cleanup-plan.md, add a comment-lines / addresses-in-comments count to progress.py and the dashboard, then sonnet batches by area after the C18/C19/C20 code churn settles. User 2026-10-21 on addresses in comments: 'Whatever helps further work. If those addresses are still needed for our work then keep them and tag them so they are greppable for mass removal, if not then don't keep them.' Rule: an address a tool or the remaining cleanup still needs (registrations, named-data tags, harness names, C19/C20 work) stays in one greppable tag form (pick one, e.g. /*@0040C440*/, document it in docs/cleanup-plan.md, add a check that no other comment address form remains); every other address in a comment goes."
+
+[[ticket]]
+id = "C18k1"
+title = "Named data: static-init aligned arrays with a free exit function (destructor rule, by area)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k"]
+note = "C18k's rule (docs/notes/standalone.md, 'Objects with exit functions'): constinit definition (lib::AlignedArray<T> g_x = /*addr*/ {};), the exit function ported on the name next to it and registered at its address (EI_REPLACE; FreeData()). Initialiser-registered: map_object_shadow 007AF208 and the guarded frees 007AF1E0 / 007AF1F8 (guard byte 007AF1F0, name it with them), figure_mesh 007C2E18, terrain_sector's guarded frees 007C88E8 / 007C88F8 (guard 007C88C9). Pattern: device_buffers.cpp, renderer_lines.cpp. Then python tools/named_data.py --update, tools/gen_static_init.py, the checks, both builds, work.py test --golden."
+
+[[ticket]]
+id = "C18k2"
+title = "Named data: function-local static arrays with a run-time atexit (atexit at)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k"]
+note = "The 'free' exit functions static_exit.cpp lists as 'atexit at' (function-local statics: the function sets a guard bit, constructs the array and calls GameAtExit(address)): renderer_strip 007AF000-007AF040, renderer_sprites 007AEF90-007AEFE8, world_sync 007AFF18-007AFF48, world_tick 007AFEE0 / 007AFEF0, figure_mesh / figure_part_draw* 007C2E00 / 007C2E48 / 007C2E60, lightning_draw 0079C1D0, world_object_sets 007A9738, particle_render 007A9BD0, effects_weather_draw 007ABA30, link_mesh_draw 007AEEB8, world_client_decals 007AF478, terrain_sector 007C88B8, terrain_animation 007C8938, camera.h's 0079B210 (several files: check first). Same rule as C18k: constinit definition, the exit function ported on the name and registered at its address (the hand code's GameAtExit keeps passing that address); the guard bytes may stay data (run-time state) unless only that function uses them. By area, one batch per area group."
+
+[[ticket]]
+id = "C18k3"
+title = "Named data: static-init STLport containers with exit functions (world client view, sector map)"
+group = "cleanup"
+model = "opus"
+depends = ["C18k"]
+note = "C18k's rule for stlp containers: world_client_view's draw queues 007AF508-007AF5A8 (11 DrawQueue = stlp::vector + allocator word, each zeroed by its initialiser 0056A4D0-0056A7F0 and destroyed by 0056E800; one struct, so one definition and eleven exit functions) and the deferred units list 007AF5B4 (constructor 0056A410: a hand-ported initialiser in list order, stlp::list allocates its node), world.h's FrameObjects / FrameDeferredUnits; the sector map / AI map objects 007C2FC0, 007C2FD8, 007C2FF8, 007C3038, 007C3058 (ai_map.cpp, sector_map.*; check each constructor for game.exe's vtable first: those wait for C19)."
+
+[[ticket]]
+id = "C18k4"
+title = "Named data: the remaining static-init CStrings and counted pointers (StaticObject pattern)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18k"]
+note = "C18k's lib::StaticObject<mfc::CString> pattern (app_main.cpp's command line strings, game_folders.cpp): ui_objectives' CString 007C8178 (guarded exit, guard 007C8174), bink_video's guarded release 007C551C (guard 007C5518); then the other 'constructor + atexit' objects static_exit.cpp still lists whose class has no game.exe vtable (string_map 0079B930, app_helpers 0079BC2C, options 0079BC70, ... check each: a vtable store in the constructor means C19). The initialiser and the exit function are ported on the names and registered at their addresses (rows in config/extra_function_sizes.csv / function_sizes.inc for an initialiser without a Ghidra function)."
+
+[[ticket]]
+id = "C20d"
+title = "A function-to-original address map that is not the registrations (check_fp_fold first)"
+group = "cleanup"
+model = "opus"
+note = "C20c kept 1,754 registrations whose only reader is check_fp_fold: it links a function to its original (to compare x87 constants) through the function's own registration, or a helper through its registered callers (check_fp_fold.py --linked); dropping them reported folds that were none (24). Other tools also read every registration as the function-to-address map and lose the dropped ones without failing: coverage.py (watch list), check_signatures (RET n against the original), direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten count. Give them one map that does not register code (e.g. a record per rewritten function in its own section, or the map file plus a names table) and drop the 1,754 with tools/registration_readers.py --drop."
+
+[[ticket]]
+id = "C20e"
+title = "Registrations: drop the unread ones C20c left in C19's files and the generated short functions"
+group = "cleanup"
+model = "sonnet"
+depends = ["C19"]
+note = "After C20c (tools/registration_readers.py --unread): 495 unread, 430 in the files C19 batch 4 held (material, item, sky object, server / client specific, particles, lightning, light, player manager, CUnit tables, map objects, Object3D, traps, levers, torches) and 65 EI_REPLACE_SHORT nothing reads. Rerun --drop on those files after C19 (C20c's build/C20c/batch.py pipeline: dead shims, unused aliases, empty sections), and make gen_short_functions.py write a short function only where something reads its address (64 rewrites are registered only so the generator leaves them out)."
+
+[[ticket]]
+id = "C20f"
+title = "Code literals: call registered functions by name instead of through their game address"
+group = "cleanup"
+model = "sonnet"
+note = "C20c: 182 registrations are read by a code literal (ei::Code<F>(0x...), handler tables, CodeAddress), 143 of them by nothing else (tools/registration_readers.py --list 'code literal'). Where the function is ours, take its address directly; the registration then goes with the next --drop. Leave static_init.cpp / static_exit.cpp (generated, C18) and the harness (tests/verify)."
+
+[[ticket]]
+id = "C20g"
+title = "Dead functions after the registration drops"
+group = "cleanup"
+model = "sonnet"
+note = "C20c dropped 4,090 registrations and removed only the free shims nothing mentioned. Functions and methods that were reached only through their registration are now dead in the image (/OPT:NOREF keeps them). List them (the linker map with /OPT:REF in a scratch build, or a call-graph scan) and delete the dead ones with their declarations, keeping anything a test, check or harness names."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

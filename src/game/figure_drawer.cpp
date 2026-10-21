@@ -45,7 +45,6 @@ void FigureMeshDrawer::Animate(float time) {
         mesh_->textureOffsetV_ = 1.0f - static_cast<float>(frame / 8) * 0.25f;
     }
 }
-EI_REPLACE_METHOD(0x005A7160, FigureMeshDrawer::Animate);
 
 // ---- Lifetime (A-W14) ---------------------------------------------------------------------------
 
@@ -55,7 +54,6 @@ FigureMeshDrawer* FigureMeshDrawer::Construct() {   // 005A7010
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
-EI_REPLACE_METHOD(0x005A7010, FigureMeshDrawer::Construct);
 
 void FigureMeshDrawer::Destruct() {   // 005A7080
     ei::SetVtable(this, kBaseVtableAddress);
@@ -63,14 +61,12 @@ void FigureMeshDrawer::Destruct() {   // 005A7080
     mesh_ = nullptr;
     AsObject(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x005A7080, FigureMeshDrawer::Destruct);
 
 void FigureMeshDrawer::DestructBase() {   // 005A70C0
     ei::SetVtable(this, kBaseVtableAddress);
     mesh_ = nullptr;
     AsObject(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x005A70C0, FigureMeshDrawer::DestructBase);
 
 FigureMeshDrawer* FigureMeshDrawer::DeletingDestruct(unsigned flags) {   // 005A7060
     Destruct();

@@ -119,11 +119,25 @@ namespace {
 // 004DEDD0 (RET 4). The briefing texts forget a loaded file.
 // 0040C720. STLport string destructor.
 
-// The quest text files loaded so far (007AFDD0: an STLport vector of strings, the files' paths).
 using LoadedFiles = stlp::vector<stlp::string>;
-LoadedFiles& QuestFiles() { return ei::GameData<LoadedFiles>(0x007AFDD0); }
+LoadedFiles& QuestFiles() { return g_questFiles; }
 
 } // namespace
+
+// The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
+// initialisers 00580980 and 00581050 leave them; the exit functions they register destroy them
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit stlp::vector<stlp::string> g_questFiles = /*007AFDD0*/ {};
+constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
+
+namespace {
+using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
+void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }       // 005809C0
+void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }   // 00581090
+} // namespace
+
+EI_REPLACE(0x005809C0, DestroyQuestFiles);
+EI_REPLACE(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     auto* player = *reinterpret_cast<WorldPlayer**>(TheClientWorld()->LocalView() + 0x1C);
@@ -253,9 +267,9 @@ namespace {
 
 
 
-// The quest folders registered so far (007AFDC0: an STLport vector of strings).
+// The quest folders registered so far.
 using StringVector = stlp::vector<stlp::string>;
-StringVector& QuestFolders() { return ei::GameData<StringVector>(0x007AFDC0); }
+StringVector& QuestFolders() { return g_questFolders; }
 
 bool Equal(const stlp::string& s, const char* text) {
     std::size_t length = std::strlen(text);

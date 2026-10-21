@@ -68,14 +68,12 @@ GameBuffer* GameBuffer::ConstructCopy(const GameBuffer* from) {
     CopyContents(this, from);
     return this;
 }
-EI_REPLACE_METHOD(0x004DA9E0, GameBuffer::ConstructCopy);
 
 GameBuffer* GameBuffer::AssignFrom(const GameBuffer* from) {
     gamecrt::operator_delete(begin);
     CopyContents(this, from);
     return this;
 }
-EI_REPLACE_METHOD(0x004DAA80, GameBuffer::AssignFrom);
 
 void GameBuffer::DestructGrowing() {
     SetVtable(this, GameBuffer::kGrowingVtableAddress);
@@ -105,7 +103,6 @@ void GameBuffer::Reallocate(std::uint32_t capacity) {
 }
 
 void GameBuffer::Grow(std::uint32_t size) { Reallocate(size * 2 + kGrowthSlack); }
-EI_REPLACE_METHOD(0x004DA5C0, GameBuffer::Grow);
 
 void GameBuffer::ReserveGrowing(std::int32_t size) {
     Reallocate(GrownCapacity(this, static_cast<std::uint32_t>(size)));
@@ -153,7 +150,6 @@ std::uint32_t GameBuffer::ReadPastEnd(void* to, std::uint32_t size) {
     cur += left;
     return left;
 }
-EI_REPLACE_METHOD(0x004DA170, GameBuffer::ReadPastEnd);
 
 void BufferCursor::BeginRead(GameBuffer* buffer, std::int32_t size) {
     sink = buffer;
@@ -163,7 +159,6 @@ void BufferCursor::BeginRead(GameBuffer* buffer, std::int32_t size) {
     bits = 0;
     bytePtr = nullptr;
 }
-EI_REPLACE_METHOD(0x004DA450, BufferCursor::BeginRead);
 
 void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     sink = buffer;
@@ -174,4 +169,3 @@ void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     bits = 0;
     bytePtr = nullptr;
 }
-EI_REPLACE_METHOD(0x004DA490, BufferCursor::BeginWrite);

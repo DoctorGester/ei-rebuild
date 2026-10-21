@@ -638,7 +638,6 @@ char* __cdecl Setlocale(int category, const char* locale) {
     if (locale == nullptr) return Categories()[category].locale;
     return SetCategory(category, locale);
 }
-EI_REPLACE_STANDALONE(0x006EA234, libcrt::Setlocale);
 
 int __cdecl Setmbcp(int codePage) {
     const unsigned page = SystemCodePage(codePage);
@@ -688,7 +687,6 @@ int __cdecl Setmbcp(int codePage) {
     SetSingleByteCase();
     return 0;
 }
-EI_REPLACE_STANDALONE(0x006E9E30, libcrt::Setmbcp);
 
 void InitMultibyteTable() {
     if (MbTableReady() == 0) {
@@ -715,9 +713,7 @@ int IsMultibyteClass(unsigned c, WORD mask) {
 } // namespace
 
 int __cdecl Ismbcdigit(unsigned c) { return IsMultibyteClass(c, C1_DIGIT); }
-EI_REPLACE(0x006ECE1A, libcrt::Ismbcdigit);
 
 int __cdecl Ismbcspace(unsigned c) { return IsMultibyteClass(c, C1_SPACE); }
-EI_REPLACE(0x006ECEA9, libcrt::Ismbcspace);
 
 } // namespace libcrt

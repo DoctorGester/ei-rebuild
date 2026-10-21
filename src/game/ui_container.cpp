@@ -43,7 +43,6 @@ CUiContainer* CUiContainer::Construct(CInterface3D* ui) {
     inputVtable_ = ContainerInputVtable();
     return this;
 }
-EI_REPLACE_METHOD(0x00600B20, CUiContainer::Construct);
 
 void CUiContainer::DestroyContainer() {
     vtable_ = ContainerVtable();

@@ -100,7 +100,6 @@ void LocalSearch::Reset() {
     sizeClass = -1;
     level = 0;
 }
-EI_REPLACE_METHOD(0x005C35F0, LocalSearch::Reset);
 
 void LocalSearch::PickCurrent() {
     current = nullptr;
@@ -112,7 +111,6 @@ void LocalSearch::PickCurrent() {
         }
     }
 }
-EI_REPLACE_METHOD(0x005C2F50, LocalSearch::PickCurrent);
 
 void LocalSearch::Requeue(SearchNode* node, int cost) {
     SearchNode*& bucket = buckets[node->x & 3];
@@ -141,7 +139,6 @@ void LocalSearch::Requeue(SearchNode* node, int cost) {
     after->next = node;
     node->prev = after;
 }
-EI_REPLACE_METHOD(0x005C2FB0, LocalSearch::Requeue);
 
 void LocalSearch::Best(int* x, int* y, int* cost) {
     *cost = kUnreached;
@@ -150,7 +147,6 @@ void LocalSearch::Best(int* x, int* y, int* cost) {
     *y = current->y + originY;
     *cost = current->cost;
 }
-EI_REPLACE_METHOD(0x005C3050, LocalSearch::Best);
 
 int LocalSearch::CostAt(int x, int y) {
     int wx = x - originX;
@@ -159,7 +155,6 @@ int LocalSearch::CostAt(int x, int y) {
     const SearchNode* node = NodeAt(this, wx, wy);
     return node->settled ? node->cost : kUnreached;
 }
-EI_REPLACE_METHOD(0x005C3090, LocalSearch::CostAt);
 
 int LocalSearch::StepCost(const SearchNode* node, int factor) {
     if (!node->usable) return -1;
@@ -181,7 +176,6 @@ int LocalSearch::StepCost(const SearchNode* node, int factor) {
     if (climb < 0) return -1;
     return ((climb * pass) >> 10) * factor >> 10;
 }
-EI_REPLACE_METHOD(0x005C1D50, LocalSearch::StepCost);
 
 void LocalSearch::Expand() {
     SearchNode* node = current;
@@ -213,13 +207,11 @@ void LocalSearch::Expand() {
     }
     PickCurrent();
 }
-EI_REPLACE_METHOD(0x005C2D40, LocalSearch::Expand);
 
 void LocalSearch::ExpandAll() {
     if (!active) return;
     while (current) Expand();
 }
-EI_REPLACE_METHOD(0x005C30E0, LocalSearch::ExpandAll);
 
 bool LocalSearch::ExpandUntil(int x, int y) {
     if (!active) return false;
@@ -228,7 +220,6 @@ bool LocalSearch::ExpandUntil(int x, int y) {
     while (current && current != target) Expand();
     return current != nullptr;
 }
-EI_REPLACE_METHOD(0x005C31A0, LocalSearch::ExpandUntil);
 
 void LocalSearch::PathTo(int x, int y, PathCellList* out) {
     // The inlined RemoveAll.
@@ -280,14 +271,12 @@ bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
     originY = minY - 1 <= oy ? minY - 1 : oy;
     return true;
 }
-EI_REPLACE_METHOD(0x005C22A0, LocalSearch::PlaceWindow);
 
 void LocalSearch::SetUnit(CUnit* unit) {
     map->CostContextFor(unit, &costs);
     sizeClass = unit->sizeClass;
     level = static_cast<std::uint8_t>(StandingLevel(unit));
 }
-EI_REPLACE_METHOD(0x005C21A0, LocalSearch::SetUnit);
 
 bool LocalSearch::Begin(CUnit* unit, int x0, int y0, int x1, int y1) {
     SetUnit(unit);
@@ -296,7 +285,6 @@ bool LocalSearch::Begin(CUnit* unit, int x0, int y0, int x1, int y1) {
     Start(this, x0 - originX, y0 - originY);
     return true;
 }
-EI_REPLACE_METHOD(0x005C2420, LocalSearch::Begin);
 
 bool LocalSearch::BeginForClass(int sizeClassArg, int x0, int y0, int x1, int y1) {
     map->CostContext(sizeClassArg, &costs);
@@ -307,7 +295,6 @@ bool LocalSearch::BeginForClass(int sizeClassArg, int x0, int y0, int x1, int y1
     Start(this, x0 - originX, y0 - originY);
     return true;
 }
-EI_REPLACE_METHOD(0x005C24F0, LocalSearch::BeginForClass);
 
 bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
     int dx = CdqAbs(x1 - x0);
@@ -334,13 +321,11 @@ bool LocalSearch::BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy) {
     Start(this, sx - originX, sy - originY);
     return true;
 }
-EI_REPLACE_METHOD(0x005C2B10, LocalSearch::BeginInRect);
 
 bool LocalSearch::BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy) {
     SetUnit(unit);
     return BeginInRect(x0, y0, x1, y1, sx, sy);
 }
-EI_REPLACE_METHOD(0x005C2C90, LocalSearch::BeginInRectFor);
 
 bool LocalSearch::BeginInRectForClass(int sizeClassArg, int x0, int y0, int x1, int y1, int sx, int sy) {
     map->CostContext(sizeClassArg, &costs);
@@ -348,7 +333,6 @@ bool LocalSearch::BeginInRectForClass(int sizeClassArg, int x0, int y0, int x1, 
     level = static_cast<std::uint8_t>(LevelForSizeClass(sizeClassArg));
     return BeginInRect(x0, y0, x1, y1, sx, sy);
 }
-EI_REPLACE_METHOD(0x005C2CF0, LocalSearch::BeginInRectForClass);
 
 void LocalSearch::CommitDirections() {
     WindowRange r = OnMapRange(this);
@@ -361,7 +345,6 @@ void LocalSearch::CommitDirections() {
         }
     }
 }
-EI_REPLACE_METHOD(0x005C2A30, LocalSearch::CommitDirections);
 
 void LocalSearch::SaveLevels(bool clear) {
     if (levels.width != kWindow || levels.height != kWindow) {
@@ -382,7 +365,6 @@ void LocalSearch::SaveLevels(bool clear) {
     }
     levelsSaved = true;
 }
-EI_REPLACE_METHOD(0x005C33F0, LocalSearch::SaveLevels);
 
 void LocalSearch::RestoreLevels() {
     WindowRange r = OnMapRange(this);
@@ -391,7 +373,6 @@ void LocalSearch::RestoreLevels() {
     }
     levelsSaved = false;
 }
-EI_REPLACE_METHOD(0x005C3530, LocalSearch::RestoreLevels);
 
 void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
@@ -404,7 +385,6 @@ void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     unit->GetMoveSpeeds(&out->forwardSpeed, &out->backwardSpeed);
     out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
 }
-EI_REPLACE_METHOD(0x005B9580, CAIMap::CostContextFor);
 
 void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
     map = mapArg;
@@ -458,7 +438,6 @@ void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
     settledList = nullptr;
     active = false;
 }
-EI_REPLACE_METHOD(0x005C1EA0, LocalSearch::Attach);
 
 bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     int oldX = originX, oldY = originY;
@@ -520,4 +499,3 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     gamecrt::operator_delete(old.rows);
     return true;
 }
-EI_REPLACE_METHOD(0x005C25D0, LocalSearch::Recenter);

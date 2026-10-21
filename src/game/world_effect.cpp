@@ -343,14 +343,9 @@ double CEffectAmbientSound::Radius() { return radius_; }
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
-EI_REPLACE_METHOD(0x00675B40, CEffect::SendFull);
-EI_REPLACE_METHOD(0x00675B70, CEffect::SendDelta);
-EI_REPLACE_METHOD(0x00675BA0, CEffect::Receive);
 EI_REPLACE_METHOD(0x00675BE0, CEffect::ResetBase);
-EI_REPLACE_METHOD(0x00675CA0, CEffect::MarkChanged);
 EI_REPLACE_METHOD(0x00675D10, CEffect::CreateEffect);
 EI_REPLACE_DISPATCH(0x00675D40, CEffect::DestroyEffect);
-EI_REPLACE_METHOD(0x00675D50, CEffect::SetVelocity);
 EI_REPLACE_METHOD(0x00675FA0, CEffect::Position);
 EI_REPLACE_METHOD(0x006768F0, CEffect::DefaultRadius);
 

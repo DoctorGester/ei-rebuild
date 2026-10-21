@@ -21,9 +21,7 @@ using StampSort = stlp::Sort<void*, ByStamp>;
 void __fastcall StampIntroSort(void** first, void** last, int, int depthLimit, const void*) {
     StampSort::IntroLoop(first, last, depthLimit, ByStamp());
 }
-EI_REPLACE(0x00589160, StampIntroSort);
 
 void __fastcall StampInsertionSort(void** first, void** last, const void*) {
     StampSort::FinalInsertionSort(first, last, ByStamp());
 }
-EI_REPLACE(0x00589240, StampInsertionSort);

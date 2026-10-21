@@ -153,7 +153,17 @@ class Interpreter:
         self.fpu = []
         self.flag = None     # (address, bit) of the last test
         self.local = 0
+        self.shadow = None
         if address in self.registered:
+            # Ported by hand (C18k): one call to its own address. What its instructions do is still decoded, for
+            # unread_objects only (SHADOW: the objects it stores into and the exit function it registers).
+            try:
+                self.run(address, None, '')
+                self.shadow = (list(self.lines), sorted(self.spans), list(self.targets))
+            except Unknown:
+                pass
+            self.lines, self.kinds, self.targets, self.inlined = [], [], [], []
+            self.spans = set()
             self.emit(f'd.Cdecl({hexa(address)});', '')
             self.kinds.append('cdecl')
             self.targets.append(('call', address))
@@ -492,12 +502,16 @@ def registered_addresses():
     return regs | {int(a, 16) for a in pat.findall(text)}
 
 
+SHADOW = {}   # initialiser ported by hand -> (statements, instruction spans, targets) its instructions decode to
+
+
 def decode_all(img):
     """[(address, kind, statements, targets, inlined, instruction spans)] in list order."""
     registered = registered_addresses()
     refs = references(img)
     interp = Interpreter(img, registered, refs)
     out, bad = [], []
+    SHADOW.clear()
     for slot in range(LIST_BEGIN, LIST_END + 4, 4):
         a = img.dword(slot)
         try:
@@ -507,6 +521,8 @@ def decode_all(img):
             continue
         out.append((a, kind_of(interp.kinds, a in registered), list(interp.lines), list(interp.targets),
                     list(interp.inlined), sorted(interp.spans)))
+        if interp.shadow:
+            SHADOW[a] = interp.shadow
     return out, bad
 
 
@@ -614,6 +630,9 @@ def hand_literals():
     return found
 
 
+UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread object (C18k)
+
+
 def unread_objects(img, decoded, exits):
     """[(begin, size, initialiser)] of the objects nothing but their initialiser reaches: each the contiguous stores
     of one initialiser that stores constants only (UNREAD_KINDS), into .data, whose bytes
@@ -623,12 +642,28 @@ def unread_objects(img, decoded, exits):
       - no named range (config/named_data.csv) holds,
     and right below which (UNREAD_NEAR) no address referenced elsewhere starts an object the stores may lie inside.
     These are the per-file copies of header constants (zero vectors, identity rotations, 1 / 1, pi's folds) that
-    the original's code never reads: nothing of ours needs them."""
+    the original's code never reads: nothing of ours needs them.
+    An initialiser that also registers an exit function (`stores + atexit`) whose only work is freeing this object's
+    block ('free': `if (data) operator delete(block)`, registered by this initialiser alone) qualifies too: nothing
+    else writes the object, its data pointer stays null and the exit function does nothing. Its atexit and the exit
+    function are left out with the stores (UNREAD_EXITS; C18k: the unused aligned arrays 007A9CA8, 007AEDF0, ...)."""
+    UNREAD_EXITS.clear()
+    frees = {}   # the freed object's address -> (exit function, the initialiser registering it)
+    for fn, name, body, _, initialisers in exits:
+        m = re.fullmatch(r'if \(d\.NonZero\((0x[0-9A-F]{8})\)\) d\.Cdecl\(0x[0-9A-F]{8}, d\.Dword\(d\.Dword\(\1\) - 4\)\);', body)
+        if name == 'free' and m and len(initialisers) == 1:
+            frees[int(m.group(1), 16)] = (fn, initialisers[0])
     sizes = load_sizes()
-    own = []
-    for a, kind, _, _, _, spans in decoded:
+    own, exit_fns = [], set()
+    for a, kind, _, targets, _, spans in decoded:
+        shadow = SHADOW.get(a)
+        if shadow:   # an initialiser ported by hand: its own instructions and exit function, as decoded
+            spans, targets = shadow[1], shadow[2]
         own += [(x, x + n) for x, n in spans] or [(a, a + sizes.get(a, 1))]
+        exit_fns.update(fn for k, fn in targets if k == 'exit')
     own += [(fn, fn + size) for fn, _, _, size, _ in exits]
+    # The exit functions ported by hand (no longer in `exits`): their instructions are the initialisers' own too.
+    own += [(fn, fn + sizes[fn]) for fn in exit_fns if fn in sizes]
     own.sort()
     starts = [b for b, _ in own]
 
@@ -649,6 +684,9 @@ def unread_objects(img, decoded, exits):
     touched = hand_literals()
     stored, groups = set(), []
     for a, kind, lines, _, _, _ in decoded:
+        # An initialiser ported by hand still stores into its object (through the name): those cells are stored.
+        for line in SHADOW.get(a, ((),))[0]:
+            stored.update(written_cells(line) or ())
         cells = []
         for line in lines:
             touched.update(int(x, 16) for x in READ.findall(line))
@@ -667,14 +705,19 @@ def unread_objects(img, decoded, exits):
             if run:
                 groups.append((a, kind, run))
             run = [(c, call)]
-    for _, _, body, _, _ in exits:
-        touched.update(int(x, 16) for x in re.findall(r'0x([0-9A-F]{8})', body))
+    for fn, _, body, _, _ in exits:
+        touched.update(int(x, 16) for x in re.findall(r'0x([0-9A-F]{8})', body) if int(x, 16) not in frees
+                       or frees[int(x, 16)][0] != fn)
     named = named_ranges()
     points = sorted(referenced | stored)
     out = []
+    exits_of = {a: [fn for kind, fn in targets if kind == 'exit'] for a, _, _, targets, _, _ in decoded}
     for a, kind, run in groups:
         lo, hi = run[0][0], run[-1][0] + 4
-        if (kind not in UNREAD_KINDS or any(call for _, call in run) or not DATA_SECTIONS[0] <= lo < hi <= DATA_SECTIONS[1]
+        freed = [p for p in frees if lo <= p < hi]
+        with_exit = kind == 'stores + atexit' and freed == [lo] and frees[lo][1] == a and exits_of[a] == [frees[lo][0]]
+        if ((kind not in UNREAD_KINDS and not with_exit) or (freed and not with_exit) or any(call for _, call in run)
+                or not DATA_SECTIONS[0] <= lo < hi <= DATA_SECTIONS[1]
                 or any(lo <= v < hi for v in foreign) or any(lo <= v < hi for v in touched)
                 or any(b < hi and lo < e for b, e, _ in named)):
             continue
@@ -683,6 +726,8 @@ def unread_objects(img, decoded, exits):
         if below in foreign and below not in stored and lo - below < UNREAD_NEAR:
             continue
         out.append((lo, hi - lo, a))
+        if with_exit:
+            UNREAD_EXITS[a] = frees[lo][0]
     return out
 
 
@@ -697,14 +742,18 @@ def unread_csv(img, decoded, unread):
 LEFT_OUT = {}   # initialiser -> number of statements left out (render's note)
 
 
-def leave_out(decoded, ranges):
-    """The initialisers without the stores, float folds and fills into `ranges` ([(begin, end)]); problems for a
-    statement that writes across a range's end or stores a call's result there (port the initialiser by hand)."""
+def leave_out(decoded, ranges, exits=None):
+    """The initialisers without the stores, float folds and fills into `ranges` ([(begin, end)]) and without the
+    atexit of `exits` ({initialiser: exit function}: an unread object's, UNREAD_EXITS); problems for a statement that
+    writes across a range's end or stores a call's result there (port the initialiser by hand)."""
     LEFT_OUT.clear()
     out, problems = [], []
     for a, kind, lines, targets, inlined, spans in decoded:
         kept = []
         for line in lines:
+            if exits and a in exits and line.strip() == f'd.AtExit({hexa(exits[a])});':
+                LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
+                continue
             written = written_cells(line)
             inside = [c for c in written or () if any(b <= c < e for b, e in ranges)]
             if not inside:
@@ -730,8 +779,10 @@ def generate(img):
     if bad:
         return None, None, None, [f'not decoded (port by hand or add a pattern): {b}' for b in bad]
     unread = unread_objects(img, decoded, exits)
+    dropped = set(UNREAD_EXITS.values())
+    exits = [e for e in exits if e[0] not in dropped]
     ranges = [(b, e) for b, e, _ in named_ranges()] + [(lo, lo + n) for lo, n, _ in unread]
-    kept, problems = leave_out(decoded, ranges)
+    kept, problems = leave_out(decoded, ranges, dict(UNREAD_EXITS))
     return kept, exits, unread_csv(img, decoded, unread), problems
 
 

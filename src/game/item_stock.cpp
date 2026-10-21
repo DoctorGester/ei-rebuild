@@ -813,3 +813,29 @@ void ItemStock::AddMaterial(char* record, int minCount, int maxCount) {
     entry->left = maxCount;
 }
 EI_REPLACE_METHOD(0x00699260, ItemStock::AddMaterial);
+
+// ---- The scratch vectors (item_stock.h) ---------------------------------------------------------------------------
+
+// Empty at the start, as the static initialisers 00698E50-00698F90 leave them; the exit functions they register free
+// their storage (docs/notes/standalone.md, "The static initialisers' objects").
+namespace stock {
+constinit stlp::vector<char*> g_takenPrototypes = /*007C8680*/ {};
+constinit stlp::vector<StockMaterial*> g_candidates = /*007C8650*/ {};
+constinit stlp::vector<StockMaterial> g_takenMaterials = /*007C8640*/ {};
+constinit stlp::vector<char*> g_takenSpells = /*007C8670*/ {};
+constinit stlp::vector<char*> g_takenModifiers = /*007C8660*/ {};
+} // namespace stock
+
+namespace {
+void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }   // 00698E90
+void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }           // 00698EE0
+void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }     // 00698F30
+void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }             // 00698F80
+void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }     // 00698FD0
+} // namespace
+
+EI_REPLACE(0x00698E90, FreeTakenPrototypes);
+EI_REPLACE(0x00698EE0, FreeTakenSpells);
+EI_REPLACE(0x00698F30, FreeTakenModifiers);
+EI_REPLACE(0x00698F80, FreeCandidates);
+EI_REPLACE(0x00698FD0, FreeTakenMaterials);

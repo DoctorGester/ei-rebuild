@@ -59,4 +59,3 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
     return buffers.vertexCount * 4;
 }
 
-EI_REPLACE(0x005A0E80, RasteriseFigureMesh);

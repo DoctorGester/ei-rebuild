@@ -46,7 +46,6 @@ void UnitStats::AddArmourLayer(CEngineObject* armour) {
         layer.layerMask |= static_cast<int>(piece->layerMask_[part]);
     }
 }
-EI_REPLACE_METHOD(0x005230C0, UnitStats::AddArmourLayer);
 
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
@@ -57,7 +56,6 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
     }
 }
-EI_REPLACE_METHOD(0x00523300, UnitStats::RebuildArmourLayers);
 
 void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::int16_t* out) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -71,7 +69,6 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::i
         out[1 + k] = static_cast<std::int16_t>(x87::RoundToInt(static_cast<float>(value)));
     }
 }
-EI_REPLACE_METHOD(0x00523020, UnitStats::PackBodyProtection);
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index, as the original

@@ -67,5 +67,3 @@ void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
     GuardPlain() = plain;
 }
 
-EI_REPLACE(0x005791C0, GuardPlayers);
-EI_REPLACE(0x005790E0, GuardPlayerData);

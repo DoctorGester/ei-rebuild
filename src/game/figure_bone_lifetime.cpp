@@ -50,7 +50,6 @@ FigureBone* FigureBone::Construct() {
     CreateBone();
     return this;
 }
-EI_REPLACE_METHOD(0x0050AF40, FigureBone::Construct);
 
 int FigureBone::CreateBone() {
     // The original assigns "none" (007846F0) to all three names, not an empty string.
@@ -101,7 +100,6 @@ void FigureBone::DestructBody() {
     name.~CString();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0050B1D0, FigureBone::DestructBody);
 
 FigureBone* FigureBone::DeleteBone(unsigned flags) {
     DestructBody();
@@ -110,6 +108,3 @@ FigureBone* FigureBone::DeleteBone(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0050B1B0, FigureBone::DeleteBone);
 
-// 0050DD40 (RET 8): the bones' matrix array's discarding SetSize with a growth step (A-U10),
-// registered on the template.
-EI_REPLACE_METHOD(0x0050DD40, lib::AlignedArray<Matrix4>::SetSizeDiscardStep);

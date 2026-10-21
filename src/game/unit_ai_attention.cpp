@@ -32,7 +32,6 @@ void AIAttention::CurrentAttack(AIBrain* brain, int* partAndObject) {
     object = brain->target;
     if (object && object->GetClassId() != kClassUnit) object = nullptr;
 }
-EI_REPLACE_METHOD(0x005CF220, AIAttention::CurrentAttack);
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
     mfc::CTypedPtrList<CUnit> candidates{};

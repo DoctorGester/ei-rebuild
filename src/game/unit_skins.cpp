@@ -363,10 +363,3 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
 }
 EI_REPLACE(0x005683D0, UnitTextureRecords);
 
-// 005685C0 (A-W14). The constructor of a texture record: no kind, no id, no type (`empty` above,
-// which the original builds through it). Returns the record.
-void* __fastcall TextureRecordConstruct(void* self) {
-    *static_cast<TextureRecord*>(self) = {0, kNone, kNone};
-    return self;
-}
-EI_REPLACE(0x005685C0, TextureRecordConstruct);

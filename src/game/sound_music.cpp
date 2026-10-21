@@ -91,7 +91,7 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     music->themes[n].Assign(reinterpret_cast<const MusicTheme*>(&theme));
 }
 
-const mfc::CString& TextPath() { return ei::GameData<const mfc::CString>(0x007AF45C); }
+const mfc::CString& TextPath() { return TheTextFolder(); }
 
 } // namespace
 
@@ -173,7 +173,6 @@ void CMusicSystem::Stop() {
     state = 0;
     TheSoundManager()->StopStream(4);
 }
-EI_REPLACE_METHOD(0x006B4F70, CMusicSystem::Stop);
 
 namespace {
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
@@ -314,7 +313,6 @@ CMusicSystem::CMusicSystem() {
 }
 
 CMusicSystem* CMusicSystem::Construct() { return new (this) CMusicSystem(); }
-EI_REPLACE_METHOD(0x006B4350, CMusicSystem::Construct);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
@@ -349,8 +347,6 @@ EI_REPLACE_METHOD(0x006B4490, CMusicSystem::DeletingDestruct);
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
-EI_REPLACE_METHOD(0x006B4E10, CMusicSystem::FadeOut);
-EI_REPLACE_METHOD(0x006B4E20, CMusicSystem::FadeIn);
 
 void MusicTheme::Assign(const MusicTheme* from) {
     name = from->name;
@@ -365,7 +361,3 @@ EI_REPLACE_METHOD(0x006B4D40, MusicTheme::Assign);
 // 006B4470 / 006B4480: slots 11 and 12.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }
 int CMusicSystem::GetClassId() { return kMusicClassId; }
-const char* __fastcall MusicSystemClassName(CMusicSystem* self) { return self->CMusicSystem::GetClassName(); }
-int __fastcall MusicSystemClassId(CMusicSystem* self) { return self->CMusicSystem::GetClassId(); }
-EI_REPLACE(0x006B4470, MusicSystemClassName);
-EI_REPLACE(0x006B4480, MusicSystemClassId);

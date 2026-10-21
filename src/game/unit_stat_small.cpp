@@ -27,50 +27,26 @@ T* RecordAt(T* begin, T* end, std::uint32_t index) {
 }
 } // namespace
 
-// 00523700 / 00523710 (fastcall: ECX the block, EDX the field): a map object's packed vitals
-// written to / read from its network field. 00523720 / 00523730: a unit's packed parameters.
-void __fastcall WritePackedVitals(const UnitVitalsPacked* vitals, DeltaField* field) {
-    field->WriteDelta(vitals, sizeof(UnitVitalsPacked));
-}
-EI_REPLACE(0x00523700, WritePackedVitals);
-void __fastcall ReadPackedVitals(UnitVitalsPacked* vitals, DeltaField* field) {
-    field->ReadDelta(vitals, sizeof(UnitVitalsPacked));
-}
-EI_REPLACE(0x00523710, ReadPackedVitals);
-void __fastcall WritePackedParams(const UnitParams* params, DeltaField* field) {
-    field->WriteDelta(params, sizeof(UnitParams));
-}
-EI_REPLACE(0x00523720, WritePackedParams);
-void __fastcall ReadPackedParams(UnitParams* params, DeltaField* field) {
-    field->ReadDelta(params, sizeof(UnitParams));
-}
-EI_REPLACE(0x00523730, ReadPackedParams);
-
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
     attack = static_cast<int>(attack * ei::GamePointer<const float>(kAttackFactors)[Difficulty()]);
     defence =
         static_cast<int>(static_cast<float>(defence) * ei::GamePointer<const float>(kDefenceFactors)[Difficulty()]);
 }
-EI_REPLACE_METHOD(0x0052E0D0, AttackParams::ScaleForDifficulty);
 
 // --- Database records ---------------------------------------------------------------------------------
 
 SkillRecord* SkillDatabase::SkillAt(std::uint32_t index) { return RecordAt(skills.begin(), skills.end(), index); }
-EI_REPLACE_METHOD(0x00526FF0, SkillDatabase::SkillAt);
 
 SkillLevelRecord* SkillDatabase::LevelAt(std::uint32_t index) { return RecordAt(levels.begin(), levels.end(), index); }
-EI_REPLACE_METHOD(0x00524FA0, SkillDatabase::LevelAt);
 
 // 00539280 (thiscall on the unit database's model vector, RET 4): model `index`, or null.
 UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index) {
     return RecordAt(models[0], models[1], index);
 }
-EI_REPLACE(0x00539280, UnitModelAt);
 
 // 0053AD30 (thiscall on the prototype table, RET 4): prototype `index`, or null.
 UnitPrototypeRecord* UnitPrototypeTable::At(std::uint32_t index) {
     return RecordAt(reinterpret_cast<UnitPrototypeRecord*>(begin),
                     reinterpret_cast<UnitPrototypeRecord*>(end), index);
 }
-EI_REPLACE_METHOD(0x0053AD30, UnitPrototypeTable::At);

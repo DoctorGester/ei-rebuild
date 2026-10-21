@@ -59,7 +59,6 @@ void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
         WriteCopy(stream, look.stopFirst);
     }
 }
-EI_REPLACE(0x005D91B0, SaveLooks);
 
 void AIMemory::Load(CStream* stream) {
     noticedKind = -1;
@@ -114,4 +113,3 @@ void AIMemory::Save(CStream* stream) {
     }
     WriteCopy(stream, noticedKind);
 }
-EI_REPLACE_METHOD(0x005CC350, AIMemory::Save);

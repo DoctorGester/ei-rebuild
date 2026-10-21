@@ -323,7 +323,6 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
     c.EndWrite();
     patrolChunk.chunk.Destruct();
 }
-EI_REPLACE(0x0046C900, BehaviourWrite);
 
 // ---- Units (0073C6E0) ------------------------------------------------------------------------------
 
@@ -505,7 +504,6 @@ void __fastcall WaypointsWrite(const Array<Waypoint>* a, void* stream) {
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));
 }
-EI_REPLACE(0x0045DFB0, WaypointsWrite);
 
 // 0045D610: the record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
@@ -564,6 +562,5 @@ void Behaviour::Write(void* stream) const {
     StreamWrite(stream, &value, 4);
     StreamWrite(stream, &alarm, 4);
 }
-EI_REPLACE_METHOD(0x0045D760, Behaviour::Write);
 
 } // namespace mapspec

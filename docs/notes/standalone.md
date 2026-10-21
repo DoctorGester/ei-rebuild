@@ -431,7 +431,8 @@ kinds given.
       Ghidra has no function there); the generator then writes one `d.Cdecl(address)` at its place in the list
       (weather_noise.cpp's BuildWeatherNoise, 004E3B20, builds the five sway curves; 004E3AD0's fills of their
       segments are left out, the definitions' `{}` zeros take their place). An exit function that destroys a
-      named object is the same: its address fails the check until it is ported on the name (not done yet).
+      named object is the same: its address fails the check until it is ported on the name (the destructor rule,
+      below).
       C18j named particle_callbacks' kSpinAngle 007A9BF8 (2 pi; the product with the satellite's rate is
       `static_cast<float>` so the compiler's fold keeps the original's 24-bit FMUL), particle_create's
       kIdentityRotation 007A9C30, face_normal's kDegenerateNormal 007A9C98, weather_particles' five scalars
@@ -450,6 +451,44 @@ kinds given.
       007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
       (007AF0E0-007AF110, 007AF1C0-007AF238) and torch_spec 007AF2D0 wait for C19 batch 4's conversions.
       gen_static_init reads a parenthesised negative literal in a fold; named_data takes a negative single number.
+    - **Objects with exit functions** (C18k, the destructor rule): an initialiser that registers an exit function
+      (`stores + atexit`, `constructor + atexit`) and the exit function are ported on the name; the game's atexit
+      list keeps its order and its entries.
+      - The definition is constant initialisation with no C++ destructor (`constinit`): a destructor of ours would
+        run at our CRT's exit, not at the original's place in the game's atexit list, and could free into the game's
+        heap after the game's CRT has gone. A container the stores zero is defined zero:
+        `constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};`, `constinit stlp::vector<stlp::string>
+        g_questFiles = /*007AFDD0*/ {};` (named_data's TYPES names a template, `lib::AlignedArray` / `stlp::vector`;
+        a pointer type it does not list is a pointer element: `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
+      - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
+        has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
+        and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles); atexit_400.cpp has older ones.
+      - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
+        `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
+        its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
+        so the generator writes `d.Cdecl(address)` in its place. The object is `constinit lib::StaticObject<T>`
+        (lib/static_object.h: zero storage that our CRT neither constructs nor destroys); the initialiser calls
+        `Construct(...)` and registers the exit function by its address (`GameAtExit(ei::Code<...>(exit))`), which
+        calls `Destroy()`. A guarded exit function's guard byte is named with it (game_folders.cpp's 007AF438).
+        named_data compares such a definition with game.exe's bytes (zero): a registered initialiser's stores are
+        not applied (decode_all emits only its call).
+      - gen_static_init still decodes a hand-ported initialiser (SHADOW) for unread_objects only: its instructions,
+        the cells it stores and its exit function's instructions stay the initialisers' own (without that, two unread
+        objects above the folder strings, 007AF43C and 007AF468, lost their proof).
+      - An unread object whose initialiser also registers a `free` exit function (an aligned array nothing else
+        touches: its block is never allocated, the exit function does nothing) has its stores, its atexit and the exit
+        function left out (UNREAD_EXITS: 007A9CA8, 007AEDF0).
+      - C18k named the device's mesh work arrays (device_buffers.cpp, 007AEDE0-007AEE30), link_mesh_draw's moved
+        packets 007AEED0, renderer_lines' line vertices and projected points (007A9CE0, 007A9CB8), the quest files
+        and folders (world_briefing.cpp, 007AFDD0 / 007AFDC0) and the zone table (world_game.cpp, 007AFDE0), the
+        stock generation's scratch vectors (item_stock.cpp, 007C8640-007C8680), the command line's CStrings and the
+        mouse pointer (app_main.cpp, 0079BA08-0079BA1C; the movie folder's default ".\capture\" is our literal),
+        the script's quest name 007AA61C and the folder strings (game_folders.cpp, 007AF450-007AF460).
+      - Not this rule (C19): an object that carries game.exe's vtable: the particle draw order 007A9C50, the CArrays
+        007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
+        006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
+        console's 007C54E8 store its address, so they wait with it) and the other ostreams 007C55B0-007C7B38.
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
       initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
       initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no
@@ -694,6 +733,18 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 - `EI_REPLACE` / `_METHOD` / `_DISPATCH` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
+- A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
+  split by reader (code cells by kind, forwarders, code literals, static init, named data, harness, vectors,
+  scenarios / goldens, the short-function and exit-function generators, check_fp_fold's links from
+  `check_fp_fold.py --linked` on the built DLL), `--unread` / `--files` what nothing reads, `--drop` removes those
+  (with `--exclude` / `--exclude-name` for files another worker holds). After C20c (2026-10-21): 5,258 left of
+  9,347, first reader: vtable cells 2,202, check_fp_fold only 1,754, static init 325, forwarders 270, code literals
+  143, harness / vectors / other 69, unread 495 (65 short functions the generator would write again, 430 in C19's
+  managers and the map objects, left for C19). Code literals include static_init.cpp's six-digit ones (0x5C4210). A dropped function is called by name; one whose registration was the
+  only instantiation of a template needs an explicit instantiation (AckTable<ExtraAcks>::RecordAt).
+- check_fp_fold compares a function's x87 constants with its original through the function's own registration, or
+  a helper's through its registered callers: dropping those reported folds that were none (24 at C20c's first try),
+  so they count as readers until check_fp_fold has another link to the original (C20d).
 - Library functions need a row in config/extra_function_sizes.csv even when Ghidra has a function (the installer
   skips an unknown start); some Ghidra sizes run past the RET (0070CAD2, 006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a

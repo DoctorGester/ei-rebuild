@@ -167,7 +167,6 @@ void CTextureDevice::BuildFormatTable() {
         formats_[static_cast<int>(id)] = format;
     }
 }
-EI_REPLACE_METHOD(0x004E6EE0, CTextureDevice::BuildFormatTable);
 
 void CTextureDevice::Destruct() {
     ei::SetVtable(this, 0x0073D760);
@@ -197,7 +196,6 @@ void CTextureDevice::Destruct() {
     if (depth_) depth_->Release();
     DestructDirectDraw();
 }
-EI_REPLACE_METHOD(0x004E68A0, CTextureDevice::Destruct);
 
 // The base's constructor and the format table are called through their addresses
 // (originals_render.h), as the original calls them. The original then makes the Direct3D object,
@@ -225,4 +223,3 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     ConstructWithoutDirect3D(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004E5E50, CTextureDevice::Construct);

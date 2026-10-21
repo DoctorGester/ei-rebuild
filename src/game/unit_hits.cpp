@@ -117,7 +117,6 @@ void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int bro
     if (before < t) return;          // was already below
     if (condition < t) Remark(unit, wornRemark);
 }
-EI_REPLACE(0x005253E0, WearItem);
 
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     if (!(IsTextKey(unit->id_) & 0xFF) || layer == 0) return;
@@ -138,7 +137,6 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     WearItem(unit->armor[kArmourPieces[row]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
     WearItem(unit->armor[kArmourPieces[row + 1]], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
 }
-EI_REPLACE(0x00525720, WearArmour);
 
 int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
@@ -243,7 +241,6 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     unit->DropBrokenEquipment();
     return damaged;
 }
-EI_REPLACE_METHOD(0x005254B0, UnitStats::ApplyHit);
 
 BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     for (int type = 0; type < kDamageTypes; ++type) {
