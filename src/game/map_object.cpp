@@ -151,7 +151,7 @@ std::uintptr_t CMapObject::ClearEffects() {
     SetStunned(0);
     return RecomputeScale();
 }
-EI_REPLACE_METHOD(0x0050F5B0, CMapObject::ClearEffects);
+EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 
 float CMapObject::EffectValue(std::uint32_t type) {
     std::uint32_t best = 0;   // 0.0f (0073B858)

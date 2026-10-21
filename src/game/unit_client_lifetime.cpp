@@ -90,7 +90,7 @@ void CUnitClientSpecific::DestructClientBody() {
     unit = nullptr;
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00533EA0, CUnitClientSpecific::DestructClientBody);
+EI_REWRITTEN(0x00533EA0, CUnitClientSpecific::DestructClientBody);
 
 CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();

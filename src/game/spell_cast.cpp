@@ -158,7 +158,7 @@ BOOL CSpellContainer::AddModifier(char* modifier) {
     stlp::list<char*>::Insert(stlp::AsNode<char*>(modifiers_), modifier);   // 0068C560
     return 1;
 }
-EI_REPLACE_METHOD(0x0068BE30, CSpellContainer::AddModifier);
+EI_REWRITTEN(0x0068BE30, CSpellContainer::AddModifier);
 
 int CSpellContainer::AllowsModifier(const char* modifier) {
     if (!prototype_ || !modifier) return 0;
@@ -303,7 +303,7 @@ BOOL CSpellContainer::Build() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0068BF60, CSpellContainer::Build);
+EI_REWRITTEN(0x0068BF60, CSpellContainer::Build);
 
 // --- CSpellManager -----------------------------------------------------------------------------
 
@@ -328,7 +328,7 @@ CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifier
     constructor->CallSetManager(nullptr);
     return spell;
 }
-EI_REPLACE_METHOD(0x00689310, CSpellManager::CreateSpell);
+EI_REWRITTEN(0x00689310, CSpellManager::CreateSpell);
 
 // --- CSpellConstructor -------------------------------------------------------------------------
 
@@ -394,7 +394,7 @@ BOOL CSpellConstructor::BeginConstruct(char* prototype) {
     container_->prototype_ = prototype;   // no null check, as in the original
     return 1;
 }
-EI_REPLACE_METHOD(0x006841E0, CSpellConstructor::BeginConstruct);
+EI_REWRITTEN(0x006841E0, CSpellConstructor::BeginConstruct);
 
 BOOL CSpellConstructor::EndConstruct() {
     if (manager_ && container_) {
@@ -403,7 +403,7 @@ BOOL CSpellConstructor::EndConstruct() {
     }
     return game::FatalError(kNoManagerOrContainer);
 }
-EI_REPLACE_METHOD(0x00684250, CSpellConstructor::EndConstruct);
+EI_REWRITTEN(0x00684250, CSpellConstructor::EndConstruct);
 
 BOOL CSpellConstructor::AddModifier(char* modifier) {
     if (!container_) return 0;

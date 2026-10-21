@@ -149,7 +149,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         ++slot;
     }
 }
-EI_REPLACE_METHOD(0x0063D2B0, CHudQuickItems::SetUnit);
+EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
 // --- 00638280: the battle screen's update ------------------------------------------------------
 

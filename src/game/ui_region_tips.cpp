@@ -42,13 +42,13 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     if (tip_) tip_->Delete();
     tip_ = NewTooltip(this, text, flag, extra);
 }
-EI_REPLACE_METHOD(0x005FC730, CUiRegion::SetTip);
+EI_REWRITTEN(0x005FC730, CUiRegion::SetTip);
 
 void CUiRegion::SetTipString(const char* text, int flag, int extra) {
     if (tip_) tip_->Delete();
     tip_ = NewTooltip(this, text, flag, extra);
 }
-EI_REPLACE_METHOD(0x005FC6B0, CUiRegion::SetTipString);
+EI_REWRITTEN(0x005FC6B0, CUiRegion::SetTipString);
 
 // --- 005FC690: the tooltip's text --------------------------------------------------------------
 
@@ -62,4 +62,4 @@ void CUiRegion::ReleaseContents() {
     if (tip_) tip_->Delete();
     points_.FreeData();
 }
-EI_REPLACE_METHOD(0x005FC600, CUiRegion::ReleaseContents);
+EI_REWRITTEN(0x005FC600, CUiRegion::ReleaseContents);

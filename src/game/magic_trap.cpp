@@ -129,7 +129,7 @@ void MagicTrap::UpdateVictims() {
     newcomers.RemoveAll();
     found.RemoveAll();
 }
-EI_REPLACE_METHOD(0x0052A680, MagicTrap::UpdateVictims);
+EI_REWRITTEN(0x0052A680, MagicTrap::UpdateVictims);
 
 void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CUnit>* out) {
@@ -151,7 +151,7 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     }
     found.RemoveAll();
 }
-EI_REPLACE(0x0052A920, FindTrapVictims);
+EI_REWRITTEN(0x0052A920, FindTrapVictims);
 
 namespace {
 // The object's world [00455950]; the world server (007AFF60) casts `spell` from `caster` at
@@ -200,7 +200,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
     }
     countdown = period;
 }
-EI_REPLACE_METHOD(0x0052A4B0, MagicTrap::CastAtUnits);
+EI_REWRITTEN(0x0052A4B0, MagicTrap::CastAtUnits);
 
 namespace {
 // The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten).
@@ -250,7 +250,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     countdown = 0;
     singleTarget = record->singleTarget != 0 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);
+EI_REWRITTEN(0x0052A2C0, MagicTrap::SetUp);
 
 // --- Construction, destruction, Save / Load (ticket U8) ------------------------------------------
 
@@ -320,7 +320,7 @@ MagicTrap::MagicTrap() {
 }
 
 MagicTrap* MagicTrap::Construct() { return new (this) MagicTrap(); }
-EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
+EI_REWRITTEN(0x00529DD0, MagicTrap::Construct);
 
 MagicTrap::~MagicTrap() {
     DestroyMapObject();
@@ -340,7 +340,7 @@ MagicTrap::~MagicTrap() {
 }
 
 void MagicTrap::DestructBody() { this->MagicTrap::~MagicTrap(); }
-EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
+EI_REWRITTEN(0x00529F90, MagicTrap::DestructBody);
 
 void MagicTrap::Load(void* stream) { LoadTrap(static_cast<CStream*>(stream)); }
 void MagicTrap::Save(void* stream) { SaveTrap(static_cast<CStream*>(stream)); }
@@ -387,7 +387,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     for (int i = 0; i < points.size; ++i) stream->Read(&points.data[i], sizeof(TrapPoint));
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);
 }
-EI_REPLACE_METHOD(0x0052ADC0, MagicTrap::LoadTrap);
+EI_REWRITTEN(0x0052ADC0, MagicTrap::LoadTrap);
 
 // --- Create, Destroy, the update, firing, forgetting a removed object (ticket U10) ---------------
 
@@ -428,7 +428,7 @@ int MagicTrap::CreateTrap() {
     singleTarget = 0;
     return result;
 }
-EI_REPLACE_METHOD(0x0052A100, MagicTrap::CreateTrap);
+EI_REWRITTEN(0x0052A100, MagicTrap::CreateTrap);
 
 void MagicTrap::DestroyTrap() {
     DestroyMapObject();
@@ -437,7 +437,7 @@ void MagicTrap::DestroyTrap() {
     points.SetSize(0, -1);
     ClearVictims(this);
 }
-EI_REPLACE_METHOD(0x0052A200, MagicTrap::DestroyTrap);
+EI_REWRITTEN(0x0052A200, MagicTrap::DestroyTrap);
 
 int MagicTrap::UpdateTrap() {
     int result = CMapObject::Update();
@@ -451,7 +451,7 @@ int MagicTrap::UpdateTrap() {
     if (countdown <= 0) FireAtOccupants();
     return result;
 }
-EI_REPLACE_METHOD(0x0052AC20, MagicTrap::UpdateTrap);
+EI_REWRITTEN(0x0052AC20, MagicTrap::UpdateTrap);
 
 void MagicTrap::FireAtOccupants() {
     void* context = ManagerContextOf(this);
@@ -462,7 +462,7 @@ void MagicTrap::FireAtOccupants() {
     }
     DestroyPtrList(found);
 }
-EI_REPLACE_METHOD(0x0052AB30, MagicTrap::FireAtOccupants);
+EI_REWRITTEN(0x0052AB30, MagicTrap::FireAtOccupants);
 
 int MagicTrap::ForgetObjectImpl(CEngineObject* object) {
     for (UnitList::Node* node = inside.head; node;) {
@@ -484,4 +484,4 @@ int MagicTrap::ForgetObjectImpl(CEngineObject* object) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0052AC90, MagicTrap::ForgetObjectImpl);
+EI_REWRITTEN(0x0052AC90, MagicTrap::ForgetObjectImpl);

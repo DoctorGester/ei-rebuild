@@ -109,4 +109,4 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     constructor->CallSetManager(nullptr);
     return spell;
 }
-EI_REPLACE_METHOD(0x00689030, CSpellManager::CreateSpellFromText);
+EI_REWRITTEN(0x00689030, CSpellManager::CreateSpellFromText);

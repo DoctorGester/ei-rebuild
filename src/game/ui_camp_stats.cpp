@@ -94,7 +94,7 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     }
     info->stats = HeroStats(owner_);
 }
-EI_REPLACE_METHOD(0x00625690, CTradePanel::HoverInfo);
+EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 
 // --- 00624CB0: the statistics column -----------------------------------------------------------
 
@@ -165,7 +165,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00624CB0, CHeroStatsPanel::HoverInfo);
+EI_REWRITTEN(0x00624CB0, CHeroStatsPanel::HoverInfo);
 
 // --- 006232D0: the column's hero -----------------------------------------------------------------
 
@@ -180,7 +180,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     points_ = static_cast<int>(ShownHero(owner_)->height * 100.0f);
     static_cast<CHeroStatsPanel*>(this)->DrawStats();
 }
-EI_REPLACE_METHOD(0x006232D0, CHeroStatsPanel::SetHero);
+EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 
 // --- 0060FA80: the camp's hero record (slot 64) ----------------------------------------------------
 

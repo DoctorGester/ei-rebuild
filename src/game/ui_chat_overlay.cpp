@@ -213,7 +213,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         node->data.surface = surface;
     }
 }
-EI_REPLACE_METHOD(0x005E2A30, CChatOverlay::AddLine);
+EI_REWRITTEN(0x005E2A30, CChatOverlay::AddLine);
 
 // --- 005E36C0 / 005E3930: opening the chat line, clearing the lines ----------------------------------
 
@@ -225,12 +225,12 @@ void CChatOverlay::SetOpen(bool open) {
     }
     ChatOverlayDrawTypedOriginal(this);
 }
-EI_REPLACE_METHOD(0x005E36C0, CChatOverlay::SetOpen);
+EI_REWRITTEN(0x005E36C0, CChatOverlay::SetOpen);
 
 void CChatOverlay::ClearLines() {
     lines_.ClearWith([](ChatLine* line) { line->Destroy(); });
 }
-EI_REPLACE_METHOD(0x005E3930, CChatOverlay::ClearLines);
+EI_REWRITTEN(0x005E3930, CChatOverlay::ClearLines);
 
 // --- 005E3700: the typed line drawn (Rebirth-patched: WideScreen reproduced) ------------------------------
 
@@ -348,7 +348,7 @@ CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     ChatOverlayDrawTypedOriginal(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005E26F0, CChatOverlay::Construct);
+EI_REWRITTEN(0x005E26F0, CChatOverlay::Construct);
 
 void CChatOverlay::Update() {
     std::uint32_t now = gameapi::timeGetTime();

@@ -193,7 +193,7 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
                          static_cast<double>(pivot.y), static_cast<double>(pivot.z));
     }
 }
-EI_REPLACE(0x004492F0, BuildBone);
+EI_REWRITTEN(0x004492F0, BuildBone);
 
 } // namespace scene
 

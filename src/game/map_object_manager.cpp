@@ -63,19 +63,19 @@ int ThirdHalfOf(int classId) {
 CMapObjectManager::CMapObjectManager() {}
 
 CMapObjectManager* CMapObjectManager::Construct() { return new (this) CMapObjectManager(); }
-EI_REPLACE_METHOD(0x005125E0, CMapObjectManager::Construct);
+EI_REWRITTEN(0x005125E0, CMapObjectManager::Construct);
 
 CMapObjectManager::~CMapObjectManager() {}
 
 void CMapObjectManager::Destruct() { this->CMapObjectManager::~CMapObjectManager(); }
-EI_REPLACE_METHOD(0x00512650, CMapObjectManager::Destruct);
+EI_REWRITTEN(0x00512650, CMapObjectManager::Destruct);
 
 CMapObjectManager* CMapObjectManager::DeletingDestruct(unsigned flags) {
     this->CMapObjectManager::~CMapObjectManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00512630, CMapObjectManager::DeletingDestruct);
+EI_REWRITTEN(0x00512630, CMapObjectManager::DeletingDestruct);
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::GetClassName() { return kClassName; }
@@ -98,7 +98,7 @@ int CMapObjectManager::CreateManager() {
     AddArchive(folder + "database.res");   // the exe's 00784818
     return 1;
 }
-EI_REPLACE_METHOD(0x00512660, CMapObjectManager::CreateManager);
+EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
 
 // --- Objects ----------------------------------------------------------------------------------------
 
@@ -132,7 +132,7 @@ FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, st
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00512B20, CMapObjectManager::FindAnimation);
+EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 
 int CMapObjectManager::GiveDefaults(CEngineObject* object) {
     auto* builder = reinterpret_cast<UnitStatsBuilder*>(this);
@@ -171,4 +171,4 @@ int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* a
     *secondWeapon = prototype->secondWeaponName;
     return 1;
 }
-EI_REPLACE_METHOD(0x005143E0, CMapObjectManager::PrototypeEquipment);
+EI_REWRITTEN(0x005143E0, CMapObjectManager::PrototypeEquipment);

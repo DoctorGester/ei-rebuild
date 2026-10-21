@@ -86,7 +86,7 @@ bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     if (queued->talking) SetTalking(unitId, false);
     return true;
 }
-EI_REPLACE_METHOD(0x00537FD0, SpeechFilter::Finished);
+EI_REWRITTEN(0x00537FD0, SpeechFilter::Finished);
 
 void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     if (!record) return;

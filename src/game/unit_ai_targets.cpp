@@ -163,7 +163,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
     reinterpret_cast<AIRef*>(&order.object)->Reset();
     return allowed;
 }
-EI_REPLACE_METHOD(0x005CF3C0, AIAttention::CanReach);
+EI_REWRITTEN(0x005CF3C0, AIAttention::CanReach);
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
     for (int i = 0; i < weapons.size; ++i)
@@ -200,7 +200,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     return radius * radius < LengthSquared2DUnrounded(dx, dy);
 }
 
-EI_REPLACE_METHOD(0x005CF7F0, AIAttention::IsUsable);
+EI_REWRITTEN(0x005CF7F0, AIAttention::IsUsable);
 
 double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
@@ -278,7 +278,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     }
     return result;
 }
-EI_REPLACE_METHOD(0x005CF9A0, AIAttention::Score);
+EI_REWRITTEN(0x005CF9A0, AIAttention::Score);
 
 void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
@@ -387,4 +387,4 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
     partAndObject[1] = current[1];
 }
 
-EI_REPLACE_METHOD(0x005D0030, AIAttention::Choose);
+EI_REWRITTEN(0x005D0030, AIAttention::Choose);

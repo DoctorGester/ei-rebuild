@@ -102,4 +102,4 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     }
     return lines.GetSize();
 }
-EI_REPLACE_METHOD(0x005FDFA0, CUiSurface::DrawWrappedText);
+EI_REWRITTEN(0x005FDFA0, CUiSurface::DrawWrappedText);

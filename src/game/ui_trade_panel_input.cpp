@@ -55,7 +55,7 @@ void CTradePanel::ClampScroll() {
 namespace {
 void __fastcall TradeClampScroll(CTradePanel* self) { self->ClampScroll(); }
 } // namespace
-EI_REPLACE(0x00626D70, TradeClampScroll);
+EI_REWRITTEN(0x00626D70, TradeClampScroll);
 
 // --- 00626920: the left button (input slot 2) --------------------------------------------------------
 

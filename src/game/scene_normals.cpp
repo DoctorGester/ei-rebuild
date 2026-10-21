@@ -110,7 +110,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
     }
     facesOfVertex.FreeData();
 }
-EI_REPLACE(0x0044DCF0, ComputeMeshNormals);
+EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 
 // 0044E3B0 (Ghidra: PlaceMeshes; `unit` is the fake unit, meshes at +0x544): every mesh's
 // positions packed four at a time into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every
@@ -145,7 +145,7 @@ void __fastcall PackMeshPositions(FakeUnitScene* unit) {
         }
     }
 }
-EI_REPLACE(0x0044E3B0, PackMeshPositions);
+EI_REWRITTEN(0x0044E3B0, PackMeshPositions);
 
 namespace {
 // The original's branchless select after FCOMP: `b` when a < b or unordered, else `a`.
@@ -191,6 +191,6 @@ void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     high.y -= centre.y;
     high.z -= centre.z;
 }
-EI_REPLACE(0x0044E8A0, ComputeMeshBounds);
+EI_REWRITTEN(0x0044E8A0, ComputeMeshBounds);
 
 } // namespace scene

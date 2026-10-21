@@ -75,7 +75,7 @@ int ChannelLayout::Split(const void* format) {
     blueShift = shift;
     return 1;
 }
-EI_REPLACE_METHOD(0x004EDAA0, ChannelLayout::Split);
+EI_REWRITTEN(0x004EDAA0, ChannelLayout::Split);
 
 std::uint32_t ChannelLayout::ToNative(std::uint32_t argb) const {
     auto channel = [](std::uint32_t value, std::uint32_t bits, std::uint32_t shift) {

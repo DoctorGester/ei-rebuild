@@ -69,7 +69,7 @@ ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
     if (!dc && !app::FatalErrorCode(-1, "Can't get surface's DC.\n")) return nullptr;   // "Can't get surface's DC"
     return static_cast<ui_gdi::GameDC*>(CdcFromHandle(dc));
 }
-EI_REPLACE(0x005FDC00, UiSurfaceGetDC);
+EI_REWRITTEN(0x005FDC00, UiSurfaceGetDC);
 
 // 005FDC60. Leaves the device lock and releases the DC (nothing for a DC 005FDC00 did not make).
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {

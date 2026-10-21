@@ -103,7 +103,7 @@ bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
     out[kHandRight] = out[kHandLeft];
     return wounded;
 }
-EI_REPLACE_METHOD(0x00536EA0, CUnitClientSpecific::WoundLevels);
+EI_REWRITTEN(0x00536EA0, CUnitClientSpecific::WoundLevels);
 
 int CUnitClientSpecific::ComposeWoundsTexture() {
     int result = 0;
@@ -137,7 +137,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
     }
     return result;
 }
-EI_REPLACE_METHOD(0x005370F0, CUnitClientSpecific::ComposeWoundsTexture);
+EI_REWRITTEN(0x005370F0, CUnitClientSpecific::ComposeWoundsTexture);
 
 void CObject3DClientSpecific::HideWounds() {
     CEngineObject* oldTexture = woundsTexture;
@@ -212,7 +212,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     extra.FreeData();
     return 1;
 }
-EI_REPLACE_METHOD(0x0051C3D0, CObject3DClientSpecific::ShowWounds);
+EI_REWRITTEN(0x0051C3D0, CObject3DClientSpecific::ShowWounds);
 
 // --- The face texture -------------------------------------------------------------------------
 
@@ -242,7 +242,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     blinks = 0;
     return false;
 }
-EI_REPLACE_METHOD(0x00538DB0, CUnitClientSpecific::LoadFaceTexture);
+EI_REWRITTEN(0x00538DB0, CUnitClientSpecific::LoadFaceTexture);
 
 // --- The weapon point -------------------------------------------------------------------------
 
@@ -266,4 +266,4 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     out->z = position.z;
     return true;
 }
-EI_REPLACE_METHOD(0x00535770, CUnitClientSpecific::WeaponPoint);
+EI_REWRITTEN(0x00535770, CUnitClientSpecific::WeaponPoint);

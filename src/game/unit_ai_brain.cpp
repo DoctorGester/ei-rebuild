@@ -119,7 +119,7 @@ void AIBrain::AddMode(AIMode* mode) {
     else modes.head = node;
     modes.tail = node;
 }
-EI_REPLACE_METHOD(0x005D5F60, AIBrain::AddMode);
+EI_REWRITTEN(0x005D5F60, AIBrain::AddMode);
 
 void AIBrain::RemoveModesOfType(int type) {
     for (auto* node = modes.head; node;) {
@@ -128,7 +128,7 @@ void AIBrain::RemoveModesOfType(int type) {
         node = next;
     }
 }
-EI_REPLACE_METHOD(0x005D6140, AIBrain::RemoveModesOfType);
+EI_REWRITTEN(0x005D6140, AIBrain::RemoveModesOfType);
 
 void AIBrain::ClearModes() {
     ReleaseAllModes(modes);
@@ -137,7 +137,7 @@ void AIBrain::ClearModes() {
     nearY = kNearPointCleared;
     decay = 1.0f;
 }
-EI_REPLACE_METHOD(0x005D4DF0, AIBrain::ClearModes);
+EI_REWRITTEN(0x005D4DF0, AIBrain::ClearModes);
 
 void AIBrain::Reset() {
     ReleaseAllModes(modes);
@@ -158,7 +158,7 @@ void AIBrain::Reset() {
         seen = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x005D4E80, AIBrain::Reset);
+EI_REWRITTEN(0x005D4E80, AIBrain::Reset);
 
 void AIBrain::Init() {
     ReleaseAllModes(modes);
@@ -188,7 +188,7 @@ void AIBrain::Init() {
     followTimer = 0;
     previousPosition = Vector3{0.0f, 0.0f, 0.0f};
 }
-EI_REPLACE_METHOD(0x005D4F70, AIBrain::Init);
+EI_REWRITTEN(0x005D4F70, AIBrain::Init);
 
 void AIMemory::Reset() {
     ReleaseAllObjects(nearby);
@@ -204,7 +204,7 @@ void AIMemory::Reset() {
     noticedKind = 0;
 }
 
-EI_REPLACE_METHOD(0x005CB0F0, AIMemory::Reset);
+EI_REWRITTEN(0x005CB0F0, AIMemory::Reset);
 
 // --- Standard mode sets ---------------------------------------------------------------------------
 
@@ -213,14 +213,14 @@ void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
     if (mode) mode->Set(point, radius, wander);
     AddMode(mode);
 }
-EI_REPLACE_METHOD(0x005D6300, AIBrain::AddGuardMode);
+EI_REWRITTEN(0x005D6300, AIBrain::AddGuardMode);
 
 void AIBrain::AddSuspectionMode() {
     auto* mode = NewMode<SuspectionMode>(aimode::kSuspectionVtable);
     if (mode) mode->ClearFields();   // SV7d4: not left as memory held them
     AddMode(mode);
 }
-EI_REPLACE_METHOD(0x005D63B0, AIBrain::AddSuspectionMode);
+EI_REWRITTEN(0x005D63B0, AIBrain::AddSuspectionMode);
 
 void AIBrain::AddAggressionMode() {
     auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
@@ -232,10 +232,10 @@ void AIBrain::AddAggressionMode() {
     }
     AddMode(mode);
 }
-EI_REPLACE_METHOD(0x005D63F0, AIBrain::AddAggressionMode);
+EI_REWRITTEN(0x005D63F0, AIBrain::AddAggressionMode);
 
 void AIBrain::AddCorpseWatcherMode() { AddMode(NewMode<CorpseWatcherMode>(aimode::kCorpseWatcherVtable)); }
-EI_REPLACE_METHOD(0x005D6440, AIBrain::AddCorpseWatcherMode);
+EI_REWRITTEN(0x005D6440, AIBrain::AddCorpseWatcherMode);
 
 FearMode* FearMode::Construct(std::uint8_t newFlag) {
     vtable = aimode::kFearVtable;
@@ -257,14 +257,14 @@ void AIBrain::AddFearMode(std::uint8_t flag) {
     }
     AddMode(mode);
 }
-EI_REPLACE_METHOD(0x005D6480, AIBrain::AddFearMode);
+EI_REWRITTEN(0x005D6480, AIBrain::AddFearMode);
 
 void AIBrain::AddSentryMode(const Vector3* point) {
     auto* mode = NewMode<SentryMode>(aimode::kSentryVtable);
     if (mode) mode->point = *point;
     AddMode(mode);
 }
-EI_REPLACE_METHOD(0x005D65B0, AIBrain::AddSentryMode);
+EI_REWRITTEN(0x005D65B0, AIBrain::AddSentryMode);
 
 namespace {
 // The tail both standard sets share.
@@ -286,14 +286,14 @@ void AIBrain::StandardGuard(const Vector3* point, float radius) {
     AddGuardMode(point, radius, -1.0f);
     AddAlertModes(this);
 }
-EI_REPLACE_METHOD(0x005D6230, AIBrain::StandardGuard);
+EI_REWRITTEN(0x005D6230, AIBrain::StandardGuard);
 
 void AIBrain::StandardSentry(const Vector3* point) {
     ClearModes();
     AddSentryMode(point);
     AddAlertModes(this);
 }
-EI_REPLACE_METHOD(0x005D64E0, AIBrain::StandardSentry);
+EI_REWRITTEN(0x005D64E0, AIBrain::StandardSentry);
 
 // --- Calls for help -------------------------------------------------------------------------------
 
@@ -321,7 +321,7 @@ void AIBrain::CallAllies(const Vector3* point) {
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005D5990, AIBrain::CallAllies);
+EI_REWRITTEN(0x005D5990, AIBrain::CallAllies);
 
 // --- Perception memory ----------------------------------------------------------------------------
 
@@ -368,7 +368,7 @@ int AIMemory::Notice(const Vector3* point, int level, int kind) {
     return changed;
 }
 
-EI_REPLACE_METHOD(0x005CBBE0, AIMemory::Notice);
+EI_REWRITTEN(0x005CBBE0, AIMemory::Notice);
 
 void AIMemory::Forget(CEngineObject* object) {
     AIRef held{nullptr};
@@ -383,7 +383,7 @@ void AIMemory::Forget(CEngineObject* object) {
     held.Reset();
 }
 
-EI_REPLACE_METHOD(0x005CC020, AIMemory::Forget);
+EI_REWRITTEN(0x005CC020, AIMemory::Forget);
 
 
 void AICallRecord::Destruct() { text.~CString(); }
@@ -404,7 +404,7 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
 }
 
 // 005CDD60 (RET 8): SetSize. 005CD880 (RET 4): Add, returning the new index.
-EI_REPLACE_METHOD(0x00558D00, AICallRecord::Destruct);
+EI_REWRITTEN(0x00558D00, AICallRecord::Destruct);
 
 void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
     std::memset(static_cast<void*>(reports), 0, sizeof(AIReport) * static_cast<unsigned>(count));
@@ -455,7 +455,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         --i;
     }
 }
-EI_REPLACE_METHOD(0x005CC9D0, AIHeardCalls::Update);
+EI_REWRITTEN(0x005CC9D0, AIHeardCalls::Update);
 
 void AIMemory::Update(CUnitServer* who) {
     for (int i = 0; i < reports.size; ++i) {
@@ -475,7 +475,7 @@ void AIMemory::Update(CUnitServer* who) {
     noticedLevel += noticedKind;
 }
 
-EI_REPLACE_METHOD(0x005CB700, AIMemory::Update);
+EI_REWRITTEN(0x005CB700, AIMemory::Update);
 
 int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
     auto* unit = static_cast<CUnit*>(other);
@@ -504,7 +504,7 @@ void AIReports::Report(CEngineObject* object, int what) {
     entry.what = what;
     object->Release();
 }
-EI_REPLACE_METHOD(0x005CC620, AIReports::Report);
+EI_REWRITTEN(0x005CC620, AIReports::Report);
 
 bool AIReports::Contains(CEngineObject* object) const {
     for (int i = 0; i < size; ++i)
@@ -645,7 +645,7 @@ void AIBrain::Load(CStream* stream) {
     if (stream->version_ < 0x71) return;
     stream->Read(&alarmSlot, 1);
 }
-EI_REPLACE_METHOD(0x005D8310, AIBrain::Load);
+EI_REWRITTEN(0x005D8310, AIBrain::Load);
 
 void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, action);

@@ -73,14 +73,14 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
 }
 
 void CTorchObjectClientSpec::DestructClient() { this->CTorchObjectClientSpec::~CTorchObjectClientSpec(); }
-EI_REPLACE_METHOD(0x0052D1D0, CTorchObjectClientSpec::DestructClient);
+EI_REWRITTEN(0x0052D1D0, CTorchObjectClientSpec::DestructClient);
 
 CTorchObjectClientSpec* CTorchObjectClientSpec::DeleteClient(unsigned flags) {
     this->CTorchObjectClientSpec::~CTorchObjectClientSpec();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0052D1B0, CTorchObjectClientSpec::DeleteClient);
+EI_REWRITTEN(0x0052D1B0, CTorchObjectClientSpec::DeleteClient);
 
 int CTorchObjectClientSpec::CreateClient() {
     CreateSpec();
@@ -122,7 +122,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     const float far = values_[1] * kShowFarFactor;
     sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
 }
-EI_REPLACE_METHOD(0x0052D580, CTorchObjectClientSpec::ShowEffects);
+EI_REWRITTEN(0x0052D580, CTorchObjectClientSpec::ShowEffects);
 
 void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
@@ -194,7 +194,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
     const float far = values_[1] * kSetFarFactor;
     sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->position.x, kSoundNear, far, 1, 0);
 }
-EI_REPLACE_METHOD(0x0052D520, CTorchObjectClientSpec::SetSound);
+EI_REWRITTEN(0x0052D520, CTorchObjectClientSpec::SetSound);
 
 // Slots 6, 11 and 12 (0052D180 / 0052D190 / 0052D1A0): the update returns 1, the class name and id.
 namespace {

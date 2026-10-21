@@ -88,7 +88,7 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     name_ = entriesBegin_[selected].title_;
     cursor_ = name_.GetLength();
 }
-EI_REPLACE_METHOD(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
+EI_REWRITTEN(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
 
 void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
     if (sliding_) return;
@@ -373,7 +373,7 @@ void COptionsWindow::DestroyOptions() {
     bindings_.FreeStorage();
     DestroyContainerBody(this);   // 00600BA0 by address: its wrapper runs
 }
-EI_REPLACE_METHOD(0x0062B180, COptionsWindow::DestroyOptions);
+EI_REWRITTEN(0x0062B180, COptionsWindow::DestroyOptions);
 
 // --- Scroll bar --------------------------------------------------------------------------------
 

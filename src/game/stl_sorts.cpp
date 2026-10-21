@@ -171,15 +171,15 @@ void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last) { NameSor
 EI_REPLACE(0x00573740, ScreenIntroSort);
 EI_REPLACE(0x00575BC0, ScreenInsertionSort);
 EI_REPLACE(0x00576D40, ScreenUnguardedInsertionSort);
-EI_REPLACE(0x0061EF60, ServerIntroSort);
-EI_REPLACE(0x0061F6F0, ServerInsertionSort);
-EI_REPLACE(0x0061FB00, ServerUnguardedInsertionSort);
-EI_REPLACE(0x0064F310, QuestIntroSort);
-EI_REPLACE(0x0064F9A0, QuestInsertionSort);
-EI_REPLACE(0x0064FBD0, QuestUnguardedInsertionSort);
-EI_REPLACE(0x0060B330, TopicIntroSort);   // S12f
-EI_REPLACE(0x0060B440, TopicFinalSort);
-EI_REPLACE(0x0061A240, NameIntroSort);
-EI_REPLACE(0x0061A300, NameFinalSort);
+EI_REWRITTEN(0x0061EF60, ServerIntroSort);
+EI_REWRITTEN(0x0061F6F0, ServerInsertionSort);
+EI_REWRITTEN(0x0061FB00, ServerUnguardedInsertionSort);
+EI_REWRITTEN(0x0064F310, QuestIntroSort);
+EI_REWRITTEN(0x0064F9A0, QuestInsertionSort);
+EI_REWRITTEN(0x0064FBD0, QuestUnguardedInsertionSort);
+EI_REWRITTEN(0x0060B330, TopicIntroSort);   // S12f
+EI_REWRITTEN(0x0060B440, TopicFinalSort);
+EI_REWRITTEN(0x0061A240, NameIntroSort);
+EI_REWRITTEN(0x0061A300, NameFinalSort);
 
 } // namespace stl_sorts

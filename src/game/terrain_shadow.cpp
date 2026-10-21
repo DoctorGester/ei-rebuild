@@ -132,4 +132,4 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
-EI_REPLACE_METHOD(0x006CB020, Terrain::EdgeFade);
+EI_REWRITTEN(0x006CB020, Terrain::EdgeFade);

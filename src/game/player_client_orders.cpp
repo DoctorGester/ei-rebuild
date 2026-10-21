@@ -245,4 +245,4 @@ int CPlayerClient::SendResume() {
 
 EI_REPLACE_METHOD(0x0066ACD0, CPlayerClient::SendCastAtPoint);
 EI_REPLACE_METHOD(0x0066ADD0, CPlayerClient::SendItemAtPoint);
-EI_REPLACE_METHOD(0x0066B080, CPlayerClient::SendPartyUpdate);
+EI_REWRITTEN(0x0066B080, CPlayerClient::SendPartyUpdate);

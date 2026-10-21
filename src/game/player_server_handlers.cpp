@@ -280,8 +280,8 @@ int CPlayerServer::OnUseOrder() {
 }
 
 EI_REPLACE_METHOD(0x0066F4C0, CPlayerServer::OnLeaderDied);
-EI_REPLACE_METHOD(0x006706A0, AIPath::Construct);
-EI_REPLACE_METHOD(0x00670730, AIPath::TargetPoint);
+EI_REWRITTEN(0x006706A0, AIPath::Construct);
+EI_REWRITTEN(0x00670730, AIPath::TargetPoint);
 EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
 // --- A-H14: zone changes, joining, party blocks, the walk / attack orders -----------------------------
@@ -390,7 +390,7 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
         offsets->data[i] = Vector3{dx, dy, 0.0f};
     }
 }
-EI_REPLACE(0x0066FD70, FormationOffsets);
+EI_REWRITTEN(0x0066FD70, FormationOffsets);
 
 void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (state_ != 1) return;
@@ -425,7 +425,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     out_.Write(&entrance, 4);
     Flush();
 }
-EI_REPLACE_METHOD(0x0066F310, CPlayerServer::LeaveToZone);
+EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
 // 0066D020 (slot 16; A-H15).
 void CPlayerServer::Leave() {
@@ -652,7 +652,7 @@ void CPlayerServer::SendPartyUpdate() {
     out_.Write(&type, 1);
     out_.WriteSized(block.Get());
 }
-EI_REPLACE_METHOD(0x0066F0C0, CPlayerServer::SendPartyUpdate);
+EI_REWRITTEN(0x0066F0C0, CPlayerServer::SendPartyUpdate);
 
 void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
@@ -663,7 +663,7 @@ void CPlayerServer::ResendParty() {
     SendParty();
     TheServerWorld()->ClearPlayerItems(worldPlayer);
 }
-EI_REPLACE_METHOD(0x0066F450, CPlayerServer::ResendParty);
+EI_REWRITTEN(0x0066F450, CPlayerServer::ResendParty);
 
 void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     std::uint8_t type = kMessage19;

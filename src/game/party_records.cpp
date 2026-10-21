@@ -90,7 +90,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     *reinterpret_cast<int*>(party + 0x6C) = 0;
     reinterpret_cast<NamedFloatTable*>(party + 0x54)->Set(kGameTime, std::bit_cast<float>(kSix));
 }
-EI_REPLACE(0x004A5BD0, PartyRecordsReset);
+EI_REWRITTEN(0x004A5BD0, PartyRecordsReset);
 
 CParty* NamedPartyRecords::Find(const char* name) const {
     CParty* unnamed = nullptr;
@@ -117,7 +117,7 @@ void NamedPartyRecords::Add(const char* name) {
     }
     Release(temp);
 }
-EI_REPLACE_METHOD(0x004A5E90, NamedPartyRecords::Add);
+EI_REWRITTEN(0x004A5E90, NamedPartyRecords::Add);
 
 void NamedPartyRecords::Remove(const char* name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.Finish() - records.Start()); ++i) {
@@ -175,7 +175,7 @@ void __fastcall PartyManagerNewGameFour(void* manager) {
     PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
     reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38))->Build(1);
 }
-EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);
+EI_REWRITTEN(0x004A88C0, PartyManagerNewGameFour);
 
 void PartyManager::BeginRedeploy(void* players) { records.BeginRedeploy(static_cast<CParty*>(players)); }
 
@@ -198,7 +198,7 @@ bool PartyManager::LoadParty(int, int, const int* key, void* target) const {
     static_cast<CParty*>(target)->Assign(static_cast<CParty*>(NodeValue(node)));
     return true;
 }
-EI_REPLACE_METHOD(0x004A8790, PartyManager::LoadParty);
+EI_REWRITTEN(0x004A8790, PartyManager::LoadParty);
 
 bool PartyManager::StoreParty(const int* key, const void* source) {
     void* map = this;
@@ -209,4 +209,4 @@ bool PartyManager::StoreParty(const int* key, const void* source) {
     static_cast<CParty*>(value)->Assign(static_cast<CParty*>(const_cast<void*>(source)));
     return true;
 }
-EI_REPLACE_METHOD(0x004A8800, PartyManager::StoreParty);
+EI_REWRITTEN(0x004A8800, PartyManager::StoreParty);

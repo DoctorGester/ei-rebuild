@@ -101,7 +101,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x006477E0, CHudUnitPanel::ShowHealth);
+EI_REWRITTEN(0x006477E0, CHudUnitPanel::ShowHealth);
 
 void CHudUnitPanel::ShowParts(CUnit* unit) {
     // Label positions of the six parts (00742434 / 0074244C).
@@ -136,7 +136,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
                       part.state == 1 ? kRed : kTextColour, 1, 1);
     }
 }
-EI_REPLACE_METHOD(0x00647B70, CHudUnitPanel::ShowParts);
+EI_REWRITTEN(0x00647B70, CHudUnitPanel::ShowParts);
 
 // --- Movement panel ------------------------------------------------------------------------------
 
@@ -161,7 +161,7 @@ void CHudMovePanel::ToggleFlag() {
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
     Sprite(this, 5)->textureOffsetU_ = value == 0 ? 0.3359375f : 0.0f;
 }
-EI_REPLACE_METHOD(0x00649810, CHudMovePanel::ToggleFlag);
+EI_REWRITTEN(0x00649810, CHudMovePanel::ToggleFlag);
 
 // --- Unit panel: the effects on the unit (00646B90) -----------------------------------------------
 
@@ -240,7 +240,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         icon->textureOffsetV_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
     }
 }
-EI_REPLACE_METHOD(0x00646B90, CHudUnitPanel::ShowEffects);
+EI_REWRITTEN(0x00646B90, CHudUnitPanel::ShowEffects);
 
 // --- Unit panel: the body part buttons (006481D0) -------------------------------------------------
 
@@ -255,7 +255,7 @@ void CHudUnitPanel::ShowBodyPart() {
         button->tint_[2] = tint;
     }
 }
-EI_REPLACE_METHOD(0x006481D0, CHudUnitPanel::ShowBodyPart);
+EI_REWRITTEN(0x006481D0, CHudUnitPanel::ShowBodyPart);
 
 // --- Top panel -----------------------------------------------------------------------------------
 
@@ -277,7 +277,7 @@ void CHudTopPanel::ShowPage() {
         log->CallSetPosition(0);
     }
 }
-EI_REPLACE_METHOD(0x0064A320, CHudTopPanel::ShowPage);
+EI_REWRITTEN(0x0064A320, CHudTopPanel::ShowPage);
 
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
@@ -344,4 +344,4 @@ void CHudTopPanel::Layout() {
         regions_.data[i]->offsetY_ = -offset_;
     }
 }
-EI_REPLACE_METHOD(0x00649E20, CHudTopPanel::Layout);
+EI_REWRITTEN(0x00649E20, CHudTopPanel::Layout);

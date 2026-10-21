@@ -121,7 +121,7 @@ int Connection::Silent() const {
     float limit = roundTrip_ * factor;
     return limit >= idleTime_ ? 0 : 1;   // a NaN is silent
 }
-EI_REPLACE_METHOD(0x00433B10, Connection::Silent);
+EI_REWRITTEN(0x00433B10, Connection::Silent);
 
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
@@ -180,7 +180,7 @@ void Connection::QueueHeader(int budget) {
     if (head->next == best) return;
     Chunks::SpliceRange(headers_.First(), best, best->next);   // 00438770
 }
-EI_REPLACE_METHOD(0x00434990, Connection::QueueHeader);
+EI_REWRITTEN(0x00434990, Connection::QueueHeader);
 
 void Connection::RollBack(SentPacket* packet) {
     if (packet->rolledBack) return;
@@ -331,7 +331,7 @@ bool Connection::SendUpdate(int budget) {
     Packets::Erase<PacketRecordElement>(history_.End()->prev);   // 00437F30
     return false;
 }
-EI_REPLACE_METHOD(0x00435A00, Connection::SendUpdate);
+EI_REWRITTEN(0x00435A00, Connection::SendUpdate);
 
 bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     std::uint32_t created = cursor->GetBit();
@@ -414,7 +414,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     found->second.version = version;
     return true;
 }
-EI_REPLACE_METHOD(0x00435F30, Connection::ReadRecord);
+EI_REWRITTEN(0x00435F30, Connection::ReadRecord);
 
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
@@ -478,7 +478,7 @@ void Connection::Track(Replicated* item) {
     std::uint8_t reliable = CurrentSession()->reliable_[type];
     entry->flags_ = static_cast<std::uint8_t>(((reliable ^ entry->flags_) & 1) ^ entry->flags_);
 }
-EI_REPLACE_METHOD(0x00434110, Connection::Track);
+EI_REWRITTEN(0x00434110, Connection::Track);
 
 void Connection::CollectChanges() {
     ReplicatedVector& items = StaticReplicated();
@@ -548,7 +548,7 @@ void Connection::CollectChanges() {
         trees::Objects::EraseAt(&byObject_, nullptr, gone);
     }
 }
-EI_REPLACE_METHOD(0x004346D0, Connection::CollectChanges);
+EI_REWRITTEN(0x004346D0, Connection::CollectChanges);
 
 } // namespace net
 
@@ -667,7 +667,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;
 }
-EI_REPLACE_METHOD(0x00435820, Connection::ReadObjectRef);
+EI_REWRITTEN(0x00435820, Connection::ReadObjectRef);
 
 } // namespace net
 
@@ -689,7 +689,7 @@ void Connection::Acknowledge(std::uint16_t sequence) {
         }
     }
 }
-EI_REPLACE_METHOD(0x00434CE0, Connection::Acknowledge);
+EI_REWRITTEN(0x00434CE0, Connection::Acknowledge);
 
 // ackMask_ shifts along when the peer's newest acknowledged sequence moves.
 void Connection::ReadAcks(BufferCursor* cursor) {
@@ -749,7 +749,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     return true;
 }
-EI_REPLACE_METHOD(0x00434E50, Connection::Accept);
+EI_REWRITTEN(0x00434E50, Connection::Accept);
 
 void Connection::ProcessHeaders() {
     bool progress;
@@ -781,7 +781,7 @@ void Connection::ProcessHeaders() {
         } while (node != incoming_.End());
     } while (progress);
 }
-EI_REPLACE_METHOD(0x00434AE0, Connection::ProcessHeaders);
+EI_REWRITTEN(0x00434AE0, Connection::ProcessHeaders);
 
 bool Connection::ReadUpdate(BufferCursor* cursor) {
     CurrentConnection() = this;

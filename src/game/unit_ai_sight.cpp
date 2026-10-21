@@ -84,7 +84,7 @@ void AIViewer::Prepare(CUnit* self) {
     facing = -axis;
 }
 
-EI_REPLACE_METHOD(0x005CA410, AIViewer::Prepare);
+EI_REWRITTEN(0x005CA410, AIViewer::Prepare);
 
 void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
@@ -118,7 +118,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     }
 }
 
-EI_REPLACE_METHOD(0x005CA1D0, AIViewer::Refresh);
+EI_REWRITTEN(0x005CA1D0, AIViewer::Refresh);
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = ControllerOf(self);
@@ -188,7 +188,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     }
 }
 
-EI_REPLACE_METHOD(0x005CA5A0, AIViewer::See);
+EI_REWRITTEN(0x005CA5A0, AIViewer::See);
 
 void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
@@ -240,7 +240,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     See(self, memory);
 }
 
-EI_REPLACE_METHOD(0x005CAA00, AIViewer::Update);
+EI_REWRITTEN(0x005CAA00, AIViewer::Update);
 
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
     Vector3 axis;
@@ -269,4 +269,4 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     float peripheral = mine->stats.peripheralRange;
     if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
 }
-EI_REPLACE(0x005CD210, MarkSightCells);
+EI_REWRITTEN(0x005CD210, MarkSightCells);

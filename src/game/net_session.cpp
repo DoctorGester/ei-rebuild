@@ -39,6 +39,6 @@ void __cdecl Pump() {
     TickSession(GameClient(), elapsed);
     TheGameFlow()->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
 }
-EI_REPLACE(0x004122D0, Pump);
+EI_REWRITTEN(0x004122D0, Pump);
 
 } // namespace net

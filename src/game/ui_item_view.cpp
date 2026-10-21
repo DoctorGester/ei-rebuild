@@ -376,7 +376,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(shade));
     }
 }
-EI_REPLACE_METHOD(0x005ECA10, CItemScreen::DrawItem);
+EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
 // --- 005EE5C0: the description panel's slot 20 --------------------------------------------------------
 
@@ -559,7 +559,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     VirtualCall(manager, 22);
     return texture;
 }
-EI_REPLACE(0x005EC020, ItemFigureTexture);
+EI_REWRITTEN(0x005EC020, ItemFigureTexture);
 
 // --- 005FFFB0: an image into part of a texture ------------------------------------------------------
 
@@ -615,4 +615,4 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     return image != nullptr;
 }
 
-EI_REPLACE_METHOD(0x005FFFB0, CUiWindow::CopyImage);
+EI_REWRITTEN(0x005FFFB0, CUiWindow::CopyImage);

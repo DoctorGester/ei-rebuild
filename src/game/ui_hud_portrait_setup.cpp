@@ -268,7 +268,7 @@ void CHudPortraits::Rebuild(int wide) {
     }
 }
 
-EI_REPLACE_METHOD(0x00640670, CHudPortraits::ShowFace);
+EI_REWRITTEN(0x00640670, CHudPortraits::ShowFace);
 EI_REPLACE_METHOD(0x00640060, CHudPortraits::AddPortrait);
 EI_REPLACE_METHOD(0x006407E0, CHudPortraits::Rebuild);
 // EI_Plugin.asi patches both in a Rebirth launch: NPlayers' row length in AddPortrait (00640069; the sites

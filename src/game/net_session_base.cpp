@@ -50,13 +50,13 @@ void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
-EI_REPLACE_METHOD(0x0042A890, TypeRegistry::Register);
+EI_REWRITTEN(0x0042A890, TypeRegistry::Register);
 
 Message* TypeRegistry::Create(std::uint32_t type) {
     MessageFactory factory = byType.FindOrInsert({type, nullptr})->value;
     return factory ? factory() : nullptr;
 }
-EI_REPLACE_METHOD(0x00438930, TypeRegistry::Create);
+EI_REWRITTEN(0x00438930, TypeRegistry::Create);
 
 SessionBase* SessionBase::Construct() {
     ei::SetVtable(this, CRefCounted::kVtableAddress);
@@ -82,7 +82,7 @@ SessionBase* SessionBase::Construct() {
     idReuseTime_ = 0x4B;
     return this;
 }
-EI_REPLACE_METHOD(0x00436770, SessionBase::Construct);
+EI_REWRITTEN(0x00436770, SessionBase::Construct);
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;
@@ -94,7 +94,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (v.end()) *v.Finish() = handler;
     ++v.Finish();
 }
-EI_REPLACE_METHOD(0x004377D0, SessionBase::AddHandler);
+EI_REWRITTEN(0x004377D0, SessionBase::AddHandler);
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* handler) {
     RefPtr ref;
@@ -117,7 +117,7 @@ void SessionBase::RegisterMessageTypes() {
         types_.Register(type, kFactories[type - 1]);
     }
 }
-EI_REPLACE_METHOD(0x004142F0, SessionBase::RegisterMessageTypes);
+EI_REWRITTEN(0x004142F0, SessionBase::RegisterMessageTypes);
 
 ClientNode* SessionBase::ClientAt(const NetAddress* address) {
     ClientNode* found;

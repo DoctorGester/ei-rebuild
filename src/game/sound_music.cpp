@@ -142,7 +142,7 @@ int CMusicSystem::LoadThemes() {
     reg.Destroy();
     return 1;
 }
-EI_REPLACE_METHOD(0x006B4710, CMusicSystem::LoadThemes);
+EI_REWRITTEN(0x006B4710, CMusicSystem::LoadThemes);
 
 // 006B4E30. Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
@@ -166,7 +166,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     mfc::CString full = message + "\"";
     game::FatalError(static_cast<const char*>(full));
 }
-EI_REPLACE_METHOD(0x006B4E30, CMusicSystem::SetZoneMode);
+EI_REWRITTEN(0x006B4E30, CMusicSystem::SetZoneMode);
 
 // 006B4F70.
 void CMusicSystem::Stop() {
@@ -197,7 +197,7 @@ void CMusicSystem::PlayBriefing(const char* allod) {
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
-EI_REPLACE_METHOD(0x006B4F90, CMusicSystem::PlayBriefing);
+EI_REWRITTEN(0x006B4F90, CMusicSystem::PlayBriefing);
 
 // 006B5080.
 void CMusicSystem::PlayConstructor(const char* allod) {
@@ -205,7 +205,7 @@ void CMusicSystem::PlayConstructor(const char* allod) {
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
 }
-EI_REPLACE_METHOD(0x006B5080, CMusicSystem::PlayConstructor);
+EI_REWRITTEN(0x006B5080, CMusicSystem::PlayConstructor);
 
 // 006B5170.
 void CMusicSystem::PlayCredits() {
@@ -214,7 +214,7 @@ void CMusicSystem::PlayCredits() {
     mfc::CString path = credits + kMp3;
     TheSoundManager()->RequestStream(path, 4);
 }
-EI_REPLACE_METHOD(0x006B5170, CMusicSystem::PlayCredits);
+EI_REWRITTEN(0x006B5170, CMusicSystem::PlayCredits);
 
 // 006B51F0.
 void CMusicSystem::PlayMainMenu() {
@@ -223,7 +223,7 @@ void CMusicSystem::PlayMainMenu() {
     mfc::CString path = mainMenu + kMp3;
     TheSoundManager()->RequestStream(path, 4);
 }
-EI_REPLACE_METHOD(0x006B51F0, CMusicSystem::PlayMainMenu);
+EI_REWRITTEN(0x006B51F0, CMusicSystem::PlayMainMenu);
 
 // 006B5270. A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
 // waits until it has finished.
@@ -238,7 +238,7 @@ void CMusicSystem::PlayJingle(const char* name) {
     WaitAndEndAfter(TheSoundManager());
     jinglePlaying = 1;
 }
-EI_REPLACE_METHOD(0x006B5270, CMusicSystem::PlayJingle);
+EI_REWRITTEN(0x006B5270, CMusicSystem::PlayJingle);
 
 // 006B5350 (vtable slot 6, every world frame). Always 1.
 int CMusicSystem::UpdateMusic() {
@@ -288,7 +288,7 @@ int CMusicSystem::UpdateMusic() {
     inCombat = fighting;
     return 1;
 }
-EI_REPLACE_METHOD(0x006B5350, CMusicSystem::UpdateMusic);
+EI_REWRITTEN(0x006B5350, CMusicSystem::UpdateMusic);
 
 // ---- Lifetime and the engine object's slots (A-H13) ----
 
@@ -326,7 +326,7 @@ void CMusicSystem::ResetThemes() {
     holding = 0;
     combatTrack = game::NoneText();
 }
-EI_REPLACE_METHOD(0x006B4690, CMusicSystem::ResetThemes);
+EI_REWRITTEN(0x006B4690, CMusicSystem::ResetThemes);
 
 // The strings go after the body (jingle, combatTrack, mainMenu, credits: the original's order
 // before its theme array's destructor).
@@ -336,14 +336,14 @@ CMusicSystem::~CMusicSystem() {
 }
 
 void CMusicSystem::DestructBody() { this->CMusicSystem::~CMusicSystem(); }
-EI_REPLACE_METHOD(0x006B44B0, CMusicSystem::DestructBody);
+EI_REWRITTEN(0x006B44B0, CMusicSystem::DestructBody);
 
 CMusicSystem* CMusicSystem::DeletingDestruct(unsigned flags) {
     this->CMusicSystem::~CMusicSystem();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006B4490, CMusicSystem::DeletingDestruct);
+EI_REWRITTEN(0x006B4490, CMusicSystem::DeletingDestruct);
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
@@ -356,7 +356,7 @@ void MusicTheme::Assign(const MusicTheme* from) {
     calm.Copy(from->calm);
     combat.Copy(from->combat);
 }
-EI_REPLACE_METHOD(0x006B4D40, MusicTheme::Assign);
+EI_REWRITTEN(0x006B4D40, MusicTheme::Assign);
 
 // 006B4470 / 006B4480: slots 11 and 12.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }

@@ -834,7 +834,7 @@ void CParticleSource::Reset() {
     SetBits(&turnSin, 0);
     emitSpacing = 1000.0f;
 }
-EI_REPLACE_METHOD(0x004847E0, CParticleSource::Reset);
+EI_REWRITTEN(0x004847E0, CParticleSource::Reset);
 
 // 00484710 (vtable slot 3). Returns every particle to the pool, releases the texture, detaches
 // from the object the source follows, then resets.
@@ -929,7 +929,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     s->type_ = type;
     return s;
 }
-EI_REPLACE(0x004981B0, NewParticleSource);
+EI_REWRITTEN(0x004981B0, NewParticleSource);
 
 CEngineObject* CParticleManager::NewObject(int type) {
     return reinterpret_cast<CEngineObject*>(NewParticleSource(this, nullptr, type));
@@ -954,7 +954,7 @@ void CParticleSource::Destruct() {
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);
+EI_REWRITTEN(0x00498310, CParticleSource::Destruct);
 
 // 004982F0 (slot 0, RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
 CParticleSource* CParticleSource::DeletingDestruct(int flags) {

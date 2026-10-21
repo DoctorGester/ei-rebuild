@@ -67,7 +67,7 @@ void CUiItemStrip::Setup(UiPtrArray<char>* source, char top) {
     slots_ = 9;
     source_ = source;
 }
-EI_REPLACE_METHOD(0x00621160, CUiItemStrip::Setup);
+EI_REWRITTEN(0x00621160, CUiItemStrip::Setup);
 
 void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTips) {
     figures_ = names;

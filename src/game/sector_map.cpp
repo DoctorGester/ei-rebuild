@@ -32,7 +32,7 @@ void Sector::Clear() {
     objects.RemoveAll();
     units.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005BFE00, Sector::Clear);
+EI_REWRITTEN(0x005BFE00, Sector::Clear);
 
 int Sector::NewOccluder() {
     if (freeOccluder >= 0) {
@@ -43,7 +43,7 @@ int Sector::NewOccluder() {
     occluders.SetSize(occluders.size + 1, -1);
     return occluders.size - 1;
 }
-EI_REPLACE_METHOD(0x005BFE70, Sector::NewOccluder);
+EI_REWRITTEN(0x005BFE70, Sector::NewOccluder);
 
 int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transparency) {
     std::int16_t first = static_cast<std::int16_t>(head);
@@ -79,7 +79,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
         sectors->Clear();
     }
 }
-EI_REPLACE(0x0059DF90, ConstructSectors);
+EI_REWRITTEN(0x0059DF90, ConstructSectors);
 
 void SectorElements::Construct(Sector* sectors, int count) { ConstructSectors(sectors, count); }
 
@@ -90,7 +90,7 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     sectors.SetSize(width * height, -1);
     aiMap = map;
 }
-EI_REPLACE_METHOD(0x005C06F0, CSectorMap::Init);
+EI_REWRITTEN(0x005C06F0, CSectorMap::Init);
 
 void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
     sectors->vtable = ei::GamePointer<void>(kSectorArrayVtable);
@@ -98,13 +98,13 @@ void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>*
     SectorElements::Destruct(sectors->data, sectors->size);
     gamecrt::operator_delete(sectors->data);
 }
-EI_REPLACE(0x00599330, CSectorMap::DestructSectors);
+EI_REWRITTEN(0x00599330, CSectorMap::DestructSectors);
 
 void CSectorMap::DestructBody() {
     vtable = ei::GamePointer<void>(kVtableAddress);
     DestructSectors(&sectors);
 }
-EI_REPLACE_METHOD(0x0058A700, CSectorMap::DestructBody);
+EI_REWRITTEN(0x0058A700, CSectorMap::DestructBody);
 
 CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -213,7 +213,7 @@ void RadiusTree::Build(const float* values, int count) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005BF5F0, RadiusTree::Build);
+EI_REWRITTEN(0x005BF5F0, RadiusTree::Build);
 
 // ---- The spiral's tables ------------------------------------------------------------------------
 //
@@ -327,7 +327,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
         }
     }
 }
-EI_REPLACE_METHOD(0x005C0BD0, CSectorMap::FindUnitsInRadius);
+EI_REWRITTEN(0x005C0BD0, CSectorMap::FindUnitsInRadius);
 
 bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
     // Rebirth's FixMoveObject runs before the original: no move to a negative (or NaN) x or y.

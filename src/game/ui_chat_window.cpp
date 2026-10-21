@@ -149,7 +149,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     ++portraits_;
     AddRegion()->CallSetRect(left, 0, right, 0x50);
 }
-EI_REPLACE_METHOD(0x00608F90, CChatWindow::AddPortrait);
+EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 
 // --- 006091C0: the players' faces ---------------------------------------------------------------
 

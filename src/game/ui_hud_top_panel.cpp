@@ -84,7 +84,7 @@ void CHudTopPanel::Build(int page, int shown) {
     ShowPage();
     Layout();
 }
-EI_REPLACE_METHOD(0x00649AF0, CHudTopPanel::Build);
+EI_REWRITTEN(0x00649AF0, CHudTopPanel::Build);
 
 void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     mfc::CString name;
@@ -101,7 +101,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     PageText(0) += name;
     if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(name);
 }
-EI_REPLACE_METHOD(0x0064A4E0, CHudTopPanel::AddPickedUp);
+EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
 void CHudTopPanel::AddMoney(int money) {
     if (money <= 0) return;
@@ -119,4 +119,4 @@ void CHudTopPanel::AddMoney(int money) {
     PageText(0) += text;
     if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(text);
 }
-EI_REPLACE_METHOD(0x0064A630, CHudTopPanel::AddMoney);
+EI_REWRITTEN(0x0064A630, CHudTopPanel::AddMoney);

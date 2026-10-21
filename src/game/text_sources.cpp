@@ -126,7 +126,7 @@ EI_REPLACE_METHOD(0x004DEC40, TextSources::ListKeys);
 void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
     TextSourcesListKeysOriginal(&sources_, nullptr, out, pattern);
 }
-EI_REPLACE_METHOD(0x004DEFA0, CTextManager::ListKeys);
+EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
@@ -137,10 +137,10 @@ int CTextManager::Create() {
 }
 EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);
 
-EI_REPLACE_METHOD(0x004DE930, TextSources::Add);
-EI_REPLACE_METHOD(0x004DEB60, TextSources::Clear);
-EI_REPLACE_METHOD(0x005628E0, TextSources::DestructList);
+EI_REWRITTEN(0x004DE930, TextSources::Add);
+EI_REWRITTEN(0x004DEB60, TextSources::Clear);
+EI_REWRITTEN(0x005628E0, TextSources::DestructList);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
 EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);
-EI_REPLACE_METHOD(0x005629B0, CTextManager::Destruct);
+EI_REWRITTEN(0x005629B0, CTextManager::Destruct);
 EI_REPLACE_METHOD(0x00562990, CTextManager::DeletingDestruct);

@@ -213,7 +213,7 @@ void ClientSession::StartParty(CRefObject* partner) {
     AssignRef(&static_cast<PartyMessage*>(party_.ptr)->player_, static_cast<BindingMessage*>(binding_)->PlayerRef().ptr);
     AssignRef(&static_cast<PartyMessage*>(party_.ptr)->partner_, partner);
 }
-EI_REPLACE_METHOD(0x0041E270, ClientSession::StartParty);
+EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 
 // 0041E3E0: drops the party description.
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }

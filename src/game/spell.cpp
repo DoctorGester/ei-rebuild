@@ -176,7 +176,7 @@ BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00683950, CSpellEffect::GetDamage);
+EI_REWRITTEN(0x00683950, CSpellEffect::GetDamage);
 
 float CLight::GetIntensityAt(const Vector3* point) {
     if (type_ != kPointLight) {
@@ -193,7 +193,7 @@ float CLight::GetIntensityAt(const Vector3* point) {
     }
     return kZero;
 }
-EI_REPLACE_METHOD(0x0068D730, CLight::GetIntensityAt);
+EI_REWRITTEN(0x0068D730, CLight::GetIntensityAt);
 
 void CLight::SetLitColors(const float* source, float scale) {
     // source is a byte layout: colours at +0x20 and +0x40 (float indices 8 and 16).

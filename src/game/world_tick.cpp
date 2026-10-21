@@ -312,6 +312,6 @@ void CWorldServer::TickSleepingEffects() {
     });
 }
 
-EI_REPLACE_METHOD(0x0058DCD0, CWorldServer::Tick);
-EI_REPLACE_METHOD(0x0058D3D0, CWorldServer::WakeUnitsAround);
+EI_REWRITTEN(0x0058DCD0, CWorldServer::Tick);
+EI_REWRITTEN(0x0058D3D0, CWorldServer::WakeUnitsAround);
 EI_REPLACE_METHOD(0x0058D670, CWorldServer::UpdateUnits);

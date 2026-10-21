@@ -169,7 +169,7 @@ bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplo
     } while (root->size_ != root->consumed_);
     return flag;
 }
-EI_REPLACE(0x00481F00, ReadMobChunks);
+EI_REWRITTEN(0x00481F00, ReadMobChunks);
 
 bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
     MobRecords records;
@@ -219,6 +219,6 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
     records.byId.Destroy();
     return true;
 }
-EI_REPLACE(0x00481660, LoadMobFile);
+EI_REWRITTEN(0x00481660, LoadMobFile);
 
 } // namespace mapspec

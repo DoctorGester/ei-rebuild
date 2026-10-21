@@ -43,7 +43,7 @@ void CUiSpin::DestroyBody() {
     texts_.Destruct();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0065BE10, CUiSpin::DestroyBody);
+EI_REWRITTEN(0x0065BE10, CUiSpin::DestroyBody);
 
 void CUiEditField::DestroyBody() {
     vtable_ = ei::GamePointer<void*>(kEditFieldVtable);
@@ -51,7 +51,7 @@ void CUiEditField::DestroyBody() {
     Text().~CString();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0065C140, CUiEditField::DestroyBody);
+EI_REWRITTEN(0x0065C140, CUiEditField::DestroyBody);
 
 // --- Deleting destructors (slot 0) ----------------------------------------------------------------
 

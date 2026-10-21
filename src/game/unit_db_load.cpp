@@ -78,7 +78,7 @@ UnitModelRecord* UnitModelTable::FindByName(const char* name) {
     UnitModelRecord* record = byName[pairKey];
     return record;
 }
-EI_REPLACE_METHOD(0x0053D240, UnitModelTable::FindByName);
+EI_REWRITTEN(0x0053D240, UnitModelTable::FindByName);
 
 UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
     stlp::string key(name);
@@ -86,7 +86,7 @@ UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
     UnitLevelRecord* record = byName[pairKey];
     return record;
 }
-EI_REPLACE_METHOD(0x0053D650, UnitLevelTable::FindByName);
+EI_REWRITTEN(0x0053D650, UnitLevelTable::FindByName);
 
 // --- The unit database ----------------------------------------------------------------------------
 

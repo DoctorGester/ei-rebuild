@@ -406,9 +406,9 @@ void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, s
 void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
     return ErasePrint<GroundPrint>(out, pos);
 }
-EI_REPLACE(0x00572550, CWorldClient::EraseBloodPrint);
-EI_REPLACE(0x00572580, CWorldClient::EraseFootprint);
-EI_REPLACE(0x005725B0, CWorldClient::EraseScorchMark);
+EI_REWRITTEN(0x00572550, CWorldClient::EraseBloodPrint);
+EI_REWRITTEN(0x00572580, CWorldClient::EraseFootprint);
+EI_REWRITTEN(0x005725B0, CWorldClient::EraseScorchMark);
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
@@ -524,16 +524,16 @@ EI_REPLACE_METHOD(0x005641F0, CWorldClient::Segment);
 
 EI_REPLACE_METHOD(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
-EI_REPLACE_METHOD(0x00561050, PlatformSet::Contains);
-EI_REPLACE_METHOD(0x00561150, PlatformSet::SurfacePlane);
+EI_REWRITTEN(0x00561050, PlatformSet::Contains);
+EI_REWRITTEN(0x00561150, PlatformSet::SurfacePlane);
 EI_REPLACE_METHOD(0x00560E10, MatrixRows::Transform);
-EI_REPLACE_METHOD(0x005640A0, CWorldClient::NearestVisibleUnit);
+EI_REWRITTEN(0x005640A0, CWorldClient::NearestVisibleUnit);
 EI_REPLACE_METHOD(0x00564AF0, CObject3D::PartBox);
-EI_REPLACE_METHOD(0x00567440, CWorldClient::FindExitAt);
-EI_REPLACE_METHOD(0x005674C0, CWorldClient::ExitCentre);
+EI_REWRITTEN(0x00567440, CWorldClient::FindExitAt);
+EI_REWRITTEN(0x005674C0, CWorldClient::ExitCentre);
 EI_REPLACE_METHOD(0x00567500, CWorldClient::CreateExitMarkers);
-EI_REPLACE_METHOD(0x005677F0, CWorldClient::PartyInExit);
-EI_REPLACE_METHOD(0x00566C20, CWorldClient::SummonBird);
-EI_REPLACE_METHOD(0x00565380, CWorldClient::OnQuestVariable);
-EI_REPLACE_METHOD(0x005654F0, CWorldClient::ObjectVariableName);
-EI_REPLACE_METHOD(0x005652E0, CWorldClient::ApplyObjectVariables);
+EI_REWRITTEN(0x005677F0, CWorldClient::PartyInExit);
+EI_REWRITTEN(0x00566C20, CWorldClient::SummonBird);
+EI_REWRITTEN(0x00565380, CWorldClient::OnQuestVariable);
+EI_REWRITTEN(0x005654F0, CWorldClient::ObjectVariableName);
+EI_REWRITTEN(0x005652E0, CWorldClient::ApplyObjectVariables);

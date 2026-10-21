@@ -117,7 +117,7 @@ void CObject3D::AddEffectSource(CEngineObject* source) {
         ParticleSourceAttachOriginal(source, nullptr, this);
     }
 }
-EI_REPLACE_METHOD(0x00518A00, CObject3D::AddEffectSource);
+EI_REWRITTEN(0x00518A00, CObject3D::AddEffectSource);
 
 void CObject3D::RemoveEffectSource(CEngineObject* source) {
     auto* node = effectSources.Find(source);
@@ -128,4 +128,4 @@ void CObject3D::RemoveEffectSource(CEngineObject* source) {
         source->Release();
     }
 }
-EI_REPLACE_METHOD(0x00518AE0, CObject3D::RemoveEffectSource);
+EI_REWRITTEN(0x00518AE0, CObject3D::RemoveEffectSource);

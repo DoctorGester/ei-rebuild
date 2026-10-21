@@ -47,7 +47,7 @@ void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
         if (stream->version_ >= kStopFlagVersion) stream->Read(&look.stopFirst, 1);
     }
 }
-EI_REPLACE(0x005D9010, LoadLooks);
+EI_REWRITTEN(0x005D9010, LoadLooks);
 
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
     WriteCopy(stream, looks->size);
@@ -88,7 +88,7 @@ void AIMemory::Load(CStream* stream) {
     }
     stream->Read(&noticedKind, 4);
 }
-EI_REPLACE_METHOD(0x005CC1E0, AIMemory::Load);
+EI_REWRITTEN(0x005CC1E0, AIMemory::Load);
 
 void AIMemory::Save(CStream* stream) {
     SaveObjectList(nearby, stream);

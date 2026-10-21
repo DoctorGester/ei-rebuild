@@ -194,7 +194,7 @@ bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
     reg.Destroy();
     return true;
 }
-EI_REPLACE(0x006AE8E0, QuestDatabaseLoad);
+EI_REWRITTEN(0x006AE8E0, QuestDatabaseLoad);
 
 // 006AE740 (A-H19). The original inlines the vector's erase, reserve and push_back; the same
 // template members are called here.
@@ -207,7 +207,7 @@ void __fastcall ReadStringList(CFileRegistry* registry, const char* section, con
         if (Length(strings[i]) != 0) list->PushBack<ListElement>(strings[i]);
     }
 }
-EI_REPLACE(0x006AE740, ReadStringList);
+EI_REWRITTEN(0x006AE740, ReadStringList);
 
 // --- 006B0600 (A-H25): a briefing added unless its name is there ---------------------------------------
 
@@ -220,4 +220,4 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) index.Subscript(r->name) = r;
     return true;
 }
-EI_REPLACE_METHOD(0x006B0600, QuestBriefingTable::Add);
+EI_REWRITTEN(0x006B0600, QuestBriefingTable::Add);

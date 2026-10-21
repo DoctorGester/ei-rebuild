@@ -125,6 +125,6 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
         previous.angle = angle;
     }
 }
-EI_REPLACE(0x0044EB60, MakeFrameRelative);
+EI_REWRITTEN(0x0044EB60, MakeFrameRelative);
 
 } // namespace scene

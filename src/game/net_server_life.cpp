@@ -48,7 +48,7 @@ void ServerSession::Destruct() {
     joins_.Release();
     SessionBase::Destruct();
 }
-EI_REPLACE_METHOD(0x00417BC0, ServerSession::Destruct);
+EI_REWRITTEN(0x00417BC0, ServerSession::Destruct);
 
 // 004132F0: the destructor body of the server's base layer (reached from its scalar deleting
 // destructor 004132D0 and the constructor's unwind funclets): the pending joins, then the session
@@ -57,7 +57,7 @@ void ServerBase::DestructBase() {
     joins_.Release();
     SessionBase::Destruct();
 }
-EI_REPLACE_METHOD(0x004132F0, ServerBase::DestructBase);
+EI_REWRITTEN(0x004132F0, ServerBase::DestructBase);
 
 // 00417A10 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
 ServerSession* ServerSession::DeletingDestruct(unsigned flags) {

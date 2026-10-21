@@ -330,8 +330,8 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     stream->Read(&countdown, 4);
 }
 
-EI_REPLACE_METHOD(0x004B1B40, ScriptFxSource::ScriptFxSourceLoad);
-EI_REPLACE_METHOD(0x004BD310, CScript::ScriptCreateFxSource);
-EI_REPLACE_METHOD(0x004BCFF0, CScript::ScriptCreateLightning);
-EI_REPLACE_METHOD(0x004BD540, ScriptFxSource::ScriptFxSourceDestruct);
-EI_REPLACE_METHOD(0x004BD9A0, CScript::ScriptCreateParticleSource);
+EI_REWRITTEN(0x004B1B40, ScriptFxSource::ScriptFxSourceLoad);
+EI_REWRITTEN(0x004BD310, CScript::ScriptCreateFxSource);
+EI_REWRITTEN(0x004BCFF0, CScript::ScriptCreateLightning);
+EI_REWRITTEN(0x004BD540, ScriptFxSource::ScriptFxSourceDestruct);
+EI_REWRITTEN(0x004BD9A0, CScript::ScriptCreateParticleSource);

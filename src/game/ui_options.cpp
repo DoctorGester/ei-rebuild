@@ -180,7 +180,7 @@ void COptionsWindow::RefreshRows() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x00651350, COptionsWindow::RefreshRows);
+EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
 
 // --- 00651D70 ------------------------------------------------------------------------------------
 
@@ -238,7 +238,7 @@ void COptionsWindow::ShowGroup(int group) {
     waitingForKey_ = false;
     RefreshRows();
 }
-EI_REPLACE_METHOD(0x00651D70, COptionsWindow::ShowGroup);
+EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 
 // --- 00651940 ------------------------------------------------------------------------------------
 
@@ -284,7 +284,7 @@ void COptionsWindow::BuildSettings() {
         }
     }
 }
-EI_REPLACE_METHOD(0x00651940, COptionsWindow::BuildSettings);
+EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 
 // --- 00651600 ------------------------------------------------------------------------------------
 
@@ -317,7 +317,7 @@ void COptionsWindow::BuildBindings() {
         binding.keysText_.TrimRight(TextKeyTrim());
     }
 }
-EI_REPLACE_METHOD(0x00651600, COptionsWindow::BuildBindings);
+EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 
 // --- 00652000 ------------------------------------------------------------------------------------
 
@@ -365,7 +365,7 @@ void COptionsWindow::CommitBinding() {
     }
     keyOfScan_[pressedKey_->scan_] = static_cast<signed char>(binding->action_->id_);
 }
-EI_REPLACE_METHOD(0x00652000, COptionsWindow::CommitBinding);
+EI_REWRITTEN(0x00652000, COptionsWindow::CommitBinding);
 
 // --- 00652200 ------------------------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ void COptionsWindow::LoadSettings() {
             s[i].spin_->SetValue(s[i].value_);
     }
 }
-EI_REPLACE_METHOD(0x00652200, COptionsWindow::LoadSettings);
+EI_REWRITTEN(0x00652200, COptionsWindow::LoadSettings);
 
 // --- 006524A0 ------------------------------------------------------------------------------------
 

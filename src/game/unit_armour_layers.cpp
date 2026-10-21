@@ -88,7 +88,7 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     default: return kZero + static_cast<double>(best);
     }
 }
-EI_REPLACE_METHOD(0x00525E90, UnitStats::AttributeWithItems);
+EI_REWRITTEN(0x00525E90, UnitStats::AttributeWithItems);
 
 double UnitStats::SpellSchoolSkill(int school) {
     if (school == 4) school = 3;
@@ -101,4 +101,4 @@ double UnitStats::SpellSchoolSkill(int school) {
     double level = SkillLevelValue(school + 7);
     return (base + level) + (stat20 - kStatBase);
 }
-EI_REPLACE_METHOD(0x00527EB0, UnitStats::SpellSchoolSkill);
+EI_REWRITTEN(0x00527EB0, UnitStats::SpellSchoolSkill);

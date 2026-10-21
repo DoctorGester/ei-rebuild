@@ -91,4 +91,4 @@ EI_REPLACE_METHOD(0x00538960, CUnitClientSpecific::GetAttackParams);
 
 // 005285D0 is a byte-for-byte copy of 00523D30 (unit_vitals.cpp), reached as a method of the
 // packed parameters.
-EI_REPLACE(0x005285D0, ScaleDamageByEffects);
+EI_REWRITTEN(0x005285D0, ScaleDamageByEffects);

@@ -64,7 +64,7 @@ void ClientSession::Destruct() {
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();
 }
-EI_REPLACE_METHOD(0x0041CA10, ClientSession::Destruct);
+EI_REWRITTEN(0x0041CA10, ClientSession::Destruct);
 
 // 0041C530: the destructor body of the client's base layer (vtable 0073BE30; reached from its
 // scalar deleting destructor 0041C450 and the constructor's unwind funclets): the list +0x25BC,
@@ -78,7 +78,7 @@ void ClientBase::DestructBase() {
     GrowingBufferDestruct(&joinData_);
     SessionBase::Destruct();
 }
-EI_REPLACE_METHOD(0x0041C530, ClientBase::DestructBase);
+EI_REWRITTEN(0x0041C530, ClientBase::DestructBase);
 
 // 0041C8B0 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
 ClientSession* ClientSession::DeletingDestruct(unsigned flags) {

@@ -131,7 +131,7 @@ void __fastcall EffectNotify(void*, void*, std::uintptr_t kind, std::uintptr_t f
     reinterpret_cast<mfc::CString*>(&kind)->~CString();
     reinterpret_cast<mfc::CString*>(&family)->~CString();
 }
-EI_REPLACE(0x0046D4D0, EffectNotify);
+EI_REWRITTEN(0x0046D4D0, EffectNotify);
 
 // ---- Particle sources (0073C758) ------------------------------------------------------------------
 
@@ -218,7 +218,7 @@ LightSpec* LightSpec::LightSpecConstruct() {
     colour.z = 1.0f;
     return this;
 }
-EI_REPLACE_METHOD(0x0046D960, LightSpec::LightSpecConstruct);
+EI_REWRITTEN(0x0046D960, LightSpec::LightSpecConstruct);
 
 // 0046D9D0 (slot 4): "Light".
 mfc::CString* LightSpec::LightSpecTypeName(mfc::CString* out) {
@@ -298,7 +298,7 @@ SoundSpec* SoundSpec::SoundSpecConstruct() {
     ambient = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x0046DE70, SoundSpec::SoundSpecConstruct);
+EI_REWRITTEN(0x0046DE70, SoundSpec::SoundSpecConstruct);
 
 // 0046DF70: the destructor body.
 void SoundSpec::SoundSpecDestruct() {
@@ -306,7 +306,7 @@ void SoundSpec::SoundSpecDestruct() {
     sounds.Destruct();
     effect.base.SpecDestruct();
 }
-EI_REPLACE_METHOD(0x0046DF70, SoundSpec::SoundSpecDestruct);
+EI_REWRITTEN(0x0046DF70, SoundSpec::SoundSpecDestruct);
 
 // 0046DF50 (slot 10).
 SoundSpec* SoundSpec::SoundSpecDelete(unsigned flags) {

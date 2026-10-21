@@ -85,6 +85,6 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     parts.Destruct();
     return 1;
 }
-EI_REPLACE(0x0044A2A0, ParseMaterial);
+EI_REWRITTEN(0x0044A2A0, ParseMaterial);
 
 } // namespace scene

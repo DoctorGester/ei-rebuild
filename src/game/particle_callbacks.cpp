@@ -180,7 +180,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
                     D(p->aux0));
     return 1;
 }
-EI_REPLACE_METHOD(0x004918E0, CParticleSource::EmitCasting);
+EI_REWRITTEN(0x004918E0, CParticleSource::EmitCasting);
 
 // 00492030. Casting particles: none once the effect's alpha is 0. The 0x202A marker stays at the
 // source with a random size; the others fade by their life (capped by the effect's alpha), run
@@ -219,7 +219,7 @@ int CParticleSource::UpdateCasting(Particle* p) {
     p->size = static_cast<float>(oldSize * D(*ParticleFloat(p, 0x34)));
     return 1;
 }
-EI_REPLACE_METHOD(0x00492030, CParticleSource::UpdateCasting);
+EI_REWRITTEN(0x00492030, CParticleSource::UpdateCasting);
 
 // 004921D0. Casting elements: element 0 (+0x00 nonzero) counts down and takes its alpha from the
 // table (frozen while an emitting source is attached); the swirls (+0x00 zero, or NaN) move by
@@ -243,7 +243,7 @@ void CParticleSource::TickCasting(ParticleElement* e) {
         velocity[i] = static_cast<float>(kick + D(velocity[i]) * D(EI_CAST_DAMP) + D(low) - D(pos[i]) * D(EI_CAST_PULL));
     }
 }
-EI_REPLACE_METHOD(0x004921D0, CParticleSource::TickCasting);
+EI_REWRITTEN(0x004921D0, CParticleSource::TickCasting);
 
 // --- Protection spheres (0x2015-0x2017) and AntiMagic (0x201A) -----------------------------------
 //
@@ -398,7 +398,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0048E070, CParticleSource::EmitOrbit);
+EI_REWRITTEN(0x0048E070, CParticleSource::EmitOrbit);
 
 // --- Casting (0x200B) and Healing (0x2006): rings of flames rising around the caster -------------
 //
@@ -584,7 +584,7 @@ int CParticleSource::EmitCastRing(Particle* p, int) {
     p->size = static_cast<float>(D(size) * D(EI_TENTH_B));
     return 1;
 }
-EI_REPLACE_METHOD(0x00489320, CParticleSource::EmitCastRing);
+EI_REWRITTEN(0x00489320, CParticleSource::EmitCastRing);
 
 // 00489A50. Casting particles: a flame (state = its ring) grows for 18 ticks, shrinks for 18 and
 // rides its ring; then it burns out for 8 ticks (shrinking, alpha falling 30 per tick). Sparks
@@ -613,7 +613,7 @@ int CParticleSource::UpdateCastRing(Particle* p) {
     FollowRing(this, p, ring);
     return 1;
 }
-EI_REPLACE_METHOD(0x00489A50, CParticleSource::UpdateCastRing);
+EI_REWRITTEN(0x00489A50, CParticleSource::UpdateCastRing);
 
 // 00489B40. Casting rings: each counts down (stopping the emission at 0); the radius grows by the
 // source's height for 18 ticks, then shrinks, then eases towards 20 times the height; while
@@ -635,7 +635,7 @@ void CParticleSource::TickCastRing(ParticleElement* e) {
     }
     if (t >= 9) TurnRing(e);
 }
-EI_REPLACE_METHOD(0x00489B40, CParticleSource::TickCastRing);
+EI_REWRITTEN(0x00489B40, CParticleSource::TickCastRing);
 
 // 0048B630. Healing (0x2006): the first call places 6 * size + 2 rings (needs a carrier); then
 // one flame per ring; then sparks around a random ring's centre.
@@ -662,7 +662,7 @@ int CParticleSource::EmitHealing(Particle* p, int) {
     p->size = static_cast<float>((D(size) + D(EI_P_ONE)) * D(EI_HEAL_SPARK_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048B630, CParticleSource::EmitHealing);
+EI_REWRITTEN(0x0048B630, CParticleSource::EmitHealing);
 
 // 0048BBE0. Healing particles: like Casting's, but a flame cycles 8 frames, grows for its first
 // 18 ticks of life and shrinks after, and burns out without shrinking.
@@ -705,7 +705,7 @@ void CParticleSource::TickHealing(ParticleElement* e) {
     else *radius = static_cast<float>(D(*radius) - D(height));
     TurnRing(e);
 }
-EI_REPLACE_METHOD(0x0048BCE0, CParticleSource::TickHealing);
+EI_REWRITTEN(0x0048BCE0, CParticleSource::TickHealing);
 
 // --- CastingIllusion, Domination, Enchantment, Healing (0x202B-0x202E): orbiting lights ---------
 //
@@ -856,7 +856,7 @@ int CParticleSource::EmitCastSwirl(Particle* p, int) {
                     D(EI_SWIRL_SPARK_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x00490C10, CParticleSource::EmitCastSwirl);
+EI_REWRITTEN(0x00490C10, CParticleSource::EmitCastSwirl);
 
 // 00491230. A marker (state < 0) sits on its orbiter with a flickering size and, once the source
 // stops emitting (or loses its carrier), fades by the table and dies. A spark fades over its last
@@ -889,7 +889,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
     *step = static_cast<float>(D(*ParticleFloat(p, 0x30)) * D(*step));
     return 1;
 }
-EI_REPLACE_METHOD(0x00491230, CParticleSource::UpdateCastSwirl);
+EI_REWRITTEN(0x00491230, CParticleSource::UpdateCastSwirl);
 
 // 00491390. Orbiters turn about the source's vertical axis (by -turn) and keep their previous
 // world position.
@@ -1014,7 +1014,7 @@ int CParticleSource::EmitLink(Particle* p, int) {
     p->frame = static_cast<int>(Next() % static_cast<std::uint32_t>(frameCount + 1));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048D8D0, CParticleSource::EmitLink);
+EI_REWRITTEN(0x0048D8D0, CParticleSource::EmitLink);
 
 // 0048DE30. Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed),
 // spinning around the axis; the beam bulges in the middle and the alpha peaks there (capped by
@@ -1074,7 +1074,7 @@ int CParticleSource::UpdateLink(Particle* p) {
     p->color = (fade << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048DE30, CParticleSource::UpdateLink);
+EI_REWRITTEN(0x0048DE30, CParticleSource::UpdateLink);
 
 // 0048E040. Link element 0: once the source stops emitting the alpha cap falls by 16 per tick
 // (not below 0). (The other elements' caps are unused.)
@@ -1215,7 +1215,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
     std::memcpy(&p->velocity, &drift, sizeof(Vector3));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048C090, CParticleSource::EmitBlast);
+EI_REWRITTEN(0x0048C090, CParticleSource::EmitBlast);
 
 // 0048C590. FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and
 // lasts until its frame reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the
@@ -1265,7 +1265,7 @@ int CParticleSource::UpdateBlast(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kBlastAlpha[p->frame]) << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048C590, CParticleSource::UpdateBlast);
+EI_REWRITTEN(0x0048C590, CParticleSource::UpdateBlast);
 
 // 0048C760. FireBlast fragments: the flame radius grows (its growth decaying), the age counts up
 // (the emission stops after 6 ticks), the fragment flies by its velocity scaled by the source's
@@ -1290,7 +1290,7 @@ void CParticleSource::TickBlast(ParticleElement* e) {
     velocity[2] = static_cast<float>(D(velocity[2]) * D(EI_BLAST_SLOW));
     velocity[2] = static_cast<float>(D(velocity[2]) - D(EI_BLAST_DRAG));
 }
-EI_REPLACE_METHOD(0x0048C760, CParticleSource::TickBlast);
+EI_REWRITTEN(0x0048C760, CParticleSource::TickBlast);
 
 // --- PoisonFog (0x2007, 0x2008): a disc of cloud puffs laid on the ground ------------------------
 
@@ -1358,7 +1358,7 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0048B080, CParticleSource::EmitPoisonFog);
+EI_REWRITTEN(0x0048B080, CParticleSource::EmitPoisonFog);
 
 // --- Geyser (0x2009): three vents that erupt in turn -----------------------------------------------
 //
@@ -1442,7 +1442,7 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
     p->size = static_cast<float>(D(size) * D(EI_GEYSER_MIST));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048A8F0, CParticleSource::EmitGeyser);
+EI_REWRITTEN(0x0048A8F0, CParticleSource::EmitGeyser);
 
 // 0048ADA0. Geyser: the marker flickers while the source emits (dropped once it stops); drops fly
 // by +0x38 (gravity pulling +0x40 down by 0.06 height per tick), fade 8 alpha per tick (dropped
@@ -1471,7 +1471,7 @@ int CParticleSource::UpdateGeyser(Particle* p) {
     p->drift.z = static_cast<float>(D(p->drift.z) - D(height) * D(EI_GEYSER_GRAVITY));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048ADA0, CParticleSource::UpdateGeyser);
+EI_REWRITTEN(0x0048ADA0, CParticleSource::UpdateGeyser);
 
 // 0048AEC0. Geyser vents: an eruption counts down, then a pause of 3..36 ticks, then a new
 // eruption of 1..7 ticks in a random direction (up to 10 degrees off vertical) and strength.
@@ -1490,7 +1490,7 @@ void CParticleSource::TickGeyser(ParticleElement* e) {
     e->pos.y = tilt;
     e->pos.z = power;
 }
-EI_REPLACE_METHOD(0x0048AEC0, CParticleSource::TickGeyser);
+EI_REWRITTEN(0x0048AEC0, CParticleSource::TickGeyser);
 
 // --- Shower (0x200F, 0x2031-0x2033): sparks thrown out in a few random directions ---------------
 //
@@ -1577,7 +1577,7 @@ int CParticleSource::EmitShower(Particle* p, int) {
     p->pos.z = static_cast<float>(dz + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048EEA0, CParticleSource::EmitShower);
+EI_REWRITTEN(0x0048EEA0, CParticleSource::EmitShower);
 
 // 0048F300. Shower sparks move, slow down (+0x20), fall by 0.05 size per tick, shrink (+0x24) and
 // fade by the life table.
@@ -1596,7 +1596,7 @@ int CParticleSource::UpdateShower(Particle* p) {
     p->drift.z = static_cast<float>(D(p->drift.z) - D(size) * D(EI_SHOWER_GRAVITY));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048F300, CParticleSource::UpdateShower);
+EI_REWRITTEN(0x0048F300, CParticleSource::UpdateShower);
 
 // 0048F380. Shower directions age; after 5 ticks the source stops emitting and lets go of its
 // carrier.
@@ -1707,7 +1707,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
     p->size = static_cast<float>(D(g_bagSizes[age]) * D(size) * D(EI_BAG_SPARK_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x00493560, CParticleSource::EmitBag);
+EI_REWRITTEN(0x00493560, CParticleSource::EmitBag);
 
 // 00493770. Bag: a spark fades by its life and steps a frame; a ball follows its element (dropped
 // once the ball is gone), cycles 4 frames, takes the colour and size of its age, and while the
@@ -1742,7 +1742,7 @@ int CParticleSource::UpdateBag(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00493770, CParticleSource::UpdateBag);
+EI_REWRITTEN(0x00493770, CParticleSource::UpdateBag);
 
 // 004938C0. Bag balls: when a ball's countdown runs out it is thrown again from the source (a
 // random kind 0-2, a random offset, a random velocity of 0.2 size) and rests 7-9 ticks; while
@@ -1805,7 +1805,7 @@ void CParticleSource::TickBag(ParticleElement* e) {
     e->pos.AddInPlace(velocity);
     std::memcpy(ElementFloat(e, 0x0C), &velocity, sizeof(Vector3));
 }
-EI_REPLACE_METHOD(0x004938C0, CParticleSource::TickBag);
+EI_REWRITTEN(0x004938C0, CParticleSource::TickBag);
 
 // --- 0x202F: sparks rising in a ring around the carrier ------------------------------------------
 //
@@ -1887,7 +1887,7 @@ int CParticleSource::EmitColumn(Particle* p, int) {
     p->size = static_cast<float>((Unsigned(Next()) * EI_COLUMN_SIZE_SCALE + D(EI_COLUMN_SIZE_BASE)) * D(size) * D(EI_COLUMN_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x00491420, CParticleSource::EmitColumn);
+EI_REWRITTEN(0x00491420, CParticleSource::EmitColumn);
 
 // 00491830. 0x202F sparks: fade by life, step a frame, follow the source at their offset, shrink
 // to 0.97 per tick and rise (the rise growing by 5% per tick).
@@ -1909,7 +1909,7 @@ int CParticleSource::UpdateColumn(Particle* p) {
     *rise = static_cast<float>(D(*rise) * D(EI_COLUMN_SPEED_UP));
     return 1;
 }
-EI_REPLACE_METHOD(0x00491830, CParticleSource::UpdateColumn);
+EI_REWRITTEN(0x00491830, CParticleSource::UpdateColumn);
 
 // 004918D0. 0x202F: element 0 ages.
 void CParticleSource::TickColumn(ParticleElement* e) { ++e->ticks; }
@@ -1975,7 +1975,7 @@ int CParticleSource::EmitMushroom(Particle* p, int) {
     p->frame = frame < 0 ? 0 : frame;
     return 1;
 }
-EI_REPLACE_METHOD(0x004889D0, CParticleSource::EmitMushroom);
+EI_REWRITTEN(0x004889D0, CParticleSource::EmitMushroom);
 
 // 00488DB0. Mushroom puffs: step a frame every other tick up to frame 14 (swelling 10% per tick
 // before frame 8), fade in by 64 per tick then out by 63 over the last 4 ticks, drift with a 0.7
@@ -2020,7 +2020,7 @@ int CParticleSource::UpdateMushroom(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00488DB0, CParticleSource::UpdateMushroom);
+EI_REWRITTEN(0x00488DB0, CParticleSource::UpdateMushroom);
 
 // --- BlueGas (Stench, 0x2013): gas swirling up around the carrier -------------------------------
 //
@@ -2096,7 +2096,7 @@ int CParticleSource::EmitStench(Particle* p, int) {
     p->size = static_cast<float>(D(radius) * D(EI_GAS_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048D420, CParticleSource::EmitStench);
+EI_REWRITTEN(0x0048D420, CParticleSource::EmitStench);
 
 // 0048D7F0. BlueGas puffs: step through the frames (dropped after the last), turn their offset
 // about the axis, rise faster and faster, swell, and fade over the last 8 ticks.
@@ -2123,7 +2123,7 @@ int CParticleSource::UpdateStench(Particle* p) {
     if (life < 8) p->color = ((p->color & 0xFF000000u) - 0x1F000001u) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048D7F0, CParticleSource::UpdateStench);
+EI_REWRITTEN(0x0048D7F0, CParticleSource::UpdateStench);
 
 // --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
 //
@@ -2226,7 +2226,7 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00489F70, CParticleSource::EmitTornado);
+EI_REWRITTEN(0x00489F70, CParticleSource::EmitTornado);
 
 // 0048A310. Tornado particles rise (dropped above the top), turn around the funnel's centre at
 // their height (faster and faster), fade in, fade by the height, and animate.
@@ -2260,7 +2260,7 @@ int CParticleSource::UpdateTornado(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0048A310, CParticleSource::UpdateTornado);
+EI_REWRITTEN(0x0048A310, CParticleSource::UpdateTornado);
 
 // 0048A560. Tornado rings (all updated from element 0's call). Without a bend the rings sway with
 // the source's motion (damped 0.95, a half cosine up the funnel); with one they lean along the
@@ -2338,7 +2338,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         }
     }
 }
-EI_REPLACE_METHOD(0x0048A560, CParticleSource::TickTornado);
+EI_REWRITTEN(0x0048A560, CParticleSource::TickTornado);
 
 // --- PortalStar (0x203D): one flickering star ------------------------------------------------------
 
@@ -2361,7 +2361,7 @@ int CParticleSource::UpdatePortalStar(Particle* p) {
     p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size));
     return 1;
 }
-EI_REPLACE_METHOD(0x00493D50, CParticleSource::UpdatePortalStar);
+EI_REWRITTEN(0x00493D50, CParticleSource::UpdatePortalStar);
 
 // --- Cylinder1 / Cylinder2 (0x203F, 0x2040): two stars circling the carrier --------------------
 //
@@ -2466,7 +2466,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
     p->pos.z = pz;
     return 1;
 }
-EI_REPLACE_METHOD(0x00493DE0, CParticleSource::EmitCylinder);
+EI_REWRITTEN(0x00493DE0, CParticleSource::EmitCylinder);
 
 // 00494170. Cylinder: a star follows its element and fades by its countdown (dropped
 // once the source stops); a spark fades by its life, drifts by its step, is held on its star's
@@ -2518,7 +2518,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     p->size = static_cast<float>(oldSize * D(EI_CYL_SPARK_SHRINK));
     return 1;
 }
-EI_REPLACE_METHOD(0x00494170, CParticleSource::UpdateCylinder);
+EI_REWRITTEN(0x00494170, CParticleSource::UpdateCylinder);
 
 // 00494340. Cylinder stars: element 0 lowers the emission rate (by 2 on odd counts, 1 on even);
 // each star counts down (stopping the source at 0), turns by its rotation, rises (faster and
@@ -2553,7 +2553,7 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
     rotation[0] = static_cast<float>(a);
     rotation[1] = b;
 }
-EI_REPLACE_METHOD(0x00494340, CParticleSource::TickCylinder);
+EI_REWRITTEN(0x00494340, CParticleSource::TickCylinder);
 
 // --- FireBall (0x2000) and the arrow smokes (FireArrow 0x2011, 0x204E): trails of a moving source
 //
@@ -2642,7 +2642,7 @@ int CParticleSource::EmitFireBall(Particle* p, int index) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0048C800, CParticleSource::EmitFireBall);
+EI_REWRITTEN(0x0048C800, CParticleSource::EmitFireBall);
 
 // 0048CAD0. FireBall: step through the frames (dropped after the last), grow by the source's
 // growth; the ball halves once and stays; smoke drifts by its velocity (0.95 drag).
@@ -2669,7 +2669,7 @@ int CParticleSource::UpdateFireBall(Particle* p) {
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048CAD0, CParticleSource::UpdateFireBall);
+EI_REWRITTEN(0x0048CAD0, CParticleSource::UpdateFireBall);
 
 // 0048CBA0. Arrow smoke: the first particle (once) is the arrow's head (state 2); the others are
 // puffs along the last step (three in ten lingering, state 1) with a random sideways velocity.
@@ -2714,7 +2714,7 @@ int CParticleSource::EmitArrowSmoke(Particle* p, int index) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0048CBA0, CParticleSource::EmitArrowSmoke);
+EI_REWRITTEN(0x0048CBA0, CParticleSource::EmitArrowSmoke);
 
 // 0048CED0. Arrow smoke: the head follows the source one step ahead with a random frame (dropped
 // once the source stops); puffs step through the frames, swell (faster in the first 6 frames),
@@ -2754,7 +2754,7 @@ int CParticleSource::UpdateArrowSmoke(Particle* p) {
     p->velocity.z = static_cast<float>(D(p->velocity.z) * D(EI_TRAIL_DRAG));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048CED0, CParticleSource::UpdateArrowSmoke);
+EI_REWRITTEN(0x0048CED0, CParticleSource::UpdateArrowSmoke);
 
 // --- Banshee (0x200D): a ring that widens around the source ---------------------------------------
 //
@@ -2815,7 +2815,7 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
     p->size = static_cast<float>(D(size) * D(EI_BANSHEE_SIZE));
     return 1;
 }
-EI_REPLACE_METHOD(0x00489BE0, CParticleSource::EmitBanshee);
+EI_REWRITTEN(0x00489BE0, CParticleSource::EmitBanshee);
 
 // 00489EF0. Banshee sparks: one frame per tick until they die.
 int CParticleSource::UpdateBanshee(Particle* p) {
@@ -2839,7 +2839,7 @@ void CParticleSource::TickBanshee(ParticleElement* e) {
     float* radius = ElementFloat(e, 0x0C);
     *radius = static_cast<float>((D(*radius) - target) * D(EI_BANSHEE_EASE) + target);
 }
-EI_REPLACE_METHOD(0x00489F30, CParticleSource::TickBanshee);
+EI_REWRITTEN(0x00489F30, CParticleSource::TickBanshee);
 
 // --- Portal (0x203E) emission; its update and element tick are in particle_emitters.cpp ------------
 
@@ -2900,7 +2900,7 @@ int CParticleSource::EmitPortal(Particle* p, int) {
     p->pos.z = static_cast<float>((Unsigned(Next()) * EI_P_SCALE_1 - D(EI_PORTAL_HALF_C)) * D(p->velocity.z) + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x00494470, CParticleSource::EmitPortal);
+EI_REWRITTEN(0x00494470, CParticleSource::EmitPortal);
 
 // --- AcidRay (0x2012) ---------------------------------------------------------------------------
 
@@ -2972,7 +2972,7 @@ int CParticleSource::EmitAcidRay(Particle* p, int) {
     p->size = static_cast<float>(D(kAcidSize[lifetime - p->life]) * D(size));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048D050, CParticleSource::EmitAcidRay);
+EI_REWRITTEN(0x0048D050, CParticleSource::EmitAcidRay);
 
 // 0048D330. AcidRay drops: fly out from their start by the velocity scaled by the source's size
 // and the spread table (by age), sized by the size table, through the frames.
@@ -3058,7 +3058,7 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     p->frame = static_cast<int>(Next() % 3) + 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x00494A10, CParticleSource::EmitSparks);
+EI_REWRITTEN(0x00494A10, CParticleSource::EmitSparks);
 
 // --- ClayRing (0x2018): ten points running out from the source along the ground ---------------
 //
@@ -3121,7 +3121,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     SetBits(&p->size, 0x3DCCCCCD);     // 0.1
     return 1;
 }
-EI_REPLACE_METHOD(0x0048F7F0, CParticleSource::EmitClayRing);
+EI_REWRITTEN(0x0048F7F0, CParticleSource::EmitClayRing);
 
 // 0048FAB0. ClayRing: markers stay on their point (alpha by the countdown); clods step through the
 // frames, fly out (their scatter slowing by 0.9), fade by 48 per tick and shrink.
@@ -3152,7 +3152,7 @@ int CParticleSource::UpdateClayRing(Particle* p) {
     p->color = (static_cast<std::uint32_t>(a) << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048FAB0, CParticleSource::UpdateClayRing);
+EI_REWRITTEN(0x0048FAB0, CParticleSource::UpdateClayRing);
 
 // 0048FBE0. ClayRing points: count down (stopping the emission past 0), remember the previous
 // position, move out from the source along their direction by the reach table (read backwards for
@@ -3189,7 +3189,7 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
     };
     if (isZero(previous[0]) && isZero(previous[1])) std::memcpy(previous, &e->pos, sizeof(Vector3));
 }
-EI_REPLACE_METHOD(0x0048FBE0, CParticleSource::TickClayRing);
+EI_REWRITTEN(0x0048FBE0, CParticleSource::TickClayRing);
 
 // --- Falling (0x2034-0x2037): leaves or flakes drifting down from the carrier -------------------
 //
@@ -3237,7 +3237,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     p->velocity.y = static_cast<float>(Unsigned(Next()) * EI_FALL_SPIN_SCALE - D(EI_FALL_SPIN));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048F3B0, CParticleSource::EmitFalling);
+EI_REWRITTEN(0x0048F3B0, CParticleSource::EmitFalling);
 
 // 0048F6F0. Falling gusts: a new gust gets a random reach and direction (truncated to whole
 // radians); from the second tick on the source stops emitting and lets go of its carrier.
@@ -3255,7 +3255,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
     }
     ++*ElementInt(e, 0x30);
 }
-EI_REPLACE_METHOD(0x0048F6F0, CParticleSource::TickFalling);
+EI_REWRITTEN(0x0048F6F0, CParticleSource::TickFalling);
 
 // --- VulcanSmoke (0x2005): lava drops and smoke from a vent ---------------------------------------
 
@@ -3311,7 +3311,7 @@ int CParticleSource::EmitVulkan(Particle* p, int) {
     std::memcpy(&p->drift.z, &height, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048BD50, CParticleSource::EmitVulkan);
+EI_REWRITTEN(0x0048BD50, CParticleSource::EmitVulkan);
 
 // 0048C010. VulcanSmoke: frames at the particle's own pace (state ticks per frame; dropped after
 // the last), moving by +0x38, growing by +0x20 and slowing by +0x24.
@@ -3363,7 +3363,7 @@ int CParticleSource::UpdateFireStar(Particle* p) {
     p->velocity.x = static_cast<float>(shrunk);
     return 1;
 }
-EI_REPLACE_METHOD(0x004949B0, CParticleSource::UpdateFireStar);
+EI_REWRITTEN(0x004949B0, CParticleSource::UpdateFireStar);
 
 // 004950B0. Regeneration: two particles at the source, +0x20 = -1 for the first and 1 for the
 // second (the sides they circle on).
@@ -3421,7 +3421,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     p->pos.z = static_cast<float>(D(p->pos.z) * keep + D(size) * D(0.4f /*0073B868*/) + D(target.z) * pull);
     return 1;
 }
-EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
+EI_REWRITTEN(0x00495120, CParticleSource::UpdateRegeneration);
 
 namespace {
 
@@ -3471,7 +3471,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x00494E00, CParticleSource::EmitVisionStar);
+EI_REWRITTEN(0x00494E00, CParticleSource::EmitVisionStar);
 
 // 00494F30. VisionStar: the particles follow the source; with lifetime 1 their offsets turn by
 // 0.07 radians per tick (and they flicker less). VisionStar3 (0x204C) sits 0.7 higher. The size
@@ -3512,7 +3512,7 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00494F30, CParticleSource::UpdateVisionStar);
+EI_REWRITTEN(0x00494F30, CParticleSource::UpdateVisionStar);
 
 namespace {
 
@@ -3533,7 +3533,7 @@ int CParticleSource::UpdateZoneExit(Particle* p) {
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x00492F40, CParticleSource::UpdateZoneExit);
+EI_REWRITTEN(0x00492F40, CParticleSource::UpdateZoneExit);
 
 // --- FeebleMind (0x2049) update ----------------------------------------------------------------
 
@@ -3573,7 +3573,7 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     *ParticleFloat(p, 0x34) = static_cast<float>(D(*ParticleFloat(p, 0x34)) * D(1.04f /*0073CF98*/));    // 1.04
     return 1;
 }
-EI_REPLACE_METHOD(0x00495950, CParticleSource::UpdateFeebleMind);
+EI_REWRITTEN(0x00495950, CParticleSource::UpdateFeebleMind);
 
 // --- FeetCloud (0x2047): puffs at the carrier's feet; the emission is EmitFeetCloud --------------
 
@@ -3644,7 +3644,7 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
     return 1;
 }
-EI_REPLACE_METHOD(0x00495C80, CParticleSource::UpdateFeetCloud);
+EI_REWRITTEN(0x00495C80, CParticleSource::UpdateFeetCloud);
 
 // 00495E00. FeetCloud feet: on a unit carrier the element sits on its foot (left when +0x34 is
 // set, else right), else on its body, else on its position raised by +0x14C; without one on the
@@ -3671,7 +3671,7 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
     AttachmentOffset(&offset, ElementFloat(e, 0x18));
     *ElementInt(e, 0x30) = 0;
 }
-EI_REPLACE_METHOD(0x00495E00, CParticleSource::TickFeetCloud);
+EI_REWRITTEN(0x00495E00, CParticleSource::TickFeetCloud);
 
 // --- Silence (0x2048) ----------------------------------------------------------------------------
 
@@ -3733,7 +3733,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
     p->life = 7;
     return 1;
 }
-EI_REPLACE_METHOD(0x00495320, CParticleSource::EmitSilence);
+EI_REWRITTEN(0x00495320, CParticleSource::EmitSilence);
 
 // 004955D0. Silence: once the source stops emitting (or loses its carrier) the orbs
 // shrink the source by 0.85 per tick, everything going below 0.02. An orb circles the source on a
@@ -3796,7 +3796,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
                     D(0.22f /*0073CF88*/));    // (0.9 + [0, 0.2)) * size * 0.22
     return 1;
 }
-EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
+EI_REWRITTEN(0x004955D0, CParticleSource::UpdateSilence);
 
 // --- Modifier1-12 (0x201B-0x2026): update and element tick; the emission is 00490130 ---------------
 
@@ -3850,7 +3850,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
     p->color = (static_cast<std::uint32_t>(a) << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x00490990, CParticleSource::UpdateModifier);
+EI_REWRITTEN(0x00490990, CParticleSource::UpdateModifier);
 
 // 00490B00. Modifier markers: for ten ticks (then the source stops emitting) each remembers its
 // position and moves to the source plus its offset (+0x18), raised by spreadMin.x; the offset
@@ -3870,7 +3870,7 @@ void CParticleSource::TickModifier(ParticleElement* e) {
     double k = size >= EI_P_ZERO ? D(0.71428573f /*0073CEAC*/) : D(1.4f /*0073CDF8*/);    // 1 / 1.4, 1.4
     for (int i = 0; i < 3; ++i) offset[i] = static_cast<float>(k * D(offset[i]));
 }
-EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
+EI_REWRITTEN(0x00490B00, CParticleSource::TickModifier);
 
 // --- LightningBlast (0x2030): update and element tick; the emission is 004923B0 -------------------
 
@@ -3927,7 +3927,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
     return 1;
 }
-EI_REPLACE_METHOD(0x00492B80, CParticleSource::UpdateLightning);
+EI_REWRITTEN(0x00492B80, CParticleSource::UpdateLightning);
 
 // 00492CC0. LightningBlast bolt heads: the source emits 50 per tick; each head remembers its
 // position (+0x18), moves by its speed (+0x0C), falls (its z speed dropping by 0.075), and the
@@ -3943,7 +3943,7 @@ void CParticleSource::TickLightning(ParticleElement* e) {
     *ElementFloat(e, 0x14) = static_cast<float>(D(speed[2]) - D(0.075f /*0073CF28*/));
     if (tick >= 10) flags_ &= ~1u;
 }
-EI_REPLACE_METHOD(0x00492CC0, CParticleSource::TickLightning);
+EI_REWRITTEN(0x00492CC0, CParticleSource::TickLightning);
 
 // --- Teleport (0x2019) -----------------------------------------------------------------------------
 
@@ -3990,7 +3990,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x0048FDB0, CParticleSource::EmitTeleport);
+EI_REWRITTEN(0x0048FDB0, CParticleSource::EmitTeleport);
 
 // 00490060. Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (+0x28) is
 // redone scaled by +0x20; shown at +0x2C (hidden in the last tick); alpha moves by the state per
@@ -4085,7 +4085,7 @@ int CParticleSource::EmitCurseStars(Particle* p, int) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00496270, CParticleSource::EmitCurseStars);
+EI_REWRITTEN(0x00496270, CParticleSource::EmitCurseStars);
 
 // 004964B0. CurseStars: alpha by the life left (hidden and dropped past 0); a star's size starts
 // as a random part of the source's (0.04 of it, flickering) and shrinks by 0.95; it drifts (slowing
@@ -4118,7 +4118,7 @@ int CParticleSource::UpdateCurseStars(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004964B0, CParticleSource::UpdateCurseStars);
+EI_REWRITTEN(0x004964B0, CParticleSource::UpdateCurseStars);
 
 // 004965E0. StartTrans: the first particle is the glow (state 1, frame 12, 4 ticks); the others
 // (15 ticks) start in a random direction at the source's size from it and come back in 18 ticks.
@@ -4163,7 +4163,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
     SetBits(&p->size, 0);
     return 1;
 }
-EI_REPLACE_METHOD(0x004965E0, CParticleSource::EmitStartTrans);
+EI_REWRITTEN(0x004965E0, CParticleSource::EmitStartTrans);
 
 // 00496840. StartTrans: the glow flickers at element 0's +0x18 while carried, then fades (by the
 // life table, size times 0.6); the others come in, cycling four frames at +0x2C, fading out over
@@ -4196,7 +4196,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
     p->color = (static_cast<std::uint32_t>(kTransAlpha[p->life]) << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x00496840, CParticleSource::UpdateStartTrans);
+EI_REWRITTEN(0x00496840, CParticleSource::UpdateStartTrans);
 
 // --- Nuke emission; its update and element tick are 00489190 / 004892E0 ---------------------------
 
@@ -4238,7 +4238,7 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     p->color = (a << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x00488F90, CParticleSource::EmitNuke);
+EI_REWRITTEN(0x00488F90, CParticleSource::EmitNuke);
 
 // --- Tendril emission (EmitSmoke spread over the extent and laid on the ground) ------------------
 
@@ -4253,7 +4253,7 @@ int CParticleSource::EmitTendril(Particle* p, int index) {
     p->pos.z = static_cast<float>(D(p->pos.z) - D(origin.z) + ground);
     return 1;
 }
-EI_REPLACE_METHOD(0x0048ED60, CParticleSource::EmitTendril);
+EI_REWRITTEN(0x0048ED60, CParticleSource::EmitTendril);
 
 // --- Ground dust (0x203A / 0x203B) emission ------------------------------------------------------
 
@@ -4295,7 +4295,7 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
     SetBits(&p->aux1, 0x3F800000);
     return 1;
 }
-EI_REPLACE_METHOD(0x00493300, CParticleSource::EmitGroundDust);
+EI_REWRITTEN(0x00493300, CParticleSource::EmitGroundDust);
 
 // --- ShapeChange glow (0x2039) emission and element tick; the update is UpdateGlow ---------------
 
@@ -4371,7 +4371,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     p->color = static_cast<std::uint32_t>(*ElementInt(elements, 0x30));
     return 1;
 }
-EI_REPLACE_METHOD(0x00492FC0, CParticleSource::EmitGlow);
+EI_REWRITTEN(0x00492FC0, CParticleSource::EmitGlow);
 
 // 004932F0. ShapeChange: one tick of emission only.
 void CParticleSource::TickGlow(ParticleElement*) {
@@ -4443,7 +4443,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00495FB0, CParticleSource::EmitStun);
+EI_REWRITTEN(0x00495FB0, CParticleSource::EmitStun);
 
 // 004961B0. Stun stars: hidden and dropped past their life; else flickering at a random size of
 // the source's times +0x20. Without a carrier the source stops and is let go.
@@ -4462,4 +4462,4 @@ int CParticleSource::UpdateStun(Particle* p) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004961B0, CParticleSource::UpdateStun);
+EI_REWRITTEN(0x004961B0, CParticleSource::UpdateStun);

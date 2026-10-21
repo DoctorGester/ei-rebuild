@@ -130,7 +130,7 @@ ServerEntryBase* ServerEntryBase::ConstructBase() {
     state_ = kLocal;
     return this;
 }
-EI_REPLACE_METHOD(0x004413E0, ServerEntryBase::ConstructBase);
+EI_REWRITTEN(0x004413E0, ServerEntryBase::ConstructBase);
 
 // 00441410: the query with `address`, or the end.
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
@@ -150,19 +150,19 @@ Query* __fastcall QueryConstruct(Query* self) {
     return self;
 }
 void __fastcall QueryDestruct(Query* self) { GrowingBufferDestruct(&self->reply); }
-EI_REPLACE(0x00443790, QueryDestruct);
+EI_REWRITTEN(0x00443790, QueryDestruct);
 Query* Query::QueryDelete(unsigned flags) {
     GrowingBufferDestruct(&reply);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00443E90, Query::QueryDelete);
+EI_REWRITTEN(0x00443E90, Query::QueryDelete);
 Query* Query::QueryCopy(const Query* from) {
     address = from->address;
     reply.ConstructCopy(&from->reply);
     return this;
 }
-EI_REPLACE_METHOD(0x00444270, Query::QueryCopy);
+EI_REWRITTEN(0x00444270, Query::QueryCopy);
 
 // 00443E20 / 00443760: the temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
@@ -183,7 +183,7 @@ void ClientBase::SendPing(const NetAddress* address) {
     Send(address, &b);
     GrowingBufferDestruct(&b);
 }
-EI_REPLACE_METHOD(0x00441660, ClientBase::SendPing);
+EI_REWRITTEN(0x00441660, ClientBase::SendPing);
 
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
@@ -201,7 +201,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     Send(address, &b);
     GrowingBufferDestruct(&b);
 }
-EI_REPLACE_METHOD(0x00441740, ClientBase::SendJoin);
+EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
 // ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss (slot 2) ---------------------
 
@@ -373,7 +373,7 @@ void ClientBase::Refresh() {
         waiting_.Insert(waiting_.End(), alwaysAsk_);
     }
 }
-EI_REPLACE_METHOD(0x00442180, ClientBase::Refresh);
+EI_REWRITTEN(0x00442180, ClientBase::Refresh);
 
 void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address; }
 
@@ -419,7 +419,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         AppendServer(this, entry);
     }
 }
-EI_REPLACE_METHOD(0x00442300, ClientBase::SetQueries);
+EI_REWRITTEN(0x00442300, ClientBase::SetQueries);
 
 // A new query is added and pinged (3, the session time); the server is listed (an empty entry) or
 // marked as asked.
@@ -467,7 +467,7 @@ void ClientBase::Ask(const NetAddress* address) {
         entry.ptr->Release();
     }
 }
-EI_REPLACE_METHOD(0x00442590, ClientBase::Ask);
+EI_REWRITTEN(0x00442590, ClientBase::Ask);
 
 void ClientBase::Forget(const NetAddress* address) {
     QueryList& v = queries_.list;
@@ -487,7 +487,7 @@ void ClientBase::Forget(const NetAddress* address) {
         }
     }
 }
-EI_REPLACE_METHOD(0x004427F0, ClientBase::Forget);
+EI_REWRITTEN(0x004427F0, ClientBase::Forget);
 
 // Listed (never checked again) unless known, and its address queued to be asked.
 void ClientBase::AddServer(ServerEntry* entry) {
@@ -516,7 +516,7 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
     refusal_ = 0;
     joinData_.AssignFrom(data);
 }
-EI_REPLACE_METHOD(0x00442980, ClientBase::Join);
+EI_REWRITTEN(0x00442980, ClientBase::Join);
 
 ServerEntry* ClientBase::ServerAt(int index) {
     ServerNode* sentinel = servers_.End();
@@ -605,7 +605,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     }
     GrowingBufferDestruct(&b);
 }
-EI_REPLACE_METHOD(0x00442C60, ServerBase::SendInfo);
+EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
 // 00443060 (slot 4, packet 3): a ping; the time it carries is echoed.
 void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
@@ -773,6 +773,6 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
     }
     archive->Field(2, &extra, 4);
 }
-EI_REPLACE_METHOD(0x004414E0, ClientQueries::Serialize);
+EI_REWRITTEN(0x004414E0, ClientQueries::Serialize);
 
 } // namespace net

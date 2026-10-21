@@ -133,7 +133,7 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
     render::state::Render(kShadeMode, kShadeGouraud);
     return hr;
 }
-EI_REPLACE(0x0049B4B0, DeviceDrawLineStrip);
+EI_REWRITTEN(0x0049B4B0, DeviceDrawLineStrip);
 
 // The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers 0049B460 and
 // 0049B6E0 leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static

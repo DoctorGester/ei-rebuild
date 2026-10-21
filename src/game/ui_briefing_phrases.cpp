@@ -343,4 +343,4 @@ void CBriefingScreen::NextPhrase(bool skip) {
         ClearShownItems();
     }
 }
-EI_REPLACE_METHOD(0x00604C50, CBriefingScreen::NextPhrase);
+EI_REWRITTEN(0x00604C50, CBriefingScreen::NextPhrase);

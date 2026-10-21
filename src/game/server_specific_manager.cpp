@@ -37,19 +37,19 @@ enum ServerObjectType {
 CServerSpecificManager::CServerSpecificManager() {}
 
 CServerSpecificManager* CServerSpecificManager::Construct() { return new (this) CServerSpecificManager(); }
-EI_REPLACE_METHOD(0x004D6900, CServerSpecificManager::Construct);
+EI_REWRITTEN(0x004D6900, CServerSpecificManager::Construct);
 
 CServerSpecificManager::~CServerSpecificManager() {}
 
 void CServerSpecificManager::Destruct() { this->CServerSpecificManager::~CServerSpecificManager(); }
-EI_REPLACE_METHOD(0x004D6960, CServerSpecificManager::Destruct);
+EI_REWRITTEN(0x004D6960, CServerSpecificManager::Destruct);
 
 CServerSpecificManager* CServerSpecificManager::DeletingDestruct(unsigned flags) {
     this->CServerSpecificManager::~CServerSpecificManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004D6940, CServerSpecificManager::DeletingDestruct);
+EI_REWRITTEN(0x004D6940, CServerSpecificManager::DeletingDestruct);
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
@@ -89,7 +89,7 @@ int __fastcall ManagerClassIdHook(CServerSpecificManager* self) { return self->C
 } // namespace
 EI_REPLACE(0x004D6920, ManagerClassNameHook);
 EI_REPLACE(0x004D6930, ManagerClassIdHook);
-EI_REPLACE_METHOD(0x004D6970, CServerSpecificManager::NewObjectImpl);
+EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObjectImpl);
 
 // --- CTorchObjectSpec ---------------------------------------------------------------------------
 
@@ -102,14 +102,14 @@ CTorchObjectSpec::CTorchObjectSpec() {
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
 
 void CTorchObjectSpec::Destruct() { this->CTorchObjectSpec::~CTorchObjectSpec(); }
-EI_REPLACE_METHOD(0x004D6BA0, CTorchObjectSpec::Destruct);
+EI_REWRITTEN(0x004D6BA0, CTorchObjectSpec::Destruct);
 
 CTorchObjectSpec* CTorchObjectSpec::DeletingDestruct(unsigned flags) {
     this->CTorchObjectSpec::~CTorchObjectSpec();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004D6B80, CTorchObjectSpec::DeletingDestruct);
+EI_REWRITTEN(0x004D6B80, CTorchObjectSpec::DeletingDestruct);
 
 const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }

@@ -76,15 +76,15 @@ void CHudQuickItems::Highlight(int slot, int on) {
         mesh->flatSpecular_ = kColourOff;
     }
 }
-EI_REPLACE_METHOD(0x0063CD20, CHudQuickItems::Highlight);
+EI_REWRITTEN(0x0063CD20, CHudQuickItems::Highlight);
 
 // --- 0063E750 / 0063F730 / 0063E7C0 / 0063F7A0: the columns' buttons -----------------------------
 
 void CHudSpellColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
-EI_REPLACE_METHOD(0x0063E750, CHudSpellColumn::Highlight);
+EI_REWRITTEN(0x0063E750, CHudSpellColumn::Highlight);
 
 void CHudActionColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
-EI_REPLACE_METHOD(0x0063F730, CHudActionColumn::Highlight);
+EI_REWRITTEN(0x0063F730, CHudActionColumn::Highlight);
 
 void CHudSpellColumn::ClearHighlights() { ClearButtons(this, count_, &selected_); }
 

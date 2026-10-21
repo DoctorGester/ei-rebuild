@@ -141,7 +141,7 @@ CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     focused_ = true;
     return this;
 }
-EI_REPLACE_METHOD(0x0065C010, CUiEditField::Construct);
+EI_REWRITTEN(0x0065C010, CUiEditField::Construct);
 
 void CUiEditField::OnChar(int key, int, int) {
     if (!focused_) return;
@@ -199,7 +199,7 @@ void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int m
     caretColour_ = caretColour;
     DrawContents();
 }
-EI_REPLACE_METHOD(0x0065C1A0, CUiEditField::SetLook);
+EI_REWRITTEN(0x0065C1A0, CUiEditField::SetLook);
 
 void CUiEditField::SetText(const char* text) {
     editing_ = false;
@@ -208,7 +208,7 @@ void CUiEditField::SetText(const char* text) {
     caret_ = Text().GetLength();
     DrawContents();
 }
-EI_REPLACE_METHOD(0x0065C290, CUiEditField::SetText);
+EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
 
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
 

@@ -80,7 +80,7 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     }
     return dib;
 }
-EI_REPLACE(0x006D6D40, CaptureSurfaceRect);
+EI_REWRITTEN(0x006D6D40, CaptureSurfaceRect);
 
 CDib* __fastcall CaptureSurface(CDXSurface* self) {
     const RECT whole = {0, 0, self->width, self->height};

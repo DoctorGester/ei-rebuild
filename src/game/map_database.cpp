@@ -295,7 +295,7 @@ bool CMapDatabase::Load(const char* fileName) {
     reader->Close();
     return true;
 }
-EI_REPLACE_METHOD(0x0045EA20, CMapDatabase::Load);
+EI_REWRITTEN(0x0045EA20, CMapDatabase::Load);
 
 // 007856A0 "map.txt", 00785694 "map-LMP.txt".
 bool CMapDatabase::LoadAll() {

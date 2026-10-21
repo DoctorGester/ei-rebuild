@@ -87,4 +87,4 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return this;
 }
-EI_REPLACE_METHOD(0x005E4EB0, CursorImage::Construct);
+EI_REWRITTEN(0x005E4EB0, CursorImage::Construct);

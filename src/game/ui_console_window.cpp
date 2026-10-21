@@ -77,7 +77,7 @@ void ConsoleWindow::Show(bool shown) {
     }
     surface_ = nullptr;
 }
-EI_REPLACE_METHOD(0x005E3FD0, ConsoleWindow::Show);
+EI_REWRITTEN(0x005E3FD0, ConsoleWindow::Show);
 
 // 005E4180: keys while the window is shown. Shift (0x10) and Ctrl (0x11) are remembered; with
 // Ctrl, PgUp/PgDn scroll by a page and Home/End go to the first/last page, otherwise PgUp/PgDn
@@ -161,7 +161,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     }
     DrawLines();
 }
-EI_REPLACE_METHOD(0x005E4180, ConsoleWindow::OnKeyDown);
+EI_REWRITTEN(0x005E4180, ConsoleWindow::OnKeyDown);
 
 // ---- Character input (005E44A0) ------------------------------------------------------------------
 
@@ -349,7 +349,7 @@ void ConsoleWindow::DrawLines() {
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
 }
-EI_REPLACE_METHOD(0x005E4800, ConsoleWindow::DrawLines);
+EI_REWRITTEN(0x005E4800, ConsoleWindow::DrawLines);
 
 // 005E4A10: keeps the caret and anchor within the input, then (with a surface and a font) fills
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
@@ -387,7 +387,7 @@ void ConsoleWindow::DrawInput() {
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
 }
-EI_REPLACE_METHOD(0x005E4A10, ConsoleWindow::DrawInput);
+EI_REWRITTEN(0x005E4A10, ConsoleWindow::DrawInput);
 
 } // namespace console
 

@@ -361,5 +361,5 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
     out[1].itemType = static_cast<std::uint32_t>(
         reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().RecordAt(weapon >> 16, itemdb::kWeaponSize))->type);
 }
-EI_REPLACE(0x005683D0, UnitTextureRecords);
+EI_REWRITTEN(0x005683D0, UnitTextureRecords);
 

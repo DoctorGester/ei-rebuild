@@ -71,4 +71,4 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
     // The list's RemoveAll: no element destruction.
     candidates.RemoveAll();
 }
-EI_REPLACE_METHOD(0x005CFE40, AIAttention::LookAround);
+EI_REWRITTEN(0x005CFE40, AIAttention::LookAround);

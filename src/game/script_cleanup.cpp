@@ -125,5 +125,5 @@ void __fastcall ScriptResetZone(CScript* script) {
     }
 }
 
-EI_REPLACE(0x004BE490, ScriptDropInstancesAndRuns);
-EI_REPLACE(0x004BEB00, ScriptResetZone);
+EI_REWRITTEN(0x004BE490, ScriptDropInstancesAndRuns);
+EI_REWRITTEN(0x004BEB00, ScriptResetZone);

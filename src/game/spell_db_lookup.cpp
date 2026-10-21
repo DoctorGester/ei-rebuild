@@ -10,4 +10,4 @@ char* itemdb::CodeIndexedTable::FindByCode(const char* code) {
     decltype(byCode)::Pair pair{key, nullptr};
     return byCode[pair.key];
 }
-EI_REPLACE_METHOD(0x0068C820, itemdb::CodeIndexedTable::FindByCode);
+EI_REWRITTEN(0x0068C820, itemdb::CodeIndexedTable::FindByCode);

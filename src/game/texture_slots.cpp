@@ -70,7 +70,7 @@ void CTexture::FreeBlock() {
     if (block_) lib::FreeAligned32(block_);
     block_ = nullptr;
 }
-EI_REPLACE_METHOD(0x00690FA0, CTexture::FreeBlock);
+EI_REWRITTEN(0x00690FA0, CTexture::FreeBlock);
 
 int CTexture::Create() {
     Name()->Empty();
@@ -120,22 +120,22 @@ CTexture::~CTexture() {
 }
 
 void CTexture::DestructBody() { this->CTexture::~CTexture(); }
-EI_REPLACE_METHOD(0x00691950, CTexture::DestructBody);
+EI_REWRITTEN(0x00691950, CTexture::DestructBody);
 
 CTexture* CTexture::DeletingDestruct(unsigned deleteFlags) {
     this->CTexture::~CTexture();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00691930, CTexture::DeletingDestruct);
+EI_REWRITTEN(0x00691930, CTexture::DeletingDestruct);
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
 int __fastcall TextureCreateHook(CTexture* self) { return self->CTexture::Create(); }
 void __fastcall TextureDestroyHook(CTexture* self) { self->CTexture::Destroy(); }
 } // namespace
-EI_REPLACE(0x00691A00, TextureCreateHook);
-EI_REPLACE(0x00691A70, TextureDestroyHook);
+EI_REWRITTEN(0x00691A00, TextureCreateHook);
+EI_REWRITTEN(0x00691A70, TextureDestroyHook);
 
 // --- CTextureManager -------------------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     *texture->Name() = name;
     return texture;
 }
-EI_REPLACE_METHOD(0x00691D00, CTextureManager::FindOrCreate);
+EI_REWRITTEN(0x00691D00, CTextureManager::FindOrCreate);
 
 CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     if (CTexture* found = FindTexture(name)) return found;
@@ -159,7 +159,7 @@ CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     LoadTexture(texture);
     return texture;
 }
-EI_REPLACE_METHOD(0x00693F10, CTextureManager::FindOrLoad);
+EI_REWRITTEN(0x00693F10, CTextureManager::FindOrLoad);
 
 bool CTextureManager::ReloadAll() {
     bool ok = true;
@@ -194,4 +194,4 @@ void CTextureManager::TrimCache() {
         node = next;
     }
 }
-EI_REPLACE_METHOD(0x00694020, CTextureManager::TrimCache);
+EI_REWRITTEN(0x00694020, CTextureManager::TrimCache);

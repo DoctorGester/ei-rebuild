@@ -289,7 +289,7 @@ int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
 EI_REPLACE_METHOD(0x0067CAD0, CEffectMoshka::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067CC90, CEffectMoshka::Reset);
 EI_REPLACE_METHOD(0x0067CD70, CEffectMoshka::Tick);
-EI_REPLACE_METHOD(0x0067CD90, CEffectMoshka::FindPerch);
-EI_REPLACE_METHOD(0x0067CEF0, CEffectMoshka::Update);
-EI_REPLACE_METHOD(0x0067D420, CEffectMoshka::Follow);
+EI_REWRITTEN(0x0067CD90, CEffectMoshka::FindPerch);
+EI_REWRITTEN(0x0067CEF0, CEffectMoshka::Update);
+EI_REWRITTEN(0x0067D420, CEffectMoshka::Follow);
 EI_REPLACE_METHOD(0x0067D640, CEffectMoshka::Unpack);

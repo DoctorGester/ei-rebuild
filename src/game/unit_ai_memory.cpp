@@ -48,7 +48,7 @@ AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void*, CUnit* 
     if (object) ++object->refCount_;
     return node;
 }
-EI_REPLACE(0x005CD500, AddCountedTail);
+EI_REWRITTEN(0x005CD500, AddCountedTail);
 
 void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
@@ -59,7 +59,7 @@ void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     }
 }
 
-EI_REPLACE_METHOD(0x005CB260, AIMemory::FindEnemies);
+EI_REWRITTEN(0x005CB260, AIMemory::FindEnemies);
 
 void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
     out->RemoveAll();
@@ -79,7 +79,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
     }
 }
 
-EI_REPLACE_METHOD(0x005CB480, AIMemory::FindEnemiesNear);
+EI_REWRITTEN(0x005CB480, AIMemory::FindEnemiesNear);
 
 CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
@@ -100,7 +100,7 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     return nearest;
 }
 
-EI_REPLACE_METHOD(0x005CB670, AIMemory::NearestEnemy);
+EI_REWRITTEN(0x005CB670, AIMemory::NearestEnemy);
 
 void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (visible.Find(object)) return;
@@ -133,7 +133,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         console::EndLine(AiLog()->PutFloat(distance) << "m distance");
     }
 }
-EI_REPLACE_METHOD(0x005CBC80, AIMemory::ForceSee);
+EI_REWRITTEN(0x005CBC80, AIMemory::ForceSee);
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
@@ -142,7 +142,7 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     if (Allied(self->side, corpse->side)) AddCountedTail(&corpses, nullptr, corpse);
 }
 
-EI_REPLACE_METHOD(0x005CBE90, AIMemory::SeeCorpse);
+EI_REWRITTEN(0x005CBE90, AIMemory::SeeCorpse);
 
 namespace {
 constexpr float kMaxExposure = 3.0f;            // 0073FE90
@@ -188,4 +188,4 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     }
 }
 
-EI_REPLACE_METHOD(0x005CB850, AIMemory::MeasureExposure);
+EI_REWRITTEN(0x005CB850, AIMemory::MeasureExposure);

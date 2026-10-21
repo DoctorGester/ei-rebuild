@@ -188,7 +188,7 @@ char* NpcPrototypeTable::FindByName(const char* name) {
     char* record = byName[pairKey];
     return record;
 }
-EI_REPLACE_METHOD(0x005145D0, NpcPrototypeTable::FindByName);
+EI_REWRITTEN(0x005145D0, NpcPrototypeTable::FindByName);
 
 // --- Builders ---------------------------------------------------------------------------------
 
@@ -367,7 +367,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
     return 1;
 }
-EI_REPLACE(0x00513DA0, BuildNpcStats);
+EI_REWRITTEN(0x00513DA0, BuildNpcStats);
 
 int __stdcall PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
@@ -494,7 +494,7 @@ void UnitStats::LearnSkill(const void* database, const void* record) {
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
 }
-EI_REPLACE_METHOD(0x00526450, UnitStats::LearnSkill);
+EI_REWRITTEN(0x00526450, UnitStats::LearnSkill);
 
 namespace {
 constexpr float kStatBase = 25.0f;   // 0073E124
@@ -546,7 +546,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     }
     return kZero;
 }
-EI_REPLACE_METHOD(0x00526C70, UnitStats::WeaponSkillBonus);
+EI_REWRITTEN(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
 
@@ -589,7 +589,7 @@ BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
     int own = static_cast<const SkillDatabase*>(database)->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
+EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 
 // --- Applying a prototype ---------------------------------------------------------------------
 
@@ -686,4 +686,4 @@ CEngineObject* CMapObjectManager::NewObjectImpl(int classId) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00512730, CMapObjectManager::NewObjectImpl);
+EI_REWRITTEN(0x00512730, CMapObjectManager::NewObjectImpl);

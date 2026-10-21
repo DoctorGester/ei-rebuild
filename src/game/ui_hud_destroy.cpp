@@ -19,7 +19,7 @@ void CHudWeaponBar::DestroyBody() {
     labels_.Destruct();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0063BC70, CHudWeaponBar::DestroyBody);
+EI_REWRITTEN(0x0063BC70, CHudWeaponBar::DestroyBody);
 
 void CHudQuickItems::DestroyBody() {
     labels_.Destruct();
@@ -27,13 +27,13 @@ void CHudQuickItems::DestroyBody() {
     if (entries_) gamecrt::operator_delete(entries_);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0063CA70, CHudQuickItems::DestroyBody);
+EI_REWRITTEN(0x0063CA70, CHudQuickItems::DestroyBody);
 
 void CHudSpellColumn::DestroyBody() {
     labels_.Destruct();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0063E460, CHudSpellColumn::DestroyBody);
+EI_REWRITTEN(0x0063E460, CHudSpellColumn::DestroyBody);
 
 void CHudActionColumn::DestroyBody() {
     labels_.Destruct();
@@ -41,14 +41,14 @@ void CHudActionColumn::DestroyBody() {
     if (actions_.data) gamecrt::operator_delete(actions_.data);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0063F490, CHudActionColumn::DestroyBody);
+EI_REWRITTEN(0x0063F490, CHudActionColumn::DestroyBody);
 
 void CHudMap::DestroyBody() {
     if (visibleArea_.data) FreeAligned(visibleArea_.data);
     if (viewPolygon_.data) FreeAligned(viewPolygon_.data);
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);
+EI_REWRITTEN(0x00635CA0, CHudMap::DestroyBody);
 
 void CHudUnitPanel::DestroyBody() {
     partLabels_.Destruct();
@@ -57,11 +57,11 @@ void CHudUnitPanel::DestroyBody() {
     strings_[0].~CString();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x00635D00, CHudUnitPanel::DestroyBody);
+EI_REWRITTEN(0x00635D00, CHudUnitPanel::DestroyBody);
 
 void CHudTopPanel::DestroyBody() {
     pageTexts_[1].~CString();
     pageTexts_[0].~CString();
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x00635E00, CHudTopPanel::DestroyBody);
+EI_REWRITTEN(0x00635E00, CHudTopPanel::DestroyBody);

@@ -88,7 +88,7 @@ void CBriefingScreen::FindTopics(int personId) {
     for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size, topic->data());
     if (constructor.GetLength() != 0) topics_.SetAtGrow(topics_.size, constructor);
 }
-EI_REPLACE_METHOD(0x00607360, CBriefingScreen::FindTopics);
+EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 
 // --- 006078C0 -----------------------------------------------------------------------------------
 
@@ -108,4 +108,4 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     if (TextsOpenSection(texts, nullptr, section)) texts->ReadLine(&title, 1);
     return new (out) mfc::CString(title);
 }
-EI_REPLACE_METHOD(0x006078C0, CBriefingScreen::TopicTitle);
+EI_REWRITTEN(0x006078C0, CBriefingScreen::TopicTitle);

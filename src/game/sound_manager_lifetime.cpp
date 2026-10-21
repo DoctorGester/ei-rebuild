@@ -47,7 +47,7 @@ CSoundManager* CSoundManager::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006B62B0, CSoundManager::DeletingDestruct);
+EI_REWRITTEN(0x006B62B0, CSoundManager::DeletingDestruct);
 
 // 006B7060. The list's RemoveHead (inlined), then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
@@ -56,7 +56,7 @@ void CSoundManager::ClearWaveSources() {
         delete source;
     }
 }
-EI_REPLACE_METHOD(0x006B7060, CSoundManager::ClearWaveSources);
+EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 
 // 006B7AB0. Called at startup (00456440) for the two sound archives. A failed allocation is not
 // tested (the open call goes through a null object, as in the original).
@@ -71,7 +71,7 @@ int CSoundManager::AddWaveSource(const char* path) {
     waveSources.AddTail(source);
     return 1;
 }
-EI_REPLACE_METHOD(0x006B7AB0, CSoundManager::AddWaveSource);
+EI_REWRITTEN(0x006B7AB0, CSoundManager::AddWaveSource);
 
 // 006B8960. From the map's ambient sounds (006C68B0, 006CB390).
 void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source) {
@@ -126,7 +126,7 @@ mfc::CString CSoundManager::CurrentStreamName() {
     gameapi::LeaveCriticalSection(Lock(nameLock));
     return name;
 }
-EI_REPLACE_METHOD(0x006BAEA0, CSoundManager::CurrentStreamName);
+EI_REWRITTEN(0x006BAEA0, CSoundManager::CurrentStreamName);
 
 int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset) {
     if (offset >= 0) {
@@ -294,8 +294,8 @@ void __fastcall SoundResetStream(void* stream) {
 }
 
 EI_REPLACE_METHOD(0x006B6040, CSoundManager::Construct);
-EI_REPLACE_METHOD(0x006B65D0, CSoundManager::DestructBody);
-EI_REPLACE(0x006BA9C0, SoundResetStream);
+EI_REWRITTEN(0x006B65D0, CSoundManager::DestructBody);
+EI_REWRITTEN(0x006BA9C0, SoundResetStream);
 
 // --- A-H18: Open, Close, Reset ------------------------------------------------------------------------
 
@@ -473,7 +473,7 @@ void CSoundManager::StreamThread() {
     }
     mfc::impl::AfxEndThread(0, 1);
 }
-EI_REPLACE_METHOD(0x006BB910, CSoundManager::StreamThread);
+EI_REWRITTEN(0x006BB910, CSoundManager::StreamThread);
 
 // 006B6A10: the stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached:
 // StreamThread ends the thread). S16, on the standalone boot path.
@@ -678,7 +678,7 @@ EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
 int __fastcall SoundOpenStream(void* stream, void*, void* driver) { return ManagerOf(stream)->OpenStream(driver); }
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
-EI_REPLACE(0x006BAC90, SoundCloseStream);
+EI_REWRITTEN(0x006BAC90, SoundCloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
     Destroy();   // slot 3: Close
@@ -734,7 +734,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     enabled = 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x006B6A30, CSoundManager::Open);
+EI_REWRITTEN(0x006B6A30, CSoundManager::Open);
 
 void CSoundManager::Close() {
     if (streamThread != nullptr) {
@@ -778,7 +778,7 @@ void CSoundManager::Close() {
     soundRegistry.Close();
     Reset();
 }
-EI_REPLACE_METHOD(0x006B6D80, CSoundManager::Close);
+EI_REWRITTEN(0x006B6D80, CSoundManager::Close);
 
 void CSoundManager::Reset() {
     waveDriver = nullptr;
@@ -828,4 +828,4 @@ void CSoundManager::Reset() {
     soundPath = game::EmptyText();
     randomStart = 0;
 }
-EI_REPLACE_METHOD(0x006B73E0, CSoundManager::Reset);
+EI_REWRITTEN(0x006B73E0, CSoundManager::Reset);

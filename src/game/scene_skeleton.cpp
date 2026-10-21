@@ -66,7 +66,7 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
     int count = static_cast<std::int16_t>(frames) + 1;
     for (int f = 0; f < count; ++f) MakeFrameRelative(nullptr, skin->root, f);
 }
-EI_REPLACE(0x00449240, BuildRootBone);
+EI_REWRITTEN(0x00449240, BuildRootBone);
 
 // 004491C0: every child's rest pivot and rotation copied, recursively.
 void __fastcall CopyRestPose(SceneNode* node) {
@@ -105,7 +105,7 @@ int __fastcall FindRootNode(VtArray* nodeArray) {
     }
     return root;
 }
-EI_REPLACE(0x00449030, FindRootNode);
+EI_REWRITTEN(0x00449030, FindRootNode);
 
 // ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
@@ -187,6 +187,6 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
     }
     return 1;
 }
-EI_REPLACE(0x00448A40, BuildSkeleton);
+EI_REWRITTEN(0x00448A40, BuildSkeleton);
 
 } // namespace scene

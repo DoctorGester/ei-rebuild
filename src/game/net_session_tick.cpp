@@ -256,7 +256,7 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     socket_.SendTo(address, buffer);
     GrowingBufferDestruct(buffer);
 }
-EI_REPLACE_METHOD(0x00436FA0, SessionBase::SendLeave);
+EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
 } // namespace net
 
@@ -311,7 +311,7 @@ void SessionBase::Destruct() {
     stlp::deallocate(clients_, sizeof(ClientNode));
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x00436A50, SessionBase::Destruct);
+EI_REWRITTEN(0x00436A50, SessionBase::Destruct);
 
 SessionBase* SessionBase::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -350,6 +350,6 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     else if (rate >= 50000) rate = 50000;
     added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f /*0073BF48*/) / static_cast<double>(rate));
 }
-EI_REPLACE_METHOD(0x00436DD0, SessionBase::AddClient);
+EI_REWRITTEN(0x00436DD0, SessionBase::AddClient);
 
 } // namespace net

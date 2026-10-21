@@ -58,7 +58,7 @@ void DeltaField::Empty() {
     out[0].Resize(0);
     out[1].Resize(0);
 }
-EI_REPLACE_METHOD(0x00675F70, DeltaField::Empty);
+EI_REWRITTEN(0x00675F70, DeltaField::Empty);
 
 void DeltaField::Destruct() {
     out[1].Destruct();
@@ -144,7 +144,7 @@ void CEffectSoundSeq::Destruct() {
     name_.~CString();
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x00676980, CEffectSoundSeq::Destruct);
+EI_REWRITTEN(0x00676980, CEffectSoundSeq::Destruct);
 
 CEffectSoundSeq* CEffectSoundSeq::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00676960, CEffectSoundSeq::DeletingDestruct);
@@ -169,7 +169,7 @@ void CEffectAmbientSound::Destruct() {
     names_.Destruct();
     DestructEffect();
 }
-EI_REPLACE_METHOD(0x006776E0, CEffectAmbientSound::Destruct);
+EI_REWRITTEN(0x006776E0, CEffectAmbientSound::Destruct);
 
 CEffectAmbientSound* CEffectAmbientSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x006776C0, CEffectAmbientSound::DeletingDestruct);
@@ -297,4 +297,4 @@ CEngineObject* CEffectManager::NewObjectImpl(int type) {
     if (object != nullptr) object->type_ = type;
     return object;
 }
-EI_REPLACE_METHOD(0x0067E170, CEffectManager::NewObjectImpl);
+EI_REWRITTEN(0x0067E170, CEffectManager::NewObjectImpl);

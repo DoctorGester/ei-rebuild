@@ -30,13 +30,13 @@ int CTorchObjectSpec::CreateSpec() {
     std::memcpy(colours_[1], DefaultColour(), sizeof(colours_[1]));
     return 1;
 }
-EI_REPLACE_METHOD(0x0052C610, CTorchObjectSpec::CreateSpec);
+EI_REWRITTEN(0x0052C610, CTorchObjectSpec::CreateSpec);
 
 void CTorchObjectSpec::DestroySpec() {
     torch_ = nullptr;
     name_.Empty();
 }
-EI_REPLACE_METHOD(0x0052C680, CTorchObjectSpec::DestroySpec);
+EI_REWRITTEN(0x0052C680, CTorchObjectSpec::DestroySpec);
 
 void CTorchObjectSpec::LoadSpec(CStream* stream) {
     stream->Read(&lightKind_, 4);
@@ -47,7 +47,7 @@ void CTorchObjectSpec::LoadSpec(CStream* stream) {
     stream->Read(colours_[0], 0xC);
     stream->Read(colours_[1], 0xC);
 }
-EI_REPLACE_METHOD(0x0052C490, CTorchObjectSpec::LoadSpec);
+EI_REWRITTEN(0x0052C490, CTorchObjectSpec::LoadSpec);
 
 void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(&lightKind_, 4);
@@ -82,7 +82,7 @@ void CTorchObjectSpec::SetFlame(const float* colour, float value, const float* v
 EI_REPLACE_METHOD(0x0052C5C0, CTorchObjectSpec::SetFlame);
 
 void CTorchObjectSpec::SetName(const char* name) { name_ = name; }
-EI_REPLACE_METHOD(0x0052C600, CTorchObjectSpec::SetName);
+EI_REWRITTEN(0x0052C600, CTorchObjectSpec::SetName);
 
 void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     std::uint32_t kind;
@@ -105,4 +105,4 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     ShowEffectsSlot();
     WarmUpParticlesSlot();
 }
-EI_REPLACE_METHOD(0x0052C390, CTorchObjectSpec::ReadNetState);
+EI_REWRITTEN(0x0052C390, CTorchObjectSpec::ReadNetState);

@@ -221,7 +221,7 @@ void CCampPages::ShowPage(int page) {
     SetShade(SceneMesh(page_ + 2), 1.0f);
     interface_->OpenHelp(0);
 }
-EI_REPLACE_METHOD(0x0060E9E0, CCampPages::ShowPage);
+EI_REWRITTEN(0x0060E9E0, CCampPages::ShowPage);
 
 // --- 006100E0: CanEquip ----------------------------------------------------------------------------
 
@@ -599,7 +599,7 @@ void CCampPages::UpdateAction() {
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);
 }
-EI_REPLACE_METHOD(0x00611930, CCampPages::UpdateAction);
+EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
 // --- 0060F050: Draw ------------------------------------------------------------------------------
 
@@ -732,7 +732,7 @@ bool CCampPages::CanMakeSpell() {
     if (mana < static_cast<int>(gamecrt::Ftol(D(Read<float>(madeSpell, 0x40))))) return false;
     return skill >= Read<int>(madeSpell, 0x50);
 }
-EI_REPLACE_METHOD(0x00612290, CCampPages::CanMakeSpell);
+EI_REWRITTEN(0x00612290, CCampPages::CanMakeSpell);
 
 bool CCampPages::CanMakeItem() {
     // The slot list's item constructor, item factory and spell manager (its slots 16, 18, 22).
@@ -871,7 +871,7 @@ void __fastcall TradePanelDestroy(CUiWindow* window) {
     DestroyRows(self->learnable_);
     self->DestroyBase();
 }
-EI_REPLACE(0x0060E3E0, TradePanelDestroy);
+EI_REWRITTEN(0x0060E3E0, TradePanelDestroy);
 
 // --- 0060FE40: taking an item off the hero ---------------------------------------------------
 
@@ -1254,7 +1254,7 @@ void CCampPages::ShowHero() {
     statsPanel_->SetHero(hero_, name);
     trade_->SelectHero(hero_);
 }
-EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
+EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 
 // --- 005F6240: the constructor ----------------------------------------------------------------
 

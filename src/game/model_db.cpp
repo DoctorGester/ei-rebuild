@@ -98,11 +98,11 @@ void ChunkArchive::SerializeAcks2(int id, void* records, void*) {
 void ChunkArchive::SerializeAcks3(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, recordvec::ResizeUntyped<recordvec::ExtraAcksVector>, SerializeAck3Record);
 }
-EI_REPLACE_METHOD(0x006D23A0, ChunkArchive::SerializePrints);
-EI_REPLACE_METHOD(0x006D25F0, ChunkArchive::SerializePrints2);
-EI_REPLACE_METHOD(0x006DB430, ChunkArchive::SerializeAcks);
-EI_REPLACE_METHOD(0x006DB680, ChunkArchive::SerializeAcks2);
-EI_REPLACE_METHOD(0x006DB8D0, ChunkArchive::SerializeAcks3);
+EI_REWRITTEN(0x006D23A0, ChunkArchive::SerializePrints);
+EI_REWRITTEN(0x006D25F0, ChunkArchive::SerializePrints2);
+EI_REWRITTEN(0x006DB430, ChunkArchive::SerializeAcks);
+EI_REWRITTEN(0x006DB680, ChunkArchive::SerializeAcks2);
+EI_REWRITTEN(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
@@ -142,7 +142,7 @@ void WaterTweens::SetTarget(int key, float target, int steps) {
     e.steps = steps;
     e.step = (target - data[count].value) / steps;
 }
-EI_REPLACE_METHOD(0x006D4410, WaterTweens::SetTarget);
+EI_REWRITTEN(0x006D4410, WaterTweens::SetTarget);
 
 bool WaterTweens::Tick() {
     bool moving = false;
@@ -182,10 +182,10 @@ void WaterTweens::Load(CStream* stream, void* terrain) {
     ReadEntries(stream, reinterpret_cast<int>(stream));
     for (int i = 0; i < size; ++i) static_cast<Terrain*>(terrain)->SetWaterLevel(data[i].key, data[i].value);
 }
-EI_REPLACE_METHOD(0x006D45D0, WaterTweens::Load);
+EI_REWRITTEN(0x006D45D0, WaterTweens::Load);
 
 void WaterTweens::LoadEntries(CStream* stream) {
     // The original reads the count into an uninitialised local; the game's streams always write it.
     ReadEntries(stream, 0);
 }
-EI_REPLACE_METHOD(0x006D4660, WaterTweens::LoadEntries);
+EI_REWRITTEN(0x006D4660, WaterTweens::LoadEntries);

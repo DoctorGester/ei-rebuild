@@ -350,7 +350,7 @@ void CHudMap::BuildMarkers() {
 
     mesh->RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x00643DC0, CHudMap::BuildMarkers);
+EI_REWRITTEN(0x00643DC0, CHudMap::BuildMarkers);
 
 // --- 00642E80 ----------------------------------------------------------------------------------
 
@@ -572,7 +572,7 @@ void CHudMap::UpdateView() {
     uv[3].u = u1;
     uv[3].v = vTop;
 }
-EI_REPLACE_METHOD(0x00642E80, CHudMap::UpdateView);
+EI_REWRITTEN(0x00642E80, CHudMap::UpdateView);
 
 // --- 00645640 ----------------------------------------------------------------------------------
 

@@ -351,7 +351,7 @@ ParticleElement* __fastcall AllocateElements(int count) {
     reinterpret_cast<void**>(aligned)[-1] = raw;
     return reinterpret_cast<ParticleElement*>(aligned);
 }
-EI_REPLACE(0x00497EB0, AllocateElements);
+EI_REWRITTEN(0x00497EB0, AllocateElements);
 
 // 004923B0. LightningBlast: on the first emission the bolt's ten points are placed; then the
 // particles run along the bolt (two per point), then bursts at the impact point (up to five, while
@@ -369,7 +369,7 @@ int CParticleSource::EmitLightning(Particle* p, int) {
     if (particles.count < 200 && points[0].bursts < 5) return EmitBurst(this, p, points);
     return EmitSpark(this, p);
 }
-EI_REPLACE_METHOD(0x004923B0, CParticleSource::EmitLightning);
+EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
 
 // 00490130. Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
 // one) are scattered on a ring around the carrier. Then one particle per point while the fade has
@@ -432,7 +432,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     SetBits(&p->size, 0x3D75C28F);   // 0.06
     return 1;
 }
-EI_REPLACE_METHOD(0x00490130, CParticleSource::EmitModifier);
+EI_REWRITTEN(0x00490130, CParticleSource::EmitModifier);
 
 // --- Smaller callbacks ----------------------------------------------------------------------------
 
@@ -508,7 +508,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     p->velocity.x = static_cast<float>(roll * D(falloff) * D(EI_TWENTIETH));
     return 1;
 }
-EI_REPLACE_METHOD(0x00492D30, CParticleSource::EmitZoneExit);
+EI_REWRITTEN(0x00492D30, CParticleSource::EmitZoneExit);
 
 // 00493280. 0x2039: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
@@ -519,7 +519,7 @@ int CParticleSource::UpdateGlow(Particle* p) {
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
     return 1;
 }
-EI_REPLACE_METHOD(0x00493280, CParticleSource::UpdateGlow);
+EI_REWRITTEN(0x00493280, CParticleSource::UpdateGlow);
 
 // 004933F0. 0x203A/0x203B: dust moving along the ground, never below the plane the source
 // measured (element 0: distance +0x0C, normal +0x18), growing and slowing down.
@@ -543,7 +543,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     p->aux0 = static_cast<float>(D(p->aux1) * D(p->aux0));
     return 1;
 }
-EI_REPLACE_METHOD(0x004933F0, CParticleSource::UpdateGroundDust);
+EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 
 // 004934F0. 0x203A/0x203B: on the element's first tick, the ground plane under the source (the
 // normal's z replaced by its reciprocal when non-zero); after the second the source stops
@@ -604,11 +604,11 @@ int CParticleSource::UpdatePortal(Particle* p) {
     p->color = (static_cast<std::uint32_t>(opacity) << 24) | 0xFFFFFF;
     return 1;
 }
-EI_REPLACE_METHOD(0x00494770, CParticleSource::UpdatePortal);
+EI_REWRITTEN(0x00494770, CParticleSource::UpdatePortal);
 
 // 00494930. Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
 void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_TEN))); }
-EI_REPLACE_METHOD(0x00494930, CParticleSource::TickPortal);
+EI_REWRITTEN(0x00494930, CParticleSource::TickPortal);
 
 // 00494CD0. Sparks: the spare ones (state set) get a random size once and are dropped after; the
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
@@ -635,7 +635,7 @@ int CParticleSource::UpdateSparks(Particle* p) {
     ++p->frame;
     return 1;
 }
-EI_REPLACE_METHOD(0x00494CD0, CParticleSource::UpdateSparks);
+EI_REWRITTEN(0x00494CD0, CParticleSource::UpdateSparks);
 
 // 004957E0. FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
@@ -660,7 +660,7 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
     std::memcpy(&p->aux2, &grow, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x004957E0, CParticleSource::EmitFeebleMind);
+EI_REWRITTEN(0x004957E0, CParticleSource::EmitFeebleMind);
 
 // 00495A30. FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's
 // position once it is tracked, else the source), drifting in a random direction inside the unit
@@ -703,7 +703,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     p->pos.z = static_cast<float>(D(p->velocity.x) * D(EI_FEET_RISE) + D(p->pos.z));
     return 1;
 }
-EI_REPLACE_METHOD(0x00495A30, CParticleSource::EmitFeetCloud);
+EI_REWRITTEN(0x00495A30, CParticleSource::EmitFeetCloud);
 
 // 00496990. StartTrans: once the element's countdown runs out the source stops (flags 1 and 4
 // off) and detaches; the ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries
@@ -720,4 +720,4 @@ void CParticleSource::TickStartTrans(ParticleElement* e) {
     emitCount = count;
     if (!(count < 8)) emitCount = 8;
 }
-EI_REPLACE_METHOD(0x00496990, CParticleSource::TickStartTrans);
+EI_REWRITTEN(0x00496990, CParticleSource::TickStartTrans);

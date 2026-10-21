@@ -146,24 +146,24 @@ void DestroyGroups(ScriptGroup* groups, int count) {
 void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars) {
     FreeValues(vars, [](float*, int) {});
 }
-EI_REPLACE(0x004C1650, ScriptFloatsClear);
+EI_REWRITTEN(0x004C1650, ScriptFloatsClear);
 
 void __fastcall ScriptStringsClear(ScriptNamedValues<mfc::CString>* vars) {
     FreeValues(vars, [](mfc::CString* strings, int count) { DestructStrings(strings, count); });
 }
-EI_REPLACE(0x004C16B0, ScriptStringsClear);
+EI_REWRITTEN(0x004C16B0, ScriptStringsClear);
 
 void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeValues(vars, [](ScriptObjectRef* refs, int count) {
         for (int i = 0; i < count; ++i) refs[i].Reset();
     });
 }
-EI_REPLACE(0x004C1700, ScriptObjectsClear);
+EI_REWRITTEN(0x004C1700, ScriptObjectsClear);
 
 void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
     FreeValues(vars, DestroyGroups);
 }
-EI_REPLACE(0x004C1760, ScriptGroupsClear);
+EI_REWRITTEN(0x004C1760, ScriptGroupsClear);
 
 // ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
 // storage is freed inline (each group destroyed first).
@@ -183,7 +183,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     vars->groups.size = 0;
     vars->groupNames.SetSize(0, -1);
 }
-EI_REPLACE(0x004C0020, ScriptVarsClear);
+EI_REWRITTEN(0x004C0020, ScriptVarsClear);
 
 namespace {
 // One type's values and names (ScriptNamedValues<T>, the value array and the name array after it).
@@ -202,4 +202,4 @@ void ScriptVars::AppendFrom(const ScriptVars* other) {
     Named(&objects)->Append(Named(&other->objects));    // 004C3450
     Named(&groups)->Append(Named(&other->groups));      // 004C3DC0
 }
-EI_REPLACE_METHOD(0x004B3900, ScriptVars::AppendFrom);
+EI_REWRITTEN(0x004B3900, ScriptVars::AppendFrom);

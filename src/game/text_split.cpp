@@ -36,12 +36,12 @@ int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool ski
 int __fastcall Split(const char* text, mfc::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, false);
 }
-EI_REPLACE(0x004DBE40, Split);
+EI_REWRITTEN(0x004DBE40, Split);
 
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, true);
 }
-EI_REPLACE(0x004DBF50, SplitWords);
+EI_REWRITTEN(0x004DBF50, SplitWords);
 
 int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
     mfc::CString result;
@@ -57,7 +57,7 @@ int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
     *string = result;
     return 1;
 }
-EI_REPLACE(0x004DC400, ReplaceChar);
+EI_REWRITTEN(0x004DC400, ReplaceChar);
 
 int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator) {
     *out = game::EmptyText();
@@ -69,6 +69,6 @@ int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char sepa
     }
     return 1;
 }
-EI_REPLACE(0x004DC390, Join);
+EI_REWRITTEN(0x004DC390, Join);
 
 } // namespace text

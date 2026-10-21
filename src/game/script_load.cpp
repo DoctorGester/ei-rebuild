@@ -304,7 +304,7 @@ void SSCCmd::Load(ScriptStream* stream) {
 
     calledScript = SavedScript()->FindBlock(ReadInt(stream));
 }
-EI_REPLACE_METHOD(0x004B5FE0, SSCCmd::Load);
+EI_REWRITTEN(0x004B5FE0, SSCCmd::Load);
 
 // One nested call element (SSCCmd::Load calls it per element): type, argument index, then the
 // element's command through SSCCmd::Load's address.
@@ -320,7 +320,7 @@ void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     *out = *reinterpret_cast<CStream*>(stream)->ReadString(temporary);
     reinterpret_cast<mfc::CString*>(temporary)->~CString();
 }
-EI_REPLACE(0x004B3D10, ScriptStringLoad);
+EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
@@ -330,7 +330,7 @@ void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) 
     InlineSetSize(Raw(&block->commands), count, kCmds);
     for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
 }
-EI_REPLACE(0x004C57C0, ScriptDeclCommandsLoad);
+EI_REWRITTEN(0x004C57C0, ScriptDeclCommandsLoad);
 
 // A definition's if-then pairs: the ids of the condition and command blocks, resolved in the
 // saved script's block lists (FindBlock). The first id defaults to -1 when the read leaves it.
@@ -346,7 +346,7 @@ void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream*
         pair->commands = FindBlock(id);
     }
 }
-EI_REPLACE(0x004CA000, ScriptIfThenLoad);
+EI_REWRITTEN(0x004CA000, ScriptIfThenLoad);
 
 // One pair of an instance (the instance loader calls it per pair): as ScriptIfThenLoad's loop.
 void ScriptIfThen::Load(ScriptStream* stream) {
@@ -422,7 +422,7 @@ void ScriptVars::Load(ScriptStream* stream) {
         ScriptStringLoad(&groupNames.data[i], stream);
     }
 }
-EI_REPLACE_METHOD(0x004B3AD0, ScriptVars::Load);
+EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 
 // ---- Lists ---------------------------------------------------------------------------------------
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
@@ -449,7 +449,7 @@ void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
         stream->Read(&source->lifetime, 4);
     }
 }
-EI_REPLACE(0x004CA480, ScriptParticlesLoad);
+EI_REWRITTEN(0x004CA480, ScriptParticlesLoad);
 
 // FX sources (CScript +0x30; element 0x34 bytes): each node is filled by 004B1B40.
 void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
@@ -472,7 +472,7 @@ void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
         reinterpret_cast<ScriptFxSource*>(data)->ScriptFxSourceLoad(stream);
     }
 }
-EI_REPLACE(0x004CA5D0, ScriptFxSourcesLoad);
+EI_REWRITTEN(0x004CA5D0, ScriptFxSourcesLoad);
 
 // Lightning (CScript +0x4C; element: object, id).
 void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
@@ -491,7 +491,7 @@ void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
         stream->Read(&bolt->id, 4);
     }
 }
-EI_REPLACE(0x004CA720, ScriptLightningLoad);
+EI_REWRITTEN(0x004CA720, ScriptLightningLoad);
 
 // WorldScript blocks (CScript +0x178; element ScriptDecl): id, count, each SSCCmd.
 void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
@@ -516,7 +516,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
     }
 }
-EI_REPLACE(0x004CA810, ScriptWorldBlocksLoad);
+EI_REWRITTEN(0x004CA810, ScriptWorldBlocksLoad);
 
 // Script instances (CScript +0x140; element ScriptDefinition): killed flag, name, parameter
 // types, if-then pairs (004BB590 each), variables.
@@ -556,7 +556,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         LoadVariables(&instance->vars, stream);
     }
 }
-EI_REPLACE(0x004CA980, ScriptInstancesLoad);
+EI_REWRITTEN(0x004CA980, ScriptInstancesLoad);
 
 // Runs (CScript +0x15C; element ScriptRun): block id (FindBlock), index, ticks, sleep start, the
 // index of its instance in the loading script's instance list (-1 or out of range: none), vars.
@@ -602,7 +602,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         run->vars.Load(stream);
     }
 }
-EI_REPLACE(0x004CAC00, ScriptRunsLoad);
+EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 
 // ---- CScript::Load --------------------------------------------------------------------------------
 

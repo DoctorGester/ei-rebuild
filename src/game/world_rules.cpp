@@ -161,4 +161,4 @@ float __stdcall PlayerZeroVariable(const char* name) {
     return Variable(player, name);
 }
 
-EI_REPLACE(0x00578A90, LocalPlayerName);
+EI_REWRITTEN(0x00578A90, LocalPlayerName);

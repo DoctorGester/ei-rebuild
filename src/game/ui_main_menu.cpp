@@ -89,7 +89,7 @@ void CInterface3D::ResetSavedState() {
 // --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
 
 void CUiRegion::SetRectFrom(RECT rect) { CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
-EI_REPLACE_METHOD(0x0062AC90, CUiRegion::SetRectFrom);
+EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
 // --- 006335E0: the version line --------------------------------------------------------------
 
@@ -106,7 +106,7 @@ void CMainMenu::AddVersionLine() {
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
-EI_REPLACE_METHOD(0x006335E0, CMainMenu::AddVersionLine);
+EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 
 // --- 006326B0: Create (slot 25) --------------------------------------------------------------
 

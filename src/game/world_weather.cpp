@@ -190,5 +190,5 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     }
 }
 
-EI_REPLACE_METHOD(0x0058CCD0, CWorldServer::UpdateWeather);
-EI_REPLACE(0x00578E30, ShowBolt);
+EI_REWRITTEN(0x0058CCD0, CWorldServer::UpdateWeather);
+EI_REWRITTEN(0x00578E30, ShowBolt);

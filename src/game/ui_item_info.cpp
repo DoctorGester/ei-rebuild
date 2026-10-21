@@ -467,7 +467,7 @@ tail:
     }
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005EE760, CItemInfoPanel::DescribeItem);
+EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
 // --- 005EFD90: a material ------------------------------------------------------------------------
 
@@ -509,7 +509,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Wrapped(description, 4);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005EFD90, CItemInfoPanel::DescribeMaterial);
+EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
 // --- 005F0370: a blueprint (a weapon, armour or quick item record) -----------------------------------
 
@@ -586,7 +586,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Wrapped(description, 4);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005F0370, CItemInfoPanel::DescribeBlueprint);
+EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 
 // --- 005F0B90: a spell record ---------------------------------------------------------------------
 
@@ -634,7 +634,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Wrapped(description, 4);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
+EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
 
 // --- 005F1130: a spell modifier record ------------------------------------------------------------
 
@@ -654,7 +654,7 @@ void CItemInfoPanel::DescribeModifierRecord() {
     w.Wrapped(description, 8);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
+EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
 
 // --- 005EF300: a quick item of category 8 (its spell's level and duration) ------------------------
 
@@ -675,7 +675,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Wrapped(description, 8);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005EF300, CItemInfoPanel::DescribeQuickItem);
+EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
 
 // --- 005EF5D0: the spell an item carries (or a spell container) -----------------------------------
 
@@ -762,7 +762,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     }
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
+EI_REWRITTEN(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 
 // --- 005F1590: the statistic under the mouse ----------------------------------------------------------
 
@@ -1028,7 +1028,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     }
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005F1590, CItemInfoPanel::DescribeStats);
+EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
 // --- 005F2910: a camp help topic ----------------------------------------------------------------------
 
@@ -1050,7 +1050,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Wrapped(description, 16);
     w.Draw()->End();
 }
-EI_REPLACE_METHOD(0x005F2910, CItemInfoPanel::ShowHelp);
+EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 
 // --- 005EE6C0: describe an item ---------------------------------------------------------------------
 
@@ -1065,7 +1065,7 @@ void CItemInfoPanel::Describe(CItem* item) {
     if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }
-EI_REPLACE_METHOD(0x005EE6C0, CItemInfoPanel::Describe);
+EI_REWRITTEN(0x005EE6C0, CItemInfoPanel::Describe);
 
 // --- Input side (window + 0x94): 005EE6B0 slot 1, 005EE640 key down, 005EE680 key up ------------------
 
@@ -1121,4 +1121,4 @@ void CItemInfoPanel::Build(int x, int y) {
     using EmptyFn = void(__thiscall*)(void*);
     ei::ObjectSlot<EmptyFn>(list, 2)(list);
 }
-EI_REPLACE_METHOD(0x005EE440, CItemInfoPanel::Build);
+EI_REWRITTEN(0x005EE440, CItemInfoPanel::Build);

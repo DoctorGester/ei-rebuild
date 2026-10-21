@@ -568,13 +568,13 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* he
     for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&Typed<HelperArray>(*helpers).data[i]);
     return 1;
 }
-EI_REPLACE_METHOD(0x00471B10, SceneInfo::Load);
+EI_REWRITTEN(0x00471B10, SceneInfo::Load);
 
 void FaceGroup::Assign(const FaceGroup* from) {
     name = from->name;
     faces.Copy(from->faces);
 }
-EI_REPLACE_METHOD(0x00474C50, FaceGroup::Assign);
+EI_REWRITTEN(0x00474C50, FaceGroup::Assign);
 
 // ---- Element constructors and destructors (S7a) --------------------------------------------------
 
@@ -622,7 +622,7 @@ void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
     gamecrt::operator_delete(groups->data);
 }
-EI_REPLACE(0x00454CE0, FaceGroupArrayDestruct);
+EI_REWRITTEN(0x00454CE0, FaceGroupArrayDestruct);
 
 void SceneNode::Destruct() {
     FreeArray(children, kChildrenVtable);
@@ -634,7 +634,7 @@ void SceneNode::Destruct() {
     parent.~CString();
     name.~CString();
 }
-EI_REPLACE_METHOD(0x004543E0, SceneNode::Destruct);
+EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
 // ---- Element constructors (S6b; their ConstructElements are record_arrays.cpp's) -----------------
 
@@ -681,7 +681,7 @@ void SceneMesh::Destruct() {
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     CEngineObject::DestructBase();
 }
-EI_REPLACE_METHOD(0x00454830, SceneMesh::Destruct);
+EI_REWRITTEN(0x00454830, SceneMesh::Destruct);
 
 SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -917,6 +917,6 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
     return 1;
 }
-EI_REPLACE(0x00446C10, LoadFakeUnitScene);
+EI_REWRITTEN(0x00446C10, LoadFakeUnitScene);
 
 } // namespace scene

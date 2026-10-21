@@ -206,28 +206,28 @@ ScriptToken* ScriptToken::Construct() {
     line = -1;
     return this;
 }
-EI_REPLACE_METHOD(0x004CFB70, ScriptToken::Construct);
+EI_REWRITTEN(0x004CFB70, ScriptToken::Construct);
 
 ScriptToken* ScriptToken::Assign(const ScriptToken& other) {
     text = other.text;
     line = other.line;
     return this;
 }
-EI_REPLACE_METHOD(0x004D0BD0, ScriptToken::Assign);
+EI_REWRITTEN(0x004D0BD0, ScriptToken::Assign);
 
 ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
     new (&text) mfc::CString(other.text);
     line = other.line;
     return this;
 }
-EI_REPLACE_METHOD(0x004D1D30, ScriptToken::CopyConstruct);
+EI_REWRITTEN(0x004D1D30, ScriptToken::CopyConstruct);
 
 void __stdcall ConstructTokens(ScriptToken* tokens, int count) {
     std::memset(tokens, 0, static_cast<unsigned>(count) * sizeof(ScriptToken));
     for (; count != 0; --count, ++tokens)
         if (tokens) tokens->Construct();
 }
-EI_REPLACE(0x004CF380, ConstructTokens);
+EI_REWRITTEN(0x004CF380, ConstructTokens);
 
 // ---- Lexer --------------------------------------------------------------------------------------
 
@@ -343,7 +343,7 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) 
     new (out) mfc::CString(qualified);
     return out;
 }
-EI_REPLACE_METHOD(0x004D37F0, CScript::QualifyName);
+EI_REWRITTEN(0x004D37F0, CScript::QualifyName);
 
 int CScript::FindScript(const char* name) {
     for (;;) {
@@ -401,7 +401,7 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
     else defines->head = node;
     defines->tail = node;
 }
-EI_REPLACE(0x004D34F0, AddDefine);
+EI_REWRITTEN(0x004D34F0, AddDefine);
 
 void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines) {
     for (const ScriptDefineList::Node* node = defines->head; node;) {

@@ -41,7 +41,7 @@ void CFlyingHitPoints::Destruct() {
     points_.ClearWith([](FlyingHitPoint*) {});
     stlp::deallocate(points_.head, sizeof(Node));
 }
-EI_REPLACE_METHOD(0x005E17E0, CFlyingHitPoints::Destruct);
+EI_REWRITTEN(0x005E17E0, CFlyingHitPoints::Destruct);
 
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
@@ -245,4 +245,4 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x005E18E0, CFlyingHitPoints::Draw);
+EI_REWRITTEN(0x005E18E0, CFlyingHitPoints::Draw);

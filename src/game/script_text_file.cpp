@@ -35,6 +35,6 @@ int __fastcall ReadTextFile(const char* path, mfc::CString* text) {
     }
     return result;
 }
-EI_REPLACE(0x004D5880, ReadTextFile);
+EI_REWRITTEN(0x004D5880, ReadTextFile);
 
 } // namespace scriptparse

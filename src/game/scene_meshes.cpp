@@ -205,7 +205,7 @@ void __fastcall IndexMeshCorners(VtArray* meshes) {
     records.vtable = ei::GamePointer<void>(0x0073C19C);
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE(0x0044CFF0, IndexMeshCorners);
+EI_REWRITTEN(0x0044CFF0, IndexMeshCorners);
 
 // 0044CF00 / 0044CF60 (no Ghidra functions; S16c): the two qsort comparators above (kCompareRecords,
 // kComparePairs; called through their addresses so the checks run). 1, -1 or 0 by the first field

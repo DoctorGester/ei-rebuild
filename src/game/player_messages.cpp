@@ -451,7 +451,7 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, void* path, const float
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
-EI_REPLACE_METHOD(0x0066C770, CPlayerServer::DestructBody);
+EI_REWRITTEN(0x0066C770, CPlayerServer::DestructBody);
 EI_REPLACE_METHOD(0x0066C750, CPlayerServer::DeletingDestruct);
 EI_REPLACE(0x0066C730, PlayerServerClassName);
 EI_REPLACE(0x0066C740, PlayerServerClassId);
@@ -459,7 +459,7 @@ EI_REPLACE_METHOD(0x0066CC50, CPlayerServer::ClearState);
 EI_REPLACE_METHOD(0x0066CF20, CPlayerServer::ClearState);
 EI_REPLACE_METHOD(0x0066CE50, CPlayerServer::ForgetSentObjects);
 EI_REPLACE_METHOD(0x0066D090, CPlayerServer::ClearGroup50F8);
-EI_REPLACE_METHOD(0x0066D490, CPlayerServer::SendPathMessage);
+EI_REWRITTEN(0x0066D490, CPlayerServer::SendPathMessage);
 
 EI_REPLACE_METHOD(0x0066C9A0, CPlayerServer::CreateServer);
 

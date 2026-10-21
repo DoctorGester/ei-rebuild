@@ -209,7 +209,7 @@ void DriverSession::Destruct() {   // 0055F7B0
     stlp::deallocate(drivers_, sizeof(DriverNode));
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
-EI_REPLACE_METHOD(0x0055F7B0, DriverSession::Destruct);
+EI_REWRITTEN(0x0055F7B0, DriverSession::Destruct);
 
 DriverSession* DriverSession::DeletingDestruct(unsigned flags) {   // 0055F790
     Destruct();
@@ -241,7 +241,7 @@ void CWorld::OpenSession() {
     }
     reinterpret_cast<RefPtr*>(&netSession_)->ShareAssign(session);
 }
-EI_REPLACE_METHOD(0x0055F410, CWorld::OpenSession);
+EI_REWRITTEN(0x0055F410, CWorld::OpenSession);
 
 // ---- CWorld::CloseSession (0055F890) --------------------------------------------------------------
 

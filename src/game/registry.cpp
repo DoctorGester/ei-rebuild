@@ -90,7 +90,7 @@ BOOL CFileRegistry::Open(const char* path) {
     data_ = nullptr;
     return 0;
 }
-EI_REPLACE_METHOD(0x006945A0, CFileRegistry::Open);
+EI_REWRITTEN(0x006945A0, CFileRegistry::Open);
 
 BOOL CFileRegistry::Attach(const void* image) {
     attached_ = 1;
@@ -102,7 +102,7 @@ BOOL CFileRegistry::Attach(const void* image) {
     data_ = nullptr;
     return 0;
 }
-EI_REPLACE_METHOD(0x00694610, CFileRegistry::Attach);
+EI_REWRITTEN(0x00694610, CFileRegistry::Attach);
 
 BOOL CFileRegistry::IsValid() {
     if (U32(data_) == kRegistryMagic) return 1;
@@ -110,7 +110,7 @@ BOOL CFileRegistry::IsValid() {
     Close();
     return 0;
 }
-EI_REPLACE_METHOD(0x00694660, CFileRegistry::IsValid);
+EI_REWRITTEN(0x00694660, CFileRegistry::IsValid);
 
 void CFileRegistry::Close() {
     if (!attached_) file_.Close();
@@ -165,7 +165,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
     }
     return value + 3 + (keyLength & 0xFFFF);
 }
-EI_REPLACE_METHOD(0x006946D0, CFileRegistry::FindData);
+EI_REWRITTEN(0x006946D0, CFileRegistry::FindData);
 
 BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     const std::uint8_t* root = data_;
@@ -177,7 +177,7 @@ BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00694880, CFileRegistry::GetSectionNames);
+EI_REWRITTEN(0x00694880, CFileRegistry::GetSectionNames);
 
 int CFileRegistry::GetInt(const char* section, const char* key, int defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegInt, nullptr))
@@ -207,7 +207,7 @@ mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc:
     }
     return defaultValue;
 }
-EI_REPLACE_METHOD(0x00694D20, CFileRegistry::GetString);
+EI_REWRITTEN(0x00694D20, CFileRegistry::GetString);
 
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
@@ -226,12 +226,12 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
 BOOL CFileRegistry::GetIntArray(const char* section, const char* key, DwordArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
-EI_REPLACE_METHOD(0x00695410, CFileRegistry::GetIntArray);
+EI_REWRITTEN(0x00695410, CFileRegistry::GetIntArray);
 
 BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, DwordArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
 }
-EI_REPLACE_METHOD(0x00695600, CFileRegistry::GetFloatArray);
+EI_REWRITTEN(0x00695600, CFileRegistry::GetFloatArray);
 
 BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console::CStringArray* out) {
     int isScalar;
@@ -255,4 +255,4 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006958E0, CFileRegistry::GetStringArray);
+EI_REWRITTEN(0x006958E0, CFileRegistry::GetStringArray);

@@ -229,5 +229,5 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.RemoveAll();
 }
 
-EI_REPLACE_METHOD(0x0058E850, CWorldServer::CastSpell);
-EI_REPLACE_METHOD(0x0058E670, CWorldServer::CreateMissile);
+EI_REWRITTEN(0x0058E850, CWorldServer::CastSpell);
+EI_REWRITTEN(0x0058E670, CWorldServer::CreateMissile);

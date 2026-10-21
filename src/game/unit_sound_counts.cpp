@@ -76,4 +76,4 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     files.Destruct();
 }
 
-EI_REPLACE_METHOD(0x0053A8E0, UnitDatabase::CountSoundFiles);
+EI_REWRITTEN(0x0053A8E0, UnitDatabase::CountSoundFiles);

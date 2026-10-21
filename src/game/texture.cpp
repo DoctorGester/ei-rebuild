@@ -155,7 +155,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
     device::GetAvailableVidMem(device::DDraw(device_), &caps, &total, &available);
     videoMemoryTenth_ = total / 10;
 }
-EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);
+EI_REWRITTEN(0x006913A0, CTextureManager::SetDevice);
 
 CEngineObject* CTextureManager::NewObjectImpl(int type) {
     void* memory = gamecrt::operator_new(sizeof(CTexture));
@@ -164,8 +164,8 @@ CEngineObject* CTextureManager::NewObjectImpl(int type) {
     texture->type_ = type;
     return texture;
 }
-EI_REPLACE_METHOD(0x00691810, CTextureManager::NewObjectImpl);
+EI_REWRITTEN(0x00691810, CTextureManager::NewObjectImpl);
 // The extra block's out-of-line SetSize.
 
-EI_REPLACE_METHOD(0x006922A0, CTextureManager::LoadTexture);
-EI_REPLACE_METHOD(0x006926F0, CTextureManager::LoadTextureFrom);
+EI_REWRITTEN(0x006922A0, CTextureManager::LoadTexture);
+EI_REWRITTEN(0x006926F0, CTextureManager::LoadTextureFrom);

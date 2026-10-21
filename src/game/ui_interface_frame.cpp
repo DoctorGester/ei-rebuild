@@ -190,5 +190,5 @@ void CInterface3D::OnStringEvent(const char* event) {
     }
 }
 
-EI_REPLACE_METHOD(0x005F57C0, CInterface3D::Update);
+EI_REWRITTEN(0x005F57C0, CInterface3D::Update);
 EI_REPLACE_METHOD(0x005F8070, CInterface3D::OnStringEvent);

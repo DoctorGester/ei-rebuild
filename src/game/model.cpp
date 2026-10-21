@@ -157,7 +157,7 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
     out->m[11] = -(q * zNear);
     return out;
 }
-EI_REPLACE(0x004F0E80, ProjectionMatrix);
+EI_REWRITTEN(0x004F0E80, ProjectionMatrix);
 
 // ---- CLinkFigureLoader ---------------------------------------------------------------------------
 
@@ -188,4 +188,4 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     game::DebugLog("Can't open resource file \"%s\"\n", words[0], words[1], words[2]);
     return 0;
 }
-EI_REPLACE_METHOD(0x004F6D30, CLinkFigureLoader::AddArchive);
+EI_REWRITTEN(0x004F6D30, CLinkFigureLoader::AddArchive);

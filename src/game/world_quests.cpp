@@ -717,11 +717,11 @@ void CWorldServer::TellPartiesGone(CEngineObject* unit) {
     }
 }
 
-EI_REPLACE_METHOD(0x00590160, CWorldServer::StorePlayerItems);
-EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
-EI_REPLACE_METHOD(0x0058FD90, CWorldServer::StoreParty);
-EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
-EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
-EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
+EI_REWRITTEN(0x00590160, CWorldServer::StorePlayerItems);
+EI_REWRITTEN(0x00591800, CWorldServer::UpdateMercBriefings);
+EI_REWRITTEN(0x0058FD90, CWorldServer::StoreParty);
+EI_REWRITTEN(0x00590A40, CWorldServer::CollectParty);
+EI_REWRITTEN(0x00590C70, CWorldServer::SyncPartyRecords);
+EI_REWRITTEN(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
-EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);
+EI_REWRITTEN(0x00591DE0, CWorldServer::ApplyMercBriefing);

@@ -46,7 +46,7 @@ void TitleLine::Destroy() {
     CStringDestroy(&style);
     CStringDestroy(&text);
 }
-EI_REPLACE_METHOD(0x0062BCB0, TitleLine::Destroy);
+EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
 // --- 0062BD80: the frame -------------------------------------------------------------------------
 

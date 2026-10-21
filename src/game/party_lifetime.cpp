@@ -74,7 +74,7 @@ void PartyUnitRecord::Destruct() {
     FreeStorage(ItemList(weapons));
     for (int i = 6; i >= 0; --i) texts[i].~CString();
 }
-EI_REPLACE_METHOD(0x0065F740, PartyUnitRecord::Destruct);
+EI_REWRITTEN(0x0065F740, PartyUnitRecord::Destruct);
 
 void PartyUnitRecord::ClearItems() {
     ReleaseAll(ItemList(weapons));
@@ -86,7 +86,7 @@ void PartyUnitRecord::ClearItems() {
     ItemList(armor).SetSize(0, -1);
     ItemList(spells).SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x0065F860, PartyUnitRecord::ClearItems);
+EI_REWRITTEN(0x0065F860, PartyUnitRecord::ClearItems);
 
 // --- The record array ---------------------------------------------------------------------------
 
@@ -95,12 +95,12 @@ void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
     for (PartyUnitRecord* record = records; count != 0; --count, ++record)
         if (record != nullptr) record->Construct();
 }
-EI_REPLACE(0x00664880, ConstructPartyUnitRecords);
+EI_REWRITTEN(0x00664880, ConstructPartyUnitRecords);
 
 void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
     for (; count != 0; --count, ++records) records->Destruct();
 }
-EI_REPLACE(0x00664850, DestructPartyUnitRecords);
+EI_REWRITTEN(0x00664850, DestructPartyUnitRecords);
 
 void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) { DestructPartyUnitRecords(records, count); }
 
@@ -109,13 +109,13 @@ PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00664AC0, PartyUnitRecord::DeletingDestruct);
+EI_REWRITTEN(0x00664AC0, PartyUnitRecord::DeletingDestruct);
 
 void __fastcall DestructPartyMemberArray(PartyMemberArray* array) {
     array->vtable = ei::GamePointer<void>(kPartyMemberArrayVtable);
     array->FreeData();
 }
-EI_REPLACE(0x00664160, DestructPartyMemberArray);
+EI_REWRITTEN(0x00664160, DestructPartyMemberArray);
 
 PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags) {
     DestructPartyMemberArray(array);
@@ -156,7 +156,7 @@ CSpellManager::CSpellManager() {
 }
 
 CSpellManager* CSpellManager::Construct() { return new (this) CSpellManager(); }
-EI_REPLACE_METHOD(0x00688840, CSpellManager::Construct);
+EI_REWRITTEN(0x00688840, CSpellManager::Construct);
 
 // --- CParty -------------------------------------------------------------------------------------
 

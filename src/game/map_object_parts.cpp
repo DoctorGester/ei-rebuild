@@ -119,7 +119,7 @@ AnimationDatabase* CObject3D::Animations() {
     }
     return animations;
 }
-EI_REPLACE_METHOD(0x00518CA0, CObject3D::Animations);
+EI_REWRITTEN(0x00518CA0, CObject3D::Animations);
 
 FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
     if (!Animations()) return nullptr;

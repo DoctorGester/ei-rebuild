@@ -80,4 +80,4 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
     }
 }
 
-EI_REPLACE_METHOD(0x006CCF20, Terrain::AddDecalTriangles);
+EI_REWRITTEN(0x006CCF20, Terrain::AddDecalTriangles);

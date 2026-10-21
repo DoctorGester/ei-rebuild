@@ -57,7 +57,7 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
     }
     return this;
 }
-EI_REPLACE_METHOD(0x00634650, CMessageBox::Construct);
+EI_REWRITTEN(0x00634650, CMessageBox::Construct);
 
 // --- 0063B5D0: the objectives window -------------------------------------------------------------
 
@@ -99,7 +99,7 @@ CHudPortraits* CHudPortraits::Construct(CInterface3D* ui, CBattleScreen* owner) 
     AddSprite(0)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
     return this;
 }
-EI_REPLACE_METHOD(0x0063FE70, CHudPortraits::Construct);
+EI_REWRITTEN(0x0063FE70, CHudPortraits::Construct);
 
 // --- 0063FF70: its destructor body -----------------------------------------------------------------
 
@@ -112,4 +112,4 @@ void CHudPortraits::DestroyBody() {
     if (slots_) stlp::deallocate(slots_, static_cast<std::size_t>(slotsCapacity_ - slots_) * sizeof(HudPortraitSlot));
     DestroyBase();
 }
-EI_REPLACE_METHOD(0x0063FF70, CHudPortraits::DestroyBody);
+EI_REWRITTEN(0x0063FF70, CHudPortraits::DestroyBody);

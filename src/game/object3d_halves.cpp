@@ -75,7 +75,7 @@ void CObject3DClientSpecific::ClearShadow() {
     bounds[0] = 0.0f;
     std::memset(&sphere, 0, 0x38);
 }
-EI_REPLACE_METHOD(0x0051E280, CObject3DClientSpecific::ClearShadow);
+EI_REWRITTEN(0x0051E280, CObject3DClientSpecific::ClearShadow);
 
 bool CObject3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
@@ -188,7 +188,7 @@ void __fastcall WoundsMaterialDestruct(WoundsMaterial* self) {
     }
     ei::SetVtable(self, WoundsMaterial::kRootVtableAddress);
 }
-EI_REPLACE(0x0051C730, WoundsMaterialDestruct);
+EI_REWRITTEN(0x0051C730, WoundsMaterialDestruct);
 
 // 0051C710 (slot 0, RET 4).
 WoundsMaterial* WoundsMaterial::DeleteScalar(unsigned flags) {
@@ -203,7 +203,7 @@ void __fastcall NamedTextureDestruct(NamedTexture* self) {
     if (self->texture) self->texture->Release();
     self->name.~string();
 }
-EI_REPLACE(0x0051C800, NamedTextureDestruct);
+EI_REWRITTEN(0x0051C800, NamedTextureDestruct);
 
 // 0051E430 (RET 4). A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
@@ -213,11 +213,11 @@ NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
     if (texture) ++texture->refCount_;
     return this;
 }
-EI_REPLACE_METHOD(0x0051E430, NamedTexture::Copy);
+EI_REWRITTEN(0x0051E430, NamedTexture::Copy);
 
 // 0051E970 (ECX = the place, EDX = the stage). A material stage copied into `place` unless it is
 // null (the placement copy the stage vector's growth uses).
 void __fastcall MaterialStageCopy(MaterialStage* place, const MaterialStage* stage) {
     if (place) new (place) MaterialStage(*stage);
 }
-EI_REPLACE(0x0051E970, MaterialStageCopy);
+EI_REWRITTEN(0x0051E970, MaterialStageCopy);

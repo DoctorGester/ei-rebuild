@@ -78,7 +78,7 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
     CopyList(ItemList(armor), ConstList(source->armor), party);
     CopyList(ItemList(spells), ConstList(source->spells), party);
 }
-EI_REPLACE_METHOD(0x00660500, PartyUnitRecord::CopyItemsFrom);
+EI_REWRITTEN(0x00660500, PartyUnitRecord::CopyItemsFrom);
 
 PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     for (int i = 0; i < 7; ++i) texts[i] = source->texts[i];
@@ -91,7 +91,7 @@ PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     fightAtWill = source->fightAtWill;
     return this;
 }
-EI_REPLACE_METHOD(0x00664950, PartyUnitRecord::Assign);
+EI_REWRITTEN(0x00664950, PartyUnitRecord::Assign);
 
 // --- CParty -------------------------------------------------------------------------------------
 
@@ -117,7 +117,7 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
     FillFromPrototype(record);
     return record;
 }
-EI_REPLACE_METHOD(0x006628D0, CParty::AddMember);
+EI_REWRITTEN(0x006628D0, CParty::AddMember);
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
@@ -158,7 +158,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->texts[6] = record->texts[5];
     return 1;
 }
-EI_REPLACE_METHOD(0x006621F0, CParty::FillFromPrototype);
+EI_REWRITTEN(0x006621F0, CParty::FillFromPrototype);
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the original looks the first entry up, finding it at 0).
@@ -197,7 +197,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     record->texts[6] = record->texts[5];
     return 1;
 }
-EI_REPLACE_METHOD(0x006625B0, CParty::EquipFromPrototype);
+EI_REWRITTEN(0x006625B0, CParty::EquipFromPrototype);
 
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
@@ -235,4 +235,4 @@ void CParty::OpenEdgeExits() {
         if (value == 0.0f) variables.Set(variable, kOpened);
     }
 }
-EI_REPLACE_METHOD(0x006629D0, CParty::OpenEdgeExits);
+EI_REWRITTEN(0x006629D0, CParty::OpenEdgeExits);

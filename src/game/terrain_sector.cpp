@@ -534,8 +534,8 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     return wanted & built;
 }
 
-EI_REPLACE_METHOD(0x006C13A0, SectorData::Load);
-EI_REPLACE_METHOD(0x006C1C00, SectorData::Build);
+EI_REWRITTEN(0x006C13A0, SectorData::Load);
+EI_REWRITTEN(0x006C1C00, SectorData::Build);
 
 // ---------------------------------------------------------------------------------------------
 // Construction and projection (A-H18)
@@ -604,7 +604,7 @@ SectorData* SectorData::Construct() {
     ProjectionOutcodes().SetSize(ProjectionInput().size, -1);
     return this;
 }
-EI_REPLACE_METHOD(0x006BF5F0, SectorData::Construct);
+EI_REWRITTEN(0x006BF5F0, SectorData::Construct);
 
 void SectorData::DestructBody() {
     Clear();
@@ -627,7 +627,7 @@ void SectorData::DestructBody() {
     waterMaterials.vtable = ei::GamePointer<void>(kByteArrayVtable);   // ~CByteArray (006FF61D)
     waterMaterials.FreeData();
 }
-EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);
+EI_REWRITTEN(0x006BF8A0, SectorData::DestructBody);
 
 int SectorData::Project(CTransformPipeline* pipeline) {
     const int columnStep = detail >= 1 ? 2 : 1;

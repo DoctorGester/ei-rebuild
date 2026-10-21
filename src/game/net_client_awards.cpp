@@ -132,7 +132,7 @@ void ClientSession::ApplyAwards() {
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
     self->awards_.Clear();
 }
-EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
+EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 
 // 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of

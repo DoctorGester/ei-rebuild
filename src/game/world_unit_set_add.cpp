@@ -164,7 +164,7 @@ void UnitSet::Add(CUnit* unit) {
     DressedUnitElement::Destroy(&entry.mapped);                      // 004FE420 twice
     FiguredUnitElement::Destroy(&record);
 }
-EI_REPLACE_METHOD(0x005593D0, UnitSet::Add);
+EI_REWRITTEN(0x005593D0, UnitSet::Add);
 
 // ---- The helpers 005593D0 was compiled with -------------------------------------------------------
 
@@ -207,13 +207,13 @@ mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags) {
 } // namespace unitset
 
 // The records: the head's constructor and destructor, the copies, equal() of two id ranges.
-EI_REPLACE(0x00559DE0, unitset::DestroyHead);
-EI_REPLACE_METHOD(0x0055A860, FiguredUnitRecord::CopyConstruct);
+EI_REWRITTEN(0x00559DE0, unitset::DestroyHead);
+EI_REWRITTEN(0x0055A860, FiguredUnitRecord::CopyConstruct);
 
 // The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and
 // resize; the multimaps' equal_range, resize, insert_equal_noresize and the iterator's step.
-EI_REPLACE(0x0055ABB0, gamehash::ConstructGroupPair);
+EI_REWRITTEN(0x0055ABB0, gamehash::ConstructGroupPair);
 
 // The id and name vectors: _M_insert_overflow, ~_Vector_base (2), _Construct of an id and of a
 // CString, and the CString's scalar deleting destructor (the names' element loop calls it with 0).
-EI_REPLACE(0x0051FAD0, unitset::DeleteName);
+EI_REWRITTEN(0x0051FAD0, unitset::DeleteName);

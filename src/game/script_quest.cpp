@@ -44,9 +44,9 @@ void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, floa
     std::memcpy(&objective.value, &value, 4);
 }
 
-EI_REPLACE(0x004BAEB0, ScriptQuestObjectiveDestruct);
-EI_REPLACE(0x004BAA40, ScriptQuestStart);
-EI_REPLACE(0x004BAE10, ScriptQuestAddObjective);
+EI_REWRITTEN(0x004BAEB0, ScriptQuestObjectiveDestruct);
+EI_REWRITTEN(0x004BAA40, ScriptQuestStart);
+EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
 
 // 004C9C90: the key, then a {key, null} pair copied from it; the pair is destroyed before the key.
 void* QuestTable::Find(const char* name) {
@@ -54,4 +54,4 @@ void* QuestTable::Find(const char* name) {
     Map::Pair pair{key, nullptr};
     return byName.FindOrInsert(pair)->value;   // 004CE110
 }
-EI_REPLACE_METHOD(0x004C9C90, QuestTable::Find);
+EI_REWRITTEN(0x004C9C90, QuestTable::Find);

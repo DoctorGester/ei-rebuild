@@ -97,11 +97,11 @@ Particle* CParticleManager::AcquireParticle() {
     freeParticles.FreeNode(node);
     return p;
 }
-EI_REPLACE_METHOD(0x00498870, CParticleManager::AcquireParticle);
+EI_REWRITTEN(0x00498870, CParticleManager::AcquireParticle);
 
 // 004987C0. Appends the particle to the free list.
 void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
-EI_REPLACE_METHOD(0x004987C0, CParticleManager::ReleaseParticle);
+EI_REWRITTEN(0x004987C0, CParticleManager::ReleaseParticle);
 
 // --- Source -------------------------------------------------------------------------------------
 
@@ -113,7 +113,7 @@ void CParticleSource::AddParticle(Particle* p) {
     GrowBounds(boundsMin, boundsMax, p->pos);
     particles.AddTail(p);
 }
-EI_REPLACE_METHOD(0x00496A20, CParticleSource::AddParticle);
+EI_REWRITTEN(0x00496A20, CParticleSource::AddParticle);
 
 namespace {
 

@@ -46,7 +46,7 @@ void CAnimationNode::ResetPose() {
     normalCursor_ = 0;
     morphCursor_ = 0;
 }
-EI_REPLACE_METHOD(0x00507E80, CAnimationNode::ResetPose);
+EI_REWRITTEN(0x00507E80, CAnimationNode::ResetPose);
 
 void CAnimationNode::Rewind() {
     clock_[0] = 0;
@@ -60,7 +60,7 @@ void CAnimationNode::Rewind() {
     }
     for (int i = 0; i < children_.size; ++i) children_.data[i]->Rewind();
 }
-EI_REPLACE_METHOD(0x005081C0, CAnimationNode::Rewind);
+EI_REWRITTEN(0x005081C0, CAnimationNode::Rewind);
 
 // The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
 int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
@@ -82,7 +82,7 @@ int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00507C50, CAnimationNode::AttachMeshes);
+EI_REWRITTEN(0x00507C50, CAnimationNode::AttachMeshes);
 
 namespace scene {
 

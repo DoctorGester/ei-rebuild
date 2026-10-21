@@ -140,5 +140,5 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
     }
 }
 
-EI_REPLACE(0x0055A190, ReadUnitLooks);
-EI_REPLACE_METHOD(0x00559E60, UnitSet::Write);
+EI_REWRITTEN(0x0055A190, ReadUnitLooks);
+EI_REWRITTEN(0x00559E60, UnitSet::Write);

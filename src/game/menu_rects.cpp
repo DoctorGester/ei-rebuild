@@ -79,4 +79,4 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     return 1;
 }
 
-EI_REPLACE(0x005ACE80, LoadMenuRects);
+EI_REWRITTEN(0x005ACE80, LoadMenuRects);

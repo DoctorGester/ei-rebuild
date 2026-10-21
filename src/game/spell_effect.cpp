@@ -65,7 +65,7 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
 BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return GetDamage(out); }
 
 int __fastcall IsSpellTarget(CEngineObject* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
-EI_REPLACE(0x00681B80, IsSpellTarget);
+EI_REWRITTEN(0x00681B80, IsSpellTarget);
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CEngineObject* unit) { Deliver(this, hit, unit); }
 
@@ -83,7 +83,7 @@ void CSpellEffect::HitUnitsInRadius() {
     }
     DestroyList(list);
 }
-EI_REPLACE_METHOD(0x00683600, CSpellEffect::HitUnitsInRadius);
+EI_REWRITTEN(0x00683600, CSpellEffect::HitUnitsInRadius);
 
 void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     UnitList list;
@@ -120,4 +120,4 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     }
     DestroyList(list);
 }
-EI_REPLACE_METHOD(0x00683730, CSpellEffect::HitUnitsAlong);
+EI_REWRITTEN(0x00683730, CSpellEffect::HitUnitsAlong);

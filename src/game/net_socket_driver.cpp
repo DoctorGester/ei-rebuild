@@ -105,7 +105,7 @@ stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
     new (out) stlp::string(text, text + std::strlen(text));
     return out;
 }
-EI_REPLACE_METHOD(0x00440690, NetAddress::Format);
+EI_REWRITTEN(0x00440690, NetAddress::Format);
 
 // ---- The UDP driver ---------------------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ SocketDriver* SocketDriver::Construct() {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x004407F0, SocketDriver::Construct);
+EI_REWRITTEN(0x004407F0, SocketDriver::Construct);
 
 void SocketDriver::Destruct() {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
@@ -148,7 +148,7 @@ void SocketDriver::Destruct() {
     libcrt::imports::WsaCleanup();
     if (addresses) stlp::deallocate(addresses, static_cast<std::size_t>(addressesEos - addresses) * sizeof(NetAddress));
 }
-EI_REPLACE_METHOD(0x00440940, SocketDriver::Destruct);
+EI_REWRITTEN(0x00440940, SocketDriver::Destruct);
 
 bool SocketDriver::Open(int port) {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
@@ -218,7 +218,7 @@ bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     }
     return n >= 0;
 }
-EI_REPLACE_METHOD(0x00440BE0, SocketDriver::Receive);
+EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 
@@ -252,7 +252,7 @@ void __fastcall MasterLinkDestruct(MasterLink* self) {
     GrowingBufferDestruct(&self->in);
     GrowingBufferDestruct(&self->out);
 }
-EI_REPLACE(0x00440D40, MasterLinkDestruct);
+EI_REWRITTEN(0x00440D40, MasterLinkDestruct);
 
 // 00440DE0: one step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
 // buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes

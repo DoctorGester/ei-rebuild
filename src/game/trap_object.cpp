@@ -40,14 +40,14 @@ CTrapObject::CTrapObject() {
 }
 
 CTrapObject* CTrapObject::Construct() { return new (this) CTrapObject(); }
-EI_REPLACE_METHOD(0x00529A80, CTrapObject::Construct);
+EI_REWRITTEN(0x00529A80, CTrapObject::Construct);
 
 CTrapObject* CTrapObject::DeletingDestruct(int flags) {
     this->CTrapObject::~CTrapObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00529B30, CTrapObject::DeletingDestruct);
+EI_REWRITTEN(0x00529B30, CTrapObject::DeletingDestruct);
 
 int CTrapObject::CreateTrap() {
     int result = CreateMapObject();
@@ -77,7 +77,7 @@ int CTrapObject::UpdateTrap() {
     units.RemoveAll();
     return 0;
 }
-EI_REPLACE_METHOD(0x00529B80, CTrapObject::UpdateTrap);
+EI_REWRITTEN(0x00529B80, CTrapObject::UpdateTrap);
 
 void CTrapObject::Arm() { flags_ |= kArmed | kArmedFresh; }
 EI_REPLACE_METHOD(0x00529D20, CTrapObject::Arm);
@@ -136,4 +136,4 @@ MagicTrap* MagicTrap::DeletingDestruct(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00529F70, MagicTrap::DeletingDestruct);
+EI_REWRITTEN(0x00529F70, MagicTrap::DeletingDestruct);

@@ -71,7 +71,7 @@ void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player)
     CStringDestroy(&line);
 }
 
-EI_REPLACE_METHOD(0x0041A310, ServerSession::Announce);
-EI_REPLACE_METHOD(0x0041A490, ServerSession::AnnounceText);
+EI_REWRITTEN(0x0041A310, ServerSession::Announce);
+EI_REWRITTEN(0x0041A490, ServerSession::AnnounceText);
 
 } // namespace net

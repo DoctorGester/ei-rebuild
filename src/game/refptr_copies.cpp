@@ -26,7 +26,7 @@ RefPtr* RefPtr::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004AB960, RefPtr::DeleteScalar);
+EI_REWRITTEN(0x004AB960, RefPtr::DeleteScalar);
 
 // The holder cleared without a release (MOV [ECX],0). 17 copies.
 void __fastcall RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
@@ -54,7 +54,7 @@ RefPtr* RefPtr::DeleteReleased(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0047A6D0, RefPtr::DeleteReleased);
+EI_REWRITTEN(0x0047A6D0, RefPtr::DeleteReleased);
 
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {

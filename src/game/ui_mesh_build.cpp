@@ -242,7 +242,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     ei::Code<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
     NudgeAndCommit(this);
 }
-EI_REPLACE_METHOD(0x005E8C60, CUiMeshBuilder::Disc);
+EI_REWRITTEN(0x005E8C60, CUiMeshBuilder::Disc);
 
 // --- 005E91F0 -----------------------------------------------------------------------------------------
 
@@ -320,7 +320,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REPLACE_METHOD(0x005E91F0, CUiMeshBuilder::Ring);
+EI_REWRITTEN(0x005E91F0, CUiMeshBuilder::Ring);
 
 // --- 005E9F30 -----------------------------------------------------------------------------------------
 
@@ -328,4 +328,4 @@ void CUiMeshBuilder::ResetColours() { ResetVertexColours(this); }
 namespace {
 void __fastcall MeshResetColours(CUiMeshBuilder* self) { self->ResetColours(); }
 } // namespace
-EI_REPLACE(0x005E9F30, MeshResetColours);
+EI_REWRITTEN(0x005E9F30, MeshResetColours);

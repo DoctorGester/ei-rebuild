@@ -76,7 +76,7 @@ Spec* Spec::SpecConstruct() {
     comment = none;
     return this;
 }
-EI_REPLACE_METHOD(0x00469CA0, Spec::SpecConstruct);
+EI_REWRITTEN(0x00469CA0, Spec::SpecConstruct);
 
 // 00469E50: the destructor body.
 void Spec::SpecDestruct() {
@@ -85,7 +85,7 @@ void Spec::SpecDestruct() {
     name.~CString();
     chunk.Destruct();
 }
-EI_REPLACE_METHOD(0x00469E50, Spec::SpecDestruct);
+EI_REWRITTEN(0x00469E50, Spec::SpecDestruct);
 
 // 00469E30 (slot 10).
 Spec* Spec::SpecDelete(unsigned flags) {
@@ -151,7 +151,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     parts.SetSize(0, -1);
     return this;
 }
-EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
+EI_REWRITTEN(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
@@ -202,7 +202,7 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     parts.SetSize(0, -1);
     parts.Copy(from->parts);
 }
-EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
+EI_REWRITTEN(0x0046A710, ObjectSpec::ObjectSpecAssign);
 
 // 0046A940 (slot 11): the common fields.
 void ObjectSpec::ObjectSpecWriteFields() {
@@ -342,7 +342,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     sound = "nature\\fire\\small.wav";
     return this;
 }
-EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
+EI_REWRITTEN(0x0046B210, FlameSpec::FlameSpecConstruct);
 
 // 0046B120: the destructor body.
 void FlameSpec::FlameSpecDestruct() {
@@ -350,7 +350,7 @@ void FlameSpec::FlameSpecDestruct() {
     sound.~CString();
     object.ObjectSpecDestruct();
 }
-EI_REPLACE_METHOD(0x0046B120, FlameSpec::FlameSpecDestruct);
+EI_REWRITTEN(0x0046B120, FlameSpec::FlameSpecDestruct);
 
 // 0046B1F0 (slot 10).
 FlameSpec* FlameSpec::FlameSpecDelete(unsigned flags) {
@@ -431,7 +431,7 @@ void TrapSpec::TrapSpecDestruct() {
     spell.~CString();
     object.ObjectSpecDestruct();
 }
-EI_REPLACE_METHOD(0x0046B570, TrapSpec::TrapSpecDestruct);
+EI_REWRITTEN(0x0046B570, TrapSpec::TrapSpecDestruct);
 
 // 0046B550 (slot 10).
 TrapSpec* TrapSpec::TrapSpecDelete(unsigned flags) {
@@ -595,6 +595,6 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     }
     return self;
 }
-EI_REPLACE(0x0046E5E0, DiplomacyConstruct);
+EI_REWRITTEN(0x0046E5E0, DiplomacyConstruct);
 
 } // namespace mapspec

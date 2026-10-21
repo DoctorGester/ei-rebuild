@@ -116,7 +116,7 @@ void CHeroStatsPanel::ShowStats(int page) {
     }
     DrawStats();
 }
-EI_REPLACE_METHOD(0x006233C0, CHeroStatsPanel::ShowStats);
+EI_REWRITTEN(0x006233C0, CHeroStatsPanel::ShowStats);
 
 // --- 00623880 ----------------------------------------------------------------------------------
 
@@ -285,7 +285,7 @@ void CHeroStatsPanel::DrawStats() {
     }
     draw->End();
 }
-EI_REPLACE_METHOD(0x00623880, CHeroStatsPanel::DrawStats);
+EI_REWRITTEN(0x00623880, CHeroStatsPanel::DrawStats);
 
 // --- 00622000: the equipment panel's Build ---------------------------------------------------------
 
@@ -385,7 +385,7 @@ void CHeroEquipPanel::Build(bool body) {
     }
     selected_ = -1;
 }
-EI_REPLACE_METHOD(0x00622000, CHeroEquipPanel::Build);
+EI_REWRITTEN(0x00622000, CHeroEquipPanel::Build);
 
 // --- 00622DB0: the statistics panel's Build (slot 18) ---------------------------------------------
 
@@ -435,7 +435,7 @@ void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
     LoadTexture("trade4", 3, 0);   // trade4
     BuildCellGrid(this);
 }
-EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);
+EI_REWRITTEN(0x006270A0, CTradeGrid::Build);
 
 // --- 00627920 / 00628060: the item under the mouse (slot 25) -----------------------------------------
 
@@ -487,7 +487,7 @@ void CRepairGrid::Build(void* items) {
     LoadTexture("repair4", 3, 0);   // repair4
     BuildCellGrid(this);
 }
-EI_REPLACE_METHOD(0x006279E0, CRepairGrid::Build);
+EI_REWRITTEN(0x006279E0, CRepairGrid::Build);
 
 // --- 00622A80: the quick strip's Build -------------------------------------------------------------
 
@@ -506,7 +506,7 @@ void CHeroQuickStrip::Build(bool top) {
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
-EI_REPLACE_METHOD(0x00622A80, CHeroQuickStrip::Build);
+EI_REWRITTEN(0x00622A80, CHeroQuickStrip::Build);
 
 // --- 006280C0 / 00628CC0: the constructors' second pages ---------------------------------------------
 
@@ -561,7 +561,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
         array->SetAtGrow(array->GetSize(), text);
     }
 }
-EI_REPLACE_METHOD(0x006280C0, CConstructorPage::BuildSpellMaker);
+EI_REWRITTEN(0x006280C0, CConstructorPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
@@ -578,4 +578,4 @@ void CConstructorPage::BuildItemMaker(void* slots) {
     AddMakerPictures(this);
     pulse_ = 0.0f;
 }
-EI_REPLACE_METHOD(0x00628CC0, CConstructorPage::BuildItemMaker);
+EI_REWRITTEN(0x00628CC0, CConstructorPage::BuildItemMaker);

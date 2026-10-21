@@ -36,10 +36,10 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     SetValue(0);
     return this;
 }
-EI_REPLACE_METHOD(0x0065BCD0, CUiSpin::Construct);
+EI_REWRITTEN(0x0065BCD0, CUiSpin::Construct);
 
 void CUiSpin::AddText(const char* text) { texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText()); }
-EI_REPLACE_METHOD(0x0065BE70, CUiSpin::AddText);
+EI_REWRITTEN(0x0065BE70, CUiSpin::AddText);
 
 bool CUiSpin::GetValue(int* value) {
     *value = value_;
@@ -60,7 +60,7 @@ void CUiSpin::SetValue(int value) {
     UiSurfaceReleaseDC(surface);
     changed_ = true;
 }
-EI_REPLACE_METHOD(0x0065BEE0, CUiSpin::SetValue);
+EI_REWRITTEN(0x0065BEE0, CUiSpin::SetValue);
 
 // --- 0065BFD0 (A-H25): a click steps the value ----------------------------------------------------
 

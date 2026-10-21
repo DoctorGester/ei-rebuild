@@ -70,7 +70,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     AssignHolder(under_, NewSurface(device_, CursorWidth(), CursorHeight()));
     AssignHolder(target_, NewSurface(device_, CursorWidth() * 2, CursorHeight() * 2));
 }
-EI_REPLACE_METHOD(0x005E60B0, CCursor::Init);
+EI_REWRITTEN(0x005E60B0, CCursor::Init);
 
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
@@ -80,7 +80,7 @@ void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     }
     images_.Add(image);
 }
-EI_REPLACE_METHOD(0x005E63F0, CCursor::AddShape);
+EI_REWRITTEN(0x005E63F0, CCursor::AddShape);
 
 // --- The cursor's life cycle and state (005E4E00-005E67B0) ---------------------------------------
 
@@ -104,7 +104,7 @@ void CursorImage::Destroy() {
     gamecrt::operator_delete(saved);
     if (holder) holder->Release();
 }
-EI_REPLACE_METHOD(0x005E5160, CursorImage::Destroy);
+EI_REWRITTEN(0x005E5160, CursorImage::Destroy);
 
 CCursor* CCursor::Construct() {
     device_ = nullptr;
@@ -187,7 +187,7 @@ void CCursor::Start() {
     stop_ = 0;
     thread_ = mfc::impl::AfxBeginThread(CursorThreadEntry, this, kThreadPriority, 0, 0, nullptr);
 }
-EI_REPLACE_METHOD(0x005E6260, CCursor::Start);
+EI_REWRITTEN(0x005E6260, CCursor::Start);
 
 void CCursor::Shutdown() {
     if (thread_) {
@@ -220,7 +220,7 @@ void CCursor::Shutdown() {
     mode_ = 0;
     enabled_ = 0;
 }
-EI_REPLACE_METHOD(0x005E62E0, CCursor::Shutdown);
+EI_REWRITTEN(0x005E62E0, CCursor::Shutdown);
 
 char CCursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime_ (unsigned), wrapped by the frame count.

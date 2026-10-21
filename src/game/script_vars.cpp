@@ -50,7 +50,7 @@ void ScriptVars::ResetValues() {
         group.size = 0;
     }
 }
-EI_REPLACE_METHOD(0x004B35E0, ScriptVars::ResetValues);
+EI_REWRITTEN(0x004B35E0, ScriptVars::ResetValues);
 
 BOOL ScriptVars::HasVariable(const char* name) const {
     if (FindName(floatNames, name) >= 0) return 1;
@@ -157,7 +157,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
     }
     return result;
 }
-EI_REPLACE_METHOD(0x004BB800, ScriptDefinition::AddParameterImpl);
+EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameterImpl);
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
@@ -182,7 +182,7 @@ void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
         }
     }
 }
-EI_REPLACE_METHOD(0x004B3F60, SSCCmd::SetParameters);
+EI_REWRITTEN(0x004B3F60, SSCCmd::SetParameters);
 
 void SSCCmd::Save(ScriptStream* stream) const {
     stream->Write(&id, 4);

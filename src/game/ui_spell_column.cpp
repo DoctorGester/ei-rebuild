@@ -131,4 +131,4 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTipString(tip, 1, static_cast<int>(i) + 0x1E);
     }
 }
-EI_REPLACE_METHOD(0x0063E820, CHudSpellColumn::SetUnit);
+EI_REWRITTEN(0x0063E820, CHudSpellColumn::SetUnit);

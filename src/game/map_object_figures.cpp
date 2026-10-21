@@ -144,7 +144,7 @@ std::uint32_t CObject3D::ComputeBounds() {
     center.z = centerZ;
     return Bits(centerZ);   // EAX: the last value copied
 }
-EI_REPLACE_METHOD(0x00518310, CObject3D::ComputeBounds);
+EI_REWRITTEN(0x00518310, CObject3D::ComputeBounds);
 
 // --- Scale ------------------------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ int CObject3D::AddPart(CFigureMesh* part) {
     if (!attached) return 1;
     return Specific()->OnPartAdded(part);
 }
-EI_REPLACE_METHOD(0x005164B0, CObject3D::AddPart);
+EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
 
 // --- Loading ----------------------------------------------------------------------------------
 

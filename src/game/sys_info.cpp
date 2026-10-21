@@ -86,7 +86,7 @@ OSVERSIONINFOA* CSysInfo::QueryVersion() {
         systemName_ = "Windows NT";
     return &version_;
 }
-EI_REPLACE_METHOD(0x004DE6F3, CSysInfo::QueryVersion);
+EI_REWRITTEN(0x004DE6F3, CSysInfo::QueryVersion);
 
 // 004DE789. (The original also copies the report's twelve bytes as a string into a local nothing
 // reads.) Without CPUID the globals keep what they held.
@@ -159,7 +159,7 @@ int CSysInfo::Collect() {
     report += mfc::CString("Available virtual memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
     return 1;
 }
-EI_REPLACE_METHOD(0x004DDF28, CSysInfo::Collect);
+EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
 
 // ---- The object ------------------------------------------------------------------------------------
 
@@ -205,7 +205,7 @@ void __fastcall SysInfoDestruct(CSysInfo* self) {
     self->computerName_.~CString();
     self->DestructBase();
 }
-EI_REPLACE(0x004DDE75, SysInfoDestruct);
+EI_REWRITTEN(0x004DDE75, SysInfoDestruct);
 
 // 004DE8B0 (slot 0, RET 4): the destructor, then operator delete when bit 0 of `flags` is set.
 CSysInfo* CSysInfo::DeleteScalar(unsigned flags) {
@@ -224,13 +224,13 @@ EI_REPLACE(0x004DDD60, SysInfoAtExit);
 // 004DDCBA / 004DDCD7 / 004DDCF8 / 004DDD19: the four constants, each one operation on the exe's
 // pi rounded to a float by the store.
 void __cdecl SysInfoInitTwoPi() { GameFloatAt(0x007AB8F0) = static_cast<float>(Pi() + Pi()); }
-EI_REPLACE(0x004DDCBA, SysInfoInitTwoPi);
+EI_REWRITTEN(0x004DDCBA, SysInfoInitTwoPi);
 void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
-EI_REPLACE(0x004DDCD7, SysInfoInitHalfPi);
+EI_REWRITTEN(0x004DDCD7, SysInfoInitHalfPi);
 void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
-EI_REPLACE(0x004DDCF8, SysInfoInitQuarterPi);
+EI_REWRITTEN(0x004DDCF8, SysInfoInitQuarterPi);
 void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
-EI_REPLACE(0x004DDD19, SysInfoInitInversePi);
+EI_REWRITTEN(0x004DDD19, SysInfoInitInversePi);
 
 // 004DDCB0 / 004DDCCD / 004DDCEE / 004DDD0F: the table's entries for them.
 void __cdecl SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }
@@ -246,7 +246,7 @@ EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 // table's entry: both.
 void __cdecl SysInfoStaticConstruct() { TheSysInfo()->Construct(); }
 void __cdecl SysInfoStaticRegisterExit() { GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004DDD60)); }
-EI_REPLACE(0x004DDD4E, SysInfoStaticRegisterExit);
+EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
     SysInfoStaticRegisterExit();
@@ -256,7 +256,7 @@ EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 // 004DE87C: an empty destructor (004013D0, a bare RET) registered with atexit. 004DE855: the
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
 void __cdecl SysInfoStaticRegisterEmptyExit() { GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004013D0)); }
-EI_REPLACE(0x004DE87C, SysInfoStaticRegisterEmptyExit);
+EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
     if (!(EmptyStaticGuard() & 1)) EmptyStaticGuard() |= 1;
     SysInfoStaticRegisterEmptyExit();

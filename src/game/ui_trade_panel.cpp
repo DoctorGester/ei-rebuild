@@ -116,14 +116,14 @@ void TradeRow::Destroy() {
     key.~CString();
     name.~CString();
 }
-EI_REPLACE_METHOD(0x00613CF0, TradeRow::Destroy);
+EI_REWRITTEN(0x00613CF0, TradeRow::Destroy);
 
 TradeRow* TradeRow::DeleteThis(int flags) {
     Destroy();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0062A7C0, TradeRow::DeleteThis);
+EI_REWRITTEN(0x0062A7C0, TradeRow::DeleteThis);
 
 TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
     new (&name) mfc::CString(from->name);
@@ -134,7 +134,7 @@ TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
     learnable = from->learnable;
     return this;
 }
-EI_REPLACE_METHOD(0x0062A310, TradeRow::CopyConstruct);
+EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 
 // --- 00625880 -----------------------------------------------------------------------------------
 
@@ -241,7 +241,7 @@ void CTradePanel::BuildLists() {
 namespace {
 void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
 } // namespace
-EI_REPLACE(0x00625880, TradeBuildLists);
+EI_REWRITTEN(0x00625880, TradeBuildLists);
 
 // --- 006261A0 -----------------------------------------------------------------------------------
 
@@ -339,7 +339,7 @@ void CTradePanel::DrawLists() {
 namespace {
 void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
 } // namespace
-EI_REPLACE(0x006261A0, TradeDrawLists);
+EI_REWRITTEN(0x006261A0, TradeDrawLists);
 
 // --- 00624F10 -----------------------------------------------------------------------------------
 
@@ -444,7 +444,7 @@ void CTradePanel::ResetRecords() {
 namespace {
 void __fastcall TradeResetRecords(CTradePanel* self) { self->ResetRecords(); }
 } // namespace
-EI_REPLACE(0x00625430, TradeResetRecords);
+EI_REWRITTEN(0x00625430, TradeResetRecords);
 
 // --- 00626F10: the record from the hero ---------------------------------------------------------
 
@@ -526,7 +526,7 @@ void CTradePanel::Settle(int keep, int all) {
         TradeRestoreRecord(this);
     BuildLists();
 }
-EI_REPLACE_METHOD(0x006255A0, CTradePanel::Settle);
+EI_REWRITTEN(0x006255A0, CTradePanel::Settle);
 
 void CTradePanel::SelectHero(int index) {
     recordIndex_ = index;
@@ -534,7 +534,7 @@ void CTradePanel::SelectHero(int index) {
     learnableTop_ = 0;
     BuildLists();
 }
-EI_REPLACE_METHOD(0x00625860, CTradePanel::SelectHero);
+EI_REWRITTEN(0x00625860, CTradePanel::SelectHero);
 
 // --- 00626090: a price as text -------------------------------------------------------------------
 
@@ -562,4 +562,4 @@ void CTradePanel::FormatPrice(int price, mfc::CString* out) {
     }
     out->Format("%.1fg", static_cast<double>(price) * kBillionth);
 }
-EI_REPLACE_METHOD(0x00626090, CTradePanel::FormatPrice);
+EI_REWRITTEN(0x00626090, CTradePanel::FormatPrice);

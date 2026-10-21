@@ -204,4 +204,4 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     Set(model, 8, Get<std::uint32_t>(model, 8) & ~0x800u);
     renderer->SetColour(savedColour);
 }
-EI_REPLACE_METHOD(0x005EC300, CUiWindow::DrawHeroPreview);
+EI_REWRITTEN(0x005EC300, CUiWindow::DrawHeroPreview);

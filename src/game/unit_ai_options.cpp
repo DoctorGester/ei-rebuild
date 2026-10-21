@@ -199,14 +199,14 @@ void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     options->SetSize(count, -1);
     for (int i = 0; i < options->size; ++i) options->data[i].Load(stream);
 }
-EI_REPLACE(0x005D9B80, LoadAttackOptions);
+EI_REWRITTEN(0x005D9B80, LoadAttackOptions);
 
 namespace {
 // 005CE9B0 (thiscall on the option, ST0).
 double __fastcall OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 } // namespace
 
-EI_REPLACE_METHOD(0x005CEED0, AIAttention::Build);
-EI_REPLACE_METHOD(0x005CEA60, AIAttention::AddWeaponOption);
-EI_REPLACE_METHOD(0x005CEBD0, AIAttention::AddSpellOption);
-EI_REPLACE(0x005CE9B0, OptionWeight);
+EI_REWRITTEN(0x005CEED0, AIAttention::Build);
+EI_REWRITTEN(0x005CEA60, AIAttention::AddWeaponOption);
+EI_REWRITTEN(0x005CEBD0, AIAttention::AddSpellOption);
+EI_REWRITTEN(0x005CE9B0, OptionWeight);

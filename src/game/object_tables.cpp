@@ -46,7 +46,7 @@ float NamedFloatTable::Get(const char* name) {
     }
     return node ? node->value.mapped : kZero;
 }
-EI_REPLACE_METHOD(0x00460AF0, NamedFloatTable::Get);
+EI_REWRITTEN(0x00460AF0, NamedFloatTable::Get);
 
 void NamedFloatTable::Set(const char* name, float value) {
     if (!*name) return;
@@ -58,13 +58,13 @@ void NamedFloatTable::Set(const char* name, float value) {
     }
     (*this)[key] = value;
 }
-EI_REPLACE_METHOD(0x00460BC0, NamedFloatTable::Set);
+EI_REWRITTEN(0x00460BC0, NamedFloatTable::Set);
 
 void NamedFloatTable::Remove(const char* name) {
     mfc::CString key(name);
     EraseKey(key);
 }
-EI_REPLACE_METHOD(0x00460DB0, NamedFloatTable::Remove);
+EI_REWRITTEN(0x00460DB0, NamedFloatTable::Remove);
 
 void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
@@ -72,7 +72,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     for (const Node* node = First(); node; node = Next(node))
         if (Strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key] = node->value.mapped;
 }
-EI_REPLACE_METHOD(0x00460EE0, NamedFloatTable::CopyPrefixed);
+EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 
 void NamedFloatTable::Load(CStream* stream) {
     Clear();   // inlined in the original: each chain's nodes freed in order (004616A0), the count zeroed
@@ -90,7 +90,7 @@ void NamedFloatTable::Load(CStream* stream) {
         (*this)[key] = value;
     }
 }
-EI_REPLACE_METHOD(0x00460FE0, NamedFloatTable::Load);
+EI_REWRITTEN(0x00460FE0, NamedFloatTable::Load);
 
 void NamedFloatTable::Save(CStream* stream) {
     for (const Node* node = First(); node; node = Next(node)) {
@@ -102,7 +102,7 @@ void NamedFloatTable::Save(CStream* stream) {
     mfc::CString end;
     stream->Write(static_cast<const char*>(end), static_cast<std::uint32_t>(std::strlen(end) + 1));
 }
-EI_REPLACE_METHOD(0x00461260, NamedFloatTable::Save);
+EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 
 // The command table (key_bindings.cpp's Key entries, 0x48 bytes each; the actions' table follows it).
 constexpr std::uintptr_t kCommandTable = ei::DataId(0x007857B0);

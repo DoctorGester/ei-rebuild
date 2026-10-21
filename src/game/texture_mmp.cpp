@@ -134,7 +134,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     std::memcpy(extra_.data, header + 1, header->extraSize);
     return 1;
 }
-EI_REPLACE_METHOD(0x00690430, CTexture::CreateFromMmp);
+EI_REWRITTEN(0x00690430, CTexture::CreateFromMmp);
 
 // --- CTextureManager -----------------------------------------------------------------------------
 
@@ -164,4 +164,4 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     CloseFile(data);
     return 1;
 }
-EI_REPLACE_METHOD(0x006928C0, CTextureManager::LoadMmpExtra);
+EI_REWRITTEN(0x006928C0, CTextureManager::LoadMmpExtra);

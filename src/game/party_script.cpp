@@ -26,5 +26,5 @@ CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
     if (GameMbscmp(owner, RecordList()->text10) == 0) return player->Party();
     return (RecordList())->Find(owner);
 }
-EI_REPLACE(0x004BAEC0, PartyForScript);
+EI_REWRITTEN(0x004BAEC0, PartyForScript);
 

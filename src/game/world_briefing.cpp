@@ -335,11 +335,11 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     return new (out) mfc::CString(name);
 }
 
-EI_REPLACE_METHOD(0x00580840, GameFlow::OnVariableChanged);
-EI_REPLACE_METHOD(0x005810A0, GameFlow::RegisterQuests);
-EI_REPLACE(0x005814C0, SessionMapNameInto);
-EI_REPLACE(0x0057FC90, BriefingSpeakerInto);
-EI_REPLACE_METHOD(0x00580040, GameFlow::ForgetBriefing);
-EI_REPLACE(0x00580F10, UnloadQuestTexts);
-EI_REPLACE(0x0057FDE0, BriefingVariableInto);
-EI_REPLACE_METHOD(0x0057FF40, GameFlow::MarkBriefing);
+EI_REWRITTEN(0x00580840, GameFlow::OnVariableChanged);
+EI_REWRITTEN(0x005810A0, GameFlow::RegisterQuests);
+EI_REWRITTEN(0x005814C0, SessionMapNameInto);
+EI_REWRITTEN(0x0057FC90, BriefingSpeakerInto);
+EI_REWRITTEN(0x00580040, GameFlow::ForgetBriefing);
+EI_REWRITTEN(0x00580F10, UnloadQuestTexts);
+EI_REWRITTEN(0x0057FDE0, BriefingVariableInto);
+EI_REWRITTEN(0x0057FF40, GameFlow::MarkBriefing);

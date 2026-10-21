@@ -171,7 +171,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
     }
     return drawn;
 }
-EI_REPLACE_METHOD(0x00693010, CTextureManager::DrawLayers);
+EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 
 // 00693180. `out` receives the name of the texture used; `name` is the cache file to use, `fallback`
 // another one tried when `name` has no file. A cached file whose extra block equals the request's
@@ -226,4 +226,4 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }
-EI_REPLACE(0x00693180, ComposeTexture);
+EI_REWRITTEN(0x00693180, ComposeTexture);

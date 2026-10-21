@@ -70,7 +70,7 @@ CPlayer* CPlayer::Construct() {
     lastScreen_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00664BF0, CPlayer::Construct);
+EI_REWRITTEN(0x00664BF0, CPlayer::Construct);
 
 void CPlayer::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
@@ -87,7 +87,7 @@ void CPlayer::DestructBody() {
     if (link_ != nullptr) link_->Release();
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00664E20, CPlayer::DestructBody);
+EI_REWRITTEN(0x00664E20, CPlayer::DestructBody);
 
 CPlayer* CPlayer::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -213,7 +213,7 @@ void CPlayer::ForgetKnownObjects() {
     if (connection_ != nullptr) connection_->ForgetSentObjects();
     dirty_ = -1;
 }
-EI_REPLACE_METHOD(0x006651D0, CPlayer::ForgetKnownObjects);
+EI_REWRITTEN(0x006651D0, CPlayer::ForgetKnownObjects);
 
 BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     const PartyMemberArray& members = Party()->members_;
@@ -230,14 +230,14 @@ void CPlayer::GiveItems(const mfc::CTypedPtrList<CEngineObject>* items, int flag
         items_.AddTail(item);
     }
 }
-EI_REPLACE_METHOD(0x00665470, CPlayer::GiveItems);
+EI_REWRITTEN(0x00665470, CPlayer::GiveItems);
 
 void CPlayer::TakeAllItems() {
     connection_->ItemsTaken();
     while (items_.count != 0) items_.RemoveHead()->Release();
     items_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00665550, CPlayer::TakeAllItems);
+EI_REWRITTEN(0x00665550, CPlayer::TakeAllItems);
 
 BOOL CPlayer::HasLoot(int kind) {
     for (auto* node = items_.head; node != nullptr; node = node->next)
@@ -278,7 +278,7 @@ EI_REPLACE_METHOD(0x00665780, CPlayer::TakeLoot);
 BOOL CPlayer::TakeItem(int id) {
     return TakeFirst(this, [id](CEngineObject* item) { return item->id_ == id; });
 }
-EI_REPLACE_METHOD(0x00665870, CPlayer::TakeItem);
+EI_REWRITTEN(0x00665870, CPlayer::TakeItem);
 
 void CPlayer::AddUnit(CUnit* unit) {
     if (unit == nullptr) return;
@@ -289,7 +289,7 @@ void CPlayer::AddUnit(CUnit* unit) {
     units_[id] = unit;
     connection_->UnitChanged(unit);
 }
-EI_REPLACE_METHOD(0x00665A70, CPlayer::AddUnit);
+EI_REWRITTEN(0x00665A70, CPlayer::AddUnit);
 
 void CPlayer::RemoveUnit(CUnit* unit) {
     if (unit == nullptr) return;
@@ -299,20 +299,20 @@ void CPlayer::RemoveUnit(CUnit* unit) {
     unit->Release();
     connection_->UnitChanged(unit);
 }
-EI_REPLACE_METHOD(0x00665B50, CPlayer::RemoveUnit);
+EI_REWRITTEN(0x00665B50, CPlayer::RemoveUnit);
 
 void CPlayer::ItemUsed(CEngineObject* item) {
     void* id = reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_));
     if (objects_.Find(id) == nullptr) objects_.AddTail(id);
     connection_->ItemUsed(item);
 }
-EI_REPLACE_METHOD(0x00665BE0, CPlayer::ItemUsed);
+EI_REWRITTEN(0x00665BE0, CPlayer::ItemUsed);
 
 CParty* CPlayer::AssignParty(CParty* source) {
     objects_.RemoveAll();
     return Party()->Assign(source);
 }
-EI_REPLACE_METHOD(0x00665CC0, CPlayer::AssignParty);
+EI_REWRITTEN(0x00665CC0, CPlayer::AssignParty);
 
 void CPlayer::ReleaseTamedUnits() {
     // The walk goes on from the node of a unit that has just left (and been erased), as the

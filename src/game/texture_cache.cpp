@@ -46,7 +46,7 @@ void __cdecl DeleteComposedTextures() {
         }
     } while (more);
 }
-EI_REPLACE(0x006916F0, DeleteComposedTextures);
+EI_REWRITTEN(0x006916F0, DeleteComposedTextures);
 
 // --- 00691B00 ----------------------------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ int CTextureManager::ReleaseObjectImpl(CEngineObject* object) {
 namespace {
 // The virtual slot's entry point (rewrite-guide rule 4).
 } // namespace
-EI_REPLACE_METHOD(0x00691B00, CTextureManager::ReleaseObjectImpl);
+EI_REWRITTEN(0x00691B00, CTextureManager::ReleaseObjectImpl);
 
 // --- 00691BF0 ----------------------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00691BF0, CTextureManager::TakeFromCache);
+EI_REWRITTEN(0x00691BF0, CTextureManager::TakeFromCache);
 
 // --- 00693C60 ----------------------------------------------------------------------------------------
 
@@ -120,7 +120,7 @@ CTexture* CTextureManager::FindTexture(const char* name) {
     if (registered.manager) --registered.manager->refCount_;
     return found;
 }
-EI_REPLACE_METHOD(0x00693C60, CTextureManager::FindTexture);
+EI_REWRITTEN(0x00693C60, CTextureManager::FindTexture);
 
 // --- 00692D30 ----------------------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
     if (registered.manager) --registered.manager->refCount_;
     return found;
 }
-EI_REPLACE_METHOD(0x00692D30, CTextureManager::FindTypedTexture);
+EI_REWRITTEN(0x00692D30, CTextureManager::FindTypedTexture);
 
 // --- 00692F00 ----------------------------------------------------------------------------------------
 
@@ -150,4 +150,4 @@ void CTextureManager::FreeCache() {
     cachedBytes_ = 0;
     cache_.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00692F00, CTextureManager::FreeCache);
+EI_REWRITTEN(0x00692F00, CTextureManager::FreeCache);

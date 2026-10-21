@@ -143,7 +143,7 @@ void CUiItemStrip::SetTab(int tab) {
     scrollTimer_ = 0.0f;
     scrollDirection_ = 0;
 }
-EI_REPLACE_METHOD(0x00620960, CUiItemStrip::SetTab);
+EI_REWRITTEN(0x00620960, CUiItemStrip::SetTab);
 
 void CUiItemStrip::SetFilter(int filter) {
     for (float& position : position_) position = 0.0f;
@@ -290,7 +290,7 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     pending_ = 0.0f;
     velocity_ = 0.0f;
 }
-EI_REPLACE_METHOD(0x00621570, CUiItemStrip::ScrollToItem);
+EI_REWRITTEN(0x00621570, CUiItemStrip::ScrollToItem);
 
 char* CUiItemStrip::CallItemAt(int x, int y, int* cursor) {
     return Virtual<char*(__thiscall*)(CUiItemStrip*, int, int, int*)>(this, 25)(this, x, y, cursor);
@@ -506,7 +506,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
     DrawVoices();
 }
-EI_REPLACE_METHOD(0x00619090, CMpHeroScreen::ClampVoiceSelection);
+EI_REWRITTEN(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 
 double CMpHeroScreen::EquipmentWeight() {
     char* hero = Hero();

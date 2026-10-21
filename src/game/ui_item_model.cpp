@@ -30,4 +30,4 @@ CEngineObject* __fastcall ItemModel(const char* name) {
     ++model->refCount_;
     return model;
 }
-EI_REPLACE(0x005EBFB0, ItemModel);
+EI_REWRITTEN(0x005EBFB0, ItemModel);

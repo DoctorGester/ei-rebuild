@@ -38,13 +38,13 @@ void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     for (int i = 0; i < commands.size; ++i) ScriptCmdDestruct(&commands.data[i]);
     gamecrt::operator_delete(commands.data);
 }
-EI_REPLACE(0x004BF7E0, ScriptDeclDestruct);
+EI_REWRITTEN(0x004BF7E0, ScriptDeclDestruct);
 
 void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines) {
     SetVtable(defines, 0x0073D4C0);   // CList<ScriptDefine>
     defines->RemoveAll();
 }
-EI_REPLACE(0x004D6340, ScriptDefinesDestruct);
+EI_REWRITTEN(0x004D6340, ScriptDefinesDestruct);
 
 // ---- The AI map's sector map ------------------------------------------------------------------------
 
@@ -66,7 +66,7 @@ bool CAIMap::RemoveFromSectors(CEngineObject* object) { return Sectors(this)->Re
 bool CAIMap::MoveInSectors(CEngineObject* object, const Vector3* position) {
     return SectorMapMove(Sectors(this), nullptr, object, position);
 }
-EI_REPLACE_METHOD(0x004BA0E0, CAIMap::MoveInSectors);
+EI_REWRITTEN(0x004BA0E0, CAIMap::MoveInSectors);
 
 void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     Sectors(this)->FindUnitsInRadius(position, result, radius);
@@ -78,4 +78,4 @@ console::GameOStream& console::GameOStream::PutFloatArgument(float f) {
     floatUsed = 1;
     return *this << static_cast<double>(f);
 }
-EI_REPLACE_METHOD(0x004BA9D0, console::GameOStream::PutFloatArgument);
+EI_REWRITTEN(0x004BA9D0, console::GameOStream::PutFloatArgument);

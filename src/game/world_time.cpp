@@ -39,7 +39,7 @@ double CWorld::NightLevel() {
     if (hours >= 8.0) return 0.0;
     return 1.0;   // also NaN
 }
-EI_REPLACE_METHOD(0x0055FC50, CWorld::NightLevel);
+EI_REWRITTEN(0x0055FC50, CWorld::NightLevel);
 
 BOOL CWorld::IsNight() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
@@ -47,7 +47,7 @@ BOOL CWorld::IsNight() {
     if (hours >= 6.0) return 0;
     return 1;   // also NaN
 }
-EI_REPLACE_METHOD(0x0055FC10, CWorld::IsNight);
+EI_REWRITTEN(0x0055FC10, CWorld::IsNight);
 
 void CWorld::GetTime(float* hours, float* speed) {
     *hours = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
@@ -55,7 +55,7 @@ void CWorld::GetTime(float* hours, float* speed) {
     volatile double perSecond = static_cast<double>(secondsPerTick_) * 15.0;
     *speed = static_cast<float>(1.0 / perSecond);
 }
-EI_REPLACE_METHOD(0x0055FBD0, CWorld::GetTime);
+EI_REWRITTEN(0x0055FBD0, CWorld::GetTime);
 
 void CWorld::SetWind(const Vector3* direction, float strength) {
     std::memcpy(windDirection_, direction, sizeof(windDirection_));
@@ -87,4 +87,4 @@ void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
     SetWind(direction, clamped);
     MarkPlayersDirty(8);
 }
-EI_REPLACE_METHOD(0x0058EE20, CWorldServer::ChangeWind);
+EI_REWRITTEN(0x0058EE20, CWorldServer::ChangeWind);

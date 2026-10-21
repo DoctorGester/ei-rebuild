@@ -114,4 +114,4 @@ void console::ConsoleWindow::DestroyBody() {
     // The members in reverse order: the lines, the input text, the command history.
     this->~ConsoleWindow();
 }
-EI_REPLACE_METHOD(0x005E3DF0, console::ConsoleWindow::DestroyBody);
+EI_REWRITTEN(0x005E3DF0, console::ConsoleWindow::DestroyBody);

@@ -109,7 +109,7 @@ void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) 
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
-EI_REPLACE_METHOD(0x00500800, CSceneRenderer::SetSunAndAmbient);
+EI_REWRITTEN(0x00500800, CSceneRenderer::SetSunAndAmbient);
 
 // --- The renderer (vtable 0073D93C) --------------------------------------------------------------
 
@@ -243,7 +243,7 @@ int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
     if (texture->flags_ & kTextureIsLoaded) return 1;
     return TheTextureManager()->LoadTexture(texture);
 }
-EI_REPLACE(0x00500970, TextureHolderEnsureLoaded);
+EI_REWRITTEN(0x00500970, TextureHolderEnsureLoaded);
 
 void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char* name) {
     if (CTexture* old = *holder) {
@@ -259,5 +259,5 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
     if (texture) ++texture->refCount_;
     if (old) old->Release();
 }
-EI_REPLACE(0x00500A00, TextureHolderLoad);
+EI_REWRITTEN(0x00500A00, TextureHolderLoad);
 

@@ -177,7 +177,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     }
     TextClose(texts);
 }
-EI_REPLACE_METHOD(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
+EI_REWRITTEN(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
 
 // --- 0064E990 / 0064E8B0 / 0064E760 (A-H24) --------------------------------------------------------
 
@@ -214,7 +214,7 @@ void CObjectivesWindow::SelectExit(int index) {
     Sprite(this, 4)->visible_ = 0;
     Sprite(this, 5)->visible_ = 0;
 }
-EI_REPLACE_METHOD(0x0064E990, CObjectivesWindow::SelectExit);
+EI_REWRITTEN(0x0064E990, CObjectivesWindow::SelectExit);
 
 void CObjectivesWindow::RefreshQuests() {
     const auto* quests = &quests_;

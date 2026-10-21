@@ -23,4 +23,4 @@ void MobScriptDecoder::Decode(mfc::CString* out) {
     std::memmove(out->GetBufferSetLength(size), text.begin(), static_cast<std::size_t>(size));
     out->ReleaseBuffer(-1);
 }
-EI_REPLACE_METHOD(0x004D8E10, MobScriptDecoder::Decode);
+EI_REWRITTEN(0x004D8E10, MobScriptDecoder::Decode);

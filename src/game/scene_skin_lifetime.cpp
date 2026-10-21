@@ -46,7 +46,7 @@ SceneSkin* SceneSkin::Construct() {
     spareArray.size = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00508700, SceneSkin::Construct);
+EI_REWRITTEN(0x00508700, SceneSkin::Construct);
 
 void SceneSkin::Destruct() {
     if (DropRoot(this)) bones.SetSize(0, -1);
@@ -57,7 +57,7 @@ void SceneSkin::Destruct() {
     name.~CString();
     if (bones.data) lib::FreeAligned32(bones.data);
 }
-EI_REPLACE_METHOD(0x005087B0, SceneSkin::Destruct);
+EI_REWRITTEN(0x005087B0, SceneSkin::Destruct);
 
 int SceneSkin::Create() {
     if (DropRoot(this)) {
@@ -75,13 +75,13 @@ int SceneSkin::Create() {
     spare4C = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00508870, SceneSkin::Create);
+EI_REWRITTEN(0x00508870, SceneSkin::Create);
 
 void SceneSkin::Clear() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
     names.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x005088E0, SceneSkin::Clear);
+EI_REWRITTEN(0x005088E0, SceneSkin::Clear);
 
 void SceneSkin::SetOwner(std::uint32_t value) { owner = value; }

@@ -68,7 +68,7 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
         }
     }
 }
-EI_REPLACE(0x005F2F20, TrimItemCache);
+EI_REWRITTEN(0x005F2F20, TrimItemCache);
 EI_REPLACE(0x005F2F90, TrimItemCache);
 
 // --- 005F2A90: the icon window's frame -------------------------------------------------------------
@@ -111,7 +111,7 @@ void CItemIconWindow::PlaceBars(int y) {
     reinterpret_cast<CUiMesh*>(sceneObjects_.data[kRightBar])
         ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
-EI_REPLACE_METHOD(0x005F2E00, CItemIconWindow::PlaceBars);
+EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);
 
 // --- 005EDD80: the item screens' base Create ------------------------------------------------------
 
@@ -157,7 +157,7 @@ void CItemScreen::CreateBase() {
         TrimItemCache(&models_);
     }
 }
-EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);
+EI_REWRITTEN(0x005EDD80, CItemScreen::CreateBase);
 
 // --- 005F6470 / 005F6620: the item screens' destructor bodies -----------------------------------
 
@@ -177,7 +177,7 @@ void __fastcall ItemScreenDestroy(CItemScreen* self) {
     DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
-EI_REPLACE(0x005F6470, ItemScreenDestroy);
+EI_REWRITTEN(0x005F6470, ItemScreenDestroy);
 
 void __fastcall CampScreenDestroy(CItemScreen* self) {
     auto* camp = static_cast<CCampPages*>(self);
@@ -189,7 +189,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
-EI_REPLACE(0x005F6620, CampScreenDestroy);
+EI_REWRITTEN(0x005F6620, CampScreenDestroy);
 
 // --- 005F7010: screen 9's destructor body (vtable 00740D18) ---------------------------------------
 
@@ -225,7 +225,7 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
-EI_REPLACE(0x005F7010, Screen9Destroy);
+EI_REWRITTEN(0x005F7010, Screen9Destroy);
 
 // --- 005EE1B0 / 005EE2C0: moving items between lists ----------------------------------------------
 
@@ -293,7 +293,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     }
     return moved;
 }
-EI_REPLACE_METHOD(0x005EE1B0, CItemScreen::MoveItem);
+EI_REWRITTEN(0x005EE1B0, CItemScreen::MoveItem);
 
 CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
