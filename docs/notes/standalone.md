@@ -794,6 +794,33 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     mfc_slots.h); the owned-element arrays whose Serialize alias lives in a game header (record_arrays.h, game_arrays.h:
     FakeUnit*, NamedRecord, the global map's) or later in mfc_slots.h; game_slots.h's and game_lists.h's script lists
     (SerializeCListThrough over aliases of game_slots.h); synonyms of the same address in two headers (game_arrays.h's).
+- **Batch 10's families** (2026-10-21): 51 more container tags, 6,476 -> 6,323 code cells, 93 slot registrations
+  EI_REWRITTEN: the owned-element arrays of mfc_slots.h (FakeUnitBoneArrays, SceneObject, TerrainByteArrays,
+  AlignedAt4 / AlignedAt8, TextureName, MemoryRecord, the global map's Point / Path / Zone, Patrol with the derived
+  BehaviourPatrols, Allod, ScriptArea: their element-policy aliases moved above the tags); the owned-element arrays whose
+  Serialize alias lived in a game header (record_arrays.h: FakeUnitPart / SceneRecord / Record9C and Definition;
+  game_arrays.h: PointLight, Group, the object pointer base ObjectPtrArrayBase); game_slots.h's script lists and arrays
+  (ItemObject, ClientObject2, ObjectRef, Victim, RefListB, OwnedRef, SharedObject, ArmourSpell, Wave, the script's
+  ParticleSource / FxSource / Lightning / Decl / Definition / Run / Group / Token / Define lists, MemoryObject,
+  ClientObjectPtr, EffectObject and CommandArray); and mfc_array.h's model and animation file arrays (RotKey, PosKey,
+  MorphHead, Normal, FilePoint, FileUv, FileFace, Index) moved into mfc_slots.h.
+  - **Duplicates made one**: game_arrays.h / game_slots.h / mfc::impl each had a tag for 0073D3A0 (PointLight) and 0073D3B8
+    (Definition) and game_lists.h another for the script lists (TempObject / TempGroup / Instance names), the owned and
+    shared lists and the token list; each address has one tag now (game_slots.h's `gameslots::`, record_arrays.h's
+    `recordarrays::`, game_arrays.h's `gamearrays::`). The raw constants (script.h's `scriptvtable::kXxxList` and
+    kGroupsBase, world.h's ObjectsBaseVtable, worlddata::kClientListVtable, combat_lifetime / world_destructors /
+    world_construct / sound_manager_lifetime / map_object_lifetime's `kXxxVtable`, scene_loader.h's `scenedata::` array
+    accessors) became `Tag::Vtable()`. The sound cache's WaveListClass registrations moved to game_slots.cpp: its
+    Serialize names WaveRecord::Assign (sound_manager.cpp), which tests/vectors does not link.
+  - **Skipped, for a later batch**: the tables static_init.cpp stores in generated initialisers (0073D024, 0073FDEC,
+    0073FE34, plus FloatArrayClass 0073D3E8 and the Objective / NamedRecord array 0073D46C, 007AA608); the sector occluder
+    array 0073FAE0; RefListAClass 0073FA4C (kept as the old tag); mfc_array.h's remaining tags (IntArray, UnitPtr,
+    Float, ArgFloat, ObjectRef, ScriptGroup, ScriptFloats, ScriptArea, ScriptIfThen, PartySlot, AiLook, Sprite, BoneLink,
+    Waypoint, Exit, MapRecordItems, Point, AttackOption, AnimationSteps(Copy), ClientMap, ObjectPtr, Sector, CellRow,
+    AreaList, StringArray, ArrayBase, AiLookRecord) and mfc_list.h's (PtrList, ItemList, TempList, CellList, LootList,
+    PlatformList, Client / Client2 / Client3, NodeList, BlockCostList, AiMapList, WaypointList, StaticList, DwordMap,
+    ScriptCommands): the shared base tags (mfc::PtrListVtable / DWordArrayVtable) and the element aliases that name them
+    in mfc_array.h need their dependencies reordered first.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
