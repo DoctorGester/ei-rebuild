@@ -141,10 +141,6 @@ void ReleaseSource(CParticleSource* source) { source->Release(); }
 // The feeble mind sequence's chooser (005117C0): the first name once, then the second.
 int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
-CObject3DClientSpecific* ClientHalf(CMapObject* owner) {
-    return static_cast<CObject3DClientSpecific*>(owner->attached);
-}
-
 // Is there a record of `type` other than `index`?
 bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
     for (int i = 0; i < particles.size; ++i)
@@ -328,12 +324,12 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kStun:
             if (OtherRecordOfType(particles, i, kStun)) break;
             CompanionOwner(this)->flags_ &= ~kFlagStunned;
-            ClientHalf(CompanionOwner(this))->ClearPartTints();
+            CompanionOwner(this)->ClientSpecific()->ClearPartTints();
             break;
         case kInvisibility:
             if (OtherRecordOfType(particles, i, kInvisibility)) break;
             CompanionOwner(this)->flags_ &= ~kFlagInvisible;
-            ClientHalf(CompanionOwner(this))->ResetPartAlpha();
+            CompanionOwner(this)->ClientSpecific()->ResetPartAlpha();
             break;
         case kLichdom:
         case kStrengthen:

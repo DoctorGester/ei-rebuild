@@ -344,14 +344,14 @@ void CEffectArrowFigure::Start(int update) {
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
     auto* figure = static_cast<CObject3D*>(figure_);
-    CEngineObject* attached = figure->attached;
+    CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
     console::CStringArray parts;
     figure->MakeFigure(model, &parts, 1);
-    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
+    attached->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
-    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
+    attached->SetSkins(texture, game::EmptyText());
     TheClientWorld()->AddObject(figure_);
 }
 

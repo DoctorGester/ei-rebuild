@@ -101,8 +101,8 @@ bool DepthBefore(CEngineObject* a, CEngineObject* b) {
 // By the first part set's texture (its address), then the figure (its address), then the view depth.
 bool UnitOrderLess::LessByAddress(CEngineObject* a, CEngineObject* b) {
     if (!a || !b) return false;
-    auto* groupA = static_cast<CObject3DClientSpecific*>(Object3D(a)->attached);
-    auto* groupB = static_cast<CObject3DClientSpecific*>(Object3D(b)->attached);
+    auto* groupA = Object3D(a)->ClientSpecific();
+    auto* groupB = Object3D(b)->ClientSpecific();
     if (!groupA || !groupB) return false;
     const auto ra = reinterpret_cast<std::uint32_t>(RankTexture(groupA));
     const auto rb = reinterpret_cast<std::uint32_t>(RankTexture(groupB));
@@ -117,8 +117,8 @@ bool UnitOrderLess::LessByAddress(CEngineObject* a, CEngineObject* b) {
 
 bool address_order::DrawBefore(CEngineObject* a, CEngineObject* b) {
     if (!a || !b) return false;
-    auto* groupA = static_cast<CObject3DClientSpecific*>(Object3D(a)->attached);
-    auto* groupB = static_cast<CObject3DClientSpecific*>(Object3D(b)->attached);
+    auto* groupA = Object3D(a)->ClientSpecific();
+    auto* groupB = Object3D(b)->ClientSpecific();
     if (!groupA || !groupB) return false;
     if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
     if (int c = CompareFigures(Object3D(a)->figure, Object3D(b)->figure)) return c < 0;

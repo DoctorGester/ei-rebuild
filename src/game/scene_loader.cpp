@@ -895,7 +895,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.size; ++t) {
         // The unit's material holder: its texture of the id (0051B2F0) named, then a material
         // (0051B470) for each link of the id.
-        auto* owner = static_cast<CObject3DClientSpecific*>(u->Object3D()->attached);
+        auto* owner = u->Object3D()->ClientSpecific();
         mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
         bool bmp = gamecrt::mbsicmp(static_cast<const char*>(s.textureNames.Name(t).Right(4)),
                                    scenedata::BmpExtText()) == 0;

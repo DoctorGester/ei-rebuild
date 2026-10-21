@@ -656,8 +656,8 @@ int CPlayerClient::OnNewObject() {
         for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;   // 00517910
         created->flags_ |= kFlagNoParts;
     }
-    CEngineObject* attached = figure->attached;
-    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
+    CObject3DClientSpecific* attached = figure->ClientSpecific();
+    attached->RegisterPartMaterials();
     // (The client world's 00566310 and 00566320 around the texture swap are empty.)
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
@@ -668,7 +668,7 @@ int CPlayerClient::OnNewObject() {
     } else if (Same(textureTo, TextNone())) {
         to = nullptr;
     }
-    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(textureFrom, to);
+    attached->SetSkins(textureFrom, to);
     if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
 
     // The player keeps it, counted.

@@ -126,12 +126,12 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->position.x = 0.0f;
     object->position.y = 0.0f;
     object->position.z = 3.0f;
-    CEngineObject* specific = object->attached;
+    CObject3DClientSpecific* specific = object->ClientSpecific();
     console::CStringArray parts;
     object->MakeFigure(name, &parts, 1);
-    static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
+    specific->RegisterPartMaterials();
     object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     object->RestartPose();
-    static_cast<CObject3DClientSpecific*>(specific)->SetSkins(from, to);
+    specific->SetSkins(from, to);
 }
 EI_REWRITTEN(0x005FC1F0, CUiModel::Load);

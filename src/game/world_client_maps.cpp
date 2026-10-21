@@ -724,12 +724,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->SetPrototype23CByName(record->texts[6]);
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
-        CEngineObject* figure = unit->Object3D()->attached;
+        CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         Figure51C970(figure);
         unit->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
         Unit518860(unit);
         const char* skin = record->texts[4];
-        static_cast<CObject3DClientSpecific*>(figure)->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
+        figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));

@@ -201,7 +201,7 @@ void CUnitClientSpecific::SparkEffect(int) {
     source->alpha = kSparkAlpha;
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     if (flashCountdown == 0) half->SetLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }

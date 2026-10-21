@@ -32,7 +32,7 @@ int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(v
 
 // The skin texture: the first texture of the unit's client half (its material), or null.
 CTexture* SkinOf(CUnit* unit) {
-    auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+    auto* half = unit->Object3D()->ClientSpecific();
     if (!half->partSets[0]) return nullptr;
     return half->partSets[0]->texture;
 }

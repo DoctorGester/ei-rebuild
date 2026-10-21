@@ -168,7 +168,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             model->orientation = Product(tilted, *q3, true);
 
             const float scale = static_cast<float>(One() / size);
-            static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->figureScale = Vector3{scale, scale, scale};
+            unit->Object3D()->ClientSpecific()->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
             model->SetPartsFlatSpecular(0xFF000000u);
@@ -220,7 +220,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
         }
 
         if (bodyPart_ != kInfoPage) {
-            static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->figureScale = Vector3{1.0f, 1.0f, 1.0f};
+            unit->Object3D()->ClientSpecific()->figureScale = Vector3{1.0f, 1.0f, 1.0f};
             model->position = savedPosition;
             model->orientation = savedOrientation;
         }
