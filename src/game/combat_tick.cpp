@@ -682,7 +682,7 @@ void CUnitServer::ExecuteOrder() {
             // The action starts now.
             bool fresh = true;
             if (CUnit* other = UnitOrNull(action.target)) {
-                auto* theirs = reinterpret_cast<CUnitServer*>(other->controller);
+                auto* theirs = other->ServerController();
                 if (reinterpret_cast<CEngineObject*>(theirs->action.target) == unit) fresh = false;
             }
             bool missed = false;
@@ -690,7 +690,7 @@ void CUnitServer::ExecuteOrder() {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
                 auto* victim = static_cast<CUnit*>(action.target);
-                auto* defender = reinterpret_cast<CUnitServer*>(victim->controller);
+                auto* defender = victim->ServerController();
                 ManagerContext();
                 int backstab = unit->IsBehind(victim) & 0xFF;
                 if (victim->GetClassId() == kClassUnit && defender->NoBackstab()) backstab = 0;
@@ -794,7 +794,7 @@ void CUnitServer::ApproachTarget() {
     CEngineObject* chased = target;
     if (followsLeader) {
         CUnit* leader = followedLeader;
-        auto* theirs = reinterpret_cast<CUnitServer*>(leader->controller);
+        auto* theirs = leader->ServerController();
         if (theirs->action.target == target &&
             (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCast || theirs->action.kind == kOrderCastAt) &&
             theirs->state != kStateCasting) {

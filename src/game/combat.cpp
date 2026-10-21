@@ -520,7 +520,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
         if (NoBackstab()) hit->backstabFactor = kOne;
         if (attacker) {
             bool backstab = hit->backstabFactor > kOne;
-            roll = AttackRoll(reinterpret_cast<CUnitServer*>(attacker->controller), backstab);
+            roll = AttackRoll(attacker->ServerController(), backstab);
         }
         if (hit->calledShot) {
             if (hit->location == 0) roll = MaxZero(roll - kCalledShotHead);
@@ -584,7 +584,7 @@ EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
     int backstab = unit->IsBehind(target) & 0xFF;
     if (target->GetClassId() == kClassUnit &&
-        reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller)->NoBackstab())
+        static_cast<CUnit*>(target)->ServerController()->NoBackstab())
         backstab = 0;
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow))
@@ -648,7 +648,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (attacker->type_ != kUnitTypeHero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
-                    auto* controller = reinterpret_cast<CUnitServer*>(attacker->controller);
+                    auto* controller = attacker->ServerController();
                     CItemWeapon* own = ActiveWeapon(controller->unit);
                     if (own) LastDamageSource(unit) = static_cast<std::int16_t>(own->GetType());
                     else LastDamageSource(unit) = static_cast<std::int16_t>(controller->Combat().naturalWeapon);

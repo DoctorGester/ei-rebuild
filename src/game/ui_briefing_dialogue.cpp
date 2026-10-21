@@ -117,7 +117,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     }
     auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+    auto* controller = serverUnit->ServerController();
     controller->StopAction();
     controller->actionDone = SpeakerActionDone();
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
@@ -322,7 +322,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, person->id_)) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
-            auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+            auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();
             // (The original then looks for the person among the party's first members; the result

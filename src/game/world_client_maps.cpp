@@ -455,7 +455,7 @@ const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
 
 void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
     for (int i = 0; i < records->size; ++i)
-        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unitId));
+        RemoveObject(static_cast<int>(records->data[i]->unitId));
 }
 
 int CWorldClient::SendFlag10(int value) {
@@ -701,7 +701,7 @@ bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
 void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
     mfc::CString hair;
     for (int i = 0; i < party->size; ++i) {
-        auto* record = reinterpret_cast<PartyUnitRecord*>(party->data[i]);
+        auto* record = party->data[i];
         console::CStringArray parts;
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
@@ -735,7 +735,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
-        slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
+        slots->SetStats(&record->stats);
         ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();

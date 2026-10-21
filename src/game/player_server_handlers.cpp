@@ -111,7 +111,7 @@ void CPlayerServer::OnLeaderDied() {
     if (party->members_.size == 1) {
         PartyUnitRecord& record = party->members_.data[0];
         record.unitId = static_cast<std::uint32_t>(newId);
-        auto* stats = reinterpret_cast<UnitStats*>(record.stats);
+        auto* stats = &record.stats;
         stats->RestoreSlots();
         float experience = static_cast<float>(stats->pendingExperience + stats->experience);
         auto* npc = reinterpret_cast<UnitNpcRecord*>(unitdb::NpcTable().FindByName(record.texts[5]));

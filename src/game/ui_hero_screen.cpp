@@ -64,7 +64,8 @@ constexpr float kNewHeroDepth = 400.0f;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kTextFormat = 1;
 
-UnitStats* StatsOf(char* hero) { return reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(hero)->stats); }
+UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
+
 
 } // namespace
 
@@ -77,8 +78,8 @@ int CTradePanel::Experience() const {
 EI_REWRITTEN(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
-    using HeroFn = char*(__thiscall*)(CUiWindow*);
-    char* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
+    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
+    PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
 EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
@@ -188,7 +189,7 @@ void CMpHeroScreen::Close() {
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* party = LocalPlayerData();
     for (int i = 0; i < party->members_.size; ++i) {
-        auto* record = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
+        PartyUnitRecord* record = &party->members_.data[i];
         int size = records.size;
         records.SetSize(size + 1, -1);
         records.data[size] = record;
@@ -346,7 +347,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     PartyUnitRecord* first = player->members_.data;
     int size = records.size;
     records.SetSize(size + 1, -1);
-    records.data[size] = reinterpret_cast<std::uint8_t*>(first);
+    records.data[size] = first;
     GameCreatePartyUnits(&records, flag);
     auto* unit = GameFindClientUnit(player->members_.data->unitId);
     unit->SetPrototype23C(unit->GetPrototype());
@@ -364,7 +365,7 @@ void CMpHeroScreen::MakePreview(int flag) {
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(static_cast<float>(now - 1.0f));
-        unit->SetFromStats(reinterpret_cast<UnitStats*>(player->members_.data->stats));
+        unit->SetFromStats(&player->members_.data->stats);
         unit->Controller()->RefreshWounds();
     }
     if (records.data) gamecrt::operator_delete(records.data);
@@ -379,7 +380,7 @@ void CMpHeroScreen::ShowHero(int index) {
     if (player->members_.size > 0) {
         int size = records.size;
         records.SetSize(size + 1, -1);
-        records.data[size] = reinterpret_cast<std::uint8_t*>(player->members_.data);
+        records.data[size] = player->members_.data;
         GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;
@@ -389,7 +390,7 @@ void CMpHeroScreen::ShowHero(int index) {
         static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);
-    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    auto* hero = Hero();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) unit->AddWeapon(hero->weapons[i]);

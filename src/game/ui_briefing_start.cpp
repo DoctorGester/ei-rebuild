@@ -261,7 +261,7 @@ void CBriefingScreen::FinishDialogue() {
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);
-        auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+        auto* controller = serverUnit->ServerController();
         controller->actionDone = nullptr;
         controller->StopAction();
         // (The original then looks for the unit among the party's first members; the result is

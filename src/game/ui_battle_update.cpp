@@ -342,11 +342,11 @@ void CBattleScreen::Update() {
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
         // The local player's unit records (0x784 bytes each) and the ones in the exit.
-        mfc::CArray<std::uint8_t*> records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
-        mfc::CArray<std::uint8_t*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+        mfc::CArray<PartyUnitRecord*> records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
+        mfc::CArray<PartyUnitRecord*> second = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
         CParty* data = LocalPlayerData();
         for (int i = 0; i < data->members_.size; ++i)
-            records.SetAtGrow(records.size, reinterpret_cast<std::uint8_t*>(&data->members_.data[i]));   // 0059D2E0
+            records.SetAtGrow(records.size, &data->members_.data[i]);   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
             CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
             CMessageBox* box = memory ? memory->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)

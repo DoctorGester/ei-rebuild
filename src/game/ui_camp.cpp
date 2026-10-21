@@ -338,7 +338,8 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
         if (!IsSpellContainer(item)) return false;
         char* spell = reinterpret_cast<char*>(AsItem(item)->spell_);
         PartyUnitRecord* hero = VirtualHeroRecord();
-        return HeroCanUseSpell(hero->stats, spell);
+        return HeroCanUseSpell(&hero->stats, spell);
+
     }
     case 2:     // the spell constructor
         return IsSpellContainer(item) || IsSpell(item) || IsModifier(item);
@@ -817,7 +818,7 @@ void CCampPages::Close() {
         record->unitId += kRecordBias;
         int index = records.size;
         records.SetSize(index + 1, -1);
-        records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
+        records.data[index] = &player->members_.data[i];
     }
     GameRemoveUnitsOf(&records);
     for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
@@ -884,7 +885,7 @@ namespace {
 void* GluePlayerData() { return LocalPlayerData(); }
 
 // The hero's statistics (UnitStats at the record's +0x20).
-UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
+UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // The hero's statistics with the armour it wears as their outer layers again.
 void RebuildArmourLayers(PartyUnitRecord* hero) {

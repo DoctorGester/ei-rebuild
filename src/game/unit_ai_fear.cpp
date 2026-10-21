@@ -151,7 +151,7 @@ int FearMode::Evaluate(AIBrain* brain) {
 
     // A unit that fights from a distance keeps away from its nearest enemy.
     CUnit* enemy = brain->memory.NearestEnemy(self);
-    if (enemy && static_cast<std::uint8_t>(reinterpret_cast<CUnitServer*>(owner)->AttacksFromRange()) != 0 &&
+    if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
         bool aggressive = brain->current && brain->current->GetType() == kModeAggression;

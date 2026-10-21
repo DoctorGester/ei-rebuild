@@ -33,13 +33,13 @@ const char* CostFormat() { return "%s %d (%d)"; }
 void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<CItemScreen*>(owner)->DrawItem(pass, cell); }
 
 // The window's surface text (005FDE20 Rebirth-patched: through its address).
-struct SurfaceText {
-    void Begin() { UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
+struct SurfaceText : CUiSurface {
+    void Begin() { UiSurfaceGetDC(this); }
     void Clear() { SurfaceClearOriginal(this); }
     void Draw(const char* text, RECT* rect, int format, int align) {
         SurfaceDrawText(this, nullptr, text, rect, format, kTextColour, align, 1);
     }
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
+    void End() { UiSurfaceReleaseDC(this); }
 };
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of
@@ -93,7 +93,7 @@ BOOL CRepairGrid::Draw(int pass) {
     ClearDepth(ui->renderer_, &inside, 1.0f);
 
     mfc::CString text;
-    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
+    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     const UiItemList* list = items_;
@@ -222,7 +222,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
         using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
         ei::VirtualSlot<BestFn>(owner_->vtable_, 45)(owner_, school, &skill, &mana);
     }
-    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
+    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     if (hasSpell) {

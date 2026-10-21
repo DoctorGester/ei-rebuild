@@ -1062,7 +1062,8 @@ using PendingMap = PendingIndex;
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
 // CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
 // SetAtGrow 0059D2E0: the plain CArray members).
-using RecordPtrArray = mfc::CArray<std::uint8_t*>;
+struct PartyUnitRecord;   // unit.h
+using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 struct RecordBytes : stlp::vector<std::uint8_t> {
     // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
     const std::uint8_t* At50(std::uint32_t index) const;

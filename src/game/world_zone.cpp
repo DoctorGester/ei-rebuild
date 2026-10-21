@@ -128,7 +128,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.size = 0;
     PartyUnitRecord* record = builder.Record();
     records.SetSize(1, -1);
-    records.data[0] = reinterpret_cast<std::uint8_t*>(record);
+    records.data[0] = record;
     record->unitId = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();

@@ -404,7 +404,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!unit || !unit->ServerController()) continue;
         ShareNode* node = cursor;
         cursor = node->next;
-        reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats)->AddScaledExperience(node->data.share);
+        MercRecord(p, 0).stats.AddScaledExperience(node->data.share);
     }
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CPlayerServer* state = p->Server();
@@ -441,7 +441,7 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
             unit->ServerController()->AddExperience(share);
             for (int j = 0; j < player->Party()->members_.size; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
-                if (static_cast<int>(record.unitId) == heroes.data[i]) reinterpret_cast<UnitStats*>(record.stats)->AddScaledExperience(share);
+                if (static_cast<int>(record.unitId) == heroes.data[i]) record.stats.AddScaledExperience(share);
             }
         }
         player->Server()->SendValue15(std::bit_cast<std::uint32_t>(share));
@@ -547,7 +547,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (!spell) continue;
         AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
     }
-    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
+    controller->CopyStats(&record->stats);
 }
 
 } // namespace
@@ -560,9 +560,9 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         node = next;
     }
     RecordPtrArray list{mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, reinterpret_cast<std::uint8_t*>(&MercRecord(player, i)));   // 0059D2E0
+    for (int i = 0; i < player->Party()->members_.size; ++i) list.SetAtGrow(list.size, &MercRecord(player, i));   // 0059D2E0
     for (int i = 0; i < list.size; ++i) {
-        auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
+        auto* record = list.data[i];
         CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
         if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
@@ -579,7 +579,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
-__declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CUnit* a0, void*, void* a2) { a0->SetPlayer(static_cast<CPlayer*>(a2)); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
@@ -606,13 +605,13 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (CItem* spell = unit->GetSpell(slot)) AddToRecord<&PartyUnitRecord::AddSpell>(party, record, spell);
-    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
+    controller->CopyStats(&record->stats);
     if (world->sessionKind_ == 1) {
         record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;
     }
     record->fightAtWill = unit->fightAtWill;
-    RecordStatsFinish(record->stats, nullptr);
+    record->stats.RestoreSlots();   // 00523C80
 }
 
 } // namespace
@@ -624,14 +623,14 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
     if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
-            auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
+            auto* record = list->data[i];
             CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             CEngineObject* leader = unit->ServerController()->brain.LeaderOrFollowed();
             record->leaderId = leader ? leader->id_ : -1;
         }
     }
     for (int i = 0; i < list->size; ++i) {
-        auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
+        auto* record = list->data[i];
         CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
         if (!unit) continue;
         if (placements) {
@@ -675,7 +674,7 @@ void CWorldServer::CollectParty(CPlayer* player, void* placements) {
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         int index = list.size;
         list.SetSize(index + 1, -1);
-        list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
+        list.data[index] = &MercRecord(player, i);
     }
     StoreParty(&list, PartyOf(player), placements);
     list.vtable = mfc::impl::PartyUnitArrayClass::Vtable();

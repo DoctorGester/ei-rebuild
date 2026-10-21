@@ -102,7 +102,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     ReadText(stream, texts[5]);
     texts[6] = texts[5];
     stream->Read(&unitId, sizeof(unitId));
-    reinterpret_cast<UnitStats*>(stats)->LoadFrom(stream);
+    stats.LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x724, +0x728 and the height
     ReadItemIds(stream, ItemList(weapons), g_loadingParty->ItemManager());
     ReadItemIds(stream, ItemList(quickItems), g_loadingParty->ItemManager());
@@ -129,7 +129,7 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteText(stream, texts[4]);
     WriteText(stream, texts[5]);
     WriteValue(stream, unitId);
-    reinterpret_cast<UnitStats*>(stats)->SaveTo(stream);
+    stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
     WriteItemIds(stream, ItemList(weapons));
     WriteItemIds(stream, ItemList(quickItems));

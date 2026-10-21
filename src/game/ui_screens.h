@@ -304,10 +304,10 @@ static_assert(offsetof(CCampScreen, partStrip_) == 0x1F0);
 // A party hero's statistics (UnitStats at +0x20 of a 0x784-byte hero record) as the camp reads
 // them: the skill in a spell school rounded like FISTP, and the whole "mana units" (the mana
 // maximum stored as float, divided by the period, truncated).
-int HeroSchoolSkill(void* stats, int school);
-int HeroManaUnits(void* stats);
+int HeroSchoolSkill(UnitStats* stats, int school);
+int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (+0x50 required skill, +0x40 mana cost).
-bool HeroCanUseSpell(void* stats, char* spell);
+bool HeroCanUseSpell(UnitStats* stats, char* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
 
@@ -368,7 +368,8 @@ public:
     void BackToNewHero();
 
     // Called through the vtable, as the original does.
-    char* Hero();                       // slot 51 (+0xCC)
+    PartyUnitRecord* Hero();            // slot 51 (+0xCC)
+
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
     void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client

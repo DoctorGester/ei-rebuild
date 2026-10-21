@@ -187,7 +187,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
     for (int i = 0; i < party->members_.size; ++i) {
         int index = records.size;
         records.SetSize(index + 1, -1);
-        records.data[index] = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
+        records.data[index] = &party->members_.data[i];
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {

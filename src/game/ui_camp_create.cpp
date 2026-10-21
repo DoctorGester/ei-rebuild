@@ -385,7 +385,7 @@ void CCampPages::BuildPages() {
         PartyUnitRecord* record = &player->members_.data[i];
         int size = records.size;
         records.SetSize(size + 1, -1);
-        records.data[size] = reinterpret_cast<std::uint8_t*>(record);
+        records.data[size] = record;
     }
     GameCreatePartyUnits(&records, 1);
 
@@ -407,10 +407,10 @@ void CCampPages::BuildPages() {
         CUnitController* controller = unit->Controller();
         controller->RestartAnimation(static_cast<float>(FramesNow()));
         PartyUnitRecord* record = &player->members_.data[i];
-        unit->SetFromStats(reinterpret_cast<UnitStats*>(record->stats));
+        unit->SetFromStats(&record->stats);
         unit->Controller()->RefreshWounds();
         // The armour the record wears.
-        auto* heroStats = reinterpret_cast<UnitStats*>(record->stats);
+        auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();
         for (int piece = 0; piece < static_cast<int>(record->armorCount); ++piece)
             heroStats->AddArmourLayer(record->armor[piece]);
@@ -453,7 +453,7 @@ void CCampPages::BuildPages() {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
             for (int i = 0; i < LocalParty()->members_.size; ++i) {
-                auto* memberStats = reinterpret_cast<UnitStats*>(LocalParty()->members_.data[i].stats);
+                auto* memberStats = &LocalParty()->members_.data[i].stats;
                 float skill = static_cast<float>(memberStats->SpellSchoolSkill(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;

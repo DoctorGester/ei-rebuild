@@ -645,7 +645,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     // The player controls this unit directly.
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
-    if (brain->seen && unit->fightAtWill != 1) reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x20);
+    if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(0x20);
 
     switch (state) {
     case kStateFollow: {
@@ -677,7 +677,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        AIBrain* leaderBrain = reinterpret_cast<CUnitServer*>(leader->controller)->Brain();
+        AIBrain* leaderBrain = leader->ServerController()->Brain();
         for (auto* node = leaderBrain->modes.head; node;) {
             AIMode* mode = node->data;     // 005D9830 (GetNext)
             node = node->next;
@@ -703,7 +703,7 @@ void PlayerMode::Execute(AIBrain* brain) {
                 brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !StaysWithParty(brain, true)) {
-                reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x21);
+                brain->owner->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
@@ -834,7 +834,7 @@ EI_REWRITTEN(0x005D3D90, PlayerMode::CommandCastAt);
 namespace {
 // The first Player mode (type 6) in the brain of `unit`'s controller, or null.
 PlayerMode* PlayerModeOf(CUnit* unit) {
-    AIBrain* brain = reinterpret_cast<CUnitServer*>(unit->controller)->Brain();
+    AIBrain* brain = unit->ServerController()->Brain();
     for (auto* node = brain->modes.head; node; node = node->next)
         if (node->data->Virtuals()->GetType() == kModePlayer) return static_cast<PlayerMode*>(node->data);
     return nullptr;
@@ -858,7 +858,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
             CUnit* next = mode ? mode->leader : nullptr;
             if (!next) break;
             if (next == self) {
-                AIBrain* own = reinterpret_cast<CUnitServer*>(next->controller)->Brain();
+                AIBrain* own = next->ServerController()->Brain();
                 if (PlayerMode* ownMode = PlayerModeOf(next)) ownMode->SetLeader(own, nullptr);
                 break;
             }

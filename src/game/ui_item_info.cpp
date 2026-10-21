@@ -101,14 +101,14 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 // The surface's drawing (thiscall on the surface).
-struct SurfaceDraw {
-    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
+struct SurfaceDraw : CUiSurface {
+    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag) {   // 005FDFA0
-        return reinterpret_cast<CUiSurface*>(this)->DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
+        return DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
     }
-    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
@@ -198,7 +198,7 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(reinterpret_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
+        : panel_(panel), draw_(static_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
 
     SurfaceDraw* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
@@ -314,7 +314,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
+    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     draw->End();
@@ -683,7 +683,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     void* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        reinterpret_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
+        static_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
         return;
     }
     Texts* texts = TextManager();

@@ -321,7 +321,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
             if (animation > 0) {
                 if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
-                    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+                    auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();
                     if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(animation))
