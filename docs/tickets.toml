@@ -518,6 +518,13 @@ model = "opus"
 depends = ["R16c3"]
 note = "R16c3 (2026-10-21): each water vertex in SectorData::Animate 006C3E80 still makes up to four out-of-line x87::RoundToInt calls (one sine lookup, three colour bytes). An inlinable FISTP in include/ei/x87.h (same instruction, same control word, so bit-exact) would cut Animate further; check no other caller changes beyond the call, measure Animate A/B with waterwaves 1 (stop under 0.1 ms a harness frame). Also record terrain_water_waves's Rebirth golden (only vanilla exists). Checks: goldens both installs, terrain_water_waves the same."
 
+[[ticket]]
+id = "R16c5"
+title = "Inline expansion of unmarked helpers (/Ob2) measured"
+group = "renderer"
+depends = ["R16c4"]
+note = "R16c4 (2026-10-21): the build compiles /O2 /Ob1 (CMake RelWithDebInfo), so file-local helpers not marked inline (Sine, Byte, SignClear in terrain_animation before R16c4; most anonymous-namespace helpers elsewhere) stay calls. Try /Ob2 (or /Ob3) for ei_hook: frame time A/B with render_stats (main thread CPU per frame), goldens both installs and ei_vectors the same (inlining can move x87 spills; /fp:precise should keep the rounding points), the build checks (check_short_functions reads compiled code, check_fp_fold) at 0."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

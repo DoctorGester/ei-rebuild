@@ -891,6 +891,14 @@ across runs; the goldens check the game state.
    `terrain_water_waves` (`waterwaves 1` before newgame; the digest's `water` group, a scenario's `digest water`
    line: per cached sector hashes of the water layer's positions and speculars, every record) and its golden of the
    original, the same before and after.
+   **R16c4 FISTP inlined (done).** `x87::fistp` / `RoundToInt` (include/ei/x87.h) are `__forceinline` functions
+   with an `__asm` FLD / FISTP instead of naked calls (the same instructions and control word; every one of the ~220
+   sites inlines it: no call relocation to them is left in any object), and Animate's helpers `Sine`, `Byte`,
+   `SignClear` are `inline` (the build's `/Ob1` inlines only functions marked so). Measured A/B/C in one run
+   (alternate world updates, harness build, vanilla, `waterwaves 1`; ms per world update): zone1 calls 0.091-0.095 /
+   helpers inlined 0.087-0.089 / FISTP inlined too 0.066-0.070, the town 0.036 / 0.029 / 0.024: about 0.12 ms a
+   harness frame in zone1. Check: terrain_water_waves' goldens (vanilla, and Rebirth's, recorded in R16c4; in the
+   Rebirth smoke set) and every golden the same, ei_vectors 0.
 4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
    `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
    stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh
