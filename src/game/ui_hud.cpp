@@ -684,8 +684,6 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
 void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>(a0)->Highlight(a2, a3); }
-void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>(a0)->Highlight(a2, a3); }
-void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>(a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
 // The client world (TheClientWorld(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
@@ -745,14 +743,14 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
         quick->selected_ = -1;
         CHudSpellColumn* spells = spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) SpellPanelSet(spells, nullptr, i, 0);
+        for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
         spells->selected_ = -1;
         CHudActionColumn* actions = actionColumn_;
         if (!actionLoop) {
             ActionPanelReset(actions);
             return;
         }
-        for (int i = 0; i < actions->count_; ++i) ActionPanelSet(actions, nullptr, i, 0);
+        for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>(actions)->Highlight(i, 0);
         actions->selected_ = -1;
     };
     auto order = [this](CUnit* first, CUnit* target, int a, int b) {
@@ -986,10 +984,10 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
         quick->selected_ = value;
         CHudSpellColumn* spells = screen->spellColumn_;
-        for (int i = 0; i < spells->count_; ++i) SpellPanelSet(spells, nullptr, i, 0);
+        for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>(spells)->Highlight(i, 0);
         spells->selected_ = value;
         CHudActionColumn* actions = screen->actionColumn_;
-        for (int i = 0; i < actions->count_; ++i) ActionPanelSet(actions, nullptr, i, 0);
+        for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>(actions)->Highlight(i, 0);
         actions->selected_ = value;
     };
     if (selected_ != region) {

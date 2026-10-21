@@ -114,7 +114,6 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
-void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->WriteSized(static_cast<CStream*>(a2)); }
 // The console's ostream.
 
 // The CString fields of the records the flow copies as CStrings (MFC's shared assignment).
@@ -254,7 +253,7 @@ int GameFlow::SaveGame(const char* slot) {
     static_cast<CInterface3D*>(TheInterface())->SaveState(&scenario);
     ScriptsReset(kScripts);
     static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
-    StreamSaveScripts(&scenario, nullptr, kScripts);
+    static_cast<CStream*>(&scenario)->WriteSized(static_cast<CStream*>(kScripts));
     ScriptsReset(kScripts);
     TheCamera()->SaveState(&scenario);
     SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
@@ -884,9 +883,6 @@ namespace {
 
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
 
-// 00595BA0 (RET 8, patched by Rebirth). The full path of a map file, constructed into `out`.
-mfc::CString* __fastcall MapPathInto(CWorldServer* a0, void*, void* a2, const char* a3) { return (mfc::CString*)ServerMapPathOriginal((void*)a0, nullptr, a2, a3); }
-
 } // namespace
 
 int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
@@ -896,7 +892,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
         // The graph chunk of the .mob file.
         {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-            mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
+            mfc::CString* path = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, mob);
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
@@ -906,7 +902,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
     }
     // Otherwise <map without extension>.grp.
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* base = MapPathInto(this, nullptr, storage, map);
+    mfc::CString* base = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, map);
     int dot = base->ReverseFind('.');
     if (dot > 0) {
         mfc::CString cut = base->Left(dot);
@@ -975,7 +971,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     decoder.input.ConstructEmpty();
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
+        mfc::CString* path = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, mob);
         file.Open(*path, kOpenRead, 1);
         path->~CString();
     }
@@ -1283,9 +1279,6 @@ constexpr unsigned kMagicMissionFile = 0x102;
 constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8) come from mission.sav
 constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
 
-// 004A51C0 (RET 4). A memory stream copies its remaining data into another.
-void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
-
 } // namespace
 
 int __stdcall LoadMission(void* file) {
@@ -1300,7 +1293,7 @@ int __stdcall LoadMission(void* file) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
-        StreamCopyRest(&mission.s, nullptr, GameSaveStream());
+        static_cast<CStream*>(&mission.s)->ReadSized(static_cast<CStream*>(GameSaveStream()));
         ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
@@ -1331,7 +1324,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     while (found) {
         found = finder.FindNext();
         alignas(mfc::CString) std::uint8_t name[sizeof(mfc::CString)];
-        mfc::CString* file = CFileFindPathOriginal(&finder, nullptr, reinterpret_cast<mfc::CString*>(name));
+        mfc::CString* file = ::new (reinterpret_cast<mfc::CString*>(name)) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
         ImportDeleteFile()(*file);
         file->~CString();
     }
@@ -1358,9 +1351,6 @@ constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
 
-// 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
-void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { a0->SetTimeSpeedImpl(a2); }
-void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { a0->SetTimeImpl(a2); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
@@ -1413,7 +1403,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         mode = kModeMainMenu;
     }
 
-    WorldSetTimeSpeedF(TheServerWorld(), nullptr, static_cast<float>(TimeSpeedSetting()));
+    TheServerWorld()->SetTimeSpeedImpl(static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
         NewZone(TheServerWorld(), nullptr, kMenuMap, kMenuMob, nullptr);
@@ -1422,7 +1412,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        WorldSetTimeF(TheServerWorld(), nullptr, static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
+        TheServerWorld()->SetTimeImpl(static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.
@@ -1435,8 +1425,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         PartyManagerEndRedeploy(ThePartyManager(), nullptr, &records.party);
         EnterZoneAt(&records.party);
         PartyManagerBeginRedeploy(ThePartyManager(), nullptr, &records.party);
-        WorldSetTimeF(TheServerWorld(), nullptr,
-                      HoursOfDay(VariableGet(&records.party.variables, kGTime)));
+        TheServerWorld()->SetTimeImpl(HoursOfDay(VariableGet(&records.party.variables, kGTime)));
         if (zoneRecord) {
             TheServerWorld()->SetClimate(zoneRecord->setting2C);
             TheServerWorld()->SetCave(zoneRecord->setting30);
@@ -1806,13 +1795,10 @@ EI_REPLACE(0x0057BC30, CurrentSaveSize);
 
 namespace {
 
-// 0057DEE0 (RET 4). The flow's party setup step (1 here).
-void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { flow->UseResources(step != 0); }
-
 } // namespace
 
 void GameFlow::AfterServerStart() {
-    FlowPartyStep(this, nullptr, 1);
+    UseResources(true);
     // The variables of the party outside a game (007C82B0 + 0x54) start empty. Rebirth's
     // PersistentGlobalVars (the CALL at 0057EB25 redirected) keeps the "gvar." ones.
     NamedFloatTable* variables = &GlobalParty()->variables;

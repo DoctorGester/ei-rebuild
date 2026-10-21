@@ -20,7 +20,6 @@
 namespace {
 // MFC ConstructElements<PathCell> (zero-fills `count` elements).
 // The direction a quaternion faces (the orientation at CEngineObject + 0x34).
-void __fastcall FacingDirection(const Quaternion* q, void*, Vector3* out) { QuaternionAxisY(q, nullptr, out); }
 
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.
@@ -161,7 +160,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = CurrentWorldTick();
     Vector3 facing;
-    FacingDirection(&unit->orientation, nullptr, &facing);
+    QuaternionAxisY(&unit->orientation, nullptr, &facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
@@ -323,7 +322,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        FacingDirection(&unit->orientation, nullptr, &facing);
+        QuaternionAxisY(&unit->orientation, nullptr, &facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         std::memcpy(&px, &path->targetX, 4);

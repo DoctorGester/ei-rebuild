@@ -85,14 +85,12 @@ inline CWorld* ContextWorld(const void* object) { return static_cast<CWorld*>(Ma
 
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------
 
-inline void __fastcall ResizeStream(BitStream* a0, void*, std::uint32_t a2) { static_cast<CMemoryStream*>((void*)a0)->Resize(a2); }
-
 // The four streams of a field emptied (the original's 00675F70 or its inline copy).
 inline void EmptyField(DeltaField* f) {
-    ResizeStream(&f->snapshot[0], nullptr, 0);
-    ResizeStream(&f->snapshot[1], nullptr, 0);
-    ResizeStream(&f->out[0], nullptr, 0);
-    ResizeStream(&f->out[1], nullptr, 0);
+    static_cast<CMemoryStream*>((void*)&f->snapshot[0])->Resize(0);
+    static_cast<CMemoryStream*>((void*)&f->snapshot[1])->Resize(0);
+    static_cast<CMemoryStream*>((void*)&f->out[0])->Resize(0);
+    static_cast<CMemoryStream*>((void*)&f->out[1])->Resize(0);
 }
 
 // Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).
@@ -116,8 +114,6 @@ inline void WriteCopy(void* stream, const void* field) {
 
 // --- MFC strings --------------------------------------------------------------------------------
 
-// 004E5840: reads a CString from a save stream (thiscall on the stream).
-inline void __fastcall ReadStreamCString(void* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadInto(static_cast<mfc::CString*>(a2)); }
 inline const char* EmptyCString() { return game::EmptyText(); }
 
 } // namespace effect

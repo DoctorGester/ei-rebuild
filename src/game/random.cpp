@@ -120,7 +120,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         if (Matches(finder, kAttributeSystem) || Matches(finder, kAttributeHidden)) continue;
         if (Matches(finder, kAttributeDirectory)) {
             CStringSlot path, sub;
-            CFileFindPathOriginal(&finder, nullptr, path.Get());
+            ::new (path.Get()) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
             CStringConcatTextOriginal(sub.Get(), path.Get(), SubdirectoryPattern());
             int found = FindSeedFile(out, *sub.Get(), target, counter);
             sub.Get()->~CString();
@@ -131,7 +131,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         if (*counter >= target) {
             if (finder.GetLength() >= kMinimumFileSize) {
                 CStringSlot path;
-                CFileFindPathOriginal(&finder, nullptr, path.Get());
+                ::new (path.Get()) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
                 const char* text = *path.Get();
                 std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
                 path.Get()->~CString();

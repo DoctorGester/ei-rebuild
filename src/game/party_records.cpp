@@ -33,9 +33,6 @@ void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Con
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
-void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) {
-    reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
-}
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
 void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
@@ -83,7 +80,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     if (list->records.Finish() == list->records.EndOfStorage()) {
         stlp::AsRefPtrs(list->records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(list->records.Finish()), stlp::AsRefPtr(temp), 1);
     } else {
-        if (list->records.Finish()) RecordPtrCopy(list->records.Finish(), nullptr, &temp);
+        if (list->records.Finish()) reinterpret_cast<RefPtr*>(list->records.Finish())->CopyCounted(reinterpret_cast<const RefPtr*>(&temp));
         ++list->records.Finish();
     }
     Release(temp);

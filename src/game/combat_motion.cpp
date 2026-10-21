@@ -93,7 +93,6 @@ void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, co
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
 // blank step; 00544FD0 OrderPlan's reset.
-void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -406,7 +405,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             // A pause: an emote of its +1 byte (passed as the misaligned dword at step + 1).
             std::uint32_t value;
             std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
-            StepsEmote(&steps, nullptr, value);
+            static_cast<AnimationSteps*>((void*)&steps)->AddEmote((int)value);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
             steps.Add(*blank.Construct());
@@ -734,8 +733,6 @@ EI_REPLACE_METHOD(0x0054EB30, CUnitServer::ReportPath);
 namespace {
 // 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
-void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
-bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return static_cast<AnimationSteps*>(a0)->SameAs(a2); }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -762,7 +759,7 @@ void CUnitServer::ResyncWithUnit() {
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = 0;
-        ReferenceSet(&action2.target, nullptr, nullptr);
+        AIRef::Of(&action2.target)->Assign(nullptr);
         action2.modifier = 0;
     }
     RecordFromMode(&moveMode, unit->moveMode);
@@ -788,7 +785,7 @@ void CUnitServer::ResyncWithUnit() {
         IdleKey(this) = key;
         BuildIdle(&IdleSteps(this));
     }
-    if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
+    if (!static_cast<AnimationSteps*>(&Queue(this))->SameAs(&IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
             IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);

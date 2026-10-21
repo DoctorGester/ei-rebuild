@@ -75,9 +75,6 @@ constexpr int kVisibleRows = 16;
 __declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0057BC30)
 // 005E5200 (RET 4): the cursor's shape (3 busy, 0 normal).
 int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCursor*>(a0)->ChangeShape(a2); }
-// 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
-// 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
-CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
 // 006E80D8: atoi.
 // 006FE925: CStringArray's constructor.
@@ -85,8 +82,6 @@ CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, con
 // The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
 // the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to
 // a zero into a new CString at `out` / into the CString `out`).
-void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { static_cast<CStream*>(a0)->WriteHeader(a2, a3); }
-bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return static_cast<CStream*>(a0)->ReadHeader(a2, (int)a3, a4); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 // _Construct(p, x) (00657C60).
@@ -264,8 +259,7 @@ void CSaveLoadWindow::SaveGame() {
         int needed = SaveSpaceNeeded(TheGameFlow());
         if (static_cast<double>(needed) > space) {
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(),
-                                                          0x30000, 1, 1)
+            CUiWindow* box = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
                                     : nullptr;
             interface_->PushWindow(box, 1, 1);
             return;
@@ -294,7 +288,7 @@ void CSaveLoadWindow::SaveGame() {
     mfc::impl::CTime now;
     entriesBegin_->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
     SaveEntry* first = entriesBegin_;
-    StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
+    static_cast<CStream*>(&info.s)->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
     info.WriteText(first->map_);
@@ -365,7 +359,7 @@ void CSaveLoadWindow::FillEntries() {
             infoFind.FindNext();
             LocalFileStream info;
             info.Open(FilePath(infoFind), 0, 1);
-            if (StreamReadHeader(&info.s, nullptr, kInfoMagic, kInfoVersion, 1)) {
+            if (static_cast<CStream*>(&info.s)->ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.Read(&entry->gameTime_, 4);
                 {
                     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
@@ -520,7 +514,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;
     info.Open(folder + game::savewords::InfoFile(), kOpenWrite, 0);
-    StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
+    static_cast<CStream*>(&info.s)->WriteHeader(kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
     info.WriteText(map);
     info.WriteText(zone);
@@ -580,7 +574,7 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 // original does).
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
     void* memory = gamecrt::operator_new(kMessageBoxBytes);
-    CUiWindow* box = memory != nullptr ? ConstructMessageBox(memory, nullptr, ui, name, text, result, 3, 1) : nullptr;
+    CUiWindow* box = memory != nullptr ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, name, text, result, 3, 1) : nullptr;
     ui->PushWindow(box, 1, 1);
 }
 } // namespace

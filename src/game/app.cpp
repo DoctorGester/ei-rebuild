@@ -135,7 +135,6 @@ bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
 
 void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
-int __fastcall WorldLoadMap(void* a0, void*, const char* a2, const char* a3, int a4) { return WorldNewZoneOriginal(a0, nullptr, a2, a3, (const char*)a4); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -256,7 +255,7 @@ int __cdecl StartFirstMap() {
         return 1;
     }
     void* world = TheServerWorld();
-    if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
+    if (!WorldNewZoneOriginal(world, nullptr, map, cmdMode, (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
     static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = TheClientWorld();

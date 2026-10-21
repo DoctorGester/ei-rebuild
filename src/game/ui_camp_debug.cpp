@@ -78,7 +78,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
 
 // The record's name (+0x04) contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
-    return CStringFindTextOriginal(&record->text04, nullptr, word) >= 0;
+    return static_cast<const mfc::CString*>(&record->text04)->Find(word) >= 0;
 }
 itemdb::ItemRecordHead* Record(const RecordTable& table, int index, int stride) {
     return reinterpret_cast<itemdb::ItemRecordHead*>(table.RecordAt(static_cast<std::uint32_t>(index), stride));

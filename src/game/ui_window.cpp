@@ -421,8 +421,6 @@ namespace {
 CEngineObject* NewModelObject(const char* name) {
     return reinterpret_cast<CEngineObject*>(static_cast<CFigureManager*>(UiModelManager())->NewFigure(name));
 }
-// 0059F3D0 (thiscall on the object): attaches it to the window.
-void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { static_cast<CFigureMesh*>(a0)->SetObject(reinterpret_cast<CObject3D*>(a2)); }   // the window as the owner (sic)
 
 } // namespace
 
@@ -432,7 +430,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         CEngineObject* made = NewModelObject(name);
         if (!made) return nullptr;
         ++made->refCount_;
-        AttachToWindow(made, nullptr, this);
+        static_cast<CFigureMesh*>(made)->SetObject(reinterpret_cast<CObject3D*>(this));
         auto* sprite = reinterpret_cast<CUiMesh*>(made);
         auto* old = reinterpret_cast<CUiMesh*>(object);
         sprite->material_ = blackMaterial_;
@@ -473,7 +471,7 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
     if (!listed) {
         sceneObjects_.SetAtGrow(sceneObjects_.size, object);
         ++object->refCount_;
-        AttachToWindow(object, nullptr, this);
+        static_cast<CFigureMesh*>(object)->SetObject(reinterpret_cast<CObject3D*>(this));
     }
     auto* sprite = reinterpret_cast<CUiMesh*>(object);
     sprite->material_ = blackMaterial_;

@@ -712,7 +712,6 @@ using BoneLinkRecords = mfc::impl::KeyFrames::Array;
 inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
 using BoneLinkArray =
     mfc::CArray<BoneLinkRecords, mfc::impl::EachElements<BoneLinkRecords, InitBoneLinks, mfc::impl::DeleteThroughObject<BoneLinkRecords>>>;
-int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return static_cast<CMaterialManager*>(a0)->FillMaterial(static_cast<CMaterial*>(a2), a3); }
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
@@ -905,7 +904,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
             linked->name = static_cast<const char*>(s.textureNames.Name(t));
-            RegisterTexture(manager, nullptr, linked, s.textureLinks.Record(l).value);
+            static_cast<CMaterialManager*>(manager)->FillMaterial(static_cast<CMaterial*>(linked), s.textureLinks.Record(l).value);
         }
     }
 

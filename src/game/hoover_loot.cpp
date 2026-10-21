@@ -35,7 +35,6 @@ using PtrListNode = PtrList::Node;
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
 static char* UnitPrototype(void* unit) { return reinterpret_cast<char*>(static_cast<CUnit*>(unit)->GetPrototype()); }
-void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
 
 // An object referenced once more and appended to `list`.
@@ -114,7 +113,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
-            void* armour = UnitArmour(unit, nullptr, slot);
+            void* armour = (void*)static_cast<const CUnit*>((const void*)unit)->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
             cunit->UnequipArmour(reinterpret_cast<CItemArmor*>(armour)->GetType());

@@ -54,10 +54,6 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 void EntriesSetSize(void* entries, int size) {
     mfc::impl::Plain12::SetSize(static_cast<mfc::impl::Plain12::Array*>(entries), nullptr, size, -1);
 }
-// 005E7060 (thiscall on a sprite, RET 4): its scale.
-void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { static_cast<CUiMesh*>(static_cast<CFigureMesh*>(a0))->SetScale(a2); }
-// 005E6FA0 (Rebirth-patched): places a sprite.
-void __fastcall SpritePlace(CEngineObject* a0, void*, float a2, float a3, float a4) { SpritePlaceOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
@@ -95,14 +91,14 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
         const float right = ei::GameData<const volatile float>(0x007428AC);
         if (slot < 4)
-            SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
-            SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
             CEngineObject* shown = sceneObjects_.data[last];
-            SpriteScale(shown, nullptr, slot < 4 ? 0.55f : 0.85f);
+            static_cast<CUiMesh*>(static_cast<CFigureMesh*>(shown))->SetScale(slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->flatSpecular_ = 0xFF000000;
         }
     };
@@ -545,7 +541,6 @@ namespace {
 // 004E0020 (thiscall on the text manager, RET 8): the text of a key. 004DBE40 (__fastcall, RET 4): splits a text
 // at a separator.
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
-void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
 // FCOMP; TEST AH,0x40: equal.
 bool Equal(float a, float b) {
@@ -629,7 +624,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     top->PageText(0) += line;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;
-        LogAddText(screen->children_[9], nullptr, line);
+        static_cast<CUiScrollText*>((void*)screen->children_[9])->AddText(line);
     }
     static_cast<CHudClock*>(clock_)->highlight_ = true;
     int sound = static_cast<int>(value);
@@ -644,9 +639,6 @@ namespace {
 
 // The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
 // 0063CD20, spell 0063E750, action 0063F730.
-void __fastcall QuickSlotHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall SpellHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
 
 } // namespace
 
@@ -685,13 +677,13 @@ void CBattleScreen::RefreshSelection() {
     pendingAction_ = 0;
     pendingItem_ = -1;
     CHudQuickItems* quick = static_cast<CHudQuickItems*>(quickItems_);
-    for (int i = 0; i < 8; ++i) QuickSlotHighlight(quick, nullptr, i, 0);
+    for (int i = 0; i < 8; ++i) static_cast<CHudQuickItems*>((void*)quick)->Highlight(i, 0);
     quick->selected_ = -1;
     CHudSpellColumn* spells = static_cast<CHudSpellColumn*>(spellColumn_);
-    for (int i = 0; i < spells->count_; ++i) SpellHighlight(spells, nullptr, i, 0);
+    for (int i = 0; i < spells->count_; ++i) static_cast<CHudSpellColumn*>((void*)spells)->Highlight(i, 0);
     spells->selected_ = -1;
     CHudActionColumn* actions = static_cast<CHudActionColumn*>(actionColumn_);
-    for (int i = 0; i < actions->count_; ++i) ActionHighlight(actions, nullptr, i, 0);
+    for (int i = 0; i < actions->count_; ++i) static_cast<CHudActionColumn*>((void*)actions)->Highlight(i, 0);
     actions->selected_ = -1;
 }
 EI_REPLACE_METHOD(0x00637DC0, CBattleScreen::RefreshSelection);

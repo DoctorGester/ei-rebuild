@@ -121,8 +121,6 @@ namespace {
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote(a2); }
-void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
@@ -417,7 +415,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
-        StepsAddStepTick(&steps, nullptr, animation, duration);
+        static_cast<AnimationSteps*>((void*)&steps)->AddStep(animation, duration);
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayAnimationOrder(copy);
@@ -432,7 +430,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.vtable = kAnimationStepsVtable;
         steps.SetSize(0, -1);
         steps.extra = -1;
-        StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.param));
+        static_cast<AnimationSteps*>((void*)&steps)->AddEmote(static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
         copy.CopyConstruct(steps);   // 0054B260
         PlayEmoteOrder(copy);

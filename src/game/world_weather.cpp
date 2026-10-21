@@ -160,9 +160,6 @@ namespace {
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 CScript& ScriptQueue() { return ei::GameData<CScript>(0x007C29CC); }   // a command queue (004D23A0 adds a line)
 
-// 004D23A0 (RET 8). Adds a script line to a command queue.
-int __fastcall QueueAddLine(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
-
 float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 
 } // namespace
@@ -184,14 +181,14 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to) {
         unsigned sound = (IsaacRandom::Global().Next() & 3) + 1;
         text.Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
         mfc::CString line = prefix + text;
-        QueueAddLine(&ScriptQueue(), nullptr, &line, 1);
+        ScriptLoadLine(&ScriptQueue(), nullptr, &line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = IsaacRandom::Global().Next() % 3 + 1;
         text.Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
                     static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
-        QueueAddLine(&ScriptQueue(), nullptr, &text, 1);
+        ScriptLoadLine(&ScriptQueue(), nullptr, &text, 1);
     }
 }
 

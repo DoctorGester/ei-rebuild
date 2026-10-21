@@ -35,15 +35,12 @@ using WaypointList = mfc::CList<Waypoint, mfc::RawElements<Waypoint>>;
 using WaypointNode = WaypointList::Node;
 static_assert(sizeof(WaypointNode) == 0x14);
 
-// 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
-void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { mfc::impl::ConstructListHeader<mfc::impl::CellListClass>((void*)a0, a2); }
 // 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next): List12's (the element zeroed).
 WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNode* next) {
     return mfc::impl::NewNodeAs<mfc::impl::List12>(list, prev, next);
 }
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
-bool __fastcall SearchBegin(LocalSearch* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return a0->Begin(a2, a3, a4, a5, a6); }
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
@@ -64,7 +61,7 @@ float Half() { return 0.5f /*0073B86C*/; }
 
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCellList chain;
-    RegionListConstruct(&chain, nullptr, 0x80);
+    mfc::impl::ConstructListHeader<mfc::impl::CellListClass>((void*)&chain, 0x80);
     if (!(SpiralGuard() & 1)) {
         Spiral()->radius = -1.0f;
         SpiralGuard() |= 1;
@@ -127,7 +124,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         WaypointNode* next = w->next;
         if (!(w->data.x == curX && w->data.y == curY)) {
             bool exact;
-            result = legs == 0 ? SearchBegin(search, nullptr, unit, curX, curY, w->data.x, w->data.y)
+            result = legs == 0 ? search->Begin(unit, curX, curY, w->data.x, w->data.y)
                                : search->Recenter(curX, curY, w->data.x, w->data.y, reachedLast ? 0 : 1);
             ++legs;
             if (!result) {

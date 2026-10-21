@@ -166,9 +166,6 @@ using NameList = BriefingRecord::NameList;
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
     reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
 }
-void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
-// 004D23A0 (RET 8). The first command queue: add a line (the scripts' run runs it once).
-int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
@@ -217,7 +214,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
-            PlayerEraseQuestItem(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_));
+            PlayerEraseQuestItemOriginal(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_));
         item->Release();
     }
 
@@ -277,7 +274,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
-    CommandQueueAdd(commandsA_, nullptr, &script, 1);
+    ScriptLoadLine(commandsA_, nullptr, &script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
@@ -289,10 +286,6 @@ namespace {
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
 static const char** UnitPrototype(CEngineObject* object, void*) { return reinterpret_cast<const char**>(static_cast<CUnit*>(object)->GetPrototype()); }
-// 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
-// (name, prototype, extra), remove the member with a text key.
-void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { a0->AddMember(a2, a3, a4); }
-void __fastcall PartyRemoveMember(CParty* a0, void*, unsigned a2) { a0->RemoveMember(a2); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
@@ -326,15 +319,15 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
-            PartyRemoveMember(party, nullptr, key);
+            party->RemoveMember(key);
             WorldRemoveObject(this, nullptr, key);
         }
-        if (is(v.n2)) PartyRemoveMember(party, nullptr, key);
+        if (is(v.n2)) party->RemoveMember(key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? *UnitPrototype(unit, nullptr) : worlddata::HumanHeroText();
-            PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
+            party->AddMember(v.merc, prototype, game::EmptyText());
         }
     }
     UpdateMercBriefings();
@@ -484,16 +477,10 @@ inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) 
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
-void __fastcall RecordRemoveWorn(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveArmor(static_cast<CItem*>(a2)); }
-void __fastcall RecordRemoveQuick(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveWeapon(static_cast<CItem*>(a2)); }
-void __fastcall RecordRemoveSpell(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveSpell(static_cast<CItem*>(a2)); }
-void __fastcall RecordRemoveBelt(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveQuickItem(static_cast<CItem*>(a2)); }
 CEngineObject* __fastcall RecordAddQuick(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddWeapon(static_cast<CItem*>(a2)); }
 CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddArmor(static_cast<CItem*>(a2)); }
-CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddQuickItem(static_cast<CItem*>(a2)); }
 CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddSpell(static_cast<CItem*>(a2)); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
-CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
@@ -521,10 +508,10 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
 
 // The record's four lists emptied (armour, weapons, spells, quick items: the first entry each time).
 void ClearRecordItems(PartyUnitRecord* record) {
-    while (record->armorCount) RecordRemoveWorn(record, nullptr, record->armor[0]);
-    while (record->weaponCount) RecordRemoveQuick(record, nullptr, record->weapons[0]);
-    while (record->spellCount) RecordRemoveSpell(record, nullptr, record->spells[0]);
-    while (record->quickItemCount) RecordRemoveBelt(record, nullptr, record->quickItems[0]);
+    while (record->armorCount) record->RemoveArmor(static_cast<CItem*>(record->armor[0]));
+    while (record->weaponCount) record->RemoveWeapon(static_cast<CItem*>(record->weapons[0]));
+    while (record->spellCount) record->RemoveSpell(static_cast<CItem*>(record->spells[0]));
+    while (record->quickItemCount) record->RemoveQuickItem(static_cast<CItem*>(record->quickItems[0]));
 }
 
 void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
@@ -540,7 +527,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
-        CEngineObject* item = UnitWornItem(unit, nullptr, slot);
+        CEngineObject* item = static_cast<const CUnit*>((const void*)unit)->WornItem(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord(party, record, item, RecordAddWorn);
         ItemSourceRef* ref = NewItemRecord(true);
@@ -553,7 +540,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         CItem* entry = PartyCopy(party, item);
         entry->count_ = item->count_;   // before the null test
         if (entry) ++entry->refCount_;
-        CEngineObject* added = RecordAddBelt(record, nullptr, entry);
+        CEngineObject* added = (CEngineObject*)record->AddQuickItem(static_cast<CItem*>(entry));
         if (entry) entry->Release();
         ItemSourceRef* ref = NewItemRecord(true);
         ref->itemId = static_cast<std::uint32_t>(added->id_);
@@ -613,7 +600,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     for (int slot = 0; slot < kQuickSlots; ++slot)
         if (CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot)) AddToRecord(party, record, item, RecordAddQuick);
     for (int slot = 0; slot < kWornSlots; ++slot)
-        if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddWorn);
+        if (CEngineObject* item = static_cast<const CUnit*>((const void*)unit)->WornItem(slot)) AddToRecord(party, record, item, RecordAddWorn);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = static_cast<CItem*>(static_cast<CUnit*>(unit)->GetQuickItem(slot));
         if (!item || static_cast<int>(item->count_) <= 0) continue;
@@ -624,7 +611,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
         entry->count_ = amount;
         std::memcpy(&entry->charge_, &maximum, sizeof(maximum));
         if (entry) ++entry->refCount_;
-        RecordAddBelt(record, nullptr, entry);
+        record->AddQuickItem(static_cast<CItem*>(entry));
         if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)

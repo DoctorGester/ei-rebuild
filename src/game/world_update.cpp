@@ -42,12 +42,7 @@ void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOrigi
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
 // destructor; 004C2050 SetSize.
-void __fastcall GroupConstruct(ScriptGroup* a0, void*) { mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>((void*)a0); }
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
-inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
-    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
-                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
-}
 ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) {
     return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, a2, a3);
 }
@@ -85,7 +80,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
 }
 
 void InitGroup(ScriptGroup* group) {
-    GroupConstruct(group, nullptr);
+    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>((void*)group);
     group->vtable = scriptvtable::kRefs;
 }
 
@@ -137,7 +132,8 @@ int CWorldServer::Update() {
         if (found) {
             alignas(4) std::uint8_t storage[sizeof(ScriptGroup)];
             ScriptGroup* group = GroupsGetAt(&globals.groups, nullptr, reinterpret_cast<ScriptGroup*>(storage), i);
-            GroupAssign(&heroes, nullptr, group);
+            gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&heroes), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(group));
             GroupDestruct(reinterpret_cast<ScriptGroup*>(storage), nullptr);
             break;
         }
@@ -148,7 +144,8 @@ int CWorldServer::Update() {
         ScriptGroup sum;
         InitGroup(&sum);
         sum.Union(state->partyUnits_, heroes);
-        GroupAssign(&heroes, nullptr, &sum);
+        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&heroes), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&sum));
         sum.vtable = scriptvtable::kRefsBase;
         if (sum.data) {
             RefsRelease(sum.data, sum.size);

@@ -37,7 +37,6 @@ using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 
 // The local search at +0x98: reset.
-void __fastcall SearchReset(LocalSearch* a0, void*) { static_cast<LocalSearch*>(a0)->Reset(); }
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
 // destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
@@ -196,7 +195,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     for (int row = y0; row < y1; ++row)
         for (int col = x0; col < x1; ++col)
             if (search->CostAt(col, row) < kUnreached) marks->rows[row][col] = static_cast<std::int8_t>(mark);
-    SearchReset(search, nullptr);
+    static_cast<LocalSearch*>(search)->Reset();
     return found;
 }
 
@@ -269,7 +268,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
             out->tail = node;
         }
     }
-    SearchReset(search, nullptr);
+    static_cast<LocalSearch*>(search)->Reset();
 }
 
 void CRegionMap::ClampEdgeCosts() {
@@ -559,7 +558,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
             }
             edgeRows[by][bx * 8 + dir] = value;
         }
-        SearchReset(search, nullptr);
+        static_cast<LocalSearch*>(search)->Reset();
     }
 }
 
@@ -638,7 +637,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
         if (search->CostAt(right, y) < kUnreached) second = true;
     }
     if (first && second) {
-        SearchReset(search, nullptr);
+        static_cast<LocalSearch*>(search)->Reset();
         return true;
     }
     first = false;
@@ -647,7 +646,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
         if (search->CostAt(x, top) < kUnreached) first = true;
         if (search->CostAt(x, bottom) < kUnreached) second = true;
     }
-    SearchReset(search, nullptr);
+    static_cast<LocalSearch*>(search)->Reset();
     return first && second;
 }
 

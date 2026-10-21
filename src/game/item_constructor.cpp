@@ -425,9 +425,6 @@ void* const kTable14 = ei::GamePointer<void>(0x007C8758);
 void* const kTable15 = ei::GamePointer<void>(0x007C8778);
 void* const kMaterialTable = ei::GamePointer<void>(0x007C86D8);
 
-// 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
-CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)a0->MakeItem(a2, a3, a4, a5); }
-
 // The string-keyed maps the loot item's table index comes from: operator[] of the weapon
 // (007C8704, 006AD670), armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell
 // (007C851C, 004ABD00) maps, and the modifier map's find_or_insert (007C853C, 004ACC10) of a
@@ -487,7 +484,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         if (spell) {
             char* record = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, kSpellContainer);
             int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
-            item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
+            item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
             if (item) item->AttachSpell(spell);
         }
         return item;
@@ -586,7 +583,7 @@ CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spell
     if (!spell) return nullptr;
     char* record = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
-    CItem* item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
+    CItem* item = (CItem*)MakeItem(kKindSpellContainer, index, 0, -1);
     if (item) item->AttachSpell(spell);
     return item;
 }

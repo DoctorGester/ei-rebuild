@@ -134,7 +134,6 @@ namespace {
 // 0059DD90 (RET 4) with flags 0: a missile's counted pointer released in place (RefPtrRelease).
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
-void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
@@ -161,7 +160,7 @@ void CWorldServer::ResetZone() {
         auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
         if (it) it->manager = nullptr;
         for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next())
-            PlayerClear(player, nullptr);
+            PlayerClearOriginal((void*)player);
         if (it) {
             if (it->manager) {
                 --it->manager->refCount_;
@@ -239,8 +238,6 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-// 0066C180. The player list creates a temporary player (returned).
-WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
 
 } // namespace
@@ -272,7 +269,7 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    WorldPlayer* temporary = PlayerListCreateTemporary(players_, nullptr);
+    WorldPlayer* temporary = (WorldPlayer*)PlayerCreateOriginal((void*)players_);
     CPlayerServer* state = temporary->server;
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {

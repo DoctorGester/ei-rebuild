@@ -48,7 +48,6 @@ struct ListAbi {
     static void __fastcall RemoveAll(List* self) { self->RemoveAll(); }
     // AddTail / AddHead with ARG_TYPE by value (RET 4): the new node (POSITION).
     static Node* __fastcall AddTailByValue(List* self, void*, T value) { return self->AddTail(value); }
-    static Node* __fastcall AddHeadByValue(List* self, void*, T value) { return self->AddHead(value); }
     // RemoveHead (plain RET): the head's element (EAX).
     static T __fastcall RemoveHeadByValue(List* self) { return self->RemoveHead(); }
 
