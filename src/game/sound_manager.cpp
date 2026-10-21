@@ -86,21 +86,6 @@ ReverbFn AilSetSampleReverb() { return ei::GameData<ReverbFn>(0x0073B764); }
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
 void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
 
-// Calls a one-argument function pointer of another module whatever its convention (the ASI
-// codec's close, __stdcall in Miles): ESP is restored from EBP afterwards, as the original's
-// EBP frame does.
-__declspec(naked) void __stdcall CallWithOne(void* /*fn*/, void* /*arg*/) {
-    __asm {
-        push ebp
-        mov ebp, esp
-        push dword ptr [ebp + 12]
-        call dword ptr [ebp + 8]
-        mov esp, ebp
-        pop ebp
-        ret 8
-    }
-}
-
 // The cache's operator[] on the slot's wave name (006BBDF0): the slot of the wave's cache list
 // node, whose +0x20 is the use count.
 std::uint8_t*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<std::uint8_t>(cache, slot->name); }
@@ -884,7 +869,7 @@ void CSoundManager::StopStream(int mode) {
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
-                CallWithOne(streamCodec[3], streamFile);
+                ei::VirtualSlot<void(__stdcall*)(void*)>(streamCodec, 3)(streamFile);   // the ASI codec's close
                 streamFile = nullptr;
             }
             streamState = 0;

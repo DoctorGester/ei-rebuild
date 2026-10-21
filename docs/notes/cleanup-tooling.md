@@ -188,9 +188,10 @@ object code does the same operations with the same rounding points: a value the 
 reload is a `double` local (CrownBlend's unrounded red average for the first colour, `double redTarget = red` then the rounded one),
 and a float the original reloads after storing is read back from the float. Check a conversion by tracing the compiled x87 stack
 (`dumpbin /disasm` of the object, before and after): the compiler adds harmless qword stores of doubles and float stores/reloads
-for every `static_cast<float>`. Left: the
-register / stack shims `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick, reads
-the caller's frame), which go with the call-site work (C12b). `include/ei/x87.h` and `src/hook` (the hook framework) and
+for every `static_cast<float>`. The register / stack shims
+`NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick) went in C12b: their callers are
+ours on the standalone, so the helper's flag is passed whole (the constructor reads its low byte), the codec's close is a plain
+`__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `include/ei/x87.h` and `src/hook` (the hook framework) and
 `src/lib/crt_x87.cpp` (the CRT's register entries) keep theirs by design.
 
 ## SSE2 build (C16 experiment)
