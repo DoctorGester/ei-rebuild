@@ -255,11 +255,11 @@ EI_REPLACE_METHOD(0x00635EB0, CBattleScreen::OnMessageResult);
 void CBattleScreen::OnGameOver(char won) {
     GameStopSounds(1);
     GameStopAmbience();
-    void* box;
+    CMessageBox* box;
     if (!won) {
         interface_->PlaySound("buttons\\gameover.wav", 0);
-        void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, "game_over",
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        box = memory ? memory->Construct(interface_, "game_over",
                                                    "game_over_msg", 0x20000, 3, 1)
                      : nullptr;
     } else {
@@ -268,6 +268,6 @@ void CBattleScreen::OnGameOver(char won) {
                                                    "end_of_game_msg", 0xFFFF0000u, 3, 1)
                      : nullptr;
     }
-    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    interface_->PushWindow(box, 1, 1);
 }
 EI_REPLACE_METHOD(0x006365E0, CBattleScreen::OnGameOver);

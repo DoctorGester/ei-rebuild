@@ -64,7 +64,6 @@ __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGI
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
-void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 // The camp screen as the hero screen builds it inline (the same fields as its constructor
 // 005F6240, with the texture cache's header node made by the tree's own allocator): container
@@ -357,11 +356,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // Delete: asks first ("lmp_deletepers").
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
-        void* memory = gamecrt::operator_new(0x180);
-        void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, "lmp_deletepers", "lmp_deletepers_msg",
-                                                 0x10000, 3, 1)
-                           : nullptr;
-        ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        CUiWindow* box = memory ? memory->Construct(ui, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1) : nullptr;
+        ui->PushWindow(box, 1, 1);
         return;
     }
     case 8: {
@@ -500,10 +497,9 @@ void CMpHeroScreen::Continue() {
         ui->PushWindow(BuildConnectScreen(ui), 1, 1);
         return;
     }
-    void* memory = gamecrt::operator_new(0x180);
-    void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1)
-                       : nullptr;
-    ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
+    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+    CUiWindow* box = memory ? memory->Construct(ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1) : nullptr;
+    ui->PushWindow(box, 1, 1);
 }
 namespace {
 void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
