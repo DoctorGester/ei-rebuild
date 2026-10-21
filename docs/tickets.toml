@@ -2539,7 +2539,31 @@ title = "Named data: objects the generated static initialisers store into"
 group = "cleanup"
 model = "opus"
 depends = ["C18d"]
-note = "1,235 addresses only static_init.cpp / static_exit.cpp name, and many hand-owned ones (particle's 007A9BF8 / 007A9C30 / 007A9C50, weather_particles' noise tables): gen_static_init.py and check_static_init.py leave a named range's stores out (the definition's initialiser or constructor takes their place, in list order when it has one; the verify build's Check compares our value with the original's memory), static_exit likewise for destructors. Set the pattern on one area, then sonnet batches."
+note = "Done (docs/notes/standalone.md 'The static initialisers' objects'). Tooling: gen_static_init.py leaves out stores, float folds and fills into named ranges (the definition's initialiser takes their place; named_data.py compares it with game.exe's bytes as the initialisers leave them, stored_values; a call's stored result is refused) and into unread objects (config/unread_data.csv, written by gen_static_init.unread_objects: constant store groups nothing but their initialiser reaches; 291 objects, 857 statements: per-file zero vectors, identity rotations, 1/1 and pi folds); what must run in list order is a hand port of the initialiser registered at its address (weather_noise's BuildWeatherNoise 004E3B20). named_data.py takes a single-number definition (= /*addr*/ 0.5f;). Named: kSpinAngle 007A9BF8, kIdentityRotation 007A9C30, kDegenerateNormal 007A9C98, weather_particles' five scalars 007AED98-007AEDA8 and seed tables 0078DEA4 / 0078DF24, the five sway curves 007ABB98-007AED98. Game data addresses 2952 -> 2068. Follow-ups: C18k (exit functions / destructors, opus), C18l (constant objects hand code reads, by area), C18m (the unread candidates next to referenced objects)."
+
+[[ticket]]
+id = "C18k"
+title = "Named data: static-init objects with exit functions (the destructor rule)"
+group = "cleanup"
+model = "opus"
+depends = ["C18j"]
+note = "C18j left the objects whose initialiser calls a constructor or registers an exit function at their addresses (about 220 store statements next to hand-named objects, e.g. renderer_lines' buffers 007A9CA8 / 007A9CB8 / 007A9CC8 / 007A9CE0, link_mesh_draw 007AEED0, device_buffers 007AEDE0-007AEE30, the CString globals 0079BA08-0079BA1C copied from 00796E48, world_briefing / world_game 007AFDC0-007AFDF8). Set the rule for exit functions as C18j did for stores (docs/notes/standalone.md 'The static initialisers' objects'): the exit function ported by hand on the name and registered at its address (or the atexit and exit function left out by gen_static_init when the definition's own C++ destructor takes their place; mind the exit order against the game's atexit list and the CRT heap), the constructor as constant initialisation or a hand-ported initialiser in list order. Objects with game.exe's vtable (particle draw order 007A9C50, CArray family) wait for C19. Apply to one area, then file sonnet batches."
+
+[[ticket]]
+id = "C18l"
+title = "Named data: constant static-init objects hand code reads (C18j pattern, by area)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18j"]
+note = "C18j's pattern (docs/notes/standalone.md 'The static initialisers' objects', weather_particles / particle_create): an object a hand-written file reads and whose initialiser only stores constants or folds (kinds stores / float fold, no call, no exit function) becomes a constexpr definition with the value the stores leave (named_data.py compares it with them); named_data.py --update, then gen_static_init.py leaves the stores out. About 140 store statements: camera / core_transform (0079B298, 0079B2A4, 0079B5B8, 0079B5C8), scene_loader 0079B9B0, animation / object3d / map_object lifetime (007AF0E0-007AF110, 007AF1C0-007AF238), unit (007AF280, 007AF284), torch_spec 007AF2D0, combat 007AF3E8, ai / unit_ai (007C2F24, 007C53C4), ui* (007C7B68-007C8988), random 007A9D40, sky_object 007AA890 / 007AA8A0. One area per batch; --refs first (a field of a larger block stays); a product with another constant is static_cast<float> where the original's FMUL rounds to 24 bits (check_fp_fold)."
+
+[[ticket]]
+id = "C18m"
+title = "Named data: review the unread candidates next to referenced objects"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18j"]
+note = "gen_static_init.unread_objects keeps out a constant store group when an address referenced elsewhere (and stored by no initialiser) lies less than 0x100 below it (UNREAD_NEAR: it could be a field of that object): about 45 groups, 135 addresses (e.g. 0079B1A8 after 0079B1A0, 0079BC30 after 0079BC2C, 0079BEE0 after 0079BED8, 007C2E70.., 007C8318..). For each, read the object below with named_data.py --refs (its extent: loop bounds, the next referenced start) and add the ones it cannot reach to a reviewed list in gen_static_init.py (address and why), so they become unread objects; name the rest. Then the 'read elsewhere' groups whose original readers are ported with literal values (named_data.py --split lists what is left as 'generated static init / exit only')."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
