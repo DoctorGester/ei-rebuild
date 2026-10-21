@@ -5,8 +5,9 @@
 // draws, PrepareShadows fits an orthographic view from the sun around the visible ground and gives
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
 // meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
-// alpha). The terrain and mesh shaders sample it with filtering (ShadowHlsl). With the classic
-// option (render::SetClassicShadows) none of this runs and the game's decals draw as before.
+// alpha), then the map's depth range per cell (kReduceSource, kDilateSource). The terrain and mesh
+// shaders sample it with soft, contact-hardening edges (ShadowHlsl, R16j2). With the classic option
+// (render::SetClassicShadows) none of this runs and the game's decals draw as before.
 //
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
 // for the landscape's space; that space is the one the map is fitted in (the inverse of the
@@ -23,7 +24,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <unordered_map>
 
 namespace render {
@@ -47,6 +47,19 @@ constexpr float kStrength = 0.5f;
 constexpr double kDepthBias = 0.04;
 constexpr double kLargestSlope = 4.0;
 constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fading in) do not cast
+// Soft edges (R16j2): the filter's radius in world units is the distance along the light from the
+// receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: far larger
+// than the real sun's, for the old blurred decals' look), at least kLeastRadius texels, at most
+// kWidestRadius units (also the blocker search's radius).
+constexpr double kSunSize = 0.025;
+constexpr double kWidestRadius = 0.6;
+constexpr double kLeastRadius = 1.5;
+// The cells of the map's depth range (kReduceSource, the receivers' early end): kRangeCell texels a
+// side, so kRangeSize cells a side; the dilation reaches at most kMostCellsAround cells.
+constexpr int kRangeCell = 16;
+constexpr int kRangeSize = kMapSize / kRangeCell;
+constexpr int kMostCellsAround = 8;
+static_assert(kMapSize == 4096 && kRangeCell == 16, "the constants written in kReduceSource and kReceiverSource");
 
 // --- Matrices in double ----------------------------------------------------------------------------
 
@@ -160,12 +173,43 @@ void ps_main(vs_out i) {
 
 // The receivers' part (included in the terrain and mesh shaders): how much of the sun the map hides
 // at a pixel, times the strength. `s` is the pixel's position in the map's clip space, `dsx` / `dsy`
-// its screen derivatives (taken before any discard). Surfaces turned away from the sun (their face
-// normal, towards the camera) are left as the game lit them. The comparison per tap follows the
-// receiver's plane (its depth slope across the map, clamped), 3 x 3 bilinear taps (PCF).
+// its screen derivatives (taken before any discard), `pixel` its screen position. Surfaces turned
+// away from the sun (their face normal, towards the camera) are left as the game lit them. Every
+// comparison follows the receiver's plane (its depth slope across the map, clamped).
+// Soft edges (R16j2), contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
+// the nearest and the farthest depth of the cells within the widest filter's reach (x, y) and the
+// cell's own nearest (z). A pixel nearer than every depth around is lit, one farther than every depth
+// around is shadowed. For the others (near an edge) the nearest depth around bounds the filter's
+// radius: the distance along the light to it times the sun's chosen size (soft.x), from soft.z to
+// soft.y. When that bound is wider than a cell, a blocker search narrows it: kSearchTaps cells on a
+// disc of the bound and the pixel's own give the mean distance from the receiver to the nearest
+// caster in each cell that hides it, the radius that distance times soft.x (so a shadow is sharp
+// where its caster meets the ground). Then bilinear comparisons on a disc of the radius:
+// kFilterTaps, or kFewTaps on a narrow one. Both discs are Vogel spirals turned per pixel
+// (interleaved gradient noise of the screen position): the few taps make a fine grain instead of
+// bands. The search reads the small cell image, not the map: the map's texels far apart and turned
+// per pixel cost far more.
 const char* const kReceiverSource = R"(
-float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, float3 s, float3 dsx, float3 dsy,
-                    float4 on, float4 scale, float4 cam) {
+static const int kSearchTaps = 8;
+static const int kFilterTaps = 16;
+static const int kFewTaps = 8;
+static const int kShadowCell = 16;   // kRangeCell
+float2 shadow_disc(int k, int n, float2 turn) {
+    float r = sqrt((k + 0.5) / n);
+    float a = k * 2.39996323;   // the golden angle
+    return mul(float2x2(turn.x, -turn.y, turn.y, turn.x), float2(cos(a), sin(a)) * r);
+}
+float shadow_filter(Texture2D<float> map, SamplerComparisonState smp, float2 uv, float z, float2 slope,
+                    float radius, float2 turn, int n) {
+    float lit = 0.0;
+    for (int j = 0; j < n; ++j) {
+        float2 o = shadow_disc(j, n, turn) * radius;
+        lit += map.SampleCmpLevelZero(smp, uv + o, z + dot(slope, o));
+    }
+    return 1.0 - lit / n;
+}
+float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<float4> range, float3 s,
+                    float3 dsx, float3 dsy, float4 on, float4 scale, float4 cam, float4 soft, float2 pixel) {
     if (on.x < 0.5) return 0.0;
     float2 uv = float2(s.x * 0.5 + 0.5, 0.5 - s.y * 0.5);
     if (any(uv < 0.0) || any(uv > 1.0) || s.z > 1.0) return 0.0;
@@ -184,14 +228,79 @@ float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, float3 s, 
     if (abs(det) > 1e-24) slope = float2(uy.y * dsx.z - ux.y * dsy.z, ux.x * dsy.z - uy.x * dsx.z) / det;
     slope = clamp(slope, -scale.w, scale.w);
     float z = s.z - on.w;
-    float lit = 0.0;
-    [unroll] for (int j = -1; j <= 1; ++j) {
-        [unroll] for (int i = -1; i <= 1; ++i) {
-            float2 o = float2(i, j) * on.z;
-            lit += map.SampleCmpLevelZero(smp, uv + o, z + dot(slope, o));
+    int cells = int(soft.w) / kShadowCell - 1;
+    float4 around = range.Load(int3(clamp(int2(uv * soft.w) / kShadowCell, 0, cells), 0));
+    float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
+    if (around.x >= z + reach) return 0.0;
+    if (around.y < z - reach) return facing * on.y;
+    float widest = clamp((z + reach - around.x) * soft.x, soft.z, soft.y);
+    float turn_angle = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+    float2 turn = float2(cos(turn_angle), sin(turn_angle));
+    float radius = widest;
+    [branch] if (widest * soft.w > kShadowCell) {
+        float apart = 0.0, hidden = 0.0;
+        if (around.z < z) { apart += z - around.z; hidden += 1.0; }
+        [unroll] for (int k = 0; k < kSearchTaps; ++k) {
+            float2 o = shadow_disc(k, kSearchTaps, turn) * widest;
+            float zo = z + dot(slope, o);
+            float d = range.Load(int3(clamp(int2((uv + o) * soft.w) / kShadowCell, 0, cells), 0)).z;
+            if (d < zo) { apart += zo - d; hidden += 1.0; }
+        }
+        if (hidden == 0.0) return 0.0;
+        radius = clamp(apart / hidden * soft.x, soft.z, widest);
+    }
+    float2 turn2 = mul(float2x2(turn.x, -turn.y, turn.y, turn.x), float2(0.70710678, 0.70710678));
+    float part;
+    [branch] if (radius * soft.w < 4.0) part = shadow_filter(map, smp, uv, z, slope, radius, turn2, kFewTaps);
+    else part = shadow_filter(map, smp, uv, z, slope, radius, turn2, kFilterTaps);
+    return part * facing * on.y;
+}
+)";
+
+// The cells' depth range (`range` above) in two passes after the casters: the nearest and farthest
+// texel of each kRangeCell x kRangeCell cell of the map (Gather, shader model 4.1: four texels a fetch),
+// then of the cells within `reach.x` cells around each (enough for the search's and the filter's
+// reach), with the cell's own nearest.
+const char* const kRangeVsSource = R"(
+float4 vs_main(uint id : SV_VertexID) : SV_Position {
+    float2 p = float2((id << 1) & 2, id & 2);
+    return float4(p * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
+}
+)";
+const char* const kReduceSource = R"(
+Texture2D<float> map : register(t0);
+SamplerState point_smp : register(s0);
+static const int kCell = 16;          // kRangeCell
+static const float kTexels = 4096.0;  // kMapSize
+float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
+    float2 base = floor(pos.xy) * kCell;
+    float lo = 1.0, hi = 0.0;
+    [unroll] for (int j = 0; j < kCell / 2; ++j) {
+        [unroll] for (int i = 0; i < kCell / 2; ++i) {
+            float4 g = map.Gather(point_smp, (base + float2(i * 2 + 1, j * 2 + 1)) / kTexels);
+            lo = min(lo, min(min(g.x, g.y), min(g.z, g.w)));
+            hi = max(hi, max(max(g.x, g.y), max(g.z, g.w)));
         }
     }
-    return (1.0 - lit / 9.0) * facing * on.y;
+    return float4(lo, hi, 0.0, 0.0);
+}
+)";
+const char* const kDilateSource = R"(
+cbuffer fs_params : register(b0) { int4 reach; };   // x: cells around, y: the last cell
+Texture2D<float4> cells : register(t0);
+SamplerState point_smp : register(s0);
+float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
+    int2 c = int2(pos.xy);
+    int last = reach.y;
+    float lo = 1.0, hi = 0.0;
+    for (int j = -reach.x; j <= reach.x; ++j) {
+        for (int i = -reach.x; i <= reach.x; ++i) {
+            float4 r = cells.Load(int3(clamp(c + int2(i, j), 0, last), 0));
+            lo = min(lo, r.x);
+            hi = max(hi, r.y);
+        }
+    }
+    return float4(lo, hi, cells.Load(int3(c, 0)).x, 0.0);
 }
 )";
 
@@ -209,6 +318,13 @@ sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
 sg_sampler g_compare{};
 bool g_dummyCleared = false;
+// The depth range per cell (kReduceSource), then around each cell (kDilateSource).
+sg_shader g_reduceShader{}, g_dilateShader{};
+sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
+sg_image g_cells{}, g_range{};
+sg_view g_cellsAttachment{}, g_cellsTexture{}, g_rangeAttachment{}, g_rangeTexture{};
+sg_sampler g_point{};
+int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 bool MakeCasterPipelines() {
     if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
@@ -288,12 +404,112 @@ bool MakeDepth(int size, const char* label, sg_image* image, sg_view* attachment
     return ok;
 }
 
-void DestroyDepth(sg_image* image, sg_view* attachment, sg_view* texture) {
+void DestroyTarget(sg_image* image, sg_view* attachment, sg_view* texture) {
     if (attachment->id) sg_destroy_view(*attachment);
     if (texture->id) sg_destroy_view(*texture);
     if (image->id) sg_destroy_image(*image);
     *image = sg_image{};
     *attachment = *texture = sg_view{};
+}
+
+sg_sampler PointSampler() {
+    if (g_point.id) return g_point;
+    sg_sampler_desc d{};
+    d.min_filter = SG_FILTER_NEAREST;
+    d.mag_filter = SG_FILTER_NEAREST;
+    d.mipmap_filter = SG_FILTER_NEAREST;
+    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    d.label = "ei-shadow-point";
+    g_point = sg_make_sampler(&d);
+    return g_point;
+}
+
+// A full-screen pass's shader and pipeline into an RGBA32F image: `fragment` reads view 0 (of
+// `sampleType`, with the point sampler) and, with `uniforms`, 16 bytes of fragment uniforms.
+bool MakeRangePipeline(const char* fragment, sg_image_sample_type sampleType, bool uniforms, const char* label,
+                       sg_shader* shader, sg_pipeline* pipeline) {
+    if (shader->id) return sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
+    sg_shader_desc s{};
+    s.vertex_func.source = kRangeVsSource;
+    s.vertex_func.entry = "vs_main";
+    s.fragment_func.source = fragment;
+    s.fragment_func.entry = "ps_main";
+    s.fragment_func.d3d11_target = "ps_4_1";   // Gather (Direct3D 10.1)
+    if (uniforms) {
+        s.uniform_blocks[0].stage = SG_SHADERSTAGE_FRAGMENT;
+        s.uniform_blocks[0].size = 16;
+        s.uniform_blocks[0].hlsl_register_b_n = 0;
+    }
+    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
+    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
+    s.views[0].texture.sample_type = sampleType;
+    s.views[0].texture.hlsl_register_t_n = 0;
+    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.samplers[0].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
+    s.samplers[0].hlsl_register_s_n = 0;
+    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.texture_sampler_pairs[0].view_slot = 0;
+    s.texture_sampler_pairs[0].sampler_slot = 0;
+    s.label = label;
+    *shader = sg_make_shader(&s);
+    sg_pipeline_desc p{};
+    p.shader = *shader;
+    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+    p.colors[0].pixel_format = SG_PIXELFORMAT_RGBA32F;
+    p.depth.pixel_format = SG_PIXELFORMAT_NONE;
+    p.sample_count = 1;
+    p.label = label;
+    *pipeline = sg_make_pipeline(&p);
+    bool ok = sg_query_shader_state(*shader) == SG_RESOURCESTATE_VALID &&
+              sg_query_pipeline_state(*pipeline) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the shadow map's %s pass could not be created (see the sokol messages above)", label);
+    return ok;
+}
+
+// An RGBA32F image of `size` with an attachment and a texture view.
+bool MakeRange(int size, const char* label, sg_image* image, sg_view* attachment, sg_view* texture) {
+    sg_image_desc d{};
+    d.usage.color_attachment = true;
+    d.width = size;
+    d.height = size;
+    d.pixel_format = SG_PIXELFORMAT_RGBA32F;
+    d.sample_count = 1;
+    d.label = label;
+    *image = sg_make_image(&d);
+    sg_view_desc v{};
+    v.color_attachment.image = *image;
+    *attachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = *image;
+    *texture = sg_make_view(&v);
+    bool ok = sg_query_image_state(*image) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*attachment) == SG_RESOURCESTATE_VALID &&
+              sg_query_view_state(*texture) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the %dx%d shadow range image could not be made", size, size);
+    return ok;
+}
+
+// One full-screen pass into `attachment` reading `source`.
+void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const int* uniforms, const char* label) {
+    sg_pass pass{};
+    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+    pass.action.colors[0].store_action = SG_STOREACTION_STORE;
+    pass.attachments.colors[0] = attachment;
+    pass.label = label;
+    sg_begin_pass(&pass);
+    ++Stats().passes;
+    sg_apply_pipeline(pipeline);
+    sg_bindings b{};
+    b.views[0] = source;
+    b.samplers[0] = PointSampler();
+    sg_apply_bindings(&b);
+    if (uniforms) {
+        sg_range r{uniforms, 16};
+        sg_apply_uniforms(0, &r);
+    }
+    sg_draw(0, 3, 1);
+    sg_end_pass();
 }
 
 sg_sampler CompareSampler() {
@@ -538,7 +754,15 @@ void PrepareShadows(Frame& f) {
         p.camera[1] = static_cast<float>(c.y);
         p.camera[2] = static_cast<float>(c.z);
     }
-    std::memcpy(sh.params, &p, sizeof(p));
+    p.soft[0] = static_cast<float>(depth * kSunSize / extent);
+    p.soft[1] = static_cast<float>(kWidestRadius / extent);
+    p.soft[2] = static_cast<float>(kLeastRadius / kMapSize);
+    p.soft[3] = static_cast<float>(kMapSize);
+    // The cells around a cell that hold every texel the search and the filter read (+1 for the
+    // bilinear comparisons' second texel).
+    double reachTexels = kWidestRadius / extent * kMapSize + 1.0;
+    g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)));
+    sh.params = p;
     sh.on = true;
     g_info.made = true;
     g_info.size = kMapSize;
@@ -579,7 +803,13 @@ void DrawShadowMap(Frame& f) {
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
         bool ok = MakeCasterPipelines() &&
-                  (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture));
+                  (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
+                  MakeRangePipeline(kReduceSource, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
+                                    &g_reduceShader, &g_reducePipeline) &&
+                  MakeRangePipeline(kDilateSource, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, true, "ei-shadow-range",
+                                    &g_dilateShader, &g_dilatePipeline) &&
+                  (g_cells.id || MakeRange(kRangeSize, "ei-shadow-cells", &g_cells, &g_cellsAttachment, &g_cellsTexture)) &&
+                  (g_range.id || MakeRange(kRangeSize, "ei-shadow-range", &g_range, &g_rangeAttachment, &g_rangeTexture));
         if (!ok) {
             f.shadow.on = false;
             g_info.made = false;
@@ -631,6 +861,9 @@ void DrawShadowMap(Frame& f) {
                 counted[batch.caster] = true;
             }
             sg_end_pass();
+            RangePass(g_reducePipeline, g_cellsAttachment, g_mapTexture, nullptr, "ei-shadow-cells");
+            const int around[4] = {g_cellsAround, kRangeSize - 1, 0, 0};
+            RangePass(g_dilatePipeline, g_rangeAttachment, g_cellsTexture, around, "ei-shadow-range");
             g_info.casters = static_cast<int>(counted.size());
             // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
             std::unordered_map<const void*, bool> handedOver;
@@ -660,13 +893,17 @@ void ShadowFrameEnd() {
 }
 
 void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
-    if (receives && f.shadow.on) std::memcpy(params, f.shadow.params, sizeof(*params));
+    if (receives && f.shadow.on) *params = f.shadow.params;
     else *params = ShadowParams{};
 }
 
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
-    b.views[viewSlot] = g_mapTexture.id && CurrentFrame().shadow.on ? g_mapTexture : g_dummyTexture;
+    bool on = g_mapTexture.id && g_rangeTexture.id && CurrentFrame().shadow.on;
+    b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
     b.samplers[samplerSlot] = CompareSampler();
+    // The range: with no map the depth dummy stands in (the shaders read neither then).
+    b.views[viewSlot + 1] = on ? g_rangeTexture : g_dummyTexture;
+    b.samplers[samplerSlot + 1] = PointSampler();
 }
 
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
@@ -680,15 +917,38 @@ void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
     s.texture_sampler_pairs[viewSlot].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[viewSlot].view_slot = static_cast<std::uint8_t>(viewSlot);
     s.texture_sampler_pairs[viewSlot].sampler_slot = static_cast<std::uint8_t>(samplerSlot);
+    int rangeView = viewSlot + 1, rangeSampler = samplerSlot + 1;
+    s.views[rangeView].texture.stage = SG_SHADERSTAGE_FRAGMENT;
+    s.views[rangeView].texture.image_type = SG_IMAGETYPE_2D;
+    s.views[rangeView].texture.sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
+    s.views[rangeView].texture.hlsl_register_t_n = static_cast<std::uint8_t>(rangeView);
+    s.samplers[rangeSampler].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.samplers[rangeSampler].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
+    s.samplers[rangeSampler].hlsl_register_s_n = static_cast<std::uint8_t>(rangeSampler);
+    s.texture_sampler_pairs[rangeView].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.texture_sampler_pairs[rangeView].view_slot = static_cast<std::uint8_t>(rangeView);
+    s.texture_sampler_pairs[rangeView].sampler_slot = static_cast<std::uint8_t>(rangeSampler);
 }
 
 void DestroyShadows() {
 #if defined(EI_RENDER_VALIDATION)
     ReleaseQueries();
 #endif
-    DestroyDepth(&g_map, &g_mapAttachment, &g_mapTexture);
-    DestroyDepth(&g_dummy, &g_dummyAttachment, &g_dummyTexture);
+    DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
+    DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);
     g_dummyCleared = false;
+    DestroyTarget(&g_cells, &g_cellsAttachment, &g_cellsTexture);
+    DestroyTarget(&g_range, &g_rangeAttachment, &g_rangeTexture);
+    if (g_point.id) sg_destroy_sampler(g_point);
+    g_point = sg_sampler{};
+    for (sg_pipeline* p : {&g_reducePipeline, &g_dilatePipeline}) {
+        if (p->id) sg_destroy_pipeline(*p);
+        *p = sg_pipeline{};
+    }
+    for (sg_shader* sh : {&g_reduceShader, &g_dilateShader}) {
+        if (sh->id) sg_destroy_shader(*sh);
+        *sh = sg_shader{};
+    }
     if (g_compare.id) sg_destroy_sampler(g_compare);
     g_compare = sg_sampler{};
     for (sg_pipeline& p : g_casterPipelines) {
