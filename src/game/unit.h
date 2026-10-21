@@ -652,7 +652,7 @@ public:
     CItem* quickItems[4];           // +0x450
     CItem* spells[8];               // +0x460
     CItem* armor[7];                // +0x480
-    std::uint32_t carriedVtable;        // +0x49C the vtable of the carried items' CArray
+    void* carriedVtable;            // +0x49C the vtable of the carried items' CArray (CarriedArrayClass)
     CItem** carried;                // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8

@@ -22,6 +22,7 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
 #include "originals_effects.h"
@@ -129,7 +130,7 @@ struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
         mfc::impl::ConstructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
-        motion.points.vtable = ei::GamePointer<void>(0x0073EB9C);
+        motion.points.vtable = mfc::impl::MotionPointsClass::Vtable();
         mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
         mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
         motion.curveX = {};   // the segment part (0054E5D0): no curves, no segment
@@ -142,10 +143,8 @@ struct LocalUnitMotion {
     }
     ~LocalUnitMotion() {
         mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
-        motion.waypoints.vtable = ei::GamePointer<void>(0x0073EBB4);
-        if (motion.waypoints.data) gamecrt::operator_delete(motion.waypoints.data);
-        motion.points.vtable = ei::GamePointer<void>(0x0073EBA8);
-        if (motion.points.data) gamecrt::operator_delete(motion.points.data);
+        mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(motion.waypoints);
+        mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;

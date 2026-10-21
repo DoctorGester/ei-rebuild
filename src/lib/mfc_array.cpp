@@ -4,6 +4,7 @@
 // groups were found by comparing the instructions of every instantiation our code forwards to
 // (addresses masked), the element sizes and helpers read from each.
 #include "mfc_array.h"
+#include "mfc_slots.h"
 
 #include "ei/hook.h"
 

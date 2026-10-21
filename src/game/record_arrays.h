@@ -60,9 +60,9 @@ struct FaceGroupElements {
     }
 };
 using FaceGroups = ArrayAbi<scene::FaceGroup, FaceGroupElements>;
-struct FaceGroupArrayClass {   // CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50)
-    static void* Vtable() { return ei::GamePointer<void>(0x0073C2BC); }
-};
+// CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50), its vtable the compiler's (C19, mfc_slots.h).
+struct FaceGroupArrayClass final
+    : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &mfc::impl::SerializeCArray<FaceGroups>> {};
 
 // ---- Records -------------------------------------------------------------------------------------
 

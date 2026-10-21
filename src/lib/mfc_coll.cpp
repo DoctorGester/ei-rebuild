@@ -248,6 +248,9 @@ void* __stdcall CreateCByteArray() {
     return array ? array->Construct() : nullptr;
 }
 
+// mfc_slots.h's compiled collections' slot 0 (C19).
+const CRuntimeClass* ObjectRuntimeClass() { return &kClassCObject; }
+
 namespace {
 
 // IMPLEMENT_SERIAL (schema 0): the record is linked into the module state's class list by the class's static

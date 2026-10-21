@@ -41,17 +41,11 @@ namespace {
 using ei::SetVtable;
 
 // Vtables.
-constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
-constexpr std::uintptr_t kCarriedArrayVtable = std::uintptr_t(0x0073EB84);
-// The unit motion's arrays (UnitMotion: points, waypoints, step speeds) while constructed / destroyed.
-constexpr std::uintptr_t kMotionPointsVtable = std::uintptr_t(0x0073EB9C);
-constexpr std::uintptr_t kMotionWaypointsVtable = std::uintptr_t(0x0073EB90);
+// The unit motion's step speeds while constructed / destroyed (its points and waypoints: mfc_slots.h).
 constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
-constexpr std::uintptr_t kMotionPointsEndVtable = std::uintptr_t(0x0073EBA8);
-constexpr std::uintptr_t kMotionWaypointsEndVtable = std::uintptr_t(0x0073EBB4);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
 constexpr std::uintptr_t kParticleArrayVtable = std::uintptr_t(0x0073DC48);
 constexpr std::uintptr_t kSoundArrayVtable = std::uintptr_t(0x0073DC3C);
@@ -138,7 +132,7 @@ void CObject3D::SetUpObject3D() {
     SetIdentity(&orientation);
     SetIdentity(&worldOrientation);
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
-    SetVtable(&effectSources, kPartListVtable);
+    effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     effectSources.count = 0;
     effectSources.free = nullptr;
     effectSources.tail = nullptr;
@@ -189,7 +183,7 @@ void CObject3D::TearDownObject3D() {
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);
     // The part list: emptied, its blocks freed.
-    SetVtable(&effectSources, kPartListVtable);
+    effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     mfc::CPlex* blocks = effectSources.blocks;
     effectSources.count = 0;
     effectSources.free = nullptr;
@@ -289,12 +283,12 @@ CUnit::CUnit() {
     m->points.growBy = 0;
     m->points.maxSize = 0;
     m->points.size = 0;
-    SetVtable(&m->points, kMotionPointsVtable);
+    m->points.vtable = mfc::impl::MotionPointsClass::Vtable();
     m->waypoints.data = nullptr;
     m->waypoints.growBy = 0;
     m->waypoints.maxSize = 0;
     m->waypoints.size = 0;
-    SetVtable(&m->waypoints, kMotionWaypointsVtable);
+    m->waypoints.vtable = mfc::impl::MotionWaypointArrayClass::Vtable();
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
     SetVtable(&m->stepSpeeds, kMotionSpeedsVtable);
     // (0052E230, the segment part's constructor at +0x50, only returns it.)
@@ -304,7 +298,7 @@ CUnit::CUnit() {
     m->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
-    carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
+    carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
     carried = nullptr;
     carriedGrowBy = 0;
     carriedCapacity = 0;
@@ -368,12 +362,12 @@ CUnit::~CUnit() {
     ReleaseUnit();
     DestroyMapObject();
     Reset();
-    carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
+    carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
     DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
-    DestroyArray(m->waypoints, kMotionWaypointsEndVtable);
-    DestroyArray(m->points, kMotionPointsEndVtable);
+    mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(m->waypoints);
+    mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(m->points);
 }
 
 void CUnit::DestructBody() { this->CUnit::~CUnit(); }

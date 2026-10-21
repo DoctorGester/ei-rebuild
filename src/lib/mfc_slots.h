@@ -144,6 +144,59 @@ void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
     }
 }
 
+// ---- Compiler-made vtables (C19) -------------------------------------------------------------------
+//
+// The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table
+// its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose
+// vtable the compiler makes in place of game.exe's table for the instantiation (docs/notes/standalone.md,
+// "Compiler-made vtables"): CObject's three slots over the header's layout (the CArray / CList whose first field
+// holds the table). Slot 0 is CObject's GetRuntimeClass (007005E3), slot 1 the destructor `Destroy` (the
+// instantiation's own: the table written, the elements destroyed, the storage freed; the compiler's scalar deleting
+// destructor frees the object into the game's heap), slot 2 Serialize (`Store`). Our code calls the header's
+// functions by name; the slots are what the original's dispatch through the table reaches (DestructElements' slot 1
+// on an element that is a collection, CArchive's slot 2). A tag derived from another is the derived
+// instantiation's (its destructor ends in the base's, which stores the base's table, as the original's does).
+
+// CObject::GetRuntimeClass (007005E3): CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
+struct CRuntimeClass;
+const CRuntimeClass* ObjectRuntimeClass();
+
+// The table a T's constructor stores in its first dword (T built in a buffer and left: it holds nothing to destroy).
+template <typename T>
+void* CompiledVtable() {
+    static_assert(std::is_polymorphic_v<T>);
+    alignas(T) unsigned char storage[sizeof(T)];
+    return *reinterpret_cast<void**>(::new (static_cast<void*>(storage)) T);
+}
+
+template <typename F>
+struct SerializeTarget;
+template <typename T>
+struct SerializeTarget<void(__fastcall*)(T*, void*, CArchive*)> {
+    using Type = T;
+};
+
+template <typename Self, auto Destroy, auto Store>
+class CompiledCollection {
+public:
+    static void* Vtable() { return CompiledVtable<Self>(); }
+
+    virtual const CRuntimeClass* GetRuntimeClass() const { return ObjectRuntimeClass(); }   // 0
+    virtual ~CompiledCollection() {                                                         // 1
+        Destroy(reinterpret_cast<typename DestructTarget<decltype(Destroy)>::Type*>(this));
+    }
+    virtual void Serialize(CArchive& archive) {                                             // 2
+        Store(reinterpret_cast<typename SerializeTarget<decltype(Store)>::Type*>(this), nullptr, &archive);
+    }
+
+    static void operator delete(void* p) { gamecrt::operator_delete(p); }
+
+protected:
+    CompiledCollection() = default;
+    CompiledCollection(const CompiledCollection&) = delete;
+    CompiledCollection& operator=(const CompiledCollection&) = delete;
+};
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 // Arrays whose elements need nothing.
@@ -198,12 +251,21 @@ struct EffectSoundArrayClass {   // a map object's effect sounds
 struct FrameArrayClass {   // a 3D object's frames
     static void* Vtable() { return ei::GamePointer<void>(0x0073DE40); }
 };
-struct MotionWaypointBaseClass {   // a unit's motion waypoints once destroyed
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EBB4); }
+// A unit's motion (UnitMotion's points and waypoints): the arrays the unit's constructor builds are derived
+// instantiations of the ones they are destroyed as (game.exe's 0073EB9C / 0073EB90 over 0073EBA8 / 0073EBB4).
+struct MotionPointArrayClass
+    : CompiledCollection<MotionPointArrayClass, &ArrayHeader<MotionPointArrayClass>::Destruct, &SerializeCArray<Plain28>> {};
+struct MotionPointsClass final : MotionPointArrayClass {
+    static void* Vtable() { return CompiledVtable<MotionPointsClass>(); }
 };
-struct CarriedArrayClass {   // a unit's carried objects
-    static void* Vtable() { return ei::GamePointer<void>(0x0073EB84); }
+struct MotionWaypointBaseClass
+    : CompiledCollection<MotionWaypointBaseClass, &ArrayHeader<MotionWaypointBaseClass>::Destruct, &SerializeCArray<Plain12>> {};
+struct MotionWaypointArrayClass final : MotionWaypointBaseClass {
+    static void* Vtable() { return CompiledVtable<MotionWaypointArrayClass>(); }
 };
+// A unit's carried objects (CUnit +0x49C).
+struct CarriedArrayClass final
+    : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
 struct IdArrayClass {   // CArray<int> of quest item ids (world_party)
     static void* Vtable() { return ei::GamePointer<void>(0x0073EBD4); }
 };
@@ -263,15 +325,14 @@ struct TerrainArrayCClass {   // (006CC530)
 };
 
 // Lists whose elements need nothing.
-struct BoneListClass {   // a figure bone's and an animation state's lists
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DA40); }
-};
-struct AnimationStateListClass {   // an animation state's second list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DA80); }
-};
-struct Object3DListClass {   // a 3D object's list
-    static void* Vtable() { return ei::GamePointer<void>(0x0073DE4C); }
-};
+// A figure bone's children and an animation state's bones.
+struct BoneListClass final : CompiledCollection<BoneListClass, &PtrList::Destruct<BoneListClass>, &SerializeCList<PtrList>> {};
+// An animation state's queue.
+struct AnimationStateListClass final
+    : CompiledCollection<AnimationStateListClass, &PtrList::Destruct<AnimationStateListClass>, &SerializeCList<PtrList>> {};
+// A 3D object's effect sources.
+struct Object3DListClass final
+    : CompiledCollection<Object3DListClass, &PtrList::Destruct<Object3DListClass>, &SerializeCList<PtrList>> {};
 struct ClientObjectListClass {   // the client world's and the sectors' object lists
     static void* Vtable() { return ei::GamePointer<void>(0x0073F530); }
 };

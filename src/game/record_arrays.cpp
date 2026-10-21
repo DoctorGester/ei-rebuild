@@ -154,7 +154,7 @@ EI_REPLACE(0x00510160, ScalarDelete<&DeltaFields::Destruct<DeltaFieldArrayClass>
 EI_REPLACE(0x00556BE0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
 EI_REPLACE(0x005587E0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
 EI_REPLACE(0x006B5980, ScalarDelete<&Themes::Destruct<ThemeArrayClass>>);
-EI_REPLACE(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
+EI_REWRITTEN(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
 EI_REPLACE(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
 EI_REPLACE(0x006C4E80, ScalarDelete<&SectorVertices::Destruct<SectorVertexArrayClass>>);
 EI_REPLACE(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
@@ -166,7 +166,7 @@ EI_REPLACE(0x0044FEF0, SerializeCArray<FigureParts>);
 EI_REPLACE(0x00450160, SerializeCArray<SceneMeshes>);
 EI_REPLACE(0x004507E0, SerializeCArray<Materials>);
 EI_REPLACE(0x00451640, SerializeCArray<SceneNodes>);
-EI_REPLACE(0x00454A70, SerializeCArray<FaceGroups>);
+EI_REWRITTEN(0x00454A70, SerializeCArray<FaceGroups>);
 EI_REPLACE(0x004C52A0, SerializeCArray<SubCalls>);
 EI_REPLACE(0x004C7820, SerializeCArray<Definitions>);
 EI_REPLACE(0x0050FC80, SerializeCArray<DeltaFields>);

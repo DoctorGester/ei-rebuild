@@ -689,9 +689,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (CreateUnit, Tick, LoadUnit, StandPoint, the net-state functions, ...) are called by the slots; slot 56's result
     (ObjectDeletedImpl has none) is 0, which nothing reads. The C++ constructor and destructor are 0052E110's and
     0052E310's work; the destructor calls slot 5's body (ReleaseUnit) directly, as the original calls it through the
-    table's memory (that call is why find_vtables split the tail 0073EAA0 off). The members keep game.exe's 3-slot
-    CArray tables (carried 0073EB84, the motion's 0073EB90 / 0073EB9C and their bases 0073EBA8 / 0073EBB4): they are
-    mfc_slots' ArrayHeader instantiations, stored by library bodies elsewhere too, and go with the containers.
+    table's memory (that call is why find_vtables split the tail 0073EAA0 off). The members' CArray tables (carried
+    0073EB84, the motion's 0073EB90 / 0073EB9C and their bases 0073EBA8 / 0073EBB4) are compiled collections since
+    batch 8.
   - **CFakeUnit** (0073BFE8; scene::FakeUnitScene, scene_loader.h) is a CUnit with the skin and the scene's arrays
     (4 bytes at +0x4DC: the skin is 8-aligned in the original), overriding 2, 3, 11, 12 and adding slot 62
     (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
@@ -732,8 +732,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Engine objects again** (as batch 2's): C++ constructor and virtual destructor sharing the registered bodies'
     work, `operator delete` into the game's heap, the changed slots overridden (2 / 3 call the registered reset
     bodies CreateTrack, DestroyBone, ...; 11 / 12 return the small_slots_500.cpp / world_class_slots.cpp constants).
-    Members that keep game.exe's container tables (the bone's child list and the state's lists, CPtrList 0073DA40 /
-    0073DA80) still store them: they go with the containers.
+    Their lists' tables (the bone's child list and the state's lists, 0073DA40 / 0073DA80) went in batch 8.
   - **A base with only pure slots** (0073FB44, 0073D7CC: every slot but 0 is `_purecall`) is an abstract C++ class
     with a protected constructor; its registered destructor bodies (005A70C0 / 005A70A0, 004F2D40 / 004F2E00) call its
     destructor qualified. CLinkMeshBase declares the 14 slots pure (their comments live there); CLinkMesh overrides
@@ -746,6 +745,30 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     calls; every class under it has a C++ constructor. Its row in config/vtables.csv is 5 slots: find_vtables split the
     table at 0073DDE8 (006E0437 reads that address), and gen_image_cells.py lists the other 22 slots as a reviewed
     range (`CODE_REVIEWED`), so retiring it also needs the row widened to 27 and that range dropped.
+- **Batch 8's families**: the containers by template: CArray<FaceGroup> (0073C2BC, record_arrays.h's
+  FaceGroupArrayClass), the unit's member arrays (carried 0073EB84; the motion's waypoints 0073EB90 over 0073EBB4 and
+  points 0073EB9C over 0073EBA8) and the lists 0073DA40 (a bone's children, an animation state's bones), 0073DA80 (an
+  animation state's queue), 0073DE4C (a 3D object's effect sources): 9 rows, 6,659 -> 6,632 code cells; the 16 slot
+  registrations only those cells read (the scalar deleting destructors and the Serialize bodies) are EI_REWRITTEN.
+  - **Compiled collections** (mfc_slots.h's `CompiledCollection<Self, Destroy, Store>`): the collection templates keep
+    the vtable a plain field, and an instantiation's Class tag names the table its constructor and destructor store
+    (`Class::Vtable()`). A tag that derives from CompiledCollection is a C++ class with CObject's three slots over
+    the header's layout: slot 0 GetRuntimeClass (CObject's record, as 007005E3), slot 1 the virtual destructor
+    calling the instantiation's own destructor on the header (`ArrayHeader<Tag>::Destruct`, `PtrList::Destruct<Tag>`,
+    `scene::FaceGroupArrayDestruct`: the table written, the elements destroyed, the storage freed; the scalar
+    deleting destructor frees into the game's heap), slot 2 Serialize (`SerializeCArray<Abi>`, `SerializeCList<Abi>`).
+    `Vtable()` is the table a Tag's constructor stores (`CompiledVtable<T>`: one built in a buffer and read back).
+    Nothing of ours is a Tag object: our code calls the header's functions by name, and the slots are what a dispatch
+    through the table reaches (an element's slot 1 in DestructElements, an archive's slot 2).
+  - **Derived instantiations** (the motion's 0073EB9C / 0073EB90, which the unit's constructor stores, over
+    0073EBA8 / 0073EBB4, which the destructors and 00556D70 store): the derived tag (MotionPointsClass,
+    MotionWaypointArrayClass) derives from the base's and only names its own table; its destructor ends in the
+    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do.
+  - **Slot 0** is `ObjectRuntimeClass()` (mfc_coll.cpp: ei_vectors links it, not mfc_slots.cpp).
+  - CUnit's carried array's table field is `void*` (unit.h); the code sets every one of these tables through its tag.
+  - The other ~150 container tables can go the same way, a tag at a time: replace the tag's `Vtable()` by deriving
+    from CompiledCollection with the tag's destructor and Serialize (mfc_slots.cpp's ScalarDelete / Serialize
+    registrations name both), retire the row, then drop the registrations only the retired cells read.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
