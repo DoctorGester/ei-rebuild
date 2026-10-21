@@ -1054,9 +1054,9 @@ namespace {
 // 26 with 0 (its light goes off).
 void Unhighlight(CEngineObject* object) {
     object->flags_ &= ~0x110u;
-    auto* half = static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached);
+    CObject3DSpecific* half = ObjectSlots(object)->attached;
     half->Unused25(0);
-    half = static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached);
+    half = ObjectSlots(object)->attached;
     half->SetLit(0);
 }
 } // namespace
@@ -1087,9 +1087,9 @@ void CWorldClient::Select(CEngineObject* object) {
     if (!object) return;
     ObjectSlots(object)->Object3D()->UpdatePartBounds();
     if (!(object->flags_ & 0x10)) {
-        if (!(object->flags_ & 0x100)) static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached)->SetLit(1);
+        if (!(object->flags_ & 0x100)) ObjectSlots(object)->attached->SetLit(1);
         object->flags_ |= 0x10;
-        static_cast<CObject3DSpecific*>(ObjectSlots(object)->attached)->Unused25(1);
+        ObjectSlots(object)->attached->Unused25(1);
     }
     stlp::list<void*>& selected = list7BC_;
     using Node = stlp::list<void*>::Node;

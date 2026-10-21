@@ -441,8 +441,7 @@ void CMapObjectClientSpecific::DestructBody() {
             shown->flags_ |= 0x80;
             LightManager()->RemoveLight(light);
             if (CUnit* unit = Unit()) {
-                if (CEngineObject* half = unit->Object3D()->attached)
-                    static_cast<CObject3DSpecific*>(half)->SetLit(0);
+                if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
             }
         }
         int id = light->id_;

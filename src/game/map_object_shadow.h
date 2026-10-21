@@ -264,4 +264,5 @@ inline void CObject3DClientSpecific::ClearWoundsMaterial() {
 #include "map_object_figures.h"   // CObject3D
 
 // The 3D object's half (+0x94) on the client.
-inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }
+// (CObject3DSpecific is its slot view: the same object.)
+inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return reinterpret_cast<CObject3DClientSpecific*>(attached); }
