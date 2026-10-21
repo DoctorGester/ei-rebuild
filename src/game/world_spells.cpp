@@ -37,16 +37,15 @@ constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
-// The spell passed in. Its +0x34 is the radius (float bits) and +0x38 the number of targets.
-const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spell); }
-
 using UnitList = mfc::CTypedPtrList<CUnit>;
 // SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
 // constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
 // 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
-int SpellType(const void* spell) { return static_cast<int>(static_cast<const CSpell*>(spell)->prototypeId_ >> 16); }
+// The spell's type (the prototype index in the packed id). Its +0x34 is the radius (float bits) and +0x38
+// the number of targets.
+int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
 // Whether the spell type turns the target against the caster (the original's switch at
 // 0058E7DC: 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).
@@ -77,12 +76,12 @@ void Unlink(UnitList& list, UnitList::Node* node) {
 
 } // namespace
 
-void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from, CEngineObject* target,
+void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMapObject* target,
                                  const Vector3* to, int extra) {
-    const Vector3* aim = target ? &static_cast<CUnit*>(target)->position : to;
+    const Vector3* aim = target ? &target->position : to;
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
-    if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
+    if (spell->targetFlags_ & kSpellAreaFlag) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
     if (caster) std::memcpy(&from, &caster->position, sizeof(from));
 
@@ -90,7 +89,7 @@ void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from,
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
     // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
     auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
-    reinterpret_cast<CSpellEffect*>(missile)->Init(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), caster,
+    reinterpret_cast<CSpellEffect*>(missile)->Init(this, spell, caster,
                                                    &from, target, &end, static_cast<std::uint8_t>(extra));
     if (reinterpret_cast<CSpellEffect*>(missile)->Update()) {
         auto& list = projectiles_;
@@ -114,14 +113,14 @@ void CWorldServer::CreateMissile(const void* spell, CUnit* caster, Vector3 from,
     }
 }
 
-void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* from, CEngineObject* target,
+void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, CMapObject* target,
                              const Vector3* to, int extra) {
     if (!spell) return;
     if (sessionKind_ != kKindSinglePlayer && caster) return;
     int type = SpellType(spell);
     if (type == 0x15 || type == 0x1B || type == 0x24) return;
-    std::uint32_t flags = static_cast<const CSpell*>(spell)->targetFlags_;
-    int targets = static_cast<int>(AsSpell(spell)->targetCount_);
+    std::uint32_t flags = spell->targetFlags_;
+    int targets = static_cast<int>(spell->targetCount_);
     if (!(flags & 0xFFFF) && targets <= 1) {
         CreateMissile(spell, caster, *from, target, to, extra);
         return;
@@ -146,7 +145,7 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
     }
     Vector3 center;
     std::memcpy(&center, caster ? &caster->position : from, sizeof(center));
-    float radius = std::bit_cast<float>(AsSpell(spell)->range_);
+    float radius = std::bit_cast<float>(spell->range_);
     Sectors()->FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         UnitList::Node* found = nullptr;
@@ -218,10 +217,9 @@ void CWorldServer::CastSpell(const void* spell, CUnit* caster, const Vector3* fr
         }
         if (!hit) continue;
         Vector3* at = &best->position;
-        if (!SpellHasLineOfSight(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), caster,
-                                 from, best, at))
+        if (!SpellHasLineOfSight(this, spell, caster, from, best, at))
             continue;
-        if (!static_cast<const CSpell*>(spell)->CanAffect(caster, best)) continue;
+        if (!spell->CanAffect(caster, best)) continue;
         CreateMissile(spell, caster, *from, best, at, extra);
         --targets;
     }

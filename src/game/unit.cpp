@@ -198,14 +198,14 @@ EI_REPLACE_METHOD(0x005310D0, CUnit::RemoveWeapon);
 std::uintptr_t CUnit::RemoveQuickItem(std::uint32_t slot) { return RemoveFromSlots(this, quickItems, slot); }
 EI_REPLACE_METHOD(0x005311E0, CUnit::RemoveQuickItem);
 
-CItem* CUnit::GetWeapon(std::uint32_t slot) {
+CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->weaponCount) return nullptr;
-        return record->weapons[slot];
+        return AsWeapon(record->weapons[slot]);
     }
-    return slot < 4 ? weapons[slot] : nullptr;
+    return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
 }
 EI_REPLACE_METHOD(0x005318B0, CUnit::GetWeapon);
 
@@ -248,19 +248,18 @@ EI_REPLACE_METHOD(0x00531A10, CUnit::GetSpellObject);
 
 bool CUnit::HasRangedWeapon() {
     std::uint32_t slot = activeWeapon;
-    CEngineObject* weapon;
+    CItemWeapon* weapon;
     if (IsPartyUnit(this)) {
         if (!player) return false;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->weaponCount) return false;
-        weapon = record->weapons[slot];
+        weapon = AsWeapon(record->weapons[slot]);
     } else {
         if (slot >= 4) return false;
-        weapon = weapons[slot];
+        weapon = AsWeapon(weapons[slot]);
     }
     if (!weapon) return false;
-    CItemWeapon* w = static_cast<CItemWeapon*>(weapon);
-    return w->GetType() == 5 || w->GetType() == 6;
+    return weapon->GetType() == 5 || weapon->GetType() == 6;
 }
 EI_REPLACE_METHOD(0x00530FA0, CUnit::HasRangedWeapon);
 

@@ -26,7 +26,7 @@ SentryMode* SentryMode::ScriptSentryModeConstruct(const Vector3* newPoint) {
 }
 
 // 004BA450 (RET 4). The leader is referenced.
-FollowMode* FollowMode::ScriptFollowModeConstruct(CEngineObject* newLeader) {
+FollowMode* FollowMode::ScriptFollowModeConstruct(CMapObject* newLeader) {
     vtable = aimode::kBaseVtable;
     leader = nullptr;
     if (newLeader) {
@@ -110,7 +110,8 @@ T* NewMode() {
 }
 
 // A referenced object taken over by a clone.
-CEngineObject* Reference(CEngineObject* object) {
+template <typename T>
+T* Reference(T* object) {
     if (object) ++object->refCount_;
     return object;
 }
@@ -176,7 +177,7 @@ SentryMode* SentryMode::SentryDeletingDestruct(int flags) {
 FollowMode* FollowMode::FollowClone() const {
     auto* copy = NewMode<FollowMode>();
     if (!copy) return nullptr;
-    copy->leader = Reference(leader);
+    copy->leader = Reference(leader.object);
     copy->vtable = aimode::kFollowVtable;
     return copy;
 }
@@ -217,7 +218,7 @@ SuspectionMode* SuspectionMode::SuspectionDeletingDestruct(int flags) {
 AggressionMode* AggressionMode::AggressionClone() const {
     auto* copy = NewMode<AggressionMode>();
     if (!copy) return nullptr;
-    copy->enemy = Reference(enemy);
+    copy->enemy = Reference(enemy.object);
     copy->fixed = fixed;
     copy->chosen = chosen;
     copy->vtable = aimode::kAggressionVtable;

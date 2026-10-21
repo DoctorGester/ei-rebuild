@@ -350,8 +350,8 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     case 3: { // quit: the message box
-        void* memory = gamecrt::operator_new(0x180);
-        opened = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, "quit", "quit_msg", 0x10000, 3, 1)   // "quit_msg"
+        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+        opened = memory ? memory->Construct(ui, "quit", "quit_msg", 0x10000, 3, 1)   // "quit_msg"
                         : nullptr;
         break;
     }

@@ -25,7 +25,7 @@ inline const libcrt::Manipulator kLogEndLine = libcrt::FlushManipulator;
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.
 inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }
-inline UnitVitals* ServerStatsOf(CUnit* unit) { return &static_cast<CMapObjectServer*>(ServerObjectOf(unit))->vitals; }
+inline UnitVitals* ServerStatsOf(CUnit* unit) { return &unit->ServerCompanion()->vitals; }
 
 // Forwarders defined in combat_actions.cpp (__fastcall with the unused EDX for __thiscall).
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.

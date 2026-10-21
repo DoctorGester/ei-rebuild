@@ -75,7 +75,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, AIObjectList* group, CUn
 // A scored {part, object} the choice keeps (the original's CList nodes, 0x14 bytes).
 struct Scored {
     int part;
-    CEngineObject* object;
+    CUnit* object;
     float score;
 };
 } // namespace
@@ -93,7 +93,7 @@ void AIOrder::Clear() {
 }
 EI_REWRITTEN(0x00545F40, AIOrder::Clear);
 
-void AIOrder::MakeAttack(CEngineObject* target) {
+void AIOrder::MakeAttack(CMapObject* target) {
     Clear();
     kind = 3;
     what = 6;
@@ -104,7 +104,7 @@ void AIOrder::MakeAttack(CEngineObject* target) {
 }
 EI_REWRITTEN(0x005CF720, AIOrder::MakeAttack);
 
-void AIOrder::MakeCast(int spell, CEngineObject* target) {
+void AIOrder::MakeCast(int spell, CMapObject* target) {
     Clear();
     kind = 5;
     if (target) {
@@ -119,7 +119,7 @@ EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fromHere) {
     ScopedPath local;
     CUnit* self = brain->owner->unit;
-    auto* target = static_cast<CUnit*>(choice->object);
+    CUnit* target = choice->object;
     int part = choice->part;
     // A spell aimed at no object cannot be cast on a large unit of size class 0.
     if (part >= 0) {
@@ -178,7 +178,7 @@ const AIAttackOption* AIAttention::FindOption(int part) const {
 }
 
 bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
-    auto* target = static_cast<CUnit*>(choice->object);
+    CUnit* target = choice->object;
     if (!target) return true;
     CUnit* self = brain->owner->unit;
     const AIAttackOption* option = FindOption(choice->part);
@@ -293,7 +293,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     AITargetChoice current{-1, nullptr};
     brain->attention.CurrentAttack(brain, &current);
     if (!IsUsable(brain, &current)) current.object = nullptr;
-    CEngineObject* held = current.object;
+    CUnit* held = current.object;
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
@@ -306,7 +306,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
             held = nullptr;
             current.object = nullptr;
         } else {
-            best = static_cast<float>(Score(from, self, candidates, held, static_cast<CUnit*>(held), kFloorScore, option));
+            best = static_cast<float>(Score(from, self, candidates, held, held, kFloorScore, option));
             EI_NAN_AUDIT(best);
             if (best < kFloorScore) {
                 current.object = nullptr;
@@ -363,10 +363,10 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
         }
         if (chosen < 0) return;
         if (choice->object == current.object && choice->part == current.part) return;
-        CEngineObject* object = choice->object;
+        CUnit* object = choice->object;
         if (IsUsable(brain, choice)) {
             bool allowed = true;
-            if (alliesOnly && !brain->IsNearPath(PositionOf(static_cast<CUnit*>(object)), kPathNear)) {
+            if (alliesOnly && !brain->IsNearPath(PositionOf(object), kPathNear)) {
                 AIOrder order{};
                 if (choice->part < 0) {
                     order.MakeAttack(object);

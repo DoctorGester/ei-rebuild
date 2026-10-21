@@ -247,15 +247,15 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         while (other != bindings_.end() && other->action_->id_ != code) ++other;
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
-            void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
+            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
+            CMessageBox* box = memory ? memory->Construct(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
                                     : nullptr;
             mfc::CString format;
             mfc::CString message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
-            static_cast<CMessageBox*>(box)->text_ = static_cast<const char*>(message);
+            box->text_ = static_cast<const char*>(message);
             interface_->PushWindow(box, 1, 1);
             return;
         }

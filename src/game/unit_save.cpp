@@ -79,7 +79,7 @@ CItem* ReadItem(CUnit* unit, CStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    auto* item = static_cast<CItem*>(manager->FindObject(id));
+    CItem* item = FindItem(manager, id);
     if (item) ++item->refCount_;
     return item;
 }

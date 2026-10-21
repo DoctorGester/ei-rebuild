@@ -50,7 +50,7 @@ bool DirectlyControlled(const CUnit* unit) {
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
 CUnit* LeaderOf(const CUnit* unit) {
     AIBrain* brain = unit->ServerController()->Brain();
-    CEngineObject* leader = nullptr;
+    CMapObject* leader = nullptr;
     if (auto* mode = static_cast<PlayerMode*>(brain->FindMode(kModePlayer))) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
     return static_cast<CUnit*>(leader);
@@ -58,7 +58,7 @@ CUnit* LeaderOf(const CUnit* unit) {
 
 // The player's attack check: -1 (no restrictions) when the player's order check accepts an attack
 // on `object`, else the AI's flags.
-int AttackFlags(AIBrain* brain, CEngineObject* object, bool clearTwice) {
+int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     int flags = kAttackFlags;
     if (!brain->owner->unit->player) return flags;
     AIOrder order;
@@ -78,7 +78,7 @@ int AttackFlags(AIBrain* brain, CEngineObject* object, bool clearTwice) {
     return flags;
 }
 
-void Attack(AIBrain* brain, CEngineObject* object, bool clearTwice) {
+void Attack(AIBrain* brain, CMapObject* object, bool clearTwice) {
     brain->action = AIBrain::kActionAttack;
     brain->target.Assign(object);
     int flags = AttackFlags(brain, object, clearTwice);
@@ -92,7 +92,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && MapObject(target)->IsDead() == 0) {
-        AITargetChoice choice{-1, target.object};
+        AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit, as the original does
         if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);
             return;
@@ -130,7 +130,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     brain->ChooseTarget(&best, &candidates, PositionOf(unit), 0, 0);
     unit->flags_ &= ~kChoosingFlag;
 
-    CEngineObject* chosen = best.object;
+    CUnit* chosen = best.object;
     if (chosen) {
         if (!DirectlyControlled(brain->owner->unit)) {
             // The other followers that are not fighting stop following.

@@ -21,21 +21,6 @@
 namespace unitrecord {
 namespace {
 
-// The unit's methods used here, through their original addresses (006AC970 is patched by Rebirth;
-// the others may be rewritten elsewhere).
-struct Unit {
-    int AddQuickItem(void* item);           // 00531180
-    void AddCarried(void* item);            // 00531220
-    int AddSpell(void* spell);              // 00531820
-    void* EquipArmour(void* item);          // 00530730
-    int AddWeapon(void* item);              // 00531070
-};
-int Unit::AddQuickItem(void* a0) { return reinterpret_cast<CUnit*>(this)->AddQuickItem(static_cast<CItem*>(a0)); }
-void Unit::AddCarried(void* a0) { reinterpret_cast<CUnit*>(this)->AddCarried(static_cast<CItem*>(a0)); }
-int Unit::AddSpell(void* a0) { return reinterpret_cast<CUnit*>(this)->AddSpell(static_cast<CItem*>(a0)); }
-void* Unit::EquipArmour(void* a0) { return reinterpret_cast<CUnit*>(this)->EquipArmour(static_cast<CItem*>(a0)); }
-int Unit::AddWeapon(void* a0) { return reinterpret_cast<CUnit*>(this)->AddWeapon(static_cast<CItem*>(a0)); }
-
 // The unit's body slots (controller +0x1E0, unit.h UnitStats).
 struct Slots {
     void* RefillSlots();                                   // 00525AF0
@@ -44,12 +29,12 @@ void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
 // The item and spell factory (global pointer at 007AFFB4).
 struct Factory {
-    void* CreateItem(std::uint32_t id) {                        // 006AC970
+    CItem* CreateItem(std::uint32_t id) {                       // 006AC970 (patched by Rebirth)
         return ItemManagerCreateItemOriginal(this, nullptr, reinterpret_cast<const char*>(id));
     }
-    void* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
+    CItem* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
 };
-void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) {
+CItem* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) {
     return reinterpret_cast<CItemManager*>(this)->CreateSpellItem(reinterpret_cast<const char*>(a0), reinterpret_cast<CSpellManager*>(a1));
 }
 Factory* TheFactory() { return ei::GameData<Factory*>(0x007AFFB4); }
@@ -79,7 +64,7 @@ int Count(const char* r, std::size_t offset) { return static_cast<int>(Dword(r, 
 constexpr std::size_t kUnitStats = 0x170;
 constexpr std::size_t kUnitController = 0x240;
 
-void AddItems(const char* r, Unit* unit, Factory* factory) {
+void AddItems(const char* r, CUnit* unit, Factory* factory) {
     for (int i = 0; i < Count(r, field::kQuickItems); ++i) unit->AddQuickItem(factory->CreateItem(Ids(r, field::kQuickItems)[i]));
     for (int i = 0; i < Count(r, field::kCarried); ++i) unit->AddCarried(factory->CreateItem(Ids(r, field::kCarried)[i]));
 }
@@ -98,7 +83,7 @@ constexpr std::uint16_t kControllerCopies2[][2] = {
 void UnitRecord::ApplyTo(CUnit* target) {
     const char* r = reinterpret_cast<const char*>(this);
     Factory* factory = TheFactory();
-    Unit* unit = reinterpret_cast<Unit*>(target);
+    CUnit* unit = target;
     float k0;
     std::memcpy(&k0, ei::GamePointer<const void>(0x0073B858), 4);   // 0.0
     float f10, f14;

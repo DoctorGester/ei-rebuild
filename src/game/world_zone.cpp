@@ -221,9 +221,8 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         auto* mapObject = static_cast<CMapObject*>(object);
         int id = object->id_;
         out->Write(&id, 4u);
-        const char* prototype =
-            object->GetClassId() == world::kClassUnit ? static_cast<const char*>(static_cast<CUnit*>(object)->GetPrototype()->name)
-                                                       : static_cast<const char*>(mapObject->name);
+        CUnit* unit = UnitOrNull(object);
+        const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : static_cast<const char*>(mapObject->name);
         out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).

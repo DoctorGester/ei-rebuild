@@ -97,7 +97,7 @@ constexpr int kClassLever = 0x5D;
 // The companion holding a map object's vitals. Scripts run on the server, so it is the
 // CMapObjectServer (the original reads it without checking).
 CMapObjectServer* ServerHalf(CEngineObject* object) {
-    return static_cast<CMapObjectServer*>(ObjectSlots(object)->companion);
+    return ObjectSlots(object)->ServerCompanion();
 }
 
 // 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,

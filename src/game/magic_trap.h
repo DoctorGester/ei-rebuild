@@ -16,6 +16,7 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 struct MagicTrapRecord;
+class CSpell;    // spell.h
 class CStream;   // core_streams.h
 
 // A circle of a trap's area (0xC bytes).
@@ -129,7 +130,7 @@ public:
     using UnitList = mfc::CTypedPtrList<CUnit>;
 
     std::uint32_t sides;            // +0x238 bit per unit side (+0x250) that sets it off
-    CEngineObject* spell;           // +0x23C a counted reference (a CSpell); null: none
+    CSpell* spell;                  // +0x23C a counted reference; null: none
     TrapArea area;                  // +0x240
     TrapPoints points;              // +0x254 where it casts ({x, y})
     UnitList inside;                // +0x268 the units inside: counted references (vtable 0073E730)

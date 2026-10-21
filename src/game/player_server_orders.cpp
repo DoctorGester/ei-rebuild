@@ -130,7 +130,7 @@ int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
     Received().Read(&message, sizeof(message));
     CPlayer* player = Owner();
-    CEngineObject* target = player->WorldContext()->ObjectWithId(message.targetId);
+    CMapObject* target = ObjectSlots(player->WorldContext()->ObjectWithId(message.targetId));
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();

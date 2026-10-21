@@ -485,9 +485,9 @@ void CUnitServer::DestructBody() {
     SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());
     mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
     if (CEngineObject* leader = followedLeader) leader->Release();
-    if (CEngineObject* target = action2.target) target->Release();
+    if (CMapObject* target = action2.target) target->Release();
     action2.target = nullptr;
-    if (CEngineObject* target = action.target) target->Release();
+    if (CMapObject* target = action.target) target->Release();
     action.target = nullptr;
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());

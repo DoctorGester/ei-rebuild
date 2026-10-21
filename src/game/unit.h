@@ -295,7 +295,7 @@ public:
 
     // 005318B0 / 00531920 / 005319A0. The weapon / quick item / spell in slot `slot`, from the
     // player's party record for party units. Null when out of range.
-    CItem* GetWeapon(std::uint32_t slot);
+    CItemWeapon* GetWeapon(std::uint32_t slot);
     CItem* GetQuickItem(std::uint32_t slot);
     CItem* GetSpell(std::uint32_t slot);
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
@@ -599,6 +599,10 @@ static_assert(offsetof(CUnit, paramsHead) == 0x330);
 static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
+
+// The item of a weapon slot (CUnit::weapons, PartyUnitRecord::weapons) as the weapon it is: the slots
+// hold CItemWeapon only, and the original calls the weapon's methods without a class test.
+inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
 
 // The object as a unit when it is one (class id kClassUnit; one GetClassId call), else null.
 inline CUnit* UnitOrNull(CEngineObject* object) {
@@ -1224,6 +1228,7 @@ static_assert(offsetof(CMapObjectServer, name78) == 0x78);
 static_assert(offsetof(CMapObjectServer, strings) == 0x80);
 static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
+inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }
 
 class CParticleSource;   // effects.h
 

@@ -348,7 +348,7 @@ EI_REPLACE_METHOD(0x005D1DC0, SentryMode::Save);
 
 void FollowMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) return;
-    CEngineObject* who = leader;
+    CMapObject* who = leader;
     if (!who) return;
     brain->action = AIBrain::kActionFollow;
     if (who == brain->target) return;
@@ -474,7 +474,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             return kNoPriority;
         }
         if (!enemy) {
-            if (CEngineObject* seen = brain->seen) {
+            if (CMapObject* seen = brain->seen) {
                 bool allied = false;
                 if (CUnit* seenUnit = UnitOrNull(seen)) {
                     std::uint32_t bit = 1u << (seenUnit->side & 31);
@@ -488,7 +488,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         if (IsGone(enemy) == 0 && enemy->GetClassId() == kClassUnit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             chosen.part = -1;
-            chosen.object = enemy;
+            chosen.object = static_cast<CUnit*>(enemy.object);   // a unit (tested above)
             return chosen.object ? 10000 : kNoPriority;
         }
         if (enemy) {
@@ -507,7 +507,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());
     brain->ChooseTarget(&chosen, &Candidates(), &self->position, 0, 0);
-    CEngineObject* best = chosen.object;
+    CUnit* best = chosen.object;
     if (best != enemy) {
         if (enemy) enemy->Release();
         enemy = nullptr;
@@ -521,7 +521,7 @@ EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 void AggressionMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen.object) return;
-    brain->CallAllies(&static_cast<CMapObject*>(chosen.object)->position);
+    brain->CallAllies(&chosen.object->position);
     AITargetChoice attack{-1, nullptr};     // what the brain is attacking now
     brain->attention.CurrentAttack(brain, &attack);
     if (attack.object == chosen.object && attack.part == chosen.part) return;
@@ -529,7 +529,7 @@ void AggressionMode::Execute(AIBrain* brain) {
     attack.object = nullptr;
     attack.part = -1;
     brain->attention.CurrentAttack(brain, &attack);
-    CEngineObject* object = chosen.object;
+    CUnit* object = chosen.object;
     if (object == attack.object && chosen.part == attack.part) return;
     int part = chosen.part;
     if (part == -1) {
@@ -659,7 +659,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
-        CEngineObject* who = leader;
+        CMapObject* who = leader;
         if (!who) {
             PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
@@ -778,7 +778,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
 }
 EI_REWRITTEN(0x005D3AE0, PlayerMode::CommandGoTo);
 
-void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, int unknown) {
+void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown) {
     if (object == brain->owner->unit) return;
     state = kStateFollow;
     if (object != target) {
@@ -801,13 +801,13 @@ void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, i
 }
 EI_REWRITTEN(0x005D3C30, PlayerMode::CommandAttack);
 
-void PlayerMode::CommandUse(AIBrain* brain, CEngineObject* object, int kind, int a, int b) {
+void PlayerMode::CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b) {
     state = kStateFollow;
     brain->UseOn(object, kind, a, b);
 }
 EI_REWRITTEN(0x005D3CF0, PlayerMode::CommandUse);
 
-void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, int) {
+void PlayerMode::CommandCast(AIBrain* brain, int spell, CMapObject* object, int) {
     std::uint8_t running = run;
     state = kStateFollow;
     if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;

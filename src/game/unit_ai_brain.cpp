@@ -487,7 +487,7 @@ int AIMemory::IsEnemy(CUnit* self, CEngineObject* other) {
 }
 
 EI_REWRITTEN(0x005CB7F0, AIMemory::IsEnemy);
-void AIReports::Report(CEngineObject* object, int what) {
+void AIReports::Report(CMapObject* object, int what) {
     if (!object) return;
     for (int i = 0; i < size; ++i) {
         if (data[i].object == object) {

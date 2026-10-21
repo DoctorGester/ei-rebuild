@@ -376,9 +376,9 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
         WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
         return;
     }
-    SectorMapMove(TheSectorMap(), nullptr, AsEngineObject(b.object), &b.position);
-    ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(static_cast<CEngineObject*>(b.object), &b.rotation);
     auto* unit = static_cast<CUnit*>(b.object);
+    SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
+    ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->orientation, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);
     std::memcpy(&unit->baseScale, &self->object.scale, 12);
@@ -387,7 +387,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     if (!self->object.visible) flags |= 8;
     else flags &= ~8u;
     unit->ServerController()->ResyncWithUnit();
-    static_cast<CMapObject*>(b.object)->MarkChanged(1);
+    unit->MarkChanged(1);
 }
 EI_REPLACE(0x0046C4D0, UnitSpecApply);
 

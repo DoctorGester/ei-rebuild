@@ -276,16 +276,16 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     }
     // A bow or a crossbow in hand: never behind.
     std::uint32_t slot = activeWeapon;
-    CEngineObject* weapon = nullptr;
+    CItemWeapon* weapon = nullptr;
     if (controller->GetClassId() == kClassPartyController) {
         PartyUnitRecord* record = player ? player->Party()->Find(id_) : nullptr;
-        if (record && slot < record->weaponCount) weapon = record->weapons[slot];
+        if (record && slot < record->weaponCount) weapon = AsWeapon(record->weapons[slot]);
     } else if (slot < 4) {
-        weapon = weapons[slot];
+        weapon = AsWeapon(weapons[slot]);
     }
     if (weapon) {
-        if (static_cast<CItemWeapon*>(weapon)->GetType() == 5) return 0;
-        if (static_cast<CItemWeapon*>(weapon)->GetType() == 6) return 0;
+        if (weapon->GetType() == 5) return 0;
+        if (weapon->GetType() == 6) return 0;
     }
     // The target's facing from its orientation quaternion.
     float a = t->orientation.w;

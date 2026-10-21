@@ -54,7 +54,7 @@ void ReadItemIds(CStream* stream, PartyItemArray& list, CBaseManager* manager) {
     for (int i = 0; i < list.size; ++i) {
         unsigned id;
         stream->Read(&id, sizeof(id));
-        auto* item = static_cast<CItem*>(manager->FindObject(id));
+        CItem* item = FindItem(manager, id);
         list.data[i] = item;
         if (item != nullptr) ++item->refCount_;
     }

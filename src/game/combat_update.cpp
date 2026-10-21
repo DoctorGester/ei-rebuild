@@ -634,7 +634,7 @@ bool CUnitServer::ActionInReach() {
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (kind == kOrderCastAt || kind == kOrderUse) return true;
     if (kind != kOrderAttack && kind != kOrderSkill && kind != kOrderCast) return false;
-    CEngineObject* target = action.target;
+    CMapObject* target = action.target;
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
         if (!cast) return false;
@@ -642,12 +642,12 @@ bool CUnitServer::ActionInReach() {
         if (!spell) return false;
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
-    } else if (ObjectSlots(target)->IsDead() != 0) {
+    } else if (target->IsDead() != 0) {
         if (kind != kOrderSkill) return false;
         if (action.source != kSkillOnTarget && action.source != 0) return false;
     }
     Vector3 where;
-    const float* at = &ObjectSlots(target)->PositionAt(&where, Plan(this).endTime)->x;
+    const float* at = &target->PositionAt(&where, Plan(this).endTime)->x;
     float dx = at[0] - unit->position.x;
     float dy = at[1] - unit->position.y;
     float distanceSq = LengthSquared2DUnrounded(dx, dy);

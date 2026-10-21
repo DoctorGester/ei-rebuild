@@ -71,7 +71,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
     if (!unit_) return;
 
     for (unsigned slot = 0; slot < 4; ++slot) {
-        auto* weapon = static_cast<CItemWeapon*>(unit_->GetWeapon(slot));
+        CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
             ReturnedString image;

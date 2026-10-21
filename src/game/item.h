@@ -546,6 +546,9 @@ public:
     virtual CSpellManager* SpellManager();         // 22
 };
 
+// The item with id `id` in an item manager (a party's, the world's item factory), or null.
+inline CItem* FindItem(const CBaseManager* items, unsigned id) { return static_cast<CItem*>(items->FindObject(id)); }
+
 // The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
 // class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions
 // rewritten here are declared; context_ (+0xAC) is its manager context (slot 16: the item

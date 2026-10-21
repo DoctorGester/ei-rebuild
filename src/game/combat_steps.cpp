@@ -89,7 +89,7 @@ float Select(float a, float b, float ifLess, float otherwise) {
 }
 
 
-CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
+CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
 // 1 << the active weapon's type, else of the natural weapon (none from type 7 up).
 std::uint32_t WeaponBit(CUnitServer* self) {
@@ -431,7 +431,7 @@ double RandomHeight(double to, float from, float low, float high) {
 }
 } // namespace
 
-bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CEngineObject* target) {
+bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
     if (target->GetClassId() != kClassUnit) {
         plan->hitLocation = 1;
         BuildOrderSteps(steps, duration, kOrderAttack, kKeyNoTarget);
@@ -450,7 +450,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     float y = unit->position.y;
     float z = unit->position.z;
     Vector3 aim;
-    ObjectSlots(target)->AimPoint(&aim);
+    target->AimPoint(&aim);
     double dz = static_cast<double>(z) - aim.z;
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
@@ -547,11 +547,11 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     if (unit->type_ != kUnitTypeHeroes) {
         // Other creatures strike low at targets that reach further than the distance between them.
         float myRadius = unit->Radius();
-        CEngineObject* other = order.target;
-        float span = static_cast<float>(static_cast<double>(ObjectSlots(other)->Radius()) + myRadius);
-        if (other && other->GetClassId() == kClassUnit) {
+        CMapObject* other = order.target;
+        float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
+        if (CUnit* otherUnit = UnitOrNull(other)) {
             double scale = (static_cast<double>(Get<float>(this, 0x244)) + kOne) * myRadius;
-            span = static_cast<float>(static_cast<double>(static_cast<CUnit*>(other)->standingHeight) + scale);
+            span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
     }

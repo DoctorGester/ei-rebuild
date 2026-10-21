@@ -78,8 +78,6 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 
-CUnit* AsUnit(CEngineObject* object) { return static_cast<CUnit*>(object); }
-
 // ---- The creation message ---------------------------------------------------------------------
 
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
@@ -453,7 +451,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;
-            CEngineObject* spell = reinterpret_cast<CEngineObject*>(reinterpret_cast<CSpellManager*>(SpellManager())->CreateSpellFromText(worlddata::CampfireText()));
+            CSpell* spell = SpellManager()->CreateSpellFromText(worlddata::CampfireText());
             if (spell) ++spell->refCount_;
             CastSpell(spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
                                    const_cast<const Vector3*>(&at), 0);
@@ -461,7 +459,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         }
         base.object = object;
         CTorchObjectSpec* torch = static_cast<CTorchObject*>(object)->spec;
-        auto* companion = static_cast<CMapObjectServer*>(object->companion);
+        auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
         companionTexts(companion);
         race(object);
@@ -475,7 +473,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         object->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
-        if (object->GetClassId() == world::kClassUnit) AsUnit(object)->ServerController()->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
@@ -523,7 +521,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
         base.object = object;
-        auto* companion = static_cast<CMapObjectServer*>(object->companion);
+        auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
         object->SetSecondName(spec->model);
         companionTexts(companion);
@@ -582,7 +580,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         static_cast<CObject3D*>((void*)object)->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
-        if (object->GetClassId() == world::kClassUnit) AsUnit(object)->ServerController()->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);

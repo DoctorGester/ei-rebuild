@@ -188,6 +188,8 @@ UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->position; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
+// An object argument the command takes as a map object (a unit's leader or target).
+CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
 
 // The unit's server half when argument 0 is a unit that has one, else null.
@@ -248,7 +250,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, &point);
-        if (object->GetClassId() == kClassUnit) Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) Controller(UnitState(unit))->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
         return;
@@ -256,8 +258,8 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     float oldZ = Position(object)->z;
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, &point);
-    if (object->GetClassId() == kClassUnit) {
-        Controller(UnitState(static_cast<CUnit*>(object)))->ResyncWithUnit();
+    if (CUnit* unit = UnitOrNull(object)) {
+        Controller(UnitState(unit))->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;
@@ -358,14 +360,14 @@ void PlayMovie(const SSCCmd* cmd) {
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
-    CEngineObject* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
+    CSpell* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
     if (spell) ++spell->refCount_;
     if (spell) {
         const float* f = cmd->floatArgs.data;
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
-            CEngineObject* target = Arg(cmd, 0);
-            if (target) TheWorld()->CastSpell(spell, 0, &from, target, Position(target), 0);
+            CMapObject* target = MapObjectArg(cmd, 0);
+            if (target) TheWorld()->CastSpell(spell, 0, &from, target, &target->position, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
             TheWorld()->CastSpell(spell, 0, &from, nullptr, &to, 0);
@@ -865,13 +867,13 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x3B: {   // Follow(unit, leader)
             void* state = UnitStateArg(cmd);
-            if (state) BrainOf(state)->Follow(Arg(cmd, 1));
+            if (state) BrainOf(state)->Follow(MapObjectArg(cmd, 1));
             break;
         }
         case 0x3C: {   // Attack(unit, target)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            CEngineObject* target = Arg(cmd, 1);
+            CMapObject* target = MapObjectArg(cmd, 1);
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
@@ -969,7 +971,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCA: {   // UMFollow(unit, leader)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            CEngineObject* leader = Arg(cmd, 1);
+            CMapObject* leader = MapObjectArg(cmd, 1);
             auto* mode = NewMode<FollowMode>(0x0C);
             BrainOf(state)->AddMode(mode ? mode->ScriptFollowModeConstruct(leader) : nullptr);
             break;

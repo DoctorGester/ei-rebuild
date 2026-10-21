@@ -29,6 +29,8 @@ CAST = re.compile(r'\bstatic_cast\s*<([^<>();]*\*\s*(?:const\s*)?)>\s*\(')
 SITE = re.compile(r'[\\/]tree[\\/](src[\\/][^()]*?)\((\d+)\): error C2280: .To \*?C21_SC<(.*),(\d+),(.*),c21_(same|const|up)_tag>')
 
 HEADER = r'''#pragma once
+// C++20 only: CMake's compiler check compiles a test file with the default standard (and /FI applies).
+#if defined(__cplusplus) && _MSVC_LANG >= 202002L
 #include <type_traits>
 struct c21_same_tag {};
 struct c21_const_tag {};
@@ -49,6 +51,7 @@ template <class To, int L, class From, class K = c21_const_tag> requires(c21_kin
 template <class To, int L, class From, class K = c21_up_tag> requires(c21_kind<To, From>() == 3) To C21_SC(From&& f) = delete;
 template <class To, int L, class From> requires(c21_kind<To, From>() == 0)
 constexpr To C21_SC(From&& f) { return static_cast<To>(static_cast<From&&>(f)); }
+#endif
 '''
 
 

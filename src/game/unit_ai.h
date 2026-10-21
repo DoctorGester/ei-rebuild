@@ -66,24 +66,44 @@ struct AIRef {
 };
 static_assert(sizeof(AIRef) == 4);
 
+// An AIRef whose object has a known class (the orders, targets, leaders and reports of the AI hold map
+// objects); the counting and the save format are AIRef's.
+template <typename T>
+struct AIRefTo {
+    void Reset() { AIRef::Of(&object)->Reset(); }
+    void Assign(T* newObject) { AIRef::Of(&object)->Assign(newObject); }
+    void Load(CStream* stream, CWorld* world) { AIRef::Of(&object)->Load(stream, world); }
+    void Save(CStream* stream) { AIRef::Of(&object)->Save(stream); }
+
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    // A plain store (no reference taken or released), as AIRef's.
+    AIRefTo& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
+};
+
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
     // 00545F40. Kind 9 (none): the object released and cleared, the flag cleared.
     void Clear();
     // 005CF720 (RET 4). Clear, then an attack (3, 6) on `object` (referenced).
-    void MakeAttack(CEngineObject* object);
+    void MakeAttack(CMapObject* object);
     // 005CF780 (RET 8). Clear, then a cast (5) of `spell` at `object` (referenced).
-    void MakeCast(int spell, CEngineObject* object);
+    void MakeCast(int spell, CMapObject* object);
     // 00670760 (RET 8; player_server_handlers.cpp). Clear, then a use (6) of `object` (referenced)
     // with `what`.
-    void MakeUse(CEngineObject* object, int what);
+    void MakeUse(CMapObject* object, int what);
     // 006707D0 (RET 4). Where the order aims: the object's AimPoint (slot 53), or `point` without
     // an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
     int kind;                       // +0x00
     int what;                       // +0x04 6 for an attack, the spell for a cast
-    AIRef object;                   // +0x08 counted
+    AIRefTo<CMapObject> object;     // +0x08 counted
     Vector3 point;                  // +0x0C left uninitialised by the AI's orders
     std::uint8_t flag;              // +0x18
     std::uint8_t unused_19[3];
@@ -383,7 +403,7 @@ struct FollowMode : AIMode {
     void Load(CStream* stream);
     void Save(CStream* stream);
     // 004BA450 (RET 4; script_unit_modes.cpp). Constructor after operator new: the leader is referenced.
-    FollowMode* ScriptFollowModeConstruct(CEngineObject* newLeader);
+    FollowMode* ScriptFollowModeConstruct(CMapObject* newLeader);
     // Slots 3 / 2 / 0 (script_unit_modes.cpp). Clone and Reset reference / drop the leader. FollowDestruct:
     // the leader released and dropped, the root vtable.
     FollowMode* FollowClone() const;                 // 004BA4A0
@@ -391,7 +411,7 @@ struct FollowMode : AIMode {
     FollowMode* FollowDeletingDestruct(int flags);   // 004BA590
     void FollowDestruct();                           // 004BA5B0
 
-    AIRef leader;                   // +0x08
+    AIRefTo<CMapObject> leader;     // +0x08
 };
 static_assert(sizeof(FollowMode) == 0x0C);
 
@@ -432,7 +452,7 @@ static_assert(sizeof(SuspectionMode) == 0x18);
 // else the spell's part) and the object.
 struct AITargetChoice {
     int part;                       // +0x00
-    CEngineObject* object;          // +0x04
+    CUnit* object;                  // +0x04
 };
 static_assert(sizeof(AITargetChoice) == 8 && offsetof(AITargetChoice, object) == 4);
 
@@ -465,7 +485,7 @@ struct AggressionMode : AIMode {
     AggressionMode* AggressionDeletingDestruct(int flags);   // 004BA8A0
     void AggressionDestruct();                               // 004BA8C0
 
-    AIRef enemy;                    // +0x08
+    AIRefTo<CMapObject> enemy;      // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
     std::uint8_t unused_0D[3];
     AITargetChoice chosen;          // +0x10 the enemy chosen this tick; part -1: the whole unit
@@ -585,11 +605,11 @@ struct PlayerMode : AIMode {
     // it only turns towards the point.
     void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
     // 005D3C30. Attack `object`.
-    void CommandAttack(AIBrain* brain, CEngineObject* object, int how, int unknown);
+    void CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown);
     // 005D3CF0. Use something on `object` (AIBrain::UseOn).
-    void CommandUse(AIBrain* brain, CEngineObject* object, int kind, int a, int b);
+    void CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b);
     // 005D3D20. Cast spell `spell` at `object`.
-    void CommandCast(AIBrain* brain, int spell, CEngineObject* object, int unused);
+    void CommandCast(AIBrain* brain, int spell, CMapObject* object, int unused);
     // 005D3D90. Cast spell `spell` at `point`.
     void CommandCastAt(AIBrain* brain, int spell, const Vector3* point, int unused);
 
@@ -621,7 +641,7 @@ struct PlayerMode : AIMode {
     // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
-    AIRef target;                   // +0x08
+    AIRefTo<CMapObject> target;     // +0x08
     CUnit* leader;                  // +0x0C
     Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
@@ -709,7 +729,7 @@ struct AIAlarmRecordElements {
 using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
 // An object the memory reported (8 bytes; the object is a counted reference).
 struct AIReport {
-    AIRef object;
+    AIRefTo<CMapObject> object;
     int what;
 };
 static_assert(sizeof(AIReport) == 8);
@@ -725,7 +745,7 @@ struct AIReportElements {
 // unit_ai_brain.cpp). SetSize 005CD670 and RemoveAt 005CD800 are registered on the template (A-W12).
 struct AIReports : mfc::CArray<AIReport, AIReportElements> {
     // 005CC620 (RET 8). Keeps the larger `what` of a listed object, else appends it (with a reference).
-    void Report(CEngineObject* object, int what);
+    void Report(CMapObject* object, int what);
     // 005CC560 (RET 4). Whether `object` is listed (only AL is set).
     bool Contains(CEngineObject* object) const;
 };
@@ -1053,9 +1073,9 @@ struct AIBrain {
     // 005D5EE0. The Player mode's target (+0x0C of the mode), or null.
     CUnit* PlayerModeLeader();
     // 005D5E90. The same, or the action target while following (action 6).
-    CEngineObject* LeaderOrFollowed();
+    CMapObject* LeaderOrFollowed();
     // 005D5F20. The Aggression mode's enemy while that mode is in charge, else null.
-    CEngineObject* AggressionEnemy();
+    CMapObject* AggressionEnemy();
     // 005D50E0. Is `point` within `radius` of the segment from the previous to the current position
     // (both 2D)? The original sets only AL in one path; callers test AL.
     bool IsNearPath(const Vector3* point, float radius);
@@ -1147,19 +1167,19 @@ struct AIBrain {
     // 005D7DA0. Action 4 (when the spell cannot be cast now): cast `spell` at `point`.
     void CastAt(int spell, const Vector3* point, int run);
     // 005D7E40. Action 6: follow `object`.
-    void Follow(CEngineObject* object);
+    void Follow(CMapObject* object);
     // 005D7E90. Something was noticed: remember `object` as seen, call allies to it (or to the unit
     // itself when null) unless it is an ally, become alerted in alert mode 1, and remember a unit in
     // the perception memory.
-    void SetSeen(CEngineObject* object);
+    void SetSeen(CMapObject* object);
     // 005D7B50. Action 3 against `object` (run unless the player's order check says otherwise).
-    void AttackTarget(CEngineObject* object);
+    void AttackTarget(CMapObject* object);
     // 005D7C60. Action 3 against `object` with the given attack parameters; units of other sides
     // that are not enemies are not attacked unless the unit has a player.
-    void AttackWith(CEngineObject* object, int how, int unknown);
+    void AttackWith(CMapObject* object, int how, int unknown);
     // 005D7CE0. Action 5: use something on `object` (kind 0 a point/object, 1 and 2 units, 0x18A95
     // a special unit use).
-    void UseOn(CEngineObject* object, int kind, int a, int b);
+    void UseOn(CMapObject* object, int kind, int a, int b);
 
     // unit_ai_moves.cpp.
     // 005D6F90. Action 6 (follow `target`): every few ticks walk to where the leader is or will be
@@ -1186,8 +1206,8 @@ struct AIBrain {
     Vector3 actionPoint;            // +0x008
     AILookArray looks;              // +0x014 what to look at after arriving
     int actionTime;                 // +0x028 game time the current look ends (or kNoTime / kLookStarted)
-    AIRef target;                   // +0x02C
-    AIRef seen;                     // +0x030
+    AIRefTo<CMapObject> target;     // +0x02C
+    AIRefTo<CMapObject> seen;       // +0x030
     std::uint8_t alerted;           // +0x034
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
     std::int8_t alarmSlot;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
