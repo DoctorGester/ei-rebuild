@@ -104,6 +104,10 @@ const Route kRoutes[] = {
     EI_UTF8_ROUTE(RegOpenKeyExA),     EI_UTF8_ROUTE(RegCreateKeyExA),       EI_UTF8_ROUTE(RegQueryValueExA),
     EI_UTF8_ROUTE(RegSetValueExA),    EI_UTF8_ROUTE(CreateWindowExA),       EI_UTF8_ROUTE(FindWindowA),
     EI_UTF8_ROUTE(MessageBoxA),       EI_UTF8_ROUTE(GetKeyNameTextA),       EI_UTF8_ROUTE(LoadStringA),
+    // The windows are Unicode ones (U4): their class registered wide, their messages taken, passed on and
+    // handled wide, so WM_CHAR carries UTF-16.
+    EI_UTF8_ROUTE(RegisterClassExA),  EI_UTF8_ROUTE(DefWindowProcA),        EI_UTF8_ROUTE(GetMessageA),
+    EI_UTF8_ROUTE(PeekMessageA),      EI_UTF8_ROUTE(DispatchMessageA),
 };
 #undef EI_UTF8_ROUTE
 
@@ -322,13 +326,49 @@ HWND WINAPI CreateWindowExA(DWORD exStyle, LPCSTR className, LPCSTR title, DWORD
                             int height, HWND parent, HMENU menu, HINSTANCE instance, LPVOID parameter) {
     if (!title || IsAscii(title))
         return ::CreateWindowExA(exStyle, className, title, style, x, y, width, height, parent, menu, instance, parameter);
-    // The window stays an ANSI one (its class is, and so its messages until U4); its title is set as UTF-16
-    // past the window procedure, which would take it in the ANSI code page.
+    // The title is set as UTF-16 past the window procedure: CreateWindowExA would pass it in the ANSI code page
+    // (and a window of an ANSI class takes it so).
     const std::wstring wide = Wide(title);
     HWND window = ::CreateWindowExA(exStyle, className, "", style, x, y, width, height, parent, menu, instance, parameter);
     if (window) ::DefWindowProcW(window, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(wide.c_str()));
     return window;
 }
+
+ATOM WINAPI RegisterClassExA(const WNDCLASSEXA* windowClass) {
+    if (!windowClass) return ::RegisterClassExA(windowClass);
+    const ClassArg menu(windowClass->lpszMenuName);
+    const ClassArg name(windowClass->lpszClassName);
+    WNDCLASSEXW wide{};
+    wide.cbSize = sizeof(wide);
+    wide.style = windowClass->style;
+    wide.lpfnWndProc = windowClass->lpfnWndProc;
+    wide.cbClsExtra = windowClass->cbClsExtra;
+    wide.cbWndExtra = windowClass->cbWndExtra;
+    wide.hInstance = windowClass->hInstance;
+    wide.hIcon = windowClass->hIcon;
+    wide.hCursor = windowClass->hCursor;
+    wide.hbrBackground = windowClass->hbrBackground;
+    wide.lpszMenuName = menu;
+    wide.lpszClassName = name;
+    wide.hIconSm = windowClass->hIconSm;
+    return ::RegisterClassExW(&wide);
+}
+
+// The wide calls themselves (the same arguments). Our own functions rather than the exports' addresses: the
+// routes are read during ei_hook.dll's static initialisation, before an import's address could be stored.
+LRESULT WINAPI DefWindowProcA(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    return ::DefWindowProcW(window, message, wParam, lParam);
+}
+
+BOOL WINAPI GetMessageA(LPMSG message, HWND window, UINT first, UINT last) {
+    return ::GetMessageW(message, window, first, last);
+}
+
+BOOL WINAPI PeekMessageA(LPMSG message, HWND window, UINT first, UINT last, UINT remove) {
+    return ::PeekMessageW(message, window, first, last, remove);
+}
+
+LRESULT WINAPI DispatchMessageA(const MSG* message) { return ::DispatchMessageW(message); }
 
 HWND WINAPI FindWindowA(LPCSTR className, LPCSTR title) {
     return ::FindWindowW(ClassArg(className), WideArg(title));

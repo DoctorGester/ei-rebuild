@@ -2782,7 +2782,7 @@ public:
     mfc::CString name_;              // +0x188 the save name being edited
     bool nameTyped_;                 // +0x18C
     std::uint8_t unused_18D[3];
-    int cursor_;                     // +0x190 caret position in name_
+    int cursor_;                     // +0x190 caret position in name_ (bytes, at a character's start: U4)
 };
 static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
 static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
@@ -3182,7 +3182,7 @@ public:
     COLORREF colour_;                // +0x168 the text's colour
     COLORREF caretColour_;           // +0x16C SetLook's last argument (0xFF from the constructor)
     mfc::CString text_;              // +0x170 the text typed
-    int caret_;                      // +0x174 caret position in text_
+    int caret_;                      // +0x174 caret position in text_ (bytes, at a character's start: U4)
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
     bool focused_;                   // +0x179 keys are taken only while set
     bool changed_;                   // +0x17A the text changed
@@ -3383,7 +3383,7 @@ public:
     bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unused_14D[3];
     mfc::CString typed_;             // +0x150
-    int caret_;                      // +0x154 in the typed line (characters)
+    int caret_;                      // +0x154 in the typed line (a byte offset at a character's start: U4)
 };
 static_assert(offsetof(CChatOverlay, lines_) == 0x148);
 static_assert(offsetof(CChatOverlay, caret_) == 0x154);

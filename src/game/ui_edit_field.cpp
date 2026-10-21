@@ -3,6 +3,7 @@
 // docs/notes/items_spells.md (A-H19).
 #include "ui.h"
 
+#include "asset_text.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "ui_gdi.h"
@@ -45,16 +46,18 @@ void CUiEditField::OnKeyDown(int key, int, int) {
             caret_ = 0;
             changed_ = true;
         }
+        // By character (U4: a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
+                const int previous = text::PreviousCharacter(text, caret_);
                 mfc::CString tail = text.Mid(caret_);
-                mfc::CString head = text.Left(caret_ - 1);
+                mfc::CString head = text.Left(previous);
                 text = head + tail;
-                --caret_;
+                caret_ = previous;
                 changed_ = true;
             }
         } else if (caret_ < text.GetLength()) {
-            mfc::CString tail = text.Mid(caret_ + 1);
+            mfc::CString tail = text.Mid(text::NextCharacter(text, caret_));
             mfc::CString head = text.Left(caret_);
             text = head + tail;
             changed_ = true;
@@ -74,9 +77,9 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         else if (key == kKeyHome)
             caret_ = 0;
         else if (key == kKeyLeft)
-            --caret_;
+            caret_ = text::PreviousCharacter(text, caret_);
         else
-            ++caret_;
+            caret_ = text::NextCharacter(text, caret_);
         break;
     default:
         return;
@@ -120,6 +123,19 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
     return size.cx;
 }
+
+// The class of typed character `key` that charClasses_ admits or not. With EI_UTF8 a character past ASCII
+// is a code point: a letter when Windows calls it one (the original's 8-bit characters went to the CRT).
+std::uint32_t CharClass(int key) {
+    if constexpr (text::kUtf8) {
+        if (key >= 0x80) return key <= 0xFFFF && IsCharAlphaW(static_cast<WCHAR>(key)) ? kClassLetter : kClassOther;
+    }
+    const char c = static_cast<char>(key);
+    if (gamecrt::isdigit(key) != 0) return kClassDigit;
+    if (libcrt::Isalpha(key) != 0 || c == ' ') return kClassLetter;
+    if (c == '.' || c == ':') return kClassSeparator;
+    return kClassOther;
+}
 } // namespace
 
 CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
@@ -147,17 +163,7 @@ void CUiEditField::OnChar(int key, int, int) {
     if (!focused_) return;
     if (key == kKeyBackspace || key == kKeyTab || key == kKeyEnter || key == kKeyEscape) return;
     if (interface_->ctrlDown_) return;
-    char c = static_cast<char>(key);
-    std::uint32_t kind;
-    if (gamecrt::isdigit(key) != 0)
-        kind = kClassDigit;
-    else if (libcrt::Isalpha(key) != 0 || c == ' ')
-        kind = kClassLetter;
-    else if (c == '.' || c == ':')
-        kind = kClassSeparator;
-    else
-        kind = kClassOther;
-    if ((charClasses_ & kind) == 0) return;
+    if ((charClasses_ & CharClass(key)) == 0) return;
     mfc::CString& text = Text();
     // The first character of a field starts from an empty text.
     if (!editing_) {
@@ -168,11 +174,11 @@ void CUiEditField::OnChar(int key, int, int) {
     }
     mfc::CString tail = text.Mid(caret_);
     mfc::CString head = text.Left(caret_);
-    mfc::CString typed = mfc::operator+(head, c) + tail;
-    if (text.GetLength() < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
+    mfc::CString typed = text::Typed(head, key) + tail;
+    if (text::CharacterCount(text) < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
         text = typed;
         changed_ = true;
-        ++caret_;
+        caret_ += text::TypedLength(key);
     }
     DrawContents();
     inputHandled_ = true;

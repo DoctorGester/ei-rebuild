@@ -194,7 +194,7 @@ public:
     CStringArray commands_;          // +0x0C commands entered (input history)
     int commandIndex_;               // +0x20 the one shown by up/down (-1 or size: none)
     mfc::CString input_;             // +0x24 the line being typed
-    int caret_;                      // +0x28 caret position (characters)
+    int caret_;                      // +0x28 caret position (bytes, at a character's start: U4)
     int anchor_;                     // +0x2C other end of the selection (== caret_: none)
     int width_;                      // +0x30 pixels, at least 76
     int height_;                     // +0x34 pixels, at least 69
