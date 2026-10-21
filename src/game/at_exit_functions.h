@@ -14,8 +14,6 @@ void __cdecl DestroyGlobalVector();   // 00434980: the vector at 0079B8D0
 namespace ei::static_init {
 void __cdecl Exit004E1C50();   // the dead fog cells (effects_weather.cpp)
 void __cdecl Exit005D2570();   // Aggression::Evaluate's candidate list (unit_ai_modes.cpp)
-void __cdecl Exit0058DA00();   // the sleeping ids of CWorldServer::UpdateUnits (world_tick.cpp)
-void __cdecl Exit0058DA20();   // its removed ids
 void __cdecl Exit006C9270();   // Terrain::SetSun's sorted sectors (terrain_animation.cpp)
 } // namespace ei::static_init
 

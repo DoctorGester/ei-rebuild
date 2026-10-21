@@ -293,8 +293,8 @@ EI_REWRITTEN(0x005B64E0, CAIMap::BridgeDeckAt);
 // --- Line of sight -------------------------------------------------------------------------------
 
 namespace {
-// Transparency of an occluder class (0073 global at 00791744).
-const float* Transparency() { return ei::GamePointer<const float>(0x00791744); }
+// Transparency of an occluder class.
+constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
 constexpr float kMinVisibility = 0.0001f;
 } // namespace
 
@@ -336,7 +336,7 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
             // A single occluder packed into the word.
             int high = (word >> 12) & 0x3FF, low = static_cast<int>(word >> 22);
             if (high < cz || low > cz) continue;
-            visibility *= Transparency()[(word >> 5) & 3];
+            visibility *= kTransparency[(word >> 5) & 3];
             EI_NAN_AUDIT(visibility);
             if (visibility < kMinVisibility) return kMinVisibility;
             continue;
@@ -346,7 +346,7 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
         for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
             const SectorOccluder& o = records[index];
             if (o.top < cz || o.bottom > cz) continue;
-            visibility *= Transparency()[o.transparency];
+            visibility *= kTransparency[o.transparency];
             EI_NAN_AUDIT(visibility);
             if (visibility < kMinVisibility) return kMinVisibility;
         }
@@ -367,6 +367,9 @@ const int* SpiralKeys() { return ei::GameData<const int* const>(0x007C2FDC); }
 std::uint32_t SpiralMask() { return ei::GameData<const std::uint32_t>(0x007C2FF0); }
 const int* SpiralLengthTable() { return ei::GameData<const int* const>(0x007C2FC4); }
 const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* const>(0x007C2FFC); }
+
+SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
+std::uint8_t g_findFreeGuard = /*007C2F50*/ {};
 } // namespace
 
 const std::int16_t* SpiralCache::Get(float r, int* count) {
@@ -391,9 +394,9 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
 EI_REWRITTEN(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
-    // Function-local static of the original (guard bit 007C2F50 & 1, destructor 005BAC00).
-    auto& guard = ei::GameData<std::uint8_t>(0x007C2F50);
-    auto* cache = ei::GamePointer<SpiralCache>(0x007C2F48);
+    // Function-local static of the original (guard bit 0 of g_findFreeGuard, destructor 005BAC00).
+    auto& guard = g_findFreeGuard;
+    auto* cache = &g_findFreeSpiral;
     if (!(guard & 1)) {
         guard |= 1;
         cache->radius = -1.0f;

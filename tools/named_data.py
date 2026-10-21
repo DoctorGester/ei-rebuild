@@ -65,6 +65,8 @@ TYPES = {
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
     'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
+    'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
+    'SpiralCache': 'if',   # ai_map.h: length, radius
     'Vector3': 'fff', 'Quaternion': 'ffff',
     'IsaacRandom': 'I' * 0x205,   # random.h: seeded_, count_, results_[256], memory_[256], a_, b_, c_
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments

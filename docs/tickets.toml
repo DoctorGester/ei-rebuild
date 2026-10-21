@@ -2554,7 +2554,7 @@ title = "Named data: world* and ai* .data and .bss objects"
 group = "cleanup"
 model = "sonnet"
 depends = ["C18d"]
-note = "C18d's pattern for the single-owner objects of world* (18 data, 44 bss) and ai* (14 data, 21 bss) (named_data.py --split). constexpr when nothing of ours writes it, plain g_ when written; --refs first for extent and writers; leave static-init-stored objects and members of larger blocks (the world's data block) at their addresses."
+note = "C18d's pattern for the single-owner objects of world* (18 data, 44 bss) and ai* (14 data, 21 bss) (named_data.py --split). constexpr when nothing of ours writes it, plain g_ when written; --refs first for extent and writers; leave static-init-stored objects and members of larger blocks (the world's data block) at their addresses. Done: 46 game data addresses named (1,875 -> 1,829 before the merge): ai* area-list tables (6), mark / occluder tables (world_data.h, 0079118C is column 10 of the mark table 00791164), steep offsets, transparency, order angle limit, normal.dat table, 3 SpiralCache statics + guards, function-static guards, decal builder, stamps, guard key/plain, facing offset, weather delay, loading projectile world, last lit hour, save version, and 8 AlignedArrays whose exit function is a plain free (ported beside them, EI_REPLACE). Left: path-vector-filled tables (C18i kind), members of the options object / client and server world / scene renderer / interface, map name lists 00790270-007902C0, objects with non-trivial destructors, 007C2EB8 (stores an address), 007C2F8C (ln call). See standalone.md Named data. Suites: image 121 the same, original 114 the same."
 
 [[ticket]]
 id = "C18h"

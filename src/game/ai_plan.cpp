@@ -43,9 +43,11 @@ WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNo
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
 // 006E727B. atexit, for the function-local spiral cache.
 
-// The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
-std::uint8_t& SpiralGuard() { return ei::GameData<std::uint8_t>(0x007C2F60); }
-SpiralCache* Spiral() { return &ei::GameData<SpiralCache>(0x007C2F58); }
+// The function-local static SpiralCache (guard bit 0 of g_spiralGuard, destructor 005BA3F0).
+SpiralCache g_spiral = /*007C2F58*/ {};
+std::uint8_t g_spiralGuard = /*007C2F60*/ {};
+std::uint8_t& SpiralGuard() { return g_spiralGuard; }
+SpiralCache* Spiral() { return &g_spiral; }
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
 template <typename List>

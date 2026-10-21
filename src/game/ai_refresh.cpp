@@ -172,11 +172,11 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
     float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
-    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::OccluderCosts(), type)) * frac);
+    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, type)) * frac);
     s->cost += x87::fistp(added);
     float scale = worlddata::DampScale();
-    s->passage = sectorOrder ? Damp(TableInt(worlddata::OccluderDamping(), type), scale, frac, s->passage)
-                             : Damp(TableInt(worlddata::OccluderDamping(), type), frac, scale, s->passage);
+    s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, type), scale, frac, s->passage)
+                             : Damp(TableInt(worlddata::kOccluderDamping, type), frac, scale, s->passage);
 }
 
 } // namespace
@@ -254,16 +254,18 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     if (cost >= 10) row = cost >= 0x23 ? 4 : 3;
     else if (cost >= 3) row = 2;
     else row = cost >= 2 ? 1 : 0;
-    return worlddata::MarkTable()[row * 16 + column];
+    return worlddata::kMarkTable[row * 16 + column];
 }
 
 namespace {
-// 007916BC: 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
+// 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
 // whose nibble 7 a steep cell clears.
 struct CellOffset {
     int dy, dx;
 };
-const CellOffset* SteepOffsets() { return ei::GamePointer<const CellOffset>(0x007916BC); }
+constexpr int kSteepOffsets[34] = /*007916BC*/ {
+    0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
+const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
 
 // The largest climbable step of a climb table: the run of non-negative costs from the middle,
 // less one.

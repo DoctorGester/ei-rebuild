@@ -32,7 +32,8 @@ namespace {
 // by 00557230, destroyed at exit by 005B0AE0.
 using PointArray = BlockPointArray;
 PointArray& Blocks() { return ei::GameData<PointArray>(0x007C2EE0); }
-std::uint8_t& BlocksGuard() { return ei::GameData<std::uint8_t>(0x007C2EF4); }
+std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
+std::uint8_t& BlocksGuard() { return g_blocksGuard; }
 using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 
@@ -42,7 +43,8 @@ ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005
 // destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
 PointArray& FloodQueue() { return ei::GameData<PointArray>(0x007C2F10); }
 PointArray& FloodSecond() { return ei::GameData<PointArray>(0x007C2EF8); }
-std::uint8_t& FloodGuard() { return ei::GameData<std::uint8_t>(0x007C2F24); }
+std::uint8_t g_floodGuard = /*007C2F24*/ {};
+std::uint8_t& FloodGuard() { return g_floodGuard; }
 ExitFn FloodQueueDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0360)); }
 ExitFn FloodSecondDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0350)); }
 

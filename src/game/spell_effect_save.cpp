@@ -39,7 +39,7 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 // The packed id is read through the stream argument's stack slot and the object ids through a slot
 // holding `this` (a read that writes nothing leaves those; kept).
 void CSpellEffect::Load(CStream* stream) {
-    world = LoadingProjectileWorld();
+    world = g_loadingProjectileWorld;
     stream->Read(&position, 12);
     Ref(caster).Load(stream, world);
     Ref(target).Load(stream, world);

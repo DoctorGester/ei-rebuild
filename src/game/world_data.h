@@ -105,9 +105,8 @@ inline int WaterWavesOption() { return ei::GameData<const volatile int>(0x0079BD
 inline int SelfShadowingOption() { return ei::GameData<const volatile int>(0x0079BD3C); }
 inline int LightingFrequencyOption() { return ei::GameData<const volatile int>(0x0079BD44); }
 inline float DefaultWindForceOption() { return ExeFloat(std::uintptr_t(0x0079BE58)); }
-// 0078FF38: the hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the
-// next UpdateLighting set it.
-inline float& LastLitHour() { return ei::GameData<float>(0x0078FF38); }
+// The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
+inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // Vtables Setup stores while it inlines the constructors.
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
@@ -237,8 +236,11 @@ inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090
 // Tables of the AI (ai_refresh.cpp): the height of each of 8 levels; per occluder type the cost added by full
 // cover and the damping exponent; 5 rows x 16 dwords of cell marks.
 inline const float* LevelHeights() { return ei::GamePointer<const float>(0x007912BC); }
-inline const int* OccluderCosts() { return ei::GamePointer<const int>(0x007912A4); }
-inline const int* OccluderDamping() { return ei::GamePointer<const int>(0x007912B0); }
-inline const std::uint32_t* MarkTable() { return ei::GamePointer<const std::uint32_t>(0x00791164); }
+inline constexpr int kOccluderCosts[3] = /*007912A4*/ {290, 20};
+inline constexpr int kOccluderDamping[3] = /*007912B0*/ {7, 2};
+inline constexpr std::uint32_t kMarkTable[80] = /*00791164*/ {
+    0, 0, 1, 1, 1, 1, 4, 7, 0xB, 0xC, 0xE, 0xE, 0xF, 0xF, 0xF, 0xF, 0, 0, 1, 1, 1, 1, 4, 7, 0xB, 0xC, 0xD, 0xD,
+    0xD, 0xD, 0xD, 0xD, 0, 0, 1, 1, 1, 1, 4, 7, 8, 9, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0, 0, 1, 1, 1, 1, 4, 5, 6, 6,
+    6, 6, 6, 6, 6, 6, 0, 0, 1, 1, 1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3};
 
 } // namespace worlddata

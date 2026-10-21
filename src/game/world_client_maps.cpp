@@ -1686,7 +1686,7 @@ int CWorldClient::LoadZone(CStream* block) {
         LoadLightsAt(this, nullptr, file);
     }
     CreateExitMarkersAt(this);
-    worlddata::LastLitHour() = -1.0f;
+    worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();
     if (worlddata::AudioOption() && worlddata::MovieVolumeSetting()) {
         if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);

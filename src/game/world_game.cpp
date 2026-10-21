@@ -1463,7 +1463,8 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 // flow's party copy (00665CC0, +8).
 
 mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
-std::uint8_t& LastResourcesGuard() { return ei::GameData<std::uint8_t>(0x007AFDF0); }
+std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
+std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return ei::GameData<int>(0x0079BEC4); }
 int& Spectator0() { return ei::GameData<int>(0x0079BEC0); }
 std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
@@ -1800,8 +1801,10 @@ namespace {
 
 // The game types' (ClientSession::gameType_, 0..3) variable set to 1 and briefing name.
 
-unsigned& ServerStamp() { return ei::GameData<unsigned>(0x007AFED0); }   // the newest variable stamp seen
-unsigned& AppliedStamp() { return ei::GameData<unsigned>(0x007AFED4); }  // the stamp applied up to
+unsigned g_serverStamp = /*007AFED0*/ {};
+unsigned& ServerStamp() { return g_serverStamp; }   // the newest variable stamp seen
+unsigned g_appliedStamp = /*007AFED4*/ {};
+unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 
 // The quest text files (007AFDD0, a vector of strings) and the briefing texts (007AF788).
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).

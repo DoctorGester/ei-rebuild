@@ -461,7 +461,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             // Missiles: a byte 1 before each one, 0 at the end. They find the world through
             // the global at 007C84EC while they load.
-            LoadingProjectileWorld() = this;
+            g_loadingProjectileWorld = this;
             for (;;) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
                 if (!more) break;

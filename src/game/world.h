@@ -428,8 +428,8 @@ struct __declspec(novtable) Projectile {
 };
 static_assert(offsetof(Projectile, references) == 4);
 static_assert(offsetof(Projectile, referenceCount) == 4);
-// 007C84EC: the world the missiles find while they load (LoadSave sets it).
-inline CWorldServer*& LoadingProjectileWorld() { return ei::GameData<CWorldServer*>(0x007C84EC); }
+// The world the missiles find while they load (LoadSave sets it).
+inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
 // The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
 // FreeNode (0059C810, world_tick.cpp) releases the node's missile.
 using ProjectileList = mfc::CTypedPtrList<Projectile>;
@@ -2099,8 +2099,8 @@ int __stdcall LoadMission(void* file);
 // false on a bad header or checksum.
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
-// 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
-inline int SaveLastUncompressedVersion() { return ei::GameData<const int>(0x00790264); }
+// The newest save version stored uncompressed (SaveFileRead reads those as they are).
+inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
