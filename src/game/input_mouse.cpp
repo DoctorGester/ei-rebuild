@@ -23,11 +23,11 @@ const GUID& SystemMouseId() { return *reinterpret_cast<const GUID*>(std::uintptr
 // c_dfDIMouse's axes (the game's GUID_XAxis, GUID_YAxis, GUID_ZAxis).
 const GUID* AxisId(std::uintptr_t address) { return reinterpret_cast<const GUID*>(address); }
 
-const char* const kNoInput = game::Text(0x00794C10);        // "Can't create direct input object\n"
-const char* const kNoDevice = game::Text(0x00794BE4);       // "Can't create direct input device for mouse\n"
-const char* const kNoFormat = game::Text(0x00794BBC);       // "Can't set data format for mouse device\n"
-const char* const kNoCooperation = game::Text(0x00794B8C);  // "Can't set cooperative level for mouse device\n"
-const char* const kNoAcquire = game::Text(0x00794B70);      // "Can't acquire mouse device\n"
+const char* const kNoInput = "Can't create direct input object\n";        // "Can't create direct input object\n"
+const char* const kNoDevice = "Can't create direct input device for mouse\n";       // "Can't create direct input device for mouse\n"
+const char* const kNoFormat = "Can't set data format for mouse device\n";       // "Can't set data format for mouse device\n"
+const char* const kNoCooperation = "Can't set cooperative level for mouse device\n";  // "Can't set cooperative level for mouse device\n"
+const char* const kNoAcquire = "Can't acquire mouse device\n";      // "Can't acquire mouse device\n"
 
 constexpr DWORD kInputVersion = 0x0700;
 

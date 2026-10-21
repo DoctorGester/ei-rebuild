@@ -93,14 +93,14 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
     CursorDrawFrame(static_cast<CCursor*>(Screen()));   // 005E54A0
-    if (DevicePresent(RenderDeviceObject())) game::FatalError(game::Text(0x00784A30));   // 004EF610: "Can't flip render surface"
+    if (DevicePresent(RenderDeviceObject())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
     static_cast<CCursor*>(Screen())->ReleaseLock();
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, game::Text(0x00784A20), Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
-        game::FatalError(game::Text(0x007849F4), path);   // "Can't open file (%s) to write movie"
+        game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
         Global<std::uint8_t>(0x0079BC54) = 0;
         return;
     }
@@ -136,16 +136,16 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     IniConstruct(ini);
     {
         alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), reinterpret_cast<const mfc::CString*>(0x007AF460), game::Text(0x00784A5C));
+        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), reinterpret_cast<const mfc::CString*>(0x007AF460), "config\\movie.ini");
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }
-    reinterpret_cast<CIniFile*>(ini)->GetList(section, game::Text(0x00784A54), reinterpret_cast<console::CStringArray*>(&list), ',');
+    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", reinterpret_cast<console::CStringArray*>(&list), ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
-        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), game::Text(0x00784A4C));
+        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), "Movies\\");
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
         PlayMovie(*full, 0, 1, 0, 0, static_cast<char>(a), b);
         full->~CString();

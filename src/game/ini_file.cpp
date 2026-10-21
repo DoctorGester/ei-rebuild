@@ -17,11 +17,11 @@
 
 namespace {
 
-const char* const kDoubleFormat = game::Text(0x0078DA68);  // "%g"
-const char* const kIntFormat = game::Text(0x0078EEEC);     // "%d"
-const char* const kUIntFormat = game::Text(0x0079614C);    // "%u"
-const char* const kFloatFormat = game::Text(0x007842D4);   // "%f"
-const char* const kLongFloatFormat = game::Text(0x00796150); // "%lf"
+const char* const kDoubleFormat = "%g";
+const char* const kIntFormat = "%d";
+const char* const kUIntFormat = "%u";
+const char* const kFloatFormat = "%f";
+const char* const kLongFloatFormat = "%lf";
 constexpr char kListSeparator = ',';
 
 // The game's CRT conversions.

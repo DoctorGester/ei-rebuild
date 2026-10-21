@@ -109,7 +109,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
             ScriptNamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;
         }
-        letter = game::Text(0x0078BBD8);
+        letter = "f";
         break;
     case kScriptString:
         if (FindName(vars.stringNames, text) >= 0) {
@@ -120,7 +120,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
             ScriptNamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
         }
-        letter = game::Text(0x0078BBD4);
+        letter = "s";
         break;
     case kScriptObject:
         if (FindName(vars.objectNames, text) >= 0) {
@@ -131,7 +131,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
             ScriptNamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
             result = 1;
         }
-        letter = game::Text(0x0078BBD0);
+        letter = "o";
         break;
     case kScriptGroup:
         if (FindName(vars.groupNames, text) >= 0) {
@@ -144,7 +144,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
             vars.groupNames.data[at] = temp;
             result = 1;
         }
-        letter = game::Text(0x0078BBCC);
+        letter = "g";
         break;
     default:
         // The original leaves the name argument in the result register: nonzero, and `params`

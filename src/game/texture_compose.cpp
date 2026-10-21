@@ -23,9 +23,9 @@
 namespace {
 
 const mfc::CString& GameFolder() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
-const char* const kTextures = game::Text(0x0078FFE4);     // "textures\\"
-const char* const kMmp = game::Text(0x0078FB4C);          // ".mmp"
-const char* const kCantWrite = game::Text(0x00795FA4);    // "Can't open file \"%s\" to write result texture.\n"
+const char* const kTextures = "textures\\";
+const char* const kMmp = ".mmp";
+const char* const kCantWrite = "Can't open file \"%s\" to write result texture.\n";    // "Can't open file \"%s\" to write result texture.\n"
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
 constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeWrite
@@ -33,8 +33,8 @@ constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeW
 
 // The aligned byte allocation [004ECB50].
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
-const char* const kCantFindLayer = game::Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
-const char* const kWrongLayerSize = game::Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
+const char* const kCantFindLayer = "Can't find texture \"%s\" for layer composition.\n";    // "Can't find texture \"%s\" for layer composition.\n"
+const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n";   // "Texture \"%s\" dimentions are incorrect.\n"
 
 // A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
 template <typename T>

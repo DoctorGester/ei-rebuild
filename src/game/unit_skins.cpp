@@ -123,7 +123,7 @@ void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), fro
 void AppendName(const UnitModelRecord* model, const mfc::CString& name, char* buffer) {
     CopyText(buffer, ModelPrefix(model));
     AppendText(buffer, name);
-    AppendText(buffer, game::Text(0x0078FB4C));   // ".mmp"
+    AppendText(buffer, ".mmp");
 }
 
 void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
@@ -202,9 +202,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         mfc::CString skin;
         StringArraySetSize(&set.names, nullptr, 0, -1);
         if (prototype) {
-            skin.Format(game::Text(0x0078FB64), ModelPrefix(model), prototype->skin);   // "%sskin_%.2d.mmp"
+            skin.Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
         } else {
-            skin.Format(game::Text(0x0078FB54), ModelPrefix(model));                             // "%sskin_00.mmp"
+            skin.Format("%sskin_00.mmp", ModelPrefix(model));
         }
         StringArraySetAtGrowStringOriginal(&set.names, nullptr, set.names.GetSize(), &skin);
         for (int slot = 3; slot <= 6; ++slot) {
@@ -214,9 +214,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         mfc::CString name;
         if (record->modelNumber != -1) {
-            name.Format(game::Text(0x0078FB7C), record->modelNumber);                     // "mo%dp"
+            name.Format("mo%dp", record->modelNumber);
         } else {
-            name.Format(game::Text(0x0078FB74), static_cast<int>(record->prototype));     // "prot%dp"
+            name.Format("prot%dp", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x100, 1);
 
@@ -226,9 +226,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
-            name.Format(game::Text(0x0078FB44), record->modelNumber);                     // "mo%ds"
+            name.Format("mo%ds", record->modelNumber);
         } else {
-            name.Format(game::Text(0x0078FB3C), static_cast<int>(record->prototype));     // "prot%ds"
+            name.Format("prot%ds", static_cast<int>(record->prototype));
         }
         Compose(self, built, set, name, 0x80, 2);
     }
