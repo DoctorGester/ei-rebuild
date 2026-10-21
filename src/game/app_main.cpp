@@ -58,6 +58,7 @@
 #include "originals_world.h"
 #include "render/render.h"
 #include "world_glue.h"
+#include "../hook/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -360,6 +361,10 @@ void RegisterWindowClass(HINSTANCE instance) {
 
     HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(g_windowClassAtom), WindowTitle());
     if (!other) return;
+    DWORD otherProcess = 0;
+    gameapi::GetWindowThreadProcessId(other, &otherProcess);
+    ei::Log("app: another game window exists (window %p of process %lu, class and title \"%s\" the same): the one-instance "
+            "check ends this game with exit code -1", static_cast<void*>(other), otherProcess, WindowTitle());
     const DWORD foregroundThread = gameapi::GetWindowThreadProcessId(gameapi::GetForegroundWindow(), nullptr);
     const DWORD otherThread = gameapi::GetWindowThreadProcessId(other, nullptr);
     if (otherThread != foregroundThread || gameapi::IsIconic(other)) {

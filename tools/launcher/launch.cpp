@@ -852,7 +852,13 @@ int wmain(int argc, wchar_t** argv) {
     if (job) CloseHandle(job);   // ends whatever the games left running
     if (peerSlot) CloseHandle(peerSlot);
     DWORD code = games[0].code;
-    if (harness.empty()) return static_cast<int>(code);
+    if (harness.empty()) {
+        // The image's one-instance check ends the game with exit code -1 (ei_hook.log: "another game window exists").
+        if (code == 0xFFFFFFFFu)
+            std::fwprintf(stderr, L"ei_launch: the game ended with exit code -1: another game window exists "
+                                  L"(the one-instance check; ei_hook.log names it)\n");
+        return static_cast<int>(code);
+    }
     if (!timedOut && !unkillable)
         for (const Game& game : games)
             if (!game.quitSeen) ReportSilentEnd(game, standalone);
