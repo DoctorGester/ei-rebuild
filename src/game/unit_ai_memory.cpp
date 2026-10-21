@@ -116,8 +116,8 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (!attacksUs) {
         double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
                        ours->stats.valuesB0[0].current;
-        double near = static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current;
-        if (sight > distance && near > distance) return;
+        double nearValue = static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current;
+        if (sight > distance && nearValue > distance) return;
     }
     if (IsDead(object)) {
         console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";

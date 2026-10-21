@@ -6,6 +6,7 @@
 #include "registry.h"
 #include "resource.h"
 #include "originals_engine.h"
+#include "system_text.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -74,7 +75,7 @@ std::string Lower(std::string text) {
 
 // addon's 1001B9B3: the path names a file (GetFileAttributes; not a folder).
 bool FileExists(const std::string& path) {
-    DWORD attributes = GetFileAttributesA(path.c_str());
+    DWORD attributes = text::sys::GetFileAttributesA(path.c_str());
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
@@ -201,7 +202,7 @@ struct MapsListing {
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
     WIN32_FIND_DATAA found;
-    HANDLE find = FindFirstFileA(pattern.c_str(), &found);
+    HANDLE find = text::sys::FindFirstFileA(pattern.c_str(), &found);
     if (find == INVALID_HANDLE_VALUE) return;
     do {
         if (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -217,7 +218,7 @@ void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list)
         if (!list.hasQuestList && length >= 3 && std::strcmp(found.cFileName + length - 3, ".mq") == 0)
             list.hasQuestList = true;
         list.names.push_back(found.cFileName);
-    } while (FindNextFileA(find, &found));
+    } while (text::sys::FindNextFileA(find, &found));
     FindClose(find);
 }
 

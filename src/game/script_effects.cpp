@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_slots.h"
 
 #include <climits>
 #include <cmath>

@@ -212,6 +212,131 @@ inline void InitAttention12(Attention12* p) {
 }
 using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
 
+// ---- The container instantiations of mfc_array.h and mfc_list.h ----------------------------------
+//
+// Their tags are declared there (the element policies and aliases name them) and defined here: one class per vtable,
+// each with the slots the exe's table has (the instantiation's destructor and Serialize). A tag that is a base of
+// another is not final (the base is defined first); the derived tag's table calls the base's destructor.
+
+using List30 = ListAbi<Bytes<0x30>>;
+
+// CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
+struct IntArrayClass final
+    : CompiledCollection<IntArrayClass, &ArrayHeader<IntArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The interface's unit pointer arrays
+struct UnitPtrArrayClass final
+    : CompiledCollection<UnitPtrArrayClass, &ArrayHeader<UnitPtrArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The script commands' float arguments (a CArray<float> subclass)
+struct ArgFloatArrayClass final
+    : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// The script's float variables
+struct ScriptFloatsClass final
+    : CompiledCollection<ScriptFloatsClass, &ArrayHeader<ScriptFloatsClass>::Destruct, &SerializeCArray<Plain4>> {};
+// A script area's parts
+struct ScriptAreaClass
+    : CompiledCollection<ScriptAreaClass, &ArrayHeader<ScriptAreaClass>::Destruct, &SerializeCArray<Plain20>> {};
+// The array a script area element holds (base ScriptAreaClass)
+struct ScriptAreaPartsClass final : ScriptAreaClass {
+    static void* Vtable() { return CompiledVtable<ScriptAreaPartsClass>(); }
+};
+// The script's if-then blocks
+struct ScriptIfThenArrayClass final
+    : CompiledCollection<ScriptIfThenArrayClass, &ArrayHeader<ScriptIfThenArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// The script's party slots
+struct PartySlotArrayClass final
+    : CompiledCollection<PartySlotArrayClass, &ArrayHeader<PartySlotArrayClass>::Destruct, &SerializeCArray<Placements>> {};
+// The AI's look records
+struct AiLookArrayClass
+    : CompiledCollection<AiLookArrayClass, &ArrayHeader<AiLookArrayClass>::Destruct, &SerializeCArray<Plain16>> {};
+// The array inside the AI's 32-byte look records (base AiLookArrayClass)
+struct AiLookRecordArrayClass final : AiLookArrayClass {
+    static void* Vtable() { return CompiledVtable<AiLookRecordArrayClass>(); }
+};
+// The weather and lightning sprites
+struct SpriteArrayClass final
+    : CompiledCollection<SpriteArrayClass, &ArrayHeader<SpriteArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// A figure's bone links
+struct BoneLinkArrayClass final
+    : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &SerializeCArray<KeyFrames>> {};
+// The base vtable the element arrays' destructors restore (patrols, motion records)
+struct ArrayBaseClass
+    : CompiledCollection<ArrayBaseClass, &ArrayHeader<ArrayBaseClass>::Destruct, &SerializeCArray<Plain20>> {};
+// A patrol's waypoints
+struct WaypointArrayClass final : ArrayBaseClass {
+    static void* Vtable() { return CompiledVtable<WaypointArrayClass>(); }
+};
+// A unit's point lists
+struct PointArrayClass final
+    : CompiledCollection<PointArrayClass, &ArrayHeader<PointArrayClass>::Destruct, &SerializeCArray<Plain8>> {};
+// A unit's attack options
+struct AttackOptionArrayClass final
+    : CompiledCollection<AttackOptionArrayClass, &ArrayHeader<AttackOptionArrayClass>::Destruct, &SerializeCArray<Plain40>> {};
+// A unit's animation steps
+struct AnimationStepsClass
+    : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &SerializeCArray<AnimationSteps>> {};
+// The animation steps a motion copies
+struct AnimationStepsCopyClass final : AnimationStepsClass {
+    static void* Vtable() { return CompiledVtable<AnimationStepsCopyClass>(); }
+};
+// The AI map's cell rows
+struct CellRowArrayClass final
+    : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &SerializeCArray<Plain4>> {};
+// CArray<CString> (the script's string variables)
+struct StringArrayClass final
+    : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &SerializeStringArray> {};
+// CPtrList (the lists the code builds on the stack; blocks of 10)
+struct PtrListClass final
+    : CompiledCollection<PtrListClass, &PtrList::Destruct<PtrListClass>, &SerializeCList<PtrList>> {};
+// The item and object pointer lists (CTypedPtrList)
+struct ItemListClass final
+    : CompiledCollection<ItemListClass, &PtrList::Destruct<ItemListClass>, &SerializeCList<PtrList>> {};
+// A pointer list built around each item creation (world quests)
+struct TempListClass final
+    : CompiledCollection<TempListClass, &PtrList::Destruct<TempListClass>, &SerializeCList<PtrList>> {};
+// The units' path cell lists
+struct CellListClass final
+    : CompiledCollection<CellListClass, &PtrList::Destruct<CellListClass>, &SerializeCList<List8>> {};
+// The loot lists
+struct LootListClass final
+    : CompiledCollection<LootListClass, &PtrList::Destruct<LootListClass>, &SerializeCList<PtrList>> {};
+// The client maps' platform lists
+struct PlatformListClass final
+    : CompiledCollection<PlatformListClass, &PtrList::Destruct<PlatformListClass>, &SerializeCList<List4C>> {};
+// The client map's lists (world_client_maps 0056FD40)
+struct ClientListClass final
+    : CompiledCollection<ClientListClass, &PtrList::Destruct<ClientListClass>, &SerializeCList<PtrList>> {};
+// 00570EA0's list
+struct ClientList2Class final
+    : CompiledCollection<ClientList2Class, &PtrList::Destruct<ClientList2Class>, &SerializeCList<PtrList>> {};
+// 005715D0's list
+struct ClientList3Class final
+    : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &SerializeCList<PtrList>> {};
+// The AI map's node lists
+struct NodeListClass final
+    : CompiledCollection<NodeListClass, &PtrList::Destruct<NodeListClass>, &SerializeCList<List1C>> {};
+// The AI's block cost lists
+struct BlockCostListClass final
+    : CompiledCollection<BlockCostListClass, &PtrList::Destruct<BlockCostListClass>, &SerializeCList<List12>> {};
+// The AI map's lists
+struct AiMapListClass final
+    : CompiledCollection<AiMapListClass, &PtrList::Destruct<AiMapListClass>, &SerializeCList<List8>> {};
+// The AI plan's waypoint lists
+struct WaypointListClass final
+    : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &SerializeCList<List12>> {};
+// The list a static initialiser builds (005CDAD0)
+struct StaticListClass final
+    : CompiledCollection<StaticListClass, &PtrList::Destruct<StaticListClass>, &SerializeCList<List30>> {};
+// The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
+struct DwordMapClass final
+    : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &SerializeCMap<Map32>> {};
+
+// The animation list's copy constructor of the steps' array alone (00556870): the copy tag's table written first.
+inline AnimationStepListAbi::Array* __fastcall AnimationStepListAbi::CopyConstructSteps(Array* self, void*, const Array* source) {
+    self->Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
+    self->Copy(*source);
+    return self;
+}
+
 // ---- Element policies of the owned-element arrays ------------------------------------------------
 
 // The CStrings at the given offsets destroyed, in the order given.
@@ -262,8 +387,6 @@ using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStrin
 using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
 using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
 using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
-
-using List30 = ListAbi<Bytes<0x30>>;
 
 // The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
 using DwordMap = CMap<std::uint32_t, std::uint32_t>;

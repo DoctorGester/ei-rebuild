@@ -1273,7 +1273,7 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     vtable_ = ei::GamePointer<void*>(0x00740A2C);
     inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
-    heroes_.Construct(0x007402AC);
+    heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     pageTitles_.Construct();
     vtable_ = ei::GamePointer<void*>(0x0074091C);
     inputVtable_ = ei::GamePointer<void*>(0x007408E8);

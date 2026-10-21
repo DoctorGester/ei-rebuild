@@ -54,7 +54,7 @@ namespace {
 // ---- Constants --------------------------------------------------------------------------------
 
 // kMemoryStreamVtable (0073BD90) and kStreamVtable (0073BDB0, its CStream base): core_streams.h.
-// The CArray<int> vtable is mfc::DWordArrayVtable, the script group's scriptvtable::kRefs (set
+// The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
@@ -283,7 +283,7 @@ namespace {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     IdArray stranded;
-    stranded.vtable = mfc::DWordArrayVtable();
+    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
     stranded.data = nullptr;
     stranded.growBy = 0;
     stranded.maxSize = 0;
@@ -314,7 +314,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
     }
-    stranded.vtable = mfc::DWordArrayVtable();
+    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
     if (stranded.data) gamecrt::operator_delete(stranded.data);
 }
 
@@ -353,7 +353,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         if (stream->version_ < kVersionPlayerGroup) {
             ScriptGroup group;
             mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
-            group.vtable = scriptvtable::kRefs;
+            group.vtable = mfc::impl::ScriptGroupClass::Vtable();
             group.Load(stream);
             ScriptGroupDestructOriginal((void*)&group);
         }
@@ -815,7 +815,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
     SharedObjectList& shared = sharedObjects_;
-    ObjectPtrArray empty{SharedObject::ObjectsVtable(), nullptr, 0, 0, 0};
+    ObjectPtrArray empty{mfc::impl::ObjectPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.head);
     ObjectPtrArrayCopy(&node->data.objects, &empty);
     if (shared.head) shared.head->prev = node;

@@ -33,7 +33,6 @@ float TexelStep() { return 0.00390625f /*0073EEB8*/; }
 // The layout y the columns' bottom button sits at (00742948, 490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
 
-constexpr std::uintptr_t kDwordArrayVtable = std::uintptr_t(0x0073C3D0);
 
 constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
@@ -297,7 +296,7 @@ EI_REPLACE_METHOD(0x0063E4B0, CHudSpellColumn::AddSpell);
 CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
-    actions_.Construct(kDwordArrayVtable);
+    actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
     vtable_ = Vtable(0x00742980);
     inputVtable_ = Vtable(0x0074294C);

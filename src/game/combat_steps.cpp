@@ -18,6 +18,7 @@
 #include "unit.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -158,10 +159,10 @@ struct ScratchSteps {
     AnimationSteps steps;
     ScratchSteps() {
         std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = kAnimationStepsVtable;
+        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     }
     ~ScratchSteps() {
-        steps.vtable = kAnimationStepsBaseVtable;
+        steps.vtable = mfc::impl::AnimationStepsClass::Vtable();
         if (steps.steps) gamecrt::operator_delete(steps.steps);
     }
 };

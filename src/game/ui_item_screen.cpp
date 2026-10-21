@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_render.h"
@@ -183,7 +184,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     auto* camp = static_cast<CCampPages*>(self);
     camp->pageTitles_.Destruct();
     // The heroes CArray (vtable 007402AC).
-    camp->heroes_.vtable = ei::GamePointer<void>(0x007402AC);
+    camp->heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
     DestroyCache(self->textures_);
     DestroyCache(self->models_);

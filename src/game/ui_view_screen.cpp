@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
@@ -26,9 +27,9 @@ namespace {
 // An extra input side whose slots do nothing (vtable 00741154).
 void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 // The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
-void* OrderUnitsVtable() { return ei::GamePointer<void>(0x007402AC); }
+void* OrderUnitsVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }
 // CDWordArray's vtable (0073C3D0).
-void* DwordArrayVtable() { return ei::GamePointer<void>(0x0073C3D0); }
+void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }
 
 constexpr int kVkControl = 0x11;
 constexpr int kVkSpace = 0x20;

@@ -70,7 +70,7 @@ CScript* CScript::Construct() {
 
     // The evaluator's temporaries start with one empty group and one null reference.
     ScriptGroup group;
-    ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), scriptvtable::kRefs);
+    ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), mfc::impl::ScriptGroupClass::Vtable());
     // An empty group and a null reference at the temporary lists' heads (004C8CE0, 004C9210).
     tempGroups_.PushHead(&group);
     ScriptGroupDestructOriginal(&group);

@@ -17,6 +17,7 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cmath>
@@ -286,7 +287,7 @@ void FearMode::Execute(AIBrain* brain) {
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
         AIObjectList candidates{};
-        candidates.vtable = mfc::PtrListVtable();
+        candidates.vtable = mfc::impl::PtrListClass::Vtable();
         candidates.blockSize = 10;
         int best[2] = {-1, 0};      // {part, object}
         Vector3 at = *PositionOf(brain->owner->unit);

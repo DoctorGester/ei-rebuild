@@ -555,7 +555,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     // The zone's exits, all leading to "MPGame1".
     ZoneExitArray exits;
     mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
-    exits.vtable = ei::GamePointer<void>(kExitArrayVtable);
+    exits.vtable = mfc::impl::MapRecordItemsClass::Vtable();
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
@@ -579,7 +579,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         TheServerWorld()->LoadMobFile(mob);
     }
 
-    exits.vtable = ei::GamePointer<void>(kExitArrayBaseVtable);
+    exits.vtable = mfc::impl::ExitArrayClass::Vtable();
     if (exits.data) {
         for (int i = 0; i < exits.size; ++i) exits.data[i].target.~CString();
         gamecrt::operator_delete(exits.data);

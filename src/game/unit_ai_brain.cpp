@@ -18,6 +18,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <cmath>
 #include <cstddef>
@@ -33,7 +34,6 @@ float InitialCallRadius() { return 10.0f /*0073FED8*/; }
 // 0073FF00: a new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
-void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 
 } // namespace
 
@@ -296,7 +296,7 @@ EI_REWRITTEN(0x005D64E0, AIBrain::StandardSentry);
 
 void AIBrain::CallAllies(const Vector3* point) {
     mfc::CTypedPtrList<CUnit> units{};
-    units.vtable = kPtrListVtable;
+    units.vtable = mfc::impl::PtrListClass::Vtable();
     units.blockSize = 10;
     CUnit* self = owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);

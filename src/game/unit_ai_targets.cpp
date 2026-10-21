@@ -18,6 +18,7 @@
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cmath>
@@ -328,7 +329,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
     if (spells.size != 0) {
         // The unit and its allies in sight that are alive and not reported.
         AIObjectList allies{};
-        allies.vtable = mfc::PtrListVtable();
+        allies.vtable = mfc::impl::PtrListClass::Vtable();
         allies.blockSize = 10;
         allies.AddTail(self);
         for (auto* node = brain->memory.nearby.head; node; node = node->next) {

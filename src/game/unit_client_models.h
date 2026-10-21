@@ -126,9 +126,8 @@ public:
     // attack and defence by the difficulty for units without a text key.
     void GetAttackParams(AttackParams* out);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073ECD8);
-    // The controller base class's vtable (the destructor body ends with it) and the list +0x58's.
+    // The controller base class's vtable (the destructor body ends with it).
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073EDBC);
-    static constexpr std::uintptr_t kList58VtableAddress = std::uintptr_t(0x0073EDB0);
 
     // 005381B0. Virtual slot 26: the unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not

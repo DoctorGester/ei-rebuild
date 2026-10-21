@@ -28,6 +28,7 @@
 #include "library_containers.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/mfc_slots.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -92,7 +93,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     camp->vtable_ = ei::GamePointer<void*>(0x00740A2C);
     camp->inputVtable_ = ei::GamePointer<void*>(0x007409F8);
     camp->fromHeroScreen_ = true;   // opened from the hero screen
-    camp->heroes_.Construct(0x007402AC);
+    camp->heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     camp->pageTitles_.Construct();
     camp->vtable_ = ei::GamePointer<void*>(0x0074091C);
     camp->inputVtable_ = ei::GamePointer<void*>(0x007408E8);

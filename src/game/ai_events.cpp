@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -39,8 +40,7 @@ void PushFree(AIEvent* event) {
 } // namespace
 
 void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
-    constexpr std::uintptr_t kPoolVtable = std::uintptr_t(0x0073FEB4);
-    pool->vtable = ei::GamePointer<void>(kPoolVtable);
+    pool->vtable = mfc::impl::StaticListClass::Vtable();
     pool->RemoveAll();
 }
 EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);

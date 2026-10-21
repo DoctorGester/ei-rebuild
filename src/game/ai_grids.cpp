@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -169,7 +170,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
     levels.width = 1;
     levels.height = 1;
     AllocateGrid(levels);
-    cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
+    cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
     cellRows = nullptr;
     cellRowGrowBy = 0;
     cellRowMax = 0;
@@ -181,7 +182,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
 EI_REWRITTEN(0x005B3FF0, LocalSearch::Construct);
 
 void LocalSearch::Destruct() {
-    cellRowsVtable = ei::GamePointer<void>(kCellRowArrayVtable);
+    cellRowsVtable = mfc::impl::CellRowArrayClass::Vtable();
     if (cellRows) gamecrt::operator_delete(cellRows);
     FreeGrid(levels);
     FreeGrid(nodes);
@@ -189,7 +190,7 @@ void LocalSearch::Destruct() {
 EI_REWRITTEN(0x0058AA60, LocalSearch::Destruct);
 
 CUnitLayer* CUnitLayer::Construct() {
-    nodes.vtable = ei::GamePointer<void>(kNodeListVtable);
+    nodes.vtable = mfc::impl::NodeListClass::Vtable();
     nodes.count = 0;
     nodes.free = nullptr;
     nodes.tail = nullptr;
@@ -204,7 +205,7 @@ CUnitLayer* CUnitLayer::Construct() {
 EI_REPLACE_METHOD(0x005B4110, CUnitLayer::Construct);
 
 void CUnitLayer::Destruct() {
-    nodes.vtable = ei::GamePointer<void>(kNodeListVtable);
+    nodes.vtable = mfc::impl::NodeListClass::Vtable();
     nodes.count = 0;
     nodes.free = nullptr;
     nodes.tail = nullptr;

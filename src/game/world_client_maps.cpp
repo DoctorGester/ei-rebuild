@@ -66,6 +66,8 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 #include "game/game_slots.h"
+#include "game/record_arrays.h"
+#include "system_text.h"
 
 #include <new>
 #include <windows.h>
@@ -1333,7 +1335,7 @@ int CWorldClient::Setup() {
     {
         mfc::CString path(mfc::CString::kUnset);
         CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
-        cursor_ = LoadCursorFromFileA(path);
+        cursor_ = text::sys::LoadCursorFromFileA(path);
     }
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
@@ -1455,7 +1457,7 @@ int PlatformSet::Clear() {
 EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
 
 void PlatformSet::DestructBody() {
-    list.vtable = ei::GamePointer<void>(worlddata::kPlatformListVtable);
+    list.vtable = mfc::impl::PlatformListClass::Vtable();
     list.RemoveAll();
     Engine()->DestructBase();
 }
@@ -1524,7 +1526,7 @@ ClientArrayManager::ClientArrayManager() {
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    list.vtable = ei::GamePointer<void>(worlddata::kClientArrayListVtable);
+    list.vtable = mfc::impl::ClientList3Class::Vtable();
     list.RemoveAll();
     if (current) current->Release();
 }
