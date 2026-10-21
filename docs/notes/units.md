@@ -221,7 +221,7 @@ address in its source comment (grep the address); the per-function table that us
 ## Original bugs and oddities kept on purpose
 
 - Client `Level` (00539160) of a unit with experience 0: ln 0 = -inf and FISTP turns it into 0x80000000 (INT_MIN), not 0;
-  ours returns the same (X11: the CRT's lrint gave 0). A ratio within an ULP of .5 may round differently (std::log).
+  ours returns the same (x87::RoundToInt; X11: the CRT's lrint gave 0). A ratio within an ULP of .5 may round differently (std::log).
 - PlayStepSounds: a step frame of 1 ends the step list (the frame is the entry minus 1, tested for 0), so an entry 0 never
   matches; the footprint scale reads the prototype unchecked; the "shown" flag goes to 0056D150 with stack garbage in its
   upper bytes (ours 0 / 1); FootstepSound divides by a missing ground kind's count of 0 when a platform turns the kind into 2.

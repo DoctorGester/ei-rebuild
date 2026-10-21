@@ -93,7 +93,9 @@ comes from a bug we already hit.
      original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it at double precision: write it as the
      float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; `tools/check_fp_fold.py` (build.cmd) finds such
      double constants.
-   - Rounding mode matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates, `_ftol` truncates.
+   - Rounding mode matters: FISTP rounds to nearest (use `x87::RoundToInt`, float or double, or `x87::fistp`, float), a C++ cast
+     truncates, `_ftol` truncates. Not `std::lrint`: the UCRT's reads the FP environment on every call, follows MXCSR's rounding
+     rather than the x87 one, and gives 0 with errno EDOM where FISTP gives 0x80000000 (SV10j).
    - The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at every frame boundary in both installs; other
      threads run at 53 bits). A float the original returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
      callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it

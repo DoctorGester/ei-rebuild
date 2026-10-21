@@ -26,9 +26,10 @@ namespace {
 
 HANDLE g_main = nullptr;
 std::uintptr_t g_stackBase = 0;
-std::uintptr_t g_selfBase = 0, g_selfEnd = 0, g_exeEnd = 0;
+std::uintptr_t g_selfBase = 0, g_selfEnd = 0, g_exeCode = 0, g_exeCodeEnd = 0;
 
-bool InCode(std::uintptr_t a) { return (a >= 0x00401000 && a < g_exeEnd) || (a >= g_selfBase + 0x1000 && a < g_selfEnd); }
+// game.exe's code sections only: a stack word into its data (the image's sealed .bss) is not read (SV10j).
+bool InCode(std::uintptr_t a) { return (a >= g_exeCode && a < g_exeCodeEnd) || (a >= g_selfBase + 0x1000 && a < g_selfEnd); }
 
 // A return address: the bytes before it are a CALL (E8 rel32, or FF /2 in its 2-7 byte forms).
 bool AfterCall(std::uintptr_t a) {
@@ -119,14 +120,17 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    // game.exe's range: its module, or in the standalone image (the host exe's own module sits below
+    // game.exe's code: its module, or in the standalone image (the host exe's own module sits below
     // 0x400000) the headers the host laid out at the image base.
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(kImageBase);
-    if (Standalone()) {
-        g_exeEnd = kImageBase + reinterpret_cast<const IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew)->OptionalHeader.SizeOfImage;
-    } else {
-        GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &info, sizeof info);
-        g_exeEnd = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll) + info.SizeOfImage;
+    const std::uintptr_t base = Standalone() ? kImageBase : reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr));
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
+    const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
+    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i, ++section) {
+        if (!(section->Characteristics & IMAGE_SCN_CNT_CODE)) continue;
+        const std::uintptr_t start = base + section->VirtualAddress, end = start + section->Misc.VirtualSize;
+        if (!g_exeCode || start < g_exeCode) g_exeCode = start;
+        if (end > g_exeCodeEnd) g_exeCodeEnd = end;
     }
     HANDLE thread = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
     SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
