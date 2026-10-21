@@ -5,12 +5,12 @@
 #include "map_object_animation.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -28,15 +28,15 @@ int ReadCount(std::uint8_t** cursor) {
 
 } // namespace
 
-AnimationTrack* AnimationTrack::Construct() {
+AnimationTrack::AnimationTrack() {
     ClearFields();
     frames.Construct();
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     vertices.Construct();
-    ei::SetVtable(this, kVtableAddress);
     DestroyTrack();
-    return this;
 }
+
+AnimationTrack* AnimationTrack::Construct() { return new (this) AnimationTrack(); }
 EI_REWRITTEN(0x0050A5D0, AnimationTrack::Construct);
 
 void AnimationTrack::DestroyTrack() {
@@ -53,29 +53,32 @@ void AnimationTrack::DestroyTrack() {
     vertices.RemoveAll();
     time = 0.0f;
 }
-EI_REPLACE_METHOD(0x0050A8C0, AnimationTrack::DestroyTrack);
+EI_REWRITTEN(0x0050A8C0, AnimationTrack::DestroyTrack);
 
 int AnimationTrack::CreateTrack() {
     DestroyTrack();
     return 1;
 }
-EI_REPLACE_METHOD(0x0050A810, AnimationTrack::CreateTrack);
+EI_REWRITTEN(0x0050A810, AnimationTrack::CreateTrack);
 
-void AnimationTrack::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+AnimationTrack::~AnimationTrack() {
     DestroyTrack();   // the original empties the arrays through their SetSize(0): the same result
     vertices.FreeData();
     frames.FreeData();
-    DestructBase();
 }
+
+void AnimationTrack::DestructBody() { this->AnimationTrack::~AnimationTrack(); }
 EI_REWRITTEN(0x0050A720, AnimationTrack::DestructBody);
 
 AnimationTrack* AnimationTrack::DeleteTrack(unsigned flags) {
-    DestructBody();
+    this->AnimationTrack::~AnimationTrack();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0050A700, AnimationTrack::DeleteTrack);
+EI_REWRITTEN(0x0050A700, AnimationTrack::DeleteTrack);
+
+int AnimationTrack::Create() { return CreateTrack(); }
+void AnimationTrack::Destroy() { DestroyTrack(); }
 
 void AnimationTrack::LoadKeyFrames(std::uint8_t** cursor) {
     rotationCount = ReadCount(cursor);
