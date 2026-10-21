@@ -10,12 +10,12 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   material group's name, scene_registry.cpp; the .fig file stores them as the two dwords after the header, value first, and
   `LinkPartHeader` keeps them as meshType +0x00 / materialValue +0x04), `flatColour_` / `flatSpecular_` (+0xD4 / +0xD8: the interface's
   model view sets them for every part), the part box `bounds_` (ClipBounds, +0x160..0x1B3; +0x198 is its radius, the blood particles'
-  size) and `boxPivot_` (+0x1B4). Vtable constants for the classes 0x41 (`kSharedMeshVtableAddress`, 0073FBF0), 0x42
-  (`kPlainMeshVtableAddress`, 0073C1C4) and 0x43 (`kMeshVtableAddress`, 0073FC48). `CFigureObjectVirtuals` / `FigureSlots` reach slots
-  18-21 on top of `CTransformObject`.
+  size) and `boxPivot_` (+0x1B4). The classes 0x41 (`CSharedFigureMesh`), 0x42 (`CPlainFigureMesh`) and 0x43 (`CUiMesh`)
+  are C++ classes with the compiler's vtables (C19 batch 6); CFigureMesh declares slots 18-21, CPlainFigureMesh 22 / 23.
 - `CFigureMesh` derives from `CTransformObject` (CEngineObject +0x00..0x1B, local / world position and rotation +0x1C..0x53). Its slot
-  bodies have names that override no base virtual (EI_REPLACE_METHOD would register a vcall thunk): slot 2 `CreateMesh` (0059F210), slot 18
-  `CopyFigure` (0059F0F0), 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object_`; the +0x94 drawer is `FigureMeshDrawer`, not
+  bodies have names that override no base virtual (EI_REPLACE_METHOD would register a vcall thunk; the virtuals call them): slot 2
+  `CreateMesh` (0059F210), slot 18 `CopyFigureImpl` (0059F0F0), slots 19-23 `LoadFromMemoryImpl`, `LoadFigImpl`, `LoadOldImpl`,
+  `MirrorXImpl`, `MirrorYImpl`, 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object_`; the +0x94 drawer is `FigureMeshDrawer`, not
   CLinkMesh, though both have the screen RECT at +0x20. `using FigurePart = CFigureMesh` stays only for ui_model.cpp, player_client.cpp and
   verify_ui_model.cpp. Mesh file slots take `mfc::CFileVirtuals*` (`Read` 13, `Write` 14).
 - `RasterTriangle` and `CPixelConverter` slot 9 `RasteriseKeyedTriangle` are in texture.h; link_mesh_draw.cpp uses the same struct.

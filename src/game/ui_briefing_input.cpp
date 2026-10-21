@@ -69,14 +69,13 @@ const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
-CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(CEngineObject* person) {
     CUnit* unit = ServerUnit(person->id_);
     if (!unit || !unit->controller) return true;
-    CUnitServer* controller = ControllerOf(unit);
+    CUnitServer* controller = unit->ServerController();
     return (controller->action.kind == kCommandStand || controller->action.kind == kCommandIdle) &&
            controller->action2.kind == kNextCommandNone;
 }
@@ -94,7 +93,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & kUnitBlocked)) return;
-    ControllerOf(unit)->Brain()->Walk(&point, run, 0);
+    unit->ServerController()->Brain()->Walk(&point, run, 0);
 }
 
 // --- 006030F0: input slot 2 ---------------------------------------------------------------------
@@ -236,7 +235,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     }
     if (leader_ && !noWalk_) {
         CUnit* unit = ServerUnit(leader_->id_);
-        if (unit && !(unit->flags_ & kUnitBlocked)) ControllerOf(unit)->Brain()->StopAction();
+        if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->Brain()->StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);

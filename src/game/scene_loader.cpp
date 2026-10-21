@@ -657,15 +657,15 @@ void SceneNode::Construct() {
 }
 
 // 004545C0's element.
-void SceneMesh::Construct() {
-    ConstructBase();
-    new (&name) mfc::CString();
+SceneMesh::SceneMesh() {
+    ClearFields();
+    localRotation_.SetIdentity();
+    worldRotation_.SetIdentity();
     groups.Construct(kFaceGroupArrayVtable);
-    ei::SetVtable(this, kVtableAddress);
 }
 
 // Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
-void SceneMesh::Destruct() {
+SceneMesh::~SceneMesh() {
     FaceGroupArrayDestruct(&groups);
     faces.FreeData();
     cornerIndices.FreeData();
@@ -678,18 +678,29 @@ void SceneMesh::Destruct() {
     normalBlocks.FreeData();
     positionBlocks.FreeData();
     spareBlocks098.FreeData();
-    name.~CString();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
-    CEngineObject::DestructBase();
 }
+
+void SceneMesh::Destruct() { this->SceneMesh::~SceneMesh(); }
+
+} // namespace scene
+void recordarrays::InitSceneMesh(scene::SceneMesh* p) { new (p) scene::SceneMesh(); }
+namespace scene {
 EI_REWRITTEN(0x00454830, SceneMesh::Destruct);
 
 SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
-    Destruct();
+    this->SceneMesh::~SceneMesh();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00454810, SceneMesh::DeletingDestruct);
+EI_REWRITTEN(0x00454810, SceneMesh::DeletingDestruct);
+
+int SceneMesh::Create() { return 1; }
+void SceneMesh::Destroy() {}
+const char* SceneMesh::GetName() { return name; }
+const char* SceneMesh::GetClassName() { return "CFakeFigure"; }
+int SceneMesh::GetClassId() { return 0x47; }
+void SceneMesh::SaveTransform(void*) {}
+void SceneMesh::LoadTransform(void*) {}
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
@@ -698,10 +709,6 @@ void __fastcall IndexMeshCorners(VtArray*);
 namespace {
 
 int Length(const mfc::CString& s) { return s.GetLength(); }
-
-// The figure meshes are engine objects (class 0x42; CFigureMesh keeps its vtable as a field): slot
-// 7 (GetName) gives the name.
-CEngineObject* FigureObject(CFigureMesh* figure) { return reinterpret_cast<CEngineObject*>(figure); }
 
 // The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
 using FigureRecordArray = recordarrays::FigureParts::Array;
@@ -848,7 +855,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     linkArray.SetSize(figures->size);
     for (int f = 0; f < figures->size; ++f) {
         for (int n = 0; n < s.nodes.size; ++n) {
-            const char* name = FigureObject(&figureArray.data[f])->GetName();
+            const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
             if (gamecrt::mbscmp(static_cast<const char*>(nd.name),
                                 name) != 0)

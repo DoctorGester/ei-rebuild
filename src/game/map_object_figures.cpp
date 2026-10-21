@@ -103,12 +103,12 @@ void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
 std::uint32_t CObject3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
+        auto* part = parts.data[i];
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
+        auto* part = pendingParts.data[i];
         std::memset(&part->localPosition_, 0, sizeof(part->localPosition_));
         AddPendingPart(box, part);
     }
@@ -158,14 +158,14 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
-            auto* part = static_cast<CFigureMesh*>(parts.data[i]);
+            auto* part = parts.data[i];
             const char* pieceName = part->GetName();
             const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
                 piece = lib_trees::FindLinkHeader(&figure->headers_, &key);   // 005197B0
             }
-            part = static_cast<CFigureMesh*>(parts.data[i]);
+            part = parts.data[i];
             const ClipBounds& bounds = piece->second.bounds;
             std::memcpy(&part->bounds_.center, &bounds.center, sizeof(part->bounds_.center));
             std::memcpy(&part->bounds_.boxMin, &bounds.boxMin, sizeof(part->bounds_.boxMin));
@@ -203,10 +203,10 @@ int CObject3D::LoadFiguresImpl() {
         model = static_cast<CFigureManager*>(manager)->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        static_cast<CFigureManager*>(manager)->LoadPart(static_cast<CFigureMesh*>(pendingParts.data[i]),   // 005AC2F0
+        static_cast<CFigureManager*>(manager)->LoadPart(pendingParts.data[i],   // 005AC2F0
                                                         static_cast<FigureModel*>(model), scale.x, scale.y, scale.z);
-        --static_cast<CFigureMesh*>(pendingParts.data[i])->refCount_;   // no release at 0
-        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
+        --pendingParts.data[i]->refCount_;   // no release at 0
+        auto* part = pendingParts.data[i];
         bool known = false;
         for (int k = 0; k < parts.size && !known; ++k) known = parts.data[k] == part;
         if (known) continue;
@@ -218,7 +218,7 @@ int CObject3D::LoadFiguresImpl() {
     }
     pendingParts.SetSize(0, -1);
     if (GetClassId() != kClassUnit) {
-        for (int i = 0; i < parts.size; ++i) static_cast<CFigureMesh*>(parts.data[i])->flags_ |= kPartFlagStatic;
+        for (int i = 0; i < parts.size; ++i) parts.data[i]->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }
     Specific()->ApplyMaterials();

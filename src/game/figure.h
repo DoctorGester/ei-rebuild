@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CFigureMesh;   // figure_mesh.h
+
 // Six corner positions of a bone, from a .bon file. A figure's proportions are set by three morph
 // coefficients; the bone position is interpolated between these corners:
 //   lower = lerp(lerp(c[0], c[1], s), c[2], t)
@@ -86,7 +88,7 @@ public:
     // node and its children: the first part whose name (engine object slot 7) equals the node's
     // becomes its mesh (one more reference; a mesh held before is overwritten without a release) and
     // is placed at the pose with the morph points as its offsets (005A0B10).
-    int AttachMeshes(const lib::AlignedArray<void*>* parts);
+    int AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
 
     // +0x000, +0x008..+0x018, +0x034: cleared (the names constructed and destroyed) by the
     // constructor and the destructor; nothing reads them.

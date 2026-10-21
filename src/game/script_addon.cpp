@@ -234,7 +234,7 @@ bool IsUnit(CEngineObject* object) { return object->GetClassId() == 0x50; }
 CUnitServer* UnitData(const ScriptObjectRef* ref) {
     if (!ref || !ref->object) return nullptr;
     if (!IsUnit(ref->object)) return nullptr;
-    return static_cast<CUnitServer*>(static_cast<CUnit*>(ref->object)->controller);
+    return static_cast<CUnit*>(ref->object)->ServerController();
 }
 
 bool Report(const char*, const char*, ...) { return true; }

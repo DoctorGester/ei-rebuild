@@ -319,8 +319,8 @@ int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
 }
 
 // The slots whose bodies are registered by member pointer.
-void CBaseManager::Load(void* stream) { LoadImpl(stream); }
-void CBaseManager::Save(void* stream) { SaveImpl(stream); }
+void CBaseManager::Load(CStream* stream) { LoadImpl(stream); }
+void CBaseManager::Save(CStream* stream) { SaveImpl(stream); }
 BOOL CBaseManager::Init(void* context) { return InitImpl(context); }
 BOOL CBaseManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
 BOOL CBaseManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
@@ -459,8 +459,7 @@ EI_REWRITTEN(0x00404410, CBaseManager::FreeSpares);
 // --- Saving and loading -------------------------------------------------------------------------
 
 // The spares are freed; then `count` records {id, type, prototypeId_} each create an object (slot 23).
-void CBaseManager::LoadImpl(void* stream) {
-    auto* in = static_cast<CStream*>(stream);
+void CBaseManager::LoadImpl(CStream* in) {
     FreeSpares();
     int count;
     in->Read(&count, 4);
@@ -475,8 +474,7 @@ void CBaseManager::LoadImpl(void* stream) {
 }
 
 // The object list's count, then {id, type, prototypeId_} per object.
-void CBaseManager::SaveImpl(void* stream) {
-    auto* out = static_cast<CStream*>(stream);
+void CBaseManager::SaveImpl(CStream* out) {
     int count = objectList_.count;
     out->Write(&count, 4);
     for (ObjectNode* node = objectList_.head; node;) {
@@ -494,8 +492,7 @@ void CBaseManager::SaveImpl(void* stream) {
 
 // Records {id, object data (slot 9)} until the end mark followed by a 0 byte (with a 1 byte the
 // mark is an object id after all); stops at an id not registered (FindObject inlined).
-void CBaseManager::LoadObjects(void* stream) {
-    auto* in = static_cast<CStream*>(stream);
+void CBaseManager::LoadObjects(CStream* in) {
     for (;;) {
         int id;
         in->Read(&id, 4);
@@ -506,15 +503,14 @@ void CBaseManager::LoadObjects(void* stream) {
         }
         CEngineObject* object = FindObject(static_cast<unsigned>(id));
         if (!object) return;
-        object->Load(stream);
+        object->Load(in);
     }
 }
 EI_REWRITTEN(0x004047E0, CBaseManager::LoadObjects);
 
 // {id, [1 byte if the id is the end mark], object data (slot 10)} per object in list order, then
 // the end mark and a 0 byte.
-void CBaseManager::SaveObjects(void* stream) {
-    auto* out = static_cast<CStream*>(stream);
+void CBaseManager::SaveObjects(CStream* out) {
     for (ObjectNode* node = objectList_.head; node;) {
         ObjectNode* next = node->next;
         CEngineObject* object = node->data;
@@ -524,7 +520,7 @@ void CBaseManager::SaveObjects(void* stream) {
             char one = 1;
             out->Write(&one, 1);
         }
-        object->Save(stream);
+        object->Save(out);
         node = next;
     }
     int mark = kEndOfObjects;

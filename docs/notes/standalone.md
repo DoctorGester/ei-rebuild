@@ -441,6 +441,22 @@ kinds given.
     pointing at it (a cell keeps it at its address). The check's literal and cell scans cover src/, tests/ and
     the cells; config/ and the vector data name none of these. Saves and messages carry values, not addresses:
     the goldens catch a changed value.
+  - C18g named the single-owner world* and ai* objects (1,875 -> 1,829 game data addresses): the area-list tables, the
+    mark table (00791164: 5 rows of 16; the open-cell mark is column 10, so 0079118C is inside it), occluder costs
+    and damping, steep offsets, transparency, the order angle limit, normal.dat's table, the three SpiralCache
+    function statics with their guards, function-static guards, the decal builder, stamps and the guard key, and the
+    arrays with a plain `free` exit function (world_sync's four, world_tick's two, the object sets' scratch, the
+    decals' part points: `constinit lib::AlignedArray<T> g_x = /*addr*/ {}` and the exit function ported beside it,
+    EI_REPLACE at its address; the code that registered the generated ExitXXXX registers the port). **Left**: the
+    tables the path vectors fill by address (00791108 / 0079112C / 00791978 and its middle 00791988, 0079169C,
+    the spiral tree 007C2FDC-007C2FF0, 007C3038 / 007C3058: C18i's kind), members of larger objects (the options
+    object 0079BC70-0079BEDC: 0079BC98, 0079BD24-0079BD58, 0079BE54, 0079BECC-0079BED4; the client world 007AF5B8
+    + 0x7E4: 007AF5F0, 007AF63C, 007AF758 / 75C; the server world 007AFF60: 007AFF98, 007AFFC8, 007B007C; the
+    scene renderer 007AF060: 007AF07C; the interface 007C7D50: 007C7D84, 007C7DD8), the map name lists
+    00790270-007902C0 (pointers into strings in the same region), objects with a constructor or a destructor that
+    is not a plain free (ai_region_reach's three point arrays, the water patch 007C2F64, LastResources, the script
+    stream, ai_events' pool, the shape cache, the smoothing pool), the alarm log pointer 007C2EB8 (a static
+    initialiser stores another object's address) and 007C2F8C (ln 0.6: a call's result).
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
@@ -650,18 +666,11 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     by the registered bodies ConstructBase / DestructBody / Construct / Destruct, which no code of ours calls any more
     (they go with their registrations, C20). CSkyObject and CUnit: batch 5.
 - **Batch 5's families**: CSkyObject (0073D5B8), CUnit (0073EA8C + its tail 0073EAA0) and CFakeUnit (0073BFE8): 4
-  rows, 7,004 -> 6,855 code cells. Next: the figure classes 0x41-0x43 (CFigureMesh's slots 18-23 as its own
-  virtuals, CFigureObjectVirtuals gone; the scene loader's figure records 00453240, CUiMesh, the fake figure
-  0073C274), the containers by template (the unit's member tables 0073EB84 / 90 / 9C / A8 / B4 with them),
-  network messages, interface (needs the harness id).
-  - **CSkyObject** derives from CFigureMesh (the mesh's layout plus the haze array; game.exe's 0x44 table is the
-    0x42 mesh's 0073C1C4 but for slots 0, 11 and 12). CFigureMesh got a protected constructor and destructor sharing
-    ConstructBase's and DestructBase's work (`SetUpFigure` / `TearDownFigure`); the classes 0x41-0x43 are still built
-    by those bodies with game.exe's tables (0073C224, 0073C1C4, 0073FC48, 0073FBF0). CTransformObject's slots 13-17
-    are defined (core_transform.cpp) for the compiled tables. The sky declares the figure's 15-17 (SetPose in
-    UpdateWorld's place, SaveToFile / LoadFromFile in SaveTransform's / LoadTransform's) and the mesh's 18-23 under
-    the names of CFigureMesh's non-virtual bodies, which they hide (each calls `CFigureMesh::...`); SetPose takes
-    the quaternion and offset by reference. CFigureObjectVirtuals (FigureSlots) still reaches 18-21 of the others.
+  rows, 7,004 -> 6,855 code cells.
+  - **CSkyObject** derives from CPlainFigureMesh (batch 6; the mesh's layout plus the haze array; game.exe's 0x44
+    table is the 0x42 mesh's 0073C1C4 but for slots 0, 11 and 12). CFigureMesh's protected constructor and destructor
+    share ConstructBase's and DestructBase's work (`SetUpFigure` / `TearDownFigure`). CTransformObject's slots 13-17
+    are defined (core_transform.cpp) for the compiled tables. SetPose takes the quaternion and offset by reference.
   - **CUnit**: every slot the unit changes is declared, the bodies registered at their addresses under other names
     (CreateUnit, Tick, LoadUnit, StandPoint, the net-state functions, ...) are called by the slots; slot 56's result
     (ObjectDeletedImpl has none) is 0, which nothing reads. The C++ constructor and destructor are 0052E110's and
@@ -674,6 +683,34 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
     after the bone block now, a free order only). No scenario makes a fake unit (class 0x39; coverage: dead), so
     only the builds check it. CUnit's slot bodies stay registered at their addresses until C20.
+- **Batch 6's families**: the figure classes 0x41 (CSharedFigureMesh, 0073FBF0), 0x42 (CPlainFigureMesh, 0073C1C4: the
+  factory's attached parts and the scene loader's figure records 00453240) and 0x43 (CUiMesh, "CI3DFigure", 0073FC48),
+  and the scene's meshes (scene::SceneMesh, "CFakeFigure", 0073C274): 4 rows, 6,855 -> 6,767 code cells. Next: the
+  factory's other classes (AnimationTrack 0073D9D8, FigureBone and the animation state: 0x300C / 0x300D), CObject3D
+  (0073DDD4), link_figure.h's classes (0073FB10, 0073FB44, 0073D790), the containers by template (CArray<FaceGroup> 0073C2BC, the unit's member tables
+  0073EB84 / 90 / 9C / A8 / B4), network messages, interface (needs the harness id); the bases' own tables
+  (0073B870, 00743338, 0073C224) with C20.
+  - **CFigureMesh** is the abstract base ("CFigure"): it declares slots 18-21 (CopyFigure, LoadFromMemory, LoadFig,
+    LoadOld; 20 / 21 pure) and overrides 2, 3, 7, 11, 12, 15, 16 as game.exe's base table 0073C224 has them (19 is
+    LoadNothing there). CPlainFigureMesh adds 22 / 23 (MirrorX / MirrorY) and overrides 3, 17, 19-21; CSharedFigureMesh
+    overrides 3 and 19-21 (game.exe's 0x41 table has 22 slots: no mirror); CUiMesh overrides 2, 3, 11, 12 of
+    CPlainFigureMesh, CSkyObject 11 and 12. The slot bodies keep their registered names (CreateMesh, ClearMesh,
+    SetPose, ...); where a virtual took the name the body is `...Impl` (CopyFigureImpl, LoadFromMemoryImpl, LoadFigImpl,
+    LoadOldImpl, MirrorXImpl, MirrorYImpl). CFigureObjectVirtuals / FigureSlots are gone.
+  - **0073C224 stays** (as CBaseManager's 0073B870): only ConstructBase / DestructBase store it, which no code of ours
+    calls; nothing ever has the base as its final class (game.exe's other two stores, 00476FB0 / 004A0350, are dead code).
+  - **A C++ class bigger than its object**: class 0x41 is allocated 0x1E0 bytes but CSharedFigureMesh is 0x220 (the
+    shared layout). Placement new is fine while the constructors and destructors touch nothing past 0x1E0: the members
+    after normals_ are AlignedArrays (trivial), only the constructor bodies write fields.
+  - **Value-initialisation**: the factory's `new (o) T()` zero-fills a class whose default constructor is not
+    user-provided before running it; every class it constructs declares one (CUiMesh's is empty), so the memory is
+    left as operator new gave it, as in the original.
+  - **ei_vectors** links record_arrays.cpp but not the figure or scene files: the element constructors that need the
+    classes' vtables (InitFigurePart, InitSceneMesh) are defined next to the classes and stubbed in
+    tests/vectors/replay_unlinked.cpp.
+  - **SceneMesh** (no scenario makes a fake unit's scene: builds only) overrides 2 (1), 3, 7, 11, 12, 16, 17 (empty).
+  - Registrations whose only reader was a retired table's code cell became EI_REWRITTEN
+    (`registration_readers.py --drop --only`), batch 5's sky ones with them.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

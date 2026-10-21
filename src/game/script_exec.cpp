@@ -1166,7 +1166,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA7: {   // GiveMoney(player, amount): player +0xC0
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CTypedPtrList<CEngineObject> items;
+            mfc::CTypedPtrList<CItem> items;
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
             player->Party()->Money() += Ftol(f[1]);
             PlayerOf(player)->GiveItems(&items, 0);
@@ -1177,9 +1177,9 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA6: {   // GiveItem(player, item)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CTypedPtrList<CEngineObject> items;
+            mfc::CTypedPtrList<CItem> items;
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&items, 10);
-            CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
+            CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
                 items.AddTail(item);
                 PlayerOf(player)->GiveItems(&items, 0);

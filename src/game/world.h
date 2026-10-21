@@ -119,7 +119,7 @@ struct WorldPlayer {
     NamedFloatTable variables;           // +0x0C4 named float variables ("gtime", quest flags)
     std::uint8_t partyZone[0xE0 - 0xD8];  // the party's zone_ and +0x6C (through Party())
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
-    mfc::CTypedPtrList<CEngineObject> items;
+    mfc::CTypedPtrList<CItem> items;
     // +0x0FC the key the party is stored under in the party manager (a fresh one from PartyNextId
     // for a new party; the client's login sends it); saved with the world.
     std::uint32_t partyId;
@@ -428,8 +428,8 @@ struct __declspec(novtable) Projectile {
 };
 static_assert(offsetof(Projectile, references) == 4);
 static_assert(offsetof(Projectile, referenceCount) == 4);
-// 007C84EC: the world the missiles find while they load (LoadSave sets it).
-inline CWorldServer*& LoadingProjectileWorld() { return ei::GameData<CWorldServer*>(0x007C84EC); }
+// The world the missiles find while they load (LoadSave sets it).
+inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
 // The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
 // FreeNode (0059C810, world_tick.cpp) releases the node's missile.
 using ProjectileList = mfc::CTypedPtrList<Projectile>;
@@ -599,7 +599,7 @@ public:
     void ClearMapObjects();
     // 00596730 (RET 4). Writes every map object to a save stream: id, prototype name, the
     // object's own Save (slot 10) and its two flag words; -1 ends the list.
-    void SaveMapObjects(void* stream);
+    void SaveMapObjects(CStream* stream);
 
     // world_save.cpp
     // 00596E70 (RET 8). Restores the world from a mission save: zone names, settings, alarms and
@@ -620,7 +620,7 @@ public:
     // 005947E0 (RET 0x10). Puts a new entry at the head of the shared-object list (+0x12E60):
     // `id`, the session player's +0x30 for that id in a multiplayer game (else -1), `value`, and
     // references to the objects of `objects` (a CPtrList). The second argument is unused.
-    void AddSharedObject(int id, int unused, std::uint32_t value, void* objects);
+    void AddSharedObject(int id, int unused, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects);
     // 005956E0. Before a save: every living unit among the map objects (the walk stops at an
     // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
     // slot 19 with 0.
@@ -790,7 +790,7 @@ public:
     // 005901E0 (RET 8). Moves quest items (class 0x14) from `itemArray` (a CArray of item
     // pointers) to `list` (CPtrList): in single player only those whose description names this
     // zone or whose id an object of the zone asks for (object slots 38/40); otherwise all.
-    void TakeZoneQuestItems(void* itemArray, void* list);
+    void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
     // 00590460 (RET 4). Gives the player fresh copies of the items it brings into the zone (all
     // of them on a client, the zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(WorldPlayer* player);
@@ -2099,8 +2099,8 @@ int __stdcall LoadMission(void* file);
 // false on a bad header or checksum.
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
-// 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
-inline int SaveLastUncompressedVersion() { return ei::GameData<const int>(0x00790264); }
+// The newest save version stored uncompressed (SaveFileRead reads those as they are).
+inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed

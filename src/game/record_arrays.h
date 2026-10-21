@@ -32,8 +32,8 @@ using mfc::impl::EachElements;
 // ---- Scene records -------------------------------------------------------------------------------
 
 // The figure's 0x220-byte parts (ConstructElements 00453240): a class 0x42 figure mesh as the figure
-// factory builds one (figure_factory.cpp): CFigureMesh::ConstructBase, the mesh's arrays empty, its
-// vtable (0073C1C4). Destroyed through slot 0 (00453210).
+// factory builds one (figure_factory.cpp): CPlainFigureMesh's constructor (InitFigurePart,
+// figure_mesh_life.cpp). Destroyed through slot 0 (00453210).
 void InitFigurePart(CFigureMesh* p);
 using FigureParts = ArrayAbi<CFigureMesh, EachElements<CFigureMesh, InitFigurePart, DeleteThroughFirst<CFigureMesh>>>;
 
@@ -43,9 +43,9 @@ inline void InitMaterial(CMaterial* p) { p->Construct(); }
 using Materials = ArrayAbi<CMaterial, EachElements<CMaterial, InitMaterial, DeleteThroughFirst<CMaterial>>>;
 
 // The scene's meshes (004545C0) and nodes (00454F80): the constructor bodies the instantiations
-// inline (scene_loader.cpp). Meshes are destroyed through slot 0 (00476F50), nodes by their
-// destructor (004543E0; 00477100).
-inline void InitSceneMesh(scene::SceneMesh* p) { p->Construct(); }
+// inline (scene_loader.cpp; the mesh's is SceneMesh's C++ constructor, InitSceneMesh). Meshes are
+// destroyed through slot 0 (00476F50), nodes by their destructor (004543E0; 00477100).
+void InitSceneMesh(scene::SceneMesh* p);
 inline void InitSceneNode(scene::SceneNode* p) { p->Construct(); }
 inline void DestroySceneNode(scene::SceneNode* p) { p->Destruct(); }
 using SceneMeshes = ArrayAbi<scene::SceneMesh, EachElements<scene::SceneMesh, InitSceneMesh, DeleteThroughFirst<scene::SceneMesh>>>;

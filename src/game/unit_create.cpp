@@ -43,7 +43,7 @@ bool IsBroken(const CItem* item) {
     return x87::fistp(std::bit_cast<float>(item->condition_)) <= 0;
 }
 
-using ItemList = mfc::CTypedPtrList<CEngineObject>;
+using ItemList = mfc::CTypedPtrList<CItem>;
 } // namespace
 
 // --- Prototype names --------------------------------------------------------------------------
@@ -126,7 +126,7 @@ void CUnit::DropBrokenEquipment() {
     if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (broken.count != 0) {
-        reinterpret_cast<CPlayer*>(owner)->GiveItems(reinterpret_cast<const mfc::CTypedPtrList<CEngineObject>*>(&broken), 1);
+        reinterpret_cast<CPlayer*>(owner)->GiveItems(&broken, 1);
         for (ItemList::Node* node = broken.head; node;) {
             ItemList::Node* next = node->next;
             node->data->Release();

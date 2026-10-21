@@ -23,7 +23,8 @@
 namespace {
 
 CUnitShape*& Patch() { return ei::GameData<CUnitShape*>(0x007C2F64); }
-std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2F68); }
+std::uint8_t g_guard = /*007C2F68*/ {};
+std::uint8_t& Guard() { return g_guard; }
 
 
 // An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count

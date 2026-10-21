@@ -210,10 +210,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const BriefingRecord::NameList& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    CEngineObject* item = ItemManagerCreateItemOriginal(ItemManager(), nullptr, *it);
+                    CItem* item = ItemManagerCreateItemOriginal(ItemManager(), nullptr, *it);
                     if (!item) continue;
                     ++item->refCount_;
-                    texts->FormatItemName(static_cast<CItem*>(item), &name);
+                    texts->FormatItemName(item, &name);
                     line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
                     add();
                     item->Release();
@@ -246,9 +246,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
                 if (auto* player = static_cast<WorldPlayer*>(TheServerWorld()->GetPlayer(0))) {
                     for (auto* node = player->items.head; node; node = node->next) {
-                        CEngineObject* item = node->data;
+                        CItem* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
-                        texts->FormatItemName(static_cast<CItem*>(item), &name);
+                        texts->FormatItemName(item, &name);
                         line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
                         add();
                     }

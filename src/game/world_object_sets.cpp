@@ -31,8 +31,11 @@ CEngineObject* ObjectOf(std::uint32_t word) { return reinterpret_cast<CEngineObj
 
 // The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
 // by 0047B1D0).
-ObjectSet& Scratch() { return ei::GameData<ObjectSet>(0x007A9738); }
-std::uint8_t& ScratchGuard() { return ei::GameData<std::uint8_t>(0x007A9748); }
+constinit lib::AlignedArray<std::uint32_t> g_scratch = /*007A9738*/ {};
+ObjectSet& Scratch() { return g_scratch; }
+void __cdecl FreeScratch() { g_scratch.FreeData(); }   // 0047B1D0
+std::uint8_t g_scratchGuard = /*007A9748*/ {};
+std::uint8_t& ScratchGuard() { return g_scratchGuard; }
 
 // One counting pass by the byte at `shift`: `src` scattered into `dst` (stable).
 void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
@@ -163,3 +166,4 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
     same->SetSize(sameCount, -1);
 }
 EI_REWRITTEN(0x0047B1F0, DiffObjectSets);
+EI_REPLACE(0x0047B1D0, FreeScratch);

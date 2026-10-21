@@ -165,8 +165,8 @@ constexpr const char* kAiInfoArchive = "aiinfo.res";
 constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
 constexpr const char* kNormalFile = "normal.dat";
 constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
-constexpr std::uintptr_t kNormalTable = std::uintptr_t(0x007C43C4);          // the 4096 bytes of normal.dat
 constexpr std::size_t kNormalTableSize = 0x1000;
+std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 bytes of normal.dat
 
 
 
@@ -210,7 +210,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
         MappedResourceDestroyOriginal(archive);
         return result;
     }
-    std::memcpy(ei::GamePointer<void>(kNormalTable), data, kNormalTableSize);
+    std::memcpy(g_normalTable, data, kNormalTableSize);
     archive->CMappedResource::CloseFileImpl(data);
     MappedResourceDestroyOriginal(archive);
     return 1;

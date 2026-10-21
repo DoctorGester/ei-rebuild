@@ -287,7 +287,7 @@ void CHudTopPanel::ShowItems() {
     mfc::CString line;
     mfc::CString format;
     for (auto* node = player->items.head; node;) {
-        auto* item = static_cast<CItem*>(node->data);
+        CItem* item = node->data;
         node = node->next;
         CItem* same = nullptr;
         for (auto* entry = merged.head; entry && !same; entry = entry->next)

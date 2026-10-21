@@ -97,8 +97,8 @@ const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
 const char* __fastcall I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }
 int __fastcall I3DFigureClassId(CEngineObject*) { return kI3DFigureId; }
-EI_REPLACE(0x005AACC0, I3DFigureClassName);
-EI_REPLACE(0x005AACD0, I3DFigureClassId);
+EI_REWRITTEN(0x005AACC0, I3DFigureClassName);
+EI_REWRITTEN(0x005AACD0, I3DFigureClassId);
 
 const char* __fastcall FigureClientSpecificClassName(CEngineObject*) { return kFigureClientSpecificName; }
 int __fastcall FigureClientSpecificClassId(CEngineObject*) { return kFigureClientSpecificId; }

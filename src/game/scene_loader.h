@@ -253,17 +253,34 @@ struct MeshCornerKey {
 };
 static_assert(sizeof(MeshCornerKey) == 6);
 
-// A mesh (mesh:: offsets): a transform object (an engine object whose slot 7, GetName, gives its
-// name; vtable 0073C274). Only the members the scene code uses are declared.
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
+// A mesh (mesh:: offsets; "CFakeFigure", class id 0x47): a transform object (an engine object whose
+// slot 7, GetName, gives its name). A real virtual class: the compiler makes its vtable (C19;
+// game.exe's 0073C274 is retired). Only the members the scene code uses are declared.
 struct SceneMesh : CTransformObject {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C274);
-    // The constructor body ConstructElements 004545C0 inlines after its zero fill (S6b,
-    // scene_loader.cpp): the transform object's (00453400), the name empty, the groups' array
-    // empty (00454A50), then the mesh's vtable.
-    void Construct();
-    // 00454830 (slot 0's body; 00454810 is the scalar deleting destructor): the face groups, the
-    // eleven aligned blocks from the last, the name, then the transform object's vtable and the
-    // engine object's destructor body.
+    // The constructor ConstructElements 004545C0 inlines after its zero fill (S6b,
+    // scene_loader.cpp): the transform object's fields (00453400), the name empty, the groups'
+    // array empty (00454A50).
+    SceneMesh();
+    // 00454830's work: the face groups, the eleven aligned blocks from the last, then the name
+    // (a member) and the engine object's destructor.
+    ~SceneMesh() override;
+    // The deleting destructor (slot 0, 00454810) frees into the game's heap.
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
+
+    // The vtable (game.exe's 0073C274, retired). The slots not listed are CTransformObject's
+    // (1, 4-6, 8-10, 13-15).
+    int Create() override;                 // 2: 004547A0 (1)
+    void Destroy() override;               // 3: 004547B0 (nothing)
+    const char* GetName() override;        // 7: 004547C0 (name)
+    const char* GetClassName() override;   // 11: 004547F0 "CFakeFigure"
+    int GetClassId() override;             // 12: 00454800 (0x47)
+    void SaveTransform(void* file) override;   // 16: 004547D0 (nothing)
+    void LoadTransform(void* file) override;   // 17: 004547E0 (nothing)
+
+    // The registrations (C20 retires them): 00454830 the destructor, 00454810 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void Destruct();
     SceneMesh* DeletingDestruct(unsigned flags);
 
@@ -324,7 +341,7 @@ struct SceneSkin {
     void Rewind();
     // 00508BF0 (RET 4, EAX 1; skin_rewind.cpp, A-U11). The root (when there is one) binds the parts
     // (CAnimationNode::AttachMeshes).
-    int BindMeshes(const lib::AlignedArray<void*>* parts);
+    int BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
     // scene_skin_lifetime.cpp (A-U12).
     // 00508700. The constructor: empty arrays and names, no root, the clock -1.
     SceneSkin();

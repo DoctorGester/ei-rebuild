@@ -47,7 +47,7 @@ int __fastcall UnitGetFlag278(const CUnit* unit);            // slot 54: 0044689
 int __fastcall UnitGetFlag274(const CUnit* unit);            // slot 55: 00446880
 float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60: 004468A0
 
-// Slot 7 (GetName) of CFigure (0073C1C4, 0073C224, 0073FBF0; also CSkyObject, CI3DFigure) and of
+// Slot 7 (GetName) of game.exe's base CFigure table (0073C224; the figure classes' GetName) and of
 // CFakeFigure (0073C274): the name pointer at +0x120 / +0x94.
 const char* __fastcall FigureGetName(const CEngineObject* figure);       // 00453440
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 004547C0

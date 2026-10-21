@@ -124,7 +124,7 @@ bool __fastcall SaveFileRead(void* outStream, unsigned magic, int minimum, int m
     // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
     // newest version accepted (LoadMission passes 00790260, then 00790268).
     if (!file->ReadHeader(magic, minimum, maximum)) return false;
-    if (VersionOf(file) <= SaveLastUncompressedVersion()) {
+    if (VersionOf(file) <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         out->Resize(static_cast<std::uint32_t>(size));

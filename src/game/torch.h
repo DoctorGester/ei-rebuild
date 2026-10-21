@@ -29,8 +29,8 @@ public:
     int Create() override { return CreateTorch(); }        // 2: 0052BFC0
     void Destroy() override { DestroyTorch(); }            // 3: 0052C150
     int RunTick() override { return UpdateTorch(); }       // 6: 0052BF10
-    void Load(void* stream) override;                      // 9: 0052C280 LoadTorch
-    void Save(void* stream) override;                      // 10: 0052C2A0 SaveTorch
+    void Load(CStream* stream) override;                      // 9: 0052C280 LoadTorch
+    void Save(CStream* stream) override;                      // 10: 0052C2A0 SaveTorch
     const char* GetClassName() override;                   // 11: 0052BF20 "CTorchObject"
     int GetClassId() override;                             // 12: 0052BF30 (0x57)
     std::uintptr_t AttachObject(CEngineObject* object) override { return AttachTorchObject(object); }   // 19

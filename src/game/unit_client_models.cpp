@@ -109,18 +109,18 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
             if (hair == -1) continue;
             part.Format("hr.%.2d", hair);
         }
-        CEngineObject* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
+        CFigureMesh* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
         armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), ItemHead(armour)->number);
         if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
-            if (!SameName(plain, kHead)) unit->RemovePart(static_cast<CFigureMesh*>(current));
+            if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
             if (SameName(plain, kHair)) {
-                unit->RemovePart(static_cast<CFigureMesh*>(current));
+                unit->RemovePart(current);
             } else if (gamecrt::mbscmp(static_cast<const char*>(part),
                                        current->GetName()) != 0) {
                 unit->LoadPart(part, model, FiguresFlag(unit));
-                unit->RemovePart(static_cast<CFigureMesh*>(current));
+                unit->RemovePart(current);
             }
         } else {
             unit->LoadPart(part, model, FiguresFlag(unit));
@@ -133,7 +133,7 @@ EI_REPLACE_METHOD(0x005381B0, CUnitClientSpecific::WearArmourModel);
 namespace {
 // The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
 // data[-1]), as SkinRequest's layers.
-using PartArray = lib::AlignedArray<CEngineObject*>;
+using PartArray = FigurePartArray;
 
 int CompareNames(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
@@ -167,15 +167,15 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
             part.Format("hr.%.2d", hair);
         }
         PartArray parts{nullptr, 0, 0, 0};
-        unit->CollectPartsByPrefix(part, reinterpret_cast<lib::AlignedArray<void*>*>(&parts));   // 00516B50
+        unit->CollectPartsByPrefix(part, &parts);   // 00516B50
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part, parts.data[0]->GetName()) != 0) {
-                unit->RemovePart(static_cast<CFigureMesh*>(parts.data[0]));
+                unit->RemovePart(parts.data[0]);
                 unit->LoadPart(part, model, FiguresFlag(unit));
             }
         } else {
-            for (int k = 0; k < parts.size; ++k) unit->RemovePart(static_cast<CFigureMesh*>(parts.data[k]));
+            for (int k = 0; k < parts.size; ++k) unit->RemovePart(parts.data[k]);
             unit->LoadPart(part, model, FiguresFlag(unit));
         }
         if (parts.data) gamecrt::operator_delete(reinterpret_cast<void**>(parts.data)[-1]);

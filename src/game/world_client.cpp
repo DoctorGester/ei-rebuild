@@ -157,8 +157,8 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
 }
 
 FootprintPart* CObject3D::PartBox(int index) {
-    void* part = index < parts.size ? parts.data[index] : pendingParts.data[index - parts.size];
-    return reinterpret_cast<FootprintPart*>(&static_cast<CFigureMesh*>(part)->bounds_);
+    CFigureMesh* part = index < parts.size ? parts.data[index] : pendingParts.data[index - parts.size];
+    return reinterpret_cast<FootprintPart*>(&part->bounds_);
 }
 
 std::uint8_t* CWorldClient::LocalView() {

@@ -215,8 +215,7 @@ void CWorldServer::ClearMapObjects() {
     pending.RemoveAll();   // 00570470 (the list destructor's body)
 }
 
-void CWorldServer::SaveMapObjects(void* stream) {
-    auto* out = static_cast<CStream*>(stream);
+void CWorldServer::SaveMapObjects(CStream* out) {
     for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (!object) break;
@@ -226,7 +225,7 @@ void CWorldServer::SaveMapObjects(void* stream) {
         const char* prototype =
             object->GetClassId() == world::kClassUnit ? *UnitPrototype(object, nullptr) : mapObject->name;
         out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
-        object->Save(stream);
+        object->Save(out);
         // The parts changed and those already sent (the network state's mask).
         std::uint32_t flags = static_cast<std::uint32_t>(mapObject->changedParts) |
                               static_cast<std::uint32_t>(mapObject->NetState()->sentMask_);

@@ -1,5 +1,6 @@
-// An interface sprite (CUiMesh, ui.h): its Create (005E6C60, vtable slot 2) and its draw (005E6D90,
-// called by the window base's draw 005FEB90 and the panels that draw single sprites).
+// An interface sprite (CUiMesh, ui.h): its Create (005E6C60, vtable slot 2), its draw (005E6D90,
+// called by the window base's draw 005FEB90 and the panels that draw single sprites), its
+// constructor, destructor and virtual slots.
 // docs/notes/ui.md, section 9.
 #include "ui.h"
 
@@ -13,10 +14,13 @@
 #include "originals_ui.h"
 #include "render/render.h"   // SetInterfaceDraw
 #include "ui_widescreen.h"
+#include "world_class_slots.h"   // I3DFigureClassName / Id
 #include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
+
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -137,7 +141,27 @@ int CUiMesh::CreateSprite() {
     visible_ = 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x005E6C60, CUiMesh::CreateSprite);
+EI_REWRITTEN(0x005E6C60, CUiMesh::CreateSprite);
+
+// --- The class 0x43's lifetime and slots (C19) ---------------------------------------------------
+
+CUiMesh::CUiMesh() {}
+CUiMesh::~CUiMesh() {}
+
+void CUiMesh::Destruct() { this->CUiMesh::~CUiMesh(); }
+EI_REWRITTEN(0x005AAD00, CUiMesh::Destruct);
+
+CUiMesh* CUiMesh::DeletingDestruct(unsigned flags) {
+    this->CUiMesh::~CUiMesh();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REWRITTEN(0x005AACE0, CUiMesh::DeletingDestruct);
+
+int CUiMesh::Create() { return CreateSprite(); }
+void CUiMesh::Destroy() { DestroySprite(); }
+const char* CUiMesh::GetClassName() { return I3DFigureClassName(this); }
+int CUiMesh::GetClassId() { return I3DFigureClassId(this); }
 
 // --- The arrays' sizes (005EA210, 005EA600, 005EA4C0, 005EA380) ---------------------------------
 

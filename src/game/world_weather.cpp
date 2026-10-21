@@ -25,8 +25,9 @@
 namespace {
 
 
-// Ticks left before the weather may change again (0x7C2DFC).
-int& WeatherDelay() { return ei::GameData<int>(0x007C2DFC); }
+// Ticks left before the weather may change again.
+int g_weatherDelay = /*007C2DFC*/ {};
+int& WeatherDelay() { return g_weatherDelay; }
 
 // Constants read from the exe (rule 9).
 double MapScale() { return 1.1920928957853683e-7 /*0073FA40*/; }        // 2^-23: a random word to map coordinates

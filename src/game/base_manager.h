@@ -42,11 +42,11 @@ public:
     // 3: 004031E0. Destroys, releases and deletes every object and clears the tables.
     void Destroy() override;
     // 9: 004046E0. Frees the spares and creates the objects listed in the stream.
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     // 10: 00404760. Writes {id, type, prototypeId_} of every registered object.
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     // 13: 004031B0. Keeps the context and creates (slot 2); a failed create clears the context
     // again. Returns 1 / 0.
@@ -109,8 +109,8 @@ public:
     void FreeSpares();
     // 004047E0 / 00404860. The registered objects' own data (slots 9 / 10) by id, up to an end
     // mark.
-    void LoadObjects(void* stream);
-    void SaveObjects(void* stream);
+    void LoadObjects(CStream* stream);
+    void SaveObjects(CStream* stream);
     // 004048F0. Every object without references gets one and releases it (slot 4), so the ones
     // nobody took go back to the spares.
     void ReleaseUnused();

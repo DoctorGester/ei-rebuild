@@ -25,9 +25,13 @@
 
 namespace {
 
-DecalBuilder& Builder() { return ei::GameData<DecalBuilder>(0x007AF488); }
-lib::AlignedArray<Vector4>& PartPoints() { return ei::GameData<lib::AlignedArray<Vector4>>(0x007AF478); }
-std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AF504); }
+DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the draw (guard bit 0 of g_guards)
+DecalBuilder& Builder() { return g_builder; }
+constinit lib::AlignedArray<Vector4> g_partPoints = /*007AF478*/ {};
+lib::AlignedArray<Vector4>& PartPoints() { return g_partPoints; }
+void __cdecl FreePartPoints() { g_partPoints.FreeData(); }   // 0056CE10
+std::uint8_t g_guards = /*007AF504*/ {};
+std::uint8_t& Guards() { return g_guards; }
 void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
 void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE10);
 
@@ -139,7 +143,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                 // The parts are scene nodes laid out as CObject3D's first members (position,
                 // orientation, matrix); CFigureMesh's declaration contradicts it (models.md, C9).
                 for (int i = 0; i < object->parts.size; ++i) {
-                    auto* part = static_cast<CObject3D*>(object->parts[i]);
+                    auto* part = reinterpret_cast<CObject3D*>(object->parts[i]);
                     BuildNodeMatrix(part);
                     PushDecalMatrix(pipeline, part->worldMatrix.m);
                     AddPartTriangles(pipeline, figure, part, data);
@@ -153,3 +157,4 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     render::EndDecalTime(points->size * 4);
 }
 EI_REWRITTEN(0x0056C750, CWorldClient::ProjectDecal);
+EI_REPLACE(0x0056CE10, FreePartPoints);

@@ -215,8 +215,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster_, 1);
 }
 
-void CEffectArrow::LoadState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectArrow::LoadState(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&targetId_, 4);
     s->Read(&velocity_, 12);
@@ -231,8 +230,7 @@ void CEffectArrow::LoadState(void* stream) {
     s->Read(&fromCaster_, 1);
 }
 
-void CEffectArrow::SaveState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectArrow::SaveState(CStream* s) {
     std::uint32_t copy;
     s->Write(&localPosition_, 12);
     std::memcpy(&copy, &targetId_, 4);
@@ -390,8 +388,7 @@ void CEffectArrowFigure::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster_, 1);
 }
 
-void CEffectArrowFigure::LoadState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectArrowFigure::LoadState(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&targetId_, 4);
     s->Read(&casterId_, 4);
@@ -402,8 +399,7 @@ void CEffectArrowFigure::LoadState(void* stream) {
     s->Read(&fromCaster_, 1);
 }
 
-void CEffectArrowFigure::SaveState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectArrowFigure::SaveState(CStream* s) {
     std::uint32_t copy;
     s->Write(&localPosition_, 12);
     std::memcpy(&copy, &targetId_, 4);

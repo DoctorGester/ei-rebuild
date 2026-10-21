@@ -59,7 +59,6 @@ constexpr int kMessageStealFailed = 0x22;
 constexpr int kMessageTameFailed = 0x16;
 
 
-CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 CDiplomacy* DiplomacyOf(void* world) { return &static_cast<CWorldServer*>(world)->diplomacy_; }
 
@@ -140,7 +139,7 @@ void CUnitServer::FinishAction(int location, char) {
         // The kind of the target's body slot `location`: 3 means it can still be aimed at
         // (OrderAttack aims at "all" otherwise); when it is no longer 3 the order aimed at it now
         // aims at "all" (6).
-        if (ControllerOf(static_cast<CUnit*>(target))->stats.slots[location].kind == 3) return;
+        if (static_cast<CUnit*>(target)->ServerController()->stats.slots[location].kind == 3) return;
         if (location != static_cast<int>(action.source)) return;
         action.source = 6;
         return;
@@ -301,7 +300,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         node = node->next;
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
-        CUnitServer* controller = ControllerOf(other);
+        CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);   // 005CAA00
         auto* watched = reinterpret_cast<UnitList*>(&controller->brain.memory.visible);
         if (!ListContains(watched, victim)) continue;
@@ -352,7 +351,7 @@ void CUnitServer::PropagateHostility() {
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;
-        CUnitServer* theirController = ControllerOf(other);
+        CUnitServer* theirController = other->ServerController();
         std::uint32_t theirClaims = theirController->claimedHostile;
         if (mine == theirClaims) continue;
         std::uint32_t toThem = ~theirClaims & mine;
@@ -383,15 +382,15 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     // Dead.
     if (attacker) {
         if (attacker->player) {     // 005301A0
-            CUnit* killer = ControllerOf(attacker)->unit;
+            CUnit* killer = attacker->ServerController()->unit;
             if (killer->player)
                 PlayerMessage(reinterpret_cast<WorldPlayer*>(killer->player)->server, nullptr, killer, kMessageKilled);
         } else if (unit->player) {
-            static_cast<AIAlarm*>(&ControllerOf(attacker)->voice)->Raise(9);
+            static_cast<AIAlarm*>(&attacker->ServerController()->voice)->Raise(9);
         }
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
-            CUnitServer* theirs = ControllerOf(attacker);
+            CUnitServer* theirs = attacker->ServerController();
             WitnessMurder(&brain.memory.nearby, unit, attacker);
             WitnessMurder(&theirs->brain.memory.nearby, attacker, attacker);
         }
@@ -414,7 +413,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AIEventsOf(world)->ForgetUnit(this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
-            ControllerOf(member)->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
+            member->ServerController()->brain.memory.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = kAnimationStepsBaseVtable;
@@ -437,7 +436,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     CUnit* other = target->GetClassId() == kClassUnit ? static_cast<CUnit*>(target) : nullptr;
     float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
-    if (other) theirs = static_cast<float>(ControllerOf(other)->stats.AttributeWithItems(0, other));
+    if (other) theirs = static_cast<float>(other->ServerController()->stats.AttributeWithItems(0, other));
 
     GameLog()->Put("Unit")->Put(static_cast<long>(unit->id_))->Put(" is using skill ");
     const char* name;
@@ -497,7 +496,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
                 list.free = nullptr;
                 list.blockSize = 10;
                 list.AddHead(item);
-                reinterpret_cast<CPlayer*>(player)->GiveItems(reinterpret_cast<const mfc::CTypedPtrList<CEngineObject>*>(&list), 0);
+                reinterpret_cast<CPlayer*>(player)->GiveItems(&list, 0);
                 list.vtable = kPtrListVtable;
                 list.RemoveAll();
             }
@@ -513,7 +512,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 2: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
-        if (static_cast<CUnitServer*>(other->controller)->TryTame(unit, mine) != 0) return;
+        if (other->ServerController()->TryTame(unit, mine) != 0) return;
         if (!unit->player) return;
         message = kMessageTameFailed;
         break;

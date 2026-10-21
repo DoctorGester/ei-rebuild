@@ -42,55 +42,27 @@ std::uint32_t Truncate(float v) { return static_cast<std::uint32_t>(static_cast<
 } // namespace
 
 CSkyObject::CSkyObject() {
-    vertices_.Construct();
-    normals_.Construct();
-    corners_.Construct();
-    words_.Construct();
-    indices_.Construct();
-    texCoords_.Construct();
     distances_.Construct();
     CreateMesh();
 }
 
-CSkyObject::~CSkyObject() {
-    distances_.FreeData();
-    texCoords_.FreeData();
-    indices_.FreeData();
-    words_.FreeData();
-    corners_.FreeData();
-    normals_.FreeData();
-    vertices_.FreeData();
-}
+CSkyObject::~CSkyObject() { distances_.FreeData(); }
 
-int CSkyObject::Create() { return CreateMesh(); }
-void CSkyObject::Destroy() { ClearMesh(); }
-const char* CSkyObject::GetName() { return name_; }
 const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
-void CSkyObject::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
-    SetPose(parentRotation, parentPosition);
-}
-void CSkyObject::SaveTransform(void* file) { SaveToFile(static_cast<mfc::CFileVirtuals*>(file)); }
-void CSkyObject::LoadTransform(void* file) { LoadFromFile(static_cast<mfc::CFileVirtuals*>(file)); }
-void CSkyObject::CopyFigure(const CFigureMesh* other) { CFigureMesh::CopyFigure(other); }
-void CSkyObject::LoadFromMemory(char** cursor, float s, float t, float u) { CFigureMesh::LoadFromMemory(cursor, s, t, u); }
-void CSkyObject::LoadFig(char** cursor, float s, float t, float u) { CFigureMesh::LoadFig(cursor, s, t, u); }
-void CSkyObject::LoadOld(char** cursor, float s, float t, float u) { CFigureMesh::LoadOld(cursor, s, t, u); }
-void CSkyObject::MirrorX() { CFigureMesh::MirrorX(); }
-void CSkyObject::MirrorY() { CFigureMesh::MirrorY(); }
 
 CSkyObject* CSkyObject::Construct() { return new (this) CSkyObject(); }
-EI_REPLACE_METHOD(0x004D9110, CSkyObject::Construct);
+EI_REWRITTEN(0x004D9110, CSkyObject::Construct);
 
 void CSkyObject::Destruct() { this->CSkyObject::~CSkyObject(); }
-EI_REPLACE_METHOD(0x004D92B0, CSkyObject::Destruct);
+EI_REWRITTEN(0x004D92B0, CSkyObject::Destruct);
 
 CSkyObject* CSkyObject::DeletingDestruct(unsigned flags) {
     this->CSkyObject::~CSkyObject();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004D9290, CSkyObject::DeletingDestruct);
+EI_REWRITTEN(0x004D9290, CSkyObject::DeletingDestruct);
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
@@ -152,7 +124,7 @@ CSky* CSky::Construct() {
     TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kSkyTextureKind, kSkyTextureName);
     return this;
 }
-EI_REPLACE_METHOD(0x004D9680, CSky::Construct);
+EI_REWRITTEN(0x004D9680, CSky::Construct);
 
 void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     if (!object) return;
@@ -186,7 +158,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
         if (count != 0) --count;
     }
 }
-EI_REPLACE_METHOD(0x004D96E0, CSky::Draw);
+EI_REWRITTEN(0x004D96E0, CSky::Draw);
 
 void CSky::Destruct() {
     if (texture) static_cast<CEngineObject*>(texture)->Release();
@@ -199,24 +171,24 @@ namespace {
 const char* __fastcall ClassNameHook(CSkyObject* self) { return self->CSkyObject::GetClassName(); }
 int __fastcall ClassIdHook(CSkyObject* self) { return self->CSkyObject::GetClassId(); }
 } // namespace
-EI_REPLACE(0x004D9270, ClassNameHook);
-EI_REPLACE(0x004D9280, ClassIdHook);
-EI_REPLACE_METHOD(0x004D9360, CSkyObject::Light);
-EI_REPLACE_METHOD(0x004D9DE0, CSky::Light);
+EI_REWRITTEN(0x004D9270, ClassNameHook);
+EI_REWRITTEN(0x004D9280, ClassIdHook);
+EI_REWRITTEN(0x004D9360, CSkyObject::Light);
+EI_REWRITTEN(0x004D9DE0, CSky::Light);
 
 // The engine's aligned array constructors (identical copies), on the shared template.
-EI_REPLACE_METHOD(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
 // S13: more copies, of the scene loader's point block (00475F10), the unit skins' bytes (0056FCC0),
 // the figure factory's packets (0056FD00) and the terrain's arrays (0056FD30 the texture classes,
 // frames and visible columns; 00570DE0 the wave phases; 00570E10 the page materials; 00570E40 the
 // water materials; 00570E70 the vertex tiles).
-EI_REPLACE_METHOD(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x0056FCC0, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x0056FD00, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x0056FD30, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00570DE0, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00570E10, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00570E40, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REPLACE_METHOD(0x00570E70, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x0056FCC0, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x0056FD00, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x0056FD30, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00570DE0, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00570E10, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00570E40, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REWRITTEN(0x00570E70, lib::AlignedArray<std::uint32_t>::Construct);

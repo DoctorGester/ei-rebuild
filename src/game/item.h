@@ -63,10 +63,10 @@ public:
     // packed id (+0x18), +0x20..+0x3C, the spell's id (-1: none; Load finds it in the spell manager
     // of the manager context, slot 22, and counts it), +0x48 and +0x40, four bytes each, in that
     // order.
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     // 006A0490. Slot 13 (the subclasses call it first): takes the item's values from a database
     // record (see CItemConstructor::Build): +0x34 price, +0x38, +0x3C, +0x40 charge (current and
     // maximum), +0x44, +0x48 (+0x20 and +0x24); charge rate 0.001.
@@ -237,10 +237,10 @@ public:
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     // 006A2E60 / 006A2EB0 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C..+0x58.
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t actionValue_;         // +0x4C 0 after construction; CUnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it (DamageInfo +0x1C)
     float damage_;          // +0x50 prototype +0x90
@@ -284,10 +284,10 @@ public:
     BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A3A70 / 006A3AA0 (slots 9 / 10; item_save.cpp). CItem's, then the two absorption rows
     // (0x1C bytes each; layerMask_ is not saved).
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
@@ -321,10 +321,10 @@ public:
     BOOL IsSameAs(CItem* other) override;
     BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A3C80 / 006A3CA0 (slots 9 / 10, also the scrolls'; item_save.cpp). CItem's, then +0x4C.
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t actionValue_;         // +0x4C the record's value70 (CUnitServer::ScaledItemValue)
 };
@@ -351,10 +351,10 @@ public:
     BOOL IsSameAs(CItem* other) override;
     BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
     // returns it; the other classes share 004623C0, which writes three zeros.
     ItemUse* GetUse(ItemUse* out) override;
@@ -421,10 +421,10 @@ public:
     // 006A5630 / 006A5680 (slots 9 / 10; item_save.cpp). CItem's, then kind_, recordType_ and
     // index_. Load reads the first two through the stack slot of `stream` (a read that writes
     // nothing leaves the pointer's value, then the previous value).
-    void Load(void* stream) override;
-    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
-    void Save(void* stream) override;
-    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
+    void Load(CStream* stream) override;
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    void Save(CStream* stream) override;
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t kind_;       // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier

@@ -639,16 +639,14 @@ inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOrigi
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).
-void InsertSeen(ScriptGroup* group, CEngineObject* controller) {
-    const auto& visible = static_cast<CUnitServer*>(controller)->Brain()->memory.visible;
+void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
+    const auto& visible = controller->Brain()->memory.visible;
     for (auto* node = visible.head; node;) {
         auto* current = node;
         node = current->next;
         group->Insert(current->data);
     }
 }
-
-CEngineObject* ControllerOf(CUnit* unit) { return unit->controller; }
 
 } // namespace
 
@@ -689,7 +687,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         group->SetSize(0, -1);
         CUnit* unit = objectArgs.data[0]->AsUnit();
         if (!unit) break;
-        if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
+        if (CUnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         break;
     }
     case 0x5E: { // GroupSee(group): what its units see
@@ -697,7 +695,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         for (int i = 0; i < groupArgs.data[0]->size; ++i) {
             CUnit* unit = groupArgs.data[0]->data[i].AsUnit();
             if (!unit) continue;
-            if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
+            if (CUnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         }
         break;
     }
@@ -721,7 +719,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             CUnit* unit = node->value;
             if (!unit) break;
             (*result)->Insert(unit);
-            InsertSeen(*result, ControllerOf(unit));   // no null check, as in the original
+            InsertSeen(*result, unit->ServerController());   // no null check, as in the original
         }
         break;
     }

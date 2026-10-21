@@ -1513,8 +1513,26 @@ struct UiMeshVertex {
     std::int16_t frame;              // +4 texture frame (the minimap's marker kinds)
 };
 static_assert(sizeof(UiMeshVertex) == 6);
-class CUiMesh : public CFigureMesh {
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+// The figure factory's class 0x43 ("CI3DFigure", 0x284 bytes; game.exe's vtable 0073FC48, retired):
+// a class 0x42 mesh (CPlainFigureMesh) with the sprite's fields. A real virtual class (C19).
+class CUiMesh : public CPlainFigureMesh {
 public:
+    // The factory's class 0x43 (005AA8E0 inlines it): CPlainFigureMesh's constructor; the sprite's
+    // fields are set by Create (CreateSprite).
+    CUiMesh();
+    // 005AAD00's work: CPlainFigureMesh's destructor (nothing of the sprite's to free).
+    ~CUiMesh() override;
+    // The vtable: CPlainFigureMesh's but for 0, 2, 3, 11 and 12.
+    int Create() override;                 // 2: 005E6C60 CreateSprite
+    void Destroy() override;               // 3: 005E6D70 DestroySprite
+    const char* GetClassName() override;   // 11: 005AACC0 "CI3DFigure"
+    int GetClassId() override;             // 12: 005AACD0 (0x46)
+    // The registrations (C20 retires them): 005AAD00 the destructor, 005AACE0 (slot 0) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    void Destruct();
+    CUiMesh* DeletingDestruct(unsigned flags);
+
     // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
     // quads (005EA210) then get z 0 and w 1 in every block, the vertices (005EA600) +2 zero in
     // every entry; the indices (005EA4C0) and texture coordinates (005EA380, 8 bytes each) nothing.

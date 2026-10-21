@@ -25,16 +25,18 @@ constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+using GivenItems = mfc::CTypedPtrList<CItem>;
 
 // 0059A670 (a byte-identical copy of NextParticle, effects.h): the item at `position`, which moves on.
-CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
-    return *reinterpret_cast<CEngineObject**>(
+CItem* NextItem(GivenItems* list, GivenItems::Node** position) {
+    return *reinterpret_cast<CItem**>(
         NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
 }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
 
-void InitList(ObjectList& list, void* vtable) {
+template <typename T>
+void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
     list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
@@ -47,7 +49,7 @@ void InitList(ObjectList& list, void* vtable) {
 } // namespace
 
 bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
-    ObjectList items;    // [0x18]
+    GivenItems items;    // [0x18]
     ObjectList second;   // [0x5C]
     ObjectList third;    // [0x40]
     InitList(items, mfc::impl::ItemListClass::Vtable());
@@ -89,8 +91,8 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             return false;
         }
         for (int i = 0; i < node->data.objects.size; ++i) {
-            CEngineObject* item = node->data.objects.data[i];
-            ObjectList::Node* entry = items.NewNode(items.tail, nullptr);
+            auto* item = static_cast<CItem*>(node->data.objects.data[i]);
+            GivenItems::Node* entry = items.NewNode(items.tail, nullptr);
             entry->data = item;
             if (items.tail) items.tail->next = entry;
             else items.head = entry;
@@ -124,11 +126,11 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             }
         }
         if (first) {
-            ObjectList quest;
+            GivenItems quest;
             mfc::impl::ConstructListHeader<mfc::impl::ItemListClass>(&quest, 10);
-            for (ObjectList::Node* node = items.head; node;) {
-                ObjectList::Node* next = node->next;
-                CEngineObject* item = node->data;
+            for (GivenItems::Node* node = items.head; node;) {
+                GivenItems::Node* next = node->next;
+                CItem* item = node->data;
                 if (item->GetClassId() == kClassQuestItem) {
                     quest.AddTail(item);
                     items.RemoveAt(node);
@@ -136,14 +138,14 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
                 node = next;
             }
             if (quest.count > 0) reinterpret_cast<CPlayer*>(first)->GiveItems(&quest, 0);
-            for (ObjectList::Node* position = quest.head; position;)
+            for (GivenItems::Node* position = quest.head; position;)
                 NextItem(&quest, &position)->Release();
             mfc::impl::DestructList<mfc::impl::ItemListClass>(quest);
         }
     }
     player->Party()->Money() += gold;
     reinterpret_cast<CPlayer*>(player)->GiveItems(&items, 0);
-    for (ObjectList::Node* position = items.head; position;)
+    for (GivenItems::Node* position = items.head; position;)
         NextItem(&items, &position)->Release();
     bool found = items.count > 0 || gold > 0;
     destroy();

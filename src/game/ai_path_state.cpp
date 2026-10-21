@@ -11,8 +11,8 @@
 #include <cstdint>
 
 namespace {
-// 007C4378: the order angle's range (+-), set by the static initialiser 005C5CB0 (twice 0073FE44).
-float OrderAngleLimit() { return ei::GameData<const float>(0x007C4378); }
+// The order angle's range (+-), set by the static initialiser 005C5CB0 (twice 0073FE44).
+constexpr float kOrderAngleLimit = /*007C4378*/ 6.2831855f;
 
 constexpr std::uint16_t kMaxStepFlags = 0x3FF;
 // A step's coordinate code (two bits each in the header): one less than the previous step's, the
@@ -43,7 +43,7 @@ void AIPath::WriteState(DeltaField* field) {
     byte = static_cast<std::uint8_t>(steps.count);
     field->WriteDelta(&byte, 1);
     field->WritePosition2D(&order->x);
-    const float limit = OrderAngleLimit();
+    const float limit = kOrderAngleLimit;
     field->WriteRanged(order->angle, -limit, limit);
     field->WriteDelta(&order->startTime, 4);
     field->WriteDelta(&order->arg5, 4);
@@ -77,7 +77,7 @@ void AIPath::ReadState(DeltaField* field) {
     field->ReadDelta(&low, 1);
     const int count = (high << 8) + low;
     field->ReadPosition2D(&order->x);
-    const float limit = OrderAngleLimit();
+    const float limit = kOrderAngleLimit;
     field->ReadRanged(&order->angle, -limit, limit);
     field->ReadDelta(&order->startTime, 4);
     field->ReadDelta(&order->arg5, 4);

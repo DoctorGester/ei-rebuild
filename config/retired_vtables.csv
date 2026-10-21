@@ -6,6 +6,8 @@ vtable,slots,class,file,note
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
+0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
+0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,2,dead class,-,stored only by dead code 0047C8E0
@@ -47,6 +49,8 @@ vtable,slots,class,file,note
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FB88,26,CFigureManager,src/game/figure_manager.h,
+0073FBF0,22,CSharedFigureMesh,src/game/figure_mesh.h,class 0x41
+0073FC48,24,CUiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007432E0,7,CMappedResource,src/game/resource.h,

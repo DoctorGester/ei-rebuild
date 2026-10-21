@@ -53,8 +53,6 @@ CUnit* FindUnit(CPlayer* player, int id) {
 }
 bool Alive(CUnit* unit) { return ObjectSlots(unit)->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }
-AIBrain* BrainOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller)->Brain(); }
-CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).
 #pragma pack(push, 1)
@@ -135,7 +133,7 @@ int CPlayerServer::OnCastAtObject() {
     CEngineObject* target = static_cast<CWorld*>(player->ManagerContext())->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
-        AIBrain* brain = BrainOf(unit);
+        AIBrain* brain = unit->ServerController()->Brain();
         if (AIMode* mode = brain->FindPlayerMode())
             static_cast<PlayerMode*>(mode)->CommandCast(brain, message.spell, target, message.flag != 0);
     }
@@ -147,7 +145,7 @@ int CPlayerServer::OnCastAtPoint() {
     Received().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
     if (Able(unit)) {
-        AIBrain* brain = BrainOf(unit);
+        AIBrain* brain = unit->ServerController()->Brain();
         if (AIMode* mode = brain->FindPlayerMode()) {
             const Vector3 point = message.point;
             static_cast<PlayerMode*>(mode)->CommandCastAt(brain, message.spell, &point, message.flag != 0);
@@ -160,7 +158,7 @@ int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
     Received().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
-    if (Able(unit)) ServerControllerOf(unit)->SetWantedWeapon(message.value);
+    if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
 }
 
@@ -168,7 +166,7 @@ int CPlayerServer::OnMoveStyle() {
     UnitByte message;
     Received().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
-    if (unit && Alive(unit)) ServerControllerOf(unit)->SetMoveStyle(message.value);
+    if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
 
@@ -187,7 +185,7 @@ int CPlayerServer::OnFollow() {
     CUnit* unit = FindUnit(player, ids[0]);
     if (!unit) return 1;
     CUnit* leader = FindUnit(player, ids[1]);
-    AIBrain* brain = BrainOf(unit);
+    AIBrain* brain = unit->ServerController()->Brain();
     if (AIMode* mode = brain->FindPlayerMode()) static_cast<PlayerMode*>(mode)->SetLeader(brain, leader);
     return 1;
 }

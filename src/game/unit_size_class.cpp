@@ -32,7 +32,7 @@ void CUnit::UpdateSizeClass() {
         return;
     }
     // The server controller's size classes, read unsigned.
-    CombatStats& combat = static_cast<CUnitServer*>(controller)->Combat();
+    CombatStats& combat = ServerController()->Combat();
     if (moveMode == 0) sizeClass = static_cast<std::uint16_t>(combat.sizeClass20);
     else if (moveMode == 1) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
     else sizeClass = static_cast<std::uint16_t>(combat.sizeClass);

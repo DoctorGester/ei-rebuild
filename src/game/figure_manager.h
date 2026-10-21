@@ -4,7 +4,7 @@
 // game-side figure objects (factory 005AA8E0, figure_factory.cpp) and loads their data from its
 // archives or a cached model (figure_models.cpp; docs/notes/models.md). Name provisional.
 
-#include "figure_mesh.h"   // CFigureMesh, FigureSlots
+#include "figure_mesh.h"   // CFigureMesh
 #include "resource_manager.h"
 
 #include "lib/stlp.h"
