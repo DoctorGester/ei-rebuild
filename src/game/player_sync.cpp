@@ -274,8 +274,8 @@ int CPlayerServer::SendPartyState() {
     refreshPending_ = 0;
     CPlayer* player = Owner();
     const float low = LowLevel();
-    for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        const float* levels = static_cast<CUnit*>(node->value)->levels4C8;
+    for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
+        const float* levels = node->value->levels4C8;
         EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
         if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
             refreshPending_ = 1;
@@ -293,7 +293,7 @@ int CPlayerServer::SendPartyState() {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto* node = BrainOf(unit)->memory.nearby.head; node != nullptr;) {
-                auto* other = static_cast<CUnit*>(node->data);
+                auto* other = node->data;
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
                 if (BrainOf(other)->AggressionEnemy() == unit) refreshPending_ = 2;
@@ -390,18 +390,18 @@ void CPlayerServer::UpdatePartyUnits() {
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&party);
     party.vtable = scriptvtable::kRefs;
     party.CopyFrom(group50F8_);
-    CPlayer::ObjectMap& units = Owner()->units_;
+    CPlayer::UnitMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
-        for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-            auto* unit = static_cast<CUnit*>(node->value);
+        for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
+            CUnit* unit = node->value;
             party.Insert(unit);
             AIBrain* brain = BrainOf(unit);
             party.InsertAll(&brain->memory.visible);
             known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
-        for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            known.CopyToList(&BrainOf(static_cast<CUnit*>(node->value))->memory.seenCorpses);
+        for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node))
+            known.CopyToList(&BrainOf(node->value)->memory.seenCorpses);
     } else {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {

@@ -181,9 +181,9 @@ void CWorldServer::ResetZone() {
     EndTimedObjects(this);
     mobName_ = game::EmptyText();
     zoneName_ = game::EmptyText();
-    if (manager3C_) static_cast<CBaseManager*>(manager3C_)->FreeSpares();
-    if (manager40_) static_cast<CBaseManager*>(manager40_)->FreeSpares();
-    if (manager44_) static_cast<CBaseManager*>(manager44_)->FreeSpares();
+    if (manager3C_) manager3C_->FreeSpares();
+    if (manager40_) manager40_->FreeSpares();
+    if (manager44_) manager44_->FreeSpares();
 }
 
 // ---- TeardownZone -----------------------------------------------------------------------------

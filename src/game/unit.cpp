@@ -37,7 +37,7 @@ constexpr int kClassQuickItem = 0x13;
 float BackwardSpeedScale() { return ei::GameData<const float>(0x007C5438); }
 float HeroTransitionSpeed() { return ei::GameData<const float>(0x007C542C); }
 
-float ItemWeight(const CEngineObject* item) { return static_cast<const CItem*>(item)->Weight(); }
+float ItemWeight(const CItem* item) { return item->Weight(); }
 
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
 float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
@@ -48,7 +48,7 @@ bool IsPartyUnit(CUnit* unit) { return unit->controller->GetClassId() == kClassP
 
 // Puts `item` into the first free slot of `slots`, taking a reference: the slot, 1 when it is
 // already there (whatever its slot), -1 when full.
-int AddToSlots(CUnit* unit, CEngineObject** slots, std::uint32_t count, CEngineObject* item) {
+int AddToSlots(CUnit* unit, CItem** slots, std::uint32_t count, CItem* item) {
     for (std::uint32_t i = 0; i < count; ++i) {
         if (slots[i] == item) return 1;
         if (!slots[i]) {
@@ -61,9 +61,9 @@ int AddToSlots(CUnit* unit, CEngineObject** slots, std::uint32_t count, CEngineO
     return -1;
 }
 
-std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t slot) {
+std::uintptr_t RemoveFromSlots(CUnit* unit, CItem** slots, std::uint32_t slot) {
     if (slot >= 4) return slot;
-    CEngineObject* item = slots[slot];
+    CItem* item = slots[slot];
     slots[slot] = nullptr;
     if (item) item->Release();
     return unit->MarkChanged(kPartEquipment);
@@ -170,19 +170,19 @@ void CUnit::GetEquipmentIds(std::uint32_t* out) {
 }
 EI_REPLACE_METHOD(0x0052EC10, CUnit::GetEquipmentIds);
 
-int CUnit::AddWeapon(CEngineObject* item) {
+int CUnit::AddWeapon(CItem* item) {
     if (!item) return 0;
     return AddToSlots(this, weapons, 4, item);
 }
 EI_REPLACE_METHOD(0x00531070, CUnit::AddWeapon);
 
-int CUnit::AddQuickItem(CEngineObject* item) {
+int CUnit::AddQuickItem(CItem* item) {
     if (!item) return 0;
     return AddToSlots(this, quickItems, 4, item);
 }
 EI_REPLACE_METHOD(0x00531180, CUnit::AddQuickItem);
 
-int CUnit::AddSpell(CEngineObject* item) {
+int CUnit::AddSpell(CItem* item) {
     // No null check here: a null item "is already there" at the first empty slot (returns 1).
     return AddToSlots(this, spells, 8, item);
 }
@@ -194,7 +194,7 @@ EI_REPLACE_METHOD(0x005310D0, CUnit::RemoveWeapon);
 std::uintptr_t CUnit::RemoveQuickItem(std::uint32_t slot) { return RemoveFromSlots(this, quickItems, slot); }
 EI_REPLACE_METHOD(0x005311E0, CUnit::RemoveQuickItem);
 
-CEngineObject* CUnit::GetWeapon(std::uint32_t slot) {
+CItem* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
@@ -205,20 +205,20 @@ CEngineObject* CUnit::GetWeapon(std::uint32_t slot) {
 }
 EI_REPLACE_METHOD(0x005318B0, CUnit::GetWeapon);
 
-CEngineObject* CUnit::GetQuickItem(std::uint32_t slot) {
+CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->quickItemCount) return nullptr;
-        CEngineObject* item = record->quickItems[slot];
-        if (!item || static_cast<int>(static_cast<CItem*>(item)->count_) < 1) return nullptr;   // its count
+        CItem* item = record->quickItems[slot];
+        if (!item || static_cast<int>(item->count_) < 1) return nullptr;   // its count
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
 }
 EI_REPLACE_METHOD(0x00531920, CUnit::GetQuickItem);
 
-CEngineObject* CUnit::GetSpell(std::uint32_t slot) {
+CItem* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
@@ -235,10 +235,10 @@ void* CUnit::GetSpellObject(std::uint32_t slot) {
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->spellCount) return nullptr;
         // No null check on the item here (the original reads through it).
-        return static_cast<CItem*>(record->spells[slot])->spell_;
+        return record->spells[slot]->spell_;
     }
     if (slot >= 8 || !spells[slot]) return nullptr;
-    return static_cast<CItem*>(spells[slot])->spell_;
+    return spells[slot]->spell_;
 }
 EI_REPLACE_METHOD(0x00531A10, CUnit::GetSpellObject);
 
@@ -262,16 +262,16 @@ EI_REPLACE_METHOD(0x00530FA0, CUnit::HasRangedWeapon);
 
 double CUnit::TotalItemWeight() {
     double total = kZero;   // accumulated on the FPU stack in the original
-    for (CEngineObject* item : weapons) {
+    for (CItem* item : weapons) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : quickItems) {
+    for (CItem* item : quickItems) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : spells) {
+    for (CItem* item : spells) {
         if (item) total += ItemWeight(item);
     }
-    for (CEngineObject* item : armor) {
+    for (CItem* item : armor) {
         if (item) total += ItemWeight(item);
     }
     return total;   // unrounded (ST0)
@@ -292,9 +292,9 @@ int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
 EI_REPLACE_METHOD(0x0052F820, CUnit::CanCastSpell);
 
 int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
-    CEngineObject* object = GetQuickItem(slot);
+    CItem* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != kClassQuickItem) return 3;
-    CItem* item = static_cast<CItem*>(object);
+    CItem* item = object;
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return 3;
     if (item->GetCategory() == 5) {
         EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));

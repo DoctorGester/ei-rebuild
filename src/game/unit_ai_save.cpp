@@ -25,7 +25,7 @@ void WriteCopy(CStream* stream, const T& value) {
 }
 
 // Each object's counted reference (its id) of a memory list.
-void SaveObjectList(mfc::CTypedPtrList<CEngineObject>& list, CStream* stream) {
+void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
     WriteCopy(stream, list.count);
     for (auto* node = list.head; node;) {
         auto* next = node->next;

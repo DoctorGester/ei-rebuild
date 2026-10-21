@@ -30,9 +30,13 @@ class ChunkArchive;
 class CStream;   // core_streams.h
 struct PartyUnitRecord;   // unit.h
 
+// A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an
+// aligned array of item pointers.
+using PartyItemArray = lib::AlignedArray<CItem*>;
+
 // A unit record's item list (its data pointer, then count, capacity and grow-by) as the aligned
 // pointer array it is.
-inline AlignedPtrArray& ItemList(CEngineObject**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
+inline PartyItemArray& ItemList(CItem**& data) { return *reinterpret_cast<PartyItemArray*>(&data); }
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty*& LoadingParty() { return ei::GameData<CParty*>(0x007C8344); }
@@ -188,7 +192,7 @@ public:
     CSpellManager* spellManager_;           // +0x24 (slot 22)
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
     PartyMemberArray members_;              // +0x2C
-    AlignedPtrArray items_;                 // +0x40 CItem*
+    PartyItemArray items_;                  // +0x40
     std::uint32_t money_;               // +0x50 the party's money (Money(); cleared by Clear, saved masked)
     NamedFloatTable variables_;             // +0x54 named variables (the script's "gtime" and the like)
     mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)

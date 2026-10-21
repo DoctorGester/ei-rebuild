@@ -232,7 +232,7 @@ EI_REPLACE(0x005F7010, Screen9Destroy);
 namespace {
 // CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
 CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
-    return static_cast<CItem*>(list->AddItem(item, keepCount, merge));
+    return list->AddItem(item, keepCount, merge);
 }
 void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
 void* TurnVtable() { return ei::GamePointer<void>(0x007403F8); }
@@ -268,7 +268,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
     if (limit > 0 && to->items_.size >= limit) {
         for (int i = 0; i < limit; ++i) {
-            if (!item->IsSameAs(static_cast<CItem*>(to->items_.data[i]))) continue;
+            if (!item->IsSameAs(to->items_.data[i])) continue;
             CItem* moved = AddItemAt(to, item, whole, merge);
             RemoveItemAt(from, item, whole);
             return moved;
@@ -298,7 +298,7 @@ EI_REPLACE_METHOD(0x005EE1B0, CItemScreen::MoveItem);
 CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
     while (from->items_.size != 0) {
-        auto* first = static_cast<CItem*>(from->items_.data[0]);
+        CItem* first = from->items_.data[0];
         moved = AddItemAt(to, first, 1, 1);
         RemoveItemAt(from, first, 1);
     }

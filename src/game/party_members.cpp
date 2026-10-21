@@ -54,18 +54,18 @@ bool Named(const mfc::CString& name) {
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.
-void CopyList(AlignedPtrArray& list, const AlignedPtrArray& source, CParty* party) {
+void CopyList(PartyItemArray& list, const PartyItemArray& source, CParty* party) {
     list.SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) {
-        auto* item = static_cast<CItem*>(source.data[i]);
+        CItem* item = source.data[i];
         list.data[i] = party->CopyItem(item);
-        auto* copy = static_cast<CItem*>(list.data[i]);
+        CItem* copy = list.data[i];
         copy->count_ = item->count_;
         ++copy->refCount_;
     }
 }
 
-const AlignedPtrArray& ConstList(CEngineObject** const& data) { return *reinterpret_cast<const AlignedPtrArray*>(&data); }
+const PartyItemArray& ConstList(CItem** const& data) { return *reinterpret_cast<const PartyItemArray*>(&data); }
 
 } // namespace
 
@@ -155,7 +155,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         CSpellManager* owner = SpellManager();
         auto* spell = static_cast<CItem*>(static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner));
         CItem* copy = CountedClone(spell);
-        AlignedPtrArray& list = ItemList(record->spells);
+        PartyItemArray& list = ItemList(record->spells);
         int index = list.size;
         list.SetSize(index + 1, -1);
         list.data[index] = copy;
@@ -168,9 +168,9 @@ EI_REPLACE_METHOD(0x006621F0, CParty::FillFromPrototype);
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the original looks the first entry up, finding it at 0).
-    for (AlignedPtrArray* list : {&ItemList(record->spells), &ItemList(record->weapons)}) {
+    for (PartyItemArray* list : {&ItemList(record->spells), &ItemList(record->weapons)}) {
         while (list->size != 0) {
-            static_cast<CEngineObject*>(list->data[0])->Release();
+            list->data[0]->Release();
             list->RemoveRange(0, 1);
         }
     }

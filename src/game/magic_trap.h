@@ -124,9 +124,9 @@ public:
     // and point the unit), with +0x28C first narrowing `units` to the last one closer than 1e30
     // (squared; NaN counts). Then the countdown starts again (+0x288 = +0x284). Nothing without
     // units or a spell; nothing either (the countdown kept) when +0x28C finds none.
-    void CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units);
+    void CastAtUnits(mfc::CTypedPtrList<CUnit>* units);
 
-    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+    using UnitList = mfc::CTypedPtrList<CUnit>;
 
     std::uint32_t sides;            // +0x238 bit per unit side (+0x250) that sets it off
     CEngineObject* spell;           // +0x23C a counted reference (a CSpell); null: none
@@ -166,4 +166,4 @@ static_assert(sizeof(MagicTrapRecord) == 0x44);
 // `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
 // (the world). See docs/notes/units.md ("Magic traps").
 void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
-                                mfc::CTypedPtrList<CEngineObject>* out);
+                                mfc::CTypedPtrList<CUnit>* out);

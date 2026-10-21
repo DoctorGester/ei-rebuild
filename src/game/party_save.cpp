@@ -36,25 +36,25 @@ void ReadText(CStream* stream, mfc::CString& text) {
 }
 
 // A list's count, then each item's id (-1 for an empty entry).
-void WriteItemIds(CStream* stream, const AlignedPtrArray& list) {
+void WriteItemIds(CStream* stream, const PartyItemArray& list) {
     WriteValue(stream, list.size);
     for (int i = 0; i < list.size; ++i) {
-        auto* item = static_cast<const CEngineObject*>(list.data[i]);
+        const CItem* item = list.data[i];
         WriteValue(stream, item != nullptr ? item->id_ : -1);
     }
 }
 
 // Releases what the list holds, then reads a count and that many ids, each resolved in `manager`
 // and counted.
-void ReadItemIds(CStream* stream, AlignedPtrArray& list, CBaseManager* manager) {
-    for (int i = 0; i < list.size; ++i) static_cast<CEngineObject*>(list.data[i])->Release();
+void ReadItemIds(CStream* stream, PartyItemArray& list, CBaseManager* manager) {
+    for (int i = 0; i < list.size; ++i) list.data[i]->Release();
     int count;
     stream->Read(&count, sizeof(count));
     list.SetSize(count, -1);
     for (int i = 0; i < list.size; ++i) {
         unsigned id;
         stream->Read(&id, sizeof(id));
-        CEngineObject* item = manager->FindObject(id);
+        auto* item = static_cast<CItem*>(manager->FindObject(id));
         list.data[i] = item;
         if (item != nullptr) ++item->refCount_;
     }

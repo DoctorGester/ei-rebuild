@@ -99,11 +99,11 @@ void CCampPages::OnMessageResult(int result) {
     if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
     PartyUnitRecord* hero = ShownHero(this);
     if (static_cast<int>(hero->weaponCount) <= 0) return;
-    CEngineObject* weapon = hero->weapons[0];
-    void* item = reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(static_cast<CItem*>(weapon), 0, 1);
-    hero->RemoveWeapon(static_cast<CItem*>(weapon));   // 00660A50: the weapon list's Remove
+    CItem* weapon = hero->weapons[0];
+    CItem* item = reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(weapon, 0, 1);
+    hero->RemoveWeapon(weapon);   // 00660A50: the weapon list's Remove
     hero->weaponIndex = 0xFFFFFFFFu;
-    static_cast<CUiItemStrip*>(itemStrip_)->ScrollToItem(static_cast<CItem*>(item));
+    static_cast<CUiItemStrip*>(itemStrip_)->ScrollToItem(item);
     CallVirtual(kSlotRefreshWeapons);
 }
 EI_REPLACE_METHOD(0x0060E900, CCampPages::OnMessageResult);

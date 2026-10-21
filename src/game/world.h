@@ -29,6 +29,7 @@
 using BOOL = int;
 
 struct ScriptGroup;
+class CItem;       // item.h
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
@@ -83,6 +84,13 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
+// ObjectIdMap's shape for a map that only holds units (WorldPlayer::units).
+struct UnitIdMap {
+    stlp::hash_map<unsigned, CUnit*, stlp::IntHash> map;   // +0x00
+    int maxId;                                              // +0x14
+};
+static_assert(sizeof(UnitIdMap) == 0x18);
+
 // 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
 // (SendFreshObjects, world_map.cpp; world_zone.cpp).
 inline void* ObjectPtrListVtable() { return ei::GamePointer<void>(0x0073F530); }
@@ -97,7 +105,7 @@ struct WorldPlayer {
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
-    ObjectIdMap units;                   // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
+    UnitIdMap units;                     // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
     std::uint8_t knownTimed[0x70 - 0x58]; // CPlayer::knownTimed_ / maxTimedId_ (read through CPlayer)
     // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
     // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
@@ -250,11 +258,11 @@ public:
     // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual void ThisWorld();             // 13: 0055EB40 returns this
     virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48, manager48_; the client's Segment ticks its objects)
-    virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
+    virtual CBaseManager* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
     virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
-    virtual CEngineObject* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
-    virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
+    virtual CBaseManager* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
+    virtual CBaseManager* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
     virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
@@ -354,14 +362,14 @@ public:
     std::uint8_t windDirection_[12];      // +0x24 three floats; saved and loaded as they are
     std::uint32_t windStrength_;          // +0x30 float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // +0x34 counted (the client's from SetUpGraphics; slot 23 returns it)
-    CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
-    CEngineObject* manager3C_;            // +0x3C (slot 15)
-    CEngineObject* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
-    CEngineObject* manager44_;            // +0x44 (slot 21)
-    CEngineObject* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
-    CEngineObject* manager4C_;            // +0x4C (slot 22)
+    CBaseManager* players_;              // +0x38 player list (vtable slot 20 returns it)
+    CBaseManager* manager3C_;            // +0x3C (slot 15)
+    CBaseManager* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
+    CBaseManager* manager44_;            // +0x44 (slot 21)
+    CBaseManager* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
+    CBaseManager* manager4C_;            // +0x4C (slot 22)
     CEngineObject* manager50_;            // +0x50 (slot 17)
-    CEngineObject* itemManager_;          // +0x54 items (slot 18)
+    CBaseManager* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
     RefPtr shared5C_;
@@ -797,9 +805,9 @@ public:
     // ignored.
     void AddCounted(CEngineObject* item);
     // 00594AB0 (RET 4). The item manager's (007AFFB4) new item named `name` (006AC970).
-    CEngineObject* CreateItemNamed(const char* name);
+    CItem* CreateItemNamed(const char* name);
     // 00594BC0 (RET 4). The item manager's new spell named `name` (006AD1E0, with slot 22).
-    CEngineObject* CreateSpellNamed(const char* name);
+    CItem* CreateSpellNamed(const char* name);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
@@ -2133,7 +2141,7 @@ inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return ei::GameData<int>(0x007AF63C); }
 // 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
-inline CEngineObject* WorldItemManager() { return ei::GameData<CEngineObject* const>(0x007AFFB4); }
+inline CBaseManager* WorldItemManager() { return ei::GameData<CBaseManager* const>(0x007AFFB4); }
 
 
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A

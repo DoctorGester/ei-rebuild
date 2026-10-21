@@ -50,12 +50,12 @@ bool DirectlyControlled(const CUnit* unit) {
 }
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
-CEngineObject* LeaderOf(const CUnit* unit) {
+CUnit* LeaderOf(const CUnit* unit) {
     AIBrain* brain = BrainOf(unit);
     CEngineObject* leader = nullptr;
     if (auto* mode = static_cast<PlayerMode*>(brain->FindMode(kModePlayer))) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
-    return leader;
+    return static_cast<CUnit*>(leader);
 }
 
 // The player's attack check: -1 (no restrictions) when the player's order check accepts an attack
@@ -115,7 +115,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
     for (auto* node = candidates.head; node;) {
         auto* next = node->next;
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         CUnitServer* control = ControllerOf(other);
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
@@ -140,7 +140,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             InitList(party);
             CollectParty(brain, &party);
             for (auto* node = party.head; node;) {
-                auto* other = static_cast<CUnit*>(node->data);
+                auto* other = node->data;
                 node = node->next;
                 if (other == unit) continue;
                 AIBrain* theirs = BrainOf(other);
@@ -175,12 +175,12 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
                                GameLogicSettings().playerCallForHelp);
     for (auto* node = nearby.head; node;) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         node = node->next;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = BrainOf(other);
-        CEngineObject* foe = theirs->target;
-        if (!foe || static_cast<CUnit*>(foe)->player == unit->player || theirs->action != AIBrain::kActionAttack ||
+        auto* foe = static_cast<CUnit*>(theirs->target);
+        if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != kClassUnit)
             continue;
         if (targets->Find(foe)) continue;
@@ -200,18 +200,18 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     if (!player) return;
     // The chain of leaders above the unit.
     for (const CUnit* member = unit;;) {
-        CEngineObject* above = LeaderOf(member);
+        CUnit* above = LeaderOf(member);
         if (!above || party->Find(above)) break;
         party->AddTail(above);
-        member = static_cast<const CUnit*>(above);
+        member = above;
     }
     // Everyone following someone listed, until nobody is added.
     bool added;
     do {
         added = false;
         for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-            CEngineObject* member = node->value;
-            CEngineObject* followed = LeaderOf(static_cast<CUnit*>(member));
+            CUnit* member = node->value;
+            CUnit* followed = LeaderOf(member);
             if (!party->Find(followed) || party->Find(member)) continue;
             party->AddTail(member);
             added = true;
@@ -227,7 +227,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     CPlayer* player = PlayerOf(unit);
     if (!player) return true;
     for (auto* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        auto* member = static_cast<CUnit*>(node->value);
+        CUnit* member = node->value;
         PlayerMode* mode = nullptr;
         for (auto* entry = BrainOf(member)->modes.head; entry; entry = entry->next) {
             if (entry->data->GetType() == kModePlayer) {

@@ -39,8 +39,8 @@ constexpr int kPtrListBlockSize = 10;
 void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*>(player + 0x20); }
 
 // The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
-bool IsBroken(const CEngineObject* item) {
-    return x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->condition_)) <= 0;
+bool IsBroken(const CItem* item) {
+    return x87::fistp(std::bit_cast<float>(item->condition_)) <= 0;
 }
 
 using ItemList = mfc::CTypedPtrList<CEngineObject>;
@@ -93,7 +93,7 @@ void CUnit::DropBrokenEquipment() {
     broken.blockSize = kPtrListBlockSize;
     void* messages = PlayerMessages(owner);
 
-    for (CEngineObject*& slot : armor) {
+    for (CItem*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         ++slot->refCount_;
         broken.AddTail(slot);
@@ -109,7 +109,7 @@ void CUnit::DropBrokenEquipment() {
 
     bool weaponLost = false;
     for (int i = 3; i >= 0; --i) {
-        CEngineObject*& slot = weapons[i];
+        CItem*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
         static_cast<CPlayerServer*>(messages)->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
         ++slot->refCount_;

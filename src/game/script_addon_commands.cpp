@@ -280,7 +280,7 @@ bool GiveUnitArmor(Call* call) {
     if (!unit) return Report("GiveUnitArmor", "Unit doesn't exists");
     if (!IsUnit(unit)) return Report("GiveUnitArmor", "Object with ID %d must be a Unit", unit->id_);
     const char* name = Text(call, 0);
-    CEngineObject* item = TheServerWorld()->CreateItemNamed(name);
+    CItem* item = TheServerWorld()->CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
     static_cast<CUnit*>(unit)->EquipArmour(item);

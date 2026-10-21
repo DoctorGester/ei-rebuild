@@ -83,7 +83,7 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
 CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
     const auto& map = player->units.map;
     for (auto* node = map.First(); node; node = map.After(node)) {
-        auto* member = static_cast<CUnit*>(node->value);
+        CUnit* member = node->value;
         if (!member) return nullptr;
         if (member != self) return member;
     }
@@ -154,7 +154,7 @@ void CUnitServer::FinishAction(int location, char) {
         break;
     case 10: {
         std::uint32_t slot = action.source;
-        auto* item = static_cast<CItem*>(unit->GetQuickItem(slot));
+        auto* item = unit->GetQuickItem(slot);
         if (item && item->GetCategory() == kQuickItemConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
@@ -209,9 +209,9 @@ EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
 
 void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     ManagerContext();
-    auto* weapon = static_cast<CItem*>(unit->GetWeapon(unit->activeWeapon));
+    auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
-    auto* spell = static_cast<CSpell*>(weapon->spell_);
+    auto* spell = weapon->spell_;
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
     float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > weapon->charge_) return;
@@ -226,9 +226,9 @@ EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 void CUnitServer::TriggerItemSpells(char onHit) {
     ManagerContext();
     for (std::uint32_t slot = 0; slot < 7; ++slot) {
-        auto* item = static_cast<CItem*>(unit->armor[slot]);    // 00530830
+        auto* item = unit->armor[slot];    // 00530830
         if (!item) continue;
-        auto* spell = static_cast<CSpell*>(item->spell_);
+        auto* spell = item->spell_;
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost > item->charge_) continue;
@@ -463,7 +463,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     switch (skill) {
     case 0: {
         ItemUse record = {1, 0, 0};
-        auto* items = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->ItemFactory());
+        auto* items = static_cast<CWorld*>(world)->ItemFactory();
         CEngineObject* studied = items->FindObject(action.param);
         record = {1, 0, 0};
         if (studied) {
@@ -484,7 +484,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 1: {
         if (!other) return;
         if (other->player) return;
-        CItem* item = static_cast<CItem*>(other->TakeRandomItem());
+        CItem* item = other->TakeRandomItem();
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
             if (char* player = unit->player) {

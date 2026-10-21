@@ -46,7 +46,8 @@ inline const CPlayerServer* PlayerServerOf(const char* player) {
     return reinterpret_cast<const CPlayerServer*>(reinterpret_cast<const CPlayer*>(player)->connection_);
 }
 
-void ReleaseRef(CEngineObject*& ref) {
+template <typename T>
+void ReleaseRef(T*& ref) {
     if (ref) {
         ref->Release();
         ref = nullptr;
@@ -674,7 +675,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        AIBrain* leaderBrain = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(leader)->controller)->Brain();
+        AIBrain* leaderBrain = reinterpret_cast<CUnitServer*>(leader->controller)->Brain();
         for (auto* node = leaderBrain->modes.head; node;) {
             AIMode* mode = node->data;     // 005D9830 (GetNext)
             node = node->next;
@@ -838,7 +839,7 @@ PlayerMode* PlayerModeOf(CUnit* unit) {
 }
 } // namespace
 
-void PlayerMode::SetLeader(AIBrain* brain, CEngineObject* newLeader) {
+void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     CUnit* self = brain->owner->unit;
     if (newLeader == self) {
         if (leader) {
@@ -849,10 +850,10 @@ void PlayerMode::SetLeader(AIBrain* brain, CEngineObject* newLeader) {
     }
     // Following a unit that (through its leaders) follows this one: this unit stops following.
     if (newLeader) {
-        auto* unit = static_cast<CUnit*>(newLeader);
+        CUnit* unit = newLeader;
         for (;;) {
             PlayerMode* mode = PlayerModeOf(unit);
-            auto* next = mode ? static_cast<CUnit*>(mode->leader) : nullptr;
+            CUnit* next = mode ? mode->leader : nullptr;
             if (!next) break;
             if (next == self) {
                 AIBrain* own = reinterpret_cast<CUnitServer*>(next->controller)->Brain();

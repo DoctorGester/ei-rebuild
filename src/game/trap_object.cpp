@@ -60,7 +60,7 @@ int CTrapObject::UpdateTrap() {
     Update();
     if (!(flags_ & kArmed)) return 0;
     if (!static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
-    mfc::CTypedPtrList<CEngineObject> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
+    mfc::CTypedPtrList<CUnit> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
     auto* world = static_cast<CWorldServer*>(ManagerContext());
     world->Sectors()->FindUnitsInRadius(&position, &units, kTriggerRadius);
     if ((flags_ & kArmedFresh) && units.count == 0) {

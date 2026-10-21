@@ -18,7 +18,8 @@
 
 namespace {
 // The original drops the world's reference and deletes the manager without testing the count.
-void DeleteManager(CEngineObject*& manager) {
+template <typename T>
+void DeleteManager(T*& manager) {
     if (!manager) return;
     --manager->refCount_;
     delete manager;

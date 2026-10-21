@@ -337,7 +337,7 @@ void ScriptGroup::RemoveDeleted() {
 }
 EI_REPLACE_METHOD(0x004B3110, ScriptGroup::RemoveDeleted);
 
-void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CEngineObject>* list) {
+void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CUnit>* list) {
     for (auto* node = list->head; node;) {
         auto* current = node;
         node = node->next;
@@ -346,7 +346,7 @@ void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CEngineObject>* list) {
 }
 EI_REPLACE_METHOD(0x004B31D0, ScriptGroup::InsertAll);
 
-void ScriptGroup::CopyToList(mfc::CTypedPtrList<CEngineObject>* list) const {
+void ScriptGroup::CopyToList(mfc::CTypedPtrList<CUnit>* list) const {
     for (auto* node = list->head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
@@ -357,7 +357,7 @@ void ScriptGroup::CopyToList(mfc::CTypedPtrList<CEngineObject>* list) const {
         auto* node = list->NewNode(list->tail, nullptr);
         if (object != node->data) {   // a new node's element is null: nothing to release
             AddRef(object);
-            node->data = object;
+            node->data = static_cast<CUnit*>(object);
         }
         if (list->tail) list->tail->next = node;
         else list->head = node;

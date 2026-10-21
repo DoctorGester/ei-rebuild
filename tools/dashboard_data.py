@@ -9,7 +9,11 @@ commit's own files:
     VCall uses, __asm blocks, float_control pragmas, scenarios;
   - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
     (forwarders by target, game data addresses, uses of the exe's MFC / STLport / CRT / imports)
-    and the single-byte text sites a UTF-8 switch has to visit.
+    and the single-byte text sites a UTF-8 switch has to visit;
+  - the cleanup track (tools/progress.py's counts over all of src/, so both tools agree): casts,
+    __fastcall shims, registrations, game data addresses, struct names defined twice; and from the
+    generated tables, game.exe's code cells by group, its pointer cells, the named data ranges (C18)
+    and the retired vtables (C19).
 
 usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache]
 Reads history through `git cat-file --batch`; nothing is checked out. A rerun takes the numbers of
@@ -23,6 +27,20 @@ from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import check_cleanup  # noqa: E402  (the cleanup ratchet's patterns, so both count the same things)
+import progress  # noqa: E402  (the cleanup track's counts, so the dashboard and progress.py agree)
+import srcscan  # noqa: E402
+
+# progress.py's plain counts that the cleanup track shows, by data.json key.
+TRACK = {
+    'reinterpret_casts': 'reinterpret_cast',
+    'pointer_static_casts': 'static_cast to a pointer type',
+    'anonymous_namespaces': 'anonymous namespaces',
+    'registrations': 'EI_REPLACE registrations',
+}
+TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.HOOK_ERA_COUNTS
+                  for key, name in TRACK.items() if label == name}
+STRUCT_DEFINITION = re.compile(r'^(?:struct|class)\s+(?:__declspec\(\w+\)\s+)?(\w+)(?:\s+final)?\s*(?::[^{;]*)?\{', re.M)
+CELL = re.compile(r'^\{DataId\(', re.M)
 
 # check_cleanup's columns that the CLEANUP dict below does not already cover, by data.json key.
 RATCHET = {
@@ -111,6 +129,7 @@ IMAGE_TIES = [
     ('src/hook/hook.cpp', re.compile(r'\bStandaloneExePath\b')),                  # InstallHooks reads it in the image
     ('src/standalone/image_imports.cpp', re.compile(r'\bEiStandaloneExe\b')),    # imports from game.exe's folder
 ]
+DATA_RANGE = range(0x730000, 0x900000)
 DATA_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 UNHOOKABLE_BYTES = 5   # a hook needs five bytes: shorter functions are written at standalone time
 
@@ -176,14 +195,19 @@ def file_stats(path, text):
     """One file's share of measure(): its loc part and lines, rewritten addresses, one EI_ORIGINAL
     target per site, cleanup counts, standalone counts and data addresses."""
     replaced, origins, cleanup, standalone, data = set(), [], defaultdict(int), defaultdict(int), set()
-    standalone_only = set()
-    part = ('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
+    standalone_only, track, data_all, structs = set(), {}, set(), set()
+    part =('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
             if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
     if path.startswith('tests/scenarios') and path.endswith('.txt'):
         cleanup['scenarios'] += 1
     if path.endswith(('.cpp', '.h')):
         code = COMMENT.sub('', text)
         if path.startswith('src/'):
+            source = srcscan.Source(path, text)
+            track = {key: len(rx.findall(source.code)) for key, rx in TRACK_PATTERNS.items()}
+            track['fastcall_shims'] = progress.fastcall_shims([source])[0]
+            data_all = {a for a in (int(m, 16) for m in DATA_LITERAL.findall(source.code)) if a in DATA_RANGE}
+            structs = set(STRUCT_DEFINITION.findall(source.code))
             replaced |= {int(a, 16) for a in REPLACE.findall(code)}
             replaced |= {int(a, 16) for a in HANDLER.findall(code)}
             standalone_only |= {int(a, 16) for a in REPLACE_STANDALONE.findall(code)}
@@ -199,7 +223,8 @@ def file_stats(path, text):
                 if not path.startswith('src/lib/'):
                     for k, rx in STANDALONE.items():
                         standalone[k] += len(rx.findall(code))
-    return part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data, standalone_only
+    return (part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data, standalone_only,
+            track, data_all, structs)
 
 
 def measure(tree):
@@ -218,6 +243,7 @@ def measure(tree):
     replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
     standalone, data, standalone_only = defaultdict(int), set(), set()
     origin_files = defaultdict(set)
+    track, data_all, struct_files = defaultdict(int), set(), defaultdict(int)
     for path in tree.paths:
         if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
             continue
@@ -232,7 +258,13 @@ def measure(tree):
             f = file_stats(path, text)
             if key[0]:
                 FILE_CACHE[key] = f
-        part, lines, replaced_here, origins, counts, stand, data_here, standalone_here = f
+        (part, lines, replaced_here, origins, counts, stand, data_here, standalone_here,
+         track_here, data_all_here, structs_here) = f
+        for k, n in track_here.items():
+            track[k] += n
+        data_all |= data_all_here
+        for name in structs_here:
+            struct_files[name] += 1
         standalone_only |= standalone_here
         loc[part] += lines
         replaced |= replaced_here
@@ -272,16 +304,43 @@ def measure(tree):
         d = g & done
         areas.append({'name': name, 'range': f'{lo:06X}-{hi:06X}', 'functions': len(g), 'ported_functions': len(d),
                       'bytes': sum(sizes.get(a, 0) for a in g), 'ported_bytes': sum(sizes.get(a, 0) for a in d)})
+    track.update(data_addresses=len(data_all), structs_defined_twice=sum(1 for n in struct_files.values() if n > 1))
+    track.update(generated_tables(tree))
     return {'functions': len(game), 'ported_functions': len(done), 'bytes': total,
             'ported_bytes': sum(sizes.get(a, 0) for a in done), 'areas': areas, 'loc': dict(loc),
-            'cleanup': dict(cleanup), 'standalone': dict(standalone)}
+            'cleanup': dict(cleanup), 'standalone': dict(standalone), 'track': dict(track)}
+
+
+def generated_tables(tree):
+    """The image's tables of game.exe's data (S18b / S18i, C18, C19): code cells by group, pointer cells, named
+    ranges and retired vtables; a commit without a table leaves its keys out."""
+    out = {}
+    code_cells = tree.read('src/standalone/image_code_cells.inc')
+    if code_cells:
+        groups, group = defaultdict(int), ''
+        for line in code_cells.splitlines():
+            if line.startswith('// '):
+                group = line
+            elif line.startswith('{DataId('):
+                kind = ('code_cells_eh' if 'C++ EH' in group else 'code_cells_vtable' if 'vtable' in group
+                        else 'code_cells_static_init' if 'initialiser list' in group else 'code_cells_other')
+                groups[kind] += 1
+        out.update(groups, code_cells=sum(groups.values()))
+    pointer_cells = tree.read('src/standalone/image_cells.inc')
+    if pointer_cells:
+        out['pointer_cells'] = len(CELL.findall(pointer_cells))
+    for key, path in (('named_ranges', 'config/named_data.csv'), ('retired_vtables', 'config/retired_vtables.csv')):
+        text = tree.read(path)
+        if text is not None:
+            out[key] = sum(1 for _ in csv.DictReader(io.StringIO(text)))
+    return out
 
 
 def metrics_version():
     """Hash of the code that decides the numbers; a cache made by other code is not reused. Comments,
     blank lines and indentation-only changes do not count, so editing an explanation keeps the cache."""
     h = hashlib.sha1()
-    for name in ('dashboard_data.py', 'check_cleanup.py'):
+    for name in ('dashboard_data.py', 'check_cleanup.py', 'progress.py', 'srcscan.py'):
         with open(os.path.join(ROOT, 'tools', name), 'rb') as f:
             for tok in tokenize.tokenize(f.readline):
                 if tok.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,

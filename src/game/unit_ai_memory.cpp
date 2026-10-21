@@ -43,7 +43,7 @@ console::GameOStream& PutLong(console::GameOStream& os, long value) {
 }
 } // namespace
 
-AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void*, CEngineObject* object) {
+AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void*, CUnit* object) {
     AIObjectList::Node* node = list->AddTail(object);
     if (object) ++object->refCount_;
     return node;
@@ -53,7 +53,7 @@ EI_REPLACE(0x005CD500, AddCountedTail);
 void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
     for (auto* node = visible.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
         out->AddTail(other);
     }
@@ -65,7 +65,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
     out->RemoveAll();
     float radius2 = radius > kZero ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto* node = visible.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = ControllerOf(other)->Brain();
@@ -85,7 +85,7 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
     float best = kFar;
     for (auto* node = visible.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (!self->IsHostileTo(other) || IsDead(other)) continue;
         double dx = static_cast<double>(self->position.x) - other->position.x;
         double dy = static_cast<double>(self->position.y) - other->position.y;
@@ -102,9 +102,9 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
 
 EI_REPLACE_METHOD(0x005CB670, AIMemory::NearestEnemy);
 
-void AIMemory::ForceSee(CUnit* self, CEngineObject* object) {
+void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (visible.Find(object)) return;
-    auto* other = static_cast<CUnit*>(object);
+    CUnit* other = object;
     CUnitServer* theirs = ControllerOf(other);
     CUnitServer* ours = ControllerOf(self);
     double dx = static_cast<double>(self->position.x) - other->position.x;
@@ -135,11 +135,11 @@ void AIMemory::ForceSee(CUnit* self, CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005CBC80, AIMemory::ForceSee);
 
-void AIMemory::SeeCorpse(CUnit* self, CEngineObject* corpse) {
+void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
     console::EndLine(PutLong(os, corpse->id_));
     AddCountedTail(&seenCorpses, nullptr, corpse);
-    if (Allied(self->side, static_cast<CUnit*>(corpse)->side)) AddCountedTail(&corpses, nullptr, corpse);
+    if (Allied(self->side, corpse->side)) AddCountedTail(&corpses, nullptr, corpse);
 }
 
 EI_REPLACE_METHOD(0x005CBE90, AIMemory::SeeCorpse);
@@ -165,7 +165,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     Vector3 eye;
     static_cast<CMapObjectVirtuals*>(unit)->EyePoint(&eye);
     for (auto* node = nearby.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         CUnitServer* theirs = ControllerOf(other);
         double dx = static_cast<double>(other->position.x) - unit->position.x;

@@ -23,12 +23,12 @@
 namespace {
 
 // The aligned block of a list (kept at data[-1]) freed, the pointer left as it is.
-void FreeStorage(AlignedPtrArray& list) {
+void FreeStorage(PartyItemArray& list) {
     if (list.data != nullptr) gamecrt::operator_delete(list.data[-1]);
 }
 
-void ReleaseAll(const AlignedPtrArray& list) {
-    for (int i = 0; i < list.size; ++i) static_cast<CEngineObject*>(list.data[i])->Release();
+void ReleaseAll(const PartyItemArray& list) {
+    for (int i = 0; i < list.size; ++i) list.data[i]->Release();
 }
 
 // The values the constructor and destructor set (twice in the constructor, around ClearItems).
@@ -46,8 +46,8 @@ void SetDefaults(PartyUnitRecord& record) {
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
     for (mfc::CString& text : texts) new (&text) mfc::CString();
-    for (CEngineObject*** data : {&weapons, &quickItems, &armor, &spells}) {
-        AlignedPtrArray& list = ItemList(*data);
+    for (CItem*** data : {&weapons, &quickItems, &armor, &spells}) {
+        PartyItemArray& list = ItemList(*data);
         list.data = nullptr;
         list.growBy = 0;
         list.capacity = 0;
@@ -183,8 +183,8 @@ void Drop(T*& object) {
     object = nullptr;
 }
 
-void ReleaseItems(const AlignedPtrArray& items) {
-    for (int i = 0; i < items.size; ++i) static_cast<CEngineObject*>(items.data[i])->Release();
+void ReleaseItems(const PartyItemArray& items) {
+    for (int i = 0; i < items.size; ++i) items.data[i]->Release();
 }
 
 } // namespace

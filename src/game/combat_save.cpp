@@ -46,8 +46,9 @@ void WriteCopy(CStream* stream, T value) {
 int IdOrNone(const CEngineObject* object) { return object ? object->id_ : -1; }
 
 // 00556C60 / 00556C40 (two copies): assigns a counted reference, releasing the previous object.
-void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
-    CEngineObject* previous = slot;
+template <typename T>
+void AssignCounted(T*& slot, T* object) {
+    T* previous = slot;
     slot = object;
     if (object) ++object->refCount_;
     if (previous) previous->Release();
@@ -210,7 +211,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
     void* units = UnitManager();
-    AssignCounted(followedLeader, ReadObject(stream, units));
+    AssignCounted(followedLeader, static_cast<CUnit*>(ReadObject(stream, units)));
 
     if (stream->version_ < kVersion180) return;
     stream->Read(&actingCheckTime, 4);

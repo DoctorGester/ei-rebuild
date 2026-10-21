@@ -718,10 +718,10 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         (*result)->CopyFrom(player->server->group50F8_);
         const auto& units = player->units.map;
         for (auto* node = units.First(); node; node = units.After(node)) {
-            CEngineObject* unit = node->value;
+            CUnit* unit = node->value;
             if (!unit) break;
             (*result)->Insert(unit);
-            InsertSeen(*result, ControllerOf(static_cast<CUnit*>(unit)));   // no null check, as in the original
+            InsertSeen(*result, ControllerOf(unit));   // no null check, as in the original
         }
         break;
     }

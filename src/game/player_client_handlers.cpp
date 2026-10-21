@@ -110,8 +110,8 @@ int CPlayerClient::OnGameState() {
     TheInterface()->CreateScreen(state);
     WorldTick() = tick;
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
-    for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
-        AsConnection(this)->UnitChanged(static_cast<CUnit*>(node->value));
+    for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
+        AsConnection(this)->UnitChanged(node->value);
     if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
     return 1;
 }
@@ -185,7 +185,7 @@ int CPlayerClient::OnWeaponRemoved() {
     // The party (an embedded CParty) seen as its record array.
     PartyUnitRecord* record = reinterpret_cast<PartyRecords*>(Owner()->Party())->Find(unitId);
     if (record && static_cast<int>(record->weaponCount) > index)
-        record->RemoveWeapon(static_cast<CItem*>(record->weapons[index]));
+        record->RemoveWeapon(record->weapons[index]);
     if (CUnit* unit = FindClientUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
     return 1;
 }
@@ -234,7 +234,7 @@ int CPlayerClient::OnObjectRemoved() {
     int id;
     in_.Read(&id, 4);
     CPlayer* player = Owner();
-    if (CPlayer::ObjectMap::Node* unit = player->units_.Find(id)) static_cast<CUnit*>(unit->value)->SetPlayer(nullptr);
+    if (CPlayer::UnitMap::Node* unit = player->units_.Find(id)) unit->value->SetPlayer(nullptr);
     CPlayer::ObjectMap::Node* node = player->knownObjects_.Find(id);
     if (!node) return 0;
     CEngineObject* object = node->value;

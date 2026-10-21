@@ -37,7 +37,7 @@ void AIRef::Load(CStream* stream, void* world) {
         Reset();
         return;
     }
-    auto* manager = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->MapObjectManager());
+    auto* manager = static_cast<CWorld*>(world)->MapObjectManager();
     Assign(manager->FindObject(static_cast<unsigned>(id)));
 }
 EI_REPLACE_METHOD(0x0050E220, AIRef::Load);
@@ -51,7 +51,7 @@ EI_REPLACE_METHOD(0x0050E290, AIRef::Save);
 // 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
 // counted references added at the tail of the list, each loaded in `context` (the trap's units,
 // the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context) {
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, void* context) {
     int count;
     stream->Read(&count, 4);
     while (count-- > 0) {

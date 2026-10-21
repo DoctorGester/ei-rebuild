@@ -29,11 +29,11 @@ struct Unit {
     void* EquipArmour(void* item);          // 00530730
     int AddWeapon(void* item);              // 00531070
 };
-int Unit::AddQuickItem(void* a0) { return reinterpret_cast<CUnit*>(this)->AddQuickItem(static_cast<CEngineObject*>(a0)); }
-void Unit::AddCarried(void* a0) { reinterpret_cast<CUnit*>(this)->AddCarried(static_cast<CEngineObject*>(a0)); }
-int Unit::AddSpell(void* a0) { return reinterpret_cast<CUnit*>(this)->AddSpell(static_cast<CEngineObject*>(a0)); }
-void* Unit::EquipArmour(void* a0) { return reinterpret_cast<CUnit*>(this)->EquipArmour(static_cast<CEngineObject*>(a0)); }
-int Unit::AddWeapon(void* a0) { return reinterpret_cast<CUnit*>(this)->AddWeapon(static_cast<CEngineObject*>(a0)); }
+int Unit::AddQuickItem(void* a0) { return reinterpret_cast<CUnit*>(this)->AddQuickItem(static_cast<CItem*>(a0)); }
+void Unit::AddCarried(void* a0) { reinterpret_cast<CUnit*>(this)->AddCarried(static_cast<CItem*>(a0)); }
+int Unit::AddSpell(void* a0) { return reinterpret_cast<CUnit*>(this)->AddSpell(static_cast<CItem*>(a0)); }
+void* Unit::EquipArmour(void* a0) { return reinterpret_cast<CUnit*>(this)->EquipArmour(static_cast<CItem*>(a0)); }
+int Unit::AddWeapon(void* a0) { return reinterpret_cast<CUnit*>(this)->AddWeapon(static_cast<CItem*>(a0)); }
 
 // The unit's body slots (controller +0x1E0, unit.h UnitStats).
 struct Slots {

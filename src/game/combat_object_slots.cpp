@@ -48,7 +48,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
 EI_REPLACE_METHOD(0x00552D00, CUnitServer::ClaimHostility);
 
 BOOL CUnitServer::TakeUpWeapon(int slot) {
-    auto* weapon = static_cast<CItem*>(unit->GetWeapon(static_cast<std::uint32_t>(slot)));
+    auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
     int taken = Usable(weapon) ? slot : -1;
     unit->MarkChanged(kPartWeapons);
     unit->activeWeapon = static_cast<std::uint32_t>(taken);
@@ -71,7 +71,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     BrainOf(this)->OnObjectDeleted(object);
     if (followedLeader == object) {
         followsLeader = 0;
-        CEngineObject* old = followedLeader;
+        CUnit* old = followedLeader;
         followedLeader = nullptr;
         if (old) old->Release();
     }

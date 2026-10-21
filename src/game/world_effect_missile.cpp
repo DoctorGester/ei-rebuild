@@ -221,7 +221,7 @@ void CEffectArrow::LoadState(void* stream) {
     s->Read(&targetId_, 4);
     s->Read(&velocity_, 12);
     s->Read(&arrived_, 4);
-    static_cast<CStream*>(s)->ReadInto(&soundName_);
+    s->ReadInto(&soundName_);
     s->Read(&lightColor_, 12);
     s->Read(&lightRange_, 4);
     s->Read(&particleType_, 4);
@@ -349,7 +349,7 @@ void CEffectArrowFigure::Start(int update) {
     CEngineObject* attached = figure->attached;
     std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
     console::CStringArray parts;
-    static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1);
+    figure->MakeFigure(model, &parts, 1);
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();

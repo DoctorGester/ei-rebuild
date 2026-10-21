@@ -827,7 +827,7 @@ public:
     UnitAction action2;             // +0x1B4
     std::uint8_t followsLeader;     // +0x1D8 the chase follows `followedLeader`'s target (combat_tick.cpp)
     std::uint8_t unused_1D9[3];
-    CEngineObject* followedLeader;  // +0x1DC (referenced) the party unit whose attack this one joins
+    CUnit* followedLeader;          // +0x1DC (referenced) the party unit whose attack this one joins
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
     std::int16_t protection[8];     // +0x8E4 [0] the defence value (00553450), [1..7] the body's protection
                                     //        per damage type (UnitStats::PackBodyProtection)

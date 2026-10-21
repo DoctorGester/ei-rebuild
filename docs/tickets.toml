@@ -2478,14 +2478,82 @@ id = "C18d"
 title = "Named data: the first .data objects (one area)"
 group = "cleanup"
 depends = ["C18"]
-note = "Set the pattern for written globals (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): pick one area whose .data objects only hand-written code names (named_data.py --split 'data object': particle* 29, app* 16, net* 12), make each a tagged non-const definition, check that no generated static initialiser stores into it, no harness file reads it (the harness runs in game.exe too), no vector stand-in fills it and no cell points at it. Opus for the first, sonnet after."
+note = "Done (review): particle* .data tables as constexpr (25 tables for 29 addresses: nothing of ours writes them; kRiseFallAlpha 0078A914 serves 0078A914/918/960, kClayReach 0078A6F4/72C) and two written bss globals (g_bagSizes 007A9BFC, g_arraysConstructed 007A9BF4). named_data.py: zero fill for elements left out ({} for the zero tail), .rdata ranges must be const, --refs BEGIN END lists the original's operands into a range. Game data addresses 2,982 -> 2,952. Left in particle*: camera 0079B2DC and wind 007AF5DC (inside larger blocks), the static-init / exit objects."
 
 [[ticket]]
 id = "C21"
 title = "Pointer static_casts: typed parameters and fields instead of void* and downcasts"
 group = "cleanup"
 model = "sonnet"
-note = "User 2026-10-21 asked whether the many static_casts are needed. Measured: 12,954 in src/, 3,785 of them to a pointer type (char* 533, CUnit* 260, CItem* 123, CMapObject* 104, ...). Those are typing debt like C15's: void* parameters left by shims, fields typed as a base class or void*, downcasts from CMapObject* / CEngineObject* to the real class. Retype the parameters and fields (one family per batch) so the casts go; add the pointer static_cast count to tools/progress.py first. The ~9,000 numeric casts (float 4,134, int 1,122, double 1,054, ...) mostly mark where the original rounded to float or int on the x87 and stay for exactness; a redundant-cast audit needs a compiler-level tool (clang-tidy readability-redundant-casting, an LLVM install the user has to approve) and would come after C16d's SSE2 switch. Batch 1 (2026-10-21, 3,785 -> 3,454 pointer static_casts; progress.py counts them): CWorld::FindUnit / WorldFindUnit / GameFindClientUnit / NearestVisibleUnit return CUnit*; ScriptObjectRef::AsUnit and the script's AsUnit return CUnit*; ObjectWorld / CEngineObject::World / CManagerContext::ThisWorld return CWorld*; LightManager -> Terrain*, ParticleManagerObject -> CParticleManager*, UnitData -> CUnitServer*, ItemManagerCreateItemOriginal -> CItem*; unit locals and parameters typed CUnit* in world_quests, world_save, world_units, script_exec/eval, shim parameters typed (UnitSetDiplomacy, panel setters). ~120 same-type and upcast casts (static_cast<T*>(x) where x already is T* or a derived type, or where the callee already returns T*) dropped by scripts. Verify and release green, 0 warnings, goldens 121 the same / 0 differ. Remaining by type: const char* 466 (C15), CUnit* 182, CItem* 113, CBaseManager* 78, CMapObject* 76, CEngineObject* 63. Next batches: (a) the sector-map unit lists (CSectorMap::FindUnitsInRadius and the UnitList typedefs in ~15 files) as CTypedPtrList<CUnit>, about 30 node->data casts; (b) CPlayer::units_ / WorldPlayer::units maps as CUnit* values (~15 node->value casts; ObjectIdMap is shared by many maps, needs a template or a UnitIdMap); (c) CUnit::weapons/quickItems/armor and PartyUnitRecord item arrays as CItem* with GetWeapon/GetQuickItem/WornItem (CItem* 113); (d) CWorld manager fields and accessors (manager40_, itemManager_, MapObjectManager() ...) as CBaseManager subclasses (CBaseManager* 78); (e) ManagerContext() stays void*: it is a party for party items."
+note = "User 2026-10-21 asked whether the many static_casts are needed. Measured: 12,954 in src/, 3,785 of them to a pointer type (char* 533, CUnit* 260, CItem* 123, CMapObject* 104, ...). Those are typing debt like C15's: void* parameters left by shims, fields typed as a base class or void*, downcasts from CMapObject* / CEngineObject* to the real class. Retype the parameters and fields (one family per batch) so the casts go; add the pointer static_cast count to tools/progress.py first. The ~9,000 numeric casts (float 4,134, int 1,122, double 1,054, ...) mostly mark where the original rounded to float or int on the x87 and stay for exactness; a redundant-cast audit needs a compiler-level tool (clang-tidy readability-redundant-casting, an LLVM install the user has to approve) and would come after C16d's SSE2 switch. Batch 1 (2026-10-21, 3,785 -> 3,454 pointer static_casts; progress.py counts them): CWorld::FindUnit / WorldFindUnit / GameFindClientUnit / NearestVisibleUnit return CUnit*; ScriptObjectRef::AsUnit and the script's AsUnit return CUnit*; ObjectWorld / CEngineObject::World / CManagerContext::ThisWorld return CWorld*; LightManager -> Terrain*, ParticleManagerObject -> CParticleManager*, UnitData -> CUnitServer*, ItemManagerCreateItemOriginal -> CItem*; unit locals and parameters typed CUnit* in world_quests, world_save, world_units, script_exec/eval, shim parameters typed (UnitSetDiplomacy, panel setters). ~120 same-type and upcast casts (static_cast<T*>(x) where x already is T* or a derived type, or where the callee already returns T*) dropped by scripts. Verify and release green, 0 warnings, goldens 121 the same / 0 differ. Remaining by type: const char* 466 (C15), CUnit* 182, CItem* 113, CBaseManager* 78, CMapObject* 76, CEngineObject* 63. Next batches: (a) the sector-map unit lists (CSectorMap::FindUnitsInRadius and the UnitList typedefs in ~15 files) as CTypedPtrList<CUnit>, about 30 node->data casts; (b) CPlayer::units_ / WorldPlayer::units maps as CUnit* values (~15 node->value casts; ObjectIdMap is shared by many maps, needs a template or a UnitIdMap); (c) CUnit::weapons/quickItems/armor and PartyUnitRecord item arrays as CItem* with GetWeapon/GetQuickItem/WornItem (CItem* 113); (d) CWorld manager fields and accessors (manager40_, itemManager_, MapObjectManager() ...) as CBaseManager subclasses (CBaseManager* 78); (e) ManagerContext() stays void*: it is a party for party items. Batch 2 (2026-10-21, 3,454 -> 3,309 pointer static_casts): (a) CSectorMap::FindUnitsInRadius / UnitsAt / Sector::units, CAIMap::FindUnitsInRadius, AIObjectList (the brain memory's nearby / visible / seenCorpses / corpses), the trap's victim lists, ScriptGroup::InsertAll / CopyToList and the spell, lever, tornado, hearing and ally-space lists are CTypedPtrList<CUnit>; AddCountedTail, ForceSee, SeeCorpse take CUnit*; LeaderOf returns CUnit*; AIRef::Of, ReferenceRelease, DestructRefs and ItemList are templates over the element type; node->data casts dropped. (c) CUnit::weapons / quickItems / spells / armor and the PartyUnitRecord arrays are CItem*; GetWeapon / GetQuickItem / GetSpell / WornItem, EquipArmour / UnequipArmour, AddWeapon / AddQuickItem / AddSpell, CreateItemNamed / CreateSpellNamed, the equipment and UI helpers take or return CItem* (unit.h includes item.h; static_asserts keep offsets and sizes). Not done: CUnit::carried and TakeRandomItem stay CEngineObject*; CItemWeapon / CItemArmor downcasts stay. (d) CWorld players_ / manager3C_-4C_ / itemManager_ and FigureManager / ItemFactory / MapObjectManager / WorldItemManager are CBaseManager*; the subclass casts (CItemManager, CFigureManager, CMapObjectManager) stay since the world cannot see those classes. Remaining: next batch (b) player units_ maps (UnitIdMap), CMapObject* 76 / CEngineObject* 63 casts, CUnit* 182 mostly from CEngineObject* targets (brain target / leader / order targets) and the party items_ array (CParty::items_ as CItem*), carried as CItem**. Verify and release green, 0 warnings, goldens 121 the same / 0 differ. Batch 3 (2026-10-21, 3,299 -> 3,189 pointer static_casts): (b) CPlayer::units_ is CPlayer::UnitMap (hash_map<int, CUnit*>) and WorldPlayer::units a UnitIdMap (ObjectIdMap's shape with CUnit* values; check_cleanup lists it beside ObjectIdMap); node->value casts dropped. CParty::items_ and the unit records' item lists are PartyItemArray (lib::AlignedArray<CItem*>; ItemList takes CItem**; Append / RemoveAt / ReleaseItems / ReadItemIds / WriteItemIds / CopyList typed). CUnit::carried is CItem**; TakeRandomItem / CarriedItem / ReadItem return CItem*, AddCarried takes CItem*. PlayerMode::leader, SetLeader, PlayerModeLeader and CUnitServer::followedLeader (SetWaitingFor) are CUnit* (every store a unit: the follow order's FindUnit, WorldFindUnit, the blocking unit, the save's id resolved in the unit manager); ReleaseRef / AssignCounted are templates. Item helpers take CItem* (PartyCopy / AddToRecord, ItemWeight, IsBroken, SpellOf); PartyAddItem / PartyRemoveItem inlined. NamedPartyRecords::Find and PartyForScript return CParty* (PartyRecord::Party()). Same-type casts dropped with scripts (a local whose nearest declaration has the cast's type, spell_, uniquely typed fields and returns). Not done: FollowMode::leader and AggressionMode::enemy (the script stores any object), AIBrain::seen / target and the spell effect's caster / target (the code tests IsUnit), UnitAction::target, map spec base.object (effects share it), PartyManager::Begin/EndRedeploy (callers pass PartyRecords). Next: one CUnit accessor for the ~25 static_cast<CUnitServer*>(unit->controller) in file-local helpers (ServerControllerOf, ControllerOf, BrainOf); CPlayer::items_ / WorldPlayer::items as CTypedPtrList<CItem> (GiveItems, ItemsGiven slot 17, AddSharedObject); the item classes' LoadImpl / SaveImpl(void*) as CStream* (CStream* 54); CObject3D parts arrays as CFigureMesh* (after C19). Verify and release green, 0 warnings, checks 0."
+
+[[ticket]]
+id = "C18e"
+title = "Named data: src/lib's CRuntimeClass hierarchy and EH throw records"
+group = "cleanup"
+depends = ["C18c"]
+note = "C18c's pointer-aware check can name them once their targets are ours: the 7 CRuntimeClass records src/lib names (mfc_file, mfc_gdi, mfc_exception) point at base records other game records share (CObject, CDC, CGdiObject, CException, CFile), so the form is the whole MFC hierarchy (41 records; CObject is also the base of the 5 serializable .data records the static initialisers link via AfxClassInit: decide those first). The EH ThrowInfo records (mfc_exception's 5, 00759908 game error, 0074C640 out_of_range) share catchable types and point at type descriptors in .data: their form is the compiler's own throw once the thrown classes carry the original's decorated names. docs/notes/standalone.md 'Named data (C18)'."
+
+[[ticket]]
+id = "C20a"
+title = "Code cells: drop game.exe's C++ EH tables' funclet cells"
+group = "cleanup"
+model = "opus"
+note = "Done: gen_image_cells leaves the EH funclet kinds (eh-unwind 13,129, eh-handler 382) out of the code cells (LEFT_KINDS, with the retired vtables); code cells 21,439 -> 7,928, stubs at start 15,071 -> 1,560 (registered 6,367 unchanged). Verified: no unwind/handler target has a registration (.eireg of main's ei_hook.dll), nothing in src/ or tests/ names their FuncInfo / unwind / try / handler tables (only digest coincidences), the harness's crash report reads ThrowInfo only; all 13,511 sat at stubs that end the run and no golden reached one. Bytes stay game.exe's (as the NOT_CODE groups; a stray call lands in the guarded code section). ThrowInfo cells (eh-throw 2, eh-copy 5) stay code cells: our frame handler reads them for throws with game.exe's throw information. Goldens 121 same, 0 differ. Follow-up C20b: the same tables' 3,721 data pointer cells."
+
+[[ticket]]
+id = "C18f"
+title = "Named data: app* .data and .bss objects"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18d"]
+note = "C18d's pattern (docs/notes/standalone.md 'Named data (C18)', '.data and .bss objects'): app_main / app / app_frame / app_helpers' objects only one hand-written file names (named_data.py --split 'data object' 'bss object': app* 16 data, 3 bss), most written (LastTime 0079B9F8, its guard 0079B9FC, window class atom 0079BA20, client speed 00784758, ...): plain g_ globals, {} or the original's value. Run --refs per object first; skip any the static initialisers store into or that sits inside a larger block the code reaches by its base."
+
+[[ticket]]
+id = "C18g"
+title = "Named data: world* and ai* .data and .bss objects"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18d"]
+note = "C18d's pattern for the single-owner objects of world* (18 data, 44 bss) and ai* (14 data, 21 bss) (named_data.py --split). constexpr when nothing of ours writes it, plain g_ when written; --refs first for extent and writers; leave static-init-stored objects and members of larger blocks (the world's data block) at their addresses."
+
+[[ticket]]
+id = "C18h"
+title = "Named data: the small areas' .data and .bss objects"
+group = "cleanup"
+model = "sonnet"
+depends = ["C18d"]
+note = "C18d's pattern for the single-owner objects of terrain, figure, game, player, map, unit, lightning, weather, camera, texture, clip, script, core, party, bink, dib, string, options and ui* (about 45 data, 100 bss; named_data.py --split). Same exclusions as C18f."
+
+[[ticket]]
+id = "C18i"
+title = "Named data: net* and crt* .data objects (vector-filled tables)"
+group = "cleanup"
+model = "opus"
+depends = ["C18d"]
+note = "net_coder's tables (0078DB24, 0079B6B0..0079B844) are filled by the coder vectors' '@CoderTables' fixture by address (tests/vectors, replay_game_data.cpp): the replay must read our names (C18b's unitdb::kSlotWeights rule) and the recorder keep the address in game.exe. Then the other net* objects (12 data, 4 bss) and src/lib/crt*'s (17 data, 22 bss: locale and stdio state, check the CRT vectors' fixtures too)."
+
+[[ticket]]
+id = "C18j"
+title = "Named data: objects the generated static initialisers store into"
+group = "cleanup"
+model = "opus"
+depends = ["C18d"]
+note = "1,235 addresses only static_init.cpp / static_exit.cpp name, and many hand-owned ones (particle's 007A9BF8 / 007A9C30 / 007A9C50, weather_particles' noise tables): gen_static_init.py and check_static_init.py leave a named range's stores out (the definition's initialiser or constructor takes their place, in list order when it has one; the verify build's Check compares our value with the original's memory), static_exit likewise for destructors. Set the pattern on one area, then sonnet batches."
+
+[[ticket]]
+id = "C20b"
+title = "Pointer cells: drop game.exe's C++ EH tables' data cells (FuncInfo -> unwind / try maps, try block -> handler arrays)"
+group = "cleanup"
+depends = ["C20a"]
+note = "C20a left the 13,511 funclet code cells out (only __CxxFrameHandler on game.exe's own frames reads FuncInfo tables). The same tables' 3,721 pointer cells into .rdata in image_cells.inc (eh-unwind 2,963 FuncInfo -> unwind map, eh-try 378, eh-handlers 380) and the catch handler types' half of the 38 type-descriptor cells are fixed up at the move for the same dead readers. Check as C20a (no reference from src/ or tests/, the harness's crash report reads only ThrowInfo), leave them out of the cells, keep ThrowInfo / catchable types (CxxThrowException uses them). Goldens are the check."
+
+[[ticket]]
+id = "C20c"
+title = "Registrations: measure what still needs each EI_REPLACE, drop the ones nothing reads"
+group = "cleanup"
+model = "opus"
+note = "After C20a/C20b the image's code cells are 7,928 (6,367 at our code) while src/ has 9,304 EI_REPLACE registrations. Measure, per registration, what still reads its address: a code cell (vtable slot, static initialiser, CRT/MFC table), a code literal through CodeAddress, the harness's address names / profiler / crash report, the scenarios' or goldens' address keys, check tools (check_registrations, check_signatures, check_stolen). Registrations nothing reads go (the function stays, called directly); report the split of the rest by reader so the next batches (C19 vtables, static init, harness names) are sized. Goldens are the check."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

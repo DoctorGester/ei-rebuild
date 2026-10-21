@@ -24,11 +24,11 @@ constexpr int kControllerArmourRemoved = 0x6C / 4;
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
 
-int ArmourType(CEngineObject* item) { return static_cast<CItemArmor*>(item)->GetType(); }
+int ArmourType(CItem* item) { return static_cast<CItemArmor*>(item)->GetType(); }
 
-void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
+void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
     for (int i = 0; i < count; ++i) {
-        CEngineObject* item = slots[i];
+        CItem* item = slots[i];
         slots[i] = nullptr;
         if (item) item->Release();
         unit->MarkChanged(kPartEquipment);
@@ -39,10 +39,10 @@ void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
 // 00514930: the unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
 // unit_create.cpp, called through its address.
 
-CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
+CItem* CUnit::EquipArmour(CItem* item) {
     if (!item) return nullptr;
-    if (x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->condition_)) <= 0) return nullptr;   // broken
-    CEngineObject* previous = armor[ArmourType(item)];
+    if (x87::fistp(std::bit_cast<float>(item->condition_)) <= 0) return nullptr;   // broken
+    CItem* previous = armor[ArmourType(item)];
     armor[ArmourType(item)] = item;
     ++item->refCount_;
     Controller()->ArmourPutOn(item->prototypeId_);
@@ -52,8 +52,8 @@ CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
 }
 EI_REPLACE_METHOD(0x00530730, CUnit::EquipArmour);
 
-CEngineObject* CUnit::UnequipArmour(int slot) {
-    CEngineObject* item = armor[slot];
+CItem* CUnit::UnequipArmour(int slot) {
+    CItem* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
         void* const* vtable = *reinterpret_cast<void* const* const*>(controller);   // read before the call
@@ -70,8 +70,8 @@ EI_REPLACE_METHOD(0x00530840, CUnit::UnequipArmour);
 
 void CUnit::ReleaseAllItems() {
     ReleaseSlots(this, weapons, 4);
-    for (CEngineObject*& slot : armor) {
-        CEngineObject* item = slot;
+    for (CItem*& slot : armor) {
+        CItem* item = slot;
         slot = nullptr;
         if (item) {
             void* const* vtable = *reinterpret_cast<void* const* const*>(controller);
@@ -96,7 +96,7 @@ void CUnit::ReleaseAllItems() {
 }
 EI_REPLACE_METHOD(0x005315B0, CUnit::ReleaseAllItems);
 
-void CUnit::AddCarried(CEngineObject* item) {
+void CUnit::AddCarried(CItem* item) {
     ++item->refCount_;
     int count = carriedCount;
     int size = count + 1;
@@ -109,7 +109,7 @@ void CUnit::AddCarried(CEngineObject* item) {
         carriedCapacity = 0;
         carriedCount = 0;
     } else if (!carried) {
-        carried = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(size) * 4));
+        carried = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(size) * 4));
         std::memset(carried, 0, static_cast<std::size_t>(size) * 4);
         carriedCapacity = size;
         carriedCount = size;
@@ -128,7 +128,7 @@ void CUnit::AddCarried(CEngineObject* item) {
         }
         int capacity = carriedCapacity + grow;
         if (!(size < capacity)) capacity = size;
-        auto* grown = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
+        auto* grown = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
         std::memcpy(grown, carried, static_cast<std::size_t>(carriedCount) * 4);
         std::memset(grown + carriedCount, 0, static_cast<std::size_t>(size - carriedCount) * 4);
         gamecrt::operator_delete(carried);

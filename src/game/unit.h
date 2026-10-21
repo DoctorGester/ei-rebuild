@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "engine_object.h"
 #include "game_data.h"
+#include "item.h"
 #include "item_db.h"
 #include "map_object.h"   // CMapObjectCompanion
 #include "maths.h"
@@ -91,19 +92,19 @@ struct PartyUnitRecord {
     float scaleX;                       // +0x724 the figure's scale: x (0.8 when constructed) ...
     float scaleY;                       // +0x728 ... y (0.2 when constructed); height is z
     float height;                   // +0x72C the hero's height (1.0 when constructed; the hero screen shows it * 100)
-    CEngineObject** weapons;        // +0x730
+    CItem** weapons;                // +0x730
     std::uint32_t weaponCount;      // +0x734
     int weaponCapacity;             // +0x738
     int weaponGrowBy;               // +0x73C
-    CEngineObject** quickItems;     // +0x740 (an entry counts only with +0x48 > 0)
+    CItem** quickItems;             // +0x740 (an entry counts only with +0x48 > 0)
     std::uint32_t quickItemCount;   // +0x744
     int quickItemCapacity;          // +0x748
     int quickItemGrowBy;            // +0x74C
-    CEngineObject** armor;          // +0x750
+    CItem** armor;                  // +0x750
     std::uint32_t armorCount;       // +0x754
     int armorCapacity;              // +0x758
     int armorGrowBy;                // +0x75C
-    CEngineObject** spells;         // +0x760
+    CItem** spells;                 // +0x760
     std::uint32_t spellCount;       // +0x764
     int spellCapacity;              // +0x768
     int spellGrowBy;                // +0x76C
@@ -270,7 +271,7 @@ public:
     void ObjectDeletedImpl(CEngineObject* object);
     // Body of the slot at 004467F0 (registered by member pointer).
     int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
-    CEngineObject* CarriedItem(int index) const;
+    CItem* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
 
@@ -358,9 +359,9 @@ public:
     // 00531070 / 00531180 / 00531820. Put an item into the first free weapon (4), quick item (4)
     // or spell (8) slot and take a reference: returns the slot, 1 if already there (sic), -1 if
     // full, 0 for null (weapons and quick items only).
-    int AddWeapon(CEngineObject* item);
-    int AddQuickItem(CEngineObject* item);
-    int AddSpell(CEngineObject* item);
+    int AddWeapon(CItem* item);
+    int AddQuickItem(CItem* item);
+    int AddSpell(CItem* item);
     // 005310D0 / 005311E0. Empty weapon / quick item slot `slot` (releasing the item); part 5.
     // Return what the original leaves in EAX (the slot when out of range).
     std::uintptr_t RemoveWeapon(std::uint32_t slot);
@@ -368,9 +369,9 @@ public:
 
     // 005318B0 / 00531920 / 005319A0. The weapon / quick item / spell in slot `slot`, from the
     // player's party record for party units. Null when out of range.
-    CEngineObject* GetWeapon(std::uint32_t slot);
-    CEngineObject* GetQuickItem(std::uint32_t slot);
-    CEngineObject* GetSpell(std::uint32_t slot);
+    CItem* GetWeapon(std::uint32_t slot);
+    CItem* GetQuickItem(std::uint32_t slot);
+    CItem* GetSpell(std::uint32_t slot);
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
     void* GetSpellObject(std::uint32_t slot);
 
@@ -447,16 +448,16 @@ public:
     // 00530730. Puts armour piece `item` (condition +0x20 rounding above 0) into the armour slot
     // of its type (referenced; the controller's slot 26 gets its id) and releases the piece
     // that was there. Returns that piece (null for an item that does not qualify).
-    CEngineObject* EquipArmour(CEngineObject* item);
+    CItem* EquipArmour(CItem* item);
     // 00530840. Empties armour slot `slot` (the controller's slot 27 gets the piece's type, the
     // piece is released). Returns the piece (released).
-    CEngineObject* UnequipArmour(int slot);
+    CItem* UnequipArmour(int slot);
     // 005315B0. Releases every item (weapons, armour with the controller's slots 27 and 28, quick
     // items, spells, the carried ones) and frees the carried array.
     void ReleaseAllItems();
     // 00531220. Adds `item` (referenced) to the carried items (an MFC CArray grown like
     // CArray::SetSize).
-    void AddCarried(CEngineObject* item);
+    void AddCarried(CItem* item);
     // 005313B0. Releases carried item `index` and closes the gap.
     // Returns the new count (EAX).
     int RemoveCarried(int index);
@@ -526,7 +527,7 @@ public:
     // 00531400. Stealing: takes the first carried item (the rest move down), or else a random
     // filled quick item slot (one IsaacRandom draw) is emptied; marks part 5 changed. Returns the
     // item, null when there is none (nothing changes then).
-    CEngineObject* TakeRandomItem();
+    CItem* TakeRandomItem();
 
     // map_object_create.cpp (U6).
     // 0052E400. Virtual slot 2 (Create; a different name so it is no override): the map object's
@@ -579,7 +580,7 @@ public:
     // 00530560. Twice above.z (+0x14C), unrounded in ST0.
     double DoubleHeight() const;
     // 00530830 (RET 4). The armour piece worn in `slot` (armor[slot], unchecked).
-    CEngineObject* WornItem(int slot) const;
+    CItem* WornItem(int slot) const;
     // 0052E740. Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
     // item slot released and emptied (quick items, weapons, spells, armour), the carried items
     // released (no null test) and their array freed (grow-by kept).
@@ -633,12 +634,12 @@ public:
     std::uint8_t paramsTail[0x438 - 0x41C];// +0x41C the end of the UnitParams block
     int fightAtWill;                    // +0x438 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts;         // +0x43C set: path searches use the AI map's alternative cost table
-    CEngineObject* weapons[4];      // +0x440
-    CEngineObject* quickItems[4];   // +0x450
-    CEngineObject* spells[8];       // +0x460
-    CEngineObject* armor[7];        // +0x480
+    CItem* weapons[4];              // +0x440
+    CItem* quickItems[4];           // +0x450
+    CItem* spells[8];               // +0x460
+    CItem* armor[7];                // +0x480
     std::uint32_t carriedVtable;        // +0x49C the vtable of the carried items' CArray
-    CEngineObject** carried;        // +0x4A0 CArray of further items
+    CItem** carried;                // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
@@ -656,7 +657,10 @@ static_assert(offsetof(CUnit, standingHeight) == 0x32C);
 static_assert(offsetof(CUnit, modeSpeeds) == 0x340);
 static_assert(offsetof(CUnit, fightAtWill) == 0x438);
 static_assert(offsetof(CUnit, weapons) == 0x440);
+static_assert(offsetof(CUnit, quickItems) == 0x450);
+static_assert(offsetof(CUnit, spells) == 0x460);
 static_assert(offsetof(CUnit, armor) == 0x480);
+static_assert(sizeof(CUnit::weapons) == 4 * sizeof(CEngineObject*) && sizeof(CUnit::armor) == 7 * sizeof(CEngineObject*));
 static_assert(offsetof(CUnit, carried) == 0x4A0);
 static_assert(offsetof(CUnit, actionSpeeds) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);

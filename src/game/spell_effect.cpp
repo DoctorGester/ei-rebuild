@@ -23,7 +23,7 @@ constexpr float kWallHalfWidth = 1.0f;      // 0073B84C
 void* const kPtrListVtable = ei::GamePointer<void>(0x0073D454);
 constexpr int kPtrListBlockSize = 10;
 
-using UnitList = mfc::CTypedPtrList<CEngineObject>;
+using UnitList = mfc::CTypedPtrList<CUnit>;
 
 // 005C0BD0 CSectorMap::FindUnitsInRadius (rewritten in sector_map.cpp; through its address so its
 // verify wrapper sees the call).
@@ -77,7 +77,7 @@ void CSpellEffect::HitUnitsInRadius() {
     CallGetDamage(&hit);
     SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
-        CEngineObject* unit = node->data;
+        CUnit* unit = node->data;
         node = node->next;
         if (!AcceptsAreaSpells(unit)) continue;
         Deliver(this, &hit, unit);
@@ -104,9 +104,9 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
 
     SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
-        CEngineObject* unit = node->data;
+        CUnit* unit = node->data;
         node = node->next;
-        const CUnit* at = static_cast<CUnit*>(unit);
+        const CUnit* at = unit;
         double dz = at->position.z - position.z;
         double dy = at->position.y - position.y;
         double dx = at->position.x - position.x;

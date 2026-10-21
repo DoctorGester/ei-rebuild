@@ -60,7 +60,7 @@ RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node*
 // ScriptVars::operator= (all eight arrays).
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
+CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
 // 00675CA0: an effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }

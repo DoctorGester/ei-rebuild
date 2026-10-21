@@ -569,7 +569,7 @@ void CUnitServer::TickAction() {
         ShowCurrentStep();
         if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel())->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
-            auto* objects = static_cast<CBaseManager*>(TheServerWorld()->manager48_);
+            auto* objects = TheServerWorld()->manager48_;
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;
@@ -670,7 +670,7 @@ void CUnitServer::TickItemSpells() {
         }
         auto* item = static_cast<CItem*>(current->item);
         if (!item) continue;
-        auto* spell = static_cast<CSpell*>(item->spell_);
+        auto* spell = item->spell_;
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
         if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
@@ -726,7 +726,7 @@ void CUnitServer::RefreshItemSpells() {
     for (ItemList::Node* node = items.head; node;) {
         CEngineObject* item = node->data;
         node = node->next;
-        if (item) spell = static_cast<CSpell*>(static_cast<CItem*>(item)->spell_);
+        if (item) spell = static_cast<CItem*>(item)->spell_;
         if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
         SpellEntry* found = nullptr;
         for (SpellEntry* entry = head; entry; entry = entry->next) {

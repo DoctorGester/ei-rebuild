@@ -78,7 +78,6 @@ void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt:
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 
-CBaseManager* Manager(CEngineObject* manager) { return static_cast<CBaseManager*>(manager); }
 CUnit* AsUnit(CEngineObject* object) { return static_cast<CUnit*>(object); }
 
 // ---- The creation message ---------------------------------------------------------------------
@@ -160,7 +159,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.
 // `refValueBase`: the record is built through the reference value constructor (00419720) and the
 // vtable stored after it, instead of 0058FBB0.
-CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
+CItem* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
     auto* item = static_cast<CItem*>(world->DuplicateItem(itemRecord));
     auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
     memory->refs = 0;   // written before the null test
@@ -279,13 +278,13 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
-            unit->AddWeapon(static_cast<CEngineObject*>(MakeItem(this, record->weapons[n], false)));
+            unit->AddWeapon(MakeItem(this, record->weapons[n], false));
         unit->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
             unit->EquipArmour(MakeItem(this, record->armor[n], true));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
-            auto* item = static_cast<CItem*>(MakeItem(this, record->quickItems[n], true));
-            item->count_ = static_cast<CItem*>(record->quickItems[n])->count_;
+            CItem* item = MakeItem(this, record->quickItems[n], true);
+            item->count_ = record->quickItems[n]->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
             unit->AddQuickItem(item);
         }
@@ -394,7 +393,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     auto* spec = reinterpret_cast<ObjectSpec*>(message);
     Spec& base = spec->base;
     auto created = [this, spec]() {
-        return static_cast<CMapObject*>(Manager(MapObjectManager())->CreateObject(spec->parentId, spec->base.id));
+        return static_cast<CMapObject*>(MapObjectManager()->CreateObject(spec->parentId, spec->base.id));
     };
     auto allowed = [this](CMapObject* object) {
         return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
@@ -430,7 +429,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
     };
-    CBaseManager* timedManager = Manager(manager48_);
+    CBaseManager* timedManager = manager48_;
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)

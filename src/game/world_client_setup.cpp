@@ -109,7 +109,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     static_assert(sizeof(CFlyingHitPoints) == 8);
     auto* numbers = static_cast<CFlyingHitPoints*>(gamecrt::operator_new(sizeof(CFlyingHitPoints)));
     numbers_ = numbers ? numbers->Construct() : nullptr;
-    auto* texture = static_cast<CTexture*>(TextureManager()->FindOrCreate(kNumbersKind, NumbersName()));
+    auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());
     if (texture) {
         ++texture->refCount_;
         TextureManager()->LoadTexture(texture);
@@ -153,7 +153,7 @@ void CWorldClient::LoadSky() {
     if (skyDome_) return;
     auto* sky = static_cast<CSky*>(gamecrt::operator_new(sizeof(CSky)));
     skyDome_ = sky ? sky->Construct() : nullptr;
-    auto* figures = static_cast<CBaseManager*>(FigureManager());
+    auto* figures = FigureManager();
     auto* object = static_cast<CSkyObject*>(figures->CreateObject(kSkyFigureClass, kSkyObjectId));
     if (!object) return;
     object->name_ = SkyPartName();

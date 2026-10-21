@@ -108,7 +108,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
         AIObjectList* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
         for (auto* node = units->head; node; node = node->next) {
-            CEngineObject* other = node->data;
+            CUnit* other = node->data;
             if (other == self) continue;
             // At the head, holding a reference (the original's inlined AddHead): See walks the list
             // from the head, so the units of the last sector come first.
@@ -125,7 +125,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
     for (auto* node = memory->nearby.head; node;) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         node = node->next;
         bool dead = IsDead(other);
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
@@ -204,7 +204,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     for (auto* node = memory->visible.head; node;) {
         auto* current = node;
         node = node->next;
-        auto* other = static_cast<CUnit*>(current->data);
+        auto* other = current->data;
         Vector3 d{static_cast<float>(static_cast<double>(other->position.x) - self->position.x),
                   static_cast<float>(static_cast<double>(other->position.y) - self->position.y),
                   static_cast<float>(static_cast<double>(other->position.z) - self->position.z)};

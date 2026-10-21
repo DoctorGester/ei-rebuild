@@ -73,7 +73,7 @@ Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
-void InitUnitList(mfc::CTypedPtrList<CEngineObject>& list) {
+void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
     list.vtable = ei::GamePointer<void>(0x0073D454);
     list.blockSize = 10;
@@ -158,12 +158,12 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     if (map->SlopeAt(out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
-    mfc::CTypedPtrList<CEngineObject> units;
+    mfc::CTypedPtrList<CUnit> units;
     InitUnitList(units);
     CUnit* self = owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto* node = units.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         if (GameDiplomacy()->allied_[other->side] & (1u << (self->side & 31))) {
             units.RemoveAll();
             return false;

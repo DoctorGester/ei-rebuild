@@ -41,8 +41,8 @@ bool Named(const mfc::CString& name) {
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
-CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
-    CEngineObject* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
+CItem* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
+    CItem* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
     if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), static_cast<const char*>(name), prototype);
     return weapon;
 }
@@ -60,7 +60,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     if (unit->type_ == kTypeArmed) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
-            CEngineObject* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
+            CItem* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
         }
@@ -73,7 +73,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CEngineObject* spell = (CEngineObject*)static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
+        CItem* spell = static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
         if (spell) unit->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }

@@ -32,8 +32,6 @@ namespace {
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
 
-// A unit from the sector map: its position and controller.
-CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineObject(unit)); }
 } // namespace
 
 void Lever::SetState(int wanted, float duration) {
@@ -61,7 +59,7 @@ void Lever::SetState(int wanted, float duration) {
     // Only on the server (the world's slot 26).
     auto* world = static_cast<CWorldServer*>(ObjectWorld(this));
     if (!world->IsServer()) return;
-    mfc::CTypedPtrList<CEngineObject> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
+    mfc::CTypedPtrList<CUnit> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
     sectors->FindUnitsInRadius(&position, &around, reach);
@@ -98,15 +96,15 @@ void Lever::SetState(int wanted, float duration) {
 
     for (auto* node = around.head; node;) {
         auto* next = node->next;
-        void* unit = node->data;
-        if (!map->CanLeaveCell(reinterpret_cast<CUnit*>(unit))) {
-            Vector3* at = &AsMapObject(unit)->position;
+        CUnit* unit = node->data;
+        if (!map->CanLeaveCell(unit)) {
+            Vector3* at = &unit->position;
             Vector3 free = {at->x, at->y, at->z};
-            map->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
+            map->FindFreeCellNear(unit, at, &free);
             std::memcpy(at, &free, sizeof(free));
-            static_cast<CUnitServer*>(static_cast<CUnit*>(AsEngineObject(unit))->controller)->ResyncWithUnit();
+            static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
         }
-        SectorMapAdd(sectors, nullptr, AsEngineObject(unit));
+        SectorMapAdd(sectors, nullptr, unit);
         node = next;
     }
     around.RemoveAll();

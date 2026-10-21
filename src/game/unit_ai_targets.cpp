@@ -65,7 +65,7 @@ std::uint32_t GroupExcess(const AIAttackOption* option, AIObjectList* group, CUn
     if (!group->head) return sum;
     float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto* node = group->head; node; node = node->next) {
-        auto* member = static_cast<CUnit*>(node->data);
+        auto* member = node->data;
         EI_NAN_AUDIT(AIDistance2(PositionOf(member), PositionOf(candidate)), radius2);
         if (AIDistance2(PositionOf(member), PositionOf(candidate)) <= radius2) sum += Excess(option, member);
     }
@@ -188,7 +188,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     if (self->sizeClass == 0 && PrototypeSize(self) >= kHalf) return true;
     Vector3 at = *PositionOf(target);
     for (auto* node = brain->memory.nearby.head; node; node = node->next) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         double dy = static_cast<double>(at.y) - other->position.y;
         double dx = static_cast<double>(at.x) - other->position.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
@@ -319,7 +319,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
     std::vector<Scored> scored;
     if (!alliesOnly) {
         for (auto* node = candidates->head; node; node = node->next) {
-            auto* candidate = static_cast<CUnit*>(node->data);
+            auto* candidate = node->data;
             for (int i = 0; i < weapons.size; ++i) {
                 double s = Score(from, self, candidates, held, candidate, best, &weapons.data[i]);
                 if (s > best) scored.push_back({weapons.data[i].part, candidate, static_cast<float>(s)});
@@ -333,12 +333,12 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
         allies.blockSize = 10;
         allies.AddTail(self);
         for (auto* node = brain->memory.nearby.head; node; node = node->next) {
-            auto* other = static_cast<CUnit*>(node->data);
+            auto* other = node->data;
             if (MapObject(other)->IsDead() == 0 && !brain->memory.reports.Contains(other) && Allied(self->side, other->side))
                 allies.AddTail(other);
         }
         for (auto* node = allies.head; node; node = node->next) {
-            auto* ally = static_cast<CUnit*>(node->data);
+            auto* ally = node->data;
             for (int i = 0; i < spells.size; ++i) {
                 const AIAttackOption* option = &spells.data[i];
                 if (alliesOnly && option->kind == 6) continue;

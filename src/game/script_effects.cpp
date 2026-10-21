@@ -27,7 +27,7 @@ constexpr int kClassLightning = 0x4D;   // CEffectLightning
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
-CBaseManager* EffectManager() { return static_cast<CBaseManager*>(TheServerWorld()->manager48_); }
+CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
 // The id saved for an effect object: -1 for none.
 int ObjectId(const CEngineObject* object) { return object ? object->id_ : -1; }

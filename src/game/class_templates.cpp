@@ -152,7 +152,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     memory->refCount = 0;
     memory->refsHigh = 0;
     std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved
-    ClassTemplate* t = memory ? static_cast<ClassTemplate*>(memory)->Construct() : nullptr;
+    ClassTemplate* t = memory ? memory->Construct() : nullptr;
     t->type = type;
     t->flag0C = flag0C;
     t->flag0D = flag0D;

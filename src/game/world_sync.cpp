@@ -199,8 +199,8 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
     // margin around it (the server half's movement factor 3 and statistics B0 values 0 and 2).
     auto& units = player->units.map;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
-        CEngineObject* unit = node->value;
-        mfc::CTypedPtrList<CEngineObject> heard;
+        CUnit* unit = node->value;
+        mfc::CTypedPtrList<CUnit> heard;
         heard.vtable = mfc::PtrListVtable();
         heard.head = nullptr;
         heard.tail = nullptr;
@@ -208,7 +208,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         heard.free = nullptr;
         heard.blocks = nullptr;
         heard.blockSize = 10;
-        auto* controller = static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller);
+        auto* controller = static_cast<CUnitServer*>(unit->controller);
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // the original's branch-free select

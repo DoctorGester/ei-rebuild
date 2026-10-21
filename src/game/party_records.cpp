@@ -92,11 +92,11 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
 }
 EI_REPLACE(0x004A5BD0, PartyRecordsReset);
 
-void* NamedPartyRecords::Find(const char* name) const {
-    void* unnamed = nullptr;
+CParty* NamedPartyRecords::Find(const char* name) const {
+    CParty* unnamed = nullptr;
     for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (MbsCmp(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->party;
-        if (MbsCmp(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->party;
+        if (MbsCmp(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->Party();
+        if (MbsCmp(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->Party();
     }
     return unnamed;
 }

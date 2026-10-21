@@ -76,8 +76,8 @@ int HeroCount() {
 }
 
 // The first entry of one of a hero record's item arrays (data, count), or null when it is empty.
-CItem* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
-    return static_cast<int>(count) > 0 ? static_cast<CItem*>(*data) : nullptr;
+CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
+    return static_cast<int>(count) > 0 ? *data : nullptr;
 }
 
 // `flags` is the handler's first argument: the original hands its stack slot to the model cache
@@ -555,11 +555,11 @@ void CMpHeroScreen::CreateHero() {
         return;
     }
     window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? static_cast<CItem*>(hero->weapons[0]) : nullptr;
+    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? hero->weapons[0] : nullptr;
     weaponPanel_->ShowWeapon(weapon_);
-    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? static_cast<CItem*>(hero->quickItems[0]) : nullptr;
+    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? hero->quickItems[0] : nullptr;
     weaponPanel_->ShowArmour(armor_);
-    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? static_cast<CItem*>(hero->spells[0]) : nullptr;
+    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
     statsPanel_->SetHero(0, const_cast<char*>(static_cast<const char*>(name)));
@@ -704,16 +704,16 @@ void CMpHeroScreen::AddNewHero() {
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveWeapon(static_cast<CItem*>(hero->weapons[i]));
+            hero->RemoveWeapon(hero->weapons[i]);
     for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
         if (hero->quickItems[i] != armor_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveQuickItem(static_cast<CItem*>(hero->quickItems[i]));
+            hero->RemoveQuickItem(hero->quickItems[i]);
     for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)
-            static_cast<PartyUnitRecord*>(hero)->RemoveSpell(static_cast<CItem*>(hero->spells[i]));
+            hero->RemoveSpell(hero->spells[i]);
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
-        auto* container = static_cast<CItem*>(hero->spells[0]);
+        auto* container = hero->spells[0];
         auto* spell = reinterpret_cast<char*>(container->spell_);
         if (spell && !HeroCanUseSpell(hero->stats, spell)) {
             reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(static_cast<CItem*>(container), 0, 1);

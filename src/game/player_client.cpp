@@ -306,9 +306,9 @@ int CPlayerClient::OnQuestItemsChanged() {
 int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
-    CPlayer::ObjectMap& units = Owner()->units_;
-    for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-        auto* unit = static_cast<CUnit*>(node->value);
+    CPlayer::UnitMap& units = Owner()->units_;
+    for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
+        CUnit* unit = node->value;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
@@ -376,7 +376,7 @@ int CPlayerClient::OnItemsReceived() {
             result = 0;
             break;
         }
-        auto* manager = static_cast<CBaseManager*>(TheClientWorld()->itemManager_);
+        auto* manager = TheClientWorld()->itemManager_;
         if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
     }
     if (result != 0) {
@@ -604,7 +604,7 @@ int CPlayerClient::OnNewObject() {
 
     // The world's slot 19 is its object manager (+0x40).
     auto* world = static_cast<CWorld*>(Owner()->ManagerContext());
-    CEngineObject* created = static_cast<CBaseManager*>(world->manager40_)->CreateObject(header.type, header.id);
+    CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
     auto* object = static_cast<CMapObject*>(created);
     auto* figure = static_cast<CObject3D*>(created);
@@ -638,7 +638,7 @@ int CPlayerClient::OnNewObject() {
             break;
         }
     }
-    if (static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
+    if (figure->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());

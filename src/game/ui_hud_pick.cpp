@@ -36,7 +36,7 @@ enum PendingAction : int {
 };
 
 // The spell (+0x44) an item carries, or null.
-CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<CItem*>(item)->spell_); }
+CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // The shared tail of 0063E020 and 0063EF60: `spell` (an item's +0x44) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the
@@ -113,7 +113,7 @@ void CHudSpellColumn::Click(int index) {
     if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
     HighlightAt(index, 1);
     interface_->PlaySound(kSoundClick, 0);
-    CEngineObject* item = unit_->GetSpell(index);
+    CItem* item = unit_->GetSpell(index);
     if (!item) return;
     CSpell* spell = SpellOf(item);
     if (!spell) return;
@@ -144,7 +144,7 @@ EI_REPLACE_METHOD(0x0063FB50, CHudActionColumn::Select);
 
 void CHudQuickItems::Pick(int slot) {
     if (!unit_) return;
-    CEngineObject* item = unit_->GetQuickItem(slot);
+    CItem* item = unit_->GetQuickItem(slot);
     if (!item) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
@@ -154,7 +154,7 @@ void CHudQuickItems::Pick(int slot) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    int category = static_cast<CItem*>(item)->GetCategory();
+    int category = item->GetCategory();
     if (category != kCategoryWand && category != kCategoryScroll) return;
     int mode = kPendingNone;
     if (CSpell* spell = SpellOf(item))
@@ -167,10 +167,10 @@ EI_REPLACE_METHOD(0x0063DD70, CHudQuickItems::Pick);
 
 void CHudQuickItems::UseNow(int slot) {
     if (!unit_) return;
-    CEngineObject* item = unit_->GetQuickItem(slot);
+    CItem* item = unit_->GetQuickItem(slot);
     if (!item) return;
     owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
-    int category = static_cast<CItem*>(item)->GetCategory();
+    int category = item->GetCategory();
     if ((category == kCategoryWand || category == kCategoryScroll) && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
     interface_->PlaySound(kSoundClick, 0);
@@ -181,7 +181,7 @@ EI_REPLACE_METHOD(0x0063E020, CHudQuickItems::UseNow);
 void CHudSpellColumn::ClickAlternate(int index) {
     if (!unit_ || index < 0 || index >= count_) return;
     owner_->SetPendingAction(kPendingSpellOnUnit, index, -1);
-    CEngineObject* item = unit_->GetSpell(index);
+    CItem* item = unit_->GetSpell(index);
     if (item && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 0)) return;
     interface_->PlaySound(kSoundClick, 0);

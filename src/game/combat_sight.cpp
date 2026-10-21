@@ -190,7 +190,7 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
 
     // The units the brain lists as nearby (AIBrain +0xF4).
     for (auto* node = self->Brain()->memory.nearby.head; node;) {
-        CEngineObject* other = node->data;
+        CUnit* other = node->data;
         node = node->next;
         if (other == order->target) continue;
         if (ObjectSlots(other)->IsDead() != 0) continue;

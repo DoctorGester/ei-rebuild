@@ -252,9 +252,9 @@ int GameFlow::SaveGame(const char* slot) {
         }
     } scenarioOwner{&scenario};
     PartySave(ThePartyManager(), nullptr, &scenario);
-    static_cast<CInterface3D*>(TheInterface())->SaveState(&scenario);
+    TheInterface()->SaveState(&scenario);
     ScriptsReset(kScripts);
-    static_cast<CInterface3D*>(TheInterface())->SaveWindowState();
+    TheInterface()->SaveWindowState();
     static_cast<CStream*>(&scenario)->WriteSized(static_cast<CStream*>(kScripts));
     ScriptsReset(kScripts);
     TheCamera()->SaveState(&scenario);
@@ -665,7 +665,7 @@ namespace {
 // game state request to the server (a change goes out with a new version_).
 net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
 // The server world's player list (a CPlayerManager): the number of players registered.
-int ServerPlayerCount() { return static_cast<int>(static_cast<CBaseManager*>(TheServerWorld()->players_)->objects_.Size()); }
+int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.Size()); }
 
 } // namespace
 
@@ -1665,7 +1665,7 @@ int GameFlow::LoadGame(const char* slot) {
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts);
-        static_cast<CInterface3D*>(TheInterface())->LoadState(&scenario);
+        TheInterface()->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;
@@ -1813,7 +1813,7 @@ unsigned& AppliedStamp() { return ei::GameData<unsigned>(0x007AFED4); }  // the 
 
 // The quest text files (007AFDD0, a vector of strings) and the briefing texts (007AF788).
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
-void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
+void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
 // 00580840 (GameFlow::OnVariableChanged): the original passes the variable node as ECX and as the
 // event (the method reads only the event).

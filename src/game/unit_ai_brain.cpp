@@ -81,7 +81,7 @@ void RemoveModeNode(mfc::CTypedPtrList<AIMode>& modes, mfc::CTypedPtrList<AIMode
 }
 
 // The inlined release of a counted object pointer (slot 4) of the memory lists, then RemoveAll.
-void ReleaseAllObjects(mfc::CTypedPtrList<CEngineObject>& list) {
+void ReleaseAllObjects(mfc::CTypedPtrList<CUnit>& list) {
     for (auto* node = list.head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
@@ -298,13 +298,13 @@ EI_REPLACE_METHOD(0x005D64E0, AIBrain::StandardSentry);
 // --- Calls for help -------------------------------------------------------------------------------
 
 void AIBrain::CallAllies(const Vector3* point) {
-    mfc::CTypedPtrList<CEngineObject> units{};
+    mfc::CTypedPtrList<CUnit> units{};
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
     CUnit* self = owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
     for (auto* node = units.head; node;) {
-        auto* other = static_cast<CUnit*>(node->data);
+        auto* other = node->data;
         node = node->next;
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
         mfc::CString message;
@@ -327,7 +327,7 @@ EI_REPLACE_METHOD(0x005D5990, AIBrain::CallAllies);
 
 namespace {
 // The inlined RemoveAt of a memory list: unlink, release the element, free the node.
-void RemoveObjectNode(mfc::CTypedPtrList<CEngineObject>& list, mfc::CTypedPtrList<CEngineObject>::Node* node) {
+void RemoveObjectNode(mfc::CTypedPtrList<CUnit>& list, mfc::CTypedPtrList<CUnit>::Node* node) {
     if (node == list.head) list.head = node->next;
     else node->prev->next = node->next;
     if (node == list.tail) list.tail = node->prev;
@@ -338,7 +338,7 @@ void RemoveObjectNode(mfc::CTypedPtrList<CEngineObject>& list, mfc::CTypedPtrLis
 }
 
 // Removes every element holding `object` (each time searching again from the head).
-void RemoveAllOf(mfc::CTypedPtrList<CEngineObject>& list, CEngineObject* object) {
+void RemoveAllOf(mfc::CTypedPtrList<CUnit>& list, CEngineObject* object) {
     while (auto* node = list.Find(object)) RemoveObjectNode(list, node);
 }
 } // namespace

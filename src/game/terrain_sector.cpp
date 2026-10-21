@@ -25,6 +25,8 @@
 namespace terrain {
 namespace {
 
+// The sector files' extension.
+constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
 // The constants of this code (all floats in .rdata).
 double One() { return 1.0 /*00744160 f*/; }          // 1: vertex spacing
@@ -104,7 +106,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     perPage = textures;
 
     char name[0x100];
-    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, ei::GameData<const char* const>(0x00744164));
+    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
     using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(

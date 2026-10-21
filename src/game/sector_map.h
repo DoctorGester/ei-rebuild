@@ -11,6 +11,7 @@
 #include <cstdint>
 
 class CAIMap;
+class CUnit;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
@@ -54,7 +55,7 @@ struct __declspec(novtable) Sector {
     Sector* DeletingDestruct(unsigned flags);
 
     mfc::CTypedPtrList<CEngineObject> objects;   // +0x04 non-unit objects
-    mfc::CTypedPtrList<CEngineObject> units;     // +0x20
+    mfc::CTypedPtrList<CUnit> units;             // +0x20
     int freeOccluder;                            // +0x3C head of the free records (-1 none)
     mfc::CArray<SectorOccluder> occluders;       // +0x40 (vtable 0073FAE0)
 };
@@ -113,7 +114,7 @@ public:
 
     // 005C0BD0. Fills `result` (cleared first) with the units within `radius` of `position`,
     // nearest sectors first; each match is inserted at the head of the list.
-    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius);
+    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
 
     // 005C11D0. Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
@@ -121,7 +122,7 @@ public:
     bool Move(CEngineObject* object, const Vector3* position);
 
     // 005C0930. The unit list of sector (sx, sy), null outside the map.
-    mfc::CTypedPtrList<CEngineObject>* UnitsAt(int sx, int sy);
+    mfc::CTypedPtrList<CUnit>* UnitsAt(int sx, int sy);
 
     // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CEngineObject* object);

@@ -49,7 +49,8 @@ void WriteString(CStream* stream, const char* text) {
     stream->Write(text, static_cast<unsigned>(std::strlen(text) + 1));
 }
 
-void WriteItemIds(CStream* stream, CEngineObject* const* items, int count) {
+template <typename T>
+void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
@@ -73,21 +74,21 @@ CWorld* ContextWorld(CUnit* unit) { return static_cast<CWorld*>(unit->ManagerCon
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
-CEngineObject* ReadItem(CUnit* unit, CStream* stream) {
-    CEngineObject* manager = ContextWorld(unit)->ItemFactory();
+CItem* ReadItem(CUnit* unit, CStream* stream) {
+    CBaseManager* manager = ContextWorld(unit)->ItemFactory();
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* item = static_cast<CBaseManager*>(manager)->FindObject(id);
+    auto* item = static_cast<CItem*>(manager->FindObject(id));
     if (item) ++item->refCount_;
     return item;
 }
 
-void ReadItems(CUnit* unit, CStream* stream, CEngineObject** slots, int count) {
+void ReadItems(CUnit* unit, CStream* stream, CItem** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
 
-void ZeroSlots(CEngineObject** slots, int count) {
+void ZeroSlots(CItem** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = nullptr;
 }
 
@@ -103,7 +104,7 @@ void SetCarriedSize(CUnit* unit, int size) {
         return;
     }
     if (!unit->carried) {
-        unit->carried = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(size) << 2));
+        unit->carried = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(size) << 2));
         ZeroSlots(unit->carried, size);
         unit->carriedCapacity = size;
         unit->carriedCount = size;
@@ -122,7 +123,7 @@ void SetCarriedSize(CUnit* unit, int size) {
     }
     int capacity = grow + unit->carriedCapacity;
     if (size >= capacity) capacity = size;
-    auto* items = static_cast<CEngineObject**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
+    auto* items = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
     std::memcpy(items, unit->carried, static_cast<std::size_t>(unit->carriedCount) << 2);
     ZeroSlots(items + unit->carriedCount, size - unit->carriedCount);
     gamecrt::operator_delete(unit->carried);

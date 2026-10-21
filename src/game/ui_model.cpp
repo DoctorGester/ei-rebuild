@@ -118,7 +118,7 @@ EI_REPLACE_METHOD(0x005FC2F0, CUiModel::Draw);
 
 // 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
 void CUiModel::Load(const char* name, const char* from, const char* to) {
-    auto* manager = static_cast<CBaseManager*>(TheClientWorld()->MapObjectManager());
+    auto* manager = TheClientWorld()->MapObjectManager();
     auto* object = static_cast<CObject3D*>(manager->CreateObject(kPreviewClass, kPreviewId));
     object_ = reinterpret_cast<CTransformObject*>(object);
     ++object->refCount_;
@@ -128,7 +128,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->position.z = 3.0f;
     CEngineObject* specific = object->attached;
     console::CStringArray parts;
-    static_cast<CObject3D*>(object)->MakeFigure(name, &parts, 1);
+    object->MakeFigure(name, &parts, 1);
     static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
     object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     object->RestartPose();
