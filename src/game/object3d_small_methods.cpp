@@ -10,7 +10,7 @@ namespace {
 constexpr std::uint32_t kBoxIgnored = 0x800;   // FootprintPart::flags: the part's box is left out
 constexpr float kFirstFrame = 0.0f;
 
-CFigureMesh* PartAt(const CObject3D* object, int index) { return static_cast<CFigureMesh*>(object->parts[index]); }
+CFigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
 } // namespace
 
 CObject3D* CObject3D::DeleteObject3D(unsigned flags) {

@@ -64,8 +64,8 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
 }
 EI_REPLACE_METHOD(0x0052C500, CTorchObjectSpec::SaveSpec);
 
-void CTorchObjectSpec::Load(void* stream) { LoadSpec(static_cast<CStream*>(stream)); }
-void CTorchObjectSpec::Save(void* stream) { SaveSpec(static_cast<CStream*>(stream)); }
+void CTorchObjectSpec::Load(CStream* stream) { LoadSpec(stream); }
+void CTorchObjectSpec::Save(CStream* stream) { SaveSpec(stream); }
 
 void CTorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float value) {
     lightKind_ = kind;

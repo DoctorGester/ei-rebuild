@@ -223,7 +223,7 @@ void CEffectPointLight::Pack(DeltaField* field) {
     field->WriteDelta(&lightFlags_, 4);
 }
 
-void CEffectPointLight::LoadState(void* stream) {
+void CEffectPointLight::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &color_, 12);
     Read(stream, &range_, 4);
@@ -233,7 +233,7 @@ void CEffectPointLight::LoadState(void* stream) {
     Read(stream, &lightFlags_, 4);
 }
 
-void CEffectPointLight::SaveState(void* stream) {
+void CEffectPointLight::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &color_, 12);
     WriteCopy(stream, &range_);
@@ -423,7 +423,7 @@ void CEffectParticle::Attach() {
     if (object == nullptr) std::memcpy(&source_->position, &saved, sizeof(Vector3));
 }
 
-void CEffectParticle::LoadState(void* stream) {
+void CEffectParticle::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &type_, 4);
     Read(stream, &size_, 4);
@@ -439,7 +439,7 @@ void CEffectParticle::LoadState(void* stream) {
     Read(stream, &param164_, 4);
 }
 
-void CEffectParticle::SaveState(void* stream) {
+void CEffectParticle::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &type_, 4);
     WriteCopy(stream, &size_);
@@ -547,12 +547,12 @@ void CEffectWall::Pack(DeltaField* field) {
     field->WriteFloat16x3(&direction_.x);
 }
 
-void CEffectWall::LoadState(void* stream) {
+void CEffectWall::LoadState(CStream* stream) {
     CEffectParticle::LoadState(stream);
     Read(stream, &direction_, 12);
 }
 
-void CEffectWall::SaveState(void* stream) {
+void CEffectWall::SaveState(CStream* stream) {
     CEffectParticle::SaveState(stream);
     Write(stream, &direction_, 12);
 }
@@ -639,7 +639,7 @@ void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float wid
     MarkChanged();
 }
 
-void CEffectLightning::LoadState(void* stream) {
+void CEffectLightning::LoadState(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &from_, 12);
     Read(stream, &to_, 12);
@@ -650,7 +650,7 @@ void CEffectLightning::LoadState(void* stream) {
     Read(stream, &flag_, 1);
 }
 
-void CEffectLightning::SaveState(void* stream) {
+void CEffectLightning::SaveState(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &from_, 12);
     Write(stream, &to_, 12);

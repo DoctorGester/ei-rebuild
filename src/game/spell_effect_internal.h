@@ -236,7 +236,7 @@ inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId(
 // Where the object sees from (slot 48) into `scratch`.
 inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return ObjectSlots(object)->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
-inline CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller); }
+inline CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnit*>(unit)->ServerController(); }
 
 // A new object of class `classId` from the world's timed object manager (key -1).
 inline CEngineObject* CreateObject(CSpellEffect* e, int classId) {

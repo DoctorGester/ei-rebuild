@@ -8,17 +8,17 @@
 
 // 0069FB60 (A-H24; the original's loop runs once when the item has a spell).
 void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
-                           CEngineObject* item) {
+                           CItem* item) {
     if (!item) return;
     items->AddTail(item);
-    void* spell = static_cast<CItem*>(item)->spell_;
+    void* spell = item->spell_;
     if (spell) spells->AddTail(spell);
 }
 EI_REWRITTEN(0x0069FB60, GatherItem);
 
 namespace {
 // Empty slots add nothing.
-void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CEngineObject* item) {
+void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CItem* item) {
     GatherItem(items, spells, item);
 }
 

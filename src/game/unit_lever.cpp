@@ -102,7 +102,7 @@ void Lever::SetState(int wanted, float duration) {
             Vector3 free = {at->x, at->y, at->z};
             map->FindFreeCellNear(unit, at, &free);
             std::memcpy(at, &free, sizeof(free));
-            static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
+            unit->ServerController()->ResyncWithUnit();
         }
         SectorMapAdd(sectors, nullptr, unit);
         node = next;

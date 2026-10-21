@@ -61,8 +61,8 @@ public:
     int Create() override { return CreateSpec(); }   // 2: 0052C610
     void Destroy() override { DestroySpec(); }       // 3: 0052C680
     int RunTick() override;                          // 6: 004D6B50 (1)
-    void Load(void* stream) override;                // 9: 0052C490 LoadSpec
-    void Save(void* stream) override;                // 10: 0052C500 SaveSpec
+    void Load(CStream* stream) override;                // 9: 0052C490 LoadSpec
+    void Save(CStream* stream) override;                // 10: 0052C500 SaveSpec
     // 11: 004D6B60 "CTorchObjectSpec" (0078DAE8). 12: 004D6B70 (0x42).
     const char* GetClassName() override;
     int GetClassId() override;

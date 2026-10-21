@@ -185,16 +185,14 @@ void CEffectTornado::Start(int update) {
     for (int i = 1; i < behind; ++i) source_->RunTick();
 }
 
-void CEffectTornado::LoadState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectTornado::LoadState(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&velocity_, 12);
     s->Read(&framesLeft_, 4);
     s->Read(&launchTick_, 4);
 }
 
-void CEffectTornado::SaveState(void* stream) {
-    auto* s = static_cast<CStream*>(stream);
+void CEffectTornado::SaveState(CStream* s) {
     s->Write(&localPosition_, 12);
     s->Write(&velocity_, 12);
     int copy = framesLeft_;

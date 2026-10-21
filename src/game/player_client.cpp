@@ -362,7 +362,7 @@ const char* TextPartyReceived() { return "party received on client"; }
 } // namespace
 
 int CPlayerClient::OnItemsReceived() {
-    mfc::CTypedPtrList<CEngineObject> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    mfc::CTypedPtrList<CItem> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
     int& money = Owner()->Party()->Money();
     int before = money;
     in_.Read(&money, 4);
@@ -378,7 +378,7 @@ int CPlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = TheClientWorld()->itemManager_;
-        if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
+        if (auto* item = static_cast<CItem*>(manager->FindObject(static_cast<unsigned>(id)))) items.AddHead(item);
     }
     if (result != 0) {
         Owner()->GiveItems(&items, flag);
@@ -654,7 +654,7 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < figure->parts.size; ++i) static_cast<CFigureMesh*>(figure->parts.data[i])->flags_ |= kPartFlagFigure;   // 00517910
+        for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;   // 00517910
         created->flags_ |= kFlagNoParts;
     }
     CEngineObject* attached = figure->attached;

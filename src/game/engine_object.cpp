@@ -23,8 +23,8 @@ CEngineObject::~CEngineObject() { owner_ = nullptr; }
 void CEngineObject::CopyFrom(const CEngineObject& other) { CopyFromImpl(other); }
 void CEngineObject::ClearState() {}
 int CEngineObject::RunTick() { return 0; }
-void CEngineObject::Load(void*) {}
-void CEngineObject::Save(void*) {}
+void CEngineObject::Load(CStream*) {}
+void CEngineObject::Save(CStream*) {}
 
 // 00455980 (slot 4). When the last reference goes, the owning manager releases the object (its
 // slot 24, CBaseManager::ReleaseObject).

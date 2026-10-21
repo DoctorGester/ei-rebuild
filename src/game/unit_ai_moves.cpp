@@ -70,7 +70,6 @@ float FollowFar() { return ei::GameData<const float>(0x007C5408); }
 
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }
-CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
@@ -210,7 +209,7 @@ void AIBrain::UpdateFollow() {
     int now = CurrentWorldTick();
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
-    CUnitServer* leaderController = ControllerOf(leader);
+    CUnitServer* leaderController = leader->ServerController();
     float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
     if (leaderController->action.kind != kOrderMove && leaderController->action2.kind != kOrderMove) {

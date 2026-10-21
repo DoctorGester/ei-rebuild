@@ -58,7 +58,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
     auto& units = player->units.map;
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         CUnit* unit = node->value;
-        auto* controller = static_cast<CUnitServer*>(unit->controller);
+        auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // the branch-free select

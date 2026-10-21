@@ -328,7 +328,7 @@ void CUnit::Reset() {
     relationsB = 0xFFFFFFFFu;
     side = 0;
     if (controller) {
-        static_cast<CUnitServer*>(controller)->unit = nullptr;
+        ServerController()->unit = nullptr;
         controller->Release();
     }
     animationEntry = -1;

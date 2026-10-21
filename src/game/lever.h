@@ -102,8 +102,8 @@ public:
 
     int Create() override { return CreateLever(); }        // 2: 0052B370
     int RunTick() override { return UpdateLever(); }       // 6: 0052B490
-    void Load(void* stream) override;                      // 9: 0052BDD0 LoadLever
-    void Save(void* stream) override;                      // 10: 0052BE40 SaveLever
+    void Load(CStream* stream) override;                      // 9: 0052BDD0 LoadLever
+    void Save(CStream* stream) override;                      // 10: 0052BE40 SaveLever
     const char* GetClassName() override;                   // 11: 0052B2E0 "CLeverObject"
     int GetClassId() override;                             // 12: 0052B2F0 (0x5D)
     bool IsSynchronised() override { return Slot29True(); }        // 29

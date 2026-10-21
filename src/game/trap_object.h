@@ -28,8 +28,8 @@ public:
 
     int Create() override { return CreateTrap(); }         // 2: 00529B60
     int RunTick() override { return UpdateTrap(); }        // 6: 00529B80
-    void Load(void* stream) override;                      // 9: 00529D70 LoadTrapObject
-    void Save(void* stream) override;                      // 10: 00529DA0 SaveTrapObject
+    void Load(CStream* stream) override;                      // 9: 00529D70 LoadTrapObject
+    void Save(CStream* stream) override;                      // 10: 00529DA0 SaveTrapObject
     const char* GetClassName() override;                   // 11: 00529B00 "CTrapObject"
     int GetClassId() override;                             // 12: 00529B10 (0x55)
     bool IsSynchronised() override { return Slot29True(); }   // 29

@@ -97,7 +97,6 @@ WorldPlayer* LocalViewPlayer() {
 }
 
 CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
-CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -123,7 +122,7 @@ void EraseMover(BriefingMover* node) {
 void PlaceMover(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
-    CUnitServer* controller = ControllerOf(unit);
+    CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
     SectorMapMove(TheSectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
@@ -142,7 +141,7 @@ void StepWalking(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
-    ControllerOf(unit)->Brain()->TurnTowards(&facing, 1.0f);
+    unit->ServerController()->Brain()->TurnTowards(&facing, 1.0f);
 }
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
