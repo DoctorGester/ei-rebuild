@@ -10,7 +10,6 @@
 #include <windows.h>
 #include <intrin.h>
 #include <psapi.h>
-#include <tlhelp32.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -48,29 +47,30 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
 
 // The process's first thread: the one with the earliest creation time. ei_launch starts the game
 // suspended and loads ei_hook.dll from a thread of its own, so at that point the first thread is
-// the one that will run WinMain.
+// the one that will run WinMain. The process's threads come from ntdll's NtGetNextThread: a toolhelp
+// snapshot lists every thread of the machine (SV10b: 16,000 with the suite's games: 70-130 ms of
+// each run's start-up).
 DWORD FindMainThread() {
+    using NextThread = LONG(NTAPI*)(HANDLE process, HANDLE thread, ACCESS_MASK access, ULONG attributes, ULONG flags,
+                                    PHANDLE next);
+    const auto next = reinterpret_cast<NextThread>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtGetNextThread"));
+    if (!next) return 0;
     DWORD found = 0;
     ULONGLONG earliest = ~0ull;
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) return 0;
-    THREADENTRY32 entry{};
-    entry.dwSize = sizeof(entry);
-    for (BOOL more = Thread32First(snapshot, &entry); more; more = Thread32Next(snapshot, &entry)) {
-        if (entry.th32OwnerProcessID != GetCurrentProcessId()) continue;
-        HANDLE thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ThreadID);
-        if (!thread) continue;
+    HANDLE thread = nullptr, following = nullptr;
+    while (next(GetCurrentProcess(), thread, THREAD_QUERY_LIMITED_INFORMATION, 0, 0, &following) >= 0) {
+        if (thread) CloseHandle(thread);
+        thread = following;
         FILETIME created, exited, kernel, user;
         if (GetThreadTimes(thread, &created, &exited, &kernel, &user)) {
             ULONGLONG when = (ULONGLONG(created.dwHighDateTime) << 32) | created.dwLowDateTime;
             if (when < earliest) {
                 earliest = when;
-                found = entry.th32ThreadID;
+                found = GetThreadId(thread);
             }
         }
-        CloseHandle(thread);
     }
-    CloseHandle(snapshot);
+    if (thread) CloseHandle(thread);
     return found;
 }
 

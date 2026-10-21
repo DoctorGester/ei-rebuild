@@ -9,6 +9,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iterator>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -326,6 +327,7 @@ int InstallHooks() {
     int installed = 0;
     g_unexpectedSkips = 0;
     std::unordered_map<std::uintptr_t, const char*> hookedBy;   // address -> the entry installed there
+    std::string installedLines;   // logged at the end in one write (LogLines)
     for (HookEntry* h = g_hooks; h; h = h->next) {
         // The image takes the replacements, game.exe (recording) the recorders.
         if (h->record == standalone) continue;
@@ -386,13 +388,16 @@ int InstallHooks() {
         std::memcpy(target + 1, &rel, 4);
         if (!inText) VirtualProtect(target, 5, old, &old);
         FlushInstructionCache(GetCurrentProcess(), target, 5);
-        Log(h->record ? "recording %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
-            static_cast<unsigned>(h->address), h->replacement);
+        char line[320];
+        std::snprintf(line, sizeof(line), h->record ? "recording %s at %08X -> %p\n" : "hooked %s at %08X -> %p\n", h->name,
+                      static_cast<unsigned>(h->address), h->replacement);
+        installedLines += line;
         g_installed.emplace_back(h->address, h->replacement);
         hookedBy.emplace(h->address, h->name);
         ++installed;
     }
     text.Restore();
+    LogLines(installedLines.c_str());
     if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
     return installed;
 }

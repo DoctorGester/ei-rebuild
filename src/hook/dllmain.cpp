@@ -5,6 +5,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <share.h>
 
 namespace ei {
@@ -32,21 +33,46 @@ static void InitLogPath() { OutputPath("ei_hook.log", g_logPath); }
 // The file stays open for the whole run and each line is flushed as it is written (a crash loses
 // nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000
 // scans per harness run, most of its scanning during the suite.
-void Log(const char* fmt, ...) {
+static FILE* LogFile() {
     static FILE* f = [] {
         if (!g_logPath[0]) InitLogPath();
         return _fsopen(g_logPath, "a", _SH_DENYNO);
     }();
-    if (!f) return;
+    return f;
+}
+
+static void WriteStamp(FILE* f) {
     SYSTEMTIME t;
     GetLocalTime(&t);
-    _lock_file(f);
     std::fprintf(f, "[%02d:%02d:%02d.%03d] ", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
+}
+
+void Log(const char* fmt, ...) {
+    FILE* f = LogFile();
+    if (!f) return;
+    _lock_file(f);
+    WriteStamp(f);
     va_list ap;
     va_start(ap, fmt);
     std::vfprintf(f, fmt, ap);
     va_end(ap);
     std::fputc('\n', f);
+    std::fflush(f);
+    _unlock_file(f);
+}
+
+void LogLines(const char* lines) {
+    FILE* f = LogFile();
+    if (!f || !*lines) return;
+    _lock_file(f);
+    for (const char* at = lines; *at;) {
+        const char* end = std::strchr(at, '\n');
+        if (!end) end = at + std::strlen(at);
+        WriteStamp(f);
+        std::fwrite(at, 1, static_cast<std::size_t>(end - at), f);
+        std::fputc('\n', f);
+        at = *end ? end + 1 : end;
+    }
     std::fflush(f);
     _unlock_file(f);
 }
