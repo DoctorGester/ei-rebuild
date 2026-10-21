@@ -105,22 +105,28 @@ constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
 using GivenList = mfc::CTypedPtrList<CItem>;
-using GatheredList = mfc::CTypedPtrList<CEngineObject>;
+using GatheredList = mfc::CTypedPtrList<CItem>;
+using GatheredSpells = mfc::CTypedPtrList<CSpell>;
 void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
+// SaveListedObjects (0055E8A0) on a typed list (one CPtrList layout).
+template <typename T>
+void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
+    SaveListedObjects(reinterpret_cast<mfc::CList<CEngineObject*>*>(list), stream);
+}
 
 } // namespace
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     if (state_ != kStateJoined) return;
-    GatheredList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    GatheredSpells spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
-        GatherItem(&gathered, reinterpret_cast<mfc::CTypedPtrList<void>*>(&spells), node->data);   // 0069FB60
+        GatherItem(&gathered, &spells, node->data);   // 0069FB60
     alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
     auto* states = reinterpret_cast<CMemoryStream*>(bytes);
     states->Construct();
-    SaveListedObjects(&spells, states);
-    SaveListedObjects(&gathered, states);
+    SaveListed(&spells, states);
+    SaveListed(&gathered, states);
     WriteByte(&out_, kMessageItemStates);
     out_.WriteStream(states);
     WriteByte(&out_, kMessageItemsGiven);

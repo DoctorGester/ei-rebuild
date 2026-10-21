@@ -65,6 +65,12 @@ CEngineObject* ReadObject(CStream* stream, const CBaseManager* manager) {
     stream->Read(&id, 4);
     return id == -1 ? nullptr : manager->FindObject(id);
 }
+// The same for an item's id in the item manager.
+CItem* ReadItem(CStream* stream, const CBaseManager* items) {
+    int id;
+    stream->Read(&id, 4);
+    return id == -1 ? nullptr : FindItem(items, id);
+}
 // The same for a unit's id in the map objects' manager.
 CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
     int id;
@@ -163,7 +169,7 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
     for (auto* node = list->head; node;) {
         auto* current = node;
         node = node->next;
-        AssignCounted(current->data.item, ReadObject(stream, ItemManager()));
+        AssignCounted(current->data.item, ReadItem(stream, ItemManager()));
         stream->Read(&current->data.countdown, 4);
     }
 }
