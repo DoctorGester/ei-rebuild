@@ -110,18 +110,18 @@ void CUnitServer::FinishCast() {
         UseItemCharge(carrier, cost);
     } else if (unit->player) {     // 005301A0
         float cost = std::bit_cast<float>(spell->manaCost_);
-        char* server = reinterpret_cast<char*>(ServerObjectOf(unit));
+        UnitVitals* vitals = ServerStatsOf(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
         float maximum;
-        std::memcpy(&maximum, server + 0x38, sizeof(maximum));
-        float* mana = reinterpret_cast<float*>(server + 0x34);
+        std::memcpy(&maximum, &vitals->maxMana, sizeof(maximum));
+        float* mana = &vitals->mana;
         float left = static_cast<float>(-needed + *mana);
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = left >= maximum ? maximum : left;
         float result = capped <= kZero ? kZero : capped;
         std::memcpy(mana, &result, sizeof(float));
-        (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
+        CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
     static_cast<CWorldServer*>(world)->CastSpell(spell, unit, &unit->position, action.target, &at, 0);

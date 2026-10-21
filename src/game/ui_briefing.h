@@ -93,14 +93,13 @@ static_assert(sizeof(BriefingRecord) == 0x6C);
 // the end of the scope.
 class BriefingPlayerName {
 public:
-    BriefingPlayerName() { LocalPlayerName(reinterpret_cast<mfc::CString*>(raw_)); }
-    ~BriefingPlayerName() { reinterpret_cast<mfc::CString*>(raw_)->~CString(); }
+    BriefingPlayerName() { LocalPlayerName(&name_); }
     BriefingPlayerName(const BriefingPlayerName&) = delete;
     BriefingPlayerName& operator=(const BriefingPlayerName&) = delete;
-    operator const char*() const { return *reinterpret_cast<const mfc::CString*>(raw_); }
+    operator const char*() const { return name_; }
 
 private:
-    alignas(4) std::uint8_t raw_[4];
+    mfc::CString name_{mfc::CString::kUnset};
 };
 
 // A copy of the local player's variables whose names start with a prefix (00578C40 into an
@@ -231,7 +230,7 @@ public:
     // Slot 36 (ShowChat for this screen) through the vtable.
     void VirtualShowChat(int show) {
         using Fn = void(__thiscall*)(CBriefingScreen*, int);
-        reinterpret_cast<Fn>(vtable_[36])(this, show);
+        ei::VirtualSlot<Fn>(vtable_, 36)(this, show);
     }
 
     // Input side (window + 0x94; ui_briefing_input.cpp).

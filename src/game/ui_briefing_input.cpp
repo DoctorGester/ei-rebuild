@@ -68,7 +68,7 @@ const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(TheServerWorld(), nullptr, id)); }
+CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
 CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people

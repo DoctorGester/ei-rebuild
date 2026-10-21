@@ -23,16 +23,15 @@
 namespace {
 
 // The game's ostream (MSVC 6 iostream).
-struct AiLogStream {
-    AiLogStream* Write(const char* text);   // 006FC31D
-    AiLogStream* Write(long value);         // 006FC9C6
-    AiLogStream* Put(int c);                // 006FC0B0
-    AiLogStream* Apply(void* manipulator);  // 00434FE0
+struct AiLogStream : libcrt::Ostream {
+    AiLogStream* Write(const char* text) { PutText(text); return this; }                       // 006FC31D
+    AiLogStream* Write(long value) { PutInt(value); return this; }                             // 006FC9C6
+    AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }   // 006FC0B0
+    AiLogStream* Apply(libcrt::Manipulator manipulator) {                                                    // 00434FE0
+        libcrt::Ostream::Apply(manipulator);
+        return this;
+    }
 };
-AiLogStream* AiLogStream::Write(const char* text) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-AiLogStream* AiLogStream::Write(long v) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutInt(v)); }
-AiLogStream* AiLogStream::Put(int c) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-AiLogStream* AiLogStream::Apply(void* manipulator) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 AiLogStream* AlarmLog() { return ei::GameData<AiLogStream*>(0x007C2EB8); }
 
 // 00455940: the owner's manager context (the world server).
@@ -62,7 +61,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
-            AlarmLog()->Write(what)->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
+            AlarmLog()->Write(what)->Put(10)->Apply(libcrt::FlushManipulator);
         }
         state->pending = 0;
     }

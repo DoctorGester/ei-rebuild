@@ -127,7 +127,7 @@ CObject3D* CObject3D::Construct() {
     SetIdentity(&orientation);
     SetIdentity(&worldOrientation);
     SetVtable(this, CTransformObject::kVtableAddress);
-    ConstructString(&name);
+    ::new (&name) mfc::CString;
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
     SetVtable(&effectSources, kPartListVtable);
     effectSources.count = 0;
@@ -180,7 +180,7 @@ void CObject3D::DestructBody() {
     effectSources.head = nullptr;
     mfc::PlexFreeDataChain(blocks);
     effectSources.blocks = nullptr;
-    DestroyString(&name);
+    name.~CString();
     SetVtable(this, CTransformObject::kVtableAddress);
     static_cast<CEngineObject*>(this)->DestructBase();
 }
@@ -195,7 +195,7 @@ CMapObject* CMapObject::Construct() {
     effectGrowBy = 0;
     effectCapacity = 0;
     effectCount = 0;
-    ConstructString(&name2);
+    ::new (&name2) mfc::CString;
     // The network records (DeltaField, 0xA0 each) and their two memory streams.
     DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
@@ -219,7 +219,7 @@ CMapObject* CMapObject::Construct() {
     records->Reset();
     SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
-    static_cast<UnitVitalsPacked*>(PackedVitals())->Reset();
+    PackedVitals()->Reset();
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);
@@ -238,7 +238,7 @@ void CMapObject::DestructBody() {
         for (int i = 0; i < count; ++i) (data + i)->Destruct();
         gamecrt::operator_delete(records->fields_);
     }
-    DestroyString(&name2);
+    name2.~CString();
     effectsVtable = ei::GamePointer<void>(kEffectArrayVtable);
     if (effects) gamecrt::operator_delete(effects);
     CObject3D::DestructBody();   // 00515D70
@@ -272,7 +272,7 @@ CUnit* CUnit::Construct() {
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
-    static_cast<UnitMotion*>(m)->Clear();
+    m->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
     carriedVtable = static_cast<std::uint32_t>(ei::GameAddress(kCarriedArrayVtable));
@@ -316,7 +316,7 @@ void CUnit::Reset() {
     dead = 0;
     obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
-    static_cast<UnitParams*>(Params())->Reset();
+    Params()->Reset();
     std::memset(weapons, 0, sizeof(weapons));
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));
@@ -420,7 +420,7 @@ void CMapObjectClientSpecific::DestructBody() {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            static_cast<Terrain*>(LightManager())->RemoveLight(static_cast<CLight*>(light));
+            LightManager()->RemoveLight(static_cast<CLight*>(light));
             if (CUnit* unit = Unit()) {
                 if (CEngineObject* half = unit->Object3D()->attached)
                     static_cast<CObject3DSpecific*>(half)->SetLit(0);
@@ -451,7 +451,7 @@ void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
     ResetController();
     AIBrain* b = Brain();
-    static_cast<AIBrain*>(b)->Init();
+    b->Init();
     b->memory.Destruct();
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);

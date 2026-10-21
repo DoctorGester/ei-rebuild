@@ -126,7 +126,7 @@ float WorldTimeOfDay() {
     return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-CEngineObject* AsUnit(CEngineObject* o) { return o && o->GetClassId() == kClassUnit ? o : nullptr; }
+CUnit* AsUnit(CEngineObject* o) { return o && o->GetClassId() == kClassUnit ? static_cast<CUnit*>(o) : nullptr; }
 
 // Release a slot's object and store `object` with a new reference.
 void Store(ScriptObjectRef* slot, CEngineObject* object) {
@@ -326,26 +326,25 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x61: { // IsEnemy(unit, player)
-        CEngineObject* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = AsUnit(objectArgs.data[0]->object);
         StoreBits(result, kZero);
         if (!unit) return;
         int player = Ftol(f[0]);
         std::uint32_t mask = 1u << (player & 31);
-        const CUnit* u = static_cast<const CUnit*>(unit);
-        bool enemy = (mask & u->relationsB & u->relationsA) != 0;
+        bool enemy = (mask & unit->relationsB & unit->relationsA) != 0;
         *result = static_cast<float>(enemy ? 1 : 0);
         return;
     }
     case 0x65: { // GetPlayer
-        CEngineObject* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = AsUnit(objectArgs.data[0]->object);
         StoreBits(result, kZero);
-        if (unit) *result = static_cast<float>(static_cast<CUnit*>(unit)->side);
+        if (unit) *result = static_cast<float>(unit->side);
         return;
     }
     case 0x8F: { // GetAIClass (the unit's size class, +0x324)
-        CEngineObject* unit = AsUnit(objectArgs.data[0]->object);
+        CUnit* unit = AsUnit(objectArgs.data[0]->object);
         StoreBits(result, kMinusOne);
-        if (unit) *result = static_cast<float>(static_cast<CUnit*>(unit)->sizeClass);
+        if (unit) *result = static_cast<float>(unit->sizeClass);
         return;
     }
     case 0x90: { // GetLeverState
@@ -649,7 +648,7 @@ void InsertSeen(ScriptGroup* group, CEngineObject* controller) {
     }
 }
 
-CEngineObject* ControllerOf(CEngineObject* unit) { return static_cast<CUnit*>(unit)->controller; }
+CEngineObject* ControllerOf(CUnit* unit) { return unit->controller; }
 
 } // namespace
 
@@ -688,7 +687,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         break;
     case 0x5D: { // UnitSee(unit)
         group->SetSize(0, -1);
-        CEngineObject* unit = objectArgs.data[0]->AsUnit();
+        CUnit* unit = objectArgs.data[0]->AsUnit();
         if (!unit) break;
         if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
         break;
@@ -696,7 +695,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     case 0x5E: { // GroupSee(group): what its units see
         group->SetSize(0, -1);
         for (int i = 0; i < groupArgs.data[0]->size; ++i) {
-            CEngineObject* unit = groupArgs.data[0]->data[i].AsUnit();
+            CUnit* unit = groupArgs.data[0]->data[i].AsUnit();
             if (!unit) continue;
             if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
         }
@@ -722,7 +721,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             CEngineObject* unit = node->value;
             if (!unit) break;
             (*result)->Insert(unit);
-            InsertSeen(*result, ControllerOf(unit));   // no null check, as in the original
+            InsertSeen(*result, ControllerOf(static_cast<CUnit*>(unit)));   // no null check, as in the original
         }
         break;
     }

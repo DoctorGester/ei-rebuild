@@ -114,7 +114,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        static_cast<GameFlow*>(TheGameFlow())->DropSessions();
+        TheGameFlow()->DropSessions();
         uiorig::LeaveGame();
         break;
     default:
@@ -164,7 +164,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         zone = TheMapDatabase()->FindMap(name);
     }
     mfc::CString prefix;
-    prefix.Format(ZoneTopicFormat(), zone->name);
+    prefix.Format(ZoneTopicFormat(), static_cast<const char*>(zone->name));
     BriefingVariables variables(prefix);
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {

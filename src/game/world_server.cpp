@@ -50,9 +50,9 @@ void NewObjectMark::Apply() { static_cast<CEffect*>((void*)this)->MarkChanged();
 
 // 0055FB00 (world base): FindObject (slot 40) restricted to units.
 struct WorldBase {
-    CEngineObject* FindUnit(unsigned id);
+    CUnit* FindUnit(unsigned id);
 };
-CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
+CUnit* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 
 // RemoveObject's callees (not rewritten).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
@@ -163,7 +163,7 @@ void CWorld::SetServerPaused(std::uint8_t value) {
 
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     if (index < 0 || index >= exitCount_) return 0;
-    *target = *reinterpret_cast<const mfc::CString*>(&exits_[index].target);
+    *target = exits_[index].target;
     *entrance = exits_[index].entrance;
     return 1;
 }

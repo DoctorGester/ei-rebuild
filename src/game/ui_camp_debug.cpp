@@ -62,8 +62,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
         const char* wanted = record->materialClass;
-        char* material = itemdb::Materials().RecordAt(static_cast<std::uint32_t>(j), itemdb::kMaterialSize);
-        const char* name = reinterpret_cast<const itemdb::MaterialRecordHead*>(material)->soundName;
+        const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName;
         if (gamecrt::mbsicmp(name, wanted) != 0)
             continue;
         maker->SetManager(manager);
@@ -78,7 +77,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
 
 // The record's name (+0x04) contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
-    return static_cast<const mfc::CString*>(&record->text04)->Find(word) >= 0;
+    return record->text04.Find(word) >= 0;
 }
 itemdb::ItemRecordHead* Record(const RecordTable& table, int index, int stride) {
     return reinterpret_cast<itemdb::ItemRecordHead*>(table.RecordAt(static_cast<std::uint32_t>(index), stride));
@@ -127,7 +126,7 @@ void CCampPages::DebugFill() {
             mfc::CString name(MaterialWord());
             name += Dot();
             name += names.data[i];
-            auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name));
+            auto* item = ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }

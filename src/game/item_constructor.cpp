@@ -579,7 +579,7 @@ EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
 // The "spell container" record is looked up by name each time; without one the index is that of a
 // null record (kept: MakeItem then finds no prototype).
 CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
-    CSpell* spell = static_cast<CSpellManager*>(spells)->CreateSpellFromText(spellText);
+    CSpell* spell = spells->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
     char* record = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
@@ -607,10 +607,7 @@ const mfc::CString* HeadName(const ItemRecordHead* record) { return &record->tex
 } // namespace
 
 void CItemManager::ListMaterialNames(mfc::CStringArray* names) {
-    // The key is a CString (MaterialRecordHead declares its characters).
-    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) {
-        return reinterpret_cast<const mfc::CString*>(&record->key);
-    });
+    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) { return &record->key; });
 }
 void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames<WeaponRecord>(Weapons(), names, HeadName); }
 void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames<ArmorRecord>(Armors(), names, HeadName); }

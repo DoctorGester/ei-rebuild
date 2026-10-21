@@ -100,7 +100,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 3: {
-            auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name));
+            auto* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             if (item) ++item->refCount_;
             for (ObjectList::Node* position = player->items_.head; position;) {
                 ObjectList::Node* current = position;
@@ -108,7 +108,7 @@ void ClientSession::ApplyAwards() {
                 auto* owned = static_cast<CItem*>(current->data);
                 if (!owned->IsSameAs(item)) {
                     std::int32_t id = owned->id_;
-                    if (id >= 0) static_cast<CPlayer*>(player)->TakeItem(id);
+                    if (id >= 0) player->TakeItem(id);
                     break;
                 }
             }
@@ -121,7 +121,7 @@ void ClientSession::ApplyAwards() {
                 ObjectList::Node* current = position;
                 position = position->next;
                 CEngineObject* owned = current->data;
-                if (owned->GetClassId() == kClassQuestItem) static_cast<CPlayer*>(player)->TakeItem(owned->id_);
+                if (owned->GetClassId() == kClassQuestItem) player->TakeItem(owned->id_);
             }
             break;
         default:

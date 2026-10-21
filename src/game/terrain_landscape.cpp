@@ -204,9 +204,6 @@ float WaveHeightScale() { return ei::GameData<const float>(0x007C8970); }
 float WaveSpeedScale() { return ei::GameData<const float>(0x007C8968); }
 float WaveDirectionScale() { return ei::GameData<const float>(0x007C896C); }
 
-// The CString members are declared as their data pointers (the client world's Setup stores the
-// empty string's there); assignments go through MFC's operator=.
-mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString&>(text); }
 
 } // namespace
 
@@ -236,7 +233,7 @@ void Terrain::Reset() {
     pageMaterials.RemoveAll();
     std::memset(&worldMatrix, 0, sizeof(worldMatrix));
     mapLoaded = 0;
-    AsString(textF8) = "none";
+    textF8 = "none";
     sectorsX = -1;
     sectorsY = -1;
     pageSize = -1;
@@ -265,7 +262,7 @@ void Terrain::Reset() {
         ambientSounds[i] = -1;
         ambientClasses[i] = -1;
     }
-    AsString(textAE0) = "none";
+    textAE0 = "none";
 }
 
 void Terrain::BuildWavePhases() {
@@ -344,9 +341,9 @@ int Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         mfc::CString name;
         if (i < count) {
-            name.Format("%s%3.3i", textF8, i);
+            name.Format("%s%3.3i", static_cast<const char*>(textF8), i);
         } else {
-            name.Format("%sL%2.2i", textF8, i - count);
+            name.Format("%sL%2.2i", static_cast<const char*>(textF8), i - count);
             if (!TheTextureManager()->HasFile(name + ".mmp")) return 1;
             ++extraPages;
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
@@ -448,15 +445,15 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     console::CStringArray files;
     archive.ListFiles(&files, "*.mp");
     int dot = name.ReverseFind('.');
-    if (dot > 0) AsString(textFC) = name.Left(dot);
-    else AsString(textFC) = name;
+    if (dot > 0) textFC = name.Left(dot);
+    else textFC = name;
     // (The original does not test for an archive without a map file either.)
     const mfc::CString& first = files.data[0];
-    AsString(textF8) = first.Left(first.Find('.'));
+    textF8 = first.Left(first.Find('.'));
 
     // The messages are passed to FatalError as its format string, as the original does.
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(AsString(textF8) + MapExtension(), &size));
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + MapExtension(), &size));
     if (!file) {
         ClearMap();
         return game::FatalError("Unable to open file \"" + name + "\"");
@@ -557,7 +554,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     if (dungeon) set = "Dungeon";
     else if (libcrt::Stricmp(zone, "Ingos") == 0) set = "Ingos";
     else if (libcrt::Stricmp(zone, "Suslanger") == 0) set = "Suslanger";
-    AsString(textAE0) = set;
+    textAE0 = set;
     terrain::CountAmbientVariants(textAE0);
 
     const int sectors = sectorsY * sectorsX;

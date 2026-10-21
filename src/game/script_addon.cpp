@@ -18,6 +18,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "engine_object.h"
+#include "combat.h"
 #include "unit.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -230,10 +231,10 @@ int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
 
 bool IsUnit(CEngineObject* object) { return object->GetClassId() == 0x50; }
 
-void* UnitData(const ScriptObjectRef* ref) {
+CUnitServer* UnitData(const ScriptObjectRef* ref) {
     if (!ref || !ref->object) return nullptr;
     if (!IsUnit(ref->object)) return nullptr;
-    return static_cast<CUnit*>(ref->object)->controller;
+    return static_cast<CUnitServer*>(static_cast<CUnit*>(ref->object)->controller);
 }
 
 bool Report(const char*, const char*, ...) { return true; }

@@ -192,8 +192,8 @@ void CBattleScreen::Create() {
         if (void* p = gamecrt::operator_new(0x1C4)) {
             panel = static_cast<CHudUnitPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
-            panel->strings_[0] = mfc::impl::PchNil();
-            panel->strings_[1] = mfc::impl::PchNil();
+            ::new (&panel->strings_[0]) mfc::CString;
+            ::new (&panel->strings_[1]) mfc::CString;
             panel->texts_.Construct();
             panel->partLabels_.Construct();
             panel->vtable_ = ei::GamePointer<void*>(0x007426F8);
@@ -236,7 +236,7 @@ void CBattleScreen::Create() {
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
     using CreateFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<CreateFn>(movePanel_->vtable_[18])(movePanel_);   // slot 18 (+0x48)
+    ei::VirtualSlot<CreateFn>(movePanel_->vtable_, 18)(movePanel_);   // slot 18 (+0x48)
 
     memory = gamecrt::operator_new(0x1C8);
     messageLog_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(),
@@ -250,8 +250,8 @@ void CBattleScreen::Create() {
         if (void* p = gamecrt::operator_new(0x16C)) {
             panel = static_cast<CHudTopPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
-            panel->pageTexts_[0] = mfc::impl::PchNil();
-            panel->pageTexts_[1] = mfc::impl::PchNil();
+            ::new (&panel->pageTexts_[0]) mfc::CString;
+            ::new (&panel->pageTexts_[1]) mfc::CString;
             panel->vtable_ = ei::GamePointer<void*>(0x00742498);
             panel->inputVtable_ = ei::GamePointer<void*>(0x00742464);
         }
@@ -263,7 +263,7 @@ void CBattleScreen::Create() {
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
         auto* top = static_cast<CHudTopPanel*>(topPanel_);
-        mfc::CString& panelText = *reinterpret_cast<mfc::CString*>(&top->pageTexts_[0]);
+        mfc::CString& panelText = top->pageTexts_[0];
         const char* text = savedText;
         panelText += text;
         if (top->page_ == 0) {
@@ -293,7 +293,7 @@ void CBattleScreen::Create() {
     spare_ = 0;
     if (IsMultiplayerClient()) {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<SlotFn>(vtable_[36])(this, 1);   // +0x90
+        ei::VirtualSlot<SlotFn>(vtable_, 36)(this, 1);   // +0x90
     }
     clientParty_.camera = -1;
 }

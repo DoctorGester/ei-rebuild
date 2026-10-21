@@ -190,11 +190,11 @@ private:
 std::int16_t UnitFrame(const CUnit* unit) {
     int side = LocalSide();
     if (unit->id_ == kSpecialUnitId) {
-        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-        bool special = gamecrt::mbscmp(static_cast<const char*>(*zone),
-                                       "gz20g") == 0;
-        zone->~CString();
+        bool special;
+        {
+            mfc::CString zone(mfc::CString::kUnset);
+            special = gamecrt::mbscmp(*LocalPlayerName(&zone), "gz20g") == 0;
+        }
         if (special) return kFrameHostile;
     }
     std::uint32_t bit = 1u << (side & 31);

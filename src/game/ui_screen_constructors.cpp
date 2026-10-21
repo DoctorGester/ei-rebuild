@@ -27,15 +27,8 @@ void** PortraitsInputVtable() { return ei::GamePointer<void*>(0x007429E4); }
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 
-// A CString member the layouts keep as its data pointer, constructed empty.
-template <typename T>
-mfc::CString* EmptyString(T* field) {
-    return new (static_cast<void*>(field)) mfc::CString;
-}
-template <typename T>
-mfc::CString& AsString(T* field) {
-    return *reinterpret_cast<mfc::CString*>(field);
-}
+// A CString member constructed empty.
+mfc::CString* EmptyString(mfc::CString* field) { return ::new (field) mfc::CString; }
 
 } // namespace
 
@@ -54,13 +47,13 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
     mfc::CString text;
     CTextManager* texts = TheTextManager();
     texts->GetString(titleKey, &text);
-    AsString(&title_) = text;
+    title_ = text;
     if (flags_ & kEditField) {
         editText_ = const_cast<char*>(textKey);   // the caller's buffer: OK copies the answer into it
     } else {
         editText_ = nullptr;
         texts->GetString(textKey, &text);
-        AsString(&text_) = text;
+        text_ = text;
     }
     return this;
 }
@@ -113,9 +106,9 @@ EI_REPLACE_METHOD(0x0063FE70, CHudPortraits::Construct);
 
 void CHudPortraits::DestroyBody() {
     for (HudPortraitSlot* slot = slots_; slot != slotsEnd_; ++slot) {
-        reinterpret_cast<mfc::CString*>(&slot->modelSuffix_)->~CString();
-        reinterpret_cast<mfc::CString*>(&slot->modelPrefix_)->~CString();
-        reinterpret_cast<mfc::CString*>(&slot->faceName_)->~CString();
+        slot->modelSuffix_.~CString();
+        slot->modelPrefix_.~CString();
+        slot->faceName_.~CString();
     }
     if (slots_) stlp::deallocate(slots_, static_cast<std::size_t>(slotsCapacity_ - slots_) * sizeof(HudPortraitSlot));
     DestroyBase();

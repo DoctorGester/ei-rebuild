@@ -279,7 +279,7 @@ double ItemPrice(const std::uint8_t* item) {
     using PriceFn = double(__thiscall*)(const std::uint8_t*);
     void** vtable;
     std::memcpy(&vtable, item, sizeof(vtable));
-    return reinterpret_cast<PriceFn>(vtable[16])(item);
+    return ei::VirtualSlot<PriceFn>(vtable, 16)(item);
 }
 
 // How worn the item is: 1 - durability (+0x20) / maximum (+0x24). Rebirth's FixRepairPrice treats a
@@ -1147,7 +1147,7 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);   // 005310D0
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
-        static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);                           // 00531070
+        unit->AddWeapon(hero->weapons[i]);                           // 00531070
     unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
@@ -1241,7 +1241,7 @@ void CCampPages::ShowHero() {
     // its text into a CString (RET 8).
     void* table = GameClientTexts();
     mfc::CString name;
-    mfc::CString own(static_cast<CEngineObject*>(unit)->GetName());
+    mfc::CString own(unit->GetName());
     if (own.GetLength() == 0) {
         PartyUnitRecord* hero = VirtualHeroRecord();
         own = hero->texts[1];

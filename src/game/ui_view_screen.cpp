@@ -129,20 +129,20 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
             int n = picked_.size;
             picked_.SetSize(n + 1, -1);
             picked_.data[n] = static_cast<std::uint32_t>(unit->id_);
-            static_cast<CWorldClient*>(world)->Select(unit);
+            world->Select(unit);
             return;
         }
         Vector3 ground;
         world->PickGround(&ground, x, y);
         for (int i = 0; i < picked_.size; ++i) {
-            auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
+            auto* member = GameFindClientUnit(picked_.data[i]);
             if (!member) continue;
             OneUnit order(member);
             reinterpret_cast<CPlayerClient*>(world->LocalView())->SendWalk(&order.units, &ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < picked_.size; ++i) {
-            auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
+            auto* member = GameFindClientUnit(picked_.data[i]);
             if (!member) continue;
             OneUnit order(member);
             reinterpret_cast<CPlayerClient*>(world->LocalView())->SendAttack(&order.units, unit, kAttackHow, 0);
@@ -158,7 +158,7 @@ void UnitPickInput::OnRightDown(int, int, int) {
     }
     picked_.maxSize = 0;
     picked_.size = 0;
-    static_cast<CWorldClient*>(TheClientWorld())->Deselect(nullptr);
+    TheClientWorld()->Deselect(nullptr);
 }
 EI_REPLACE_METHOD(0x005EBB40, UnitPickInput::OnRightDown);
 

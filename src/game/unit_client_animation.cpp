@@ -79,9 +79,9 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     EI_NAN_AUDIT(step);
     if (step < 0.0f) {   // back in time: only put back on the ground
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
-        position.z = static_cast<float>(static_cast<CUnit*>(unit)->GroundHeight(position.x, position.y) +
+        position.z = static_cast<float>(unit->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
-        static_cast<CWorld*>(ObjectWorld(this))->MoveObject(unit, &position.x);
+        ObjectWorld(this)->MoveObject(unit, &position.x);
         return;
     }
     if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);

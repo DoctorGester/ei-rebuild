@@ -43,7 +43,6 @@ namespace {
 
 // The saved / console script (the world's command script).
 int* const kSpectator = ei::GamePointer<int>(0x0079BE6C);
-void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
 // addon's state.
 CommandHandler g_gameHelp = nullptr;   // the game's "help", saved at each registration
@@ -54,7 +53,7 @@ bool g_cursorShown = true;             // (100BA665)
 bool g_applyGui = false;               // the battle screen applies g_guiShown (100BD128)
 
 // addon's console output: the text, "\n" (as a string), flush.
-void Say(const char* text) { (Out() << text << "\n").Apply(kFlushManipulator); }
+void Say(const char* text) { (Out() << text << "\n").Apply(libcrt::FlushManipulator); }
 void __cdecl SayFormat(const char* format, ...) {
     mfc::CString text;
     va_list args;

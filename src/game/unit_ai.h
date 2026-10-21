@@ -628,7 +628,7 @@ struct AICallRecord {
     Vector3 point;                  // +0x00
     int kind;                       // +0x0C
     int hostileMask;                    // +0x10 sides the hearer turns hostile to (0 for a plain call)
-    char* text;                     // +0x14 CString
+    mfc::CString text;              // +0x14
 
     // 00558D00 (unit_ai_brain.cpp). The element destructor: frees the text (CString::~CString).
     void Destruct();
@@ -636,7 +636,7 @@ struct AICallRecord {
     // then the text (CString::operator=).
     AICallRecord& operator=(const AICallRecord& other);
 };
-static_assert(sizeof(AICallRecord) == 0x18);
+static_assert(sizeof(AICallRecord) == 0x18 && offsetof(AICallRecord, text) == 0x14);
 
 // The calls' ConstructElements (00558D60: zeroed, each text the empty CString) and
 // DestructElements (00558D00 each); unit_ai_brain.cpp.

@@ -156,7 +156,7 @@ void CMpHeroScreen::FinishRename() {
     mfc::CString& name = MpHeroName(heroIndex_);
     mfc::CString title(name);
     mfc::CString base;
-    int bar = static_cast<const mfc::CString*>(&title)->Find(RenameBar());
+    int bar = title.Find(RenameBar());
     if (bar >= 0)
         base = title.Left(bar);
     else
@@ -294,7 +294,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
+        const mfc::CString& file = voices.begin()[index].file;
         HeroRecordOf(this)->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
@@ -405,7 +405,7 @@ void CMpHeroScreen::Rename() {
     renameEdit_->SetEnabled(1, 1);
     renameEdit_->SetFocused(true);
     mfc::CString name(MpHeroName(heroIndex_));
-    int bar = static_cast<const mfc::CString*>(&name)->Find(RenameBar());
+    int bar = name.Find(RenameBar());
     if (bar < 0) {
         EditSetText(renameEdit_, nullptr, game::EmptyText());
     } else {

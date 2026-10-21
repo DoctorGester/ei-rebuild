@@ -353,7 +353,7 @@ void CItemInfoPanel::DescribeItem() {
     Texts* texts = TextManager();
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
-    material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().RecordAt(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
+    material = itemdb::MaterialAt(MaterialIndex(PackedIdOf(item)))->key;
     text::ReplaceChar(&material, ' ', '_');
     material.MakeLower();
     mfc::CString name, description, kindText;
@@ -483,7 +483,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
-    mfc::CString text = *reinterpret_cast<const mfc::CString*>(&material->soundName);
+    mfc::CString text = material->soundName;
     text.MakeLower();
     {
         mfc::CString key("mattype_");
@@ -1059,7 +1059,7 @@ void CItemInfoPanel::Describe(CItem* item) {
     if (itemCount_ && items_[0] && item) {
         using SameFn = BOOL(__thiscall*)(CItem*, CItem*);
         CItem* shown = items_[0];
-        if (reinterpret_cast<SameFn>((*reinterpret_cast<void***>(shown))[14])(shown, item)) return;
+        if (ei::ObjectSlot<SameFn>(shown, 14)(shown, item)) return;
     }
     PartyResetOriginal(itemList_, nullptr, 1, 0);
     if (item) ItemParty()->AddItem(item, 0, 1);
@@ -1119,6 +1119,6 @@ void CItemInfoPanel::Build(int x, int y) {
     }
     void* list = itemList_;
     using EmptyFn = void(__thiscall*)(void*);
-    reinterpret_cast<EmptyFn>((*static_cast<void***>(list))[2])(list);
+    ei::ObjectSlot<EmptyFn>(list, 2)(list);
 }
 EI_REPLACE_METHOD(0x005EE440, CItemInfoPanel::Build);

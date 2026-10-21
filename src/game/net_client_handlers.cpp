@@ -228,17 +228,17 @@ void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&s
 // The players on +0x25D8, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
     AppendRaw(self->players_, message);
-    static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(1);
+    TheInterface()->OnPlayersChanged(1);
 }
-void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(0); }   // 0041E510
+void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }   // 0041E510
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
     RemoveCounted(self->players_, message);
-    static_cast<CInterface3D*>(TheInterface())->OnPlayersChanged(1);
+    TheInterface()->OnPlayersChanged(1);
 }
 // The chat lines on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
     AppendCounted(self->lines_, message);
-    static_cast<CInterface3D*>(TheInterface())->OnChatLine(message->text_.data(), message->number_);
+    TheInterface()->OnChatLine(message->text_.data(), message->number_);
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }   // 0041E690
 // The host message kept at +0x25EC.
@@ -247,11 +247,11 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(self->zones_, message);
-    static_cast<GameFlow*>(TheGameFlow())->MarkBriefing(message->text_.data());
+    TheGameFlow()->MarkBriefing(message->text_.data());
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(self->zones_, message);
-    static_cast<GameFlow*>(TheGameFlow())->ForgetBriefing(message->text_.data());
+    TheGameFlow()->ForgetBriefing(message->text_.data());
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 0041E900
@@ -259,7 +259,7 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 004
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
-    static_cast<GameFlow*>(TheGameFlow())->RegisterQuests(message->text_.data());
+    TheGameFlow()->RegisterQuests(message->text_.data());
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.
@@ -392,7 +392,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     for (TradeRecordNode* node = self->tradeRecords_.First(); node != self->tradeRecords_.End(); node = node->next) {
         TradeRecord& record = node->data;
         if (record.revision == b && record.acceptedRevision == a) {
-            static_cast<CInterface3D*>(TheInterface())->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
+            TheInterface()->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
             break;
         }
     }

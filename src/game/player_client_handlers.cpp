@@ -50,7 +50,7 @@ const char* FixedViewZone() { return "gz20g"; }
 const Quaternion& FixedViewRotation() { return ei::GameData<const Quaternion>(0x007C8388); }
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 
-CEngineObject* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
+CUnit* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
 
 // CPlayerClient is a CPlayerConnection (vtable 00743180), not declared as one.
 CPlayerConnection* AsConnection(CPlayerClient* client) { return reinterpret_cast<CPlayerConnection*>(client); }
@@ -186,7 +186,7 @@ int CPlayerClient::OnWeaponRemoved() {
     PartyUnitRecord* record = reinterpret_cast<PartyRecords*>(Owner()->Party())->Find(unitId);
     if (record && static_cast<int>(record->weaponCount) > index)
         record->RemoveWeapon(static_cast<CItem*>(record->weapons[index]));
-    if (CEngineObject* unit = FindClientUnit(unitId)) static_cast<CUnit*>(unit)->Controller()->ShowWeapon(0xFFFFFFFFu);
+    if (CUnit* unit = FindClientUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
     return 1;
 }
 
@@ -195,10 +195,10 @@ int CPlayerClient::OnUnitControl() {
     in_.Read(&kind, 1);
     int unitId;
     in_.Read(&unitId, 4);
-    auto* unit = static_cast<CUnit*>(FindClientUnit(unitId));
+    auto* unit = FindClientUnit(unitId);
     switch (kind) {
     case 0:
-        if (unit) static_cast<CWorldClient*>(TheClientWorld())->Select(unit);
+        if (unit) TheClientWorld()->Select(unit);
         return 1;
     case 1:
     case 2: {

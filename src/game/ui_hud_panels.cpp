@@ -76,7 +76,7 @@ CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(TheClientWorld
 
 void CUiScrollbar::CallSetRect(const RECT* rect) {
     using Fn = void(__thiscall*)(CUiScrollbar*, const RECT*);
-    reinterpret_cast<Fn>(vtable_[26])(this, rect);
+    ei::VirtualSlot<Fn>(vtable_, 26)(this, rect);
 }
 
 // --- Unit panel ----------------------------------------------------------------------------------
@@ -269,11 +269,11 @@ void CHudTopPanel::ShowPage() {
     }
     CUiScrollText* log = MessageLog(owner_);
     if (page_ == 0) {
-        static_cast<CUiScrollText*>(log)->SetText(pageTexts_[0]);
+        log->SetText(pageTexts_[0]);
         log->CallSetPosition(log->maxPosition_);
         log->moved_ = true;
     } else {
-        static_cast<CUiScrollText*>(log)->SetText(pageTexts_[1]);
+        log->SetText(pageTexts_[1]);
         log->CallSetPosition(0);
     }
 }
@@ -302,7 +302,7 @@ void CHudTopPanel::ShowItems() {
         merged.AddTail(copy);
     }
 
-    mfc::CString& text = *reinterpret_cast<mfc::CString*>(&pageTexts_[1]);
+    mfc::CString& text = pageTexts_[1];
     text.Empty();
     auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
     if (static_cast<int>(party->money_) > 0) {
@@ -322,7 +322,7 @@ void CHudTopPanel::ShowItems() {
     merged.RemoveAll();
     if (page_ == 1) {
         CUiScrollText* log = MessageLog(owner_);
-        static_cast<CUiScrollText*>(log)->SetText(text);
+        log->SetText(text);
         log->CallSetPosition(0);
     }
     merged.RemoveAll();

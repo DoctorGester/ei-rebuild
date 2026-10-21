@@ -336,8 +336,8 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         }
 
         {
-            mfc::CString name;
-            QualifyName(reinterpret_cast<mfc::CString*>(&name), text);
+            mfc::CString name(mfc::CString::kUnset);
+            QualifyName(&name, text);
             qualified = name;
         }
 
@@ -602,8 +602,8 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         }
         if (!ok) return 0;
         if (qualify) {
-            mfc::CString qualified;
-            QualifyName(reinterpret_cast<mfc::CString*>(&qualified), name);
+            mfc::CString qualified(mfc::CString::kUnset);
+            QualifyName(&qualified, name);
             name = qualified;
         }
         token.Set(NextToken(pos));
@@ -674,8 +674,8 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
             }
         } else {
             {
-                mfc::CString name;
-                QualifyName(reinterpret_cast<mfc::CString*>(&name), text);
+                mfc::CString name(mfc::CString::kUnset);
+                QualifyName(&name, text);
                 qualified = name;
             }
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
@@ -792,8 +792,8 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             token.Assign(NextToken(&pos));
             word = token.text;
             {
-                mfc::CString name;
-                QualifyName(reinterpret_cast<mfc::CString*>(&name), word);
+                mfc::CString name(mfc::CString::kUnset);
+                QualifyName(&name, word);
                 decl->name = name;
             }
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
@@ -817,8 +817,8 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             token.Assign(NextToken(&pos));
             word = token.text;
             {
-                mfc::CString name;
-                QualifyName(reinterpret_cast<mfc::CString*>(&name), word);
+                mfc::CString name(mfc::CString::kUnset);
+                QualifyName(&name, word);
                 decl->name = name;
             }
             if (FindScript(decl->name) != -1)   // "Duplicate script %s"

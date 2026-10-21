@@ -117,12 +117,10 @@ __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORI
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
 // The console's ostream.
 
-// The CString fields of the records the flow copies as CStrings (MFC's shared assignment).
-mfc::CString& AsCString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
-const mfc::CString& RecordName(MapRecord* record) { return AsCString(record->name); }
-const mfc::CString& RecordAllod(MapRecord* record) { return AsCString(record->allod); }
-const mfc::CString& RecordMob(MapRecord* record) { return AsCString(record->mob); }
-const mfc::CString& RecordMap(MapRecord* record) { return AsCString(record->map); }
+const mfc::CString& RecordName(MapRecord* record) { return record->name; }
+const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
+const mfc::CString& RecordMob(MapRecord* record) { return record->mob; }
+const mfc::CString& RecordMap(MapRecord* record) { return record->map; }
 
 // A file stream local (zero-filled first, then built and torn down as the original inlines it).
 struct LocalFileStream {
@@ -141,9 +139,12 @@ struct LocalFileStream {
     void Close() { stream.Close(); }
 };
 
-// The record builder of the party (PartyRecords, unit.h), built and torn down by the originals.
+// The record builder of the party (PartyRecords, unit.h), built and torn down by the originals
+// (a union member, so the compiler neither constructs nor destroys it).
 struct LocalRecords {
-    PartyRecords party;
+    union {
+        PartyRecords party;
+    };
     LocalRecords() { reinterpret_cast<CParty*>(&party)->Construct(); }
     ~LocalRecords() { PartyRecordsDestructOriginal(&party); }
     LocalRecords(const LocalRecords&) = delete;
@@ -386,7 +387,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
     LocalFileStream file;
     int result = 1;
     mfc::CString folder;                                // [0x14]
-    mfc::CString zone(AsCString(records->zone));        // [0x10]
+    mfc::CString zone(records->zone);                   // [0x10]
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord) return 0;
 
@@ -559,13 +560,12 @@ int __stdcall StartNetworkZone(const char* zone) {
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
-        alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
+        alignas(ZoneExit) std::uint8_t copy[sizeof(ZoneExit)];
         ZoneExit* exit = source->CopyAt(reinterpret_cast<ZoneExit*>(copy), i);
         exits.data[i].Assign(exit);
-        reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
+        exit->target.~CString();
     }
-    for (int i = 0; i < exits.size; ++i)
-        *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = kNetworkExitTarget;
+    for (int i = 0; i < exits.size; ++i) exits.data[i].target = kNetworkExitTarget;
     TheServerWorld()->SetZoneExits(&exits);
     TheServerWorld()->SetClimate(zoneRecord->setting2C);
     TheServerWorld()->SetCave(zoneRecord->setting30);
@@ -582,8 +582,7 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     exits.vtable = ei::GamePointer<void>(kExitArrayBaseVtable);
     if (exits.data) {
-        for (int i = 0; i < exits.size; ++i)
-            reinterpret_cast<mfc::CString*>(&exits.data[i].target)->~CString();
+        for (int i = 0; i < exits.size; ++i) exits.data[i].target.~CString();
         gamecrt::operator_delete(exits.data);
     }
     return 1;
@@ -600,7 +599,7 @@ namespace {
 } // namespace
 
 mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
-    new (out) mfc::CString(*reinterpret_cast<const mfc::CString*>(&zoneName_));
+    new (out) mfc::CString(zoneName_);
     return out;
 }
 
@@ -612,12 +611,8 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     auto* records = reinterpret_cast<PartyRecords*>(recordsBytes);
     LocalFileStream file;
     mfc::CString path;   // [0x04]
-    alignas(4) unsigned char zoneStorage[sizeof(mfc::CString)];
-    mfc::CString& zone = *TheServerWorld()->ZoneNameInto(reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
-    struct ZoneOwner {
-        mfc::CString* s;
-        ~ZoneOwner() { s->~CString(); }
-    } zoneOwner{&zone};
+    mfc::CString zone(mfc::CString::kUnset);   // [0x08]
+    TheServerWorld()->ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
     if (Campaign() == 1) TheCamera()->SaveView(7);
@@ -722,20 +717,17 @@ void GameFlow::BeginMultiplayerGame() {
     PartyManagerNewGameFour(ThePartyManager());
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
-        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
-        AsCString(GlobalParty()->zone) = *zone;
-        zone->~CString();
+        mfc::CString zone(mfc::CString::kUnset);
+        GlobalParty()->zone = *MultiplayerZoneInto(&zone);
     }
     VariableSet(&GlobalParty()->variables, kMultiplayerVariable, 1.0f);
     ThePartyManager()->BeginRedeploy(GlobalParty());
     {
-        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
+        mfc::CString zone(mfc::CString::kUnset);
+        MultiplayerZoneInto(&zone);
         state_ = 4;   // the state: load the zone
-        AsCString(requestTarget_) = static_cast<const char*>(*zone);
+        requestTarget_ = static_cast<const char*>(zone);
         requestArg_ = 0;
-        zone->~CString();
     }
     flag80_ = 0;
     // The client's game state request: 1, a new version.
@@ -851,25 +843,25 @@ void GameFlow::RequestState3() { state_ = 3; }
 
 void GameFlow::RequestLoad(const char* name, char flag) {
     state_ = 2;
-    AsCString(requestTarget_) = name;
+    requestTarget_ = name;
     requestArg_ = flag != 0;
 }
 
 void GameFlow::RequestZoneChange(const char* zone, int entrance) {
     state_ = 4;
-    AsCString(requestTarget_) = zone;
+    requestTarget_ = zone;
     requestArg_ = entrance;
 }
 
 void GameFlow::RequestPartyZone5(const char* zone, const void* party) {
     state_ = 5;
-    AsCString(requestTarget_) = zone;
+    requestTarget_ = zone;
     AsParty(RequestParty())->Assign(AsParty(party));
 }
 
 void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     state_ = 6;
-    AsCString(requestTarget_) = zone;
+    requestTarget_ = zone;
     AsParty(RequestParty())->Assign(AsParty(party));
 }
 
@@ -1014,11 +1006,10 @@ void GameFlow::SwitchMultiplayerZone() {
         RequestKind(1);
         bool host = Active(net::GameServer());
         {
-            alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-            mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
+            mfc::CString zone(mfc::CString::kUnset);
+            MultiplayerZoneInto(&zone);
             ToMainMenu() = 1;
-            reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(*zone, 0);   // 0066B1B0
-            zone->~CString();
+            reinterpret_cast<CPlayerClient*>(TheClientWorld()->LocalView())->RequestZone(zone, 0);   // 0066B1B0
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
@@ -1056,19 +1047,19 @@ void GameFlow::SwitchMultiplayerZone() {
     } else {
         AsParty(&records.party)->Assign(AsParty(GlobalParty()));
     }
-    AsCString(records.party.zone) = AsCString(zone7C_);
+    records.party.zone = zone7C_;
     RequestKind(3);
     if (Active(net::GameServer())) {
         state_ = 6;
-        AsCString(requestTarget_) = zone7C_;
+        requestTarget_ = zone7C_;
         AsParty(RequestParty())->Assign(AsParty(&records.party));
     } else {
         auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
-        if (Active(host)) AsCString(records.party.zone) = host->zone_.data();
+        if (Active(host)) records.party.zone = host->zone_.data();
         host = static_cast<net::HostMessage*>(net::GameClient()->info_);
         if (Active(host)) {
             state_ = 5;
-            AsCString(requestTarget_) = host->address_.data();
+            requestTarget_ = host->address_.data();
             AsParty(RequestParty())->Assign(AsParty(&records.party));
         }
     }
@@ -1199,11 +1190,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
 namespace {
 
 // The zone table (007AFDE0: a vector of 12-byte {first, second, id}, two CStrings and an int).
-struct ZoneEntry {
-    const char* first;
-    const char* second;
-    int id;
-};
+using ZoneEntry = recordvec::ZoneTableEntry;
 struct ZoneTable {
     ZoneEntry* start;
     ZoneEntry* finish;
@@ -1321,10 +1308,8 @@ void __fastcall ClearSaveFolder(const char* path) {
     }
     while (found) {
         found = finder.FindNext();
-        alignas(mfc::CString) std::uint8_t name[sizeof(mfc::CString)];
-        mfc::CString* file = ::new (reinterpret_cast<mfc::CString*>(name)) mfc::CString(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
-        ImportDeleteFile()(*file);
-        file->~CString();
+        mfc::CString file(static_cast<const mfc::CFileFind*>(&finder)->GetFilePath());
+        ImportDeleteFile()(file);
     }
     finder.Close();
 }
@@ -1749,18 +1734,18 @@ int GameFlow::LoadGame(const char* slot) {
 // ---- The flow's object, the network zone, the current save's size (A-W13) -----------------------
 
 GameFlow* GameFlow::Construct() {
-    new (&AsCString(requestTarget_)) mfc::CString();
+    new (&requestTarget_) mfc::CString();
     RequestPartyObject()->Construct();
-    new (&AsCString(zone7C_)) mfc::CString();
+    new (&zone7C_) mfc::CString();
     state_ = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
-    AsCString(zone7C_).~CString();
+    zone7C_.~CString();
     RequestPartyObject()->DestructBody();
-    AsCString(requestTarget_).~CString();
+    requestTarget_.~CString();
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 
@@ -1768,7 +1753,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
-    AsCString(zone7C_) = zone;
+    zone7C_ = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
 }
 EI_REPLACE_METHOD(0x0057ED60, GameFlow::SetNetworkZone);
@@ -1896,12 +1881,10 @@ void GameFlow::UpdateFromServer() {
         VariableSet(variables, kTypeVariables[type], 1.0f);
         briefing = kTypeBriefings[type];
     }
-    alignas(mfc::CString) std::uint8_t questSlot[sizeof(mfc::CString)];
-    alignas(mfc::CString) std::uint8_t kSlot[sizeof(mfc::CString)];
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(questSlot), briefing + kBriefingSuffixQuest);
-    BriefingVariableInto(reinterpret_cast<mfc::CString*>(kSlot), briefing + kBriefingSuffixK);
-    mfc::CString& questVariable = *reinterpret_cast<mfc::CString*>(questSlot);
-    mfc::CString& kVariable = *reinterpret_cast<mfc::CString*>(kSlot);
+    mfc::CString questVariable(mfc::CString::kUnset);
+    mfc::CString kVariable(mfc::CString::kUnset);
+    BriefingVariableInto(&questVariable, briefing + kBriefingSuffixQuest);
+    BriefingVariableInto(&kVariable, briefing + kBriefingSuffixK);
     mfc::CString* const names[2] = {&questVariable, &kVariable};
     for (mfc::CString* name : names) {
         float value = static_cast<float>(VariableGet(variables, *name));
@@ -1983,8 +1966,6 @@ void GameFlow::UpdateFromServer() {
         AppliedStamp() = 0;
     }
     UpdateMultiplayerVariable();
-    kVariable.~CString();
-    questVariable.~CString();
 }
 
 // ---- The saved multiplayer parties (00662FB0) ---------------------------------------------------
@@ -1992,7 +1973,7 @@ void GameFlow::UpdateFromServer() {
 // An entry of SavedParties' vector: the party records and the name of their file.
 struct SavedPartyEntry {
     PartyRecords records;           // +0x00
-    char* fileName;                 // +0x70 CString
+    mfc::CString fileName;          // +0x70
 };
 static_assert(offsetof(SavedPartyEntry, fileName) == 0x70);
 static_assert(sizeof(SavedPartyEntry) == 0x74);
@@ -2010,11 +1991,11 @@ MpHeroRecord* AsHero(SavedPartyEntry* entry) { return reinterpret_cast<MpHeroRec
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyRecords* records = &entry->records;
-    AsCString(entry->fileName).~CString();
+    entry->fileName.~CString();
     ei::SetVtable(records, kRecordsVtable);
     PartyResetOriginal(records, nullptr, 1, 1);
     AsParty(records)->DestroyParty();   // 00661640
-    AsCString(records->zone).~CString();
+    records->zone.~CString();
     records->variables.Destroy();   // 00663330
     reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
     DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
@@ -2033,7 +2014,7 @@ void SavedParties::Reload() {
     WIN32_FIND_DATAA found;
     HANDLE search;
     {
-        mfc::CString pattern = AsCString(folder_) + kPartyFilePattern;
+        mfc::CString pattern = folder_ + kPartyFilePattern;
         search = gameapi::FindFirstFileA(pattern, &found);
     }
     if (search == INVALID_HANDLE_VALUE) return;
@@ -2043,7 +2024,7 @@ void SavedParties::Reload() {
         auto* entry = reinterpret_cast<SavedPartyEntry*>(storage);
         reinterpret_cast<CParty*>(&entry->records)->Construct();
         new (&entry->fileName) mfc::CString();
-        AsCString(entry->fileName) = found.cFileName;
+        entry->fileName = found.cFileName;
         if (reinterpret_cast<MpHeroRecord*>(&entry->records)->ReadFile(folder_)) {   // 00662DD0
             NamedFloatTable* variables = &entry->records.variables;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
@@ -2059,7 +2040,7 @@ void SavedParties::Reload() {
                 if (finish != eos) {
                     if (finish) {
                         AsParty(&finish->records)->CopyConstruct(AsParty(&entry->records));
-                        new (&finish->fileName) mfc::CString(AsCString(entry->fileName));
+                        new (&finish->fileName) mfc::CString(entry->fileName);
                     }
                     ++finish;
                 } else {
@@ -2087,12 +2068,9 @@ const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<con
 
 // 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
 void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
-    recordvec::ZoneTableVector::InsertOverflow(reinterpret_cast<stlp::vector<recordvec::ZoneTableEntry>*>(table), nullptr,
-                                               reinterpret_cast<recordvec::ZoneTableEntry*>(pos),
-                                               reinterpret_cast<const recordvec::ZoneTableEntry*>(value), count);
+    recordvec::ZoneTableVector::InsertOverflow(reinterpret_cast<stlp::vector<recordvec::ZoneTableEntry>*>(table), nullptr, pos,
+                                               value, count);
 }
-
-mfc::CString& EntryText(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
 // The allod of a map name: the first list that has it.
 int AllodOfMap(const char* map) {
@@ -2105,18 +2083,14 @@ int AllodOfMap(const char* map) {
 void AppendEmptyEntry(ZoneTable& table) {
     if (table.finish != table.end) {
         if (table.finish) {
-            new (&EntryText(table.finish->first)) mfc::CString();
-            new (&EntryText(table.finish->second)) mfc::CString();
+            new (&table.finish->first) mfc::CString();
+            new (&table.finish->second) mfc::CString();
         }
         ++table.finish;
         return;
     }
-    ZoneEntry empty{};
-    new (&EntryText(empty.first)) mfc::CString();
-    new (&EntryText(empty.second)) mfc::CString();
+    ZoneEntry empty{};   // destroyed from the last name
     ZoneTableInsertOverflow(&table, table.finish, &empty, 1);
-    EntryText(empty.second).~CString();
-    EntryText(empty.first).~CString();
 }
 
 } // namespace
@@ -2145,8 +2119,8 @@ void GameFlow::BuildZoneTable() {
             const int allod = AllodOfMap(map);
             AppendEmptyEntry(table);
             ZoneEntry& entry = table.finish[-1];
-            EntryText(entry.first) = name;
-            EntryText(entry.second) = map;
+            entry.first = name;
+            entry.second = map;
             entry.id = allod;
         }
     }

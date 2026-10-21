@@ -10,16 +10,10 @@
 
 namespace itemdb {
 
-namespace {
-// The records keep their strings as CString members declared as character pointers (the
-// material head) or as an STLport vector<CString> spelled as three pointers (the quest item).
-mfc::CString* AsCString(const char** text) { return reinterpret_cast<mfc::CString*>(text); }
-} // namespace
-
 void MaterialRecordHead::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, AsCString(&key));
-    ar->CStringField(1, AsCString(&soundName));
-    ar->CStringField(2, AsCString(&name));
+    ar->CStringField(0, &key);
+    ar->CStringField(1, &soundName);
+    ar->CStringField(2, &name);
     ar->Field(3, &number, 4);
     ar->Field(4, &unitPrice, 4);
     ar->Field(5, &factor38, 4);

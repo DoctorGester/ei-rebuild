@@ -383,11 +383,8 @@ constexpr int kOutlinePoints = 16;
 
 // The local player's zone in the map database (00578A90 copy-constructs the name into raw storage).
 const MapRecord* LocalZone() {
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
-    const MapRecord* zone = TheMapDatabase()->FindMap(*name);
-    name->~CString();
-    return zone;
+    mfc::CString name(mfc::CString::kUnset);
+    return TheMapDatabase()->FindMap(*LocalPlayerName(&name));
 }
 
 CUiMeshBuilder* Builder(CUiMesh* sprite) { return static_cast<CUiMeshBuilder*>(sprite); }

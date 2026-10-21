@@ -45,7 +45,7 @@ std::uint8_t* SpellPrototypeOf(void* spell) {
 // The spell's slot 19 (the picture's name) and 20 (the model's name).
 void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    reinterpret_cast<Fn>((*reinterpret_cast<void***>(spell))[slot])(spell, out->Slot());
+    ei::ObjectSlot<Fn>(spell, slot)(spell, out->Slot());
 }
 
 // The original truncates through _ftol.

@@ -1201,10 +1201,11 @@ EI_REPLACE_METHOD(0x005724F0, SectorGrid::Resize);
 
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
-    void* path;
-    CStringConcat(&path, &TheDataFolder(), worlddata::TexturesFolderText());
-    *reinterpret_cast<mfc::CString*>(&texturePath_) = *reinterpret_cast<const mfc::CString*>(&path);
-    CStringDestroy(&path);
+    {
+        mfc::CString path(mfc::CString::kUnset);
+        CStringConcat(&path, &TheDataFolder(), worlddata::TexturesFolderText());
+        texturePath_ = path;
+    }
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
     lightingMark_ = 0;
     sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
@@ -1236,8 +1237,8 @@ int CWorldClient::Setup() {
         terrain->pageTextures.capacity = 0;
         terrain->pageTextures.size = 0;
         terrain->pageMaterials.Construct();
-        terrain->textF8 = mfc::impl::PchNil();
-        terrain->textFC = mfc::impl::PchNil();
+        ::new (&terrain->textF8) mfc::CString;
+        ::new (&terrain->textFC) mfc::CString;
         terrain->materials.Construct();
         terrain->textureClass.Construct();
         terrain->textureFrames.Construct();
@@ -1248,14 +1249,14 @@ int CWorldClient::Setup() {
         terrain->wavePhases.Construct();
         terrain->visibleColumnFirst.Construct();
         terrain->visibleColumnLast.Construct();
-        terrain->textAE0 = mfc::impl::PchNil();
+        ::new (&terrain->textAE0) mfc::CString;
         mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
         static_cast<Terrain*>(terrain)->Reset();
     }
     terrain_ = terrain;
     ++terrain->refCount_;
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = worlddata::GipathText();
+    zoneName_ = worlddata::GipathText();
 
     manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
     static_cast<CBaseManager*>(manager44_)->Init(this);
@@ -1304,12 +1305,16 @@ int CWorldClient::Setup() {
     terrain_->Create();
     sounds_->Create();
     texts_->Create();
-    CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsFileText());
-    LoadTexts(texts_, nullptr, static_cast<const char*>(path));
-    CStringDestroy(&path);
-    CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsLmpFileText());
-    LoadTexts(texts_, nullptr, static_cast<const char*>(path));
-    CStringDestroy(&path);
+    {
+        mfc::CString path(mfc::CString::kUnset);
+        CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsFileText());
+        LoadTexts(texts_, nullptr, path);
+    }
+    {
+        mfc::CString path(mfc::CString::kUnset);
+        CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsLmpFileText());
+        LoadTexts(texts_, nullptr, path);
+    }
 
     // The list manager: the base, then its CList's fields (in the original's order).
     auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
@@ -1347,9 +1352,11 @@ int CWorldClient::Setup() {
         flags_ |= 0x200;
     else
         flags_ &= ~0x200u;
-    CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
-    cursor_ = LoadCursorFromFileA(static_cast<const char*>(path));
-    CStringDestroy(&path);
+    {
+        mfc::CString path(mfc::CString::kUnset);
+        CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
+        cursor_ = LoadCursorFromFileA(path);
+    }
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
     if (SpellManager()) ReferenceEveryObject(SpellManager());
@@ -1646,9 +1653,9 @@ int CWorldClient::LoadZone(CStream* block) {
 
     // The allod of the local player's zone names the texture pages, the lights and the music.
     const MapRecord* zone = LocalZoneRecord();
-    mfc::CString& allod = *reinterpret_cast<mfc::CString*>(&zoneName_);
+    mfc::CString& allod = zoneName_;
     allod = worlddata::DefaultAllodText();
-    if (zone) allod = *reinterpret_cast<const mfc::CString*>(&zone->allod);
+    if (zone) allod = zone->allod;
     allod.MakeLower();
     if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));

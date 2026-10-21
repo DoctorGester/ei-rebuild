@@ -110,7 +110,7 @@ EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
-        reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
+        panel->pageTexts_[0].Empty();
         if (panel->page_ == 0)
             static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
         return;
@@ -164,7 +164,7 @@ void CBattleScreen::MarkPortrait(int index) {
 void CBattleScreen::OnUnitJoined(CUnit* unit) {
     if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
-        reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
+        panel->pageTexts_[0].Empty();
         if (panel->page_ == 0)
             static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
         return;
@@ -248,7 +248,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        static_cast<GameFlow*>(TheGameFlow())->DropSessions();
+        TheGameFlow()->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

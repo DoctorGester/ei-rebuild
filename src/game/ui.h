@@ -25,15 +25,13 @@
 
 #include <windows.h>
 
-namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
 namespace ui_gdi { struct GameFont; struct GameDC; }
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {
-    char* data = nullptr;
-    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
-    ~ReturnedString() { Slot()->~CString(); }
+    mfc::CString data{mfc::CString::kUnset};   // constructed by the callee
+    mfc::CString* Slot() { return &data; }
 };
 static_assert(sizeof(ReturnedString) == 4);
 
@@ -523,7 +521,7 @@ public:
     // it): blits the surface onto the render target when it is shown.
     void Blit() {
         using Fn = void(__thiscall*)(CUiSurface*);
-        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this);
+        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this);
     }
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
@@ -581,7 +579,7 @@ inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x00
 struct UiDrawPass {
     void SetColour(std::uint32_t colour) {
         using Fn = void(__thiscall*)(UiDrawPass*, std::uint32_t);
-        reinterpret_cast<Fn>(vtable_[7])(this, colour);
+        ei::VirtualSlot<Fn>(vtable_, 7)(this, colour);
     }
 
     void** vtable_;
@@ -648,12 +646,12 @@ struct UiInputSide {
     // Slot 1.
     void Deactivate() {
         using Fn = void(__thiscall*)(UiInputSide*);
-        reinterpret_cast<Fn>(vtable_[kDeactivate])(this);
+        ei::VirtualSlot<Fn>(vtable_, kDeactivate)(this);
     }
     // Slots 2-11: (buttons, x, y) or (key, repeat, flags). Returns the handler's EAX.
     int Event(int slot, int a, int b, int c) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int);
-        return reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
+        return ei::VirtualSlot<Fn>(vtable_, slot)(this, a, b, c);
     }
     // 005E2860 / 005E2880 (slots 7 / 8 of the base input side 007401D0 and most screens;
     // ui_input_defaults.cpp; RET 0xC): a double click is handled as a single press, slot 2 / 5 with
@@ -672,7 +670,7 @@ struct UiInputSide {
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
-        return reinterpret_cast<Fn>(vtable_[kWheel])(this, flags, delta, x, y);
+        return ei::VirtualSlot<Fn>(vtable_, kWheel)(this, flags, delta, x, y);
     }
 
     void** vtable_;
@@ -768,7 +766,7 @@ public:
     // Slot 33 (+0x84): a quest variable changed (CInterface3D::OnQuestVariable).
     void OnQuestVariable(const char* name, float value) {
         using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
-        reinterpret_cast<Fn>(vtable_[33])(this, name, value);
+        ei::VirtualSlot<Fn>(vtable_, 33)(this, name, value);
     }
     // The interface's news slots (CInterface3D::OnItemsPicked .. SaveWindowState; the battle
     // screen's implementations are in ui_camp.h): 28 items picked up, 29 / 30 a unit joined / left,
@@ -776,47 +774,47 @@ public:
     // window's part of a save game.
     void VirtualItemsPicked(void* items, int money, int crippled) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, int, int);
-        reinterpret_cast<Fn>(vtable_[28])(this, items, money, crippled);
+        ei::VirtualSlot<Fn>(vtable_, 28)(this, items, money, crippled);
     }
     void VirtualUnitJoined(void* unit) {
         using Fn = void(__thiscall*)(CUiWindow*, void*);
-        reinterpret_cast<Fn>(vtable_[29])(this, unit);
+        ei::VirtualSlot<Fn>(vtable_, 29)(this, unit);
     }
     void VirtualUnitLeft(void* unit) {
         using Fn = void(__thiscall*)(CUiWindow*, void*);
-        reinterpret_cast<Fn>(vtable_[30])(this, unit);
+        ei::VirtualSlot<Fn>(vtable_, 30)(this, unit);
     }
     void VirtualGameOver(int won) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[31])(this, won);
+        ei::VirtualSlot<Fn>(vtable_, 31)(this, won);
     }
     void VirtualSpeech(int id, unsigned event, char* extra) {
         using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
-        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
     }
     // Slot 34 (+0x88): a "briefing <name>" string event.
     void VirtualShowBriefing(const char* name) {
         using Fn = void(__thiscall*)(CUiWindow*, const char*);
-        reinterpret_cast<Fn>(vtable_[34])(this, name);
+        ei::VirtualSlot<Fn>(vtable_, 34)(this, name);
     }
     // Slot 35 (+0x8C): whether the window lets the interface stop asking (pollTop_).
     bool VirtualReadyToStopPolling() {
         using Fn = bool(__thiscall*)(CUiWindow*);
-        return reinterpret_cast<Fn>(vtable_[35])(this);
+        return ei::VirtualSlot<Fn>(vtable_, 35)(this);
     }
     void VirtualPlayersChanged(int added) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[36])(this, added);
+        ei::VirtualSlot<Fn>(vtable_, 36)(this, added);
     }
     void VirtualExchangeDone(void* partyB, void* partyA, void* partyC) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
-        reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
+        ei::VirtualSlot<Fn>(vtable_, 37)(this, partyB, partyA, partyC);
     }
     // Slot 38 (+0x98): a multiplayer screen's player list window for kicking (mode 1) or
     // banning (2) a player (the console's kick / ban without a name).
     void VirtualPlayerList(int mode) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[38])(this, mode);
+        ei::VirtualSlot<Fn>(vtable_, 38)(this, mode);
     }
     // Slot 39 (+0x9C): the camp's DebugFill (the console's "give <player> assortment").
     void VirtualDebugFill() { CallVirtual(39); }
@@ -824,17 +822,17 @@ public:
     // Slot 27 (+0x6C): the value a window above left pending when it closed.
     void VirtualMessageResult(int result) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[27])(this, result);
+        ei::VirtualSlot<Fn>(vtable_, 27)(this, result);
     }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {
         using Fn = void(__thiscall*)(CUiWindow*);
-        reinterpret_cast<Fn>(vtable_[26])(this);
+        ei::VirtualSlot<Fn>(vtable_, 26)(this);
     }
     // Slot 0: the deleting destructor (with 1: the memory is freed).
     void DeleteWindow() {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
     }
     // The window's own mouse move handler (input slot 4), through its input vtable.
     void InputMouseMove(int buttons, int x, int y) {
@@ -882,17 +880,17 @@ public:
     // Slot 20 (+0x50): the window's per-frame draw in the renderer's pass (returns 1).
     BOOL VirtualDraw(void* pass) {
         using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
-        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
     }
     BOOL VirtualDraw(int pass) {
         using Fn = BOOL(__thiscall*)(CUiWindow*, int);
-        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
     }
     // Slot 21 (+0x54): the draw a window with child windows (00600F70) gives each enabled child,
     // with the pass.
     void VirtualDrawChild(int pass) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[21])(this, pass);
+        ei::VirtualSlot<Fn>(vtable_, 21)(this, pass);
     }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
@@ -901,16 +899,16 @@ public:
     // null; a panel may set a help topic instead.
     std::uint8_t* VirtualItemAt(int x, int y, int* topic) {
         using Fn = std::uint8_t*(__thiscall*)(CUiWindow*, int, int, int*);
-        return reinterpret_cast<Fn>(vtable_[25])(this, x, y, topic);
+        return ei::VirtualSlot<Fn>(vtable_, 25)(this, x, y, topic);
     }
     // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).
     void VirtualShow(int show) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
-        reinterpret_cast<Fn>(vtable_[19])(this, show);
+        ei::VirtualSlot<Fn>(vtable_, 19)(this, show);
     }
     void CallVirtual(int slot) {
         using Fn = void(__thiscall*)(CUiWindow*);
-        reinterpret_cast<Fn>(vtable_[slot])(this);
+        ei::VirtualSlot<Fn>(vtable_, slot)(this);
     }
     // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
     // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
@@ -964,7 +962,7 @@ struct CUiTooltip : CUiWindow {
     // Slot 0: the deleting destructor (with 1: the memory is freed).
     void Delete() {
         using Fn = void(__thiscall*)(CUiTooltip*, int);
-        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
     }
     // 0065E320 (RET 0x14; ui_tooltip.cpp). Constructor: the window, no lines, idle, of `region`;
     // a non-empty `text` is split at newlines into the lines and measured (Measure). Returns this.
@@ -1036,12 +1034,12 @@ public:
     // Slot 42 (+0xA8): take `item` with the panel's action mode.
     void OwnerTakeItem(void* item) {
         using Fn = void(__thiscall*)(CUiWindow*, void*, int);
-        reinterpret_cast<Fn>(owner_->vtable_[42])(owner_, item, mode_);
+        ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
     }
     // Slot 44 (+0xB0): help topic `topic` clicked.
     void OwnerTopicClicked(int topic) {
         using Fn = void(__thiscall*)(CUiWindow*, int, int);
-        reinterpret_cast<Fn>(owner_->vtable_[44])(owner_, topic, mode_);
+        ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
     }
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
@@ -1417,12 +1415,12 @@ struct HudPortraitSlot {
     Quaternion restB_;               // +0x28
     int wobbleKind_;                 // +0x38 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
     float wobbleTime_;               // +0x3C starts negative (a delay)
-    char* faceName_;                 // +0x40 CString
+    mfc::CString faceName_;          // +0x40
     int faceState_;                  // +0x44 picture shown (0 normal, 2 hit, 3 low mana, ...)
     int faceMode_;                   // +0x48 1 / 2: a timed picture, 0 none
     float faceTimer_;                // +0x4C
-    char* modelPrefix_;              // +0x50 CString: the face model is prefix + build + suffix,
-    char* modelSuffix_;              // +0x54 CString  build "th", "me" or "fa"
+    mfc::CString modelPrefix_;       // +0x50 the face model is prefix + build + suffix,
+    mfc::CString modelSuffix_;       // +0x54 build "th", "me" or "fa"
     float build_;                    // +0x58 the unit's build the model was chosen for
     Quaternion wobbleTarget_;        // +0x5C
     float wobbleSpeed_;              // +0x6C
@@ -1430,19 +1428,20 @@ struct HudPortraitSlot {
     std::uint8_t unused_71[3];
     int playerId_;                   // +0x74 that player's serial (PlayerMessage +0x30), else -1
 
-    // The three CString members.
-    mfc::CString& FaceName() { return *reinterpret_cast<mfc::CString*>(&faceName_); }
-    mfc::CString& ModelPrefix() { return *reinterpret_cast<mfc::CString*>(&modelPrefix_); }
-    mfc::CString& ModelSuffix() { return *reinterpret_cast<mfc::CString*>(&modelSuffix_); }
+    mfc::CString& FaceName() { return faceName_; }
+    mfc::CString& ModelPrefix() { return modelPrefix_; }
+    mfc::CString& ModelSuffix() { return modelSuffix_; }
 };
 static_assert(sizeof(HudPortraitSlot) == 0x78);
 static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
+static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortraitSlot, modelPrefix_) == 0x50 &&
+              offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
 // A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
 struct FigurePrototypeRecord {
     std::uint8_t unused_000[0xE8];
-    const char* model;               // +0xE8 e.g. "unhuma", "unhufe"
+    mfc::CString model;              // +0xE8 e.g. "unhuma", "unhufe"
 };
 static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 
@@ -1796,7 +1795,7 @@ public:
     // prototypes (UnitPrototypeRecord +0x24 / +0x20; the battle screen copies them as dwords).
     float viewHeight_[2];            // +0x154 how far up the panel the model stands, in units of its size
     float viewSize_[2];              // +0x15C the model's size: it is drawn 1 / size (times its animation's ratio)
-    char* strings_[2];               // +0x164 CStrings: the selected and the hover unit's names (00637940)
+    mfc::CString strings_[2];        // +0x164 the selected and the hover unit's names (00637940)
     int sliding_;                    // +0x16C set when the sling button starts the slide
     int offset_;                     // +0x170 current slide offset in pixels (to the left)
     int travel_;                     // +0x174 full slide distance
@@ -1924,7 +1923,7 @@ public:
     void AddPickedUp(CItem* item, int crippled);
     // 0064A630 (RET 4; ui_hud_top_panel.cpp). The same with the money ("format_money"), for money > 0.
     void AddMoney(int money);
-    mfc::CString& PageText(int page) { return *reinterpret_cast<mfc::CString*>(&pageTexts_[page]); }
+    mfc::CString& PageText(int page) { return pageTexts_[page]; }
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C
@@ -1933,11 +1932,11 @@ public:
     float slide_;                    // +0x158 0 (out) .. 1 (in)
     float slideDirection_;           // +0x15C
     int page_;                       // +0x160
-    char* pageTexts_[2];             // +0x164 CStrings: the message log's text of pages 0 and 1
+    mfc::CString pageTexts_[2];      // +0x164 the message log's text of pages 0 and 1
 };
 static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
-static_assert(offsetof(CHudTopPanel, page_) == 0x160);
+static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
@@ -2177,7 +2176,7 @@ public:
     // `event`.
     void VirtualUnitSpeech(int id, unsigned event, char* extra) {
         using Fn = void(__thiscall*)(CBattleScreen*, int, unsigned, char*);
-        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
     }
 
     // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
@@ -2453,7 +2452,7 @@ struct UiTextToken {
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
-        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this, 1);
+        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this, 1);
     }
     // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
     // base: the base vtable 00742F24 back.
@@ -2484,10 +2483,10 @@ struct UiWordToken : UiTextToken {
     // memory freed when bit 0 of `flags` is set. Returns this.
     UiWordToken* WordTokenDelete(unsigned flags);
 
-    char* text_;                     // +0x08 CString
+    mfc::CString text_;              // +0x08
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
-static_assert(sizeof(UiWordToken) == 0x10);
+static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x08);
 // MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
 // A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only
@@ -2626,19 +2625,19 @@ struct SaveEntry {
     SaveEntry* CopyConstruct(const SaveEntry* from);
     void Destruct();
 
-    char* title_;                    // +0x00 CString shown in the list
-    char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
+    mfc::CString title_;             // +0x00 shown in the list
+    mfc::CString folder_;            // +0x04 folder name under saves\ ("saveq" quick save,
                                      //       "savea"/"saveb" automatic saves, "save<n>")
     std::int32_t savedAt_;           // +0x08 time() when it was saved (info.sav version 2 and up)
     float gameTime_;                 // +0x0C the "gtime" variable
-    char* map_;                      // +0x10 CString: the map of the zone
-    char* zone_;                     // +0x14 CString: the zone
+    mfc::CString map_;               // +0x10 the map of the zone
+    mfc::CString zone_;              // +0x14 the zone
     mfc::CStringArray stringArrays_[2];  // +0x18, +0x2C copied with the entry
     bool broken_;                    // +0x40 no info.sav: titled "Error Save", no picture
     std::uint8_t unused_41[3];
 };
 static_assert(sizeof(SaveEntry) == 0x44);
-static_assert(offsetof(SaveEntry, zone_) == 0x14);
+static_assert(offsetof(SaveEntry, folder_) == 0x04 && offsetof(SaveEntry, map_) == 0x10 && offsetof(SaveEntry, zone_) == 0x14);
 static_assert(offsetof(SaveEntry, broken_) == 0x40);
 
 // ui_saveload.cpp. 006570E0 (__fastcall: the save folder's name, `stepFrame` in DL; plain RET):
@@ -2753,14 +2752,14 @@ public:
     CEngineObject* dialog_;          // +0x184 the save window's picture of the game for the new save
                                      //        (a texture made by FillEntries; released by slot 26.
                                      //        The name is from an earlier reading.)
-    char* name_;                     // +0x188 CString: the save name being edited
+    mfc::CString name_;              // +0x188 the save name being edited
     bool nameTyped_;                 // +0x18C
     std::uint8_t unused_18D[3];
     int cursor_;                     // +0x190 caret position in name_
 };
 static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
 static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
-static_assert(offsetof(CSaveLoadWindow, cursor_) == 0x190);
+static_assert(offsetof(CSaveLoadWindow, name_) == 0x188 && offsetof(CSaveLoadWindow, cursor_) == 0x190);
 static_assert(sizeof(CSaveLoadWindow) == 0x194);
 
 // A setting's definition (0x18 bytes; the exe's table of 26 at 00787430).
@@ -2882,12 +2881,12 @@ public:
     const char* HelpTopic() const;
 
     stlp::vector<mfc::CString> zones_;   // +0x164 the zones listed
-    char* zoneName_;                 // +0x170 CString: the zone it was opened for
+    mfc::CString zoneName_;          // +0x170 the zone it was opened for
     int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // +0x178 exit -> distance, or null
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
-    char* shownZone_;                // +0x184 CString
+    mfc::CString shownZone_;         // +0x184
     mfc::CArray<ObjectiveExit> exits_;   // +0x188 (vtable 00741264)
     int nearestExit_;                // +0x19C
     int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
@@ -2903,7 +2902,8 @@ public:
     mfc::CStringArray objectiveTexts_;   // +0x1D8 obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
-static_assert(offsetof(CObjectivesWindow, zones_) == 0x164);
+static_assert(offsetof(CObjectivesWindow, zones_) == 0x164 && offsetof(CObjectivesWindow, zoneName_) == 0x170);
+static_assert(offsetof(CObjectivesWindow, shownZone_) == 0x184);
 static_assert(offsetof(CObjectivesWindow, exits_) == 0x188 && offsetof(CObjectivesWindow, nearestExit_) == 0x19C);
 static_assert(offsetof(CObjectivesWindow, quests_) == 0x1A8 && offsetof(CObjectivesWindow, questPlaces_) == 0x1CC);
 static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(CObjectivesWindow, savedAlphaRef_) == 0x1EC);
@@ -3058,7 +3058,7 @@ public:
     // outside the field. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
     void DrawContentsVanilla();
-    mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
+    mfc::CString& Text() { return text_; }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
     // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
     // 0xFFFFFF / 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when
@@ -3092,7 +3092,7 @@ public:
     int maxLength_;                  // +0x164
     COLORREF colour_;                // +0x168 the text's colour
     COLORREF caretColour_;           // +0x16C SetLook's last argument (0xFF from the constructor)
-    const char* text_;               // +0x170 CString: the text typed
+    mfc::CString text_;              // +0x170 the text typed
     int caret_;                      // +0x174 caret position in text_
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
     bool focused_;                   // +0x179 keys are taken only while set
@@ -3143,15 +3143,15 @@ public:
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CMessageBox* MessageBoxDelete(unsigned flags);
 
-    const char* title_;              // +0x164 CString (text of the title key)
-    const char* text_;               // +0x168 CString (text of the text key)
+    mfc::CString title_;             // +0x164 the text of the title key
+    mfc::CString text_;              // +0x168 the text of the text key
     std::uint32_t result_;           // +0x16C 0xFFFF0000: the text in font 1, else 2
     std::uint32_t flags_;            // +0x170
     std::uint32_t format_;           // +0x174 added to the text's DrawText format
     CUiEditField* edit_;             // +0x178 the edit field (flag 4)
     char* editText_;                 // +0x17C the edit field's first text; OK copies the typed one here
 };
-static_assert(offsetof(CMessageBox, title_) == 0x164);
+static_assert(offsetof(CMessageBox, title_) == 0x164 && offsetof(CMessageBox, text_) == 0x168);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
 

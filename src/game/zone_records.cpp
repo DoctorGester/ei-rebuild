@@ -13,8 +13,7 @@
 namespace zone {
 
 namespace {
-// The records keep their CStrings as the bare data pointer.
-void DestroyString(char*& text) { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
+void DestroyString(mfc::CString& text) { text.~CString(); }
 } // namespace
 
 // 00460460: a zone exit's destructor (its CString at +0x28).

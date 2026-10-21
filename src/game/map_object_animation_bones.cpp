@@ -294,7 +294,8 @@ EI_REPLACE_METHOD(0x0050D5A0, CFigureAnimationState::Stop);
 void CFigureAnimationState::Rescale(float s, float t, float u) {
     void* model;
     {
-        stlp::string key(owner->name, owner->name + std::strlen(owner->name));
+        const char* name = owner->name;
+        stlp::string key(name, name + std::strlen(name));
         model = static_cast<CFigureManager*>(FigureManagerOf(this))->FindModel(&key);
     }
     for (auto* node = bones.head; node;) {

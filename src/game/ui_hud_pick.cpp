@@ -45,7 +45,7 @@ CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<C
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
     CUnit* target = unit;
     if (SpellIsOffensiveOriginal(spell)) {
-        target = static_cast<CUnit*>(TheClientWorld()->NearestVisibleUnit(unit));
+        target = TheClientWorld()->NearestVisibleUnit(unit);
         if (!target) {
             ui->PlaySound(kSoundNoMagic, 0);
             screen->SetPendingAction(kPendingNone, -1, -1);
@@ -55,9 +55,9 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
         return true;
     }
     if (spell->targetFlags_ & kSpellOnUnit)
-        static_cast<CBattleScreen*>(screen)->UseOnUnit(target, quick, 0);
+        screen->UseOnUnit(target, quick, 0);
     else
-        static_cast<CBattleScreen*>(screen)->UseAtPoint(target->position.x, target->position.y, target->position.z, unit, quick);
+        screen->UseAtPoint(target->position.x, target->position.y, target->position.z, unit, quick);
     return true;
 }
 } // namespace

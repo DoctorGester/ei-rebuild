@@ -56,7 +56,7 @@ mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const
     mfc::CString name;
     if (prototype && material)
         name.Format(kModelFormat, TypeCode(codes, Head(prototype)->type), Head(prototype)->number,
-                    Material(material)->name, Head(prototype)->variant);
+                    static_cast<const char*>(Material(material)->name), Head(prototype)->variant);
     return name;
 }
 
@@ -157,7 +157,7 @@ mfc::CString CItemQuick::FigureNameImpl() {
     if (prototype && gamecrt::mbsicmp(static_cast<const char*>(Head(prototype)->materialClass),
                                      kNoMaterial) != 0) {
         const char* material = Materials().RecordAt(MaterialIndex(prototypeId_), kMaterialSize);
-        const char* materialName = material ? Material(material)->name : kUnknownMaterial;
+        const char* materialName = material ? static_cast<const char*>(Material(material)->name) : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }

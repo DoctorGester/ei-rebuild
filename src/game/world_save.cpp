@@ -298,18 +298,18 @@ void RelocateStrandedUnits(CWorldServer* world) {
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
-        CEngineObject* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
+        CUnit* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             SectorMapRemove(world->Sectors(), nullptr, unit);
-            float* position = &static_cast<CUnit*>(unit)->position.x;   // x, y, z
+            float* position = &unit->position.x;   // x, y, z
             Vector3 from;
             Vector3 to;
             std::memcpy(&from, position, sizeof(Vector3));
             std::memcpy(&to, position, sizeof(Vector3));
-            world->AIMap()->FindFreeCellNear(static_cast<CUnit*>(unit), &from, &to);
+            world->AIMap()->FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
-            static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller)->ResyncWithUnit();
+            static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
         } else {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
@@ -396,7 +396,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, mapName);
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = zoneName;
+    zoneName_ = zoneName;
     PickLoadingMovie(this, nullptr, zoneName);
     ShowLoadProgress(kProgressStart);
     {
@@ -526,7 +526,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             ShowLoadProgress(kProgressDone);
-            *reinterpret_cast<mfc::CString*>(&zoneName_) = zoneName;
+            zoneName_ = zoneName;
             SetTimeSpeed(speed);   // slot 32 (virtual)
             SetTime(time);   // slot 31 (virtual)
             loaded_ = 1;
@@ -898,7 +898,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     AIMap()->EndRefresh();
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
-    if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
+    if (zone) zoneName_ = zone;
     scriptsActive_ = 0;
     return 1;
 }

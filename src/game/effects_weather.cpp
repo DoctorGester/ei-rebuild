@@ -200,7 +200,7 @@ EI_REPLACE_METHOD(0x005617E0, CRainSnow::DeletingDestruct);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
-void* CVisibilityFog::World() { return ObjectWorld(reinterpret_cast<const CEngineObject*>(this)); }
+CWorld* CVisibilityFog::World() { return ObjectWorld(reinterpret_cast<const CEngineObject*>(this)); }
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {

@@ -237,7 +237,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
         std::memcpy(&sight.point, point, sizeof(sight.point));
-        float ground = static_cast<float>(static_cast<CUnit*>((void*)sight.unit)->GroundHeight(point[0], point[1]));
+        float ground = static_cast<float>(sight.unit->GroundHeight(point[0], point[1]));
         sight.point.z = static_cast<float>(sight.unit->ModeSpeed() + ground);
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
@@ -250,7 +250,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.x = unit->position.x;
     eye.y = unit->position.y;
     eye.z = unit->position.z;
-    eye.z = static_cast<float>(static_cast<CUnit*>((void*)unit)->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
+    eye.z = static_cast<float>(unit->GroundHeight(eye.x, eye.y) + sight.eyeHeight);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
     double visibility = map->LineOfSight(&eye, &sight.point);
     return visibility >= kPointOne;
@@ -299,7 +299,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     InitSteps(&steps);
     Vector3 origin;
     std::memcpy(&origin, &unit->position.x, sizeof(origin));
-    int now = static_cast<CWorld*>(ObjectWorld(this))->tick_;
+    int now = ObjectWorld(this)->tick_;
     void* spell = nullptr;
 
     if (order->flag18) {

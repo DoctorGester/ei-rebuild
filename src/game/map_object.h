@@ -26,6 +26,7 @@
 class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
+class Terrain;              // camera.h
 
 // An active effect (0x14 bytes; CArray at +0x194).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
@@ -340,7 +341,7 @@ public:
     // --- Not rewritten (forwarders) ---
 
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
-    void* World();
+    CWorld* World();
 
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
@@ -356,7 +357,7 @@ public:
     int effectCount;                // +0x19C |
     int effectCapacity;             // +0x1A0 |
     int effectGrowBy;               // +0x1A4 /
-    char* name2;                    // +0x1A8 CString
+    mfc::CString name2;             // +0x1A8
     Vector3 baseScale;              // +0x1AC
     int sectorCellX;                // +0x1B8
     int sectorCellY;                // +0x1BC
@@ -370,7 +371,7 @@ public:
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);
 static_assert(offsetof(CMapObject, effects) == 0x198);
-static_assert(offsetof(CMapObject, baseScale) == 0x1AC);
+static_assert(offsetof(CMapObject, name2) == 0x1A8 && offsetof(CMapObject, baseScale) == 0x1AC);
 static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
 static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
 static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
@@ -381,7 +382,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
 
 // The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
 // hand it to the light calls (add, remove, aim, IsLit) as their `this`.
-inline void* LightManager() { return ei::GameData<void* const>(0x007AF738); }
+inline Terrain* LightManager() { return ei::GameData<Terrain* const>(0x007AF738); }
 
 // The slot the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

@@ -162,14 +162,14 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
     if (units->count == 0 || !spell) return;
     const Vector3& origin = position;
     Vector3 from = {origin.x, origin.y, origin.z};
-    auto* world = static_cast<CWorld*>(ObjectWorld(this));
+    auto* world = ObjectWorld(this);
     // The world's slot 28: the height at (x, y), in ST0.
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
     if (!(static_cast<CSpell*>(spell)->targetFlags_ & kSpellAtUnits) && points.size != 0) {
         for (int i = 0; i < points.size; ++i) {
             const TrapPoint& point = points.data[i];
             Vector3 at = {point.x, point.y, 0.0f};
-            static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
+            TheServerWorld()->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -190,7 +190,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            static_cast<CWorldServer*>(TheServerWorld())->CastSpell(spell, nullptr, &from, unit,
+            TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
                                    &AsMapObject(unit)->position, 0);
             node = next;
         }

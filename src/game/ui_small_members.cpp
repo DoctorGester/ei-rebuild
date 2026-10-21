@@ -20,9 +20,6 @@
 #include <new>
 
 namespace {
-mfc::CString& String(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
-const mfc::CString& String(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
-
 void* Vtable(std::uintptr_t address) { return ei::GamePointer<void>(address); }
 
 // Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.
@@ -57,8 +54,8 @@ EI_REPLACE_METHOD(0x005F5F90, LockKey::ConstructItemUseKey);
 GlobalMapPlace* GlobalMapPlace::Assign(const GlobalMapPlace& from) {
     zone = from.zone;
     position = from.position;
-    String(name) = String(from.name);
-    String(title) = String(from.title);
+    name = from.name;
+    title = from.title;
     return this;
 }
 EI_REPLACE_METHOD(0x00632490, GlobalMapPlace::Assign);

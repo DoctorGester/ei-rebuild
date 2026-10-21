@@ -31,7 +31,6 @@
 
 namespace {
 
-mfc::CString* Str(char*& field) { return reinterpret_cast<mfc::CString*>(&field); }
 const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cast<const mfc::CString*>(address); }
 
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
@@ -65,12 +64,7 @@ int SkillCount() {
 // The rows are pushed as copies of an empty row. The original's row has uninitialised price,
 // level and flag (stack bytes, all overwritten except the flag of the non-learnable rows); ours
 // are 0.
-TradeRow BlankRow() {
-    char* empty = mfc::impl::PchNil();
-    TradeRow row{};
-    row.name = row.key = row.nextKey = empty;
-    return row;
-}
+TradeRow BlankRow() { return TradeRow{}; }
 
 TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
     if (rows->end != rows->capacity) {
@@ -118,9 +112,9 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 // --- 00613CF0 / 0062A7C0: a row destroyed ------------------------------------------------------
 
 void TradeRow::Destroy() {
-    CStringDestroy(&nextKey);
-    CStringDestroy(&key);
-    CStringDestroy(&name);
+    nextKey.~CString();
+    key.~CString();
+    name.~CString();
 }
 EI_REPLACE_METHOD(0x00613CF0, TradeRow::Destroy);
 
@@ -132,9 +126,9 @@ TradeRow* TradeRow::DeleteThis(int flags) {
 EI_REPLACE_METHOD(0x0062A7C0, TradeRow::DeleteThis);
 
 TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
-    new (&records::AsCString(name)) mfc::CString(records::AsCString(from->name));
-    new (&records::AsCString(key)) mfc::CString(records::AsCString(from->key));
-    new (&records::AsCString(nextKey)) mfc::CString(records::AsCString(from->nextKey));
+    new (&name) mfc::CString(from->name);
+    new (&key) mfc::CString(from->key);
+    new (&nextKey) mfc::CString(from->nextKey);
     price = from->price;
     level = from->level;
     learnable = from->learnable;
@@ -147,9 +141,9 @@ EI_REPLACE_METHOD(0x0062A310, TradeRow::CopyConstruct);
 void CTradePanel::BuildLists() {
     using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
     using RefreshFn = void(__thiscall*)(CUiWindow*);
-    std::uint8_t* stats = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_) + 0x20;
+    std::uint8_t* stats = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_) + 0x20;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
-    reinterpret_cast<RefreshFn>(owner_->vtable_[47])(owner_);
+    ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
     void* table = GameClientTexts();
     Clear(&perks_);
     Clear(&learnable_);
@@ -162,18 +156,18 @@ void CTradePanel::BuildLists() {
     for (int i = 0; i < 6; ++i) {
         TradeRow* row = PushBack(&schools_, blank);
         if (HasPerkText(table, names[i]))
-            TextReadLine(table, nullptr, Str(row->name), 1);
+            TextReadLine(table, nullptr, &row->name, 1);
         else
-            *Str(row->name) = names[i];
+            row->name = names[i];
         row->level = stats[0x6CB + i];
         row->price = SchoolPrice(row->level, row->level + 1);
     }
     {
         TradeRow* row = PushBack(&science_, blank);
         if (HasPerkText(table, names[6]))
-            TextReadLine(table, nullptr, Str(row->name), 1);
+            TextReadLine(table, nullptr, &row->name, 1);
         else
-            *Str(row->name) = names[6];
+            row->name = names[6];
         row->level = stats[0x6C8];
         row->price = SchoolPrice(row->level, row->level + 1);
     }
@@ -197,22 +191,22 @@ void CTradePanel::BuildLists() {
         else
             text = StrAt(record);
         if (level > 1)
-            Str(row->name)->Format("%s (%s%d)", static_cast<const char*>(text),
+            row->name.Format("%s (%s%d)", static_cast<const char*>(text),
                                    static_cast<const char*>(perkLevel), level);
         else
-            *Str(row->name) = text;
+            row->name = text;
         if (level < 3) {
             // The next level's record (null past the end: the original reads its name through
             // null then, as here).
             unsigned next = index + 1;
             std::uint8_t* nextRecord =
                 next < static_cast<unsigned>(SkillCount()) ? SkillRecords() + next * kSkillRecordSize : nullptr;
-            *Str(row->nextKey) = StrAt(nextRecord + 4);
+            row->nextKey = StrAt(nextRecord + 4);
             row->price = SkillPrice(stats, nullptr, nextRecord);
         } else {
             row->price = 0;
         }
-        *Str(row->key) = StrAt(record + 4);
+        row->key = StrAt(record + 4);
         row->level = level;
     }
 
@@ -226,11 +220,11 @@ void CTradePanel::BuildLists() {
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
-            TextReadLine(table, nullptr, Str(row->name), 1);
+            TextReadLine(table, nullptr, &row->name, 1);
         else
-            *Str(row->name) = StrAt(record);
+            row->name = StrAt(record);
         row->price = SkillPrice(stats, nullptr, record);
-        *Str(row->key) = StrAt(record + 4);
+        row->key = StrAt(record + 4);
         row->learnable = true;
         row->level = 0;
     }
@@ -313,7 +307,7 @@ void CTradePanel::DrawLists() {
         if (index >= static_cast<unsigned>(perks_.Count())) break;
         TradeRow* perk = &perks_.begin[index];
         draw->Text(perk->name, &row, 0, kBright, 0, 1);
-        if (Str(perk->nextKey)->GetLength() != 0) {
+        if (perk->nextKey.GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
             FormatPrice(perk->price, &value);
             draw->Text(value, &row, 0, colour, 2, 1);

@@ -8,6 +8,7 @@
 #undef GetClassName
 
 class CBaseManager;
+class CWorld;
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
 // Name provisional; vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall there). Objects
@@ -42,7 +43,7 @@ public:
     void* ManagerContext() const;
     // 00455950 (app_helpers.cpp). The world the object belongs to: the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
-    void* World() const;
+    CWorld* World() const;
     // 00457720 (app_helpers.cpp). Drops one reference; at zero the object is deleted (slot 0 with 1).
     void ReleaseAndDelete();
     // 00455970. Sets the owner; returns the previous one.
@@ -68,4 +69,4 @@ static_assert(sizeof(CEngineObject) == 0x1C);
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 // 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World
 // hides it).
-inline void* ObjectWorld(const CEngineObject* object) { return object->World(); }
+inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

@@ -29,8 +29,6 @@ constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";   // 007919FC
 
-mfc::CString& TextOf(AICallRecord& call) { return *reinterpret_cast<mfc::CString*>(&call.text); }
-
 // The inlined RemoveAt(index, 1): the record's text freed, the tail moved down.
 void RemoveCall(AIHeardCalls* calls, int index) {
     calls->data[index].Destruct();
@@ -47,7 +45,7 @@ void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32
     added.point = point;
     added.kind = kind;
     added.hostileMask = static_cast<int>(mask);
-    TextOf(added) = text;
+    added.text = text;
 }
 
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }

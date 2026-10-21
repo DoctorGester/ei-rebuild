@@ -18,7 +18,7 @@ namespace {
 // The save stream (thiscall): slot 1 reads `size` bytes; +0x08 is the save's version.
 void Read(void* stream, void* to, int size) {
     using Fn = void(__thiscall*)(void*, void*, int);
-    reinterpret_cast<Fn>((*static_cast<void***>(stream))[1])(stream, to, size);
+    ei::ObjectSlot<Fn>(stream, 1)(stream, to, size);
 }
 int Version(const void* stream) { return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8); }
 

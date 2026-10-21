@@ -388,9 +388,9 @@ void DefaultConstructRecord(R* to);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
-    const char* key;                    // +0x00 CString (the camp's "material.<key>" loot items)
-    const char* soundName;              // +0x04 CString: the material of hit sounds ("Metal", "Bone", ...)
-    const char* name;                   // +0x08 CString
+    mfc::CString key;                   // +0x00 (the camp's "material.<key>" loot items)
+    mfc::CString soundName;             // +0x04 the material of hit sounds ("Metal", "Bone", ...)
+    mfc::CString name;                  // +0x08
     std::uint32_t number;               // +0x0C its index (the packed item id's low half; loot kind 1)
     // +0x10 the price per unit of the prototype's materialUnits; the trader stock's material draw
     // (item_stock.cpp); a loot item of kind 1's price.
@@ -419,6 +419,7 @@ struct MaterialRecordHead {
     void Destruct();
 };
 static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
+static_assert(offsetof(MaterialRecordHead, soundName) == 0x04 && offsetof(MaterialRecordHead, name) == 0x08);
 static_assert(offsetof(MaterialRecordHead, unitPrice) == 0x10);
 static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
 static_assert(offsetof(MaterialRecordHead, damageFactor) == 0x28);

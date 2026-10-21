@@ -129,9 +129,9 @@ void CHeroStatsPanel::DrawStats() {
 
     using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
     using UnitFn = std::uint8_t*(__thiscall*)(CUiWindow*, int);
-    auto hero = [this]() { return reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_); };   // +0xCC
+    auto hero = [this]() { return ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_); };   // +0xCC
     std::uint8_t* stats = hero() + 0x20;
-    std::uint8_t* unit = reinterpret_cast<UnitFn>(owner_->vtable_[50])(owner_, heroIndex_);  // +0xC8
+    std::uint8_t* unit = ei::VirtualSlot<UnitFn>(owner_->vtable_, 50)(owner_, heroIndex_);  // +0xC8
     mfc::CString line;
     mfc::CString text;
     CTextManager* texts = TheTextManager();
@@ -220,7 +220,7 @@ void CHeroStatsPanel::DrawStats() {
             } info;
             void* inner = Read<void*>(unit, 0x240);
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
-            reinterpret_cast<InfoFn>((*static_cast<void***>(inner))[50])(inner, &info);
+            ei::ObjectSlot<InfoFn>(inner, 50)(inner, &info);
             line.Format("     %s", static_cast<const char*>(texts_[0]));
             draw->Text(line, &rect, 0, kBright, 0, 1);
             line.Format("%d", info.value18);
@@ -272,7 +272,7 @@ void CHeroStatsPanel::DrawStats() {
         double carried;
         if (page_ == 11) {
             using WeightFn = double(__thiscall*)(CUiWindow*);
-            carried = reinterpret_cast<WeightFn>(owner_->vtable_[53])(owner_);   // +0xD4
+            carried = ei::VirtualSlot<WeightFn>(owner_->vtable_, 53)(owner_);   // +0xD4
         } else {
             carried = reinterpret_cast<const PartyUnitRecord*>(hero())->CarriedWeight();
         }

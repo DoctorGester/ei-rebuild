@@ -224,7 +224,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format("infa%s", unit->name);
+        slots_[i].ModelPrefix().Format("infa%s", static_cast<const char*>(unit->name));
         const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
         slots_[i].ModelSuffix().Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
@@ -255,7 +255,7 @@ void CHudPortraits::Rebuild(int wide) {
         }
         SexOf(figure->model, sex);
         build = "me";
-        model.Format("infa%s%s%dface", figure->model, static_cast<const char*>(build), prototype->hair + 1);
+        model.Format("infa%s%s%dface", static_cast<const char*>(figure->model), static_cast<const char*>(build), prototype->hair + 1);
         picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
         AddPortraitAt(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];

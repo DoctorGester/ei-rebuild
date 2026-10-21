@@ -99,7 +99,7 @@ void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
 } // namespace app
 
 // 00455950.
-void* CEngineObject::World() const {
+CWorld* CEngineObject::World() const {
     auto* context = static_cast<CManagerContext*>(owner_->context_);
     return context ? context->ThisWorld() : nullptr;
 }

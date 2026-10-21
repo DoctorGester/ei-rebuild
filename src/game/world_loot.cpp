@@ -218,7 +218,7 @@ void CWorldServer::LootDeadUnits() {
     IdList dead;
     while (node) {
         if (object->GetClassId() == world::kClassUnit && ObjectSlots(object)->IsDead()) {
-            static_cast<CWorldServer*>(TheServerWorld())->Loot(object, local);
+            TheServerWorld()->Loot(object, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }
         node = objects_.map.After(node);

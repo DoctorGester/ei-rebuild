@@ -195,8 +195,6 @@ inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
 inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' perception scale (SyncPlayer too)
 inline float WakeMargin() { return 20.0f /*0073CCF8*/; }     // added to it when units wake others
-// 00435000: the ostream flush manipulator (ostream& flush(ostream&)).
-inline void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(0x00435000)); }
 
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
 // References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr)

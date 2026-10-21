@@ -263,7 +263,7 @@ EI_REPLACE_METHOD(0x0046EFD0, mapspec::Patrols::CopyAt);
 ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
     const ZoneExit& from = data[index];
     std::memcpy(result, &from, offsetof(ZoneExit, target));
-    new (static_cast<void*>(&result->target)) mfc::CString(*reinterpret_cast<const mfc::CString*>(&from.target));
+    new (&result->target) mfc::CString(from.target);
     result->entrance = from.entrance;
     result->view = from.view;
     result->hasDeployAngle = from.hasDeployAngle;

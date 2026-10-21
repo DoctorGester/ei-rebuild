@@ -152,7 +152,7 @@ CParty* NewItemList() {
 // Slot 18 of a panel: its Build.
 void BuildPanel(CUiWindow* panel) {
     using BuildFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<BuildFn>(panel->vtable_[kSlotBuild])(panel);
+    ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
 
 UiPtrArray<char>* ItemsOf(void* list) { return reinterpret_cast<UiPtrArray<char>*>(&AsParty(list)->items_); }
@@ -391,7 +391,7 @@ void CCampPages::BuildPages() {
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
-        auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data[i].unitId));
+        auto* unit = GameFindClientUnit(player->members_.data[i].unitId);
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {
@@ -417,7 +417,7 @@ void CCampPages::BuildPages() {
 
     hero_ = -1;
     using NextHeroFn = void(__thiscall*)(CCampPages*);
-    reinterpret_cast<NextHeroFn>(vtable_[kSlotNextHero])(this);
+    ei::VirtualSlot<NextHeroFn>(vtable_, kSlotNextHero)(this);
 
     // The pages' titles.
     auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
@@ -469,7 +469,7 @@ void CCampPages::BuildPages() {
         BriefingPlayerName name;
         zone = TheMapDatabase()->FindMap(name);
     }
-    TheMusicSystem()->PlayConstructor(zone ? zone->allod : "gipat");
+    TheMusicSystem()->PlayConstructor(zone ? static_cast<const char*>(zone->allod) : "gipat");
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = TheRenderDevice();

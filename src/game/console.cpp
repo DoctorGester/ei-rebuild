@@ -50,11 +50,11 @@ char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadS
 void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }                       // 00701E23
 void CStdioFile::Close() { Impl()->Close(); }                                                       // 00701FE0
 
-GameOStream& GameOStream::operator<<(const char* text) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-GameOStream& GameOStream::operator<<(char c) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-GameOStream& GameOStream::operator<<(int a0) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutLong(static_cast<long>(a0))); }
-GameOStream& GameOStream::operator<<(double v) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
-GameOStream& GameOStream::Apply(void* manipulator) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
+GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
+GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
+GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); return *this; }
+GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
+GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
 
 CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return *lib_trees::Commands::Subscript(map, nullptr, &name); }
@@ -76,11 +76,10 @@ bool NetworkGame() { return IsMultiplayerClient(); }
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 
 
-void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
 } // namespace
 
-void EndLine(GameOStream& os) { (os << '\n').Apply(kFlush); }
+void EndLine(GameOStream& os) { (os << '\n').Apply(libcrt::FlushManipulator); }
 
 void PrintLine(const char* text) { EndLine(Out() << text); }
 
@@ -90,7 +89,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
-    line_ = mfc::impl::PchNil();   // CString(): the shared empty string
+    ::new (&line_) mfc::CString;   // the shared empty string
     ei::SetVtable(this, kVtableAddress);
     return this;
 }
@@ -99,7 +98,7 @@ EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
 // 005DC260
 void ConsoleStreambuf::Destruct() {
     ei::SetVtable(this, kVtableAddress);
-    Line().~CString();
+    line_.~CString();
     Base()->Destruct();   // 006FCB35
 }
 EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
@@ -117,8 +116,8 @@ EI_REPLACE_METHOD(0x005DC240, ConsoleStreambuf::DeletingDestruct);
 int ConsoleStreambuf::Overflow(int c) {
     if (filter_ == 0 || (FilterMask() & filter_) != 0) {
         const char* end = pptr_;
-        for (const char* p = pbase_; p < end; ++p) Ops(Line()).AppendChar(*p);
-        if (c != -1) Ops(Line()).AppendChar(static_cast<char>(c));
+        for (const char* p = pbase_; p < end; ++p) Ops(line_).AppendChar(*p);
+        if (c != -1) Ops(line_).AppendChar(static_cast<char>(c));
         pbase_ = base_;
         pptr_ = base_;
         epptr_ = ebuf_;
@@ -130,9 +129,9 @@ EI_REPLACE_METHOD(0x005DC150, ConsoleStreambuf::Overflow);
 // 005DC1B0: overflow(EOF) through the vtable, the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
     using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
-    reinterpret_cast<OverflowFn>(vtable_[7])(this, -1);
+    ei::VirtualSlot<OverflowFn>(vtable_, 7)(this, -1);
     TheInterface()->ConsoleAddText(line_);
-    Line() = game::EmptyText();   // ""
+    line_ = game::EmptyText();   // ""
     return 0;
 }
 EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);

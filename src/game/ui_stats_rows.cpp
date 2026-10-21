@@ -32,7 +32,7 @@ constexpr int kLayers = 3;
 
 UnitStats* HeroStats(CUiWindow* owner) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    PartyUnitRecord* hero = reinterpret_cast<Fn>(owner->vtable_[51])(owner);
+    PartyUnitRecord* hero = ei::VirtualSlot<Fn>(owner->vtable_, 51)(owner);
     return reinterpret_cast<UnitStats*>(hero->stats);
 }
 
@@ -50,7 +50,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
         found = TextsOpenSection(texts, nullptr, key);
     }
     if (found)
-        static_cast<CTextManager*>(texts)->ReadLine(&name, 1);
+        texts->ReadLine(&name, 1);
     else
         name = label;
     if (maximum >= 0)

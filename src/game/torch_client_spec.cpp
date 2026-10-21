@@ -35,7 +35,7 @@ constexpr int kTorchClassId = 0x41;
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748); }
-CParticleManager* Particles() { return static_cast<CParticleManager*>(ParticleManagerObject()); }
+CParticleManager* Particles() { return ParticleManagerObject(); }
 
 // The sources are engine objects (vtable 0073CFD0): slot 4 releases a reference.
 void ReleaseSource(CParticleSource* source) { reinterpret_cast<CEngineObject*>(source)->Release(); }
@@ -120,7 +120,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
     if (light_ && (light_->flags_ & kLightHidden)) {
         light_->flags_ &= ~kLightHidden;
-        static_cast<Terrain*>(camera::TheTerrain())->AddLight(light_);
+        camera::TheTerrain()->AddLight(light_);
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float far = values_[1] * kShowFarFactor;
@@ -132,7 +132,7 @@ void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
     if (light_ && !(light_->flags_ & kLightHidden)) {
         light_->flags_ |= kLightHidden;
-        static_cast<Terrain*>(camera::TheTerrain())->RemoveLight(light_);
+        camera::TheTerrain()->RemoveLight(light_);
     }
     if (sound_) {
         TheSoundManager()->StopSound(sound_);
@@ -171,7 +171,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     SetFlame(offset, radius, colour);
     const Vector3 at = AtTorch(torch_, offset);
     if (light_) {
-        static_cast<Terrain*>(camera::TheTerrain())->RemoveLight(light_);
+        camera::TheTerrain()->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old) old->Release();
@@ -188,7 +188,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     const float squared = static_cast<float>(radius * radius);
     light_->rangeSquared_ = squared;
     light_->inverseRangeSquared_ = 1.0f / squared;
-    static_cast<Terrain*>(camera::TheTerrain())->AddLight(light_);
+    camera::TheTerrain()->AddLight(light_);
 }
 EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 

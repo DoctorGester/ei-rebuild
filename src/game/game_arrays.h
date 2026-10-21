@@ -36,7 +36,7 @@ inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
 // Zone exits: the target string empty (004606A0); its destructor.
-inline void InitExit(MapExit* p) { p->target = mfc::impl::PchNil(); }
+inline void InitExit(MapExit* p) { ::new (&p->target) mfc::CString; }
 inline void DestroyExit(MapExit* p) { zone::ExitDestruct(p); }
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
@@ -45,9 +45,7 @@ inline void InitGroup(ScriptGroup* p) { mfc::impl::ConstructHeader<mfc::impl::Sc
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
 // Quest objectives: the text empty (004CEE80); the destructor.
-inline void InitObjective(ScriptQuestObjective* p) {
-    *reinterpret_cast<char**>(&p->text) = mfc::impl::PchNil();
-}
+inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
 // Effect particles: 005124D0's fields; the source released.

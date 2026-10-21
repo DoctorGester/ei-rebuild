@@ -152,7 +152,7 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     SectorMapRemove(world->Sectors(), nullptr, unit);
     UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
     SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
-    static_cast<CMapObject*>(UnitOf(c))->MarkChanged(7);
+    UnitOf(c)->MarkChanged(7);
 }
 
 // The motion order's next animation once the current motion is over.
@@ -281,7 +281,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
     if (MotionPathOf(c)->reached) {
         std::uint8_t wasFlag = FailedByte(c) == 1;
-        static_cast<AIPath*>(MotionPathOf(c))->Clear();
+        MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
@@ -293,7 +293,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         return;
     }
     if (!world->AIMap()->ContinuePath(unit, MotionPathOf(c))) {
-        static_cast<AIPath*>(MotionPathOf(c))->Clear();
+        MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);

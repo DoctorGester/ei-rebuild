@@ -58,7 +58,7 @@ int CMapObject::CreateMapObject() {
     effectCapacity = 0;
     effectCount = 0;
     updateCountdown = kInitialCountdown;
-    *reinterpret_cast<mfc::CString*>(&name2) = game::EmptyText();
+    name2 = game::EmptyText();
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;
 }

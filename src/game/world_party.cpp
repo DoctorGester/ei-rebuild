@@ -192,7 +192,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {
-        party->zone_ = *reinterpret_cast<const mfc::CString*>(&zoneName_);
+        party->zone_ = zoneName_;
         party->entrance_ = 0;
     }
 
@@ -285,7 +285,7 @@ CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemMana
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, static_cast<CSpellManager*>(SpellManager()));
+    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

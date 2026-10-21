@@ -50,14 +50,14 @@ void ReleaseRef(CEngineObject*& ref) {
 int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
 // The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
-struct GameOstream {
-    GameOstream* Write(const char* text);           // 006FC31D
-    GameOstream* Put(int c);                        // 006FC0B0 (operator<<(char))
-    GameOstream* Apply(void* manipulator);          // 00434FE0
+struct GameOstream : libcrt::Ostream {
+    GameOstream* Write(const char* text) { PutText(text); return this; }                      // 006FC31D
+    GameOstream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }  // 006FC0B0 (operator<<(char))
+    GameOstream* Apply(libcrt::Manipulator manipulator) {                                                   // 00434FE0
+        libcrt::Ostream::Apply(manipulator);
+        return this;
+    }
 };
-GameOstream* GameOstream::Write(const char* text) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
-GameOstream* GameOstream::Put(int c) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
-GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 GameOstream*& ConsoleStream() { return ei::GameData<GameOstream*>(0x007C54E8); }   // the console's ostream*
 
 
@@ -193,7 +193,7 @@ void AIBrain::Think() {
             text.Format(MotivationFormat(), owner->unit->id_, static_cast<const char*>(name),
                         bestPriority);
             GameOstream* console = ConsoleStream();
-            console->Write(text)->Put('\n')->Apply(worlddata::FlushManipulator());
+            console->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

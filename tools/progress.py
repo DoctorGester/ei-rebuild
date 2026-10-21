@@ -131,6 +131,9 @@ RAW_ACCESS_COUNTS = [
 ]
 HOOK_ERA_COUNTS = [
     ('reinterpret_cast', r'\breinterpret_cast\b'),
+    # Casts to a pointer type (C21): typing debt (void* parameters, base-class fields); the numeric
+    # static_casts mark x87 rounding points and stay.
+    ('static_cast to a pointer type', r'\bstatic_cast\s*<[^<>();]*\*\s*(?:const\s*)?>'),
     ('constexpr uintptr_t kX = 0x00...', r'\bconstexpr\s+(?:std::)?uintptr_t\s+k\w+\s*=\s*0[xX]00'),
     ('*At view structs', r'^[ \t]*(?:struct|class)\s+\w+At\b[^;{]*\{'),
     ('anonymous namespaces', r'\bnamespace\s*\{'),

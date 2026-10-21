@@ -124,25 +124,25 @@ void TextOps::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0
 // --- Construction ----------------------------------------------------------------------------------
 
 CIniFile* CIniFile::Construct() {
-    path_ = mfc::impl::PchNil();   // afxEmptyString
+    ::new (&path_) mfc::CString;   // afxEmptyString
     return this;
 }
 EI_REPLACE_METHOD(0x00695B80, CIniFile::Construct);
 
 CIniFile* CIniFile::ConstructWithPath(const char* path) {
-    path_ = mfc::impl::PchNil();
-    reinterpret_cast<mfc::CString&>(path_) = path;
+    ::new (&path_) mfc::CString;
+    path_ = path;
     return this;
 }
 EI_REPLACE_METHOD(0x00695B90, CIniFile::ConstructWithPath);
 
 BOOL CIniFile::SetPath(const char* path) {
-    reinterpret_cast<mfc::CString&>(path_) = path;
+    path_ = path;
     return 1;
 }
 EI_REPLACE_METHOD(0x00695BF0, CIniFile::SetPath);
 
-void CIniFile::Destruct() { reinterpret_cast<mfc::CString&>(path_).~CString(); }
+void CIniFile::Destruct() { path_.~CString(); }
 EI_REPLACE_METHOD(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------

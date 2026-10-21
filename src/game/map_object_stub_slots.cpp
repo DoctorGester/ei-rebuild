@@ -126,9 +126,8 @@ std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
 EI_REPLACE_METHOD(0x0050EAB0, CMapObject::ReadState);
 
 mfc::CString* CMapObject::SetSecondName(const char* text) {
-    auto* string = reinterpret_cast<mfc::CString*>(&name2);
-    *string = text;
-    return string;
+    name2 = text;
+    return &name2;
 }
 EI_REPLACE_METHOD(0x0050F150, CMapObject::SetSecondName);
 

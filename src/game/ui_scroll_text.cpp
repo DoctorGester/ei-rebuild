@@ -138,14 +138,14 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (w) {
                 ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
                 w->type_ = 0;
-                w->text_ = mfc::impl::PchNil();   // afxEmptyString
+                ::new (&w->text_) mfc::CString;   // afxEmptyString
                 w->type_ = kWordType;
                 ei::SetVtable(w, UiWordToken::kVtableAddress);
                 w->width_ = 0;
             }
             SIZE size = TextExtent(interface_, token, font);
             w->width_ = size.cx;
-            *reinterpret_cast<mfc::CString*>(&w->text_) = token;
+            w->text_ = token;
             Append(tokens_, w);
         }
     } while (pos < text->GetLength());
@@ -272,9 +272,9 @@ constexpr int kFontSlots = 10;
 // The tokeniser and the layout through their addresses (their verify wrappers run).
 void TokenizeText(CUiScrollText* self, const char* text) {
     mfc::CString copy(text);
-    static_cast<CUiScrollText*>(self)->Tokenize(&copy);
+    self->Tokenize(&copy);
 }
-void LayOut(CUiScrollText* self) { static_cast<CUiScrollText*>(self)->Layout(); }
+void LayOut(CUiScrollText* self) { self->Layout(); }
 } // namespace
 
 CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
@@ -431,7 +431,7 @@ EI_REPLACE_METHOD(0x0065D960, UiTextToken::DestroyBase);
 
 void UiWordToken::DestroyWord() {
     ei::SetVtable(this, kVtableAddress);
-    reinterpret_cast<mfc::CString*>(&text_)->~CString();
+    text_.~CString();
     ei::SetVtable(this, UiTextToken::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0065D910, UiWordToken::DestroyWord);

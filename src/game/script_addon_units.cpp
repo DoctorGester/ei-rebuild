@@ -70,7 +70,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
 
 // A float field of the unit's data object, 0 and invalid arguments without one.
 bool DataField(Call* call, float UnitStats::* field, const char* function) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments(function);
     Store(FloatResult(call), data->stats.*field);
@@ -101,7 +101,7 @@ bool GetPlayerOfUnit(Call* call) {
 
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     const char* what = call->cmd->stringArgs.size == 0 ? "max" : static_cast<const char*>(call->cmd->stringArgs.data[0]);
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
@@ -125,7 +125,7 @@ bool GetUnitExp(Call* call) {
 // GetArmor(unit, kind, part): part 0..6; kind 0..5 sums the slot's three layers' absorb values for the part; a negative kind takes the part from the block
 // the unit's parameters compute.
 bool GetArmor(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     const float* f = call->cmd->floatArgs.data;
     int kind = Ftol(f[0]);
     int part = Ftol(f[1]);
@@ -212,7 +212,7 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 
 // GetSkill(unit, name): a skill byte of the unit's data.
 bool GetSkill(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     const char* name = call->cmd->stringArgs.data[0];
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
@@ -232,7 +232,7 @@ bool GetSkill(Call* call) {
 
 // GetPerk(unit, name): a perk byte of the unit's data (+0x8B3 + the perk's index).
 bool GetPerk(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     const char* name = call->cmd->stringArgs.data[0];
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
@@ -251,7 +251,7 @@ bool GetPerk(Call* call) {
 
 // The unit's prototype name / race (no check that the unit has a prototype, as in addon).
 bool GetPrototype(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
     *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->name);
@@ -259,7 +259,7 @@ bool GetPrototype(Call* call) {
 }
 
 bool GetRace(Call* call) {
-    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
+    auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
     *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->modelName);

@@ -239,7 +239,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
     auto* part = static_cast<CFigureMesh*>(static_cast<CFigureManager*>(manager)->NewPart(name, partName, static_cast<FigureModel*>(model), std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
-        game::DebugLog(kCantLoadPart, partName, name);
+        game::DebugLog(kCantLoadPart, partName, static_cast<const char*>(name));
         return nullptr;
     }
     if (CLinkMesh* current = figure) {
@@ -293,7 +293,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
         stlp::string key(model, model + std::strlen(model));
         cached = static_cast<CFigureManager*>(manager)->FindModel(&key);
     }
-    *reinterpret_cast<mfc::CString*>(&name) = model;
+    name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
@@ -337,7 +337,7 @@ CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
 } // namespace
 
 int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
-    *reinterpret_cast<mfc::CString*>(&name) = model;
+    name = model;
     if (animation) {
         static_cast<CFigureAnimationState*>(animation)->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);

@@ -77,7 +77,7 @@ EI_REPLACE_METHOD(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
     using HeroFn = char*(__thiscall*)(CUiWindow*);
-    char* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    char* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
 EI_REPLACE_METHOD(0x00625560, CTradePanel::PurchaseCost);
@@ -347,7 +347,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     records.SetSize(size + 1, -1);
     records.data[size] = reinterpret_cast<std::uint8_t*>(first);
     GameCreatePartyUnits(&records, flag);
-    auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data->unitId));
+    auto* unit = GameFindClientUnit(player->members_.data->unitId);
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = unit;
     if (unit) {
@@ -384,12 +384,12 @@ void CMpHeroScreen::ShowHero(int index) {
     heroIndex_ = -1;
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
-        static_cast<CParty*>(player)->Assign(static_cast<CParty*>(MpHero(index)));
+        static_cast<CParty*>(player)->Assign(MpHero(index));
         static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-    auto* unit = static_cast<CUnit*>(GameFindClientUnit(hero->unitId));
+    auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();

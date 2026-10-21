@@ -139,7 +139,7 @@ EI_REPLACE(0x00578750, GameObject7C2D60);
 
 void __stdcall GameSetUnitHeight(int id, float z) {
     CWorldServer* world = TheServerWorld();
-    auto* unit = static_cast<CUnit*>(world->FindUnit(id));
+    auto* unit = world->FindUnit(id);
     if (!unit) return;
     // Nothing when the heights are equal.
     EI_NAN_AUDIT(unit->position.z, z);
@@ -213,7 +213,7 @@ int __stdcall GamePlayMusic(const char* name) {
 }
 EI_REPLACE(0x00578960, GamePlayMusic);
 
-CEngineObject* __stdcall GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
+CUnit* __stdcall GameFindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
 EI_REPLACE(0x00578980, GameFindClientUnit);
 
 void __stdcall GameCreatePartyUnits(const mfc::CArray<std::uint8_t*>* party, int allArmour) {

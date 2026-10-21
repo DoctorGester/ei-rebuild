@@ -54,7 +54,7 @@ struct PartyUnitRecord;
 // Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
 inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
     using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    return reinterpret_cast<Fn>(screen->vtable_[51])(screen);
+    return ei::VirtualSlot<Fn>(screen->vtable_, 51)(screen);
 }
 // The statistics' names, also their text keys: the six skill schools followed by "Science"; the
 // attributes (index 7 "Encumbrance").
@@ -77,10 +77,10 @@ inline const char* const* AttributeNames() {
 struct GlobalMapZone {
     int state;                       // +0x00 the player's "z.<zone>" variable, truncated
     int link;                        // +0x04 -1, or the link that leads to it (state 2)
-    char* name;                      // +0x08 CString
-    char* title;                     // +0x0C CString
+    mfc::CString name;               // +0x08
+    mfc::CString title;              // +0x0C
 };
-static_assert(sizeof(GlobalMapZone) == 0x10);
+static_assert(sizeof(GlobalMapZone) == 0x10 && offsetof(GlobalMapZone, name) == 0x08 && offsetof(GlobalMapZone, title) == 0x0C);
 // The zone array's ConstructElements (005FBF50: zero-filled, the two CStrings empty) and
 // DestructElements (005FBD30 per zone: title, then name), and the element assignment
 // CArray::SetAtGrow (00631CC0) does (ui_global_map.cpp).
@@ -103,10 +103,11 @@ struct GlobalMapPlace {
 
     int zone;                        // +0x00 index into the zones
     Vector3 position;                // +0x04 on the map model
-    char* name;                      // +0x10 CString
-    char* title;                     // +0x14 CString
+    mfc::CString name;               // +0x10
+    mfc::CString title;              // +0x14
 };
-static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, position) == 0x04);
+static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, position) == 0x04 && offsetof(GlobalMapPlace, name) == 0x10 &&
+              offsetof(GlobalMapPlace, title) == 0x14);
 
 // The global map's weather (vtable 007420D4, 0x34 bytes; 00499F10 draws it into the map's texture).
 class __declspec(novtable) GlobalMapWeather {
@@ -248,7 +249,7 @@ public:
     int markerCount_;                // +0x170 zones + quests + links
     int turning_;                    // +0x174 -1 / +1 while a turn button is held
     float bobTime_;                  // +0x178 seconds, for the arrow's bobbing and the layers' frames
-    char* allodTitle_;               // +0x17C CString
+    mfc::CString allodTitle_;        // +0x17C
     Vector3 position_;               // +0x180 the current zone on the map model
     GlobalMapZoneArray zones_;          // +0x18C
     mfc::CArray<GlobalMapPlace> links_; // +0x1A0
@@ -258,7 +259,7 @@ public:
     // time found (-1 when the target is next to the current zone).
     stlp::vector<GlobalMapStep> path_;  // +0x1C8
     float pathTime_;                 // +0x1D4
-    char* target_;                   // +0x1D8 CString
+    mfc::CString target_;            // +0x1D8
     bool found_;                     // +0x1DC a way reached the target
     bool beyondTarget_;              // +0x1DD the search goes on through the target zone itself
     std::uint8_t unused_1DE[2];
@@ -277,7 +278,7 @@ public:
     std::uint8_t unused_265[3];
     POINT dragStart_;                // +0x268 where the drag began (layout)
     float dragAngle_;                // +0x270 angle_ when the drag began
-    char* shownName_;                // +0x274 CString: the zone or link whose tip is shown
+    mfc::CString shownName_;         // +0x274 the zone or link whose tip is shown
     bool gipat_;                     // +0x278 the allod is gipat
     std::uint8_t unused_279[3];
     int noCamp_;                     // +0x27C the player's "i.nocamp" (1: no camp button)
@@ -299,6 +300,7 @@ static_assert(offsetof(CGlobalMap, depth_) == 0x200);
 static_assert(offsetof(CGlobalMap, backdrop_) == 0x210);
 static_assert(offsetof(CGlobalMap, weatherTable_) == 0x218);
 static_assert(offsetof(CGlobalMap, weatherIndex_) == 0x260);
+static_assert(offsetof(CGlobalMap, shownName_) == 0x274);
 static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
 static_assert(offsetof(CGlobalMap, dragStart_) == 0x268);
 static_assert(offsetof(CGlobalMap, dragAngle_) == 0x270);
@@ -331,15 +333,15 @@ struct TradeRow {
     // price, the level and the flag (the padding is not copied). Returns this.
     TradeRow* CopyConstruct(const TradeRow* from);
 
-    char* name;                      // +0x00 CString shown text
-    char* key;                       // +0x04 CString the perk's record name (perk rows)
-    char* nextKey;                   // +0x08 CString the next level's record name (held perks below 3)
+    mfc::CString name;               // +0x00 shown text
+    mfc::CString key;                // +0x04 the perk's record name (perk rows)
+    mfc::CString nextKey;            // +0x08 the next level's record name (held perks below 3)
     int price;                       // +0x0C experience
     int level;                       // +0x10
     bool learnable;                  // +0x14 set on the learnable list (not written in the others)
     std::uint8_t unused_15[3];
 };
-static_assert(sizeof(TradeRow) == 0x18);
+static_assert(sizeof(TradeRow) == 0x18 && offsetof(TradeRow, key) == 0x04 && offsetof(TradeRow, nextKey) == 0x08 && offsetof(TradeRow, price) == 0x0C);
 
 // STLport vector<TradeRow>.
 struct TradeRows {
@@ -650,18 +652,18 @@ public:
     // the shown hero's record (HeroRecord), 54 Price (Rebirth-patched 0060FAB0).
     bool VirtualCanEquip(std::uint8_t* item, int mode) {
         using Fn = bool(__thiscall*)(CCampPages*, std::uint8_t*, int);
-        return reinterpret_cast<Fn>(vtable_[43])(this, item, mode);
+        return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
     }
     void VirtualBestPartySkill(int school, int* skill, int* mana) {
         using Fn = void(__thiscall*)(CCampPages*, int, int*, int*);
-        reinterpret_cast<Fn>(vtable_[45])(this, school, skill, mana);
+        ei::VirtualSlot<Fn>(vtable_, 45)(this, school, skill, mana);
     }
     void VirtualRefreshWeapons() { CallVirtual(46); }
     void VirtualRefreshStats() { CallVirtual(47); }
     PartyUnitRecord* VirtualHeroRecord() { return ShownHero(this); }
     int VirtualPrice(void* item, int kind) {
         using Fn = int(__thiscall*)(CCampPages*, void*, int);
-        return reinterpret_cast<Fn>(vtable_[54])(this, item, kind);
+        return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
     }
 
     int page_;                       // +0x190
@@ -782,7 +784,7 @@ public:
     std::uint8_t unused_148[4];
     CUiWindow* owner_;               // +0x14C
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
-    char* title_;                    // +0x154 CString
+    mfc::CString title_;             // +0x154
     int page_;                       // +0x158
     mfc::CStringArray texts_;        // +0x15C weapon labels, the points texts, ...
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
@@ -790,6 +792,7 @@ public:
     float holdTime_;                 // +0x178 seconds it has been held (from -0.5)
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
+static_assert(offsetof(CHeroStatsPanel, title_) == 0x154);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
 static_assert(offsetof(CHeroStatsPanel, texts_) == 0x15C);
 static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);

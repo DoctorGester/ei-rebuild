@@ -72,7 +72,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     CAIMap* map = world->AIMap();
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
-    static_cast<CAIMap*>(map)->BeginRefresh();
+    map->BeginRefresh();
     SectorMapRemove(sectors, nullptr, AsEngineObject(this));
 
     states = stateCount;
@@ -93,16 +93,16 @@ void Lever::SetState(int wanted, float duration) {
     SetUpAnimatedFigure(name);
     static_cast<CMapObject*>(this)->MarkChanged(5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
-    static_cast<CAIMap*>(map)->EndRefresh();
+    map->EndRefresh();
     map->refreshUnits = true;
 
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         void* unit = node->data;
-        if (!static_cast<CAIMap*>(map)->CanLeaveCell(reinterpret_cast<CUnit*>(unit))) {
+        if (!map->CanLeaveCell(reinterpret_cast<CUnit*>(unit))) {
             Vector3* at = &AsMapObject(unit)->position;
             Vector3 free = {at->x, at->y, at->z};
-            static_cast<CAIMap*>(map)->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
+            map->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
             std::memcpy(at, &free, sizeof(free));
             static_cast<CUnitServer*>(static_cast<CUnit*>(AsEngineObject(unit))->controller)->ResyncWithUnit();
         }

@@ -43,7 +43,7 @@ void Drop(CItem* item) {
 }
 
 CItem* MakeItem(CParty* party, const char* name) {
-    return static_cast<CItem*>(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
+    return ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name);
 }
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
@@ -242,7 +242,7 @@ void CParty::OpenEdgeExits() {
     for (int i = 0; i < zone->exits.size; ++i) {
         MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable.Format(ZoneVariableFormat(), target->name);
+        variable.Format(ZoneVariableFormat(), static_cast<const char*>(target->name));
         float value = variables.Get(variable);
         EI_NAN_AUDIT(value);
         if (value == 0.0f) variables.Set(variable, kOpened);
