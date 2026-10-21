@@ -26,6 +26,8 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+
 using BOOL = int;
 
 struct ScriptGroup;
@@ -1267,16 +1269,31 @@ static_assert(sizeof(ClientTexts) == 0x2C);
 
 class CLightningManager;   // lightning.h
 class CSceneRenderer;   // model.h
-// +0x1A4 (0xD0 bytes, vtable 0073F554): a counted object and a CList (constructor 005715D0, 10).
+// +0x1A4: the visibility fog's manager ("CVisFogManager", class id 0x60, 0xD0 bytes;
+// vis_fog_manager.cpp; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073F554
+// is retired): a counted object and a CList.
 struct ClientArrayManager : CBaseManager {
+    // CBaseManager's constructor, no texture, an empty list (005715D0, blocks of 10). Inlined in
+    // the client world's Setup (world_client_maps.cpp, which also holds the destructor).
+    ClientArrayManager();
+    // 00562DF0. Destroy's body (004E2850: the object and every listed one released), the list's and
+    // the pointer's own destructors, then CBaseManager's destructor.
+    ~ClientArrayManager() override;
+    int Create() override;                         // 2: 004E2990 (VisFogManagerCreate)
+    void Destroy() override;                       // 3: 004E2850 (VisFogManagerDestroy)
+    int RunTick() override;                        // 6: 004E2760 (VisFogManagerTick)
+    const char* GetClassName() override;           // 11: 00562DB0 "CVisFogManager"
+    int GetClassId() override;                     // 12: 00562DC0 (0x60)
+    // 13: 00562DA0, CBaseManager's Init (the same code at its own address).
+    CEngineObject* NewObject(int type) override;   // 14: 004E2290
+
     // Body of the slot at 004E2700 (registered by member pointer).
     int DrawImpl(CSceneRenderer* renderer);
     // Body of the slot at 004E2290 (registered by member pointer).
     CEngineObject* NewObjectImpl(int);
-    // 00562DF0. The destructor's body: Clear (004E2850: the object and every listed one released),
-    // the list's and the pointer's own destructors, then the manager's body.
+    // The registrations (C20 retires them): 00562DF0 the destructor, 00562DD0 (slot 0, RET 4) the
+    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
     void DestructBody();
-    // 00562DD0 (slot 0, RET 4).
     ClientArrayManager* DeletingDestruct(unsigned flags);
 
     CEngineObject* current;               // +0xB0 counted

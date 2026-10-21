@@ -84,8 +84,10 @@ int __fastcall LightningManagerClassId(CLightningManager* self) { return self->C
 EI_REPLACE(0x00562D80, LightningManagerClassName);
 EI_REPLACE(0x00562D90, LightningManagerClassId);
 
-const char* __fastcall VisFogManagerClassName(ClientArrayManager*) { return kVisFogManagerName; }
-int __fastcall VisFogManagerClassId(ClientArrayManager*) { return kVisFogManagerId; }
+const char* ClientArrayManager::GetClassName() { return kVisFogManagerName; }
+int ClientArrayManager::GetClassId() { return kVisFogManagerId; }
+const char* __fastcall VisFogManagerClassName(ClientArrayManager* self) { return self->ClientArrayManager::GetClassName(); }
+int __fastcall VisFogManagerClassId(ClientArrayManager* self) { return self->ClientArrayManager::GetClassId(); }
 EI_REPLACE(0x00562DB0, VisFogManagerClassName);
 EI_REPLACE(0x00562DC0, VisFogManagerClassId);
 

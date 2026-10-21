@@ -1316,13 +1316,8 @@ int CWorldClient::Setup() {
     CLightningManager* lists = lightningMemory ? new (lightningMemory) CLightningManager() : nullptr;
     listManager_ = lists;
     lists->Init(this);
-    auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
-    if (arrays) {
-        static_cast<CBaseManager*>(arrays)->ConstructBase();
-        arrays->current = nullptr;
-        mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&arrays->list, 10);
-        ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);
-    }
+    std::uint8_t* fogMemory = New(sizeof(ClientArrayManager));
+    ClientArrayManager* arrays = fogMemory ? new (fogMemory) ClientArrayManager() : nullptr;
     arrayManager_ = arrays;
     arrays->Init(this);
     std::uint8_t* memory = New(0x58);
@@ -1524,18 +1519,23 @@ CLightningManager* CLightningManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00562EA0, CLightningManager::DeletingDestruct);
 
-void ClientArrayManager::DestructBody() {
-    ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
+ClientArrayManager::ClientArrayManager() {
+    current = nullptr;
+    mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&list, 10);
+}
+
+ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
     list.vtable = ei::GamePointer<void>(worlddata::kClientArrayListVtable);
     list.RemoveAll();
     if (current) current->Release();
-    CBaseManager::DestructBody();
 }
+
+void ClientArrayManager::DestructBody() { this->ClientArrayManager::~ClientArrayManager(); }
 EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
 
 ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
-    DestructBody();
+    this->ClientArrayManager::~ClientArrayManager();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

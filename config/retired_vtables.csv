@@ -26,6 +26,7 @@ vtable,slots,class,file,note
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
+0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F644,25,CParticleManager,src/game/effects.h,
 0073F754,3,BloodPrint,src/game/ground_print.h,

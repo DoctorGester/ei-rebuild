@@ -37,7 +37,7 @@ const char* __fastcall TerrainClassName(Terrain*);                   // 00562B40
 int __fastcall TerrainClassId(Terrain*);                             // 00562B50: 0xB
 const char* __fastcall LightningManagerClassName(CLightningManager*);   // 00562D80 "CLightningManager"
 int __fastcall LightningManagerClassId(CLightningManager*);          // 00562D90: 0x35
-const char* __fastcall VisFogManagerClassName(ClientArrayManager*);  // 00562DB0 (0073F554) "CVisFogManager"
+const char* __fastcall VisFogManagerClassName(ClientArrayManager*);  // 00562DB0 "CVisFogManager"
 int __fastcall VisFogManagerClassId(ClientArrayManager*);            // 00562DC0: 0x60
 const char* __fastcall FigureManagerClassName(CFigureManager*);      // 005AA180 (0073FB88) "CFigureManager"
 int __fastcall FigureManagerClassId(CFigureManager*);                // 005AA190: 0x28

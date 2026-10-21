@@ -1,5 +1,5 @@
-// The visibility fog's manager (CVisFogManager: ClientArrayManager in world.h, vtable 0073F554,
-// the client world's +0x1A4; 004E2290-004E2A15, A-S11). It owns the "VisionFog" texture and a list
+// The visibility fog's manager (CVisFogManager: ClientArrayManager in world.h, the client world's
+// +0x1A4; 004E2290-004E2A15, A-S11). It owns the "VisionFog" texture and a list
 // of the fog objects (CVisibilityFog, effects.h; one a player whose sight is drawn). Rewritten: its
 // factory (slot 14), Create / Destroy (slots 2 / 3), the tick (slot 6), the new fog (004E28D0) and
 // the draw (004E2700), which binds the texture and has every fog draw itself (004E1EB0, the fog's
@@ -101,6 +101,11 @@ int __fastcall VisFogManagerTick(ClientArrayManager* self) {
     return 0;
 }
 EI_REPLACE(0x004E2760, VisFogManagerTick);
+
+int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
+void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
+int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
+CEngineObject* ClientArrayManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 004E28D0: a new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {
