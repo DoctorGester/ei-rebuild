@@ -1,9 +1,8 @@
 // Function replacement framework.
 //
-// The standalone image (ei_standalone.exe, docs/notes/standalone.md section 2) lays out game.exe's
-// headers and data without its code and loads ei_hook.dll, whose InstallHooks takes the registrations
-// as the code for their addresses (CodeAddress; S18i: game.exe's code section is guarded, nothing runs
-// there). In game.exe, which runs only as the original game (the original's harness), nothing of ours
+// The standalone image (ei_standalone.exe, docs/notes/standalone.md section 2) runs without game.exe: it
+// loads ei_hook.dll, which keeps game.exe's data in its own storage and whose InstallHooks takes the
+// registrations as the code for their addresses (CodeAddress; nothing of game.exe is at its addresses). In game.exe, which runs only as the original game (the original's harness), nothing of ours
 // is installed but the vector recorders (EI_RECORD, with EI_VECTORS=1). EI_ORIGINAL forwarders name
 // original addresses.
 #pragma once
@@ -107,12 +106,10 @@ const char* HarnessPatchAt(std::uintptr_t address, std::size_t size);
 // run with any (SV6).
 int UnexpectedSkips();
 
-// True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
-// game.exe code or headers, its data in ei_hook.dll's storage, its resources the host's own; the plain
+// True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): nothing of
+// game.exe at its addresses, its data in ei_hook.dll's storage, its resources the host's own; the plain
 // replacements are game.exe's code (CodeAddress). standalone.cpp.
 bool Standalone();
-// The game.exe file the standalone host built the image from.
-const char* StandaloneExePath();
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (a stub of
 // CodeAddress, or the guarded code section), before the process ends: the harness (verify build) puts it in its report.
 void SetMissingCodeHandler(void (*handler)(const char* what));

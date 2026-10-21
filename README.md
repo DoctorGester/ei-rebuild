@@ -3,9 +3,9 @@
 Readable C++ source for the Russian `game.exe` 1.06, rebuilt with modern MSVC (x86). The goal is
 identical behaviour, not identical bytes.
 
-The product is the standalone image: `ei_standalone.exe` lays out the original `game.exe`'s headers and
-data without its code and loads `ei_hook.dll`, which writes a jump to each rewritten function at its original
-address (docs/notes/standalone.md). The original `game.exe` runs only as the original game, for the harness's
+The product is the standalone image: `ei_standalone.exe` runs without `game.exe` and loads `ei_hook.dll`, which
+keeps game.exe's data (generated from it at build time) and takes each rewritten function as the code for its
+original address (docs/notes/standalone.md). The original `game.exe` runs only as the original game, for the harness's
 references (goldens, function vectors, Rebirth's frames).
 
 ## Build
@@ -24,8 +24,7 @@ build.cmd verify     # the harness build: the same image plus the harness (tests
 launch-vanilla.cmd
 ```
 
-Starts the standalone image (`build\verify\ei_standalone.exe`: `run\vanilla`'s `game.exe` laid out without its
-code, our code from `ei_hook.dll`) on the GOG install's data in `F:\games\EvilIslands`, with our renderer
+Starts the standalone image (`build\verify\ei_standalone.exe`: our code from `ei_hook.dll`, no `game.exe`) on the GOG install's data in `F:\games\EvilIslands`, with our renderer
 (`ei_launch --standalone`, `EI_RENDER=new,present`). Nothing in the game folder is modified. The log is written next
 to the DLL: `build\<config>\ei_hook.log`. `ei_launch` without `--standalone` starts the original `game.exe`
 with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces the original there
@@ -205,10 +204,9 @@ change, so none of its runs needs the machine to itself); dgVoodoo draws the ori
 `--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again; the key leaves out the harness).
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
-`standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch
---standalone`; from run\vanilla-clean, run\vanilla's files without dgVoodoo's, which run_all links before each image
-run: the image has no dgVoodoo dependency, SV10f) and on the Rebirth install (`standalone-rebirth`: run\rebirth's
-game.exe from run\rebirth-clean, the Rebirth data and
+`standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone`, which still names
+run\vanilla-clean's game.exe, though the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
+the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
 `--all-rebirth` every scenario); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).

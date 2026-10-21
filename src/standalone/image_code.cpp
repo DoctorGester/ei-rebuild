@@ -1,5 +1,6 @@
-// game.exe's code in the standalone image (S18i; docs/notes/standalone.md, "Own data"). The image's code section is
-// guarded (the host makes it PAGE_NOACCESS): nothing runs there and nothing jumps through it. What runs for an
+// game.exe's code in the standalone image (S18i; docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is
+// at its addresses (S18k: the host keeps what of game.exe's range is free reserved with no access): nothing runs there
+// and nothing jumps through it. What runs for an
 // address of game.exe's code is CodeAddress's: the harness's replacement (RedirectCode), the replacement registered for
 // it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address. The
 // code cells of game.exe's data (vtable slots, callback tables, the static initialiser list: image_code_cells.inc,

@@ -104,15 +104,20 @@ if(NOT EI_GAME_EXE)
     endif()
     file(TO_CMAKE_PATH "${EI_GAME_EXE_FOUND}" EI_GAME_EXE)
 endif()
+# The dispatch-only functions' bytes (InstallHooks' check of the EI_REPLACE_DISPATCH thunks, S18k) come the same way.
 set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
-add_custom_command(OUTPUT ${EI_IMAGE_DATA}
+set(EI_IMAGE_DISPATCH ${CMAKE_BINARY_DIR}/image/dispatch_bytes.inc)
+add_custom_command(OUTPUT ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH}
     COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}
+            --dispatch ${EI_IMAGE_DISPATCH}
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${EI_GAME_EXE}
     COMMENT "Writing game.exe's .data bytes"
     VERBATIM)
-target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
+target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH})
 set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
                             OBJECT_DEPENDS ${EI_IMAGE_DATA})
+set_source_files_properties(src/hook/hook.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
+                            OBJECT_DEPENDS ${EI_IMAGE_DISPATCH})
 if(EI_HARNESS)
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
     # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).
@@ -127,8 +132,8 @@ target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
 
-# The standalone host (docs/notes/standalone.md section 2): holds game.exe's address range (guarded, nothing of
-# game.exe in it) inside its own image and runs ei_hook.dll's code for it. Linked at a fixed base below that range.
+# The standalone host (docs/notes/standalone.md section 2): an ordinary exe (S18k: no fixed base, no read of game.exe)
+# that reserves what of game.exe's range is free (the guard) and runs ei_hook.dll's code for it.
 # game.exe's resources (icons, cursors, bitmaps, dialogs, strings) are the host's own (S18j): a .res written from
 # game.exe at build time (tools/gen_resources.py, not committed) that the linker builds in.
 set(EI_IMAGE_RESOURCES ${CMAKE_BINARY_DIR}/image/game_resources.res)
@@ -139,7 +144,7 @@ add_custom_command(OUTPUT ${EI_IMAGE_RESOURCES}
     VERBATIM)
 set_source_files_properties(${EI_IMAGE_RESOURCES} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 add_executable(ei_standalone src/standalone/host.cpp ${EI_IMAGE_RESOURCES})
-target_link_options(ei_standalone PRIVATE /BASE:0x200000 /FIXED /DYNAMICBASE:NO)
+target_include_directories(ei_standalone PRIVATE src)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
 # the families' sources, their checks, and a stub for the hook registrations. build.cmd runs it.

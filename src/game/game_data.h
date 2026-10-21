@@ -27,6 +27,11 @@ constexpr std::uintptr_t DataId(std::uintptr_t address) { return address; }
 constexpr std::uintptr_t kMovedBegin = DataId(0x0073B000);
 constexpr std::uintptr_t kMovedEnd = DataId(0x007CD000);
 
+// game.exe's whole range in its own process: the headers at its base up to its SizeOfImage (0x3D7000). The image has
+// nothing of game.exe there (S18k): the host keeps what of it is free reserved, so a stray use faults and is named.
+constexpr std::uintptr_t kImageBegin = DataId(0x00400000);
+constexpr std::uintptr_t kImageEnd = DataId(0x007D7000);
+
 // game.exe's import address table, the first 0x820 bytes of .rdata: one slot per import. The image's slots
 // are ei_hook.dll's own table (image_imports.cpp, S18f), filled as the DLL initialises.
 constexpr std::uintptr_t kImportsBegin = DataId(0x0073B000);
@@ -41,9 +46,16 @@ inline std::uintptr_t OriginalAddress(std::uintptr_t address) { return address; 
 // to our storage in the image (image_data.cpp).
 extern std::uintptr_t g_dataShift;
 
-// Where the data game.exe has at `address` is in this process.
+// An address of game.exe's range (its headers, code, .rsrc) outside the moved data, asked for in the image: there is
+// nothing of game.exe there (S18k), so it is reported and the process ends (image_data.cpp).
+[[noreturn]] void StrayGameAddress(std::uintptr_t address);
+
+// Where the data game.exe has at `address` is in this process. A game address is itself only in game.exe (shift 0);
+// an address outside game.exe's range (a pointer already resolved, null) is itself in both.
 inline std::uintptr_t GameAddress(std::uintptr_t address) {
-    return address - kMovedBegin < kMovedEnd - kMovedBegin ? address + g_dataShift : address;
+    if (address - kMovedBegin < kMovedEnd - kMovedBegin) return address + g_dataShift;
+    if (g_dataShift && address - kImageBegin < kImageEnd - kImageBegin) StrayGameAddress(address);
+    return address;
 }
 
 // The original's address of `address`, a pointer into this process's copy of game.exe's data (a vtable read from

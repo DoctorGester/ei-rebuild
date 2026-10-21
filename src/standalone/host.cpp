@@ -1,22 +1,24 @@
-// ei_standalone: runs the rebuilt game without game.exe's code (docs/notes/standalone.md section 2).
+// ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2).
 //
-// The host is linked below game.exe's image base and holds game.exe's address range (0x400000 up to
-// its SizeOfImage) inside its own image, as a zero-filled array. Nothing of game.exe is laid out there: the host
-// reads the file's headers (the version, the sections' places) and guards the headers' page, the code section
-// (S18i: nothing of it runs, nothing jumps through it) and .rsrc (S18j: game.exe's resources are this exe's own,
-// built in from game.exe by tools/gen_resources.py, and the game's hInstance is this module); .rdata and .data
-// stay zero (ei_hook.dll keeps both sections in its own storage, with bytes from the build,
-// src/standalone/image_data.cpp). Then it loads ei_hook.dll, which
-// resolves game.exe's imports into a table of its own as it initialises (src/standalone/image_imports.cpp;
-// game.exe's path comes from this exe's export EiStandaloneExe), and hands over: the DLL takes the registrations
-// as game.exe's code (InstallHooks, src/standalone/image_code.cpp), points the code cells of game.exe's data at
-// them and runs WinMain. Forwarders, function pointers in the data and vtable slots reach our code that way; a
-// jump into the code section names an address that went around it.
+// The host is an ordinary exe (S18k): it neither reads game.exe nor lays out anything at game.exe's addresses.
+// game.exe's resources are its own (S18j: built in from game.exe by tools/gen_resources.py at build time, and the
+// game's hInstance is this module); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
+// the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
+// (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
+// cells of game.exe's data at them and runs WinMain. Forwarders, function pointers in the data and vtable slots reach
+// our code that way.
 //
-// usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
+// The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is free, with
+// no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code that went
+// around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching other memory.
+// What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is guarded.
+//
+// usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
 //   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
 //   follows "--" is the game's command line, as typed (WinMain's, and GetCommandLineA's after the exe).
+
+#include "game/game_data.h"
 
 #include <windows.h>
 
@@ -24,55 +26,51 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include <vector>
 
 namespace {
 
-constexpr std::uintptr_t kImageBase = 0x00400000;   // game.exe has no relocations
-constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;    // game.exe 1.06 (Russian), 2001-03-26
-// game.exe's SizeOfImage is 0x3D7000. The host's base (/BASE:0x200000) leaves room below 0x400000
-// for its own code and data; the array then covers the whole range wherever the linker puts it.
-constexpr std::size_t kReserve = 0x00640000;
-unsigned char g_reserve[kReserve];
+// game.exe's range in its own process and its parts: the headers' page, .text, .rdata and .data (the moved range),
+// .rsrc.
+using ei::kImageBegin;
+using ei::kImageEnd;
+constexpr std::uintptr_t kCodeBegin = kImageBegin + 0x1000;
 
-// game.exe's code section in the image: zero and PAGE_NOACCESS (EarlyOldCode, then ei_hook.dll's OnOldCode).
-std::uintptr_t g_textBegin, g_textEnd;
-// game.exe's headers and .rsrc in the image: zero and PAGE_NOACCESS (OnOldHeaders).
-std::uintptr_t g_headersEnd, g_rsrcBegin, g_rsrcEnd;
+// Reserves, with no access, every free part of game.exe's range (each from its first allocation granule: the
+// rest of a granule after another allocation cannot be allocated anyway, and is free memory, which faults too).
+void ReserveGameRange() {
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    const std::uintptr_t granule = info.dwAllocationGranularity;
+    for (std::uintptr_t a = kImageBegin; a < kImageEnd;) {
+        MEMORY_BASIC_INFORMATION mbi;
+        if (!VirtualQuery(reinterpret_cast<const void*>(a), &mbi, sizeof(mbi))) break;
+        const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+        if (mbi.State == MEM_FREE) {
+            const std::uintptr_t from = (a + granule - 1) & ~(granule - 1);
+            const std::uintptr_t to = end < kImageEnd ? end : kImageEnd;
+            if (from < to) VirtualAlloc(reinterpret_cast<void*>(from), to - from, MEM_RESERVE, PAGE_NOACCESS);
+        }
+        a = end;
+    }
+}
 
-std::string g_exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";   // --exe
-
-// An access to the image's code section before ei_hook.dll's own report is in place (its static constructors
-// run at LoadLibrary): named on stderr (ei_launch's run notes) and the process ends, never silently (S16c).
-// ei_hook.dll's handler, added later at the front, reports the accesses after that itself.
-LONG CALLBACK EarlyOldCode(EXCEPTION_POINTERS* e) {
+// An access to game.exe's range before ei_hook.dll's own reports are in place (its static constructors run at
+// LoadLibrary), or to a part they leave to the host (the headers, .rsrc): named on stderr (ei_launch's run notes)
+// and the process ends, never silently (S16c). ei_hook.dll's handlers, added later at the front, report the code
+// section and the data themselves.
+LONG CALLBACK OnGameRange(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
     if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
     const std::uintptr_t data = r->ExceptionInformation[1];
-    if (data < g_textBegin || data >= g_textEnd) return EXCEPTION_CONTINUE_SEARCH;
-    if (r->ExceptionInformation[0] == 8)
+    if (data - kImageBegin >= kImageEnd - kImageBegin) return EXCEPTION_CONTINUE_SEARCH;
+    const char* part = data < kCodeBegin ? "headers" : data < ei::kMovedBegin ? "code" : data < ei::kMovedEnd ? "data" : ".rsrc";
+    if (r->ExceptionInformation[0] == 8 || reinterpret_cast<std::uintptr_t>(r->ExceptionAddress) == data)
         std::fprintf(stderr, "ei_standalone: no code at %08X before ei_hook.dll's missing-code report, [esp] %08X\n",
                      static_cast<unsigned>(data), static_cast<unsigned>(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp)));
     else
-        std::fprintf(stderr, "ei_standalone: %s of game.exe's code at %08X by %08X before ei_hook.dll's report\n",
-                     r->ExceptionInformation[0] == 1 ? "write" : "read", static_cast<unsigned>(data),
+        std::fprintf(stderr, "ei_standalone: %s of game.exe's %s at %08X by %08X: the image has nothing of game.exe there\n",
+                     r->ExceptionInformation[0] == 1 ? "write" : "read", part, static_cast<unsigned>(data),
                      static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(r->ExceptionAddress)));
-    std::fflush(stderr);
-    TerminateProcess(GetCurrentProcess(), 3);
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-
-// A read of the image's headers or .rsrc: nothing reads game.exe's headers or resources at their address (the
-// game's resources are this exe's own, its module handle this exe's), so a reader is named and the process ends.
-LONG CALLBACK OnOldHeaders(EXCEPTION_POINTERS* e) {
-    const EXCEPTION_RECORD* r = e->ExceptionRecord;
-    if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2) return EXCEPTION_CONTINUE_SEARCH;
-    const std::uintptr_t data = r->ExceptionInformation[1];
-    const bool headers = data >= kImageBase && data < g_headersEnd;
-    if (!headers && (data < g_rsrcBegin || data >= g_rsrcEnd)) return EXCEPTION_CONTINUE_SEARCH;
-    std::fprintf(stderr, "ei_standalone: %s of game.exe's %s at %08X by %08X: the image lays out none\n",
-                 r->ExceptionInformation[0] == 1 ? "write" : "read", headers ? "headers" : ".rsrc", static_cast<unsigned>(data),
-                 static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(r->ExceptionAddress)));
     std::fflush(stderr);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
@@ -83,57 +81,9 @@ int Fail(const char* what) {
     return 1;
 }
 
-bool ReadWholeFile(const std::string& path, std::vector<unsigned char>& out) {
-    FILE* f = nullptr;
-    if (fopen_s(&f, path.c_str(), "rb") != 0 || !f) return false;
-    std::fseek(f, 0, SEEK_END);
-    out.resize(static_cast<std::size_t>(std::ftell(f)));
-    std::fseek(f, 0, SEEK_SET);
-    const bool ok = std::fread(out.data(), 1, out.size(), f) == out.size();
-    std::fclose(f);
-    return ok;
-}
-
 std::string Folder(const std::string& path) {
     const std::size_t slash = path.find_last_of("\\/");
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
-}
-
-// Checks game.exe's headers (in the file) and makes its address range zero and writable: nothing of the file goes
-// there. `nt` points into `file`.
-bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32*& nt) {
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
-    if (file.size() < 0x1000 || dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
-    const auto* fileNt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(file.data() + dos->e_lfanew);
-    if (fileNt->Signature != IMAGE_NT_SIGNATURE || fileNt->OptionalHeader.ImageBase != kImageBase) return false;
-    if (fileNt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
-        std::fprintf(stderr, "ei_standalone: game.exe timestamp %08lX is not 1.06's %08lX\n",
-                     fileNt->FileHeader.TimeDateStamp, kExpectedTimestamp);
-        return false;
-    }
-    const std::uintptr_t begin = reinterpret_cast<std::uintptr_t>(g_reserve);
-    const std::uintptr_t end = kImageBase + fileNt->OptionalHeader.SizeOfImage;
-    if (begin > kImageBase || begin + kReserve < end) {
-        std::fprintf(stderr, "ei_standalone: the reserved range %08X-%08X does not cover %08X-%08X\n",
-                     static_cast<unsigned>(begin), static_cast<unsigned>(begin + kReserve),
-                     static_cast<unsigned>(kImageBase), static_cast<unsigned>(end));
-        return false;
-    }
-    DWORD old;
-    if (!VirtualProtect(reinterpret_cast<void*>(kImageBase), end - kImageBase, PAGE_EXECUTE_READWRITE, &old))
-        return false;
-    g_headersEnd = kImageBase + ((fileNt->OptionalHeader.SizeOfHeaders + 0xFFF) & ~DWORD{0xFFF});
-    const IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(fileNt);
-    for (WORD i = 0; i < fileNt->FileHeader.NumberOfSections; ++i) {
-        if (std::memcmp(sec[i].Name, ".rsrc", 6) == 0) {
-            g_rsrcBegin = kImageBase + sec[i].VirtualAddress;
-            g_rsrcEnd = g_rsrcBegin + ((sec[i].Misc.VirtualSize + 0xFFF) & ~DWORD{0xFFF});
-        }
-        // .text (none of it runs, S18i), .rdata and .data (ei_hook.dll's, S18h, S18d) and .rsrc (built into this
-        // exe, S18j): nothing to copy.
-    }
-    nt = fileNt;
-    return true;
 }
 
 // The game's arguments: what follows the token "--" on the host's command line, as typed.
@@ -155,57 +105,34 @@ std::string GameArguments() {
 
 } // namespace
 
-// game.exe's path for ei_hook.dll (the folder its imports load from first), asked for while it initialises.
-extern "C" __declspec(dllexport) const char* __cdecl EiStandaloneExe() { return g_exe.c_str(); }
+// Marks this process as the standalone image for ei_hook.dll (ei::Standalone): game.exe exports nothing.
+extern "C" __declspec(dllexport) int EiStandaloneHost = 1;
 
 int main(int argc, char** argv) {
+    ReserveGameRange();
+    AddVectoredExceptionHandler(1, OnGameRange);
     // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on a missing-code report
     // (TerminateProcess) loses none of it.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
-    std::string& exe = g_exe;
     char self[MAX_PATH];
     GetModuleFileNameA(nullptr, self, MAX_PATH);
     std::string dll = Folder(self) + "\\ei_hook.dll";
     bool run = false;
     for (int i = 1; i < argc; ++i) {
-        if (!std::strcmp(argv[i], "--exe") && i + 1 < argc) exe = argv[++i];
-        else if (!std::strcmp(argv[i], "--dll") && i + 1 < argc) dll = argv[++i];
+        if (!std::strcmp(argv[i], "--dll") && i + 1 < argc) dll = argv[++i];
         else if (!std::strcmp(argv[i], "--run")) run = true;
         else if (!std::strcmp(argv[i], "--")) break;
         else {
-            std::fprintf(stderr, "usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]\n");
+            std::fprintf(stderr, "usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]\n");
             return 2;
         }
     }
-
-    std::vector<unsigned char> file;
-    if (!ReadWholeFile(exe, file)) return Fail(("cannot read " + exe).c_str());
-    const IMAGE_NT_HEADERS32* nt = nullptr;
-    if (!BuildImage(file, nt)) return Fail("cannot lay out game.exe's image");
-
-    const auto* sec = IMAGE_FIRST_SECTION(nt);
-    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
-        if (sec[i].Characteristics & IMAGE_SCN_CNT_CODE) {
-            g_textBegin = kImageBase + sec[i].VirtualAddress;
-            g_textEnd = g_textBegin + sec[i].Misc.VirtualSize;
-        }
-    AddVectoredExceptionHandler(1, EarlyOldCode);
-    DWORD was;
-    if (g_textEnd > g_textBegin &&
-        !VirtualProtect(reinterpret_cast<void*>(g_textBegin), g_textEnd - g_textBegin, PAGE_NOACCESS, &was))
-        return Fail("cannot guard game.exe's code section");
-    if (g_rsrcEnd > g_rsrcBegin &&
-        !VirtualProtect(reinterpret_cast<void*>(g_rsrcBegin), g_rsrcEnd - g_rsrcBegin, PAGE_NOACCESS, &was))
-        return Fail("cannot guard game.exe's .rsrc");
-    if (!VirtualProtect(reinterpret_cast<void*>(kImageBase), g_headersEnd - kImageBase, PAGE_NOACCESS, &was))
-        return Fail("cannot guard game.exe's headers");
-    AddVectoredExceptionHandler(1, OnOldHeaders);
     HMODULE hook = LoadLibraryA(dll.c_str());
     if (!hook) return Fail(("cannot load " + dll).c_str());
-    using Main = int(__cdecl*)(const char* exePath, int run, const char* arguments);
+    using Main = int(__cdecl*)(int run, const char* arguments);
     auto start = reinterpret_cast<Main>(GetProcAddress(hook, "EiStandaloneMain"));
     if (!start) return Fail("ei_hook.dll has no EiStandaloneMain");
-    const int result = start(exe.c_str(), run ? 1 : 0, GameArguments().c_str());
+    const int result = start(run ? 1 : 0, GameArguments().c_str());
     std::printf("ei_standalone: %s %d\n", run ? "the game returned" : "check", result);
     return result;
 }

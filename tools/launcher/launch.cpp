@@ -15,7 +15,7 @@
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
 // --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
-// it lays out game.exe's data without its code and loads ei_hook.dll itself (--run), with the same
+// it runs without game.exe (S18k; --exe only places the shared host copy) and loads ei_hook.dll itself (--run), with the same
 // environment, working directory, output folder, job object and time limits as a game.exe run. Its own
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
 // game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
@@ -562,7 +562,7 @@ int wmain(int argc, wchar_t** argv) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
         const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
         program = harness.empty() ? SharedStandaloneHost(built, full) : built;
-        cmd = L"\"" + program + L"\" --exe \"" + full + L"\" --dll \"" + dll + L"\" --run";
+        cmd = L"\"" + program + L"\" --dll \"" + dll + L"\" --run";   // the host reads no game.exe (S18k)
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
         si.dwFlags = STARTF_USESTDHANDLES;

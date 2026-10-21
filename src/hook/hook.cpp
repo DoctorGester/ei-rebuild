@@ -63,14 +63,26 @@ static bool IsVirtualCallThunk(const void* replacement) {
            (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0);
 }
 
-// Whether the thunk `replacement` has the same bytes as the original code at `original`
+// game.exe's dispatch-only functions with their bytes, from game.exe at build time (tools/gen_image_cells.py
+// --dispatch, build/<cfg>/image/dispatch_bytes.inc; S18k: the image reads no game.exe).
+struct DispatchBytes {
+    std::uintptr_t address;
+    unsigned char bytes[8];
+};
+static const DispatchBytes kDispatchBytes[] = {
+#include "dispatch_bytes.inc"
+};
+
+// Whether the thunk `replacement` has the same bytes as game.exe's dispatch-only function at `address`
 // (5 with a disp8, 4 with [EAX], 8 with a disp32).
-static bool SameDispatch(const void* replacement, const unsigned char* original) {
+static bool SameDispatch(const void* replacement, std::uintptr_t address) {
     const auto* code = static_cast<const unsigned char*>(replacement);
     for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)
         code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
     const int size = code[3] == 0x20 ? 4 : code[3] == 0x60 ? 5 : 8;
-    return original && std::memcmp(code, original, size) == 0;
+    for (const DispatchBytes& d : kDispatchBytes)
+        if (d.address == address) return std::memcmp(code, d.bytes, size) == 0;
+    return false;
 }
 
 // The first entry registered for `address` whose replacement or recorder is such a thunk
@@ -115,6 +127,9 @@ static void* MakeTrampoline(std::uintptr_t address, int stolen) {
 
 // game.exe 1.06 (Russian, GOG / Rebirth starter\Engine copy): PE timestamp 2001-03-26 09:36:51.
 static constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;
+// game.exe's code section (.text): where a registration's address lies.
+static constexpr std::uintptr_t kCodeBegin = 0x00401000;
+static constexpr std::uintptr_t kCodeEnd = 0x0073A670;
 
 // The harness's patches of game code (NoteHarnessPatch). A fixed array: the harness may note one
 // before this file's dynamic initialisers have run.
@@ -157,10 +172,10 @@ static void LogSkip(const HookEntry* h, bool expected, const char* why) {
     if (!expected) ++g_unexpectedSkips;
 }
 
+// game.exe's own file (the original's process: the recorders' stolen bytes are compared with it).
 static bool ReadExeFromDisk(std::vector<unsigned char>& out) {
     char path[MAX_PATH];
-    if (Standalone()) strcpy_s(path, StandaloneExePath());
-    else GetModuleFileNameA(nullptr, path, MAX_PATH);
+    GetModuleFileNameA(nullptr, path, MAX_PATH);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "rb") != 0 || !f) return false;
     fseek(f, 0, SEEK_END);
@@ -295,18 +310,23 @@ int InstallHooks() {
         }
         Log("EI_VECTORS set: the original game code with the vector recorders only");
     }
-    // game.exe's headers as the file holds them (the image lays out none at 0x400000, S18j).
+    // game.exe's file, in the original's process (the recorders' stolen bytes). The image reads none (S18k): its
+    // data and the dispatch bytes come from a 1.06 game.exe at build time (tools/gen_image_cells.py checks the
+    // timestamp), and a registration's address is a function start of game.exe's code.
     std::vector<unsigned char> file;
-    if (!ReadExeFromDisk(file) || file.size() < 0x1000) {
-        Log("could not read game.exe from disk, no hooks installed");
-        return 0;
-    }
-    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
-    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(file.data() + dos->e_lfanew);
-    if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
-        Log("game.exe timestamp %08lX does not match expected %08lX, no hooks installed",
-            nt->FileHeader.TimeDateStamp, kExpectedTimestamp);
-        return 0;
+    const IMAGE_NT_HEADERS32* nt = nullptr;
+    if (!standalone) {
+        if (!ReadExeFromDisk(file) || file.size() < 0x1000) {
+            Log("could not read game.exe from disk, no hooks installed");
+            return 0;
+        }
+        const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(file.data());
+        nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(file.data() + dos->e_lfanew);
+        if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
+            Log("game.exe timestamp %08lX does not match expected %08lX, no hooks installed",
+                nt->FileHeader.TimeDateStamp, kExpectedTimestamp);
+            return 0;
+        }
     }
 
     if (standalone) {
@@ -339,7 +359,8 @@ int InstallHooks() {
             continue;
         }
         auto* target = reinterpret_cast<unsigned char*>(h->address);
-        const unsigned char* orig = FileBytesAt(file, h->address);
+        const unsigned char* orig = standalone ? nullptr : FileBytesAt(file, h->address);
+        const bool inCode = standalone ? h->address - kCodeBegin < kCodeEnd - kCodeBegin : orig != nullptr;
         std::uint32_t size = FunctionSizeAt(h->address);
         char why[256];
         // One hook per address: a second registration of the same kind (two plain replacements, two
@@ -352,7 +373,7 @@ int InstallHooks() {
         // The standalone image has no original code to keep: a short function, or a start the size
         // table does not know, gets its jump when the next known function leaves room for it. A
         // recorder's function needs its own five bytes.
-        if (!orig || (size < 5 && !(standalone && RoomAt(h->address) >= 5))) {
+        if (!inCode || (size < 5 && !(standalone && RoomAt(h->address) >= 5))) {
             LogSkip(h, false, size ? "under five bytes with no room after it" : "not a known function start");
             continue;
         }
@@ -371,7 +392,7 @@ int InstallHooks() {
             LogSkip(h, false, why);
             continue;
         }
-        if (h->dispatch && !SameDispatch(h->replacement, orig)) {
+        if (h->dispatch && !SameDispatch(h->replacement, h->address)) {
             LogSkip(h, false, "its dispatch bytes differ from the original's");
             continue;
         }

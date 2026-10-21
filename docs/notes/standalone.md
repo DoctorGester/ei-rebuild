@@ -56,29 +56,43 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 
 ### How it runs
 
-- **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is linked below
-  0x400000 and reserves 0x400000-0x7D7000. Nothing of game.exe is copied there (S18j): the host reads the file's
-  headers (the 1.06 timestamp, the sections' places) and guards the headers' page, .text (since S18i) and .rsrc
-  PAGE_NOACCESS (a reader ends the run with `ei_standalone: read of game.exe's headers|.rsrc at ... by ...`).
+- **Host and image** (S1, src/standalone/host.cpp, src/hook/standalone.cpp). `ei_standalone.exe` is an ordinary exe
+  (S18k: default base, relocatable) that reads no game.exe. **The guard**: first thing in main it reserves every free
+  part of game.exe's range 0x400000-0x7D7000 (game_data.h's `kImageBegin`-`kImageEnd`) with no access, so nothing is
+  allocated there later and a stray game address faults and is named: the host's `OnGameRange` (`ei_standalone: read
+  of game.exe's headers|code|data|.rsrc at ... by ...`, or `no code at ... before ei_hook.dll's missing-code report`),
+  then ei_hook.dll's OnOldCode / OnOldData with the detailed reports. What the loader put there before main (this exe
+  or a heap, by ASLR's choice) stays: EiStandaloneMain logs each open part and the total (`game.exe's range
+  00400000-007D7000 guarded|NOT all guarded`), informational, not a check failure. The seam itself never hands out such
+  an address: in the image `GameAddress` of a game address outside the moved range (headers, code, .rsrc) is
+  `StrayGameAddress`'s report (`the data seam was asked for game.exe's code at ...`); a game address is itself only in
+  game.exe, an address outside game.exe's range (a resolved pointer, null) is itself in both. `ei::Standalone()` is
+  "the main module exports `EiStandaloneHost`" (the host's marker; game.exe exports nothing).
   **Resources** (S18j): game.exe's are the host's own: `tools/gen_resources.py` writes every leaf of game.exe's .rsrc
   tree (two cursors and MFC's cursor group, five bitmaps, the icon group 105 and its three icons, two dialogs, twelve
   string blocks) as a .res at build time (build/<cfg>/image/game_resources.res, from `EI_GAME_EXE`, not committed)
   that the linker builds in. WinMain's hInstance and GetModuleHandleA(NULL) are the host, so the resource calls,
   DirectInput and MFC's null resource handle need no wrapper; GetModuleFileNameA(NULL) names ei_standalone.exe (the
-  message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw).
+  message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
+  GetCommandLineA's first token too).
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
-  and resolves game.exe's imports as it initialises (S18f: DDraw, mss32 and binkw32 from game.exe's folder or the
-  working directory, the rest from System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
+  and resolves game.exe's imports as it initialises (S18f; since S18k DDraw, mss32 and binkw32 from the working
+  directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
   then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
-  jumps through game.exe's code. `ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game
-  args>]`, run from the game folder; without `--run` it builds the image, checks the code table, the cells and the
-  guard and exits.
+  jumps through game.exe's code. `ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game args>]`, run from the game
+  folder; without `--run` it builds the image, checks the code table and the cells and exits.
+- **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes and the dispatch-only
+  functions' bytes (`tools/gen_image_cells.py --bytes / --dispatch`, build/<cfg>/image/, which also checks the 1.06
+  timestamp), the resources (gen_resources.py); the section places are constants (game_data.h, image_code.cpp,
+  hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations' bounds). InstallHooks reads game.exe's file only in game.exe
+  itself (the recorders' stolen bytes). `EI_REPLACE_DISPATCH` thunks are compared with dispatch_bytes.inc (8
+  dispatch-only functions; 3 registered).
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
 - **Missing code.** Reaching an address without code (CodeAddress's stub, or a jump into the guarded .text) logs
   `FAILED: standalone: no code at <address> (in the game function at <start> | library code), [esp] <caller>` and
   ends the run; `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
-  (`... of game.exe's code at ...: the image's code section is guarded`). The handler goes in before InstallHooks
+  (`... of game.exe's code at ...`). The handler goes in before InstallHooks
   (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's static constructors prints
   `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
@@ -88,12 +102,12 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   through it. `config/standalone_unreachable.csv` holds each decision with its reason (CObject::GetRuntimeClass
   slots, `_purecall`, MFC classes never made or never called virtually, CRT tables); `--listed` prints them, `--check`
   exits 1 on an open entry or a config line that covers nothing. 0 open since S16d.
-- **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (run\vanilla's game.exe laid
-  out, vanilla data) and `standalone-rebirth` (run\rebirth's game.exe, the Rebirth data, the flags of
-  `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth launch with addon turns on; refresh it when
-  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change). Both from run\<install>-clean
-  (run_all.clean_run_dir: hard links of run\<install>'s files but dgVoodoo's), so the imports come from the system
-  as in a player's clean folder (SV10f); run\<install> keeps dgVoodoo for the original's runs.
+- **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
+  `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
+  launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
+  mode change). run_all still names run\<install>-clean's game.exe to ei_launch (run_all.clean_run_dir: hard links of
+  run\<install>'s files but dgVoodoo's, SV10f), which the image no longer reads or loads imports beside (S18k);
+  run\<install> keeps dgVoodoo for the original's runs.
 
 ### Own data (S18)
 
@@ -113,8 +127,8 @@ each step green on the goldens and removing a measured tie:
   casts, constants used in casts).
 - **Moving a section**: our storage (the low 16 bits of each address kept), GameAddress's shift set before
   any static constructor, the pointer cells of the remaining image data that point into it fixed up (no
-  relocations in game.exe: a scan of aligned dwords, string tails left out), and the old range
-  PAGE_NOACCESS, so a use that missed the seam faults with its address. A moved section's initial bytes
+  relocations in game.exe: a scan of aligned dwords, string tails left out), and nothing at the old range
+  (the host's reservation since S18k; PAGE_NOACCESS before), so a use that missed the seam faults with its address. A moved section's initial bytes
   are generated from game.exe at build time (not committed).
 - **.data sealed** (S18c): every use of 00783000-0079BF70 goes through the seam (tables of ids kept as `DataId`,
   read with `GamePointer` / `GameData`; the addon-site table's .data entries are ids too, generated by
@@ -167,7 +181,7 @@ each step green on the goldens and removing a measured tie:
   string and `_afxDataNil`). Every cell lies inside the range and is fixed up in its new place. game.exe's own
   code points at .rdata too (FuncInfo addresses in its EH prologues, string immediates), but none of it runs in
   the image.
-  **The guard**: the old range's pages PAGE_NOACCESS: a use that missed the seam ends the run with
+  **The guard**: nothing at the old range (the host's reservation, "Host and image"): a use that missed the seam ends the run with
   `standalone: read|write of game.exe's .rdata|.data at <data> by <code>: ...` (in the import table:
   `... of game.exe's own import slot <slot> (<dll>!<function>) by <code>`) in ei_hook.log, on stderr and in the
   harness's report (`OnOldData`; resolve the code address with the map, as for an INT3 hit). ei_vectors.exe's
@@ -192,25 +206,25 @@ each step green on the goldens and removing a measured tie:
   points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
   code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
   (`FixUpCodePointer`). The CRT's SEH scope tables are left: only game.exe's own frames read them. The
-  launch-free check: every registration is its address's code (`CheckCode`) and .text is PAGE_NOACCESS
-  (`CheckGuard`). Stack scans of the harness and the profiler skip the game's code range in the image.
+  launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
+  range is open. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
   the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
   unused until S18h), so `GameAddress` maps two ranges with one `g_dataShift`. `tools/gen_iat.py` writes the table
   (src/standalone/image_imports.inc, committed, 504 slots: slot, DLL, function or ordinal; build.cmd runs it with
   `--check`) and gameapi.h. Right after the move (same init_seg(compiler) object, before the harness's static
-  constructor takes its slots) `ResolveImageImports` loads each DLL (game.exe's folder from the host's export
-  `EiStandaloneExe`, then the working directory, else System32; dinput always the system's) and fills our slots;
+  constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
+  dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
   GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone.cpp; the resource, module and DirectInput
   wrappers went with S18j). Everything that calls through a slot by its address reaches our table through the seam:
   gameapi.h, the static initialisers' `Import`, Bink's slots, the harness's `PatchSlot` / `WatchWrites` (in game.exe
   all of them are the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0; data_seam.py's
   helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
-  **game.exe's own table** is guarded with the rest of the old .rdata since S18h (the read of an old slot names its
+  **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
   import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
-  trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image's .text is zero and
-  guarded (S18i; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
+  trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image has no .text (S18i,
+  S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
   only through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
@@ -272,7 +286,7 @@ each step green on the goldens and removing a measured tie:
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
 | S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
-| S18k | no reserved range, no read of game.exe | the address image |
+| S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
 Not on this path: named, typed globals in place of a section's bytes and vtables as real virtual classes
 (cleanup after S18k), plain new / delete and standard containers (C14), Win32 calls linked directly.
@@ -284,10 +298,9 @@ Not on this path: named, typed globals in place of a section's bytes and vtables
   so LoadStringA(NULL) loads from the process's own module in both. Checked by `render_cursor_present`'s
   `windowicon menu_icon` (the window class's icons are the module's icon 105, drawn to frames\menu_icon.bmp; its
   `cursorcheck` frames show the game's cursor, which is game data, not a resource).
-- **What the image still reads of game.exe at run time** (S18j; S18k removes it): the host reads the file's headers
-  (version, section places, SizeOfImage for the guards); InstallHooks reads the file for the timestamp, the function
-  starts' bounds and the dispatch-only functions' bytes (`SameDispatch`); ResolveImageImports takes game.exe's folder
-  as the first place for DDraw, mss32 and binkw32. Nothing is copied into the reserved range.
+- **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
+  still hands ei_launch run\<install>-clean's game.exe (its place for the shared host copy and EI_GAME_ROOT); the
+  image never opens it.
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.
 - **Code bytes read as data**: app_main's `CallTarget` (camera 00457595, server update 00457314, client segment
   00457368) and app_frame's cursor lock (004580D7) call our rewrites directly in the image; the harness reaches those
@@ -604,8 +617,8 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
   plans (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen). render_movie and
   render_terrain were dropped (their goldens equalled render_movie_present's / render_scene's).
 - How verification works now: docs/notes/standalone-verification.md section 1.
-- EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; the game's code range is
-  the image headers' SizeOfImage from 0x400000 (the host exe sits below), and profile_report names the image's functions `ours:`.
+- EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; none of the samples is
+  game.exe's code (it has none), and profile_report names the image's functions `ours:`.
 - S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
   (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
   functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
