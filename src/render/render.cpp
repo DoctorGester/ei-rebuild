@@ -1078,6 +1078,10 @@ Holder g_holder = Holder::None;
 // The smooth option's counts for this frame and the last presented one (render::SmoothState).
 SmoothInfo g_counts, g_lastCounts;
 
+#if defined(EI_RENDER_VALIDATION)
+SmoothOrder g_smoothOrder = SmoothOrder::Game;   // render::SetSmoothOrder (harness build only, R12a1)
+#endif
+
 // Command `k` belongs to the world view (render::BeginWorld .. EndWorld).
 bool InWorld(std::size_t k) {
     for (const Frame::Range& r : g_frame.worldRanges)
@@ -1101,7 +1105,10 @@ void BeginFramePass() {
     sg_begin_pass(&pass);
     ++Stats().passes;
     g_passSamples = 1;
-    if (afterWorld) CopyDepthFromMultisampled(g_multiDepthTexture);
+    if (afterWorld) {
+        CopyDepthFromMultisampled(g_multiDepthTexture);
+        ++g_counts.depthCopiesBack;
+    }
     g_holder = Holder::Frame;
 }
 
@@ -1124,6 +1131,7 @@ void BeginMultisampledPass() {
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colourTexture, g_depthTexture);
         sg_end_pass();
+        ++g_counts.copiesInto;
     }
     sg_pass pass{};
     pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
@@ -1142,6 +1150,16 @@ void BeginMultisampledPass() {
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
 }
+
+#if defined(EI_RENDER_VALIDATION)
+// An empty pass on the frame target (render::SetSmoothOrder's orders): the frame's first clears it;
+// after a world run it takes the depth back from sample 0.
+void EmptyFramePass() {
+    BeginFramePass();
+    sg_end_pass();
+    ++g_passes;
+}
+#endif
 
 // Commands [from, to) into the pass begun.
 void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
@@ -1188,16 +1206,29 @@ bool DrawPending() {
     g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
     std::size_t k = g_drawnCommands, end = g_frame.commands.size();
     bool multisampling = g_targetSamples > 1;
+    std::size_t split = SIZE_MAX;   // the first world run ends here (SmoothOrder::Split)
+#if defined(EI_RENDER_VALIDATION)
+    if (multisampling && g_smoothOrder == SmoothOrder::Before && g_holder == Holder::None && k < end && InWorld(k))
+        EmptyFramePass();
+    if (multisampling && g_smoothOrder == SmoothOrder::Split && !g_frame.worldRanges.empty()) {
+        const Frame::Range& r = g_frame.worldRanges.front();
+        std::size_t last = r.end < end ? r.end : end;
+        if (last > r.first + 1) split = r.first + (last - r.first) / 2;
+    }
+#endif
     do {
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;
-        while (stop < end && (multisampling && InWorld(stop)) == world) ++stop;
+        while (stop < end && (multisampling && InWorld(stop)) == world && !(world && stop == split && stop > k)) ++stop;
         if (world) BeginMultisampledPass();
         else BeginFramePass();
         DrawCommands(k, stop, width, height);
         sg_end_pass();
         g_passSamples = 1;
         ++g_passes;
+#if defined(EI_RENDER_VALIDATION)
+        if (world && stop == split) EmptyFramePass();
+#endif
         k = stop;
     } while (k < end);
     g_drawnCommands = end;
@@ -1405,6 +1436,15 @@ void Present() {
 namespace detail {
 int PassSampleCount() { return g_passSamples; }
 } // namespace detail
+
+#if defined(EI_RENDER_VALIDATION)
+void SetSmoothOrder(SmoothOrder order) {
+    static const char* const kNames[] = {"as the game draws", "an empty pass on the frame target before the world",
+                                         "the world split in two at its middle command"};
+    if (order != g_smoothOrder) ei::Log("render: the smooth option's passes: %s", kNames[static_cast<int>(order)]);
+    g_smoothOrder = order;
+}
+#endif
 
 SmoothInfo SmoothState() {
     SmoothInfo info = g_lastCounts;
