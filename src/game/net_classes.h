@@ -154,6 +154,11 @@ using MessageFactory = Message* (__fastcall*)();
 
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
 void* __fastcall NewRefObject(std::size_t size);
+// NewRefObject for a T: its memory (not constructed; the count cleared), or null.
+template <typename T>
+T* NewRefObjectAs() {
+    return static_cast<T*>(NewRefObject(sizeof(T)));
+}
 // 004186E0. The message base constructor body: the base table (Message::Vtable()), version 1. Returns this.
 Message* __fastcall MessageConstructBase(Message* self);
 
@@ -406,7 +411,7 @@ public:
     // through a counted reference while its type id is looked up by vtable, then AddHandler.
     template <typename T>
     void AddHandlerFor(int channel, void* handler) {
-        auto* memory = static_cast<T*>(NewRefObject(sizeof(T)));
+        auto* memory = NewRefObjectAs<T>();
         AddHandlerForPrototype(memory ? memory->Construct() : nullptr, channel, handler);
     }
     void AddHandlerForPrototype(Message* prototype, int channel, void* handler);

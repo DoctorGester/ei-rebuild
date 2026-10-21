@@ -12,9 +12,21 @@
 #include "game/world.h"
 #include "game_data.h"
 
+#include <type_traits>
+
 void __fastcall RefPtrRelease(RefPtr* self);                  // refptr_copies.cpp
 void __fastcall ObjectHolderRelease(CEngineObject** self);    // refptr_copies.cpp
 void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* object);
+// ObjectHolderAssign on a counted field typed as an engine object's subclass (it holds a T or null).
+template <class T>
+void AssignHeld(T** holder, std::type_identity_t<T>* object) {
+    ObjectHolderAssign(reinterpret_cast<CEngineObject**>(holder), nullptr, object);
+}
+// ObjectHolderRelease on such a field.
+template <class T>
+void ReleaseHeld(T** holder) {
+    ObjectHolderRelease(reinterpret_cast<CEngineObject**>(holder));
+}
 
 namespace gamelists {
 

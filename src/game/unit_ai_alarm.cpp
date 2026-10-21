@@ -42,7 +42,7 @@ bool IsZero(double v) {
 // A new counted object (00413250: operator new with the CRefObject count cleared).
 template <typename Mode>
 Mode* NewCounted() {
-    return static_cast<Mode*>(net::NewRefObject(sizeof(Mode)));
+    return net::NewRefObjectAs<Mode>();
 }
 
 // operator new with the count cleared when the allocation succeeded (the Sentry and Player cases

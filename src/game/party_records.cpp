@@ -153,6 +153,7 @@ struct MapNode {
     MapNode* next;
     int key;
 };
+static_assert(sizeof(MapNode) == 8);
 MapNode* FindNode(const void* map, int key) {
     auto* buckets = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 4);
     auto* bucketsEnd = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 8);
@@ -161,7 +162,7 @@ MapNode* FindNode(const void* map, int key) {
         if (node->key == key) return node;
     return nullptr;
 }
-void* NodeValue(MapNode* node) { return reinterpret_cast<char*>(node) + 8; }
+CParty* NodeParty(MapNode* node) { return reinterpret_cast<PartyInPlace*>(node + 1)->Get(); }
 
 } // namespace
 
@@ -177,10 +178,10 @@ void __fastcall PartyManagerNewGameFour(void* manager) {
 }
 EI_REWRITTEN(0x004A88C0, PartyManagerNewGameFour);
 
-void PartyManager::BeginRedeploy(void* players) { records.BeginRedeploy(static_cast<CParty*>(players)); }
+void PartyManager::BeginRedeploy(CParty* party) { records.BeginRedeploy(party); }
 EI_REWRITTEN(0x004A8890, PartyManager::BeginRedeploy);
 
-void PartyManager::EndRedeploy(void* players) { records.EndRedeploy(static_cast<CParty*>(players)); }
+void PartyManager::EndRedeploy(CParty* party) { records.EndRedeploy(party); }
 EI_REWRITTEN(0x004A8880, PartyManager::EndRedeploy);
 
 int g_nextPartyId = /*0078B0E8*/ 1;
@@ -191,7 +192,7 @@ int __stdcall PartyNextId(int* out) {
 }
 EI_REWRITTEN(0x004A8910, PartyNextId);
 
-bool PartyManager::LoadParty(int, int, const int* key, void* target) const {
+bool PartyManager::LoadParty(int, int, const int* key, CParty* target) const {
     const void* map = this;
     if (*key == 0) {
         PartyResetOriginal((void*)target, nullptr, 1, 0);
@@ -199,18 +200,18 @@ bool PartyManager::LoadParty(int, int, const int* key, void* target) const {
     }
     MapNode* node = FindNode(map, *key);
     if (!node) return false;
-    static_cast<CParty*>(target)->Assign(static_cast<CParty*>(NodeValue(node)));
+    target->Assign(NodeParty(node));
     return true;
 }
 EI_REWRITTEN(0x004A8790, PartyManager::LoadParty);
 
-bool PartyManager::StoreParty(const int* key, const void* source) {
+bool PartyManager::StoreParty(const int* key, CParty* source) {
     void* map = this;
     MapNode* node = FindNode(map, *key);
-    void* value = node ? NodeValue(node)
-                       : static_cast<void*>(static_cast<gamehash::PartyTable*>(map)->At(
-                                                              reinterpret_cast<const std::uint32_t*>(key)));   // 004A91B0
-    static_cast<CParty*>(value)->Assign(static_cast<CParty*>(const_cast<void*>(source)));
+    CParty* value = node ? NodeParty(node)
+                         : static_cast<gamehash::PartyTable*>(map)->At(
+                               reinterpret_cast<const std::uint32_t*>(key))->Get();   // 004A91B0
+    value->Assign(source);
     return true;
 }
 EI_REWRITTEN(0x004A8800, PartyManager::StoreParty);

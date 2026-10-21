@@ -615,9 +615,8 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
 
 } // namespace
 
-void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placementsArg) {
+void CWorldServer::StoreParty(void* recordsArg, CParty* party, void* placementsArg) {
     auto* list = static_cast<RecordPtrArray*>(recordsArg);
-    auto* party = static_cast<CParty*>(partyRecords);
     auto* placements = static_cast<PlacementArray*>(placementsArg);
     if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).

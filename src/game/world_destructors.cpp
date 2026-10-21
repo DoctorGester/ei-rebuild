@@ -253,7 +253,7 @@ void CWorldClient::Destruct() {
     DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();   // the client's +0xA0
     if (countedA0_.data) {
-        for (int i = 0; i < countedA0_.size; ++i) ObjectHolderRelease(&countedA0_.data[i]);
+        for (int i = 0; i < countedA0_.size; ++i) ReleaseHeld(&countedA0_.data[i]);
         gamecrt::operator_delete(countedA0_.data);
     }
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));

@@ -423,7 +423,7 @@ EI_REPLACE_METHOD(0x0051CD60, CObject3DClientSpecific::ClearPartTints);
 void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ |= kLightHidden;
-    LightManager()->RemoveLight(static_cast<CLight*>(light));
+    LightManager()->RemoveLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
@@ -432,7 +432,7 @@ EI_REPLACE_METHOD(0x005119B0, CMapObjectClientSpecific::HideLight);
 void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ &= ~kLightHidden;
-    LightManager()->AddLight(static_cast<CLight*>(light));
+    LightManager()->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
@@ -440,11 +440,11 @@ EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    ObjectHolderAssign(&light, nullptr, TheLightFactory()->CreateObject(kPointLight, -1));
+    AssignHeld(&light, TheLightFactory()->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
-    static_cast<CLight*>(light)->SetPoint(&rgb, &rgb);
+    light->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);
-    auto* point = static_cast<CLight*>(light);
+    CLight* point = light;
     point->localPosition_.x = mapObject->localPosition_.x;
     point->localPosition_.y = mapObject->localPosition_.y;
     point->localPosition_.z = kLightHeight + mapObject->localPosition_.z;
