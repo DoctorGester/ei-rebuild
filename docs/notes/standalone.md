@@ -315,7 +315,7 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
-after C18e's runtime classes and throws). C18 turns them into named C++
+after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -585,12 +585,19 @@ kinds given.
       (but the generated files) names it, no initialiser call, atexit or exit function takes it, no initialiser
       reads it (a copy's source), no named range holds it, and no address referenced elsewhere and stored by no
       initialiser lies less than 0x100 below it (it could be a field of that object). Its stores are left out like a
-      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 291
-      objects, 857 store statements: the per-file copies of header constants (130 zero vectors, 102 identity
-      rotations {1, 0, 0, 0}, 59 floats: 1 / 1 and pi's folds) that the original's code never reads either. The
-      rest of the generated-only addresses are objects the original reads (read by a ported function that uses
-      the value or another name; stored by an initialiser that also calls or registers an exit function; or in
-      the 0x100 below a referenced object): name them by area as above.
+      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 347
+      objects, 998 store statements: the per-file copies of header constants (zero vectors, identity rotations
+      {1, 0, 0, 0}, floats: 1 / 1 and pi's folds) that the original's code never reads either, and the neighbours of
+      other objects below. **C18m (reviewed)**: 48 groups lay within 0x100 above a referenced object; each was read
+      against that object (named_data.py --refs; its extent from the ported class's size, its constructor or the code's
+      accesses) and cannot be one of its fields: `REVIEWED_NEAR` in gen_static_init.py (group -> the object below and
+      why; most are a group right after the end of a database, a stream, a hash table or a list head). Reads inside
+      config/dead_code.csv do not count as the original's reads, and `REVIEWED_READ` lists five groups whose readers
+      are ported with a literal or are no operand (loop bounds ending at the group, a call displacement that reads as an
+      address). An entry that no longer fits (the object below got a name, the group got a reader) fails the
+      generator: drop it. The rest of the generated-only addresses are objects the original reads (read by a ported
+      function that uses the value or another name; stored by an initialiser that also calls or registers an exit
+      function; or stored by calls): name them by area as above.
     The verify build has no run where the original's initialisers and ours meet (since S21e game.exe runs only the
     original), so the comparison is the build's: exact for stores and folds of literals; a definition that a
     call fills (the sway curves) is compared at its zero start, and the goldens cover what the call builds.
