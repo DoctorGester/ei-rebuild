@@ -291,10 +291,10 @@ public:
     int ScaledAttackValue(int kind, CItem* item);
     // 0054BA30. The damage of the current attack per damage type, written to out[1..7]: (damage +
     // spread) of the weapon (party units) or of the natural attack, scaled, times each weight.
-    void GetDamageByType(std::int16_t* out);
+    void GetDamageByType(std::uint16_t* out);
     // 0054BB20. The damage of the spell from `source` by damage type: out[0] = 0x7FFF, out[1 + its
     // type] = its truncated +0x24, the rest of the 16 bytes 0.
-    void GetSpellDamage(std::uint32_t source, std::int16_t* out);
+    void GetSpellDamage(std::uint32_t source, std::uint16_t* out);
     // 0054B7C0. The quick item of `source` (high bit ignored) if it carries a spell (class 0x13,
     // category 5 or 8), else null.
     CItem* SpellCarrier(std::uint32_t source);
