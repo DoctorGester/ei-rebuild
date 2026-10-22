@@ -1130,7 +1130,9 @@ the `--no-hooks` suite) keeps the registry.
 - **Who uses it**: CWinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
-  ui_widescreen, world_client_draw's draw radii). `ReadValue` reads the registry (read only) outside the image.
+  ui_widescreen, world_client_draw's draw radii, directdraw_holder's `Standalone` "PerfOverlay": the performance
+  overlay, renderer.md section 15, not read in the harness build). `ReadValue` reads the registry (read only)
+  outside the image.
 - **Read filters** change a value as it is read, as the registry hooks did on game.exe's import slot: EI_GAME_ROOT's
   Work path / CD-ROM Path (hook/paths.cpp) and the harness's `discprompt` (harness_startup.cpp).
 - **Harness runs** (tests/verify/harness_settings.h): the harness writes `<run folder>\ei_settings.ini` at start

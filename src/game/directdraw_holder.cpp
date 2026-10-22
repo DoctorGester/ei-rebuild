@@ -18,6 +18,7 @@
 #include "originals_engine.h"    // game::FatalError
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
+#include "settings_file.h"
 #include "sys_info.h"   // ProcessorInfo
 #include "texture.h"
 
@@ -72,6 +73,17 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
     ei::SetVtable(holder, DXSurfaceClass::Vtable());
     ++device::HolderCount();
     return holder;
+}
+
+// The performance overlay's switch (R21; docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
+// Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent. Read only where the
+// overlay exists: the harness build has none, and its pinned settings file lacks the value.
+bool PerfOverlaySetting() {
+    if (!render::PerfOverlaySupported()) return false;
+    unsigned long type = 0, value = 0, size = sizeof(value);
+    return settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "PerfOverlay", &type, &value,
+                                    &size) == 0 &&
+           type == 4 /* REG_DWORD */ && value != 0;
 }
 
 } // namespace
@@ -165,6 +177,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     // a surface; no video formats. Without the new renderer the game cannot run (R11a: no DirectDraw
     // fallback): the error ends it in WinMain.
     if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
+    render::SetPerfOverlay(PerfOverlaySetting());
     ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
     driver_ = driver;
     modes_.ClearWith([](DDSURFACEDESC2*) {});
