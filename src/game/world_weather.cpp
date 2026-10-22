@@ -63,10 +63,10 @@ void TryLightningStrike(CWorldServer* world) {
     ground.x = Uniform(MapScale());
     ground.y = Uniform(MapScale());
     ground.z = 0.0f;
-    void* aiMap = world->aiMap_;
-    int kind = static_cast<CAIMap*>(aiMap)->MaterialAt(&ground);
+    CAIMap* aiMap = world->AIMap();
+    int kind = aiMap->MaterialAt(&ground);
     if (kind != 3 && kind != 1) return;
-    if (static_cast<CAIMap*>(aiMap)->CellFlag80At(&ground)) return;
+    if (aiMap->CellFlag80At(&ground)) return;
 
     float dx = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * OffsetScale() - OffsetCentre());
     double dyRaw = x87::FromUnsigned(IsaacRandom::Global().Next()) * OffsetScale() - OffsetCentre();
@@ -77,17 +77,17 @@ void TryLightningStrike(CWorldServer* world) {
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    if (static_cast<CAIMap*>(aiMap)->LargestStepAlong(&ground, &sky) >= One()) return;   // NaN goes on (C0 set)
+    if (aiMap->LargestStepAlong(&ground, &sky) >= One()) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
-    CEngineObject* lightning = manager->CreateObject(kTypeLightning, -1);
+    auto* lightning = static_cast<CEffectTornado*>(manager->CreateObject(kTypeLightning, -1));
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    static_cast<CEffectTornado*>(lightning)->Launch(&ground, &sky);
-    static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
+    lightning->Launch(&ground, &sky);
+    lightning->startTick_ = world->tick_;
     ++lightning->refCount_;
-    static_cast<CEffect*>(lightning)->MarkChanged();
+    lightning->MarkChanged();
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }
 

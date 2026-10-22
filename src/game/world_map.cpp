@@ -59,10 +59,10 @@ void ClearMissiles(CWorldServer* world) {
 } // namespace
 
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
-    void* aiMap = aiMap_;
+    CAIMap* aiMap = AIMap();
     if (gamecrt::mbsicmp(mapName_, map) != 0) {
-        ResetAIMap(static_cast<CAIMap*>(aiMap));   // 005B5E10
-        static_cast<CAIMap*>(aiMap)->BeginRefresh();
+        ResetAIMap(aiMap);   // 005B5E10
+        aiMap->BeginRefresh();
         bool failed;
         {
             mfc::CString path(mfc::CString::kUnset);   // ServerMapPathOriginal constructs it
@@ -296,7 +296,7 @@ void CWorldServer::ResetState() {
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    ResetAIMap(reinterpret_cast<CAIMap*>(aiMap_));
+    ResetAIMap(AIMap());
     zoneLoaded_ = 0;
     nightLevel_ = 0;
     for (WorldAlarm& alarm : alarms_) {

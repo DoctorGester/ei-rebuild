@@ -30,7 +30,7 @@ namespace {
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-void* Selection() { return ei::GamePointer<void>(0x007B00D0); }
+CAIMap* Selection() { return ei::GamePointer<CAIMap>(0x007B00D0); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -302,7 +302,7 @@ void ObjectSpec::ObjectSpecApply() {
         WorldMakeObjectOriginal(TheServerWorld(), nullptr, &base);
         return;
     }
-    static_cast<CAIMap*>(Selection())->BeginRefresh();
+    Selection()->BeginRefresh();
     SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, base.object);
     CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
@@ -316,7 +316,7 @@ void ObjectSpec::ObjectSpecApply() {
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
     SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, base.object);
-    static_cast<CAIMap*>(Selection())->EndRefresh();
+    Selection()->EndRefresh();
 }
 EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
 
