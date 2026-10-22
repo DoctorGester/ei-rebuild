@@ -26,9 +26,9 @@ static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRe
 namespace device {
 
 // The interface and device ids as game.exe has them.
-inline const GUID& IidDirect3D7() { return ei::GameData<const GUID>(0x00745A80); }
-inline const GUID& IidHalDevice() { return ei::GameData<const GUID>(0x00745A50); }
-inline const GUID& IidTnLHalDevice() { return ei::GameData<const GUID>(0x00745A10); }
+inline constexpr GUID kIidTnLHalDevice = /*00745A10*/ {0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
+inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E}};
+inline constexpr GUID kIidDirect3D7 = /*00745A80*/ {0xF5049E77, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 
 // The game's device lock (007AEE78), held around Direct3D draws and surface locks.
 // The surface holders alive (007AEE94; 004EFA60 and the other constructors count them).

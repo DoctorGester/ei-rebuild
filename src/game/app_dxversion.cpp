@@ -3,8 +3,7 @@
 // for the newer interfaces and finally loads D3D8.DLL, returning 0 (no DirectDraw), 0x100 (DX1),
 // 0x200 (DX2), 0x300 (DX3), 0x500 (DX5), 0x600, 0x601, 0x700 or 0x800. As in the SDK sample, some
 // interfaces are never released and some failures leave a library loaded; kept as is. The
-// interface ids and class ids are the game's own (00744900 ... 00745CB0). See
-// docs/notes/app.md.
+// interface ids and class ids are the game's own (named below). See docs/notes/app.md.
 //
 // PF3 (decided by the user 2026-10-14): when the DDRAW.DLL loaded is the system's (not one in the
 // game exe's folder, such as dgVoodoo's) DirectX 7 is a given and nothing is probed. The probe cost
@@ -37,7 +36,13 @@ constexpr int kRelease = 2;
 constexpr int kCreateSurface = 6;            // IDirectDraw::CreateSurface (+0x18)
 constexpr int kSetCooperativeLevel = 20;     // IDirectDraw::SetCooperativeLevel (+0x50)
 
-const void* Id(std::uintptr_t a) { return ei::GamePointer<const void>(a); }
+// The interface and class ids as game.exe has them.
+constexpr IID kIidDirectMusic2 = /*00744900*/ {0x6536115A, 0x7B2D, 0x11D2, {0xBA, 0x18, 0x00, 0x00, 0xF8, 0x75, 0xAC, 0x12}};
+constexpr CLSID kClsidDirectMusic = /*00744930*/ {0x636B9F10, 0x0C7D, 0x11D1, {0x95, 0xB2, 0x00, 0x20, 0xAF, 0xDC, 0x74, 0x21}};
+constexpr IID kIidDirectDrawSurface4 = /*00745C50*/ {0x0B2B8630, 0xAD35, 0x11D0, {0x8E, 0xA6, 0x00, 0x60, 0x97, 0x97, 0xEA, 0x5B}};
+constexpr IID kIidDirectDrawSurface3 = /*00745C60*/ {0xDA044E00, 0x69B2, 0x11D0, {0xA1, 0xD5, 0x00, 0xAA, 0x00, 0xB8, 0xDF, 0xBB}};
+constexpr IID kIidDirectDraw7 = /*00745C90*/ {0x15E65EC0, 0x3B9C, 0x11D2, {0xB9, 0x2F, 0x00, 0x60, 0x97, 0x97, 0xEA, 0x5B}};
+constexpr IID kIidDirectDraw2 = /*00745CB0*/ {0xB3A6F3E0, 0x2B43, 0x11CF, {0xA2, 0xDE, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56}};
 
 using DirectDrawCreate = long(__stdcall*)(void*, void**, void*);
 using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);
@@ -92,7 +97,7 @@ std::uint32_t __cdecl GetDxVersion() {
         gameapi::OutputDebugStringA("Couldn't create DDraw\r\n");
         return 0;
     }
-    if (Com(ddraw, kQueryInterface, Id(0x00745CB0), &ddraw2) < 0) {   // IID_IDirectDraw2
+    if (Com(ddraw, kQueryInterface, &kIidDirectDraw2, &ddraw2) < 0) {
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
         gameapi::OutputDebugStringA("Couldn't QI DDraw2\r\n");
@@ -131,12 +136,12 @@ std::uint32_t __cdecl GetDxVersion() {
         gameapi::OutputDebugStringA("Couldn't CreateSurface\r\n");
         return 0;
     }
-    if (Com(surface, kQueryInterface, Id(0x00745C60), &surface3) < 0) {   // IID_IDirectDrawSurface3
+    if (Com(surface, kQueryInterface, &kIidDirectDrawSurface3, &surface3) < 0) {
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x300;
     }
-    if (Com(surface, kQueryInterface, Id(0x00745C50), &surface4) < 0) {   // IID_IDirectDrawSurface4
+    if (Com(surface, kQueryInterface, &kIidDirectDrawSurface4, &surface4) < 0) {
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x500;
@@ -146,8 +151,7 @@ std::uint32_t __cdecl GetDxVersion() {
 
     void* music = nullptr;   // IDirectMusic
     gameapi::CoInitialize(nullptr);
-    if (gameapi::CoCreateInstance(*static_cast<const CLSID*>(Id(0x00744930)), nullptr, 1, *static_cast<const IID*>(Id(0x00744900)),
-                                  &music) < 0) {
+    if (gameapi::CoCreateInstance(kClsidDirectMusic, nullptr, 1, kIidDirectMusic2, &music) < 0) {
         gameapi::OutputDebugStringA("Couldn't create CLSID_DirectMusic\r\n");
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x600;
@@ -161,7 +165,7 @@ std::uint32_t __cdecl GetDxVersion() {
         return 0x601;
     }
     void* ddraw7 = nullptr;
-    if (reinterpret_cast<DirectDrawCreateEx>(createEx)(nullptr, &ddraw7, Id(0x00745C90), nullptr) < 0) {   // IID_IDirectDraw7
+    if (reinterpret_cast<DirectDrawCreateEx>(createEx)(nullptr, &ddraw7, &kIidDirectDraw7, nullptr) < 0) {
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x601;
     }

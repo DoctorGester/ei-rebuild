@@ -16,7 +16,7 @@ src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/net_server_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
-src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,13
+src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,12

@@ -88,7 +88,7 @@ void RecordStageBlocks(CTextureDevice* device) {
 // screen's.
 void ConstructWithoutDirect3D(CTextureDevice* device) {
     device->d3dDevice_ = device::Direct3DDeviceToken();
-    device->deviceGuid_ = device::IidHalDevice();
+    device->deviceGuid_ = device::kIidHalDevice;
     device->zEnable_ = D3DZB_TRUE;
     // Direct3D 7 makes its device with the calling thread's x87 precision at 24 bits (the game sets
     // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
