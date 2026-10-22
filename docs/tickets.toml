@@ -2966,6 +2966,13 @@ model = "sonnet"
 depends = ["C28"]
 note = "User 2026-10-22: keep tools/check_against_exe.cmd until the naming tickets (C18u, C18r, C26's CRT objects) and C28 finish, then delete it and the game.exe-comparing modes only it uses (check_fp_fold, rdata_literals, named_data --check, check_short_functions, check_static_init, gen_image_cells --check/scan, gen_iat --check) where nothing else needs them; drop exe_path.py if only they read it. The harness keeps its game.exe paths."
 
+[[ticket]]
+id = "H30"
+title = "Harness: game.exe runs use none of our game code, so the reference cache key is the harness alone"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the original (--no-hooks) suite is only needed when the harness changes. Today the harness's game.exe side still calls some of our code (CString / string allocators, Harness* accessors, PickAt2 / UnitAt and others C18t met; 33 scenarios crashed when that code changed), so --fresh was used defensively. Make the game.exe side call game.exe's own functions and read its objects (OriginalGameData) only, list what it still links from src/, and put exactly that in run_all's reference key (with tests/verify and src/hook). Then the suite reuses cached references unless the harness changed."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
