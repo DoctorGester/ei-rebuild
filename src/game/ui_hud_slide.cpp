@@ -76,7 +76,7 @@ float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()
 float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
 
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
-    SpritePlaceOriginal(window->sceneObjects_.data[index], nullptr, x, y, depth);
+    AsUiMesh(window->sceneObjects_.data[index])->PlaceBody(x, y, depth);
 }
 
 void SetTint(CEngineObject* object, float value) {
@@ -120,7 +120,7 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     AsUiMesh(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
-    SpritePlaceOriginal(sling, nullptr, x, kSlingY, FromBits(kSlingDepthBits));
+    AsUiMesh(sling)->PlaceBody(x, kSlingY, FromBits(kSlingDepthBits));
 }
 
 } // namespace
@@ -301,7 +301,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
     CUiMesh* strip = AddSprite(nullptr);
-    UiMeshCellsOriginal(strip, nullptr, 4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
+    strip->SetGridVanilla(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     strip->visible_ = 0;
     CUiMesh* more = AddSprite(nullptr);
     more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
@@ -440,7 +440,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         const int y = static_cast<int>(gamecrt::Ftol(static_cast<float>(down + OutlineCentreY())));
         const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
         const int x = static_cast<int>(gamecrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
-        round->CallAddPoint(x, y);
+        round->AddPoint(x, y);
     }
     AddRegion()->CallSetRect(620, 0, 780, 160);
     CUiRegion* zoomIn = AddRegion();
@@ -466,7 +466,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     area->texture_ = objects_.data[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddSprite(nullptr);
-    SpritePlaceOriginal(markers, nullptr, 700.0f, 80.0f, 12.0f);
+    markers->PlaceBody(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
     Builder(markers)->ResetColours();
     markers->SetUvCount(4);
@@ -495,7 +495,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
-    SpritePlaceOriginal(needle, nullptr, 900.0f, 80.0f, FromBits(kSlingDepthBits));
+    needle->PlaceBody(900.0f, 80.0f, FromBits(kSlingDepthBits));
     needle->SetScale(0.8f);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 

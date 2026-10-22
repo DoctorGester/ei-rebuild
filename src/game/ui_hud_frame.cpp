@@ -92,7 +92,7 @@ std::uint32_t Bits(float f) {
 
 } // namespace
 
-void CUiMesh::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
+void CUiMesh::Place(float a0, float a1, float a2) { static_cast<CUiMesh*>((void*)this)->PlaceBody(a0, a1, a2); }
 
 void CHudClock::Update() {
     interface_->fastGame_ = fast_;

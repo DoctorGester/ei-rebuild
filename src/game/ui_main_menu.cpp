@@ -106,7 +106,7 @@ void CMainMenu::AddVersionLine() {
     mfc::CString text;
     TextsGetString(TheTextManager(), nullptr, kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
-    SurfaceDrawText(surface, nullptr, text, &rect, 2, 0xA7D7E4, 2, 1);
+    surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }

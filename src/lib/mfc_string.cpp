@@ -35,10 +35,6 @@ namespace {
 
 using uchar = unsigned char;
 
-// The game CRT's vsprintf. Its multibyte-aware string functions (libcrt::Mbschr and the others, crt.h)
-// follow the CRT's code page.
-__declspec(naked) int __cdecl VSPrintF(char*, const char*, va_list) EI_ORIGINAL(0x006ECC47)   // vsprintf
-
 // The string helpers take the CRT's char arguments the way the library passes them.
 const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
 uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
@@ -692,7 +688,7 @@ void CString::FormatV(const char* format, va_list arguments) {
         maxLength += itemLength;
     }
     GetBuffer(maxLength);
-    VSPrintF(data_, format, saved);
+    libcrt::Vsprintf(data_, format, saved);
     ReleaseBuffer(-1);
 }
 

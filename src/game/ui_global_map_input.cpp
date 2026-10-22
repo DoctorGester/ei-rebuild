@@ -1,5 +1,6 @@
 // The global map's input side (right-button drag, keys), its close and message-result slots
 // (CGlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
+#include "game_strings.h"
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -79,7 +80,7 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     dragStart_ = POINT{x, y};
     dragging_ = true;
     turning_ = 0;
-    interface_->CallScalePointFromScreen(&dragStart_);
+    interface_->ScalePointFromScreenEntry(&dragStart_);
     dragAngle_ = angle_;
     MouseDragY() = 0;
     MouseDragX() = 0;
@@ -148,7 +149,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
-    SurfaceDrawText(surfaces_.data[0], nullptr, text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surfaces_.data[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
     if (!isLink) {
@@ -157,7 +158,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             GlobalMapPlace& quest = quests_.data[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
-            SurfaceDrawText(surfaces_.data[0], nullptr, quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
+            surfaces_.data[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;
         }
@@ -181,9 +182,9 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
     if (inputHandled_) return;
     int action = KeyActions()[flags & kScanCodeMask];
     if (action == kActionQuickSave)
-        AutoSaveOriginal(QuickSaveName(), 0);
+        ::QuickSave(QuickSaveName(), static_cast<char>(0));
     else if (action == kActionQuickLoad)
-        LoadSavedGameOriginal(QuickSaveName());
+        QuickLoad(QuickSaveName());
 }
 
 void CGlobalMap::OnMessageResult(int) {

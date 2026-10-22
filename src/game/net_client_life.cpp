@@ -3,6 +3,7 @@
 // their STLport destructors and the counted pointers' releases, then the session base. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_coder.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "record_lists.h"
@@ -62,7 +63,7 @@ void ClientSession::Destruct() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
-    GrowingBufferDestruct(&joinData_);
+    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
     SessionBase::Destruct();
 }
 EI_REWRITTEN(0x0041CA10, ClientSession::Destruct);
@@ -76,7 +77,7 @@ void ClientBase::DestructBase() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
-    GrowingBufferDestruct(&joinData_);
+    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
     SessionBase::Destruct();
 }
 EI_REWRITTEN(0x0041C530, ClientBase::DestructBase);

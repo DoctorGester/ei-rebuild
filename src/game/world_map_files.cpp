@@ -45,7 +45,7 @@ mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
     } else {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         path = folder + name;
     }
     return new (out) mfc::CString(path);
@@ -56,7 +56,7 @@ bool __stdcall MapFileExists(const char* name) {
     mfc::CFileFind find;
     mfc::CString folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString path = folder + name;
     return find.FindFile(path, 0) != 0;
 }
@@ -67,7 +67,7 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         mfc::CString path = folder + name;
         file.stream.Open(path, netlink::FileStream::kOpenWrite, 0);
     }

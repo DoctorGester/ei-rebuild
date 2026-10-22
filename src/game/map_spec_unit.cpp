@@ -399,7 +399,7 @@ CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(base.object); }
 void UnitSpec::UnitSpecApply() {
     Spec& b = object.base;
     if (!b.object) {
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
         return;
     }
     CUnit* unit = object.Unit();

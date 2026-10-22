@@ -75,7 +75,6 @@ float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).
-__declspec(naked) void __fastcall ReloadHeroesAt(SavedParties*) EI_ORIGINAL(0x00662FB0)
 SavedParties* Heroes() { return &TheSavedParties(); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices.
@@ -409,7 +408,7 @@ void CMpHeroScreen::Create() {
     for (const char* key : commandKeys) {
         texts->GetString(key, &text);
         RECT rect{0, top, 290, top + 20};
-        SurfaceDrawText(commands, nullptr, text, &rect, 1, kWhite, kTextFormat, 1);
+        commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
     UiSurfaceReleaseDC(commands);
@@ -417,11 +416,11 @@ void CMpHeroScreen::Create() {
     // The saved heroes, from the "mp" folder of the game's data.
     SavedParties* heroes = Heroes();
     heroes->folder_ = TheDataFolder() + "mp\\";
-    ReloadHeroesAt(heroes);
+    heroes->Reload();
     RefreshHeroScroll();
     DrawHeroList();
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
-    HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
+    SetModeVanilla(kModeHeroList);
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }

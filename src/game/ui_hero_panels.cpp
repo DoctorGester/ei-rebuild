@@ -3,6 +3,7 @@
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
+#include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -273,7 +274,7 @@ struct SpriteBuild {
                int v1, int count, int flag);   // 005E7680
 };
 void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float a5, float a6, int a7, int a8, int a9, int a10) { UiMeshFramedOriginal(this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
-void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { UiMeshCellsOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
+void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sprite); }
 
 void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }

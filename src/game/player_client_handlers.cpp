@@ -106,7 +106,7 @@ int CPlayerClient::OnGameState() {
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
     for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         UnitChanged(node->value);
-    if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
+    if (IsMultiplayerClient()) TheGameFlow()->UpdateFromServer();
     return 1;
 }
 

@@ -198,7 +198,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             std::memcpy(&bits, &barScale, sizeof(bits));
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(PanelHeight() - barScale * PanelHeight());
-            SpritePlaceOriginal(sceneObjects_.data[kHeightBar], nullptr, static_cast<float>(20 - offset_), barY, 4.0f);
+            static_cast<CUiMesh*>(sceneObjects_.data[kHeightBar])->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
             Sprite(this, kHeightBar)->visible_ = 1;
             break;
         }

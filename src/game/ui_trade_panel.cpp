@@ -29,12 +29,12 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
 
+int __fastcall SchoolPrice(int /*from*/, int /*to*/);
 namespace {
 
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
 // skill record's price (UnitStats::SkillPrice); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
 // The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
 // CString (RET 8), 004E0020 the text of a key (RET 8).

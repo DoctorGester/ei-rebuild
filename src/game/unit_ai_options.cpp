@@ -12,6 +12,7 @@
 #include <bit>
 #include <initializer_list>
 
+std::uint16_t __fastcall MaxDamage(const std::uint16_t*);
 namespace {
 constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
 constexpr int kNoKind = 8;
@@ -22,9 +23,6 @@ constexpr float kHealWeight = 10.0f;        // 0073BAAC
 // The option kind per spell type (005CEDC0's byte table 005CEE4C through its jump table).
 constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6, 6, 6, 8, 8, 8,
                                  8, 8, 8, 7, 4, 5, 8, 8, 5, 4, 6, 4, 6, 8, 8, 8, 8, 8, 8, 1, 1};
-
-// 00522B20 (fastcall, AX): the largest of damage[1..7] (units area, not rewritten).
-__declspec(naked) std::uint16_t __fastcall MaxDamage(const std::uint16_t*) EI_ORIGINAL(0x00522B20)
 
 double __fastcall OptionWeight(const AIAttackOption*);
 

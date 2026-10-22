@@ -100,7 +100,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
             mfc::CString left = zone.Left(zone.GetLength() - 2);
             zone = left;
         }
-        FlowLoadQuestsOriginal(zone);
+        LoadZoneQuests(zone);
     }
     mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
     BriefingVariableInto(&variable, briefing);
@@ -196,7 +196,7 @@ void ShareQuestFile(const char* path, const char* name) {
 stlp::string MapFilePath(const mfc::CString& file) {
     mfc::CString folder;
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString full = folder + file;
     return stlp::string(full.GetString());
 }
@@ -212,7 +212,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         mfc::CFileFind find;
         mfc::CString folder;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         mfc::CString pattern = folder + file.GetString();
         found = find.FindFile(pattern, 0) != 0;
     }
@@ -272,7 +272,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 void GameFlow::RegisterQuests(const char* folder) {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
-    if (!FlowLoadQuestsOriginal(folder)) return;
+    if (!LoadZoneQuests(folder)) return;
     StringVector& folders = QuestFolders();
     for (stlp::string* s = folders.begin(); s != folders.end(); ++s)
         if (Equal(*s, folder)) return;

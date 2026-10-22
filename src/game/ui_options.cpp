@@ -27,8 +27,6 @@
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
-
 namespace {
 
 // Strings of the exe.
@@ -139,7 +137,7 @@ CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(in
 
 // A row text into the surface (005FDE20, Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
-    SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, 1);
+    surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
 
 // The text key `key` read up to its '#' into `text` (unchanged when there is no such text).

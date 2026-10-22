@@ -8,6 +8,7 @@
 // docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
 #include "item.h"
 #include "game_strings.h"
+#include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
@@ -72,7 +73,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface
 int CTradeGrid::DrawGrid(int pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
-    ui->CallScaleRectToScreen(&grid);
+    ui->ScaleRectToScreenEntry(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &screen, 0.0f);
     RECT inside = grid;

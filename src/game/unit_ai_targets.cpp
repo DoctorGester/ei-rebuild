@@ -1,6 +1,7 @@
 // The unit AI's target choice: scoring an attack option against a unit (005CF9A0), whether an
 // option may be used (005CF7F0), choosing the best target (005D0030), and the orders it checks
 // (00545F40, 005CF720, 005CF780), and whether the unit can get at a target (005CF3C0).
+#include "sector_map.h"
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -142,7 +143,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
         CWorldServer* server = TheServerWorld();
         // The target is lifted off the sector map so it does not block its own cell.
-        SectorMapRemove(server->Sectors(), nullptr, target);
+        server->Sectors()->Remove(target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
             float scale = static_cast<float>(kOne * kHalf);
             point.x = static_cast<float>(scale * local.path.targetX);
@@ -151,7 +152,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         } else {
             point = *PositionOf(self);
         }
-        SectorMapAdd(server->Sectors(), nullptr, target);
+        server->Sectors()->Add(target);
     }
 
     AIOrder order;

@@ -274,7 +274,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         anchor_ = 0;
         DrawInput();
         AddText((mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
-        ExecuteAt(commands_.data[0]);
+        Execute(commands_.data[0]);
         return;
     }
     case 27:   // Escape

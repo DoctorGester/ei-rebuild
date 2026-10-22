@@ -15,6 +15,7 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "originals_core.h"
 #include "originals_effects.h"
 
@@ -80,7 +81,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
 } // namespace
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out) {
-    QuaternionToMatrixOriginal(orientation, nullptr, out->m);
+    static_cast<const Quaternion*>(orientation)->ToMatrix(out->m);
     std::memcpy(&out->m[11], &position->z, 4);
     std::memcpy(&out->m[3], &position->x, 4);
     std::memcpy(&out->m[7], &position->y, 4);

@@ -133,7 +133,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     RECT slots[7];
     for (int i = 0; i < 7; ++i) {
         RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        interface_->CallScaleRectToScreen(&r);
+        interface_->ScaleRectToScreenEntry(&r);
         slots[i] = r;
     }
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);

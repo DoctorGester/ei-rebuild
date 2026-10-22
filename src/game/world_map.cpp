@@ -32,8 +32,6 @@
 namespace {
 
 
-// 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
-__declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 // 0040A3A0. CRefObject::Release (the missiles).
 
@@ -68,7 +66,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         {
             mfc::CString path(mfc::CString::kUnset);   // ServerMapPathOriginal constructs it
             ServerMapPathOriginal(this, nullptr, &path, map);
-            failed = AIMapLoad(aiMap, nullptr, path) == 0;
+            failed = static_cast<CAIMap*>(aiMap)->Load(path) == 0;
         }
         if (failed) return 0;
         mapName_ = map;
@@ -267,7 +265,7 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = PlayerCreateOriginal(players_);
+    CPlayer* temporary = static_cast<CPlayer*>(players_->CreateSessionPlayer());
     CPlayerServer* state = temporary->Server();
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {
@@ -321,7 +319,7 @@ EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
     if (GameMbscmp(mapName_, map) == 0 && GameMbscmp(mobName_, mob) == 0) return;
-    WorldNewZoneOriginal(this, nullptr, map, mob, nullptr);   // patched by Rebirth: stays the original
+    NewZone(map, mob, nullptr);   // patched by Rebirth: stays the original
     TeardownZone();
 }
 EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);

@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
@@ -74,7 +75,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         unit->TurnUpTowards(direction, 1);
     } else if (rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
-        QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
+        unit->localRotation_.AxisY(&axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.

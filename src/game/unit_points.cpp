@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/vecmath.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
@@ -96,11 +97,11 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
-            QuaternionAxisX(&unit->localRotation_, nullptr, &axis);
+            unit->localRotation_.AxisX(&axis);
             float reach = unit->above.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
-            QuaternionAxisX(&unit->localRotation_, nullptr, &axis);
+            unit->localRotation_.AxisX(&axis);
             float reach = unit->above.x;
             offset = -axis * reach;
         }

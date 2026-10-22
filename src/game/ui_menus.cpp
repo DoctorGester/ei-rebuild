@@ -62,7 +62,6 @@ UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(
 // --- Forwarders --------------------------------------------------------------------------------
 
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
-__declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -98,8 +97,8 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
                     selected_ = static_cast<int>(index);
                     TakeSelectedTitle();
                 }
-                RefreshList();
-                CallShowPicture();
+                RefreshListVanilla();
+                ShowPicture();
             }
         }
         break;
@@ -153,7 +152,7 @@ void CSaveLoadWindow::Update() {
     int position;
     if (scrollbar_->TakePosition(&position)) {
         firstVisible_ = position;
-        RefreshList();
+        RefreshListVanilla();
     }
 }
 
@@ -164,9 +163,9 @@ void CSaveLoadWindow::CloseDialog() {
 
 void CSaveLoadWindow::OnDialogResult(int result) {
     if (result == kResultDelete)
-        CallDeleteSave();
+        DeleteSave();
     else if (result == kResultOverwrite)
-        CallSaveGame();
+        SaveGame();
     else if (result == kResultLoad)
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }
@@ -206,7 +205,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
     if (region == 0 || region == 1) {
         const char* sound;
         if (region == 0) {
-            CallApply();
+            Apply();
             sound = kSoundOk;
         } else {
             RestoreSettings();
@@ -407,7 +406,7 @@ void CUiScrollbar::Update() {
 
 void CUiScrollbar::OnMouseDown(int, int x, int y) {
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     if (gameapi::PtInRect(&thumb_, point)) {
         CaptureMouse();
         state_ = 1;

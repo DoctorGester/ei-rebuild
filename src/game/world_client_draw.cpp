@@ -26,6 +26,7 @@
 #include "texture.h"
 #include "device.h"
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -99,7 +100,6 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) int __fastcall DrawPassAt(CWorldClient*) EI_ORIGINAL(0x0056AFE0)
 __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL(0x00468940)
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
@@ -275,8 +275,8 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
-    PushSceneMatrixOriginal(device, nullptr, top, kStackScene2);
-    PushSceneMatrixOriginal(device, nullptr, top, kStackScene1);
+    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene2);
+    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene1);
     PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
 
     std::uint32_t flags = flags_;
@@ -303,7 +303,7 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, g_stageBlocks[kTerrainBlock]);
         terrain_->DrawGround(TheSceneRenderer());
     }
-    DrawPassAt(this);
+    DrawPass();
     net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         Vector3 frame;
@@ -554,7 +554,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        QuaternionAxisZ(&TheCamera()->localRotation_, nullptr, &sun);
+        TheCamera()->localRotation_.AxisZ(&sun);
         const float scale = ShadowLength();
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -562,8 +562,8 @@ int CWorldClient::DrawPass() {
         matrix.m[7] = product;
         product = sun.z * scale;
         matrix.m[11] = product;
-        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
-        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
+        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene2);
+        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene1);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
@@ -602,8 +602,8 @@ int CWorldClient::DrawPass() {
                     }
                     const Quaternion* orientation = &object->localRotation_;
                     Vector3 axisY, axisX;
-                    QuaternionAxisY(orientation, nullptr, &axisY);
-                    QuaternionAxisX(orientation, nullptr, &axisX);
+                    orientation->AxisY(&axisY);
+                    orientation->AxisX(&axisX);
                     TheSceneRenderer()->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {

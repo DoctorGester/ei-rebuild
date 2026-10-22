@@ -73,7 +73,7 @@ float SortArrowX(int column) {
 }
 
 void Draw(CUiSurface* surface, const char* text, RECT* rect, int format) {
-    SurfaceDrawText(surface, nullptr, text, rect, kFont, TextColour(), format, 1);
+    surface->DrawTextIn(text, rect, kFont, TextColour(), format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut; with EI_UTF8 at a character's end) and

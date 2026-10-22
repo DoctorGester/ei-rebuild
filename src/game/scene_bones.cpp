@@ -134,7 +134,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             Vector3 d, s, r;
             SubtractVectors(&d, *b, *a);
             ScaleVector(&s, d, toNext);
-            const Vector3* sum = VectorAdd(&r, a, &s);
+            const Vector3* sum = AddVectors(&r, *a, s);
             std::memcpy(p, sum, sizeof(Vector3));
         }
     }

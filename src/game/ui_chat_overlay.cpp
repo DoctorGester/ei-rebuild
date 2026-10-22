@@ -111,7 +111,7 @@ COLORREF MarkColour(char digit) {
 
 void DrawPiece(CUiSurface* surface, const char* text, int x, COLORREF colour) {
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
-    SurfaceDrawText(surface, nullptr, text, &rect, kLineFont, colour, kLineDrawFormat, 1);
+    surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
 } // namespace
 
@@ -241,7 +241,7 @@ void CChatOverlay::SetOpen(bool open) {
         typed_.Empty();
         caret_ = 0;
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 EI_REWRITTEN(0x005E36C0, CChatOverlay::SetOpen);
 
@@ -270,7 +270,7 @@ void CChatOverlay::DrawTyped() {
     ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
-    SurfaceDrawText(surface, nullptr, typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, typed_.Left(caret_), kTypedFont);
     if (width < kMaxTypedWidth) {
         ui_gdi::GamePen pen;
@@ -329,7 +329,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     default:
         return;
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 
 void CChatOverlay::OnChar(int key, int, int) {
@@ -344,7 +344,7 @@ void CChatOverlay::OnChar(int key, int, int) {
         typed_ = line;
         caret_ += text::TypedLength(key);
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 namespace {
 } // namespace
@@ -371,7 +371,7 @@ CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
                       : nullptr);
     chatOpen_ = false;
     caret_ = 0;
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
     return this;
 }
 EI_REWRITTEN(0x005E26F0, CChatOverlay::Construct);

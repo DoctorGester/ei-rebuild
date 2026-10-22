@@ -285,10 +285,10 @@ BOOL CExchangeScreen::Draw(int pass) {
     texts->GetString("xch_current_money", &text);
     line.Format("%s %d", text.GetString(), LocalParty()->Money());
     RECT rect{0, 0, 200, 0x14};
-    SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
+    surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);
     rect = RECT{0, 0x14, 200, 0x28};
-    SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kWhite, 1, 1);
+    surface->DrawTextIn(text, &rect, kAlignLeft, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 
     // Surface 1: the money offer's caption.
@@ -311,7 +311,7 @@ BOOL CExchangeScreen::Draw(int pass) {
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
         line.Format("%d", partnerOffer_->Money());
         rect = RECT{0, 0x28, 200, 0x3C};
-        SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
+        surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     }
     UiSurfaceReleaseDC(surface);
 
@@ -328,7 +328,7 @@ BOOL CExchangeScreen::Draw(int pass) {
                                                               : "xch_remote_cancel",
                          &text);
         rect = RECT{0, 0x28, 200, 0x3C};
-        SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kGrey, 1, 1);
+        surface->DrawTextIn(text, &rect, kAlignLeft, kGrey, 1, 1);
     }
     UiSurfaceReleaseDC(surface);
 

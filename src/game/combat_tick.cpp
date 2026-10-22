@@ -12,6 +12,7 @@
 #include "maths.h"
 #include "player_messages.h"
 #include "random.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -130,8 +131,6 @@ namespace {
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
 } // namespace
-
-__declspec(naked) void CUnitServer::CallExecuteOrder() EI_ORIGINAL(0x0054D960)
 
 namespace {
 void TellParty(CUnit* unit, int message) {
@@ -337,7 +336,7 @@ bool CUnitServer::StartMove() {
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(world->Sectors(), nullptr, current->data);
+        world->Sectors()->Add(current->data);
     }
     bool arrived = false;
     if (action.param) {
@@ -402,7 +401,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         stoodBlocked = 0;
-        CallExecuteOrder();
+        ExecuteOrder();
         return true;
 
     case kOrderAnimation: {
@@ -538,7 +537,7 @@ void CUnitServer::ContinueAction() {
         if (stoodBlocked) {
             failed = true;
         } else if (seen) {
-            CallExecuteOrder();
+            ExecuteOrder();
             return;
         }
     } else if (stoodBlocked) {
@@ -864,7 +863,7 @@ void CUnitServer::ApproachTarget() {
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    SectorMapRemove(TheServerWorld()->Sectors(), nullptr, chased);
+    TheServerWorld()->Sectors()->Remove(static_cast<CMapObject*>(chased));
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
@@ -874,7 +873,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    SectorMapAdd(TheServerWorld()->Sectors(), nullptr, chased);
+    TheServerWorld()->Sectors()->Add(static_cast<CMapObject*>(chased));
 
     double h = HalfScale();
     float headX = static_cast<float>(h * motion.targetX);

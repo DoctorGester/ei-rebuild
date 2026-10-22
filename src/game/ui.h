@@ -105,12 +105,6 @@ public:
     int ScalePointFromScreen(POINT* point) const;
     int ScalePointFromScreenCopy(POINT* point) const;
 
-    // Rewritten code calls the scaling functions through their original addresses: Rebirth patches
-    // all of them (widescreen), so in that install the hooks are skipped and the patched versions
-    // must still run (rewrite-guide rule 9). In the vanilla install these land on the rewrites above.
-    int CallScaleRectToScreen(RECT* rect) const;        // -> 005F7CA0
-    int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
-    int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
     // The same where Rebirth's WideScreen scales without the margin: addon clears ECX before the call
     // (XOR ECX,ECX over MOV ECX,[ESI+0x98] / [EDI+4]: the text surfaces' draw 005FDE20, the edit
     // field 0065C2E0, the connection list 0061D780, the save / load list 006567A0, the chat line
@@ -474,7 +468,6 @@ public:
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
-    void CallAddPoint(int x, int y);                              // -> 005FCA70 (Rebirth-patched too)
     // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect (through its original address) from a RECT
     // passed by value; the menus' layouts use it for their menus.reg rectangles.
     void SetRectFrom(RECT rect);
@@ -1513,7 +1506,6 @@ public:
     // frame, the flash and the region; 56 wide (multiplayer: 40, or 56 with the low byte of `wide`
     // for the first). The low byte of `hasPlayer` marks a player's portrait (half tint, no bars).
     void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
-    void AddPortraitAt(const char* model, const char* picture, int wide, int hasPlayer);
 
     // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
     // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
@@ -1945,8 +1937,6 @@ public:
     // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
     // shows the button's state (scene object 5).
     void ToggleFlag();
-    // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
-    void ShowMode(int mode);
     // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
     // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
     // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
@@ -2817,17 +2807,7 @@ public:
     // 00655A10. A selected save that is not broken: "notify_loading" shown, 00578920(1), "ok"
     // played, the game flow asked to load its folder (flag 0).
     void LoadSelected();
-    void CallDeleteSave();
 
-    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
-    // RefreshListVanilla in ui_saveload_list.cpp, A-H26, WideScreen reproduced behind its flag, W2). Draws the list into surface 0: the caret
-    // clamped to the name; up to sixteen rows from firstVisible_, each the save's title (the typed
-    // name for the selected row of a save window) and, but for a save window's new save, its date
-    // ("%d/%m, %H:%M"); the selected row also gets the caret (a save window, not the quick or an
-    // automatic save) and the marker (scene object 4, hidden otherwise); then for a selected save
-    // that is not broken its allod, zone, the game's day and time ("save_day" d, h:mm from
-    // gameTime_ hours) and its folder.
-    void RefreshList();
     void RefreshListVanilla();
 
     // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
@@ -2843,9 +2823,6 @@ public:
     // list, sorts it, puts the new save's entry first in a save window (with dialog_ made from the
     // escape menu's 256x192 copy of the screen) and sets the scroll bar's range.
     void FillEntries();
-    void CallSaveGame();
-    void CallShowPicture();
-    void CallFillEntries();
 
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
@@ -3182,7 +3159,6 @@ public:
     // ("action_" + name), and the first key name (table 007857B0) of a scan code bound to the
     // action, as the keys' text.
     void BuildBindings();
-    void CallApply();
 
     // 00652000 (ui_options.cpp, A-H21). Binds pressedKey_ to the selected row's action: the row's
     // keys unbound and replaced by the pressed one (keys text rebuilt), the key taken from the first
@@ -3245,13 +3221,6 @@ public:
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
     // the key is marked used. Other keys: nothing.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
-    // DrawContentsVanilla in ui_edit_field.cpp, A-H26, WideScreen reproduced behind its flag, W2). The caret is clamped to the text; with the
-    // surface's DC (nothing without one) the surface is cleared, the text drawn over the whole
-    // field in font_ and colour_ (centred when centred_), and the caret drawn as a line of
-    // caretColour_ over the field's height after the first caret_ characters, unless it falls
-    // outside the field. (Not named DrawText: windows.h makes that a macro.)
-    void DrawContents();
     void DrawContentsVanilla();
     mfc::CString& Text() { return text_; }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,

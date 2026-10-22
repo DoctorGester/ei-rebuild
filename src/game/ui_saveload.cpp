@@ -152,11 +152,6 @@ const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 // --- Forwarders through the original addresses ---------------------------------------------------
 
-__declspec(naked) void CSaveLoadWindow::CallSaveGame() EI_ORIGINAL(0x00655550)
-__declspec(naked) void CSaveLoadWindow::CallShowPicture() EI_ORIGINAL(0x00656E10)
-__declspec(naked) void CSaveLoadWindow::CallFillEntries() EI_ORIGINAL(0x00655D40)
-__declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
-
 
 // --- 00656E10 ------------------------------------------------------------------------------------
 
@@ -619,7 +614,7 @@ void CSaveLoadWindow::Confirm() {
     }
     interface_->PlaySound(kSoundOk, 0);
     if (selected_ == 0) {
-        CallSaveGame();
+        SaveGame();
         return;
     }
     Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
@@ -659,11 +654,11 @@ void CSaveLoadWindow::DeleteSave() {
     }
     find.Close();
     gameapi::RemoveDirectoryA(folder);
-    CallFillEntries();
+    FillEntries();
     int count = EntryCount();
     if (static_cast<unsigned>(selected_) >= static_cast<unsigned>(count)) selected_ = count - 1;
     TakeSelectedTitle();
-    RefreshList();
-    CallShowPicture();
+    RefreshListVanilla();
+    ShowPicture();
 }
 EI_REPLACE_METHOD(0x00655B20, CSaveLoadWindow::DeleteSave);

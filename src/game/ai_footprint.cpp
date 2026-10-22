@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/vecmath.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_render.h"
@@ -132,7 +133,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The object's transform: rotation from its orientation, translation from its position.
     CMapObject* mapObject = ObjectSlots(object);
     float* matrix = mapObject->worldMatrix.m;
-    QuaternionToMatrixOriginal(&mapObject->localRotation_, nullptr, (float*)matrix);
+    static_cast<const Quaternion*>(&mapObject->localRotation_)->ToMatrix((float*)matrix);
     std::memcpy(&matrix[11], &mapObject->localPosition_.z, 4);
     std::memcpy(&matrix[3], &mapObject->localPosition_.x, 4);
     std::memcpy(&matrix[7], &mapObject->localPosition_.y, 4);

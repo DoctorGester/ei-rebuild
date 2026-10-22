@@ -19,20 +19,14 @@ struct AIPath;
 struct DeltaField;
 struct Vector3;
 
-__declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
-    EI_ORIGINAL(0x005B9C90)
-__declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const Vector3* /*target*/, AIPath* /*path*/, float /*range*/, float /*minDistance*/)
-    EI_ORIGINAL(0x005BB350)
 // 005C0DF0 / 005C1010 (rewritten as CSectorMap::Add / Remove): put an object into / take it out of the
 // sector grid cell of its position; AL = whether it was done.
 // The sector map of a world / AI map held as raw memory.
 inline CSectorMap* AsSectorMap(void* map) { return static_cast<CSectorMap*>(map); }
 inline CEngineObject* AsEngineObject(const void* object) { return static_cast<CEngineObject*>(const_cast<void*>(object)); }
-__declspec(naked) inline bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 // 005C11D0 CSectorMap::Move (patched by Rebirth's FixMoveObject, so called through its address; RET 8, AL).
 __declspec(naked) inline bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)
     EI_ORIGINAL(0x005C11D0)
-__declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 
 // 00522AE0 (thiscall on 8 damage words, RET 4): the sum over words 1..7 of what exceeds the
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
@@ -50,4 +44,3 @@ __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*
 // The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their
 // addresses so the verify wrappers see the calls (all thiscall on the mode; RET 4 / 8 / 8 / 8).
 struct AIBrain;
-__declspec(naked) inline void __fastcall PlayerUpdateCombatOriginal(void* /*mode*/, void*, AIBrain*) EI_ORIGINAL(0x005D4170)

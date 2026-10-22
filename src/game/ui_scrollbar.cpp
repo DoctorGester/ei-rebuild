@@ -142,7 +142,7 @@ float WheelStep() { return 0.008333334f /*00742C84*/; }
 void CUiScrollbar::OnMouseMove(int, int x, int y) {
     if (state_ == kDragging) {
         POINT point{x, y};
-        interface_->CallScalePointFromScreen(&point);
+        interface_->ScalePointFromScreenEntry(&point);
         int along = point.y - grabY_;
         CallSetPosition(Truncate(static_cast<double>(along - track_.top) * maxPosition_ / (track_.bottom - track_.top)));
     }
@@ -180,7 +180,7 @@ EI_REWRITTEN(0x0065B730, CUiSlider::SetPosition);
 void CUiSlider::OnMouseMove(int, int x, int y) {
     if (state_ == kDragging) {
         POINT point{x, y};
-        interface_->CallScalePointFromScreen(&point);
+        interface_->ScalePointFromScreenEntry(&point);
         int along = point.x - grabX_;
         CallSetPosition(Truncate(static_cast<double>(along - track_.left) * maxPosition_ / (track_.right - track_.left)));
     }

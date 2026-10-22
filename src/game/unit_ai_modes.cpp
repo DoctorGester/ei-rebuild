@@ -659,13 +659,13 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         int action = brain->action;
         if (action == AIBrain::kActionAttack && !target) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
         CMapObject* who = leader;
         if (!who) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         if (!direct) {
@@ -677,14 +677,14 @@ void PlayerMode::Execute(AIBrain* brain) {
             }
         }
         if (!leader) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
         // (The original inlines the walk, its GetNext 005D9830.)
         PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
         if (leaderMode && leaderMode->state == kStateCommand) return;
-        PlayerUpdateCombatOriginal(this, nullptr, brain);
+        UpdateCombat(brain);
         return;
     }
     case kStateCommand:
@@ -714,7 +714,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&to, 0, 0, kMoveTime);
         }
-        if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
+        if (state == kStateMoveTo) UpdateCombat(brain);
         return;
     }
     default:

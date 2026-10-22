@@ -152,9 +152,9 @@ void CUiTooltip::DrawLines() {
         COLORREF colour = i >= flag_ ? kTextColour : kTitleColour;
         if (i == 0 && keyName_) {
             mfc::CString text = lines_[0] + KeyOpen() + keyName_ + KeyClose();
-            SurfaceDrawText(surface, nullptr, text, &row, kFont, colour, 0, 0);
+            surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
         } else {
-            SurfaceDrawText(surface, nullptr, lines_[i], &row, kFont, colour, 0, 0);
+            surface->DrawTextIn(lines_[i], &row, kFont, colour, 0, 0);
         }
         gameapi::OffsetRect(&row, 0, step);
     }

@@ -228,7 +228,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
                 CUnit* unit = panel->owner_->party_[i];
                 if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
             }
-            panel->ShowMode(mode);
+            panel->ShowModeVanilla(mode);
         }
         inputHandled_ = true;
         return;
@@ -309,10 +309,10 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionQuickSave:
-        AutoSaveOriginal(QuickSaveName(), 0);
+        ::QuickSave(QuickSaveName(), static_cast<char>(0));
         return;
     case kActionQuickLoad:
-        LoadSavedGameOriginal(QuickSaveName());
+        QuickLoad(QuickSaveName());
         return;
     case kActionMember:
     case kActionMember + 1:

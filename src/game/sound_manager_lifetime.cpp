@@ -388,7 +388,6 @@ LoadBufferFn AilLoadSampleBuffer() { return ei::ImportAs<LoadBufferFn>(ei::Impor
 UserDataFn AilSampleUserData() { return ei::ImportAs<UserDataFn>(ei::Imports().AIL_sample_user_data); }
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
-__declspec(naked) void __fastcall ReadStreamOriginal(CSoundManager*, void*, void* /*stream*/) EI_ORIGINAL(0x006BB3A0)
 
 // PCMWAVEFORMAT, as Open fills it.
 #pragma pack(push, 2)
@@ -467,7 +466,7 @@ void CSoundManager::StreamThread() {
             playing = buffer;
             streamPosition += streamBufferFrames;
             AilLoadSampleBuffer()(streamSample, half, streamBuffers[buffer], streamBufferSize);
-            ReadStreamOriginal(this, nullptr, StreamOf(this));
+            ReadStreamVanilla(StreamOf(this));
         }
         gameapi::LeaveCriticalSection(&streamLock);
     }

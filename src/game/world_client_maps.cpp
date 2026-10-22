@@ -11,6 +11,7 @@
 #include "item.h"
 #include "lightning.h"
 #include "map_object_shadow.h"
+#include "player_manager.h"
 #include "world.h"
 #include "world_client_class.h"
 #include "world_data.h"
@@ -1079,7 +1080,6 @@ namespace {
 
 // Rebirth-patched callees (config/rebirth_patches.csv), kept as forwarders: the lights table loader
 // [00563930 (file name)] and the sound manager's constructor [006B6040].
-__declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
 
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
@@ -1177,7 +1177,7 @@ int CWorldClient::Setup() {
         mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
         texturePath_ = path;
     }
-    LoadLightsAt(this, nullptr, worlddata::LightsTableText());
+    LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
     sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
 
@@ -1245,7 +1245,7 @@ int CWorldClient::Setup() {
     ++manager->refCount_;
     manager->Init(this);
 
-    session_ = PlayerCreateOriginal(players_);
+    session_ = static_cast<CPlayer*>(players_->CreateSessionPlayer());
 
     auto* handle = gamecrt::operator_new_as<CRefObject>();
     handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
@@ -1590,7 +1590,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (map.GetLength() > 1 && map[1] != ':') {
         mfc::CString folder;
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         map = folder + map;
     }
     terrain->ClearMap();
@@ -1635,7 +1635,7 @@ int CWorldClient::LoadZone(CStream* block) {
     {
         mfc::CString table = lights + allod;
         mfc::CString file = table + worlddata::IniSuffixText();
-        LoadLightsAt(this, nullptr, file);
+        LoadLights(file);
     }
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;

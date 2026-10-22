@@ -74,7 +74,7 @@ bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
         if (party.size > 0) TheCamera()->SetTarget(party.data[0]);
-        if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
+        if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), static_cast<char>(1));
         hasHero_ = false;
         interface_->OpenHelp(0);
     }
@@ -113,7 +113,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     int after = party.size - index - 1;
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
     --party.size;
-    PortraitsRebuildOriginal(portraits_, nullptr, 0);
+    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
     RefreshSelection();
 }
 EI_REPLACE_METHOD(0x006364E0, CBattleScreen::OnUnitLeft);
@@ -190,7 +190,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         party.SetSize(count + 1, -1);
         party.data[count] = unit;
     }
-    PortraitsRebuildOriginal(portraits_, nullptr, 0);
+    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
     if (selected) {
         TheClientWorld()->Select(unit);
         MarkPortrait(place);

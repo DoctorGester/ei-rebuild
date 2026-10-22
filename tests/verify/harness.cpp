@@ -454,6 +454,8 @@
 #include "../../src/game/item.h"
 #include "../../src/game/options.h"
 #include "../../src/game/party_manager.h"
+#include "../../src/game/random.h"
+#include "../../src/lib/crt.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_client_models.h"
@@ -1468,24 +1470,26 @@ bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) 
 
 // 0049F660 seeds the ISAAC generator: srand(timeGetTime()), then 0x400 bytes from a randomly
 // chosen file under C:\ (!). In deterministic mode the results are a fixed sequence instead, and
-// rand() gets a fixed seed; 0049F150 then mixes them exactly as before.
-using SrandFn = void(__cdecl*)(unsigned);
-void __fastcall FixedIsaacSeed(void* isaac) {
-    ei::Code<SrandFn>(0x006E77EA)(12345);
-    auto* results = reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8);
+// rand() gets a fixed seed; 0049F150 then mixes them exactly as before. The image takes it through
+// IsaacRandom's seed hook (FixedSeed), game.exe through a JMP at 0049F660 (FixedIsaacSeed).
+void FillFixedSeed(std::uint32_t* results) {
     std::uint32_t x = 0x2001C0DE;
     for (int i = 0; i < 256; ++i) results[i] = x = x * 1664525u + 1013904223u;
 }
+void FixedSeed(IsaacRandom& random) {
+    gamecrt::srand(12345);
+    FillFixedSeed(random.results_);
+}
+using SrandFn = void(__cdecl*)(unsigned);
+void __fastcall FixedIsaacSeed(void* isaac) {
+    reinterpret_cast<SrandFn>(0x006E77EA)(12345);
+    FillFixedSeed(reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8));
+}
 
-// game.exe's function at `from` replaced by `to`: a JMP written there, in the image (no code there, the code section
-// guarded) the code for the address (ei::RedirectCode).
+// game.exe's function at `from` replaced by `to`: a JMP written there (game.exe's runs only).
 void JumpTo(std::uintptr_t from, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(from);
     ei::NoteHarnessPatch(from, 5, "the harness's replacement");
-    if (ei::Standalone()) {
-        ei::RedirectCode(from, to);
-        return;
-    }
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;
@@ -1840,7 +1844,7 @@ void PostRegionMouse(const std::string& verb, int index) {
                 (region->bounds_.top + region->bounds_.bottom) / 2 + region->offsetY_};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
         region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
-    ui->CallScalePointToScreen(&point);
+    ui->ScalePointToScreenEntry(&point);
     RECT client = GameClient();
     if (ui->width_ > 0 && ui->height_ > 0) {
         point.x = point.x * (client.right - client.left) / ui->width_;
@@ -4486,7 +4490,8 @@ struct Harness {
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
-            JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
+            if (ei::Standalone()) IsaacRandom::SetSeedHook(&FixedSeed);
+            else JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
             Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
             clock::InstallHeld();

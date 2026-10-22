@@ -136,3 +136,7 @@ CWorldServer* TheServerWorld() {
     alignas(8) static unsigned char world[sizeof(CWorldServer)] = {};
     return reinterpret_cast<CWorldServer*>(world);
 }
+
+// The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
+int __cdecl libcrt::Rand() EI_UNLINKED("libcrt::Rand")
+int __cdecl game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")

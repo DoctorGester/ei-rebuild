@@ -67,7 +67,7 @@ void CUiSpin::SetValue(int value) {
     RECT rect = layout_;
     gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
     // DrawText is Rebirth-patched: through its address.
-    SurfaceDrawText(surface, nullptr, texts_.data[value_], &rect, kTextFormat, kTextColour, 0, 1);
+    surface->DrawTextIn(texts_.data[value_], &rect, kTextFormat, kTextColour, 0, 1);
     UiSurfaceReleaseDC(surface);
     changed_ = true;
 }

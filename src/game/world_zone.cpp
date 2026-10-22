@@ -186,7 +186,7 @@ void CWorldServer::ClearMapObjects() {
     }
     for (auto* node = pending.head; node;) {
         auto* next = node->next;
-        WorldRemoveObject(this, nullptr, node->data->id_);
+        RemoveObject(node->data->id_);
         node = next;
     }
 

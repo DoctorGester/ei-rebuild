@@ -32,8 +32,6 @@ template <typename T> T Get(const void* base, int offset) {
 // 005319A0 (thiscall on a unit, RET 4): the unit's spell `index` (0..7) or null.
 // 0063E4B0 (thiscall, RET 8; Rebirth-patched): the next spell's sprite (model `model`, picture
 // `image`), counted in +0x14C.
-__declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const char* /*model*/, const char* /*image*/)
-    EI_ORIGINAL(0x0063E4B0)
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
@@ -71,7 +69,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 19, &image);
             ReturnedString model;
             SpellName(spell, 20, &model);
-            AddSpellSprite(this, nullptr, model.data, image.data);
+            AddSpell(model.data, image.data);
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 

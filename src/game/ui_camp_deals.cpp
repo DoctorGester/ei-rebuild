@@ -100,7 +100,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
 namespace {
 // A new item named `name` from the results' item manager, counted.
 CItemLoot* NewLoot(CParty* party, const char* name) {
-    auto* item = AsLoot(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
+    auto* item = AsLoot(party->ItemManager()->CreateItem(name));
     ++item->refCount_;
     return item;
 }
@@ -149,7 +149,7 @@ constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
 void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, bool setIndex) {
-    auto* item = AsLoot(ItemManagerCreateItemOriginal(results->ItemManager(), nullptr, name));
+    auto* item = AsLoot(results->ItemManager()->CreateItem(name));
     if (!item) return;
     ++item->refCount_;
     if (setIndex) item->index_ = prototypeIndex;

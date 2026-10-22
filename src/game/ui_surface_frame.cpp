@@ -20,7 +20,7 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
     } else {
         frame = *rect;
-        interface_->CallScaleRectToScreen(&frame);   // 005F7CA0 (Rebirth-patched)
+        interface_->ScaleRectToScreenEntry(&frame);   // 005F7CA0 (Rebirth-patched)
     }
     brush.Attach(gameapi::CreateSolidBrush(colour));
     gameapi::FrameRect(dc->hdc, &frame, brush.Handle());

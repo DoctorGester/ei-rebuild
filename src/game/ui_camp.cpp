@@ -3,6 +3,7 @@
 #include "device.h"   // the old device's calls
 #include "game_lists.h"
 #include "game_strings.h"
+#include "ui.h"
 #include "unit_create.h"
 #include "item.h"
 #include "ui_camp.h"
@@ -93,7 +94,7 @@ void SetShade(CUiMesh* mesh, float shade) {
 
 // A white centred line on a surface between GetDC and ReleaseDC (005FDE20 is Rebirth-patched).
 void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
-    SurfaceDrawText(surface, nullptr, text, rect, 1, 0xFFFFFF, 1, 1);
+    surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
 
 } // namespace

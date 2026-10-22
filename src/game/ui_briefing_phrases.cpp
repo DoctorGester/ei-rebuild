@@ -215,7 +215,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    CItem* item = ItemManagerCreateItemOriginal(TheClientWorld()->itemManager_, nullptr, *it);
+                    CItem* item = TheClientWorld()->itemManager_->CreateItem(*it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);

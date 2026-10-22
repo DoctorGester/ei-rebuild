@@ -150,7 +150,7 @@ EI_REWRITTEN(0x005FC880, CUiRegion::OnMouseMove);
 
 int CUiWindow::RegionAt(int x, int y) const {
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     for (int i = 0; i < regions_.size; ++i) {
         if (regions_.data[i]->HitTest(point.x, point.y)) return i;
     }
@@ -160,14 +160,14 @@ EI_REWRITTEN(0x005FFCC0, CUiWindow::RegionAt);
 
 BOOL CUiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     return gameapi::PtInRect(&rect_, point);
 }
 EI_REWRITTEN(0x005FFD30, CUiWindow::ContainsPoint);
 
 void CUiWindow::UpdateRegionTips(int) {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
-    interface_->CallScalePointFromScreen(&mouse);
+    interface_->ScalePointFromScreenEntry(&mouse);
     // Inlines CUiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < regions_.size; ++i) {
         CUiRegion* region = regions_.data[i];
@@ -179,7 +179,7 @@ EI_REPLACE_METHOD(0x005FEBF0, CUiWindow::UpdateRegionTips);
 // The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
 void CUiWindow::RedrawTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
-    interface_->CallScalePointFromScreen(&mouse);
+    interface_->ScalePointFromScreenEntry(&mouse);
     for (int i = 0; i < regions_.size; ++i) {
         CUiRegion* region = regions_.data[i];
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);

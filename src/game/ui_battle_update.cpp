@@ -48,12 +48,6 @@
 
 namespace {
 
-// 0063CAE0 (thiscall, RET 8; Rebirth-patched): the next slot's picture (image `image` copied into
-// the panel's texture) and a sprite of model `model` (or a plain square); counts it in +0x14C
-// (at most eight).
-__declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const char* /*model*/, const char* /*image*/)
-    EI_ORIGINAL(0x0063CAE0)
-
 } // namespace
 
 void CHudQuickItems::SetUnit(CUnit* unit) {
@@ -84,9 +78,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
-            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
-            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
@@ -103,7 +97,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             mfc::CString image = item->FigureName();   // slot 19
             mfc::CString model = item->PictureName();  // slot 20
-            AddItemSprite(this, nullptr, model, image);
+            AddItem(model, image);
         }
         finish(item, true);
         ItemTip(slot, &tip);
@@ -128,7 +122,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             mfc::CString image = item->FigureName();   // slot 19
             mfc::CString model = item->PictureName();  // slot 20
-            AddItemSprite(this, nullptr, model, image);
+            AddItem(model, image);
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
@@ -265,7 +259,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 party->SetAtGrow(party->size, unit);
             }
         }
-        PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
+        static_cast<CHudPortraits*>(screen->portraits_)->Rebuild(cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();
@@ -438,7 +432,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         POINT point = {x, y};
         CUnit* unit = world->UnitAt(&point);   // 00565E40
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
-        SelectUnitAt(this, nullptr, unit, point.x, point.y);
+        SelectUnit(unit, point.x, point.y);
         return;
     }
 

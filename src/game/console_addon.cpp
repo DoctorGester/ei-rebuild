@@ -243,7 +243,7 @@ void ApplyAddonGuiVisibility(CUiContainer* screen) {
 }
 
 void RunAddonAutoExec() {
-    for (const std::string& line : AutoExecLines()) ExecuteAt(line.c_str());
+    for (const std::string& line : AutoExecLines()) Execute(line.c_str());
 }
 
 } // namespace console

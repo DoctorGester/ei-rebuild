@@ -45,9 +45,6 @@ UnitDatabase* Units() { return &unitdb::Database(); }
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
 // figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
 // in link_loader_create.cpp).
-__declspec(naked) CLinkFigureLoader* __fastcall ConstructFigureLoader(CLinkFigureLoader*, void*, void* /*renderer*/,
-                                                                      const stlp::string* /*resource*/)
-    EI_ORIGINAL(0x004F68C0)
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
@@ -120,7 +117,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     auto* loader = gamecrt::operator_new_as<CLinkFigureLoader>();
     if (loader) {
         stlp::string resource(FiguresResource());
-        loader = ConstructFigureLoader(loader, nullptr, TheRenderDevice(), &resource);
+        loader = loader->Construct(TheRenderDevice(), &resource);
     }
     CLinkFigureLoader* old = figureLoader_;
     figureLoader_ = loader;

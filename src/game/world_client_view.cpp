@@ -23,6 +23,7 @@
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include "world_data.h"
 
 namespace {
@@ -128,7 +129,7 @@ int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4
                 // Object -> world matrix: the rotation with the position as the last column.
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix.m;
-                QuaternionToMatrixOriginal(&o3d->localRotation_, nullptr, matrix);
+                static_cast<const Quaternion*>(&o3d->localRotation_)->ToMatrix(matrix);
                 std::memcpy(&matrix[3], &o3d->localPosition_.x, 4);
                 std::memcpy(&matrix[7], &o3d->localPosition_.y, 4);
                 std::memcpy(&matrix[11], &o3d->localPosition_.z, 4);

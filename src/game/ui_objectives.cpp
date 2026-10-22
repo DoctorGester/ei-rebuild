@@ -141,7 +141,7 @@ using DistanceNode = DistanceMap::Node;
 
 // A surface's text (005FDE20, Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // Sprite fields the builder sets directly.
@@ -717,11 +717,11 @@ void CObjectivesWindow::DrawQuestList() {
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
         else mark->visible_ = 0;
         if (row == selectedQuest_) {
-            SpritePlaceOriginal(mesh(2), nullptr, 215.0f, static_cast<float>(y + 29), 3.0f);
+            mesh(2)->PlaceBody(215.0f, static_cast<float>(y + 29), 3.0f);
             mesh(2)->visible_ = 1;
         }
         RECT rect{36, y, 320, y + 21};
-        SurfaceDrawText(surface, nullptr, title, &rect, 1, 0xA7D7E4, 0, 1);
+        surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

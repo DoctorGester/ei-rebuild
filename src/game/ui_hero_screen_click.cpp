@@ -43,7 +43,7 @@ namespace {
 // The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
 // continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
-void SetMode(CMpHeroScreen* screen, void*, int mode) { HeroScreenSetModeOriginal(screen, nullptr, mode); }
+void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
 void __fastcall MpHeroCreate(CMpHeroScreen*);
 void __fastcall MpHeroAddNew(CMpHeroScreen*);
 void __fastcall MpHeroContinue(CMpHeroScreen*);
@@ -405,7 +405,7 @@ void CMpHeroScreen::Rename() {
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
-    SurfaceDrawText(surface, nullptr, name + RenameSeparator(), &rect, 1, kBright, 2, 1);
+    surface->DrawTextIn(name + RenameSeparator(), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
 namespace {

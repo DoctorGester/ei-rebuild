@@ -30,7 +30,6 @@ inline int __cdecl GameMbscmp(const char* a, const char* b) {
 }
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
-__declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
 // mfc::CString::~CString (00700970) on a string given as raw memory.
 inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
 // MFC CWnd::DestroyWindow 007051A1 (plain RET; nonzero when the window was destroyed): CWnd's destructor

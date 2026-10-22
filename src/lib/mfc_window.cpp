@@ -3,7 +3,6 @@
 #include "mfc_window.h"
 
 #include "ei/hook.h"
-#include "game/originals_library.h"   // CWndDestroyWindow
 #include "gameapi.h"
 #include "mfc.h"
 #include "mfc_runtime_class.h"
@@ -136,7 +135,8 @@ CWnd* CWnd::Construct(HWND handle) {
 
 void CWnd::Destruct() {
     base.vtable = Vtable();
-    if (window && !IsStaticWindow(this)) CWndDestroyWindow(this);
+    // CWnd::DestroyWindow (007051A1) is not ported: the image makes MFC's four static windows only.
+    if (window && !IsStaticWindow(this)) ei::UnportedSlot(0x007051A1);
     if (controlContainer) static_cast<mfc::CObjectVirtuals*>(controlContainer)->DeletingDestructor(1);
     if (controlSite && controlSite->windowControl == this) controlSite->windowControl = nullptr;
     base.Destruct();

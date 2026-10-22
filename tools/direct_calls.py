@@ -368,30 +368,9 @@ PATCHED_RANGES = []   # [start, end) of game code a Rebirth patch overwrites
 
 
 def kept_shims(sources):
-    """address -> why it stays a forwarder."""
+    """address -> why it stays a forwarder (C29: only the skip list)."""
     kept = {}
     PATCHED_RANGES.clear()
-    for s in sources:
-        for rx, why in ((RECORD, 'vector recorder (EI_RECORD)'), (STAND_IN, 'replay stand-in'),
-                        (REBIRTH, 'Rebirth-patched function (EI_REBIRTH_IMPLEMENTS)')):
-            for m in rx.finditer(s.code):
-                kept.setdefault(int(m.group(1), 16), why)
-        # The harness replaces some entries (the fixed ISAAC seed 0049F660, the random trace's rand):
-        # a direct call would pass its replacement by.
-        if s.path.startswith('tests/verify/'):
-            consts = {m.group(1): m.group(2) for m in re.finditer(r'\b(k\w+)\s*=\s*0x([0-9A-Fa-f]{8})\b', s.code)}
-            for m in re.finditer(r'\bJump(?:To|From)\(\s*(?:0x([0-9A-Fa-f]{8})|(k\w+))\b', s.code):
-                at = m.group(1) or consts.get(m.group(2))
-                if at:
-                    kept.setdefault(int(at, 16), f'the harness replaces its entry ({s.path})')
-    with open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), encoding='utf-8') as f:
-        for r in csv.DictReader(f):
-            fn = (r.get('function') or '').split('+')[0]
-            if re.fullmatch(r'[0-9A-Fa-f]{8}', fn):
-                kept.setdefault(int(fn, 16), 'Rebirth-patched function (config/rebirth_patches.csv)')
-            # A patch over code outside the function list (function "data") may cover function starts.
-            if re.fullmatch(r'[0-9A-Fa-f]{8}', r.get('site') or '') and (r.get('size') or '').isdigit():
-                PATCHED_RANGES.append((int(r['site'], 16), int(r['site'], 16) + int(r['size'])))
     if os.path.exists(SKIP):
         with open(SKIP, encoding='utf-8') as f:
             for r in csv.DictReader(f):

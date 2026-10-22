@@ -116,7 +116,7 @@ EI_REWRITTEN(0x00468920, LightningSegment::Destruct);
 int CLightningManager::Create() {
     if (!g_lightningNoiseLoaded) {
         g_lightningNoiseLoaded = 1;
-        LoadLightningNoiseOriginal();
+        LoadLightningNoise();
     }
     return CBaseManager::Create();
 }

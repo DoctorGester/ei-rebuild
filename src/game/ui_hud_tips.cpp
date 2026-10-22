@@ -29,12 +29,6 @@ namespace {
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
 // `image`), counted in +0x14C.
-__declspec(naked) void __fastcall AddWeaponSprite(CHudWeaponBar*, void*, const char* /*model*/, const char* /*image*/)
-    EI_ORIGINAL(0x0063BCC0)
-// 0063F500 (thiscall, RET 0xC; Rebirth-patched): the action column's next button (model, picture,
-// action), counted in +0x14C.
-__declspec(naked) void __fastcall AddActionButton(CHudActionColumn*, void*, const char* /*model*/,
-                                                  const char* /*image*/, int /*action*/) EI_ORIGINAL(0x0063F500)
 
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
@@ -73,7 +67,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             ItemName(weapon, 19, &image);
             ReturnedString model;
             ItemName(weapon, 20, &model);
-            AddWeaponSprite(this, nullptr, model.data, image.data);
+            AddWeapon(model.data, image.data);
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
         tip += "\n";   // "\n"
@@ -204,7 +198,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     if (static_cast<std::uint8_t>(extra) != 0) {
-        AddActionButton(this, nullptr, "initqi1item", "skill0011", -1);   // "initqi1item", "skill0011"
+        AddAction("initqi1item", "skill0011", -1);   // "initqi1item", "skill0011"
         regions_.data[count_ - 1]->SetTip(0x290E, 1, 0x1C);
     }
     CUnit* shown = unit_;
@@ -214,7 +208,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     mfc::CString title;
     mfc::CString tip;
     mfc::CString hint;
-    AddActionButton(this, nullptr, "initqi1item", "skill0009", 0);
+    AddAction("initqi1item", "skill0009", 0);
     title = "Science";
     int found = TextsOpenSection(TheTextManager(), nullptr, mfc::operator+(mfc::CString("perk "), title));
     if (found) TheTextManager()->ReadLine(&tip, 1);

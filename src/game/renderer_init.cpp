@@ -31,6 +31,7 @@
 
 using options::GameOptions;
 
+Matrix4* __stdcall AxisSwapMatrix(Matrix4*);
 namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
@@ -45,7 +46,6 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
 }
 // Matrices (model.cpp, called through their addresses): 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
-__declspec(naked) Matrix4* __stdcall AxisSwapMatrix(Matrix4*) EI_ORIGINAL(0x004F1330)
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);

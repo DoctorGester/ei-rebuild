@@ -180,10 +180,10 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         UiSurfaceGetDC(label);
         SurfaceClearOriginal(label);
         RECT rect{0, 0, 0, 0};
-        SurfaceDrawText(label, nullptr, node->second, &rect, kTextFormat, kLabelColour, 1, 1);
+        label->DrawTextIn(node->second, &rect, kTextFormat, kLabelColour, 1, 1);
         UiSurfaceReleaseDC(label);
         POINT at{x, y};
-        interface_->CallScalePointFromScreen(&at);
+        interface_->ScalePointFromScreenEntry(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
         label->Freeze(1, 0);
         return;
@@ -266,7 +266,7 @@ void CBriefingScreen::DrawTopics() {
         mfc::CString text = prefix;
         text += TopicSeparator();
         text += title;
-        SurfaceDrawText(surface, nullptr, text, &rect, kTextFormat, colour, 0, 1);
+        surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

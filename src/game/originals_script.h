@@ -19,8 +19,6 @@ struct ScriptObjectRef;
 struct ScriptRun;
 struct ScriptVars;
 
-__declspec(naked) inline int __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
-
 // 004D23A0 (RET 8, EAX 0/1): adds / loads a script line (CScript::Load, rewritten; called through its address).
 __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, const mfc::CString* /*line*/,
                                                        int /*flag*/) EI_ORIGINAL(0x004D23A0)

@@ -226,26 +226,14 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 using ClassFactory = void* (__cdecl*)();
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
-// 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
-__declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
-__declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
 // The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
 // camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) the frame's update.
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
 // registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
-__declspec(naked) int __fastcall SoundSetPathAt(CSoundManager*, void*, const char* /*folder*/, const char* /*registry*/) EI_ORIGINAL(0x006BAE20)
-// The databases read from the resources folder (RET 4; the others are in originals_world.h).
-// 00463390 is patched by Rebirth.
-__declspec(naked) int __fastcall QuestDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006AE3A0)
-__declspec(naked) int __fastcall LeverTableLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x00463390)
-__declspec(naked) int __fastcall AckDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D7620)
-__declspec(naked) int __fastcall PrintsDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D0630)
 // The interface (007C7D50): 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
 // shut down.
-__declspec(naked) void __fastcall InterfaceCreateAt(CInterface3D*, void*, CTextureDevice*) EI_ORIGINAL(0x005F4990)
-__declspec(naked) void __fastcall InterfaceShutdownAt(CInterface3D*) EI_ORIGINAL(0x005F4F90)
 // The game flow (007AFE20): 00581660 both sessions closed.
 
 // ---- Start-up --------------------------------------------------------------------------------------
@@ -500,7 +488,7 @@ std::uintptr_t OpenSound() {
     {
         mfc::CString registry = textFolder + "streamsn.reg";
         mfc::CString folder = dataFolder + "stream\\";
-        SoundSetPathAt(TheSoundManager(), nullptr, folder, registry);
+        TheSoundManager()->SetPath(folder, registry);
     }
     {
         mfc::CString effects = textFolder + "sfx.res";
@@ -523,14 +511,14 @@ std::uintptr_t OpenSound() {
 void LoadDatabases() {
     const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
-    SkillDatabaseLoadOriginal(SkillDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    QuestDatabaseLoadAt(QuestDatabaseObject(), nullptr, options->resourcesPath_);
-    UnitDatabaseLoadOriginal(UnitDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    SpellTablesLoadOriginal(SpellTablesObject(), nullptr, options->resourcesPath_, archive);
-    ItemDatabaseLoadOriginal(ItemDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    LeverTableLoadAt(LeverTableObject(), nullptr, options->resourcesPath_);
-    AckDatabaseLoadAt(AckDatabaseObject(), nullptr, options->resourcesPath_);
-    PrintsDatabaseLoadAt(PrintsDatabaseObject(), nullptr, options->resourcesPath_);
+    SkillDatabaseObject()->Load(options->resourcesPath_, archive);
+    static_cast<QuestDatabase*>(QuestDatabaseObject())->Load(options->resourcesPath_);
+    UnitDatabaseObject()->Load(options->resourcesPath_, archive);
+    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(options->resourcesPath_, archive);
+    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(options->resourcesPath_, archive);
+    static_cast<LeverRecordTable*>(LeverTableObject())->Load(options->resourcesPath_);
+    static_cast<acks::AckDatabase*>(AckDatabaseObject())->Load(options->resourcesPath_);
+    static_cast<PrintsDatabase*>(PrintsDatabaseObject())->Load(options->resourcesPath_);
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -703,7 +691,7 @@ bool RunPass() {
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
-        FlowProcessRequestOriginal(TheGameFlow());
+        TheGameFlow()->ProcessRequest();
         const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
@@ -765,14 +753,14 @@ int RunMainLoop(bool interfaceInput) {
 
 void ShutDown(gamecrt::NewHandler previousHandler) {
     DeleteComposedTextures();
-    InterfaceShutdownAt(TheInterface());
+    TheInterface()->Shutdown();
     TheCursor()->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
-    OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
+    options::TheOptions()->SaveToRegistry(RegistryRoot());
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Teardown();
     TheClientWorld()->Teardown();
@@ -803,7 +791,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
         mfc::CString settings = StartFolder() + "config\\ai.reg";
         g_logicSettings.Load(settings);
     }
-    OptionsLoadAt(options, nullptr, RegistryRoot());
+    options->LoadFromRegistry(RegistryRoot());
     const gamecrt::NewHandler previousHandler =
         libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
     TheClientWorld()->Setup();
@@ -844,7 +832,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  g_deviceNamed == 0);
-    InterfaceCreateAt(TheInterface(), nullptr, TheRenderDevice());
+    TheInterface()->Create(TheRenderDevice());
     TheMapDatabase()->LoadAll();
     StartFirstMap();
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);

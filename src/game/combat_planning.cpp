@@ -15,6 +15,7 @@
 #include "item_db.h"
 #include "map_object.h"
 #include "player_messages.h"
+#include "sector_map.h"
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
@@ -181,7 +182,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         for (int i = 0; i < spots.size; ++i) {
             spot = spots.data[i];
             path.Path()->Clear();
-            if (!MapFindPath(map, nullptr, unit, &spot, path.Path(), kFar, 0.0f)) continue;
+            if (!static_cast<CAIMap*>(map)->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
@@ -327,17 +328,17 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             if (target) {
                 savedFlag = PathFlag();
                 PathFlag() = false;
-                SectorMapRemove(ServerSectors(), nullptr, target);
+                ServerSectors()->Remove(target);
             }
             CWorldServer* world = ServerWorld();
             path.Path()->flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.Path(), kFar, 0.0f);
+            bool found = MapOf(world)->FindPath(unit, &point, path.Path(), kFar, 0.0f);
             unit->altPassCosts = saved43C;
             if (!found) path.Path()->StandStill(unit);
             if (target) {
-                SectorMapAdd(ServerSectors(), nullptr, target);
+                ServerSectors()->Add(target);
                 PathFlag() = savedFlag;
             }
             path.Path()->ToMotionOrder(&route);
@@ -370,29 +371,29 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
-        SectorMapRemove(sectors, nullptr, unit);
+        sectors->Remove(unit);
         unit->moveMode = 2;
         unit->UpdateSizeClass();
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
-        SectorMapAdd(sectors, nullptr, unit);
+        sectors->Add(unit);
     }
     std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.Path(), range, 0.0f);
+    bool found = MapOf(world2)->FindPath(unit, point, path.Path(), range, 0.0f);
     unit->altPassCosts = saved43C;
     if (running) {
-        SectorMapRemove(sectors, nullptr, unit);
+        sectors->Remove(unit);
         unit->moveMode = mode;
         unit->UpdateSizeClass();
-        SectorMapAdd(sectors, nullptr, unit);
+        sectors->Add(unit);
     }
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(sectors, nullptr, current->data);
+        sectors->Add(current->data);
     }
     ReportPath(path.Path(), found ? 1 : 0);
     // The list's RemoveAll (inlined).

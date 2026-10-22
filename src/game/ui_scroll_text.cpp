@@ -163,7 +163,7 @@ constexpr int kMeasuredFonts = 3;
 
 // A word of a line (005FDE20, Rebirth-patched: through its address).
 void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour) {
-    SurfaceDrawText(surface, nullptr, text, rect, font, colour, 0, 1);
+    surface->DrawTextIn(text, rect, font, colour, 0, 1);
 }
 } // namespace
 

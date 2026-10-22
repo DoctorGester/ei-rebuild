@@ -26,7 +26,7 @@ constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
 // --- 005FDE20 ----------------------------------------------------------------------------------------------
 
 int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
-    return SurfaceDrawText(this, nullptr, text, rect, font, colour, format, shadow);
+    return DrawTextIn(text, rect, font, colour, format, shadow);
 }
 
 int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
@@ -62,7 +62,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     dc->SelectFont(oldFont);
     // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
     if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
-    InterfacePointFromScreenCopyOriginal(interface_, nullptr, &extent);
+    interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
 EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);

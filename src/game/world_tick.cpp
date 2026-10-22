@@ -33,9 +33,6 @@ namespace {
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ------------
 
-// 0058D670. Runs the units in the update map (rewritten below; called through its address so a
-// Rebirth launch without the flag still runs addon's patched original).
-__declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
 // 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
@@ -159,7 +156,7 @@ void CWorldServer::Tick(char force) {
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
     ScriptTick(SecondScript());
-    ServerUpdateUnits(this, nullptr);
+    UpdateUnits();
 }
 
 void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
@@ -293,7 +290,7 @@ void CWorldServer::UpdateUnits() {
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);
     }
-    for (int i = 0; i < RemovedIds().size; ++i) WorldRemoveObject(this, nullptr, RemovedIds().data[i]);
+    for (int i = 0; i < RemovedIds().size; ++i) RemoveObject(RemovedIds().data[i]);
 }
 
 void CWorldServer::TickSleepingEffects() {

@@ -9,6 +9,7 @@
 #include "object_diplomacy.h"
 #include "player_messages.h"
 #include "party.h"
+#include "sector_map.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -236,7 +237,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         object->MarkChanged(-1);
         if (object->type_ != 0x3B) {
             object->SetUpAnimatedFigure(object->name);
-            SectorMapAdd(Sectors(), nullptr, object);
+            Sectors()->Add(object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -291,7 +292,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (int i = 0; i < stranded.size; ++i) {
         CUnit* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
-            SectorMapRemove(world->Sectors(), nullptr, unit);
+            world->Sectors()->Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
             Vector3 from;
             Vector3 to;
@@ -299,10 +300,10 @@ void RelocateStrandedUnits(CWorldServer* world) {
             std::memcpy(&to, position, sizeof(Vector3));
             world->AIMap()->FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
-            SectorMapAdd(world->Sectors(), nullptr, unit);
+            world->Sectors()->Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
-            WorldRemoveObject(world, nullptr, stranded.data[i]);
+            static_cast<CWorldServer*>(world)->RemoveObject(stranded.data[i]);
         }
     }
     stranded.vtable = mfc::impl::IntArrayClass::Vtable();
@@ -844,7 +845,7 @@ void CWorldServer::PrepareSave() {
         CUnit* unit = UnitOrNull(node->value);
         if (!unit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
         CUnitController* controller = unit->Controller();
-        UnitStatsRefillSlotsOriginal(&unit->ServerController()->stats);
+        unit->ServerController()->stats.RefillSlots();
         controller->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
@@ -862,7 +863,7 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     if (libcrt::Access(name, 0) != -1) return false;
     mfc::CString folder;
     modfolders::SelectMaps(name, site);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString path = folder + name;
     return libcrt::Access(path, 0) == -1;
 }

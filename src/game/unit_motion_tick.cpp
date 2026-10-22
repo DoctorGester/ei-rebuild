@@ -8,9 +8,11 @@
 #include "ai_motion.h"
 #include "combat.h"
 #include "combat_plan.h"
+#include "core_maths.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
+#include "sector_map.h"
 #include "unit_ai.h"
 #include "world_data.h"
 #include "unit.h"
@@ -146,9 +148,9 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
     if (static_cast<int>(unit->obstacle) == obstacle) return;
-    SectorMapRemove(world->Sectors(), nullptr, unit);
+    world->Sectors()->Remove(unit);
     UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
-    SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+    world->Sectors()->Add(UnitOf(c));
     UnitOf(c)->MarkChanged(7);
 }
 
@@ -279,8 +281,8 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
-        Vector3* facing = Negate(&back, &axis);
+        UnitOf(c)->localRotation_.AxisY(&axis);
+        Vector3* facing = NegateVector(&back, axis);
         if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
@@ -291,8 +293,8 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
-        Vector3* facing = Negate(&back, &axis);
+        UnitOf(c)->localRotation_.AxisY(&axis);
+        Vector3* facing = NegateVector(&back, axis);
         if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
@@ -309,9 +311,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 // the units around the blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
-        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 1);
-        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Add(UnitOf(c));
     }
     // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
     MotionPathOf(c)->cells.RemoveAll();
@@ -322,12 +324,12 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     MotionPathOf(c)->flag6E = UnitOf(c)->player ? 0 : 1;
     std::uint32_t current = UnitOf(c)->altPassCosts;
     UnitOf(c)->altPassCosts = saved;
-    bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
+    bool found = context->AIMap()->FindPath(UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
     UnitOf(c)->altPassCosts = current;
     if (liftBlocker) {
-        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 0);
-        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Add(UnitOf(c));
     }
     if (found) {
         UnitOf(c)->RefreshMotion();
@@ -423,7 +425,7 @@ void UpdateMotion(CUnitServer* c) {
         canStand = true;
     } else {
         CSectorMap* sectors = world->Sectors();
-        SectorMapRemove(sectors, nullptr, UnitOf(c));
+        sectors->Remove(UnitOf(c));
         canStand = world->AIMap()->CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
             CUnit* blocker = world->AIMap()->BlockingUnitAt(UnitOf(c), &position);
@@ -434,7 +436,7 @@ void UpdateMotion(CUnitServer* c) {
                 if (outcome != -1) blocked = outcome;
             }
         }
-        SectorMapAdd(sectors, nullptr, UnitOf(c));
+        sectors->Add(UnitOf(c));
     }
 
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before

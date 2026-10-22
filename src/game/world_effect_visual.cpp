@@ -352,7 +352,7 @@ void CEffectParticle::Spawn() {
     if (type_ == 0x2002) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = param164_;
-        float angle = RandomAngle(RandomNext((&IsaacRandom::Global())));
+        float angle = RandomAngle(((&IsaacRandom::Global()))->Next());
         TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (type_ == 0x2030) {

@@ -7,6 +7,7 @@
 #include "game_strings.h"
 #include "object_tables.h"
 #include "ui.h"
+#include "ui_item_info.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -54,7 +55,6 @@ double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
-__declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
 // The session (007AFE20): a multiplayer client [0057F440, AL].
 
 
@@ -74,7 +74,7 @@ struct Panel {
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
     void DrawLine(const char* line) {
-        SurfaceDrawText(surface, nullptr, line, &rect, 0, kTextColour, 0, 1);
+        static_cast<CUiSurface*>(surface)->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
@@ -153,10 +153,10 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValue, panel.labels[15].GetString(), static_cast<int>(params->rate));
     panel.DrawLine();
 
-    std::uint8_t description[0x1C];
-    UnitParameterBlock(params, nullptr, &unitIn->packedVitals, description, IsTextKey(unitIn->id_));
+    float description[7];
+    params->ProtectionBlock(&unitIn->packedVitals, description, static_cast<unsigned char>(IsTextKey(unitIn->id_)));
     console::CStringArray lines;
-    DescriptionLines(description, &lines, 1);
+    ItemDamageLists(description, &lines, static_cast<char>(1));
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
         if (lines[1].GetLength() != 0) panel.DrawLabelled(11, lines[1]);

@@ -1,5 +1,6 @@
 // The briefing / base screen's key handler (CBriefingScreen::OnKeyDown, input slot 9). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "game_strings.h"
 #include "ui.h"
 #include "ui_briefing.h"
 
@@ -141,10 +142,10 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         break;
     case kActionQuickSave:
-        AutoSaveOriginal(QuickSaveName(), 0);
+        ::QuickSave(QuickSaveName(), static_cast<char>(0));
         break;
     case kActionQuickLoad:
-        LoadSavedGameOriginal(QuickSaveName());
+        QuickLoad(QuickSaveName());
         break;
     default:
         break;

@@ -1,6 +1,7 @@
 // CWorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
 #include "player_messages.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "party.h"
 #include "world.h"
@@ -208,7 +209,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) SectorMapRemove(Sectors(), nullptr, *slot);
+    if (object->GetClassId() != kClassNoSector) Sectors()->Remove(*slot);
 
     hash400::ObjectsRemoveKey(updateMap_.map, id);
     EraseId(objects_, id);
@@ -258,7 +259,7 @@ void CWorldServer::RemoveAllUnits() {
         bool isUnit = object->GetClassId() == world::kClassUnit;
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
-        if (isUnit) WorldRemoveObject(this, nullptr, static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
+        if (isUnit) RemoveObject(static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
     } while (node);
 }
 EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);

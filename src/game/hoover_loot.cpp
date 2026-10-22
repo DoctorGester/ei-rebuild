@@ -87,7 +87,7 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
         if (bytes() & ~std::intptr_t{3}) {
             for (std::uint32_t i = 0; i < count(); ++i) {
-                CItem* item = ItemManagerCreateItemOriginal(manager, nullptr, names()[i]);
+                CItem* item = manager->CreateItem(names()[i]);
                 if (!item) continue;
                 Append(drops, item);
                 AppendShared(items, item);

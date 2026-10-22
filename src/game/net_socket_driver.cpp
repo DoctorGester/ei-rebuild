@@ -253,8 +253,8 @@ EI_REWRITTEN(0x00440C60, MasterLink::Construct);
 // 00440D40: closes the socket (left as it is) and destroys the buffers.
 void __fastcall MasterLinkDestruct(MasterLink* self) {
     if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
-    GrowingBufferDestruct(&self->in);
-    GrowingBufferDestruct(&self->out);
+    static_cast<GameBuffer*>(&self->in)->DestructGrowing();
+    static_cast<GameBuffer*>(&self->out)->DestructGrowing();
 }
 EI_REWRITTEN(0x00440D40, MasterLinkDestruct);
 

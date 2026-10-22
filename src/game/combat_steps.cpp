@@ -114,7 +114,6 @@ namespace {
 // 00530240. CUnit: animation entry `index` (only its low byte counts), or null.
 // 00525B20. UnitStats: a body part near `location` that can still be hit (UnitStats::PickLocation,
 // unit_hit_location.cpp; called through its address).
-__declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINAL(0x00525B20)
 // 00530560. CUnit: its height (2 * +0x14C), in ST0.
 // 00530280. CUnit: the ground (or water surface) height under (x, y) for the unit, in ST0.
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
@@ -464,9 +463,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     std::uint32_t source = action.source;
     if (source == 6) {
         int around = kSkillLocations[IsaacRandom::Global().Next() % 20];
-        location = StatsPickLocation(victimStats, nullptr, around);
+        location = static_cast<UnitStats*>(victimStats)->PickLocation(around);
     } else if (static_cast<int>(source) < 0 || static_cast<int>(source) >= kLocationCount) {
-        location = StatsPickLocation(victimStats, nullptr, kLocationBody);
+        location = static_cast<UnitStats*>(victimStats)->PickLocation(kLocationBody);
     } else {
         location = static_cast<int>(source);
     }

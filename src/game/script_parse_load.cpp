@@ -82,8 +82,6 @@ void DestructStrings(mfc::CString* elements, int count) {
     for (; count--; ++elements) elements->~CString();
 }
 
-__declspec(naked) void __fastcall ApplyDefinesAt(mfc::CString*, const ScriptDefineList*) EI_ORIGINAL(0x004D33E0)
-
 // ---- Small helpers ------------------------------------------------------------------------------
 
 // Index of `name` in a variable name array (004D5A50/5A90/5AD0/5B10, identical copies).
@@ -756,7 +754,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 AddDefine(&defines, &define);
                 line = game::EmptyText();
             } else {
-                ApplyDefinesAt(&line, &defines);
+                ApplyDefines(&line, &defines);
             }
             result = (result + line) + "\n";   // "\n"
         }

@@ -68,8 +68,8 @@ void CSaveLoadWindow::ShowSelection() {
     scrollbar_->CallSetPosition(firstVisible_);
     scrollbar_->TakePosition(&firstVisible_);
     TakeSelectedTitle();
-    RefreshList();
-    CallShowPicture();
+    RefreshListVanilla();
+    ShowPicture();
 }
 
 // --- 006548A0 ------------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     default:
         return;
     }
-    RefreshList();
+    RefreshListVanilla();
     inputHandled_ = true;
 }
 
@@ -201,7 +201,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
                 cursor_ += text::TypedLength(key);
             }
         }
-        RefreshList();
+        RefreshListVanilla();
         break;
     }
     }

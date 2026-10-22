@@ -218,7 +218,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;
-                retried = PlanPath(this, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
+                retried = PlanLongPath(unit, fromX, fromY, toX, toY, path, retry, maxCells);
             }
             DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
             DestroyList(chain, PathCellListVtable());

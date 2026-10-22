@@ -26,26 +26,19 @@ int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
 
 // --- CInterface3D ----------------------------------------------------------------------------
 
-__declspec(naked) int CInterface3D::CallScaleRectToScreen(RECT*) const EI_ORIGINAL(0x005F7CA0)
-__declspec(naked) int CInterface3D::CallScalePointToScreen(POINT*) const EI_ORIGINAL(0x005F7D20)
-__declspec(naked) int CInterface3D::CallScalePointFromScreen(POINT*) const EI_ORIGINAL(0x005F7E00)
-
 // The same three with the interface (ECX) given: none for Rebirth's WideScreen sites (ui.h).
 namespace {
-__declspec(naked) int __fastcall ScaleRectToScreenAt(const CInterface3D*, void*, RECT*) EI_ORIGINAL(0x005F7CA0)
-__declspec(naked) int __fastcall ScalePointToScreenAt(const CInterface3D*, void*, POINT*) EI_ORIGINAL(0x005F7D20)
-__declspec(naked) int __fastcall ScalePointFromScreenAt(const CInterface3D*, void*, POINT*) EI_ORIGINAL(0x005F7E00)
 const CInterface3D* WithoutMargin(const CInterface3D* ui) { return widescreen::Active() ? nullptr : ui; }
 } // namespace
 
 int CInterface3D::CallScaleRectToScreenNoMargin(RECT* rect) const {
-    return ScaleRectToScreenAt(WithoutMargin(this), nullptr, rect);
+    return WithoutMargin(this)->ScaleRectToScreenEntry(rect);
 }
 int CInterface3D::CallScalePointToScreenNoMargin(POINT* point) const {
-    return ScalePointToScreenAt(WithoutMargin(this), nullptr, point);
+    return WithoutMargin(this)->ScalePointToScreenEntry(point);
 }
 int CInterface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
-    return ScalePointFromScreenAt(WithoutMargin(this), nullptr, point);
+    return WithoutMargin(this)->ScalePointFromScreenEntry(point);
 }
 
 // The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on,
@@ -149,13 +142,13 @@ void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.top = top;
     rect_.right = right;
     rect_.bottom = bottom;
-    interface_->CallScaleRectToScreen(&rect_);
+    interface_->ScaleRectToScreenEntry(&rect_);
 }
 EI_REWRITTEN(0x005FD3A0, CUiSurface::SetRect);
 
 void CUiSurface::MoveTo(int x, int y) {
     POINT point{x, y};
-    interface_->CallScalePointToScreen(&point);
+    interface_->ScalePointToScreenEntry(&point);
     int width = rect_.right - rect_.left;
     int height = rect_.bottom - rect_.top;
     rect_.left = point.x;

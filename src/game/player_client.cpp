@@ -101,7 +101,6 @@ struct MemoryStream {
 
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
 // (00567A60, 00567950); all RET 4 with the block.
-__declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567AB0)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
@@ -273,7 +272,7 @@ int CPlayerClient::OnZone() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
     PlayerClearOriginal(Owner());
-    ClientLoadZone(TheClientWorld(), nullptr, block.Get());
+    TheClientWorld()->LoadZone(block.Get());
     return 1;
 }
 
@@ -486,7 +485,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
     ReadText(text.Get());
-    InterfaceStringEventOriginal(TheInterface(), nullptr, *text.Get());
+    static_cast<CInterface3D*>(TheInterface())->OnStringEvent(*text.Get());
     return 1;
 }
 

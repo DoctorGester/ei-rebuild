@@ -93,14 +93,14 @@ void CMpHeroScreen::DrawExperience() {
     SurfaceClearOriginal(surface);
     TextsGetString(TheTextManager(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
-    SurfaceDrawText(surface, nullptr, text, &title, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
     text.Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
-    SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
     TextsGetString(TheTextManager(), nullptr, kCurrentExpKey, &text);
     line.Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
-    SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 }
 
@@ -287,7 +287,7 @@ void CMpHeroScreen::DrawHeroList() {
             SelectionFrame(*this)->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         const char* name = MpHero(index)->members_.data[0].texts[0];
-        SurfaceDrawText(surface, nullptr, name, &rect, 1, kListColour, kListFormat, 1);
+        surface->DrawTextIn(name, &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
     UiSurfaceReleaseDC(surface);
@@ -305,7 +305,7 @@ void CMpHeroScreen::DrawVoices() {
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};
     TextsGetString(TheTextManager(), nullptr, kVoicesKey, &title);
-    SurfaceDrawText(surface, nullptr, title, &rect, 0, kWhite, 1, 1);
+    surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
@@ -317,7 +317,7 @@ void CMpHeroScreen::DrawVoices() {
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
             SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
-        SurfaceDrawText(surface, nullptr, voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
+        surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
     UiSurfaceReleaseDC(surface);

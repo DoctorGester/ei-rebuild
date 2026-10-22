@@ -237,7 +237,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
-        std::uint32_t word = RandomNext(&IsaacRandom::Global());
+        std::uint32_t word = IsaacRandom::Global().Next();
         turn->glow = RandomPhase(word);
         RefPtrAssign(&item->link_, nullptr, turn);   // the item's RefPtr slot
     }

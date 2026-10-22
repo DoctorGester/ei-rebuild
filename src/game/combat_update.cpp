@@ -20,6 +20,7 @@
 #include "map_object.h"
 #include "player_messages.h"
 #include "random.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -40,6 +41,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 
 #include <bit>
 #include <cstdint>
@@ -141,9 +143,9 @@ void SetStandingFlag(CUnitServer* self, int standing) {
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
     CSectorMap* sectors = world->Sectors();
-    SectorMapRemove(sectors, nullptr, unit);
+    sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
-    SectorMapAdd(sectors, nullptr, self->unit);
+    sectors->Add(self->unit);
     self->unit->MarkChanged(7);
 }
 
@@ -617,7 +619,7 @@ void CUnitServer::TickAction() {
     motion.Clear();
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
+    unit->localRotation_.AxisY(&axis);
     Vector3 backwards = -axis;
     if (MotionPath()->Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);

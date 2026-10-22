@@ -607,7 +607,6 @@ public:
     void TakeQueuedOrder();
     // 00546830. The unit's second movement mode, marking it changed.
     void SetUnitMoveMode2(int mode);
-    void CallExecuteOrder();
 
     // combat_update.cpp: the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI

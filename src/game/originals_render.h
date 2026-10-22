@@ -32,13 +32,6 @@ __declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSur
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)
-// C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
-__declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
-    EI_ORIGINAL(0x004D9AA0)
-
-// 004D9B80: pushes a scene matrix into slot `index` of the cache (RET 8: matrix, index; no result).
-__declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)
-    EI_ORIGINAL(0x004D9B80)
 
 
 // C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the

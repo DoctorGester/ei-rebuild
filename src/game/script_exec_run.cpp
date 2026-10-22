@@ -50,7 +50,6 @@ bool IsZero(float value) {
 
 // ---- Original code ------------------------------------------------------------------------------
 
-__declspec(naked) void __fastcall CalcFloatOrig(SSCCmd*, void*, CScript*, ScriptVars*, float*) EI_ORIGINAL(0x004B41E0)
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 // ScriptVars constructor / destructor and the value arrays' Copy.
@@ -233,7 +232,7 @@ EI_REWRITTEN(0x004BB6A0, ScriptDefinition::BindCall);
 void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     for (int i = 0; i < conditions->commands.size; ++i) {
         float result;
-        CalcFloatOrig(&conditions->commands.data[i], nullptr, script, &instance->vars, &result);
+        conditions->commands.data[i].CalcFloat(script, &instance->vars, &result);
         ScriptFreeTemporaries(script);
         if (IsZero(result)) return;
     }
@@ -261,7 +260,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->ticks = 0;
     run->sleepStart = -1;
     run->killFlag = reinterpret_cast<int*>(instance);
-    if (ExecuteOrig(run, nullptr, this)) {
+    if (run->Execute(this)) {
         // Not finished: a copy goes to the head of the run list (AddHead inlined; the original
         // also inlines NewNode, which is 004CDA30's code).
         // 004BC420 clears the kill flag (the instance pointer) before the copy.
@@ -344,7 +343,7 @@ void __fastcall ScriptTick(CScript* script) {
     while (nextRun) {
         RunList::Node* node = nextRun;
         nextRun = nextRun->next;
-        if (ExecuteOrig(&node->data, nullptr, script)) continue;
+        if (node->data.Execute(script)) continue;
         Unlink(runs, node);
         mfc::impl::FreeNodeAs<gamelists::Runs>(&runs, node);   // 004CDAB0 (the run destroyed)
     }

@@ -42,6 +42,9 @@
 #include <cstring>
 #include <new>
 
+namespace net {
+int __fastcall MasterLinkTick(net::MasterLink*);
+}
 namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
@@ -92,11 +95,6 @@ constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
 constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxFormat = 1;
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 constexpr std::uint32_t kPlainSprite = 0x100;
-
-// The connection screen's helpers through their addresses (rewritten here; the wrappers run).
-__declspec(naked) void __fastcall DrawListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D780)   // Rebirth-patched
-__declspec(naked) void __fastcall MasterRequestAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D0D0)
-__declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
 
 // The original's inlined strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
@@ -317,21 +315,21 @@ void CMpConnectScreen::Update() {
         net::GameClient()->SetAlwaysAsk(ask);
         net::GameClient()->Refresh();
         RebuildList();
-        DrawListAt(this);
+        DrawListVanilla();
     }
 
     int position;
     if (scroll_->TakePosition(&position)) {
         scrollTop_ = position;
-        DrawListAt(this);
+        DrawListVanilla();
     }
     if (playersSlider_->TakePosition(&position)) {
         maxPlayers_ = position + 1;
-        DrawListAt(this);
+        DrawListVanilla();
     }
     bool renamed = nameEdit_->changed_;
     nameEdit_->changed_ = false;
-    if (renamed) DrawListAt(this);
+    if (renamed) DrawListVanilla();
 }
 EI_REPLACE_METHOD(0x0061C430, CMpConnectScreen::Update);
 
@@ -339,12 +337,12 @@ EI_REPLACE_METHOD(0x0061C430, CMpConnectScreen::Update);
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
-        DrawListAt(this);
+        DrawListVanilla();
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
         if (address.Parse(boxText_, net::g_gamePort)) net::GameClient()->Ask(&address);
         SaveAddressBook();
-        DrawListAt(this);
+        DrawListVanilla();
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = SceneMesh(kSpritePassword);
@@ -371,7 +369,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
-        MasterRequestAt(this);
+        MasterRequest();
         break;
     case kRegionAddress:
         EditAddress();
@@ -399,7 +397,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         int ascending = 2 * (region - kRegionSortFirst) + 1;
         sortKey_ = sortKey_ == ascending ? ascending + 1 : ascending;
         RebuildList();
-        DrawListAt(this);
+        DrawListVanilla();
         break;
     }
     default:
@@ -416,7 +414,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
                 interface_->PlaySound(SelectSound(), 0);
                 selected_ = static_cast<int>(row);
                 selectedAddress_ = entries_[row].address;
-                DrawListAt(this);
+                DrawListVanilla();
             }
         }
         break;
@@ -478,7 +476,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->CallSetPosition(scrollTop_);
     scroll_->TakePosition(&scrollTop_);
-    DrawListAt(this);
+    DrawListVanilla();
 }
 EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
@@ -810,7 +808,7 @@ void CMpConnectScreen::Create() {
     newGameTips_ = false;
     selectedAddress_ = net::NetAddress{};
     RebuildList();
-    DrawListAt(this);
+    DrawListVanilla();
     interface_->OpenHelp(0);
     refreshTimer_ = 0.0f;
     // Surface 1: "connecting".
@@ -818,7 +816,7 @@ void CMpConnectScreen::Create() {
     UiSurfaceGetDC(note);
     SurfaceClearOriginal(note);
     RECT rect{0, 0, 300, 20};
-    SurfaceDrawText(note, nullptr, texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
+    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
 EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
@@ -847,8 +845,8 @@ void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatioImpl(&link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
-    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone || MasterLinkTickAt(&link_) == net::MasterLink::kClosed)
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }
 EI_REPLACE_METHOD(0x0061E4E0, CMasterRequestBox::Update);

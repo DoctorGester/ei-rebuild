@@ -79,7 +79,7 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
     stlp::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
-        if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(TheGameFlow(), nullptr, text->data());
+        if (self->IsHostConnection(CurrentConnectionObject())) TheGameFlow()->SetNetworkZone(text->data());
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;

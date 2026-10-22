@@ -44,7 +44,7 @@ CSpell* SpellOf(CItem* item) { return item->spell_; }
 // a unit, else UseAtPoint at the target's position (both through their addresses), with `quick`.
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
     CUnit* target = unit;
-    if (SpellIsOffensiveOriginal(spell)) {
+    if (spell->IsOffensive()) {
         target = TheClientWorld()->NearestVisibleUnit(unit);
         if (!target) {
             ui->PlaySound(kSoundNoMagic, 0);

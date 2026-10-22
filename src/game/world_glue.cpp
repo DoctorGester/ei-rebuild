@@ -175,7 +175,7 @@ EI_REWRITTEN(0x005787F0, GameStartCameraRecording);
 
 int __stdcall GamePlayCameraPath(const char* name, int flag) {
     CWorldClient* world = TheClientWorld();
-    if (!CameraLoadPathOriginal(world->camera_, nullptr, name, flag)) return 0;
+    if (!world->camera_->LoadPath(name, flag)) return 0;
     CCamera* camera = world->camera_;
     camera->flags_ |= CCamera::kPlaying;
     camera->keyIndex_ = 0;
@@ -186,7 +186,7 @@ EI_REWRITTEN(0x00578820, GamePlayCameraPath);
 
 int __stdcall GameShowCameraPath(const char* name) {
     CWorldClient* world = TheClientWorld();
-    int loaded = CameraLoadPathOriginal(world->camera_, nullptr, name, 0);
+    int loaded = world->camera_->LoadPath(name, 0);
     if (!loaded) return loaded;
     return world->camera_->PlaybackStart();
 }
@@ -196,7 +196,7 @@ std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_
 EI_REWRITTEN(0x005788B0, GameCameraPathPlaying);
 
 // 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
-int GameRender() { return ClientRenderOriginal(TheClientWorld()); }
+int GameRender() { return static_cast<CWorldClient*>(TheClientWorld())->Render(); }
 EI_REWRITTEN(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }

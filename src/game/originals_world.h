@@ -32,25 +32,14 @@ __declspec(naked) inline void __fastcall ObjectMapClearOriginal(void* /*map*/) E
 // the point's x, y; EAX = the unit or null). The battle screen passes its own (x, y) argument slots.
 class CTexture;
 class CMaterial;
-// 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
-// record; EAX the object's id. Patched by Rebirth.
-__declspec(naked) inline int __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
-    EI_ORIGINAL(0x005927C0)
-__declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x0057ED60)
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
 // flow (007AFE20) applies a multiplayer client's update from the server (thiscall, plain RET).
-__declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*flow*/) EI_ORIGINAL(0x005800C0)
-// 005935C0 (rewritten as CWorldServer::RemoveObject; RET 4): removes the object with this id from the world
-// (EAX on return is not a result).
-__declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
 // 0055FB00 (RET 4): the world's object with this id when it is a unit (type 0x50), else null.
 __declspec(naked) inline CUnit* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
     EI_ORIGINAL(0x0055FB00)
 
 // C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at
 // 007AF788; ECX is not read, so the callers' flow argument was a dummy.
-__declspec(naked) inline bool __stdcall FlowLoadQuestsOriginal(const char* /*zone*/) EI_ORIGINAL(0x005809D0)
 
 // C3i part 2. 0058EEA0: CWorldServer::SetTime(float) (RET 4; the argument is a raw dword, float callers pass
 // std::bit_cast). 00595BA0: the map path text for a name into `out` (RET 8, returns out).
@@ -59,8 +48,6 @@ __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/,
 
 // C3j. 00578E20: the game flow object (global 007AF788; plain RET, ECX unused, EAX = flow, callers use it).
 // 00595480: CWorldServer::NewZone(map, mob, zone) (RET 0xC, EAX 0 = failed).
-__declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, void*, const char* /*map*/, const char* /*mob*/,
-                                                             const char* /*zone*/) EI_ORIGINAL(0x00595480)
 
 // 0057DEE0 (thiscall on the game flow 007AFE20, RET 4): the flow's party setup step (the unit database rebuilt).
 
@@ -86,14 +73,6 @@ class CFigureMesh;
 // 00684550 and 006A67A0).
 struct UnitDatabase;
 struct SkillDatabase;
-__declspec(naked) inline void __fastcall UnitDatabaseLoadOriginal(UnitDatabase* /*database*/, void*, const char* /*resources*/,
-                                                                 const char* /*name*/) EI_ORIGINAL(0x0053A200)
-__declspec(naked) inline void __fastcall SkillDatabaseLoadOriginal(SkillDatabase* /*database*/, void*, const char* /*resources*/,
-                                                                  const char* /*name*/) EI_ORIGINAL(0x00520220)
-__declspec(naked) inline void __fastcall SpellTablesLoadOriginal(void* /*tables*/, void*, const char* /*resources*/,
-                                                                const char* /*name*/) EI_ORIGINAL(0x00684550)
-__declspec(naked) inline void __fastcall ItemDatabaseLoadOriginal(void* /*database*/, void*, const char* /*resources*/,
-                                                                 const char* /*name*/) EI_ORIGINAL(0x006A67A0)
 class CBaseManager;
 class CStream;
 class CWorldClient;
@@ -109,10 +88,7 @@ struct PlatformSet;
 // connection is lost). 0058DFF0: the server world's update (CWorldServer::Update; EAX 0 when it stops).
 // 0057C700 (patched by Rebirth): the game flow (007AFE20) runs its pending request (GameFlow::ProcessRequest).
 __declspec(naked) inline int __fastcall ClientSegmentOriginal(void* /*client*/) EI_ORIGINAL(0x005641F0)
-// 00569E40 (patched by Rebirth: LandscapeDrawRadius): the client world draws a frame (CWorldClient::Render).
-__declspec(naked) inline int __fastcall ClientRenderOriginal(void* /*client*/) EI_ORIGINAL(0x00569E40)
 __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
-__declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)
 
 // The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
 // 0058E520 AddTimedObject (RET 4);

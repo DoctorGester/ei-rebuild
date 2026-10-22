@@ -22,6 +22,7 @@
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "sector_map.h"
 #include "world.h"
 
 namespace mapspec {
@@ -281,7 +282,7 @@ EI_REWRITTEN(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
 // 0046AF70 (slot 6): removes the world object, then slot 7.
 void ObjectSpec::ObjectSpecRemove() {
     if (base.object) {
-        WorldRemoveObject(TheServerWorld(), nullptr, base.id);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(base.id);
         base.object = nullptr;
     }
     base.Record()->ApplyObject();
@@ -300,11 +301,11 @@ EI_REWRITTEN(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 // scale, visibility) while it is out of the editor's lists.
 void ObjectSpec::ObjectSpecApply() {
     if (!base.object) {
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &base);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&base);
         return;
     }
     Selection()->BeginRefresh();
-    SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, base.object);
+    AsSectorMap(TheSectorMap())->Remove(MapObject());
     CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
     std::memcpy(&object->localRotation_, &base.rotation, 16);
@@ -316,7 +317,7 @@ void ObjectSpec::ObjectSpecApply() {
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, base.object);
+    AsSectorMap(TheSectorMap())->Add(MapObject());
     Selection()->EndRefresh();
 }
 EI_REWRITTEN(0x0046AFB0, ObjectSpec::ObjectSpecApply);
@@ -366,10 +367,10 @@ EI_REWRITTEN(0x0046B1F0, FlameSpec::FlameSpecDelete);
 void FlameSpec::FlameSpecApply() {
     Spec& b = object.base;
     if (b.object) {
-        WorldRemoveObject(TheServerWorld(), nullptr, b.id);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(b.id);
         b.object = nullptr;
     }
-    WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
+    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
 }
 EI_REWRITTEN(0x0046B310, FlameSpec::FlameSpecApply);
 

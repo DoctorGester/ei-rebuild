@@ -21,7 +21,7 @@ namespace {
 // The item and spell factory (the server world's item manager) and the spell manager the spells are made for. The
 // record names its items by their names.
 CItem* CreateItem(CItemManager* factory, const char* name) {   // 006AC970 (patched by Rebirth)
-    return ItemManagerCreateItemOriginal(factory, nullptr, name);
+    return factory->CreateItem(name);
 }
 CItemManager* TheFactory() { return TheServerWorld()->itemManager_; }
 CSpellManager* SpellOwner() { return TheServerWorld()->manager4C_; }

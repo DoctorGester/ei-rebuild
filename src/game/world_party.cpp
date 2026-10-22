@@ -277,7 +277,7 @@ CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
 // As in CopyItem, the original also builds and frees two empty CPtrLists around the call.
-CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManagerCreateItemOriginal(ItemManager(), nullptr, name); }
+CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManager()->CreateItem(name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
     CItemManager* manager = ItemManager();   // read before slot 22, as in the original

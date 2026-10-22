@@ -154,10 +154,10 @@ Query* __fastcall QueryConstruct(Query* self) {
     return self;
 }
 EI_REWRITTEN(0x00443770, QueryConstruct);
-void __fastcall QueryDestruct(Query* self) { GrowingBufferDestruct(&self->reply); }
+void __fastcall QueryDestruct(Query* self) { static_cast<GameBuffer*>(&self->reply)->DestructGrowing(); }
 EI_REWRITTEN(0x00443790, QueryDestruct);
 Query* Query::QueryDelete(unsigned flags) {
-    GrowingBufferDestruct(&reply);
+    static_cast<GameBuffer*>(&reply)->DestructGrowing();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -187,7 +187,7 @@ void ClientBase::SendPing(const NetAddress* address) {
     float time = static_cast<float>(time_);
     Put(&b, &time, 4);
     Send(address, &b);
-    GrowingBufferDestruct(&b);
+    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00441660, ClientBase::SendPing);
 
@@ -204,7 +204,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     unsigned length = static_cast<unsigned>(data->PositionOf(data->high));
     Put(&b, data->begin, length);
     Send(address, &b);
-    GrowingBufferDestruct(&b);
+    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
@@ -438,7 +438,7 @@ void ClientBase::Ask(const NetAddress* address) {
             Query temporary;
             QueryConstruct(&temporary);
             v.InsertOverflow<recordvec::QueryElement>(v.end(), temporary, 1);
-            GrowingBufferDestruct(&temporary.reply);
+            static_cast<GameBuffer*>(&temporary.reply)->DestructGrowing();
         }
         v.back().address = *address;
         GameBuffer b;
@@ -448,7 +448,7 @@ void ClientBase::Ask(const NetAddress* address) {
         float time = static_cast<float>(time_);
         b.BufferWrite(&time, 4);
         Send(address, &b);
-        GrowingBufferDestruct(&b);
+        static_cast<GameBuffer*>(&b)->DestructGrowing();
     }
     ServerNode* node = FindServer(this, address);
     if (node != servers_.End()) {
@@ -608,7 +608,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         Send(address, &b);
         entry.Destroy();
     }
-    GrowingBufferDestruct(&b);
+    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
@@ -664,7 +664,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
     self->Send(to, &b);
-    GrowingBufferDestruct(&b);
+    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 } // namespace
 
@@ -731,7 +731,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     b.BufferWrite(&id, 4);
     b.BufferWrite(&reason, 1);
     Send(from, &b);
-    GrowingBufferDestruct(&b);
+    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 
 EI_REWRITTEN(0x00443080, ServerBase::OnLoginImpl);

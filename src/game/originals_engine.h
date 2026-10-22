@@ -43,13 +43,9 @@ class ChunkArchive;
 // camera_path_load.cpp, A-E1): the camera loads the recorded path file `name` into its keys (+0x2F0, count +0x2F4);
 // 0 when it fails. The glue passes `flag` on (0 from 00578880).
 class CCamera;
-__declspec(naked) inline int __fastcall CameraLoadPathOriginal(CCamera* /*camera*/, void*, const char* /*name*/, int /*flag*/)
-    EI_ORIGINAL(0x0040ECD0)
 // A-E1. 00468A00 (cdecl, no arguments; Rebirth-patched, so always through this forwarder; rewritten as
 // LoadLightningNoise, lightning_load.cpp): loads the lightning noise table. Its result is not read.
 // Its only caller is the lightning manager's Create (004689D0).
-__declspec(naked) inline void __cdecl LoadLightningNoiseOriginal() EI_ORIGINAL(0x00468A00)
 // C3n. 004667F0 (rewritten as IsaacRandom::Next; thiscall on the generator, plain RET): the next 32-bit word. The game's
 // generator is at 007A9D40.
-__declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*random*/) EI_ORIGINAL(0x004667F0)
 

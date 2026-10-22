@@ -36,6 +36,7 @@
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 #include "game/game_slots.h"
+#include "lib/vecmath.h"
 #include "game_singletons.h"
 
 #include <cstring>
@@ -54,9 +55,6 @@ constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
-// Not rewritten, forwarders:
-// 0040CB00. Quaternion::SetIdentity.
-__declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
@@ -122,8 +120,8 @@ CObject3D::CObject3D() { SetUpObject3D(); }
 
 void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
-    SetIdentity(&localRotation_);
-    SetIdentity(&worldRotation_);
+    localRotation_.SetIdentity();
+    worldRotation_.SetIdentity();
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
     effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     effectSources.count = 0;

@@ -40,8 +40,6 @@
 namespace {
 
 // AIEventTable::Setup at its address (RET 0xC): Rebirth patches it.
-__declspec(naked) int __fastcall AIEventsSetupAt(AIEventTable*, void*, CAIMap*, float /*sizeX*/, float /*sizeY*/)
-    EI_ORIGINAL(0x005C9310)
 
 // ---- The files -------------------------------------------------------------------------------------
 
@@ -486,7 +484,7 @@ void CAIMap::AttachTerrain() {
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);
     regionMap.Attach(this);
-    AIEventsSetupAt(Events(), nullptr, this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
+    Events()->Setup(this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
     SectorMap()->Init(cells.width, cells.height, this);
     QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
 }

@@ -34,7 +34,6 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-__declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0), unless the harness hooks the call (ei/main_loop.h): its frame
 // capture reads the finished frame before the cursor is blitted and the frame flipped
 // (tests/verify/harness_capture.cpp; in game.exe's own runs it patches the original CALL at 004580D7).
@@ -78,7 +77,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!TheSceneRenderer()->BeginScene()) return;
     TheInterface()->Draw();
     TheSceneRenderer()->EndScene();
-    if (cursor) InterfaceDrawCursor(TheInterface());
+    if (cursor) TheInterface()->DrawOverlays();
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(TheCursor());
     CursorDrawFrame(TheCursor());   // 005E54A0

@@ -16,6 +16,7 @@
 #include "party.h"
 #include "player_messages.h"
 #include "resource_manager.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -428,7 +429,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
-        WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;
@@ -538,9 +539,9 @@ void CUnitServer::SetDead(int dead) {
     auto* world = ServerWorld();
     if (unit->dead == dead) return;
     CSectorMap* units = world->Sectors();
-    SectorMapRemove(units, nullptr, unit);
+    units->Remove(unit);
     unit->dead = dead;
-    SectorMapAdd(units, nullptr, unit);
+    units->Add(unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;

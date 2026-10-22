@@ -71,7 +71,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
     out->Write(result.begin, length);
     out->Seek(0);
     ei::SetVtable(&view, GameBuffer::ViewBaseVtable());
-    GrowingBufferDestruct(&result);
+    static_cast<GameBuffer*>(&result)->DestructGrowing();
 }
 } // namespace
 

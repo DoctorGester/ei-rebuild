@@ -173,7 +173,7 @@ CItem* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
     mfc::impl::ConstructListHeader<mfc::impl::TempListClass>(first, 10);
     mfc::impl::ConstructListHeader<mfc::impl::TempListClass>(second, 10);
-    CItem* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
+    CItem* item = WorldItemManager()->CreateItem(name);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*second);
     mfc::impl::DestructList<mfc::impl::TempListClass>(*first);
     return item;
@@ -322,7 +322,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             party->RemoveMember(key);
-            WorldRemoveObject(this, nullptr, key);
+            RemoveObject(key);
         }
         if (is(v.n2)) party->RemoveMember(key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
@@ -643,7 +643,7 @@ void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArra
                 .SetAtGrow(placements->size, reinterpret_cast<const mfc::impl::Placement40&>(entry));   // 0059C510
         }
         if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
-        if (!ObjectSlots(unit)->IsDead()) WorldRemoveObject(this, nullptr, unit->id_);
+        if (!ObjectSlots(unit)->IsDead()) RemoveObject(unit->id_);
         else unit->SetPlayer(nullptr);
     }
 }

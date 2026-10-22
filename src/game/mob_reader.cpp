@@ -199,7 +199,7 @@ bool MobFile::Load(void*, int keepIds) {
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, spec);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(spec);
         auto* object = spec->As<ObjectSpec>();
         bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {

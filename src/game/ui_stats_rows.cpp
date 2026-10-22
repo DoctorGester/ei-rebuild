@@ -1,5 +1,6 @@
 // The statistics panel's row painters: a labelled value (006242E0) and a body part's armour
 // (00624590). See docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "item_db_text.h"
@@ -54,8 +55,8 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     else
         number.Format(kValueFormat, value);
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceDrawText(surface, nullptr, name, rect, 0, kRowColour, kLeft, 1);
-    SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
 
@@ -86,8 +87,8 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     }
     label = mfc::CString(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceDrawText(surface, nullptr, label, rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
     number.Format(kArmourFormat, static_cast<double>(PartArmour(part)));
-    SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);
+    surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x00624590, CHeroStatsPanel::DrawPart);

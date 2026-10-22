@@ -10,7 +10,9 @@
 #include "originals_units.h"
 #include "originals_core.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include "game_singletons.h"
+#include "sector_map.h"
 
 #include <cstring>
 
@@ -157,7 +159,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = CurrentWorldTick();
     Vector3 facing;
-    QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
+    unit->localRotation_.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
@@ -206,9 +208,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&path->goal, target, sizeof(goal));
     if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
 
-    SectorMapRemove(SectorMap(), nullptr, unit);
+    SectorMap()->Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
-        SectorMapAdd(SectorMap(), nullptr, unit);
+        SectorMap()->Add(unit);
         return false;
     }
     std::memcpy(&path->targetY, &goal.y, 4);
@@ -220,7 +222,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float ddx = fx - goal.x, ddy = fy - goal.y;
     EI_NAN_AUDIT(ddy, ddx);
     if (LengthSquared2DUnrounded(ddy, ddx) < 0.001f) {
-        SectorMapAdd(SectorMap(), nullptr, unit);
+        SectorMap()->Add(unit);
         return false;
     }
     int tx = x87::fistp(goal.x - 0.5f);
@@ -272,7 +274,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
             std::memcpy(&goal, target, sizeof(goal));
             if (!SnapTarget(unit, &goal, true, minDistance)) {
-                SectorMapAdd(SectorMap(), nullptr, unit);
+                SectorMap()->Add(unit);
                 return false;
             }
             int gx = x87::fistp(goal.x - 0.5f);
@@ -292,14 +294,14 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             } else {
                 int flag = path->flag6E || path->flag6F ? 1 : 0;
                 int rangeCells = WorldToCell(range);
-                found = PlanPath(this, nullptr, unit, ux, uy, gx, gy, path, flag, rangeCells);
+                found = PlanLongPath(unit, ux, uy, gx, gy, path, flag, rangeCells);
                 if (!found) goto done;
             }
         }
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
+        unit->localRotation_.AxisY(&facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         std::memcpy(&px, &path->targetX, 4);
@@ -321,7 +323,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     }
 
 done:
-    SectorMapAdd(SectorMap(), nullptr, unit);
+    SectorMap()->Add(unit);
     if (!found) path->failed = true;
     path->flag6F = false;
     return found;

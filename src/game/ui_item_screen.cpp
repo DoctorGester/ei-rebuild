@@ -3,6 +3,7 @@
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "model.h"
+#include "ui.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
@@ -38,8 +39,8 @@ struct SpriteBuild {
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                int v1, int count, int flag);   // 005E7680
 };
-void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { UiMeshCellsOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
+void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
+void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 
 // 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
 std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }

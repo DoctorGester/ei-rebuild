@@ -87,7 +87,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
         const SaveEntry& entry = entries_.begin()[index];
         if (static_cast<int>(index) == selected_) {
             const char* title = isSave_ && nameTyped_ ? name_ : entry.title_;
-            SurfaceDrawText(surface, nullptr, title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
                 !SameFolder(entry.folder_, kAutoFolderB)) {
@@ -109,14 +109,14 @@ void CSaveLoadWindow::RefreshListVanilla() {
             }
             marker = SceneMesh(kMarkerSprite);
             marker->visible_ = 1;
-            SpritePlaceOriginal(marker, nullptr, 239.0f, static_cast<float>(y), 3.0f);
+            marker->PlaceBody(239.0f, static_cast<float>(y), 3.0f);
         } else {
-            SurfaceDrawText(surface, nullptr, entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
+            surface->DrawTextIn(entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
             // 006FE795: CTime::Format.
             const mfc::CString date = reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat);
-            SurfaceDrawText(surface, nullptr, date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
+            surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);
         gameapi::OffsetRect(&dateRect, 0, kRowHeight);
@@ -134,10 +134,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     RECT detailRect{340, 260, 590, 284};
     mfc::CString line;
     line.Format(kPlainFormat, entry.AllodTitle().GetString());
-    SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
     line.Format(kPlainFormat, entry.ZoneTitle().GetString());
-    SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
     const int minutes = static_cast<int>(gamecrt::Ftol(static_cast<float>(entry.gameTime_ * MinutesPerHour())));
@@ -148,10 +148,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     mfc::CString dayText;
     GameClientTexts()->GetString(kDayText, &dayText);
     line.Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
-    SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
+    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};
-    SurfaceDrawText(surface, nullptr, entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
+    surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
     UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

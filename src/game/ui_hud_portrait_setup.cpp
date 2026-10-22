@@ -62,8 +62,6 @@ CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 } // namespace
 
-__declspec(naked) void CHudPortraits::AddPortraitAt(const char*, const char*, int, int) EI_ORIGINAL(0x00640060)
-
 void CHudPortraits::ShowFace(int index, int state) {
     int u;
     int v;
@@ -206,7 +204,7 @@ void CHudPortraits::Rebuild(int wide) {
         model.Format("infa%s%s%dface", figure, build.GetString(),
                      unit->GetPrototype()->hair + 1);
         picture.Format("face%s%02d", sex.GetString(), skin);
-        AddPortraitAt(model, picture, wide, 0);
+        AddPortrait(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_.data[i * 5 + 4])->visible_ = 1;
@@ -250,7 +248,7 @@ void CHudPortraits::Rebuild(int wide) {
         build = "me";
         model.Format("infa%s%s%dface", figure->model.GetString(), build.GetString(), prototype->hair + 1);
         picture.Format("face%s%02d", sex.GetString(), prototype->skin);
-        AddPortraitAt(model, picture, wide, 1);
+        AddPortrait(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;

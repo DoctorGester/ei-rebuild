@@ -289,7 +289,7 @@ void CBriefingScreen::FinishDialogue() {
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         text::Split(node->value.key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
-        WorldCompleteBriefingOriginal(TheServerWorld(), nullptr, 0, node->value.key);
+        TheServerWorld()->CompleteBriefing(0, node->value.key);
         break;
     }
 

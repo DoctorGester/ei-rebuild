@@ -285,7 +285,7 @@ void __fastcall Exec(CStringArray* args) {
         EndLine(Out() << "Cannot open file " << ((*args)[0]).GetString() << " for reading");
         return;
     }
-    while (file.ReadString(line)) ExecuteAt(line);
+    while (file.ReadString(line)) console::Execute(line);
     file.Close();
 }
 EI_REWRITTEN(0x005DEF50, Exec);

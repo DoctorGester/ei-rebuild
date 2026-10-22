@@ -204,7 +204,7 @@ void ServerSession::LeaveZone() {
     variables_.Clear();
     files_.Clear();
     QueueMapList();
-    WorldPrepareMap(TheGameFlow(), nullptr, nullptr);
+    TheGameFlow()->SetNetworkZone(nullptr);
 }
 
 EI_REWRITTEN(0x00419D90, ServerSession::QueueAward);

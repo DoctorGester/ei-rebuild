@@ -58,7 +58,7 @@ void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
 // The common tail: rect_ holds the layout rectangle, interface_ the interface, flags_ the format.
 CUiSurface* Finish(CUiSurface* self, bool scale) {
     RECT* rect = &self->rect_;
-    if (scale) self->interface_->CallScaleRectToScreen(rect);
+    if (scale) self->interface_->ScaleRectToScreenEntry(rect);
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
     CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();

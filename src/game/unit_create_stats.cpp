@@ -356,7 +356,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     SetCombat(stats, prototype, model);
     LearnNpcSkills(stats, npc);
     UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
-    UnitStatsRefillSlotsOriginal(stats);
+    stats->RefillSlots();
     UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
     return 1;
 }
@@ -458,7 +458,6 @@ EI_REPLACE_METHOD(0x00524CD0, UnitStats::ResetToBase);
 namespace {
 // 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded in ST0.
-__declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGINAL(0x005259B0)
 // 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
@@ -471,7 +470,7 @@ float CurveHitPoints(UnitStats* stats) {
 
 void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
-    float oldHitPoints = static_cast<float>(ReduceAt(this, nullptr, oldMaximum));
+    float oldHitPoints = static_cast<float>(Reduce(oldMaximum));
     int index = SkillRecordIndex(database, nullptr, record);
     int skill = index / 3;
     int level = index % 3;
@@ -482,7 +481,7 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= kOneF) return;
     if (newMaximum <= kOneF) return;
-    double newHitPoints = ReduceAt(this, nullptr, newMaximum);
+    double newHitPoints = Reduce(newMaximum);
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
 }
@@ -491,9 +490,6 @@ EI_REWRITTEN(0x00526450, UnitStats::LearnSkill);
 namespace {
 constexpr float kStatBase = 25.0f;   // 0073E124
 constexpr int kSkillRecordSize = 0x18;
-
-// 00527050 UnitStats::SkillWithBonus of unit_stats.cpp, through its game address; ST0.
-__declspec(naked) double __fastcall SkillWithBonusAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00527050)
 
 // The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {
@@ -532,7 +528,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type == 8) {
         if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[0]));
         float weapon = WeaponBonus(unit, 0);
-        return SkillWithBonusAt(this, nullptr, 0) + weapon;
+        return SkillWithBonus(0) + weapon;
     }
     return kZero;
 }

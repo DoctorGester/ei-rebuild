@@ -410,7 +410,7 @@ int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
     int frames = ++ticksRun_;
     if (frames == 10) {
-        InterfaceStringEventOriginal(TheInterface(), nullptr, worlddata::AutosaveEventText());
+        static_cast<CInterface3D*>(TheInterface())->OnStringEvent(worlddata::AutosaveEventText());
         sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
         sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
         sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());

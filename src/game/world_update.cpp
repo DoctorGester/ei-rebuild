@@ -37,7 +37,6 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-__declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, CPlayer*) EI_ORIGINAL(0x0058B750)
 // 00665A10. Disconnects a player (its connection and units).
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
@@ -162,7 +161,7 @@ int CWorldServer::Update() {
     }
 
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        if (!SyncPlayerAt(this, nullptr, player)) DropPlayer(this, player);
+        if (!SyncPlayer(player)) DropPlayer(this, player);
 
     ++updateCount_;
     return 1;

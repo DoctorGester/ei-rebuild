@@ -65,7 +65,7 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     ServerSlots(this)->RefreshVitals(0);
-    UnitStatsRefillSlotsOriginal(&stats);
+    stats.RefillSlots();
     ServerSlots(this)->RefreshVitals(0);
     // The companion's vitals: hit points and mana at their maxima (the companion read again).
     auto* companion = unit->ServerCompanion();

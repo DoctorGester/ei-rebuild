@@ -44,9 +44,9 @@ __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const 
     EI_ORIGINAL(0x005813A0)
 
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
-inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
+inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
-inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
+inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
 
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>

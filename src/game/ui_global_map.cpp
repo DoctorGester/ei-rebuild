@@ -10,6 +10,7 @@
 #include "options.h"
 #include "global_map_clouds.h"
 #include "player_client.h"
+#include "ui.h"
 #include "world_glue.h"
 #include "sound.h"
 #include "ui_camp.h"
@@ -93,7 +94,7 @@ void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
@@ -512,7 +513,7 @@ void CGlobalMap::Create() {
     ei::VirtualSlot<UpdateFn>(vtable_, 24)(this);   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (options::TheOptions()->autosave_ != 0) AutoSaveOriginal("saveb", 1);
+        if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
         autosave_ = false;
     }
     interface_->OpenHelp(0);

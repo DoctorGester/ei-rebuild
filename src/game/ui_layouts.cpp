@@ -47,10 +47,9 @@
 // --- Forwarders ---------------------------------------------------------------------------------
 
 __declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x005FC9E0)
-__declspec(naked) void CUiRegion::CallAddPoint(int, int) EI_ORIGINAL(0x005FCA70)
 __declspec(naked) void CUiMesh::SetTriangle(float, float, float, float, float, float, float, float, float, float, float,
                                             float, float, float) EI_ORIGINAL(0x005E99D0)
-void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
+void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
 
@@ -169,7 +168,7 @@ void CSaveLoadWindow::Build() {
 
     dialog_ = nullptr;
     if (sliding_) slide_ = 0.0f;
-    CallFillEntries();
+    FillEntries();
     if (isSave_) {
         // Saving: the first save is selected and its title offered as the name.
         selected_ = 0;
@@ -181,8 +180,8 @@ void CSaveLoadWindow::Build() {
     } else {
         selected_ = EntryCount() != 0 ? 0 : -1;
     }
-    RefreshList();
-    CallShowPicture();
+    RefreshListVanilla();
+    ShowPicture();
     if (!sliding_) interface_->OpenHelp(0);
 }
 EI_REPLACE_METHOD(0x00653DD0, CSaveLoadWindow::Build);
@@ -497,7 +496,7 @@ namespace {
 // CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
 // interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
 int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);   // 005FDE20
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);   // 005FDE20
 }
 
 // The extent of `text` in interface font `font`; the CString is taken by value and its data

@@ -27,6 +27,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/vecmath.h"
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_effects.h"
@@ -336,7 +337,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
     // harness does the same in the original, harness_shadow_turn.h, SV7b4a).
     const Quaternion kept = object->localRotation_;
-    PreMultiplyAt(&object->localRotation_, nullptr, &turn);
+    object->localRotation_.PreMultiply(turn);
     ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
     turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;

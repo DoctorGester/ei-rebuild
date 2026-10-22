@@ -277,11 +277,11 @@ void CChatWindow::Update() {
         }
         if (status.GetLength() != 0) {
             RECT line{left, 0, left + kFaceWidth, 0xF};
-            SurfaceDrawText(surface, nullptr, status, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
         }
         if (offer.GetLength() != 0) {
             RECT line{left, 0xF, left + kFaceWidth, 0x1E};
-            SurfaceDrawText(surface, nullptr, offer, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
         }
     }
     UiSurfaceReleaseDC(surface);

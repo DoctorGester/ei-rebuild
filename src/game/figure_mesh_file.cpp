@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/vecmath.h"
 #include "object_maths.h"
 #include "originals_core.h"
 
@@ -91,8 +92,6 @@ void CPlainFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
 namespace {
 
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
-__declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
-__declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
 
 float One() { return 1.0f /*0073B84C*/; }
 
@@ -134,16 +133,16 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     float y = static_cast<float>(v.y * twice);
     float x = static_cast<float>(twice * v.x);
     Vector3 along;
-    VectorMake(&along, nullptr, x, y, z);
+    along.Construct(x, y, z);
     float w = rotation.w;
     Vector3 cross, turned, scaled, sum, rotated;
     CrossProduct(&cross, v, *p);
     ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
     float ww = static_cast<float>(static_cast<double>(w) * w);
     float k = static_cast<float>(ww - DotRaw(&v, &v));
-    VectorScale(&scaled, p, k);
-    VectorAdd(&sum, &scaled, &turned);
-    VectorAdd(&rotated, &sum, &along);
+    ScaleVector(&scaled, *p, k);
+    AddVectors(&sum, scaled, turned);
+    AddVectors(&rotated, sum, along);
     float* moved = &worldPosition_.x;
     float mx = static_cast<float>(static_cast<double>(rotated.x) + offset.x);
     float my = static_cast<float>(static_cast<double>(rotated.y) + offset.y);

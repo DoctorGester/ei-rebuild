@@ -5,6 +5,7 @@
 #include "app_helpers.h"
 #include "bink_video.h"
 #include "model.h"
+#include "ui.h"
 #include "ui_screens.h"
 
 #include "world.h"
@@ -68,7 +69,7 @@ BOOL CCreditsScreen::Draw(int pass) {
                 UiSurfaceGetDC(headerSurface_);
                 SurfaceClearOriginal(headerSurface_);
                 RECT rect = {0, 0, 0, 0};
-                SurfaceDrawText(headerSurface_, nullptr, line.text, &rect, 2, kHeaderColour, 1, 1);
+                headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {

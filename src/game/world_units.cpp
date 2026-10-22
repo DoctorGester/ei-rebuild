@@ -7,6 +7,7 @@
 #include "magic_trap.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
+#include "sector_map.h"
 #include "spell.h"
 #include "unit_ai.h"
 #include "unit_create.h"
@@ -231,7 +232,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         int id = static_cast<int>(record->unitId);
         base.id = id;
-        if (ObjectWithId(id)) WorldRemoveObject(this, nullptr, base.id);
+        if (ObjectWithId(id)) RemoveObject(base.id);
 
         Placement* placement = nullptr;
         if (placements) {
@@ -249,7 +250,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
             PlaceInLine(message, position, rotation, i);
         }
 
-        CUnit* unit = WorldFindUnit(this, nullptr, WorldMakeObjectOriginal(this, nullptr, message));
+        CUnit* unit = WorldFindUnit(this, nullptr, CreateObject(&base));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
@@ -262,12 +263,12 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         mode->refsHigh = 0;
         brain->AddMode(mode ? mode->Construct() : nullptr);
         brain->StopAction();
-        SectorMapRemove(Sectors(), nullptr, unit);
+        Sectors()->Remove(unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
         AIMap()->FindFreeCellNear(unit, position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
-        SectorMapAdd(Sectors(), nullptr, unit);
+        Sectors()->Add(unit);
 
         unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0]);
@@ -353,7 +354,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     // At the unit's position, on the ground.
     std::memcpy(&message->base.position, &unit->localPosition_.x, 12);
     std::memset(&message->base.position.z, 0, 4);
-    int id = WorldMakeObjectOriginal(this, nullptr, message);
+    int id = CreateObject(&message->base);
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
     MessageDestructBase(message, nullptr);
@@ -480,7 +481,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(Sectors(), nullptr, object);
+        Sectors()->Add(object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         return result;
@@ -545,7 +546,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                unit->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
+                unit->AddQuickItem(ItemFactory()->CreateItem(name));
             }
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
@@ -590,7 +591,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(Sectors(), nullptr, object);
+        Sectors()->Add(object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         if (type >= 8 && type <= 9) {

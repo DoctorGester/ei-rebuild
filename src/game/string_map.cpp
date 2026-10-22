@@ -171,7 +171,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
     int height = ui->height_;
     RECT& asked = asked_;
     asked = *rect;
-    ui->CallScaleRectToScreen(&asked);
+    ui->ScaleRectToScreenEntry(&asked);
     int dx = asked.right - asked.left;
     int dy = asked.bottom - asked.top;
     if (dx < 100) dx = 100;
@@ -182,7 +182,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
     asked.bottom = asked.top + dy;
     RECT& shown = shown_;
     shown = asked;
-    InterfaceScaleRectFromScreenOriginal(ui_, nullptr, &shown);
+    ui_->ScaleRectFromScreenEntry(&shown);
     if (visible_) {
         Show(0);
         Show(1);

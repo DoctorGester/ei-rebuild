@@ -6,6 +6,7 @@
 #include "ai_map.h"
 
 #include "core_maths.h"
+#include "sector_map.h"
 #include "world_data.h"
 
 #include "lib/mfc.h"
@@ -120,13 +121,13 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     sectors->FindUnitsInRadius(&centre, &objects, radius);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
+        sectors->Remove(node->data);
         node = next;
     }
     regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorMapAdd(sectors, nullptr, AsEngineObject(node->data));
+        sectors->Add(node->data);
         node = next;
     }
     objects.vtable = mfc::impl::PtrListClass::Vtable();

@@ -94,8 +94,6 @@ float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
-__declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
-    EI_ORIGINAL(0x004B4030)
 // CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
 // new node before the head): returns the new node.
 using InstanceList = mfc::CList<ScriptDefinition>;
@@ -220,7 +218,7 @@ void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
     run->index = 0;
     run->ticks = 0;
     run->sleepStart = -1;
-    ExecuteOrig(run, nullptr, script);
+    run->Execute(script);
     run->block = block;
     run->index = index;
     run->ticks = ticks;
@@ -426,7 +424,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         cmd->SetParameters(&cmd->localBindings, &vars);
         cmd->SetParameters(&cmd->globalBindings, script->Globals());
         for (int i = 0; i < cmd->subCalls.size; ++i)
-            CalcParametersOrig(cmd, nullptr, script, &vars, &cmd->subCalls.data[i]);
+            cmd->CalcParameters(script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
         bool done = false;
         if (scriptaddon::Enabled()) {   // Rebirth's AddNewScriptCommands (hook at 004B684E)
@@ -488,7 +486,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             }
             for (int i = cmd->groupArgs.data[0]->size - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
-                if (condition) CalcParametersOrig(cmd, nullptr, script, &vars, condition);
+                if (condition) cmd->CalcParameters(script, &vars, condition);
                 if (!IsZero(cmd->floatArgs.data[0])) RunBody(this, script, cmd->calledScript);
             }
             --ForDepth(script);
@@ -623,7 +621,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x89:     // RemoveUnitFromServer(object)
         case 0x96: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) WorldRemoveObject(TheWorld(), nullptr, object->id_);   // Rebirth patches it
+            if (object) static_cast<CWorldServer*>(TheWorld())->RemoveObject(object->id_);   // Rebirth patches it
             break;
         }
         case 0xD2:   // RecalcMercBriefings

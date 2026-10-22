@@ -85,10 +85,6 @@ bool SameName(const TextSourceNode* node, const char* path) {
     return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
 }
 
-// 004DEC40 through its address: Rebirth patches it (rule 9).
-__declspec(naked) void __fastcall TextSourcesListKeysOriginal(TextSources*, void*, mfc::CStringArray*, const char*)
-    EI_ORIGINAL(0x004DEC40)
-
 constexpr int kLocaleCtype = 2;     // LC_CTYPE
 constexpr int kMbcpLocale = -4;     // _MB_CP_LOCALE
 
@@ -192,7 +188,7 @@ void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
 EI_REPLACE_METHOD(0x004DEC40, TextSources::ListKeys);
 
 void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
-    TextSourcesListKeysOriginal(&sources_, nullptr, out, pattern);
+    sources_.ListKeys(out, pattern);
     // EI_UTF8: the names in UTF-8, as Find takes them (one person's key holds Cyrillic).
     if constexpr (text::kUtf8) {
         for (int i = 0; i < out->GetSize(); ++i) text::FromAssetText(&(*out)[i]);

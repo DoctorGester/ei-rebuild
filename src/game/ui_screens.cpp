@@ -47,9 +47,6 @@ constexpr int kTypeSpellContainer = 0x3008;
 BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
 // The hero screen's equipment panels.
 
-// Unit statistics (UnitStats, not rewritten here; called through their addresses).
-__declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
-
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 
@@ -312,7 +309,7 @@ CItem* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
     case 3: *cursor = 0x17; break;
     }
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
     int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
@@ -404,7 +401,7 @@ int HeroSchoolSkill(UnitStats* stats, int school) {
 int HeroManaUnits(UnitStats* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
     float maximum = static_cast<float>(stats->ManaCurve());
-    return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
+    return static_cast<int>(gamecrt::Ftol(maximum / stats->Period20()));
 }
 
 bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
