@@ -127,8 +127,8 @@ namespace {
 struct IconWindowClass final : UiWindowClass<IconWindowClass, &CUiWindow::UiWindowDelete> {
     void Build() override { static_cast<CItemIconWindow*>(AsWindow())->Build(); }   // 18: 005F2A90
 };
-void** IconWindowVtable() { return static_cast<void**>(IconWindowClass::Vtable()); }
-void** IconWindowInputVtable() { return static_cast<void**>(UiWindowInputClass::Vtable()); }
+void** IconWindowVtable() { return IconWindowClass::Slots(); }
+void** IconWindowInputVtable() { return UiWindowInputClass::Slots(); }
 } // namespace
 
 void** CItemIconWindow::Vtable() { return IconWindowVtable(); }

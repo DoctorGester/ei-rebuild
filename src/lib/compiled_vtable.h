@@ -23,6 +23,8 @@ void* CompiledVtable() {
 template <typename Self>
 struct CompiledTag {
     static void* Vtable() { return CompiledVtable<Self>(); }
+    // The same table as its slots, for classes whose vtable field is a `void**`.
+    static void** Slots() { return static_cast<void**>(CompiledVtable<Self>()); }
 };
 
 template <typename F>

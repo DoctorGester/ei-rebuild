@@ -129,14 +129,14 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 } // namespace
 
-void** CHudWeaponBar::Vtable() { return static_cast<void**>(WeaponBarClass::Vtable()); }
-void** CHudWeaponBar::InputVtable() { return static_cast<void**>(WeaponBarInputClass::Vtable()); }
-void** CHudQuickItems::Vtable() { return static_cast<void**>(QuickItemsClass::Vtable()); }
-void** CHudQuickItems::InputVtable() { return static_cast<void**>(QuickItemsInputClass::Vtable()); }
-void** CHudSpellColumn::Vtable() { return static_cast<void**>(SpellColumnClass::Vtable()); }
-void** CHudSpellColumn::InputVtable() { return static_cast<void**>(SpellColumnInputClass::Vtable()); }
-void** CHudActionColumn::Vtable() { return static_cast<void**>(ActionColumnClass::Vtable()); }
-void** CHudActionColumn::InputVtable() { return static_cast<void**>(ActionColumnInputClass::Vtable()); }
+void** CHudWeaponBar::Vtable() { return WeaponBarClass::Slots(); }
+void** CHudWeaponBar::InputVtable() { return WeaponBarInputClass::Slots(); }
+void** CHudQuickItems::Vtable() { return QuickItemsClass::Slots(); }
+void** CHudQuickItems::InputVtable() { return QuickItemsInputClass::Slots(); }
+void** CHudSpellColumn::Vtable() { return SpellColumnClass::Slots(); }
+void** CHudSpellColumn::InputVtable() { return SpellColumnInputClass::Slots(); }
+void** CHudActionColumn::Vtable() { return ActionColumnClass::Slots(); }
+void** CHudActionColumn::InputVtable() { return ActionColumnInputClass::Slots(); }
 
 // --- Weapon bar ------------------------------------------------------------------------------------------------
 

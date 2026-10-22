@@ -40,8 +40,8 @@ struct ChatWindowInputClass final : InputSideClass<ChatWindowInputClass, &CChatW
     int LeftDown(int b, int x, int y) override { return SideWindow()->OnLButtonDown(b, x, y), 0; }   // 2: 006097E0
     int MouseMove(int b, int x, int y) override { return SideWindow()->OnMouseMove(b, x, y), 0; }    // 4: 00609900
 };
-void** MainVtable() { return static_cast<void**>(ChatWindowClass::Vtable()); }
-void** InputVtable() { return static_cast<void**>(ChatWindowInputClass::Vtable()); }
+void** MainVtable() { return ChatWindowClass::Slots(); }
+void** InputVtable() { return ChatWindowInputClass::Slots(); }
 
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {
@@ -83,6 +83,8 @@ void Assign(CRefObject** slot, CRefObject* object) {
 }
 
 net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
+// The active screen: the briefing, whose chat window this is (its chatActive_ is the pick mode).
+CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return static_cast<CBriefingScreen*>(ui->GetActiveWindow()); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // The inlined strcmp(a, b) == 0.
@@ -292,7 +294,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     int index = RegionAt(x, y);
     if (index < 0 || static_cast<unsigned>(index) >= players_.size()) return;
     inputHandled_ = true;
-    int pick = static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_;
+    int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0) {
         char text[0x80];
         gamecrt::sprintf(text, "%d", PlayerOf(players_[index])->serial_);
@@ -300,7 +302,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
             net::GameClient()->SendCommand(kPickCommandA, text);
         else if (pick == 2)
             net::GameClient()->SendCommand(kPickCommandB, text);
-        static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_ = 0;
+        ActiveBriefing(interface_)->chatActive_ = 0;
         return;
     }
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
@@ -318,7 +320,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
 
 void CChatWindow::OnMouseMove(int, int x, int y) {
     int index = RegionAt(x, y);
-    int pick = static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_;
+    int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) TheCursor()->SetShape(0);
 }
 

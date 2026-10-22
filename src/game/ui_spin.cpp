@@ -29,8 +29,8 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 } // namespace
 
-void** CUiSpin::Vtable() { return static_cast<void**>(SpinTable::Vtable()); }
-void** CUiSpin::InputVtable() { return static_cast<void**>(SpinInputTable::Vtable()); }
+void** CUiSpin::Vtable() { return SpinTable::Slots(); }
+void** CUiSpin::InputVtable() { return SpinInputTable::Slots(); }
 
 CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     CUiWindow::Construct(ui);

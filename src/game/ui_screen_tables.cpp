@@ -319,7 +319,7 @@ struct MpHeroScreenInputClass final : ContainerInputClass<MpHeroScreenInputClass
 
 template <typename Tag>
 void** Table() {
-    return static_cast<void**>(Tag::Vtable());
+    return Tag::Slots();
 }
 
 } // namespace

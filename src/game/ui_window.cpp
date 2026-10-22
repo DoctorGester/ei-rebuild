@@ -493,8 +493,8 @@ void ClearArray(UiPtrArray<T>& array) {
 }
 } // namespace
 
-void** CUiWindow::PlainVtable() { return static_cast<void**>(UiWindowBaseClass::Vtable()); }
-void** CUiWindow::PlainInputVtable() { return static_cast<void**>(UiWindowInputClass::Vtable()); }
+void** CUiWindow::PlainVtable() { return UiWindowBaseClass::Slots(); }
+void** CUiWindow::PlainInputVtable() { return UiWindowInputClass::Slots(); }
 
 CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     EngineObjectConstruct(reinterpret_cast<CEngineObject*>(this));
