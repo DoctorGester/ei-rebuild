@@ -9,6 +9,7 @@
 #include "game_strings.h"
 
 #include "buffered_file.h"
+#include "lib/static_object.h"
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
@@ -169,8 +170,8 @@ bool ServerRuns() {
 struct LocalBuffer {
     LocalBuffer() { Get()->ConstructGrowing(); }
     ~LocalBuffer() { Get()->DestructGrowing(); }
-    GameBuffer* Get() { return reinterpret_cast<GameBuffer*>(storage); }
-    alignas(GameBuffer) std::uint8_t storage[sizeof(GameBuffer)];
+    GameBuffer* Get() { return storage.Get(); }
+    lib::InPlace<GameBuffer> storage;
 };
 
 // The game server lists the file at `path` under `name` for its clients: the whole file, read
@@ -188,7 +189,7 @@ void ShareQuestFile(const char* path, const char* name) {
     data->cur = to + size;
     data->Commit();
     stlp::string listed(name);
-    net::GameServer()->ShareFile(reinterpret_cast<const stlp::string*>(&listed), data);
+    net::GameServer()->ShareFile(&listed, data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
@@ -232,16 +233,10 @@ EI_REPLACE(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
-namespace {
-
-
-} // namespace
-
-void GameFlow::OnVariableChanged(const void* event) {
-    // The event's record (+8): name at +0x0C, value at +0x18.
-    const std::uint8_t* record = *reinterpret_cast<const std::uint8_t* const*>(static_cast<const std::uint8_t*>(event) + 8);
-    mfc::CString name(*reinterpret_cast<const char* const*>(record + 0x0C));
-    std::uint32_t value = *reinterpret_cast<const std::uint32_t*>(record + 0x18);
+void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
+    const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
+    mfc::CString name(record->name_.data());
+    const float value = record->value_;
     bool quest;
     {
         mfc::CString prefix = name.Left(2);
@@ -249,8 +244,8 @@ void GameFlow::OnVariableChanged(const void* event) {
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
-        TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
-        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
+        TheInterface()->OnQuestVariable(name, value);
+        TheClientWorld()->OnQuestVariable(name, value);
     }
 }
 

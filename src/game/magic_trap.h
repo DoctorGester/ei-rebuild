@@ -9,37 +9,15 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "map_object.h"
+#include "map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
 
 #include <cstddef>
 #include <cstdint>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-struct MagicTrapRecord;
 class CSpell;    // spell.h
 class CStream;   // core_streams.h
-
-// A circle of a trap's area (0xC bytes).
-struct TrapCircle {
-    float x;
-    float y;
-    float radius;
-};
-static_assert(sizeof(TrapCircle) == 0xC);
-
-// A point a trap casts at.
-struct TrapPoint {
-    float x;
-    float y;
-};
-
-// A trap's area (+0x240): an MFC CArray of circles (SetSize 0046EAD0).
-using TrapArea = mfc::CArray<TrapCircle>;
-static_assert(sizeof(TrapArea) == 0x14);
-
-// A trap's points (+0x254): an MFC CArray of {x, y} pairs (SetSize 0052C8E0).
-using TrapPoints = mfc::CArray<TrapPoint>;
-static_assert(sizeof(TrapPoints) == 0x14);
 
 class MagicTrap : public CMapObject {
 public:
@@ -147,18 +125,6 @@ static_assert(offsetof(MagicTrap, period) == 0x284);
 static_assert(offsetof(MagicTrap, countdown) == 0x288);
 static_assert(offsetof(MagicTrap, singleTarget) == 0x28C);
 static_assert(sizeof(MagicTrap) == 0x290);
-
-// The MagicTrap part of a zone object record (at record + 0x8C, 005927C0).
-struct MagicTrapRecord {
-    std::uint32_t sides;        // +0x00
-    const char* spell;          // +0x04 the spell's text (a CString)
-    Vector3 position;           // +0x08
-    TrapArea area;              // +0x14
-    TrapPoints points;          // +0x28
-    std::uint32_t period;       // +0x3C
-    std::uint8_t singleTarget;  // +0x40
-};
-static_assert(sizeof(MagicTrapRecord) == 0x44);
 
 // 0052A920 (__fastcall, RET 8). Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
 // circle of `area` asks the sector map (`context` + 0x294, 005C0BD0) for the units within its

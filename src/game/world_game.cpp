@@ -1086,15 +1086,15 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
-    alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, kLocalHost, net::g_gamePort);
+    net::NetAddress address = {};
+    AddressSet(&address, nullptr, kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-        net::GameClient()->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
+        net::GameClient()->Join(&address, &hello);
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;
@@ -1818,9 +1818,8 @@ unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
-// 00580840 (GameFlow::OnVariableChanged): the original passes the variable node as ECX and as the
-// event (the method reads only the event).
-void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<void*>(node))->OnVariableChanged(node); }
+// 00580840 (GameFlow::OnVariableChanged) for a node of the changed-variables vector.
+void VariableChanged(const void* node) { GameFlow::OnVariableChanged(static_cast<const net::RefNode*>(node)); }
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a

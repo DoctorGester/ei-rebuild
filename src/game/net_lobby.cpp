@@ -621,7 +621,7 @@ void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 00443050 (slot 16): admits everybody.
-bool ServerBase::AdmitImpl(std::uint32_t, const std::uint8_t**, std::uint8_t*) { return true; }
+bool ServerBase::AdmitImpl(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
 
 // 004434F0 (slot 3): an update from a peer that is not connected yet but was told to join
 // becomes a connection (with the id and rate of its join), then counts.
@@ -712,7 +712,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     }
 
     std::uint8_t reason;
-    if (Admit(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(from)), reinterpret_cast<const std::uint8_t**>(cursor), &reason)) {
+    if (Admit(from, &cursor->p, &reason)) {   // the password at the cursor
         LogAddressLine("Accepting client from ", from);
         PendingJoin join;
         join.address = *from;

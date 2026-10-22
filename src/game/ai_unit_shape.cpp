@@ -28,7 +28,7 @@ public:
     virtual CRefObject* Clone() { return Shape()->Copy(); }      // 3: 005B34F0
 
 private:
-    CUnitShape* Shape() { return reinterpret_cast<CUnitShape*>(this); }
+    CUnitShape* Shape() { return ObjectAs<CUnitShape>(); }
 };
 
 // operator new and the counted header's constructor: no references, no flags (the original

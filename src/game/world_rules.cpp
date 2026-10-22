@@ -33,21 +33,18 @@ float Variable(CPlayer* player, const char* name) { return player->Party()->vari
 
 CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
 
-// The client's list of the server's variables: STLport list nodes holding the message.
-using VariableNode = stlp::list<net::VariableMessage*>::Node;
-
 } // namespace
 
 // ---- Sorting predicates --------------------------------------------------------------------------
 
-bool DepthLess::Less(const int* a, const int* b) {
+bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
     auto* registry = static_cast<CBaseManager*>(manager);
-    CEngineObject* first = registry->FindObject(static_cast<unsigned>(a[1]));
-    CEngineObject* second = registry->FindObject(static_cast<unsigned>(b[1]));
+    CEngineObject* first = registry->FindObject(a->objectId);
+    CEngineObject* second = registry->FindObject(b->objectId);
     if (!first || !second) return false;
-    // The plane's normal at +0x20, its offset at +0x2C.
-    const Vector3& normal = *reinterpret_cast<const Vector3*>(plane + 8);
-    float offset = plane[11];
+    // The matrix's row 2: the depth axis (+0x20) and its offset (+0x2C).
+    const Vector3 normal{view[8], view[9], view[10]};
+    float offset = view[11];
     const CMapObject* p = ObjectSlots(first);
     const CMapObject* q = ObjectSlots(second);
     float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->localPosition_, normal) + offset);
@@ -129,8 +126,9 @@ bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {
     return address_order::ById() ? address_order::DrawBefore(a, b) : LessByAddress(a, b);
 }
 
-BOOL EntryIdLess::Less(const std::uint8_t* a, const std::uint8_t* b) {
-    return reinterpret_cast<const VariableNode*>(a)->data->serial_ < reinterpret_cast<const VariableNode*>(b)->data->serial_;
+BOOL EntryIdLess::Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b) {
+    using Variables = stlp::CountedRefListOf<net::VariableMessage>;
+    return Variables::At(a)->serial_ < Variables::At(b)->serial_;
 }
 
 // ---- Game interface glue -------------------------------------------------------------------------

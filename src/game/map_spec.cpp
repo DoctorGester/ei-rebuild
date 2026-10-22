@@ -405,19 +405,19 @@ EI_REPLACE_METHOD(0x0046B3C0, FlameSpec::FlameSpecOnChunk);
 // 0046B4A0. Returns this.
 TrapSpec* TrapSpec::TrapSpecConstruct() {
     object.ObjectSpecConstruct();
-    diplomacy = -1;
-    new (&spell) mfc::CString();
-    areas.data = nullptr;
-    areas.growBy = 0;
-    areas.maxSize = 0;
-    areas.size = 0;
-    ei::SetVtable(&areas, mfc::impl::TrapAreasArrayClass::Vtable());
-    targets.data = nullptr;
-    targets.growBy = 0;
-    targets.maxSize = 0;
-    targets.size = 0;
-    ei::SetVtable(&targets, mfc::impl::TrapTargetsArrayClass::Vtable());
-    interval = 15;
+    trap.sides = ~0u;
+    new (&trap.spell) mfc::CString();
+    trap.area.data = nullptr;
+    trap.area.growBy = 0;
+    trap.area.maxSize = 0;
+    trap.area.size = 0;
+    ei::SetVtable(&trap.area, mfc::impl::TrapAreasArrayClass::Vtable());
+    trap.points.data = nullptr;
+    trap.points.growBy = 0;
+    trap.points.maxSize = 0;
+    trap.points.size = 0;
+    ei::SetVtable(&trap.points, mfc::impl::TrapTargetsArrayClass::Vtable());
+    trap.period = 15;
     ei::SetVtable(this, kVtableAddress);
     object.base.kind = 7;
     return this;
@@ -426,11 +426,11 @@ EI_REWRITTEN(0x0046B4A0, TrapSpec::TrapSpecConstruct);
 
 // 0046B570: the destructor body (the arrays' destructors inlined: their blocks freed).
 void TrapSpec::TrapSpecDestruct() {
-    ei::SetVtable(&targets, mfc::impl::TrapPointArrayClass::Vtable());
-    if (targets.data) gamecrt::operator_delete(targets.data);
-    ei::SetVtable(&areas, mfc::impl::TrapCircleArrayClass::Vtable());
-    if (areas.data) gamecrt::operator_delete(areas.data);
-    spell.~CString();
+    ei::SetVtable(&trap.points, mfc::impl::TrapPointArrayClass::Vtable());
+    if (trap.points.data) gamecrt::operator_delete(trap.points.data);
+    ei::SetVtable(&trap.area, mfc::impl::TrapCircleArrayClass::Vtable());
+    if (trap.area.data) gamecrt::operator_delete(trap.area.data);
+    trap.spell.~CString();
     object.ObjectSpecDestruct();
 }
 EI_REWRITTEN(0x0046B570, TrapSpec::TrapSpecDestruct);
@@ -455,18 +455,18 @@ EI_REPLACE_METHOD(0x0046B520, TrapSpec::TrapSpecTypeName);
 void TrapSpec::TrapSpecSave() {
     Chunk& c = object.base.chunk;
     c.BeginWrite(0xBBAB0000);
-    c.WriteInt(0xBBAB0001, diplomacy);
-    c.WriteString(0xBBAB0002, spell);
-    c.WriteInt(0xBBAB0005, interval);
-    c.WriteByte(0xBBAC0005, castOnce);
-    std::uint32_t count = static_cast<std::uint32_t>(areas.size);
+    c.WriteInt(0xBBAB0001, static_cast<int>(trap.sides));
+    c.WriteString(0xBBAB0002, trap.spell);
+    c.WriteInt(0xBBAB0005, trap.period);
+    c.WriteByte(0xBBAC0005, trap.singleTarget);
+    std::uint32_t count = static_cast<std::uint32_t>(trap.area.size);
     c.WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
     FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &areas.data[i], 12);
-    count = static_cast<std::uint32_t>(targets.size);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &trap.area.data[i], 12);
+    count = static_cast<std::uint32_t>(trap.points.size);
     c.WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
     FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &targets.data[i], 8);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &trap.points.data[i], 8);
     object.ObjectSpecWriteFields();
     c.EndWrite();
 }
@@ -476,28 +476,28 @@ EI_REPLACE_METHOD(0x0046B680, TrapSpec::TrapSpecSave);
 void TrapSpec::TrapSpecOnChunk() {
     Chunk& c = object.base.chunk;
     switch (c.id_) {
-    case 0xBBAB0001: diplomacy = c.ReadInt(); break;
-    case 0xBBAB0002: ReadInto(c, spell); break;
+    case 0xBBAB0001: trap.sides = static_cast<std::uint32_t>(c.ReadInt()); break;
+    case 0xBBAB0002: ReadInto(c, trap.spell); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
-        areas.SetSize(static_cast<int>(n), -1);
+        trap.area.SetSize(static_cast<int>(n), -1);
         for (std::uint32_t i = 0; i < n; ++i) {
-            FileRead(c, &areas.data[i], 12);
+            FileRead(c, &trap.area.data[i], 12);
             c.Advance(12);
         }
         break;
     }
     case 0xBBAB0004: {
         int n = c.ReadInt();
-        targets.SetSize(n, -1);
+        trap.points.SetSize(n, -1);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(n); ++i) {
-            FileRead(c, &targets.data[i], 8);
+            FileRead(c, &trap.points.data[i], 8);
             c.Advance(8);
         }
         break;
     }
-    case 0xBBAB0005: interval = c.ReadInt(); break;
-    case 0xBBAC0005: castOnce = ReadFlag(c); break;
+    case 0xBBAB0005: trap.period = c.ReadInt(); break;
+    case 0xBBAC0005: trap.singleTarget = ReadFlag(c); break;
     default: object.ObjectSpecOnChunk(); break;
     }
 }
@@ -508,14 +508,14 @@ EI_REPLACE_METHOD(0x0046B7D0, TrapSpec::TrapSpecOnChunk);
 // 0046BD40. Returns this.
 LeverSpec* LeverSpec::LeverSpecConstruct() {
     object.ObjectSpecConstruct();
-    stats[0] = 1;
-    stats[1] = 0;
-    stats[2] = 0;
-    state = 0;
-    states = 2;
-    cycled = 0;
-    castOnce = 0;
-    field04 = 0;
+    lever.lock.mask = 1;
+    lever.lock.id = 0;
+    lever.lock.level = 0;
+    lever.state = 0;
+    lever.stateCount = 2;
+    lever.flag260 = 0;
+    lever.keepsMapFlag = 0;
+    lever.cycling = 0;
     ei::SetVtable(this, kVtableAddress);
     object.base.kind = 8;
     return this;
@@ -538,12 +538,12 @@ EI_REPLACE_METHOD(0x0046BDA0, LeverSpec::LeverSpecDelete);
 void LeverSpec::LeverSpecSave() {
     Chunk& c = object.base.chunk;
     c.BeginWrite(0xBBAC0000);
-    c.WriteBlob(0xBBAC0006, stats, 12);
-    c.WriteByte(0xBBAC0002, static_cast<std::uint8_t>(state));
-    c.WriteByte(0xBBAC0003, static_cast<std::uint8_t>(states));
-    c.WriteByte(0xBBAC0004, field04);
-    c.WriteByte(0xBBAC0007, cycled);
-    c.WriteByte(0xBBAC0008, castOnce);
+    c.WriteBlob(0xBBAC0006, &lever.lock, 12);
+    c.WriteByte(0xBBAC0002, static_cast<std::uint8_t>(lever.state));
+    c.WriteByte(0xBBAC0003, static_cast<std::uint8_t>(lever.stateCount));
+    c.WriteByte(0xBBAC0004, lever.cycling);
+    c.WriteByte(0xBBAC0007, lever.flag260);
+    c.WriteByte(0xBBAC0008, lever.keepsMapFlag);
     object.ObjectSpecWriteFields();
     c.EndWrite();
 }
@@ -553,12 +553,12 @@ EI_REPLACE_METHOD(0x0046BE80, LeverSpec::LeverSpecSave);
 void LeverSpec::LeverSpecOnChunk() {
     Chunk& c = object.base.chunk;
     switch (c.id_) {
-    case 0xBBAC0002: state = c.ReadByte(); break;
-    case 0xBBAC0003: states = c.ReadByte(); break;
-    case 0xBBAC0004: field04 = ReadFlag(c); break;
-    case 0xBBAC0006: c.ReadBytes(stats, 12); break;
-    case 0xBBAC0007: cycled = ReadFlag(c); break;
-    case 0xBBAC0008: castOnce = ReadFlag(c); break;
+    case 0xBBAC0002: lever.state = c.ReadByte(); break;
+    case 0xBBAC0003: lever.stateCount = c.ReadByte(); break;
+    case 0xBBAC0004: lever.cycling = ReadFlag(c); break;
+    case 0xBBAC0006: c.ReadBytes(&lever.lock, 12); break;
+    case 0xBBAC0007: lever.flag260 = ReadFlag(c); break;
+    case 0xBBAC0008: lever.keepsMapFlag = ReadFlag(c); break;
     default: object.ObjectSpecOnChunk(); break;
     }
 }

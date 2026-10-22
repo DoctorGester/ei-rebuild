@@ -32,7 +32,7 @@ struct ByDepth {
     DepthLess less;
     bool operator()(const ScreenEntry& a, const ScreenEntry& b) const {
         DepthLess copy = less;
-        return copy.Less(reinterpret_cast<const int*>(&a), reinterpret_cast<const int*>(&b));
+        return copy.Less(&a, &b);
     }
 };
 using ScreenSort = stlp::Sort<ScreenEntry, ByDepth>;

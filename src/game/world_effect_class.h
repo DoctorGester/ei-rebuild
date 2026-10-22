@@ -28,8 +28,8 @@ public:
     virtual void Start(int) { _purecall(); }                       // 23: pure
 
 protected:
-    CEffect* Effect() { return reinterpret_cast<CEffect*>(this); }
-    T* Target() { return reinterpret_cast<T*>(this); }
+    CEffect* Effect() { return this->template ObjectAs<CEffect>(); }
+    T* Target() { return this->template ObjectAs<T>(); }
 };
 
 // The abstract base (slots 11, 12, 21-23 pure).
@@ -108,7 +108,7 @@ public:
     void Start(int update) override { Particle()->Start(update); }                           // 23: 00678CF0
 
 protected:
-    CEffectParticle* Particle() { return reinterpret_cast<CEffectParticle*>(this); }
+    CEffectParticle* Particle() { return this->template ObjectAs<CEffectParticle>(); }
 };
 
 struct CEffectParticleClass final : ParticleClass<CEffectParticleClass, CEffectParticle> {};
@@ -141,8 +141,8 @@ public:
 template <typename Self, typename T>
 class MissileClass : public EffectClass<Self, T> {
 public:
-    int RunTick() override { return reinterpret_cast<CEffectArrow*>(this)->Tick(); }   // 6: 0067AC90
-    void Reset() override { reinterpret_cast<CEffectMissile*>(this)->ResetMissile(); }   // 18: 0067AA00
+    int RunTick() override { return this->template ObjectAs<CEffectArrow>()->Tick(); }   // 6: 0067AC90
+    void Reset() override { this->template ObjectAs<CEffectMissile>()->ResetMissile(); }   // 18: 0067AA00
     virtual void MoveParts() { _purecall(); }                                            // 24: pure
 };
 

@@ -12,6 +12,7 @@
 // 0073C620 (6); magic traps 0073C650 (7); levers 0073C6B0 (8); units 0073C6E0 (5). Names are
 // provisional; see docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
+#include "lock_key.h"
 #include "maths.h"
 #include "unit_record.h"
 #include "lib/mfc.h"
@@ -25,6 +26,60 @@ class CEngineObject;   // engine_object.h
 class CMapObject;      // map_object.h
 class CTransformObject;   // core_transform.h
 class CUnit;           // unit.h
+
+// ---- The world objects' parts of the trap and lever records ---------------------------------------
+// The fields after a record's ObjectSpec (+0x8C), which the world object's SetUp reads in place.
+
+// A circle of a trap's area (0xC bytes).
+struct TrapCircle {
+    float x;
+    float y;
+    float radius;
+};
+static_assert(sizeof(TrapCircle) == 0xC);
+
+// A point a trap casts at (zero-filled when added: 0046F110).
+struct TrapPoint {
+    float x;
+    float y;
+};
+static_assert(sizeof(TrapPoint) == 8);
+
+// A trap's area: an MFC CArray of circles (SetSize 0046EAD0; the record's vtable 0073C68C).
+using TrapArea = mfc::CArray<TrapCircle>;
+static_assert(sizeof(TrapArea) == 0x14);
+
+// A trap's points: an MFC CArray of {x, y} pairs (SetSize 0052C8E0; the record's vtable 0073C680).
+using TrapPoints = mfc::CArray<TrapPoint>;
+static_assert(sizeof(TrapPoints) == 0x14);
+
+// The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; 005927C0 passes it to
+// MagicTrap::SetUp).
+struct MagicTrapRecord {
+    std::uint32_t sides;        // +0x00 (-1); the zone loader (00481660) makes it the players the
+                                // owner (+0x6E) is hostile to (relation 2), one bit each
+    mfc::CString spell;         // +0x04 the spell's text
+    Vector3 position;           // +0x08 the position when the zone loaded (00481660)
+    TrapArea area;              // +0x14
+    TrapPoints points;          // +0x28
+    std::int32_t period;        // +0x3C (15)
+    std::uint8_t singleTarget;  // +0x40
+};
+static_assert(offsetof(MagicTrapRecord, area) == 0x14);
+static_assert(offsetof(MagicTrapRecord, period) == 0x3C);
+static_assert(sizeof(MagicTrapRecord) == 0x44);
+
+// The lever part of a zone object record (mapspec::LeverSpec::lever), what Lever::SetUp reads.
+struct LeverSetup {
+    LockKey lock;                   // +0x00 ({1, 0, 0}; chunk BBAC0006, a 12-byte blob)
+    std::int32_t state;             // +0x0C (chunk BBAC0002, a byte)
+    std::int32_t stateCount;        // +0x10 (2; chunk BBAC0003, a byte)
+    std::uint8_t flag260;           // +0x14 (chunk BBAC0007)
+    std::uint8_t keepsMapFlag;      // +0x15 (chunk BBAC0008)
+    std::uint8_t cycling;           // +0x16 (chunk BBAC0004)
+};
+static_assert(offsetof(LeverSetup, cycling) == 0x16);
+static_assert(sizeof(LeverSetup) == 0x18);
 
 namespace mapspec {
 
@@ -85,18 +140,6 @@ static_assert(sizeof(Behaviour) == 0x4C);
 // this); 0046C290: the destructor body.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
-
-// A trap's target record (8 bytes, zero-filled when added: 0046F110).
-struct TargetRecord {
-    std::uint8_t bytes[8];
-};
-using TargetArray = mfc::CArray<TargetRecord>;
-
-// A trap's area circle as the zone file holds it (12 bytes; the magic trap's TrapCircle).
-struct AreaRecord {
-    std::uint8_t bytes[12];
-};
-using AreaArray = mfc::CArray<AreaRecord>;
 
 class SpecRecord;
 
@@ -235,18 +278,9 @@ struct TrapSpec {
     void TrapSpecOnChunk();
 
     ObjectSpec object;           // +0x00
-    std::int32_t diplomacy;      // +0x8C (-1); the zone loader (00481660) makes it the players the
-                                 // owner (+0x6E) is hostile to (relation 2), one bit each
-    mfc::CString spell;          // +0x90
-    Vector3 origin;              // +0x94 the position when the zone loaded (00481660)
-    AreaArray areas;             // +0xA0 (vtable 0073C68C; SetSize 0046EAD0)
-    TargetArray targets;         // +0xB4 8-byte elements (vtable 0073C680)
-    std::int32_t interval;       // +0xC8 (15)
-    std::uint8_t castOnce;       // +0xCC
-    std::uint8_t unused_CD[3];
+    MagicTrapRecord trap;        // +0x8C
 };
-static_assert(offsetof(TrapSpec, areas) == 0xA0);
-static_assert(offsetof(TrapSpec, interval) == 0xC8);
+static_assert(offsetof(TrapSpec, trap) == 0x8C);
 static_assert(sizeof(TrapSpec) == 0xD0);
 
 // A lever (vtable 0073C6B0, 0xA4 bytes).
@@ -264,14 +298,9 @@ struct LeverSpec {
     void LeverSpecOnChunk();
 
     ObjectSpec object;           // +0x00
-    std::uint32_t stats[3];      // +0x8C (1, 0, 0): a 12-byte blob
-    std::uint32_t state;         // +0x98
-    std::uint32_t states;        // +0x9C (2)
-    std::uint8_t cycled;         // +0xA0
-    std::uint8_t castOnce;       // +0xA1
-    std::uint8_t field04;        // +0xA2 chunk BBAC0004 (a flag), only read and written with the record
-    std::uint8_t unused_A3;
+    LeverSetup lever;            // +0x8C
 };
+static_assert(offsetof(LeverSpec, lever) == 0x8C);
 static_assert(sizeof(LeverSpec) == 0xA4);
 
 // The record's vtable from slot 2 on (see the top of this file), for calls through it (the deleting

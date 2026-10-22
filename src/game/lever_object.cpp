@@ -187,7 +187,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     else flags_ &= ~kDisabled;
     TheClientWorld()->QueueSynchronised(this);
     if (first == 1) {
-        const LeverRecord* record = static_cast<const LeverRecord*>((reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()))->Named(name));
+        const LeverRecord* record = TheLeverTable().Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
             TheSoundManager()->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);

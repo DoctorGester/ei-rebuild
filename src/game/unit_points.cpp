@@ -46,7 +46,7 @@ static float* PredictPosition(CUnit* unit, float* out, int time) {
         ObjectSlots(unit)->AimPoint(reinterpret_cast<Vector3*>(out));
         return out;
     }
-    auto* order = reinterpret_cast<MotionOrder*>(path);
+    MotionOrder* order = &path->motionOrder;
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
         Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};

@@ -518,7 +518,7 @@ public:
     }
 
 private:
-    T* Object() { return reinterpret_cast<T*>(this); }
+    T* Object() { return this->template ObjectAs<T>(); }
 };
 
 struct MessageClass final : ReplicatedClass<MessageClass, Message, &RefObjectDestructBase> {};   // 0073BC10

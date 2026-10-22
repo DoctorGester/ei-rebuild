@@ -37,7 +37,7 @@ CParty* PartyOf(PartyRecord* record) { return record->Party(); }
 // The compiler's tables in place of game.exe's (C19): the party record's 0073C360 (0 the deleting
 // destructor, 1 Serialize) and the mouse's 0073C350 (0 the deleting destructor).
 struct PartyRecordClass final : ei::CompiledDeleter<PartyRecordClass, &PartyRecord::DeletingDestruct> {
-    virtual void Serialize(ChunkArchive* ar) { reinterpret_cast<PartyRecord*>(this)->Serialize(ar); }   // 1
+    virtual void Serialize(ChunkArchive* ar) { ObjectAs<PartyRecord>()->Serialize(ar); }   // 1
 };
 struct MouseClass final : ei::CompiledDeleter<MouseClass, &CDirectInputMouse::DeletingDestruct> {};
 

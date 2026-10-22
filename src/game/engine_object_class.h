@@ -44,8 +44,8 @@ public:
 
 protected:
     template <typename U>
-    U* As() { return reinterpret_cast<U*>(this); }
-    CEngineObject* Object() { return reinterpret_cast<CEngineObject*>(this); }
+    U* As() { return this->template ObjectAs<U>(); }
+    CEngineObject* Object() { return this->template ObjectAs<CEngineObject>(); }
 };
 
 // CTransformObject's slots 13-17 over CEngineObject's (game.exe's 0073BA38 has the base's bodies there).
@@ -63,5 +63,5 @@ public:
     virtual void LoadTransform(void* file) { Transform()->LoadTransformImpl(file); }   // 17: 00401540
 
 protected:
-    CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
+    CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }
 };

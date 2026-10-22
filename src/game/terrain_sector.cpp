@@ -438,7 +438,7 @@ void SectorData::Build() {
     std::memset(counts, 0, sizeof(counts));
     FillTiles(*this, tileWords, counts);
     ComputeBounds(*this);
-    reinterpret_cast<Terrain*>(owner)->LightSector(this);   // terrain_lights.cpp
+    owner->LightSector(this);   // terrain_lights.cpp
     built |= 2;
 
     if (hasWater) {
