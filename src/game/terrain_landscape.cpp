@@ -217,7 +217,7 @@ Terrain::Terrain() {
     materials.Construct();
     textureClass.Construct();
     textureFrames.Construct();
-    archive.Construct();
+    // archive: a C++ member, constructed before this body (CMMIOResource())
     vertexTiles.Construct();
     mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
     lights.Construct(100);   // 00571050: the light table, then the highest id 0
@@ -241,7 +241,7 @@ Terrain::~Terrain() {
     sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
     sectorCache.RemoveAll();
     vertexTiles.FreeData();
-    archive.Destroy();
+    // archive: destroyed after this body (~CMMIOResource())
     textureFrames.FreeData();
     textureClass.FreeData();
     materials.FreeData();
