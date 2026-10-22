@@ -21,7 +21,7 @@ namespace {
 constexpr int kTypeOtherUnit = 0x33;            // CEngineObject::type_ (kUnitTypeHero 0x32 .. 0x34: units)
 constexpr int kTypeLastUnit = 0x34;
 constexpr int kClassUnitServer = 0x3E;          // CUnitServer (combat.h)
-constexpr std::uint8_t kMovesOnWater = 2;       // CUnit::movementKind
+constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
 
 // Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
 // 0x38000 are the movement bits (0x30000 mode 0, 0x20000 mode 1, 0x10000 mode 2, 0x8000 mode 4).
@@ -107,7 +107,7 @@ EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
-    if (movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
+    if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
     if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }

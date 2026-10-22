@@ -28,7 +28,7 @@ namespace mapspec {
 
 // EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
 
-void __stdcall EffectNotify(std::uintptr_t, std::uintptr_t);
+void __stdcall EffectNotify(mfc::CString kind, mfc::CString family);
 namespace {
 
 CBaseManager* Effects() { return ei::GameData<CBaseManager*>(0x007AFFA8); }
@@ -47,18 +47,9 @@ void ReadVector(Chunk& c, Vector3& to) {
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
-// The notification made before a new effect: (kind, family) strings by value, the second made
-// first.
-void Notify(const char* kind, const char* family) {
-    alignas(mfc::CString) unsigned char second[sizeof(mfc::CString)];
-    alignas(mfc::CString) unsigned char first[sizeof(mfc::CString)];
-    new (second) mfc::CString(family);
-    new (first) mfc::CString(kind);
-    std::uintptr_t a, b;
-    std::memcpy(&a, first, 4);
-    std::memcpy(&b, second, 4);
-    EffectNotify(a, b);
-}
+// The notification made before a new effect: (kind, family) strings by value, built in their
+// argument slots right to left (the second first, as the original) and destroyed by the callee.
+void Notify(const char* kind, const char* family) { EffectNotify(mfc::CString(kind), mfc::CString(family)); }
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
@@ -128,11 +119,9 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x0046D420, EffectSpec::EffectSpecMove);
 
-// 0046D4D0: takes the two strings (by value) and only destroys them.
-void __stdcall EffectNotify(std::uintptr_t kind, std::uintptr_t family) {
-    reinterpret_cast<mfc::CString*>(&kind)->~CString();
-    reinterpret_cast<mfc::CString*>(&family)->~CString();
-}
+// 0046D4D0 (RET 8): takes the two strings by value and only destroys them (the callee destroys
+// its by-value parameters).
+void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
 EI_REWRITTEN(0x0046D4D0, EffectNotify);
 
 // ---- Particle sources (0073C758) ------------------------------------------------------------------

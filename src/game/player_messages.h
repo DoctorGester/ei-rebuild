@@ -28,6 +28,7 @@ class CUnit;    // unit.h
 class CMapObject;   // map_object.h
 class CEffect;      // world_effect.h
 struct WaterTweens;   // water_tweens.h
+struct PathOrder;     // ai_map.h
 namespace netlink {
 class NetLink;  // net_link.h
 }
@@ -296,7 +297,7 @@ public:
     // 0066D490 (RET 0x18). Message 0x0E about a path of `unit` (nothing for null): kind, flag,
     // the point's two dwords, the unit's id and `limitBits`; except for kind 3 the path
     // (005C7DB0) written through a delta field on the stack, its channel 0 output appended.
-    void SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
+    void SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
     // +0x24 -1, or the unit a Possession spell took (its id): the next party refresh (0066E130) then

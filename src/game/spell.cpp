@@ -1,4 +1,5 @@
 #include "spell.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -10,7 +11,6 @@
 using namespace itemdb;
 
 namespace {
-constexpr int kClassUnit = 0x50;
 constexpr int kPointLight = 0x31;
 constexpr float kZero = 0.0f;              // 0073B858
 constexpr float kOne = 1.0f;               // 0073B84C
@@ -28,10 +28,8 @@ constexpr const char* kOrcMale = "unorma";        // 007959D8
 constexpr const char* kOrcFemale = "unorfe";      // 007959D0
 constexpr const char* kMoli = "unmoli";           // 007959C8
 
-const SpellTargetUnit* AsUnit(const CEngineObject* o) { return reinterpret_cast<const SpellTargetUnit*>(o); }
-
 // `a` regards `b`'s side as hostile. The shift count is taken mod 32, like SHL.
-bool Regards(const SpellTargetUnit* a, const SpellTargetUnit* b) {
+bool Regards(const CUnit* a, const CUnit* b) {
     return (a->relationsA & ((1u << (b->side & 31)) & a->relationsB)) != 0;
 }
 } // namespace
@@ -131,15 +129,16 @@ bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const
     if (flags == 0) return true;
     if (!target || target->GetClassId() != kClassUnit) return false;
 
-    const SpellTargetUnit* unit = AsUnit(target);
+    // The caster is taken as a unit without a class test, as the original.
+    const CUnit* unit = static_cast<const CUnit*>(target);
     if (caster) {
-        const SpellTargetUnit* source = AsUnit(caster);
+        const CUnit* source = static_cast<const CUnit*>(caster);
         bool hostile = Regards(source, unit) || Regards(unit, source);
         if ((flags & 1) && hostile) return false;     // friends only
         if ((flags & 2) && !hostile) return false;    // enemies only
     }
 
-    const char* name = unit->prototypeName;
+    const char* name = unit->name.GetString();   // the prototype name, e.g. "unhuma"
     if ((flags & 4) && (std::strcmp(name, kHumanMale) == 0 || std::strcmp(name, kHumanFemale) == 0)) return false;
     if ((flags & 8) && std::strcmp(name, kGoblin) == 0) return false;
     if ((flags & 0x10) && (std::strcmp(name, kOrcMale) == 0 || std::strcmp(name, kOrcFemale) == 0)) return false;

@@ -109,13 +109,13 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
     static const char* const kPartNames[4] = {"skull", "torso", "leg", "arm"};
 
     for (int i = 0; i < 6; ++i) {
-        const UnitBodyPart& part = unit->bodyParts[i];
-        if (part.state == 0) continue;
+        const UnitParamsSlot& part = unit->params.slots[i];
+        if (part.kind == 0) continue;
         Sprite(this, 15 + 2 * i)->visible_ = 1;
         CUiMesh* bar = Sprite(this, 14 + 2 * i);
         float ratio = 0.0f;
-        if (part.state == 3 && part.maxDurability != 0 && part.durability > 0 &&
-            BarRatio(part.durability, part.maxDurability, &ratio))
+        if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
+            BarRatio(part.current, part.maximum, &ratio))
             FillBar(bar, ratio, 50.0f, 0.505859375f, 0.486328125f);
         else
             bar->visible_ = 0;
@@ -132,7 +132,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
             }
         }
         DrawPanelText(this, name, RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
-                      part.state == 1 ? kRed : kTextColour, 1, 1);
+                      part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }
 EI_REWRITTEN(0x00647B70, CHudUnitPanel::ShowParts);

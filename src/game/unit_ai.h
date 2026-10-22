@@ -31,6 +31,7 @@ struct AIRefTo;
 struct AIBrain;
 struct AIOrder;
 class CUnitServer;      // combat.h (the unit controller of AI units, the brain's owner)
+struct AIEventPresence;   // combat.h
 
 struct CountedUnits : mfc::CTypedPtrList<CUnit> {
     // 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
@@ -808,8 +809,9 @@ struct AIViewer {
     void Noise(CUnitServer* source, float loudness, int kind, const Vector3* at);
     // 005C9770 (RET 8; unit_ai_hearing.cpp, A-W14; the controller's update every few frames). The
     // noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x
-    // valuesE0[3] x the noise of the ground at `position` (the AI map's terrain type). Returns 0.
-    int StepNoise(const Vector3* position, CUnitServer* source);
+    // valuesE0[3] x the noise of the ground at `position` (the AI map's terrain type). Returns 0
+    // (no presence record; the controller keeps the result at +0x918).
+    AIEventPresence* StepNoise(const Vector3* position, CUnitServer* source);
 
     CAIMap* map;                    // +0x00
     int tick;                       // +0x04 the world's event table: its tick (AIEventTable::Advance)

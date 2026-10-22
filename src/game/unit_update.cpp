@@ -22,7 +22,7 @@ constexpr const char* kUnitClassName = "CUnit";
 constexpr int kUnitClassId = 0x50;
 constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
-constexpr std::uint8_t kMovesOnWater = 2;     // CUnit::movementKind
+constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 
 // The world's slots 29 / 30 give the ground and water surface heights at (x, y), in ST0.
 CWorld* WorldOf(CUnit* unit) { return unit->World(); }
@@ -105,7 +105,7 @@ float* CUnit::StandPoint(float* out) {
     float lift = static_cast<float>(ModeSpeed());   // the original inlines it
     CWorld* world = WorldOf(this);
     double height;
-    if (movementKind == kMovesOnWater) {
+    if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
             height = world->SurfaceHeightAt(x, y) + localPosition_.z;
         } else {
@@ -126,7 +126,7 @@ void CUnit::PlaceOnGroundImpl(float offset) {
     float y = localPosition_.y;
     heightOffset = offset;
     CWorld* world = WorldOf(this);
-    if (movementKind == kMovesOnWater) {
+    if (params.movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
             localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition_.z);
         } else {

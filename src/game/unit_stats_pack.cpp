@@ -115,7 +115,7 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
         out.vitalMask = static_cast<std::uint8_t>(slot.vitalMask);
         out.kind = slot.kind;
         out.current = static_cast<std::int16_t>(RoundStored(slot.current));
-        out.maximum = static_cast<std::int16_t>(RoundStored(slot.maximum));
+        out.maximum = static_cast<std::uint16_t>(RoundStored(slot.maximum));
         for (int type = 0; type < 7; ++type) {
             double sum = kZero;   // accumulated on the FPU stack
             for (const UnitStatLayer& layer : slot.layers) sum += layer.absorb[type];

@@ -222,8 +222,8 @@ constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
 float StatFraction(CUnit* unit, int k) {
-    const UnitBodyPart& part = unit->bodyParts[k];   // +0x378 + k * 0x1C: durability, maximum
-    return static_cast<float>(static_cast<double>(part.durability) / part.maxDurability);
+    const UnitParamsSlot& part = unit->params.slots[k];   // +0x378 + k * 0x1C: current, maximum
+    return static_cast<float>(static_cast<double>(part.current) / part.maximum);
 }
 
 // fabs(v) > epsilon (FCOMP + TEST AH,0x41).

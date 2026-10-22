@@ -310,18 +310,18 @@ EI_REPLACE_METHOD(0x0052F8B0, CUnit::CanUseQuickItem);
 // --- Movement --------------------------------------------------------------------------------
 
 void CUnit::GetMoveSpeeds(float* forward, float* backward) {
-    float base = static_cast<float>(baseSpeed) * kSpeedByteScale;
+    float base = static_cast<float>(params.baseSpeed) * kSpeedByteScale;
     *forward = base;
     *backward = base;
     std::uint8_t speed;
     switch (static_cast<std::uint32_t>(moveMode)) {
-    case 0: speed = modeSpeeds[3]; break;
-    case 1: speed = modeSpeeds[2]; break;
-    case 3: speed = modeSpeeds[0]; break;
+    case 0: speed = params.modeSpeeds[3]; break;
+    case 1: speed = params.modeSpeeds[2]; break;
+    case 3: speed = params.modeSpeeds[0]; break;
     case 2:
     case 4:
-        *backward = static_cast<float>(modeSpeeds[0]) * *forward * kTwo * kByteScale;
-        *forward = static_cast<float>(modeSpeeds[1]) * *forward * kTwo * kByteScale;
+        *backward = static_cast<float>(params.modeSpeeds[0]) * *forward * kTwo * kByteScale;
+        *forward = static_cast<float>(params.modeSpeeds[1]) * *forward * kTwo * kByteScale;
         *backward = BackwardSpeedScale() * *backward;
         return;
     default:
@@ -338,14 +338,14 @@ EI_REPLACE_METHOD(0x0052F920, CUnit::GetMoveSpeeds);
 namespace {
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
 double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
-    double base = static_cast<float>(unit->baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
+    double base = static_cast<float>(unit->params.baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
     std::uint8_t speed;
     switch (mode) {
-    case 0: speed = unit->modeSpeeds[3]; break;
-    case 1: speed = unit->modeSpeeds[2]; break;
+    case 0: speed = unit->params.modeSpeeds[3]; break;
+    case 1: speed = unit->params.modeSpeeds[2]; break;
     case 2:
-    case 4: speed = unit->modeSpeeds[1]; break;
-    case 3: speed = unit->modeSpeeds[0]; break;
+    case 4: speed = unit->params.modeSpeeds[1]; break;
+    case 3: speed = unit->params.modeSpeeds[0]; break;
     default: return base;
     }
     return base * (static_cast<float>(speed) * kTwo) * kByteScale;

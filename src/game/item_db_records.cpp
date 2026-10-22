@@ -157,8 +157,8 @@ void QuickItemRecord::Destruct() {
 EI_REWRITTEN(0x006A8A50, QuickItemRecord::Destruct);
 
 void QuestItemRecord::Destruct() {
-    for (mfc::CString* zone = zonesBegin; zone != zonesEnd; ++zone) zone->~CString();
-    if (zonesBegin) stlp::deallocate(zonesBegin, static_cast<std::size_t>(zonesCapacity - zonesBegin) * sizeof(mfc::CString));
+    for (mfc::CString& zone : zones) zone.~CString();
+    zones.FreeStorage();
     DestructHead();
 }
 EI_REWRITTEN(0x006A8AE0, QuestItemRecord::Destruct);
@@ -301,11 +301,7 @@ void ConstructExtra(R*) {}
 template <>
 void ConstructExtra(QuickItemRecord* record) { new (&record->text7C) mfc::CString(); }
 template <>
-void ConstructExtra(QuestItemRecord* record) {
-    record->zonesBegin = nullptr;
-    record->zonesEnd = nullptr;
-    record->zonesCapacity = nullptr;
-}
+void ConstructExtra(QuestItemRecord* record) { record->zones.ConstructEmpty(); }
 
 // uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
 // the second stack argument is STLport's unused type tag). Null destinations are skipped, as in

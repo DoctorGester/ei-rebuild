@@ -54,10 +54,10 @@ constexpr const char* kHeroParts[kBodyParts] = {"hd", "bd", "lh", "rh", "ll", "r
 constexpr const char* kParts[kBodyParts] = {"hd", "bd", "h", "h", "l", "l"};           // 0078F990
 
 // The level of one part (0 none .. 3 heavy).
-std::uint8_t PartLevel(const UnitBodyPart& part) {
-    if (part.state == 0 || part.maxDurability == 0) return 0;
-    float maximum = static_cast<float>(part.maxDurability);
-    float ratio = static_cast<float>(part.durability) / maximum;
+std::uint8_t PartLevel(const UnitParamsSlot& part) {
+    if (part.kind == 0 || part.maximum == 0) return 0;
+    float maximum = static_cast<float>(part.maximum);
+    float ratio = static_cast<float>(part.current) / maximum;
     EI_NAN_AUDIT(ratio, maximum);
     if (ratio == kFull) return 0;   // unhurt
     float stored = static_cast<float>(ratio);
@@ -80,7 +80,7 @@ std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
 bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
     bool wounded = false;
     for (int i = 0; i < kBodyParts; ++i) {
-        std::uint8_t level = PartLevel(unit->bodyParts[i]);
+        std::uint8_t level = PartLevel(unit->params.slots[i]);
         (*levels)[i] = level;
         if (level) wounded = true;
     }

@@ -5,6 +5,7 @@
 #include "world_glue.h"
 #include "combat.h"
 #include "ui_briefing.h"
+#include "quest_records.h"
 #include "asset_text.h"
 
 #include "console.h"
@@ -67,7 +68,7 @@ const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
 const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
-stlp::NameMap& BriefingRecords() { return worlddata::QuestBriefings(); }   // hash_map<string, BriefingRecord*>
+QuestBriefingTable::Index& BriefingRecords() { return worlddata::QuestBriefings(); }
 CItemManager* ItemManager() { return ei::GameData<CItemManager* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
@@ -199,10 +200,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (last) {
         // The rewards of the briefing record of topic_ (the lookup adds an empty entry).
         state_ = kStateRewards;
-        BriefingRecord* record;
+        QuestBriefingRecord* record;
         {
             stlp::string key(topic_);
-            record = stlp::NamedSlot<BriefingRecord>(BriefingRecords(), key);
+            record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
         }
         if (record) {
             console::CStringArray parts;
@@ -213,7 +214,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 dialogueText_ += line;
                 if (!skip) text_->AddText(line);
             };
-            auto addItems = [&](const BriefingRecord::NameList& list) {
+            auto addItems = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
                     CItem* item = ItemManagerCreateItemOriginal(ItemManager(), nullptr, *it);
                     if (!item) continue;
@@ -224,7 +225,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     item->Release();
                 }
             };
-            auto addQuests = [&](const BriefingRecord::NameList& list) {
+            auto addQuests = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
                     text::Split(*it, &parts, '.');
                     if (parts.GetSize() != kQuestNameParts) continue;
@@ -234,18 +235,18 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     add();
                 }
             };
-            if (record->experience > 0.0f) {
+            if (record->exp > 0.0f) {
                 texts->GetString(ExperienceLabel(), &label);
-                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->experience));
+                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->exp));
                 add();
             }
-            if (record->gold > 0.0f) {
+            if (record->money > 0.0f) {
                 texts->GetString(GoldLabel(), &label);
-                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->gold));
+                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->money));
                 add();
             }
             texts->GetString(ItemLabel(), &label);
-            addItems(record->giveItems);
+            addItems(record->lists[QuestBriefingRecord::kGiveItems]);
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
@@ -259,11 +260,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     }
                 }
             }
-            addItems(record->removeItems);
+            addItems(record->lists[QuestBriefingRecord::kRemoveItems]);
             texts->GetString(QuestLabel(), &label);
-            addQuests(record->giveQuests);
+            addQuests(record->lists[QuestBriefingRecord::kGiveQuests]);
             texts->GetString(QuestDoneLabel(), &label);
-            addQuests(record->completeQuests);
+            addQuests(record->lists[QuestBriefingRecord::kCompleteQuests]);
             if (record->specials > 0) {
                 label.Format(SpecialsLabel(), record->specials);
                 texts->GetString(label, &label);

@@ -226,8 +226,7 @@ int CUnitServer::UpdateServer() {
                 presence->x = unit->localPosition_.x;
                 presence->y = unit->localPosition_.y;
             }
-            presence = reinterpret_cast<AIEventPresence*>(
-                static_cast<std::intptr_t>(TheServerWorld()->AIEvents()->StepNoise(&unit->localPosition_, this)));
+            presence = TheServerWorld()->AIEvents()->StepNoise(&unit->localPosition_, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
