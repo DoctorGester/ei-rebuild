@@ -15,7 +15,6 @@ class CItemArmor;
 class CItemConstructor;
 struct CItemManager;
 class CSpell;
-struct Projectile;
 class CPlayer;
 
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)

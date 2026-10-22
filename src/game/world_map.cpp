@@ -8,6 +8,7 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
+#include "spell.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
 #include "game_arrays.h"
@@ -220,7 +221,7 @@ void CWorldServer::TeardownZone() {
     // The missiles' counted pointers, released inline (16-bit count, slot 0 deletes).
     auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
-        Projectile* missile = node->data;
+        CSpellEffect* missile = node->data;
         if (missile && --missile->referenceCount == 0 && missile) missile->DeletingDestructor(1);
     }
     missiles.RemoveAll();

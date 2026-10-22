@@ -58,7 +58,7 @@ namespace {
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
-constexpr int kMissileSize = 0xA8;                            // operator new size of a Projectile
+constexpr int kMissileSize = sizeof(CSpellEffect);           // operator new size of a missile
 
 // Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
@@ -150,8 +150,7 @@ void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
-// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's
-// (Projectile is the missile's view of it).
+// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's.
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
 // 0040A3A0. CRefObject::Release.
@@ -464,10 +463,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
                 if (!more) break;
                 void* memory = gamecrt::operator_new(kMissileSize);
-                static_cast<Projectile*>(memory)->references = 0;   // written before the null test
-                // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
-                auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
-                reinterpret_cast<CSpellEffect*>(missile)->Load(stream);
+                static_cast<CSpellEffect*>(memory)->references = 0;   // written before the null test
+                CSpellEffect* missile = memory ? static_cast<CSpellEffect*>(memory)->Construct() : nullptr;
+                missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
                 RefPtrAssign(&node->data, nullptr, missile);
@@ -689,9 +687,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
     for (auto* node = projectiles_.head; node;) {
         auto* next = node->next;
-        Projectile* missile = node->data;
+        CSpellEffect* missile = node->data;
         WriteCopy(stream, static_cast<std::uint8_t>(1));
-        reinterpret_cast<CSpellEffect*>(missile)->Save(stream);
+        missile->Save(stream);
         node = next;
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));

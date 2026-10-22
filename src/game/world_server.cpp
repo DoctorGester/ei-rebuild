@@ -234,7 +234,7 @@ void CWorldServer::RemoveObject(unsigned id) {
         auto* current = node;
         node = node->next;
         // 0067EF00: 0 when the missile's owner left (the missile is then dropped).
-        if (!reinterpret_cast<CSpellEffect*>(current->data)->Forget(object))
+        if (!current->data->Forget(object))
             mfc::impl::RemoveAtAs<gamelists::Refs>(&projectiles_, current);   // 00599CC0
     }
     {

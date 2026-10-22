@@ -63,6 +63,7 @@ class CStream;   // core_streams.h
 class CUnit;     // unit.h
 class CMapObject;   // map_object.h
 class CSpell;   // spell.h
+struct CSpellEffect;   // spell.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
@@ -312,29 +313,12 @@ struct WorldAlarm {
 };
 static_assert(sizeof(WorldAlarm) == 16);
 
-// A missile in flight (0xA8 bytes, constructor 0067E510; created by 0058E670). Reference counted
-// through a 16-bit count at +4. Not rewritten.
-struct __declspec(novtable) Projectile {
-    // Slot 0 (vtable set by the constructor): the scalar deleting destructor (flags 1: free it).
-    virtual void* DeletingDestructor(unsigned flags);
-
-    // 0067E6D0. Moves the missile one tick; 0 once it has hit or expired.
-    int Update();
-
-    // +0x04 the reference count (16 bits; LoadSave clears the whole dword of a new allocation before
-    // its null test and the constructor).
-    union {
-        std::uint32_t references;
-        std::int16_t referenceCount;
-    };
-};
-static_assert(offsetof(Projectile, references) == 4);
-static_assert(offsetof(Projectile, referenceCount) == 4);
 // The world the missiles find while they load (LoadSave sets it).
 inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
-// The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
-// FreeNode (0059C810, world_tick.cpp) releases the node's missile.
-using ProjectileList = mfc::CTypedPtrList<Projectile>;
+// The world server's missiles (the spells being applied, spell.h's CSpellEffect): an MFC CList of
+// counted pointers (CWorldServer + 0x12E28). Its FreeNode (0059C810, world_tick.cpp) releases the
+// node's missile.
+using ProjectileList = mfc::CTypedPtrList<CSpellEffect>;
 
 // The stream the world's save and load code reads and writes (the CMemoryStream holding
 // mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.

@@ -110,8 +110,6 @@ private:
 
 } // namespace
 
-int Projectile::Update() { return reinterpret_cast<CSpellEffect*>(this)->Update(); }
-
 // ---- The tick ------------------------------------------------------------------------------------
 
 void CWorldServer::Tick(char force) {
