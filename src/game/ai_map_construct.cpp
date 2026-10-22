@@ -1,6 +1,6 @@
-// The CAIMap constructor (005B3C30) and its reset (005B5E10: every member destroyed in reverse
-// order, then the constructor run again in place). The members are built through their own
-// constructors; the inlined ones (CArrays, CLists, the dirty rectangle) are stores.
+// The CAIMap constructor (005B3C30), destructor (0058A450) and reset (005B5E10: destroyed, then
+// constructed again in place). The unit layers and the sector map are C++ members; the inlined
+// constructors of the others (CArrays, CLists, the dirty rectangle) are stores.
 // The original's exception frames only matter when a member constructor throws, which ends the
 // game either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
@@ -18,78 +18,58 @@
 #include "game_data.h"
 #include "record_arrays.h"
 
-namespace {
-
-
-
-void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, void* vtable) {
-    layer->Construct();
-    layer->map = self;
-    ei::SetVtable(layer, vtable);
+CAIMap::CAIMap() {
+    dirtyMinX = 10000;
+    dirtyMaxX = 0;
+    dirtyMinY = 10000;
+    dirtyMaxY = 0;
+    climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
+    climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
+    materials.Construct();
+    bridgeHeights.Construct(100);   // 005BCCD0
+    footprint.cells.Construct();
+    footprint.hashed = true;
+    bridges.cells.Construct();
+    bridges.hashed = true;
+    waterDepth.width = 1;
+    waterDepth.height = 1;
+    AllocateGrid(waterDepth);
+    for (mfc::CArray<AreaOffset>& list : areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
+    unitLayerSmall.map = this;
+    unitLayerLarge.map = this;
+    ConstructRegionMap(&regionMap);   // 005AF3D0
+    forwardSearch.nodes.Construct(1, 1);
+    reinterpret_cast<SearchGrid<std::int8_t>*>(&forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
+    mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
+    forwardSearch.map = nullptr;
+    backwardSearch.Construct(nullptr);
+    cells.Construct(1, 1);
+    occluders.Construct(1, 1);
+    marks.Construct(1, 1);
+    Events()->Construct();
+    loaded = false;
+    batching = false;
+    reinterpret_cast<AIDirtyRect*>(&dirtyMinX)->Reset();
+    FillAreaLists(this);
+    footprintTick = 0;
+    refreshUnits = false;
 }
+EI_REWRITTEN_SPECIAL(0x005B3C30, CAIMap::CAIMap);
 
-} // namespace
-
-// 005B3C30 (thiscall). Returns this.
-CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
-    self->dirtyMinX = 10000;
-    self->dirtyMaxX = 0;
-    self->dirtyMinY = 10000;
-    self->dirtyMaxY = 0;
-    self->climbLarge.Construct(mfc::impl::IntArrayClass::Vtable());
-    self->climbSmall.Construct(mfc::impl::IntArrayClass::Vtable());
-    self->materials.Construct();
-    self->bridgeHeights.Construct(100);   // 005BCCD0
-    mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
-    CSectorMap& sectors = self->sectorMap;
-    sectors.vtable = CSectorMap::Vtable();
-    sectors.aiMap = nullptr;
-    sectors.height = 0;
-    sectors.added = 0;
-    sectors.width = 0;
-    self->footprint.cells.Construct();
-    self->footprint.hashed = true;
-    self->bridges.cells.Construct();
-    self->bridges.hashed = true;
-    self->waterDepth.width = 1;
-    self->waterDepth.height = 1;
-    AllocateGrid(self->waterDepth);
-    for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
-    ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::SmallVtable());
-    ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::LargeVtable());
-    ConstructRegionMap(&self->regionMap);   // 005AF3D0
-    self->forwardSearch.nodes.Construct(1, 1);
-    reinterpret_cast<SearchGrid<std::int8_t>*>(&self->forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
-    mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
-    self->forwardSearch.map = nullptr;
-    self->backwardSearch.Construct(nullptr);
-    self->cells.Construct(1, 1);
-    self->occluders.Construct(1, 1);
-    self->marks.Construct(1, 1);
-    self->Events()->Construct();
-    self->loaded = false;
-    self->batching = false;
-    reinterpret_cast<AIDirtyRect*>(&self->dirtyMinX)->Reset();
-    FillAreaLists(self);
-    self->footprintTick = 0;
-    self->refreshUnits = false;
-    return self;
-}
-
-// 0058A450 (thiscall). The destructor inlines some member destructors the reset calls (same
-// effects).
-void __fastcall DestructAIMap(CAIMap* self) {
-    self->Events()->Destroy();
-    FreeGrid(self->marks);
-    FreeGrid(self->occluders);
-    FreeGrid(self->cells);
-    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&self->backwardSearch.cellRowsVtable);
-    FreeGrid(self->backwardSearch.levels);
-    FreeGrid(self->backwardSearch.nodes);
-    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
-    FreeGrid(self->forwardSearch.levels);
-    FreeGrid(self->forwardSearch.nodes);
-    CRegionMap& regions = self->regionMap;
+// The original inlines some member destructors the reset calls (same effects). The unit layers and
+// the sector map are destroyed by their own destructors after this body.
+CAIMap::~CAIMap() {
+    Events()->Destroy();
+    FreeGrid(marks);
+    FreeGrid(occluders);
+    FreeGrid(cells);
+    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&backwardSearch.cellRowsVtable);
+    FreeGrid(backwardSearch.levels);
+    FreeGrid(backwardSearch.nodes);
+    mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&forwardSearch.cellRowsVtable);
+    FreeGrid(forwardSearch.levels);
+    FreeGrid(forwardSearch.nodes);
+    CRegionMap& regions = regionMap;
     // The CRT's eh vector destructor iterator (006E859F): each grid freed (00598480 / 00598460 /
     // 00598440), last to first.
     for (int i = 8; --i >= 0;) FreeGrid(regions.regions[i]);
@@ -98,26 +78,20 @@ void __fastcall DestructAIMap(CAIMap* self) {
     regions.local.Destruct();
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);
-    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerLarge.nodes);   // 005995E0
-    mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerSmall.nodes);
-    for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(self->areaLists[list]);
-    FreeGrid(self->waterDepth);
-    self->bridges.cells.FreeData();
-    self->footprint.cells.FreeData();
-    self->sectorMap.vtable = CSectorMap::Vtable();
-    CSectorMap::DestructSectors(&self->sectorMap.sectors);
-    self->bridgeHeights.Destroy();   // 005984A0
-    self->materials.FreeData();
-    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbSmall);
-    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(self->climbLarge);
+    for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(areaLists[list]);
+    FreeGrid(waterDepth);
+    bridges.cells.FreeData();
+    footprint.cells.FreeData();
+    bridgeHeights.Destroy();   // 005984A0
+    materials.FreeData();
+    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbSmall);
+    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbLarge);
 }
 
-// 005B5E10 (thiscall).
-void __fastcall ResetAIMap(CAIMap* self) {
-    DestructAIMap(self);
-    if (self) ConstructAIMap(self);
-}
+EI_REWRITTEN_SPECIAL(0x0058A450, CAIMap::~CAIMap);
 
-EI_REWRITTEN(0x005B3C30, ConstructAIMap);
-EI_REWRITTEN(0x005B5E10, ResetAIMap);
-EI_REWRITTEN(0x0058A450, DestructAIMap);
+void CAIMap::Reset() {
+    this->~CAIMap();
+    new (this) CAIMap();
+}
+EI_REWRITTEN(0x005B5E10, CAIMap::Reset);

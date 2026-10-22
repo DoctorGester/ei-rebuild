@@ -711,31 +711,21 @@ static_assert(sizeof(UnitLayerNode) == 0x1C);
 // offset within a 4-cell block), stored as 4x4-cell nodes in a 1024-bucket hash keyed by block.
 // Methods in ai_unit_layer.cpp and ai_grids.cpp. Names provisional.
 //
-// Two slots: 0 Set (the block's levels replace the map's) and 1 Merge (the map keeps the larger
-// level), _purecall in the base table (game.exe's 0073FD7C). The small-unit layer (0073FD74) writes
-// AIMapCell::level (unsigned maximum), the large-unit one (0073FD6C) the signed bytes of
-// CAIMap::waterDepth; their bodies are the SetSmall / MergeSmall / SetLarge / MergeLarge members
-// below. The tables are the compiler's (C19; tags in ai_grids.cpp and ai_unit_layer.cpp, BaseVtable /
-// SmallVtable / LargeVtable): the AI map's constructor stores them, so the class is novtable and the slots are
-// only declared.
-class __declspec(novtable) CUnitLayer {
+// Two slots, pure in the base (game.exe's 0073FD7C): 0 Set (the block's levels replace the map's) and 1 Merge (the
+// map keeps the larger level). The small-unit layer (CSmallUnitLayer, 0073FD74) writes AIMapCell::level (unsigned
+// maximum), the large-unit one (CLargeUnitLayer, 0073FD6C) the signed bytes of CAIMap::waterDepth
+// (ai_unit_layer.cpp). The original's tables have no destructor slot.
+class CUnitLayer {
 public:
-    // The bodies of the derived layers' slots 0 (Set: the block's levels replace the map's) and 1 (Merge:
-    // the map keeps the larger level; ai_unit_layer.cpp). The small-unit layer (game.exe's table
-    // 0073FD74) writes AIMapCell::level (unsigned maximum), the large-unit one (0073FD6C) the signed
-    // bytes of CAIMap::waterDepth.
-    void SetSmall(const UnitLayerNode* block);     // 005B39D0
-    void MergeSmall(const UnitLayerNode* block);   // 005B3A70
-    void SetLarge(const UnitLayerNode* block);     // 005B3B20
-    void MergeLarge(const UnitLayerNode* block);   // 005B3B90
-    // The tables: the base's (both slots _purecall; game.exe's 0073FD7C; ai_grids.cpp), the small-unit
-    // layer's (0073FD74) and the large-unit layer's (0073FD6C; ai_unit_layer.cpp).
-    static void* BaseVtable();
-    static void* SmallVtable();
-    static void* LargeVtable();
+    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), no buckets, no free
+    // nodes. `map` is the owner's to set.
+    CUnitLayer();
+    // 0058A8A0 / 0058A900 (the two layer classes' destructors; ai_grids.cpp). The node list emptied and its
+    // blocks freed.
+    ~CUnitLayer();
 
-    virtual void Set(const UnitLayerNode* block);     // 0: small 005B39D0, large 005B3B20
-    virtual void Merge(const UnitLayerNode* block);   // 1: small 005B3A70, large 005B3B90
+    virtual void Set(const UnitLayerNode* block) = 0;     // 0
+    virtual void Merge(const UnitLayerNode* block) = 0;   // 1
 
     // 005B36B0. Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
     // (x, y): one node per non-empty 4x4 block, each announced through Merge.
@@ -743,13 +733,6 @@ public:
     // 005B3890. Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
-    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
-    // base table (BaseVtable), no buckets, no free nodes. `map` is the owner's to set. Returns this.
-    CUnitLayer* Construct();
-    // 0058A8A0 / 0058A900 (the two layer classes' destructors, reached by the AI map's unwinding
-    // only; ai_grids.cpp). The node list emptied and its blocks freed.
-    void Destruct();
-
     // +0x04 the storage of every node ever allocated (vtable NodeListClass, NewNode 005BE7B0).
     mfc::CList<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024];   // +0x20 by (key x * 17 + key y) & 0x3FF
@@ -760,6 +743,20 @@ static_assert(offsetof(CUnitLayer, nodes) == 0x04);
 static_assert(offsetof(CUnitLayer, buckets) == 0x20);
 static_assert(offsetof(CUnitLayer, freeNodes) == 0x1020);
 static_assert(sizeof(CUnitLayer) == 0x1028);
+
+// The small-unit layer (game.exe's vtable 0073FD74; ai_unit_layer.cpp).
+class CSmallUnitLayer : public CUnitLayer {
+public:
+    void Set(const UnitLayerNode* block) override;     // 005B39D0
+    void Merge(const UnitLayerNode* block) override;   // 005B3A70
+};
+
+// The large-unit layer (game.exe's vtable 0073FD6C; ai_unit_layer.cpp).
+class CLargeUnitLayer : public CUnitLayer {
+public:
+    void Set(const UnitLayerNode* block) override;     // 005B3B20
+    void Merge(const UnitLayerNode* block) override;   // 005B3B90
+};
 
 // A level's special area (CAIMap::areaLists, ClearUnmarkedArea): the offset {dx, dy} of the cell
 // whose mark decides.
@@ -787,6 +784,14 @@ static_assert(sizeof(BridgeMap) == 0x14);
 // Name from the game's error strings; layout provisional.
 class CAIMap {
 public:
+    // 005B3C30 (ai_map_construct.cpp; the world server's constructor 00589ED0).
+    CAIMap();
+    // 0058A450 (ai_map_construct.cpp; the world server's destructor 0058AAD0). Every member destroyed in reverse
+    // order.
+    ~CAIMap();
+    // 005B5E10 (ai_map_construct.cpp). The map forgotten: destroyed and constructed again.
+    void Reset();
+
     // 005B43C0 (RET 4; ai_map_load.cpp, A-W15). Rebirth patches it: this is the vanilla body, and it
     // is installed in the vanilla launch only (callers reach it through its address). Loads the map
     // archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be
@@ -1005,7 +1010,7 @@ public:
     lib::AlignedArray<AITerrainType> materials;     // +0x0FC the terrain types (16 after Load)
     BridgeMap bridgeHeights;            // +0x10C keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
-    CSectorMap sectorMap;               // +0x124 (CSectorMap::Vtable; game.exe: 0073F9DC)
+    CSectorMap sectorMap;               // +0x124
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
     FootprintCellSet bridges;           // +0x1A0
     SearchGrid<std::int8_t> waterDepth;  // +0x1F4 per-cell water depth
@@ -1013,8 +1018,8 @@ public:
     // list for levels 0..4, the second for 5 and 6, the third for 7 (the other three are not read
     // there). CArray<{int, int}> (mfc_slots.h's AreaListClass), filled by FillAreaLists (005B4150).
     mfc::CArray<AreaOffset> areaLists[6];
-    CUnitLayer unitLayerSmall;          // +0x27C unit occupancy (005B36B0 / 005B3890)
-    CUnitLayer unitLayerLarge;          // +0x12A4
+    CSmallUnitLayer unitLayerSmall;     // +0x27C unit occupancy (005B36B0 / 005B3890)
+    CLargeUnitLayer unitLayerLarge;     // +0x12A4
     PathSmoother smoother;                          // +0x22CC
     CRegionMap regionMap;                           // +0x22F8
     LocalSearch forwardSearch;                      // +0x2594
@@ -1050,13 +1055,6 @@ static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, footprintTick) == 0x2694);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
 static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
-// 005B3C30 (thiscall; ai_map_construct.cpp; the world server's constructor 00589ED0). Returns self.
-CAIMap* __fastcall ConstructAIMap(CAIMap* self);
-// 0058A450 (thiscall; ai_map_construct.cpp; the world server's destructor 0058AAD0). Every member
-// destroyed in reverse order (the reset 005B5E10 without the constructor after).
-void __fastcall DestructAIMap(CAIMap* self);
-// 005B5E10 (thiscall; ai_map_construct.cpp). The map forgotten: destroyed and constructed again.
-void __fastcall ResetAIMap(CAIMap* self);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

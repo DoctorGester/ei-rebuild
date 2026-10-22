@@ -9,17 +9,6 @@
 
 namespace {
 
-// The derived layers' tables: the compiler's (C19; game.exe's 0073FD74 small, 0073FD6C large; the same
-// slots): 0 Set, 1 Merge. The base's is ai_grids.cpp's.
-struct SmallUnitLayerClass final : ei::CompiledTag<SmallUnitLayerClass> {
-    virtual void Set(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->SetSmall(block); }       // 0
-    virtual void Merge(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->MergeSmall(block); }   // 1
-};
-struct LargeUnitLayerClass final : ei::CompiledTag<LargeUnitLayerClass> {
-    virtual void Set(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->SetLarge(block); }       // 0
-    virtual void Merge(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->MergeLarge(block); }   // 1
-};
-
 using NodeList = mfc::CList<UnitLayerNode>;
 
 // A node from the free list, or a new one appended to the layer's list. The original copies an
@@ -118,7 +107,7 @@ bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
 }
 } // namespace
 
-void CUnitLayer::SetSmall(const UnitLayerNode* block) {
+void CSmallUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
@@ -127,9 +116,9 @@ void CUnitLayer::SetSmall(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B39D0, CUnitLayer::SetSmall);
+EI_REWRITTEN(0x005B39D0, CSmallUnitLayer::Set);
 
-void CUnitLayer::MergeSmall(const UnitLayerNode* block) {
+void CSmallUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
@@ -141,16 +130,16 @@ void CUnitLayer::MergeSmall(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B3A70, CUnitLayer::MergeSmall);
+EI_REWRITTEN(0x005B3A70, CSmallUnitLayer::Merge);
 
-void CUnitLayer::SetLarge(const UnitLayerNode* block) {
+void CLargeUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
 }
-EI_REWRITTEN(0x005B3B20, CUnitLayer::SetLarge);
+EI_REWRITTEN(0x005B3B20, CLargeUnitLayer::Set);
 
-void CUnitLayer::MergeLarge(const UnitLayerNode* block) {
+void CLargeUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
@@ -162,7 +151,4 @@ void CUnitLayer::MergeLarge(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B3B90, CUnitLayer::MergeLarge);
-
-void* CUnitLayer::SmallVtable() { return SmallUnitLayerClass::Vtable(); }
-void* CUnitLayer::LargeVtable() { return LargeUnitLayerClass::Vtable(); }
+EI_REWRITTEN(0x005B3B90, CLargeUnitLayer::Merge);

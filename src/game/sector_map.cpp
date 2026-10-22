@@ -20,14 +20,7 @@ namespace {
 constexpr float kCellSize = 1.0f;   // 0073FDD0
 constexpr float kZero = 0.0f;
 
-// The compiler's one-slot tables (C19): a sector's (game.exe's 0073FADC) and the sector map's (0073F9DC),
-// slot 0 the scalar deleting destructor.
-struct SectorClass final : ei::CompiledDeleter<SectorClass, &Sector::DeletingDestruct> {};
-struct SectorMapClass final : ei::CompiledDeleter<SectorMapClass, &CSectorMap::DeletingDestruct> {};
 } // namespace
-
-void* Sector::Vtable() { return SectorClass::Vtable(); }
-void* CSectorMap::Vtable() { return SectorMapClass::Vtable(); }
 
 // ---- Sectors ------------------------------------------------------------------------------------
 
@@ -75,16 +68,17 @@ void Sector::FreeOccluder(int index) {
 }
 EI_REWRITTEN(0x005C0060, Sector::FreeOccluder);
 
+Sector::Sector() {
+    objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
+    Clear();
+}
+
 // 0059DF90: CArray<Sector>'s ConstructElements with the constructor inlined.
 void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
-    for (; count != 0; --count, ++sectors) {
-        sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        sectors->units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-        sectors->occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
-        ei::SetVtable(sectors, Sector::Vtable());
-        sectors->Clear();
-    }
+    for (; count != 0; --count, ++sectors) new (sectors) Sector();
 }
 EI_REWRITTEN(0x0059DF90, ConstructSectors);
 
@@ -108,18 +102,17 @@ void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>*
 EI_REWRITTEN(0x00599330, CSectorMap::DestructSectors);
 EI_REWRITTEN(0x005BD1C0, mfc::impl::ArrayHeader<mfc::impl::SectorArrayClass>::Construct);   // the sectors array's constructor (SectorArrayClass is built from DestructSectors: not in ei_vectors)
 
-void CSectorMap::DestructBody() {
-    vtable = Vtable();
-    DestructSectors(&sectors);
+CSectorMap::CSectorMap() {
+    mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(sectors);
+    aiMap = nullptr;
+    height = 0;
+    added = 0;
+    width = 0;
 }
-EI_REWRITTEN(0x0058A700, CSectorMap::DestructBody);
 
-CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0058A780, CSectorMap::DeletingDestruct);
+CSectorMap::~CSectorMap() { DestructSectors(&sectors); }
+EI_REWRITTEN_SPECIAL(0x0058A700, CSectorMap::~CSectorMap);
+EI_REWRITTEN_SPECIAL(0x0058A780, CSectorMap::~CSectorMap);
 
 bool CSectorMap::Add(CMapObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);

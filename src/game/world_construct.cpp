@@ -75,7 +75,6 @@ CWorldServer::CWorldServer() {
     updateMap_.Construct();
     mobFiles_.Construct();
     Messages()->Construct();
-    ConstructAIMap(AIMap());
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();

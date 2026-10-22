@@ -17,9 +17,7 @@ class CUnit;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
-// The game constructs sectors (0059DF90: the table Sector::Vtable, the compiler's in place of
-// game.exe's 0073FADC, whose only slot 0059E080 is the destructor); an explicit ~Sector()
-// dispatches to it with flags 0.
+// A sector's one slot (game.exe's vtable 0073FADC) is its destructor.
 //
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
@@ -32,8 +30,13 @@ struct SectorOccluder {
 };
 static_assert(sizeof(SectorOccluder) == 8);
 
-struct __declspec(novtable) Sector {
-    virtual ~Sector() {}                         // 0: 0059E080
+struct Sector {
+    // 0059DF90's body for each sector (sector_map.cpp): the two lists with blocks of 10, the empty record
+    // array, then Clear.
+    Sector();
+    // 005BFCD0 (deleting: 0059E080; world_destructors.cpp): Clear, then the members last to first (the record
+    // array's storage, both lists emptied).
+    virtual ~Sector();
 
     // 005BFE00 (the constructor's body). No free record, the records' storage freed, both lists
     // emptied (RemoveAll).
@@ -47,13 +50,6 @@ struct __declspec(novtable) Sector {
     int RemoveOccluder(int head, int bottom, int top, int kind, int transparency);
     // 005C0060 (RET 4). Puts record `index` on the free list.
     void FreeOccluder(int index);
-    // 005BFCD0 (S13a, world_destructors.cpp). The destructor's body: the vtable, Clear, then the
-    // members last to first (the record array's storage, both lists emptied).
-    void Destruct();
-    // 0059E080 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
-    Sector* DeletingDestruct(unsigned flags);
-    // The one-slot table (sector_map.cpp): DeletingDestruct (C19; game.exe's 0073FADC, the same slot).
-    static void* Vtable();
 
     mfc::CTypedPtrList<CMapObject> objects;      // +0x04 non-unit objects
     mfc::CTypedPtrList<CUnit> units;             // +0x20
@@ -65,8 +61,7 @@ static_assert(offsetof(Sector, freeOccluder) == 0x3C);
 static_assert(offsetof(Sector, occluders) == 0x40);
 
 // CArray<Sector>'s element functions: 0059DF90 (__stdcall, RET 8; sector_map.cpp) constructs
-// (zeroed, the two lists with blocks of 10, the empty record array, then Clear), the destructor
-// slot (flags 0) destroys.
+// (zeroed, then each sector's constructor), the destructor destroys.
 void __stdcall ConstructSectors(Sector* sectors, int count);   // 0059DF90
 struct SectorElements {
     static void Construct(Sector* sectors, int count);
@@ -111,8 +106,15 @@ inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets
 // What 005BF8F0 does, on any three constructed tables (sector_map.cpp).
 void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets);
 
+// The AI map's sector map (game.exe's vtable 0073F9DC: one slot, the destructor).
 class CSectorMap {
 public:
+    // The AI map's constructor's stores (inlined there): no sectors, no AI map.
+    CSectorMap();
+    // 0058A700 (deleting: 0058A780; reached by the AI map's unwinding and the deleting destructor): every sector
+    // destroyed (its destructor) and the array's storage freed.
+    virtual ~CSectorMap();
+
     // 005C0DF0. Registers `object` in the sector under its position and stamps its footprint.
     // Undone again if the footprint does not fit.
     bool Add(CMapObject* object);
@@ -137,19 +139,10 @@ public:
     // width * height (SetSize inlined), then the AI map.
     void Init(int cellsX, int cellsY, CAIMap* map);
 
-    // 0058A700 (reached by the AI map's unwinding and the deleting destructor). The destructor's
-    // body: every sector destroyed (its slot 0, flags 0) and the array's storage freed.
-    void DestructBody();
-    // 00599330 (thiscall on `sectors`; the AI map's destructor calls it): the array's vtable back,
-    // every sector destroyed, the storage freed.
+    // 00599330 (thiscall on `sectors`; the destructor's body): the array's vtable back, every sector
+    // destroyed, the storage freed.
     static void __fastcall DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
-    // 0058A780 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
-    CSectorMap* DeletingDestruct(unsigned flags);
 
-    // The one-slot table (sector_map.cpp): DeletingDestruct (C19; game.exe's 0073F9DC, the same slot).
-    static void* Vtable();
-
-    void* vtable;           // +0x00 (one slot: the deleting destructor)
     int width;              // +0x04 in sectors
     int height;             // +0x08
     int added;              // +0x0C successful Add calls (Remove does not decrement it)

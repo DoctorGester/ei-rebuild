@@ -1210,8 +1210,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Small ones**: the theme array 007440CC and the map database's maps 0073C3E8 (CompiledCollection; game_slots.h's
     MapRecordArrayClass over BuiltZoneRecords), the class template 0073D0C4, the party record 0073C360 and the mouse
     0073C350 (`ei::CompiledDeleter` plus Serialize), the debug panel 0073BFA4, CDib 00744288, the AI map's unit layers
-    0073FD7C (ai_grids.cpp: ei_vectors links it, not ai_unit_layer.cpp) / 0073FD74 / 0073FD6C, a sector 0073FADC and
-    the sector map 0073F9DC.
+    0073FD7C / 0073FD74 / 0073FD6C, a sector 0073FADC and the sector map 0073F9DC (real classes since C28h: CUnitLayer,
+    CSmallUnitLayer, CLargeUnitLayer, Sector and CSectorMap, members of CAIMap, whose constructor and destructor
+    are its own since then).
   - **Left**: 236 rows of config/vtables.csv (3,702 slots); the counted root 0073BB68 (some 100 storing functions),
     the render helper 0073D880, the cloud noise base 0073D030 with ui_global_map's 007420D4, the map spec chunk
     readers 0073C710 / 18 / 20 (map_spec_unit.cpp, next to C21's unit spec tables), the UI's 007403F8 / 00740FD4 /

@@ -56,7 +56,7 @@ void ClearMissiles(CWorldServer* world) {
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     CAIMap* aiMap = AIMap();
     if (gamecrt::mbsicmp(mapName_, map) != 0) {
-        ResetAIMap(aiMap);   // 005B5E10
+        aiMap->Reset();   // 005B5E10
         aiMap->BeginRefresh();
         bool failed;
         {
@@ -291,7 +291,7 @@ void CWorldServer::ResetState() {
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    ResetAIMap(AIMap());
+    AIMap()->Reset();
     zoneLoaded_ = 0;
     nightLevel_ = 0.0f;
     for (WorldAlarm& alarm : alarms_) {

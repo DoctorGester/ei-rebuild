@@ -192,17 +192,7 @@ void LocalSearch::Destruct() {
 }
 EI_REWRITTEN(0x0058AA60, LocalSearch::Destruct);
 
-namespace {
-// The unit layer base's table: the compiler's (C19; game.exe's 0073FD7C, the same slots), both slots pure.
-struct UnitLayerBaseClass final : ei::CompiledTag<UnitLayerBaseClass> {
-    virtual void Set(const UnitLayerNode*) { _purecall(); }     // 0: pure
-    virtual void Merge(const UnitLayerNode*) { _purecall(); }   // 1: pure
-};
-} // namespace
-
-void* CUnitLayer::BaseVtable() { return UnitLayerBaseClass::Vtable(); }
-
-CUnitLayer* CUnitLayer::Construct() {
+CUnitLayer::CUnitLayer() {
     nodes.vtable = mfc::impl::NodeListClass::Vtable();
     nodes.count = 0;
     nodes.free = nullptr;
@@ -210,14 +200,12 @@ CUnitLayer* CUnitLayer::Construct() {
     nodes.head = nullptr;
     nodes.blocks = nullptr;
     nodes.blockSize = 0x400;
-    ei::SetVtable(this, BaseVtable());
     for (UnitLayerNode*& bucket : buckets) bucket = nullptr;
     freeNodes = nullptr;
-    return this;
 }
-EI_REWRITTEN(0x005B4110, CUnitLayer::Construct);
+EI_REWRITTEN_SPECIAL(0x005B4110, CUnitLayer::CUnitLayer);
 
-void CUnitLayer::Destruct() {
+CUnitLayer::~CUnitLayer() {
     nodes.vtable = mfc::impl::NodeListClass::Vtable();
     nodes.count = 0;
     nodes.free = nullptr;
@@ -226,8 +214,8 @@ void CUnitLayer::Destruct() {
     mfc::PlexFreeDataChain(nodes.blocks);
     nodes.blocks = nullptr;
 }
-EI_REWRITTEN(0x0058A8A0, CUnitLayer::Destruct);
-EI_REWRITTEN(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy
+EI_REWRITTEN_SPECIAL(0x0058A8A0, CUnitLayer::~CUnitLayer);
+EI_REWRITTEN_SPECIAL(0x0058A900, CUnitLayer::~CUnitLayer);   // the other layer class's byte-identical copy
 
 void AIDirtyRect::Reset() {
     minX = 10000;

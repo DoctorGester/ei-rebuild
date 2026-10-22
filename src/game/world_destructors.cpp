@@ -155,8 +155,7 @@ EI_REWRITTEN_SPECIAL(0x005627C0, CParticleManager::~CParticleManager);
 
 EI_REWRITTEN_SPECIAL(0x005627A0, CParticleManager::~CParticleManager);
 
-void Sector::Destruct() {
-    ei::SetVtable(this, Vtable());
+Sector::~Sector() {
     Clear();
     occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
     occluders.FreeData();
@@ -165,13 +164,8 @@ void Sector::Destruct() {
     objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
     objects.RemoveAll();
 }
-EI_REWRITTEN(0x005BFCD0, Sector::Destruct);
-
-Sector* Sector::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x0059E080, Sector::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005BFCD0, Sector::~Sector);
+EI_REWRITTEN_SPECIAL(0x0059E080, Sector::~Sector);
 
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
@@ -217,7 +211,6 @@ CWorldServer::~CWorldServer() {
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();
-    DestructAIMap(AIMap());
     Messages()->Destroy();
     mobFiles_.Destruct();
     updateMap_.map.Destroy();

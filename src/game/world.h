@@ -767,11 +767,10 @@ public:
     Vector3 startPosition_;               // +0x164 where joining players start (0058DAF0)
     // +0x170 the AI map (ai_map.h; the global 007B00D0, up to +0x2838): its height scale (+0x290),
     // sector map (+0x294), region map (+0x2468, what SaveWorld saves through 005B1380), the tick
-    // +0x2804 (footprintTick) and the cell grid (+0x2808). ConstructAIMap / DestructAIMap
-    // build and destroy it with the world.
-    lib::InPlace<CAIMap> aiMap_;
-    CAIMap* AIMap() { return aiMap_.Get(); }
-    CSectorMap* Sectors() { return &aiMap_->sectorMap; }
+    // +0x2804 (footprintTick) and the cell grid (+0x2808).
+    CAIMap aiMap_;
+    CAIMap* AIMap() { return &aiMap_; }
+    CSectorMap* Sectors() { return &aiMap_.sectorMap; }
     AIEventTable aiEvents_;         // +0x2838 the AI events (unit_ai.h: time wheel, grid)
     AIEventTable* AIEvents() { return &aiEvents_; }
     // +0x12874 the zone's CScript (script.h; constructed by 004BF000): its globals_ hold the

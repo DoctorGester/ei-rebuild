@@ -61,7 +61,7 @@ By file:
   005B79D0, IsPassableWithoutSelf 005B7A40, CanStandAt 005B80F0, LineOfSight 005BC3E0, SpiralCache::Get 005BFC40, FindFreeCellNear
   005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
   cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (kind 4, ground >= deck, occluder bits 7); `ai_occluders.cpp`;
-  `ai_map_construct.cpp` (ConstructAIMap 005B3C30, ResetAIMap 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
+  `ai_map_construct.cpp` (CAIMap::CAIMap 005B3C30, CAIMap::Reset 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
   pointers); `ai_area_lists.cpp`, `ai_cost_tables.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
   ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_alarm.cpp` StepAlarm 005AEA80; `ai_shape_cache.cpp`
   CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_line_step.cpp` LargestStepAlong 005BC750.
