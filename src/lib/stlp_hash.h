@@ -662,8 +662,6 @@ struct RecordsByName {
     // mapped record, null when the name was not there (it is inserted).
     void* Named(const char* name);
 };
-// The old spelling, for the item and camp files other tickets are editing; call RecordsByName::Named.
-inline void* RecordNamed(RecordsByName* table, void*, const char* name) { return table->Named(name); }
 
 // A hash_map<int, T> with a dword after the table (the terrain's light table, 00571050):
 // hashtable(100) and the dword zeroed. Returns this.
