@@ -828,7 +828,7 @@ void CCampPages::Close() {
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
                           &itemResults_, &itemExtra_}) {
         (*list)->Destroy();
-        delete static_cast<CEngineObject*>(*list);   // slot 0 with 1, when the re-read field is set
+        delete *list;   // slot 0 with 1 (the virtual destructor), when the re-read field is set
     }
     // The record array's destructor.
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
