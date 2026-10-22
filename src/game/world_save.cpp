@@ -391,9 +391,10 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
                 if (!more) break;
-                CSpellEffect* memory = gamecrt::operator_new_as<CSpellEffect>();   // 0xA8 bytes
-                memory->references = 0;   // written before the null test
-                CSpellEffect* missile = memory ? memory->Construct() : nullptr;
+                auto* missile = new CSpellEffect();
+                missile->refs_ = 0;   // the original clears the count and flags before its null test
+                missile->flags6_ = 0;
+                missile->flags7_ = 0;
                 missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);

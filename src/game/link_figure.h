@@ -132,8 +132,8 @@ using LinkRangeMap = stlp::map<stlp::string, LinkPartRanges>;    // nodes 0x4C b
 static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x6C && sizeof(LinkRangeMap::Node) == 0x4C);
 
 // A figure's mesh's base (game.exe's 0073D7CC, retired; slots 1-14 pure there; no object of the
-// base alone exists): the reference count, the name and the part headers. Below it is the engine's
-// counted root (PlainRootVtable(), core_refcount.h: one slot, no fields), whose table other classes' destructors store.
+// base alone exists): the reference count, the name and the part headers. game.exe has a fieldless counted root
+// below it (0073C368: one slot); the class does without.
 class CLinkMeshBase {
 public:
 

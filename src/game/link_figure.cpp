@@ -91,7 +91,7 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
 
 // ---- CLinkMesh ------------------------------------------------------------------------------------
 
-// The plain counted root's part (PlainRootVtable) has no fields: no references is the base's.
+// No references is the base's.
 CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*name) { headers_.Construct(); }
 
 // The name goes after the body (a member).

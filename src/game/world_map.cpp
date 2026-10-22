@@ -216,7 +216,7 @@ void CWorldServer::TeardownZone() {
     auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
         CSpellEffect* missile = node->data;
-        if (missile && --missile->referenceCount == 0 && missile) missile->DeletingDestructor(1);
+        if (missile && --missile->refs_ == 0) delete missile;
     }
     missiles.RemoveAll();
 

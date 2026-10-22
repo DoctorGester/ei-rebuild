@@ -77,7 +77,7 @@ class CUnit;     // unit.h
 class CMapObject;   // map_object.h
 class CObject3D;    // map_object_figures.h
 class CSpell;   // spell.h
-struct CSpellEffect;   // spell.h
+class CSpellEffect;   // spell.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h

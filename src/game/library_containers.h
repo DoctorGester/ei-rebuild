@@ -99,9 +99,6 @@ struct PointerVectorsPair {
     stlp::vector<void*> second;   // +0x10
 };
 
-// 004F69F0: the plain counted root's vtable (PlainRootVtable) stored (unwind funclets and the deleting destructor
-// 004F6A00).
-void __fastcall SetRootVtable(void* self);
 
 // 005E0550 (library.csv: a pointer iterator's operator-(n)): CTime::operator-(CTimeSpan), the time
 // less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime

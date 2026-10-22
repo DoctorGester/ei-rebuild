@@ -9,8 +9,8 @@ vtable,slots,class,file,note
 0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,ServerEntry,src/game/net_classes.h,the lobby's server entry
 0073BB40,6,ServerEntryBase,src/game/net_classes.h,the server entry's base; slots 2-5 _purecall
-0073BB58,4,RefObjectBaseClass,src/game/core_streams.cpp,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)
-0073BB68,2,CountedRootClass,src/game/core_streams.cpp,the counted root (CRefCounted; every counted class's destructor leaves it)
+0073BB58,4,CRefObject,src/game/core_refcount.h,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)
+0073BB68,2,CRefCounted,src/game/core_refcount.h,the counted root (CRefCounted; every counted class's destructor leaves it)
 0073BB70,17,ServerSession,src/game/net_classes.h,the game server (ServerSession)
 0073BBB4,17,ServerBase,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
 0073BBF8,6,LoginMessage,src/game/net_messages.h,message type 5
@@ -74,7 +74,7 @@ vtable,slots,class,file,note
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C350,1,CDirectInputMouse,src/game/ui_cursor.h,the DirectInput mouse (CDirectInputMouse)
 0073C360,2,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
-0073C368,1,PlainRootClass,src/game/core_streams.cpp,the plain counted root (the renderer's, the figures' and the mouse's destructors leave it)
+0073C368,1,the plain counted root,-,"a fieldless counted root (slot 0 the deleting destructor 00457950) that game.exe's renderer, figure and mouse destructors leave; their classes do without it"
 0073C37C,3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
 0073C388,3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
 0073C394,3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
@@ -516,7 +516,7 @@ vtable,slots,class,file,note
 0074381C,24,CEffectShowVisibility,src/game/world_effect.h,shown visibility
 0074387C,24,CEffectMoshka,src/game/world_effect.h,the client's bird
 007438F8,24,CEffectTornado,src/game/world_effect.h,tornado
-0074399C,2,SpellEffectClass,src/game/spell_lifetime.cpp,"the cast spell (CSpellEffect; the harness's digest recognises it by CSpellEffect::Vtable in the image)"
+0074399C,2,CSpellEffect,src/game/spell.h,"the cast spell (the harness's digest recognises it by its class in the image)"
 007439C8,13,CSpellConstructor,src/game/spell.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
 00743A94,5,CSpell,src/game/spell.h,spell

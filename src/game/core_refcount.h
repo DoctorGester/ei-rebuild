@@ -5,14 +5,11 @@
 
 class ChunkArchive;
 
-// The root of the reference-counted classes (RootVtable(), game.exe's 0073BB68): the count and the flags, slot 0 the
-// scalar deleting destructor, slot 1 Serialize (empty, RET 4). The network sessions (net_classes.h)
-// derive from it directly; everything else through CRefObject below.
+// The root of the reference-counted classes (game.exe's table 0073BB68): the count and the flags, slot 0 the
+// scalar deleting destructor, slot 1 Serialize (empty, RET 4). The network sessions (net_classes.h) and the cast
+// spells (spell.h) derive from it directly; everything else through CRefObject below.
 class CRefCounted {
 public:
-    // The root's compiled table (C19, core_streams.cpp; game.exe's 0073BB68): slot 0 RootDeletingDestruct, slot 1
-    // the empty Serialize. The derived classes' destructors leave it.
-    static void* RootVtable();
 
     enum : std::uint8_t {
         kCopyOnShare = 0x01,    // flags6_: sharing makes a copy (the copy is marked too)
@@ -23,7 +20,9 @@ public:
     CRefCounted() = default;
     CRefCounted(const CRefCounted&) = delete;
     CRefCounted& operator=(const CRefCounted&) = delete;
-    virtual ~CRefCounted() {}               // 0: scalar deleting destructor (1 when the last reference goes)
+    // 0: the scalar deleting destructor (1 when the last reference goes). game.exe's out-of-line bodies: 00412720 and
+    // its copies, deleting 00412730 (core_streams.cpp).
+    virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}   // 1: empty in the root class (00412580, RET 4); chunk_archive.h
 
     // Counted objects live on the game's heap (core_refcount.cpp): null without memory, and then
@@ -32,11 +31,6 @@ public:
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
-
-    // 00412730 (and the unit shape's 005B3570; slot 0 of the root class's vtable 0073BB68, RET 4,
-    // core_streams.cpp): the root vtable stored, then operator delete when bit 0 of `flags` is set.
-    // Returns this.
-    CRefCounted* RootDeletingDestruct(unsigned flags);
 
     std::int16_t refs_;         // +0x04
     std::uint8_t flags6_;       // +0x06
@@ -47,20 +41,16 @@ static_assert(sizeof(CRefCounted) == 8);
 // The test the network code inlines before using a counted object: set and not detached.
 inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
-// The renderer's, the figures' and the mouse's counted root (game.exe's 0073C368: one slot, no fields): the compiled
-// table their destructors leave (C19, core_streams.cpp). Slot 0, the deleting destructor (00457950), leaves it again
-// and frees the object when bit 0 of the flags is set.
-void* PlainRootVtable();
-
 // Reference-counted objects of the engine core (script values, network records and messages, AI
 // shapes; vtable 0073BB58 and its descendants). Names provisional. The header and the slots below
 // are what the engine's helpers use; the original code mostly inlines these helpers, the
 // out-of-line copies are rewritten here.
 class CRefObject : public CRefCounted {
 public:
-    // The base part's compiled table (C19, core_streams.cpp; game.exe's 0073BB58): 0 ValueDeletingDestruct, 1 the
-    // empty Serialize, 2 / 3 `_purecall`. The derived classes' constructors and copies store it first.
-    static void* Vtable();
+    // game.exe's table 0073BB58 (2 / 3 `_purecall`): its out-of-line constructor 00419720; the deleting destructor
+    // 00412700 and its copies (core_streams.cpp).
+    CRefObject() = default;
+    ~CRefObject() override = default;
 
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
@@ -70,10 +60,6 @@ public:
     // 00417DF0. Calls OnShutdown with an extra reference held, so it cannot destroy itself
     // meanwhile. Returns OnShutdown's EAX.
     int Shutdown();
-    // 00412700 (and its copies 00562750, 0058FBC0; slot 0 of vtable 0073BB58, RET 4,
-    // core_streams.cpp): the root's destructor body (00412720, out of line), then operator delete
-    // when bit 0 of `flags` is set. Returns this.
-    CRefObject* ValueDeletingDestruct(unsigned flags);
 };
 static_assert(sizeof(CRefObject) == 8);
 

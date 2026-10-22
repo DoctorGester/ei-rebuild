@@ -79,17 +79,18 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
     if (caster) std::memcpy(&from, &caster->localPosition_, sizeof(from));
 
-    void* memory = gamecrt::operator_new(0xA8);
-    static_cast<CSpellEffect*>(memory)->references = 0;   // written before the null test
-    CSpellEffect* missile = memory ? static_cast<CSpellEffect*>(memory)->Construct() : nullptr;
+    auto* missile = new CSpellEffect();
+    missile->refs_ = 0;   // the original clears the count and flags before its null test
+    missile->flags6_ = 0;
+    missile->flags7_ = 0;
     missile->Init(this, spell, caster, &from, target, &end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
         auto& list = projectiles_;
         ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
         CSpellEffect* old = node->data;
         node->data = missile;
-        if (missile) ++missile->referenceCount;
-        if (old && --old->referenceCount == 0) old->DeletingDestructor(1u);
+        if (missile) ++missile->refs_;
+        if (old && --old->refs_ == 0) delete old;
         if (list.tail) list.tail->next = node;
         else list.head = node;
         list.tail = node;

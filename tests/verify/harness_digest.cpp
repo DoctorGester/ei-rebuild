@@ -37,6 +37,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -522,12 +523,12 @@ bool ReadTimed(CEngineObject* o, Builder& b) {
     return true;
 }
 
-// Whether a missile is a cast spell: its table is game.exe's 0074399C in game.exe's run, the compiled one
-// (CSpellEffect::Vtable) in the image's.
+// Whether a missile is a cast spell: its table is game.exe's 0074399C in game.exe's run; in the image's, its class.
 bool IsSpellEffect(const CSpellEffect* e) {
+    if (ei::Standalone()) return typeid(*e) == typeid(CSpellEffect);
     const void* vtable;
     std::memcpy(&vtable, static_cast<const void*>(e), 4);
-    return vtable == (ei::Standalone() ? CSpellEffect::Vtable() : &ei::OriginalGameData<const std::uint8_t>(0x0074399C));
+    return vtable == &ei::OriginalGameData<const std::uint8_t>(0x0074399C);
 }
 
 // A missile of the server's list (a CSpellEffect, spell.h: a spell on its way or lasting). Its

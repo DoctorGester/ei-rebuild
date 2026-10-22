@@ -7,7 +7,6 @@
 #include "party.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp_list_refs.h"
 
@@ -27,7 +26,6 @@ namespace libcontainers {
 
 void __fastcall DestroyCString(mfc::CString* self) { self->~CString(); }
 
-void __fastcall SetRootVtable(void* self) { ei::SetVtable(self, PlainRootVtable()); }
 
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
@@ -60,7 +58,6 @@ EI_REWRITTEN(0x00619920, HeroRecordAbi::InsertOverflow);
 EI_REWRITTEN(0x0060AB00, ConstructSpeaker);
 EI_REWRITTEN(0x0060A660, SpeakerAbi::InsertOverflow);
 EI_REWRITTEN(0x005E0550, mfc::impl::CTime::MinusSpan);
-EI_REWRITTEN(0x004F69F0, SetRootVtable);
 EI_REWRITTEN(0x005F9680, DestroyCString);
 EI_REWRITTEN(0x005FBE20, DestroyCString);
 EI_REWRITTEN(0x0060AA80, ConstructRefPtr);

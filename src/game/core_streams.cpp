@@ -4,8 +4,6 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
-#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -14,90 +12,26 @@
 #include <new>
 
 namespace {
-using ei::SetVtable;
 
 // CStream::version_ of a new stream.
 constexpr std::uint32_t kDefaultVersion = 2000000000;
-
-// Scalar deleting destructor tail: frees the object when bit 0 of the flags is set.
-void* DeleteIf(void* self, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
 
 // operator+(const CString&, char) (AFXAPI, 006FD56E).
 
 } // namespace
 
-// --- CRefObject root / reference-counted value -------------------------------------------------
+// --- CRefCounted / CRefObject: game.exe's out-of-line constructor and destructor bodies ----------
 
-namespace {
-// The root's compiled table (C19; game.exe's 0073BB68): 0 the deleting destructor, 1 Serialize (empty, RET 4).
-struct CountedRootClass final : ei::CompiledDeleter<CountedRootClass, &CRefCounted::RootDeletingDestruct> {
-    virtual void Serialize(ChunkArchive*) {}   // 1
-};
-} // namespace
-
-void* CRefCounted::RootVtable() { return CountedRootClass::Vtable(); }
-
-namespace {
-// The plain counted root's compiled table (C19; game.exe's 0073C368): 0 the deleting destructor.
-struct PlainRootClass final : ei::CompiledTag<PlainRootClass> {
-    virtual void* DeleteScalar(unsigned flags) {   // 0: 00457950
-        SetVtable(this, PlainRootVtable());
-        return DeleteIf(this, flags);
-    }
-};
-} // namespace
-
-void* PlainRootVtable() { return PlainRootClass::Vtable(); }
-
-extern "C" int __cdecl _purecall();
-
-namespace {
-// The counted value's compiled table (C19; game.exe's 0073BB58): 0 the deleting destructor, 1 Serialize (empty,
-// RET 4), 2 / 3 the compiler CRT's `_purecall` (game.exe's 006E73EB): a derived constructor stores its own table
-// before anything can call them.
-struct RefObjectBaseClass final : ei::CompiledDeleter<RefObjectBaseClass, &CRefObject::ValueDeletingDestruct> {
-    virtual void Serialize(ChunkArchive*) {}            // 1
-    virtual int OnShutdown() { return _purecall(); }    // 2
-    virtual CRefObject* Clone() {                       // 3
-        _purecall();
-        return nullptr;
-    }
-};
-} // namespace
-
-void* CRefObject::Vtable() { return RefObjectBaseClass::Vtable(); }
-
-void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::RootVtable()); }
-EI_REWRITTEN(0x00412720, RefObjectDestructBase);
-EI_REWRITTEN(0x005ED7A0, RefObjectDestructBase);
-EI_REWRITTEN(0x004368C0, RefObjectDestructBase);
-EI_REWRITTEN(0x00562770, RefObjectDestructBase);
-EI_REWRITTEN(0x0058FBE0, RefObjectDestructBase);
-
-CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
-    SetVtable(this, RootVtable());
-    DeleteIf(this, flags);
-    return this;
-}
-EI_REWRITTEN(0x00412730, CRefCounted::RootDeletingDestruct);
-
-void* __fastcall RefValueConstructBase(void* self) {
-    SetVtable(self, CRefObject::Vtable());
-    return self;
-}
-EI_REWRITTEN(0x00419720, RefValueConstructBase);
-
-CRefObject* CRefObject::ValueDeletingDestruct(unsigned flags) {
-    RefObjectDestructBase(this);
-    DeleteIf(this, flags);
-    return this;
-}
-EI_REWRITTEN(0x00412700, CRefObject::ValueDeletingDestruct);
-EI_REWRITTEN(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
-EI_REWRITTEN(0x0058FBC0, CRefObject::ValueDeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00412720, CRefCounted::~CRefCounted);
+EI_REWRITTEN_SPECIAL(0x005ED7A0, CRefCounted::~CRefCounted);
+EI_REWRITTEN_SPECIAL(0x004368C0, CRefCounted::~CRefCounted);
+EI_REWRITTEN_SPECIAL(0x00562770, CRefCounted::~CRefCounted);
+EI_REWRITTEN_SPECIAL(0x0058FBE0, CRefCounted::~CRefCounted);
+EI_REWRITTEN_SPECIAL(0x00412730, CRefCounted::~CRefCounted);   // deleting
+EI_REWRITTEN_SPECIAL(0x00419720, CRefObject::CRefObject);
+EI_REWRITTEN_SPECIAL(0x00412700, CRefObject::~CRefObject);   // deleting
+EI_REWRITTEN_SPECIAL(0x00562750, CRefObject::~CRefObject);   // deleting; byte-identical copies (A-W12)
+EI_REWRITTEN_SPECIAL(0x0058FBC0, CRefObject::~CRefObject);   // deleting
 
 // --- CStream -----------------------------------------------------------------------------------
 

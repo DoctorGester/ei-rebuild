@@ -5,6 +5,7 @@
 // game's own GetClassName strings where there is one; field names are provisional.
 
 #include "base_manager.h"
+#include "core_refcount.h"
 #include "core_transform.h"   // CTransformObject (CLight)
 #include "engine_object.h"
 #include "resource_manager.h"
@@ -121,11 +122,15 @@ static_assert(sizeof(DamageInfo) == 0x3C);
 // the world server's missiles (ProjectileList, world.h). It embeds the CSpell it applies at +0x34
 // (Spell()): the effect reads the spell's packed id, effect record, damage, radius (area), missile
 // speed and duration (also the number of targets the damage is split between, and the lasting
-// effects' ticks). Reference counted through a 16-bit count at +4.
-struct __declspec(novtable) CSpellEffect {
-    // Slot 0 (game.exe's vtable 0074399C, compiled: Vtable(), set by Construct): the scalar deleting
-    // destructor (0067E5B0, DeletingDestruct; flags 1: free it). Declared only: called through the vtable.
-    virtual void* DeletingDestructor(unsigned flags);
+// effects' ticks). A counted object (game.exe's table 0074399C: CRefCounted's two slots).
+class CSpellEffect final : public CRefCounted {
+public:
+    // spell_lifetime.cpp. 0067E510: everything but the reference count and flags cleared (the creator sets them),
+    // the spell constructed.
+    CSpellEffect();
+    // 0067E5D0 (deleting 0067E5B0): the footprint cleared when stamped, the visual removed from the world's timed
+    // objects and dropped, the sound and light dropped, the spell destroyed, the caster and target released.
+    ~CSpellEffect() override;
 
     // 00683950. Fills `out` with the damage this effect deals; split between the targets when
     // there are several. Returns 1.
@@ -196,13 +201,6 @@ struct __declspec(novtable) CSpellEffect {
     void ReleaseSound();
     void ReleaseLight();
 
-    // spell_lifetime.cpp. 0067E510: everything but the reference count cleared, the spell
-    // constructed; returns this. 0067E5D0: the footprint cleared when stamped, the visual removed
-    // from the world's timed objects and dropped, the sound and light dropped, the spell destroyed,
-    // the caster and target released; the base vtable 0073BB68 last. 0067E5B0: slot 0.
-    CSpellEffect* Construct();
-    void Destruct();
-    CSpellEffect* DeletingDestruct(unsigned flags);
     // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
     // world, the position, the caster and the target (each counted; the one held before released),
     // the target point, state 0 and the byte +0xA4.
@@ -211,9 +209,6 @@ struct __declspec(novtable) CSpellEffect {
     // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
     // drops the effect); else 1, the caster released and cleared when it is `object`.
     BOOL Forget(CEngineObject* object);
-    // The table Construct / Destruct store (game.exe's 0074399C, compiled: 0 DeletingDestruct, 1 an empty
-    // Serialize). The harness's digest recognises a cast spell by it.
-    static void* Vtable();
 
     // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
     // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1
@@ -223,12 +218,6 @@ struct __declspec(novtable) CSpellEffect {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    // +0x04 the reference count (16 bits; LoadSave and CastSpell clear the whole dword of a new
-    // allocation before its null test and the constructor).
-    union {
-        std::uint32_t references;
-        std::int16_t referenceCount;
-    };
     CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
@@ -236,7 +225,7 @@ struct __declspec(novtable) CSpellEffect {
     AIRefTo<CUnit> caster;      // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
-    // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (C28e makes it a member).
+    // +0x34 the CSpell (Spell()), constructed and destroyed in the constructor's and destructor's order.
     lib::AbstractInPlace<CSpell> spell_;
     CEffect* visual;            // +0x90 particle source, wall, lightning or missile (counted; Visual<T>)
     CEffect* sound;             // +0x94 a sound or a sound sequence (counted)
@@ -254,7 +243,6 @@ struct __declspec(novtable) CSpellEffect {
     CSpell* Spell() { return spell_.Get(); }
     const CSpell* Spell() const { return spell_.Get(); }
 };
-static_assert(offsetof(CSpellEffect, referenceCount) == 0x04);
 static_assert(offsetof(CSpellEffect, world) == 0x08);
 static_assert(offsetof(CSpellEffect, caster) == 0x20);
 static_assert(offsetof(CSpellEffect, state) == 0x30);

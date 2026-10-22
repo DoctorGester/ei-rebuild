@@ -186,11 +186,6 @@ CMemoryStream& ReceivedMessages();
 // game.exe's slots instead.
 extern void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame);
 
-// CRefObject root (vtable 0073BB68).
-void __fastcall RefObjectDestructBase(void* self);                                 // 00412720, 00413430
-// Abstract reference-counted value (vtable 0073BB58).
-void* __fastcall RefValueConstructBase(void* self);                                // 00419720, returns this
-
 // 0047B940 (and its copy 004D9ED0). Allocates room for `count` pointers on a 32-byte boundary; the block returned by
 // operator new is stored just before the aligned pointer (freed through it by 0047B620).
 void** __fastcall AlignedPointerArrayAlloc(int count);
