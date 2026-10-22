@@ -93,7 +93,7 @@ int __fastcall MapObjectManagerClassId(CMapObjectManager* self) { return self->C
 EI_REPLACE(0x00512620, MapObjectManagerClassId);
 
 int CMapObjectManager::CreateManager() {
-    mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
+    mfc::CString folder(TheTextFolder());
     if (!CBaseManager::Create()) return 0;
     AddArchive(folder + "database.res");   // the exe's 00784818
     return 1;

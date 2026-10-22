@@ -39,7 +39,7 @@ const mfc::CString* GameDataPathString() {
 EI_REWRITTEN(0x00578DB0, GameDataPathString);
 
 const mfc::CString* GameBasePathString() {
-    return static_cast<const mfc::CString*>(worlddata::BaseFolderString());
+    return &TheDiscFolder();
 }
 EI_REWRITTEN(0x00578DC0, GameBasePathString);
 

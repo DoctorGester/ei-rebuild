@@ -1287,12 +1287,12 @@ int CWorldClient::Setup() {
     texts_->Create();
     {
         mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsFileText());
+        CStringConcat(&path, &TheTextFolder(), worlddata::TextsFileText());
         LoadTexts(texts_, nullptr, path);
     }
     {
         mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsLmpFileText());
+        CStringConcat(&path, &TheTextFolder(), worlddata::TextsLmpFileText());
         LoadTexts(texts_, nullptr, path);
     }
 

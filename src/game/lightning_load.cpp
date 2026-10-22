@@ -23,7 +23,7 @@ int __cdecl LoadLightningNoise() {
     LocalStream local;
     bool opened;
     {
-        mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
+        mfc::CString folder(TheTextFolder());
         mfc::CString path = folder + "gfx.res";
         // Through the vtable: slot 1 is 00671730.
         opened = resource.Get()->OpenResource(path, 0) != 0;
