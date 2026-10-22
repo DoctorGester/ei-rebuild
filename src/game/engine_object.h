@@ -8,6 +8,7 @@
 #undef GetClassName
 
 class CBaseManager;
+class CManagerContext;   // manager_context.h
 class CStream;   // core_streams.h
 class CWorld;
 class CWorldClient;   // world.h
@@ -43,13 +44,14 @@ public:
     // 00402D20. Slot 0's body: DestructBase, then operator delete when flags bit 0 is set.
     CEngineObject* DeletingDestruct(unsigned flags);
     // 00455940. The owning manager's context_ (the world, for the world's managers).
-    void* ManagerContext() const;
+    CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (units, map objects, effects, items
-    // on the ground: their managers' context_ is the world itself; ManagerContext stays void* since a
-    // party's items have the party). ServerWorld / ClientWorld where the caller runs on that side.
-    CWorld* WorldContext() const { return static_cast<CWorld*>(ManagerContext()); }
-    CWorldServer* ServerWorld() const { return static_cast<CWorldServer*>(ManagerContext()); }
-    CWorldClient* ClientWorld() const { return static_cast<CWorldClient*>(ManagerContext()); }
+    // on the ground: their managers' context_ is the world itself; a party's items have the party).
+    // ServerWorld / ClientWorld where the caller runs on that side. Templates so that the world's
+    // classes need to be complete only where they are used.
+    template <class World = CWorld> World* WorldContext() const { return static_cast<World*>(ManagerContext()); }
+    template <class World = CWorldServer> World* ServerWorld() const { return WorldContext<World>(); }
+    template <class World = CWorldClient> World* ClientWorld() const { return WorldContext<World>(); }
     // 00455950 (app_helpers.cpp). The world the object belongs to: the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
     CWorld* World() const;

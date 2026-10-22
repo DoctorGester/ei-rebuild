@@ -73,9 +73,9 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make<CBaseManager>(sizeof(CPlayerManager), ConstructOn<CPlayerManager, &CPlayerManager::Construct>, nullptr);
+    world->players_ = Make<CPlayerManager>(sizeof(CPlayerManager), ConstructOn<CPlayerManager, &CPlayerManager::Construct>, nullptr);
     Attach(world->players_, world);
-    world->manager40_ = Make<CBaseManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
+    world->manager40_ = Make<CMapObjectManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
     Attach(world->manager40_, world);
     world->manager3C_ = Make<CBaseManager>(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
     Attach(world->manager3C_, world);
@@ -83,7 +83,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->manager48_, world);
     world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
     world->manager50_->Create();
-    world->manager4C_ = Make<CBaseManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
+    world->manager4C_ = Make<CSpellManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
     Attach(world->manager4C_, world);
     world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
     world->manager58_->Create();

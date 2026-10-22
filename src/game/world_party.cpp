@@ -177,7 +177,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
     mfc::PlexFreeDataChain(taken.blocks);
 }
 
-void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) {
+void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItems(player);
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
@@ -222,7 +222,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
 
     WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
     if (placements)   // 0059C3D0
-        static_cast<mfc::impl::Placements::Array*>(placements)->SetSize(0, -1);
+        mfc::impl::ArrayAs<mfc::impl::Placements>(*placements).SetSize(0, -1);
     CPlayerServer* state = player->Server();
     std::uint32_t lastZ;
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
