@@ -1377,7 +1377,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     over EngineObjectClass (CBaseManager's slots 2 / 3 / 9 / 10 and 13-24) with BaseManagerClass (0073B870) and
     resource_manager.cpp's ResourceManagerClass (00743338), and TransformBaseClass (CTransformObject's 0073BA38). The
     constants became `X::BaseVtable()`; figure_mesh_life.cpp's FigureBaseClass (0073C224, CFigureMesh's slots 18 / 19
-    over TransformObjectClass) and spell_lifetime.cpp's SpellEffectClass (0074399C, a one-slot deleter plus an empty
+    over TransformObjectClass; gone in C28h with ConstructBase / DestructBase) and spell_lifetime.cpp's SpellEffectClass (0074399C, a one-slot deleter plus an empty
     Serialize; the harness's IsSpellEffect compares the image's table with `CSpellEffect::Vtable()`). CTransformObject
     gained `BaseVtable()`, which hides CEngineObject's in its derived classes: every unqualified `BaseVtable()` under it
     was checked to be its own class's (CEffect, CFigureMesh). named_data's check found ui_window.cpp's

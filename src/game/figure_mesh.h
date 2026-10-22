@@ -86,14 +86,9 @@ struct FigureLights {
 // (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
 // vtables. The slot bodies are plain members registered by address (Create's is CreateMesh,
 // CopyFigure's CopyFigureImpl, ...); the virtuals call them. Abstract: slots 20 and 21 are the
-// derived classes'. game.exe's base vtable 0073C224 (20 slots) is retired (C19): the bodies
-// ConstructBase / DestructBase, which no code of ours calls, store BaseVtable() (figure_mesh_life.cpp's
-// FigureBaseClass) in its place.
+// derived classes'. game.exe's base vtable 0073C224 (20 slots) is retired.
 class CFigureMesh : public CTransformObject {
 public:
-    // The table ConstructBase / DestructBase store (game.exe's 0073C224, compiled).
-    static void* BaseVtable();
-
     // The vtable (game.exe's base 0073C224 and the pure slots 20 and 21). The slots not listed are
     // CTransformObject's (1, 4-6, 8-10, 13, 14, 17).
     int Create() override;                 // 2: 0059F210 CreateMesh (the derived classes' 005A6C70 / 005A6E00 jump to it)
@@ -171,14 +166,6 @@ public:
     void SaveToFile(mfc::CFileVirtuals* file);
 
     // Lifetime (figure_mesh_life.cpp, A-W13).
-    // 005AABC0. The constructor body the classes 0x41-0x43 share in the original (the factory, the
-    // scene's figure records): the transform object's fields, no owner, empty names and arrays, no
-    // bounds, vtable 0073C224, then Create. Returns this. No code of ours calls it (the protected
-    // constructor below does its work).
-    CFigureMesh* ConstructBase();
-    // 00453470 (slot 0 of the base table): DestructBase, then operator delete when bit 0 of `flags`
-    // is set. Returns this.
-    CFigureMesh* DeletingDestruct(unsigned flags);
     // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
     // buffers or bounds; white flat colours. Returns 1.
     int CreateMesh();
@@ -187,9 +174,6 @@ public:
     void Clear();
     // 005A6E10 (slot 3 of class 0x41): the vertices and normals emptied, then Clear.
     void ClearSharedMesh();
-    // 0059F030. The destructor body: Clear, the colour and offset arrays, the names, the engine
-    // object's destructor. No code of ours calls it (the destructor below does its work).
-    void DestructBase();
     // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
@@ -197,14 +181,15 @@ public:
     void SetObject(CObject3D* object);
 
 protected:
-    // 005AABC0 as C++ (the names constructed as members): SetUpFigure, then CreateMesh.
+    // 005AABC0 (the constructor the classes 0x41-0x43 share; the names are members): the transform
+    // object's fields, no owner, empty arrays, no bounds (SetUpFigure), then CreateMesh.
     CFigureMesh();
-    // 0059F030's work without the vtables: TearDownFigure, then the names (members) and the engine
-    // object's destructor.
+    // 0059F030 (deleting: 00453470): TearDownFigure (Clear, the colour and offset arrays), then the names
+    // and the engine object's destructor.
     ~CFigureMesh() override;
 
 private:
-    // The constructor's and ConstructBase's shared work: the engine object's fields, identity
+    // The constructor's work: the engine object's fields, identity
     // rotations, no object, empty offset and colour arrays, no bounds (the names are constructed
     // before it).
     void SetUpFigure();
@@ -289,10 +274,6 @@ public:
     void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A5C70 LoadFigShared
     void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A4D60 LoadOldShared
 
-    // The registrations (C20 retires them): 005AADC0 the destructor, 005AADA0 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CSharedFigureMesh* DeletingDestruct(unsigned flags);
 };
 
 // Class 0x42 (game.exe's vtable 0073C1C4, retired; 24 slots; 0x220 bytes): a mesh that owns all its
@@ -334,10 +315,6 @@ public:
     // 005A6C80 (slot 3): the mesh's own arrays emptied, then Clear.
     void ClearMesh();
 
-    // The registrations (C20 retires them): 00454510 the destructor, 004543A0 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CPlainFigureMesh* DeletingDestruct(unsigned flags);
 
     lib::AlignedArray<MeshCorner> corners_;       // +0x1E0
     lib::AlignedArray<std::uint32_t> words_;      // +0x1F0

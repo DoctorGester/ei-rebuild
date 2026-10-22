@@ -69,7 +69,7 @@ vtable,slots,class,file,note
 0073C1AC,3,NodeItemsAClass,src/lib/mfc_slots.h,CArray (inside the scene loader's 0x120-byte node records (00454F80))
 0073C1B8,3,NodeItemsBClass,src/lib/mfc_slots.h,CArray (the scene loader's node records' 24-byte items)
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
-0073C224,20,FigureBaseClass,src/game/figure_mesh_life.cpp,"the figures' base (CFigureMesh::ConstructBase / DestructBase, which nothing of ours calls)"
+0073C224,20,CFigureMesh,src/game/figure_mesh.h,the figures' base
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C350,1,MouseClass,src/game/app_lifetime.cpp,the DirectInput mouse (CDirectInputMouse)
