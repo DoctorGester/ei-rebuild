@@ -65,41 +65,18 @@ BOOL CreateThread(WinThread* thread, DWORD flags, UINT stackSize, LPSECURITY_ATT
     return TRUE;
 }
 
-// CWinThread's 31 slots (C19; MFC 4.2's CWinThread virtuals): CCmdTarget's 20, then the thread's, unported but
-// Delete: the image's threads run their procedure only (ThreadEntry), never InitInstance / Run or a message loop.
-struct WinThreadTable final : CmdTargetTable<WinThreadTable, &kClassCWinThread> {
-    void* DeleteScalar(unsigned flags) override { return This()->DeletingDestructor(flags); }    // 1: 0070C29D
-    void OnFinalRelease() override { ei::UnportedSlot(0x00704179); }                             // 4
-    const void* GetMessageMap() const override { ei::UnportedSlot(0x00704161); }                 // 10
-    virtual BOOL InitInstance() { ei::UnportedSlot(0x007025A8); }                                // 20
-    virtual int Run() { ei::UnportedSlot(0x007025AB); }                                          // 21
-    virtual BOOL PreTranslateMessage(MSG*) { ei::UnportedSlot(0x00702819); }                     // 22
-    virtual BOOL PumpMessage() { ei::UnportedSlot(0x00702ACE); }                                 // 23
-    virtual BOOL OnIdle(LONG) { ei::UnportedSlot(0x00702687); }                                  // 24
-    virtual BOOL IsIdleMessage(MSG*) { ei::UnportedSlot(0x0070262A); }                           // 25
-    virtual int ExitInstance() { ei::UnportedSlot(0x00702683); }                                 // 26
-    virtual LRESULT ProcessWndProcException(void*, const MSG*) { ei::UnportedSlot(0x00702876); } // 27
-    virtual BOOL ProcessMessageFilter(int, MSG*) { ei::UnportedSlot(0x00702969); }               // 28
-    virtual CWnd* GetMainWnd() { ei::UnportedSlot(0x00702AB3); }                                 // 29
-    virtual void Delete() { This()->Delete(); }                                                  // 30: 00702596
-
-private:
-    WinThread* This() { return ObjectAs<WinThread>(); }
-};
 
 } // namespace
 
-void* WinThread::Vtable() { return WinThreadTable::Vtable(); }
+const CRuntimeClass* WinThread::GetRuntimeClass() const { return &kClassCWinThread; }
+EI_REWRITTEN(0x0070C328, WinThread::GetRuntimeClass);
 
-WinThread* WinThread::Construct(ThreadProc procedure, void* parameter) {
-    base.Construct();
-    base.vtable = Vtable();
+WinThread::WinThread(ThreadProc procedure, void* parameter) {
     threadProc = procedure;
     threadParams = parameter;
     CommonConstruct();
-    return this;
 }
-EI_REWRITTEN(0x0070C259, WinThread::Construct);
+EI_REWRITTEN_SPECIAL(0x0070C259, WinThread::WinThread);
 
 void WinThread::CommonConstruct() {
     mainWnd = nullptr;
@@ -115,31 +92,21 @@ void WinThread::CommonConstruct() {
 }
 EI_REWRITTEN(0x0070C2F6, WinThread::CommonConstruct);
 
-// The original deletes through slot 1, which no class of the game overrides.
 void WinThread::Delete() {
-    if (autoDelete) DeletingDestructor(1);
+    if (autoDelete) delete this;
 }
 
-void WinThread::Destruct() {
-    base.vtable = Vtable();
+WinThread::~WinThread() {
     if (thread != nullptr) gameapi::CloseHandle(thread);
     if (t_current == this) t_current = nullptr;
-    base.Destruct();
-}
-
-WinThread* WinThread::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 EI_REWRITTEN(0x00702596, WinThread::Delete);
-EI_REWRITTEN(0x0070E132, WinThread::Destruct);
-EI_REWRITTEN(0x0070C29D, WinThread::DeletingDestructor);
+EI_REWRITTEN_SPECIAL(0x0070E132, WinThread::~WinThread);
+EI_REWRITTEN_SPECIAL(0x0070C29D, WinThread::~WinThread);   // deleting
 
 WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security) {
-    WinThread* thread = gamecrt::operator_new_as<WinThread>();
-    thread->Construct(procedure, parameter);
+    auto* thread = new WinThread(procedure, parameter);
     if (!CreateThread(thread, flags | CREATE_SUSPENDED, stackSize, security)) {
         thread->Delete();
         return nullptr;

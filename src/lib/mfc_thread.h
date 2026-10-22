@@ -19,10 +19,35 @@ namespace mfc::impl {
 
 using ThreadProc = UINT(__cdecl*)(void* parameter);
 
-// CWinThread (0x68 bytes; a compiled table, C19, mfc_thread.cpp, in place of game.exe's 007466E0: 31 slots, the
-// destructor and Delete ported, the message loop's unported: the game's threads only run their procedure).
-struct WinThread {
-    CCmdTarget base;
+// CWinThread (0x68 bytes; game.exe's table 007466E0: CCmdTarget's 20 slots, then the thread's; the destructor and
+// Delete ported, the message loop's unported: the game's threads only run their procedure, never InitInstance / Run).
+struct WinThread : CCmdTarget {
+    // 0070C259 (thiscall, RET 8): CCmdTarget's constructor, the procedure and its parameter, then CommonConstruct.
+    WinThread(ThreadProc procedure, void* parameter);
+    // ~CWinThread (0070E132, deleting 0070C29D): the thread handle closed, no longer the current thread, then
+    // CCmdTarget's destructor.
+    ~WinThread() override;
+
+    const CRuntimeClass* GetRuntimeClass() const override;                                       // 0: 0070C328
+    void OnFinalRelease() override { ei::UnportedSlot(0x00704179); }                             // 4
+    const void* GetMessageMap() const override { ei::UnportedSlot(0x00704161); }                 // 10
+    virtual BOOL InitInstance() { ei::UnportedSlot(0x007025A8); }                                // 20
+    virtual int Run() { ei::UnportedSlot(0x007025AB); }                                          // 21
+    virtual BOOL PreTranslateMessage(MSG*) { ei::UnportedSlot(0x00702819); }                     // 22
+    virtual BOOL PumpMessage() { ei::UnportedSlot(0x00702ACE); }                                 // 23
+    virtual BOOL OnIdle(LONG) { ei::UnportedSlot(0x00702687); }                                  // 24
+    virtual BOOL IsIdleMessage(MSG*) { ei::UnportedSlot(0x0070262A); }                           // 25
+    virtual int ExitInstance() { ei::UnportedSlot(0x00702683); }                                 // 26
+    virtual LRESULT ProcessWndProcException(void*, const MSG*) { ei::UnportedSlot(0x00702876); } // 27
+    virtual BOOL ProcessMessageFilter(int, MSG*) { ei::UnportedSlot(0x00702969); }               // 28
+    virtual CWnd* GetMainWnd() { ei::UnportedSlot(0x00702AB3); }                                 // 29
+    // 00702596 (30): deleted (slot 1) when autoDelete is set.
+    virtual void Delete();
+
+    // 0070C2F6 (thiscall): no windows, no thread yet, the message state cleared, the cursor position
+    // (GetCursorPos), no filter or OLE hook, deleted when its thread ends.
+    void CommonConstruct();
+
     void* mainWnd;                  // +0x1C m_pMainWnd
     void* activeWnd;                // +0x20 m_pActiveWnd
     BOOL autoDelete;                // +0x24 m_bAutoDelete
@@ -35,21 +60,6 @@ struct WinThread {
     void* messageFilter;            // +0x58 m_pMessageFilter
     POINT cursorLast;               // +0x5C m_ptCursorLast
     UINT msgLast;                   // +0x64 m_nMsgLast
-
-    static void* Vtable();
-
-    // 0070C259 (thiscall, RET 8, returns this): CCmdTarget's constructor, the vtable, the procedure
-    // and its parameter, then CommonConstruct.
-    WinThread* Construct(ThreadProc procedure, void* parameter);
-    // 0070C2F6 (thiscall): no windows, no thread yet, the message state cleared, the cursor position
-    // (GetCursorPos), no filter or OLE hook, deleted when its thread ends.
-    void CommonConstruct();
-    // 00702596 Delete (vtable slot 0x1E): the deleting destructor when autoDelete is set.
-    void Delete();
-    // ~CWinThread (0070E132): the thread handle closed, no longer the current thread, then CCmdTarget's destructor.
-    // The scalar deleting destructor (0070C29D, slot 1): it, then the memory freed when bit 0 of `flags` is set.
-    void Destruct();
-    WinThread* DeletingDestructor(unsigned flags);
 };
 static_assert(sizeof(WinThread) == 0x68);
 static_assert(offsetof(WinThread, thread) == 0x28 && offsetof(WinThread, threadParams) == 0x4C);

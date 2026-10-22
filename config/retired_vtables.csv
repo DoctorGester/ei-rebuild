@@ -582,7 +582,7 @@ vtable,slots,class,file,note
 007465F8,5,CMemoryException,src/lib/mfc_exception.h,CMemoryException (_simpleMemoryException)
 00746610,5,CNotSupportedException,src/lib/mfc_exception.h,CNotSupportedException (_simpleNotSupportedException)
 00746650,26,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
-007466E0,31,WinThreadTable,src/lib/mfc_thread.cpp,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
+007466E0,31,WinThread,src/lib/mfc_thread.h,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
 00746768,1,_AFX_CTL3D_THREAD,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls"
 007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
@@ -595,16 +595,16 @@ vtable,slots,class,file,note
 0074685C,1,CHandleMap,src/lib/mfc_handle_map.h,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
 0074689C,3,CMapPtrToPtr,src/lib/mfc_handle_map.h,CMapPtrToPtr (the handle maps' maps)
 007469A0,4,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"
-00746DA8,46,PlainWndTable,src/lib/mfc_window.cpp,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
+00746DA8,46,CWnd,src/lib/mfc_window.h,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
 00746E88,4,CTestCmdUI,-,"stored only by game.exe's 00705EA0, which no code of ours calls"
-00746EC4,46,TempWndTable,src/lib/mfc_window.cpp,CTempWnd
+00746EC4,46,CTempWnd,src/lib/mfc_window.cpp,CTempWnd
 00746FB0,3,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"
 007470BC,1,_AFX_WIN_STATE,-,"an MFC state object: stored only by game.exe's 0070D630 / 0070E18B, which no code of ours calls"
 007470C4,39,CWinApp,-,"stored only by game.exe's constructor / destructor 0070D654 / 0070DA85, which no code of ours calls (the game has no CWinApp)"
 00747164,4,CCommandLineInfo,-,"stored only by game.exe's 0070D73E / 0070D8C8, which no code of ours calls"
-007471FC,5,PlainMenuTable,src/lib/mfc_window.cpp,CMenu
-00747214,5,TempMenuTable,src/lib/mfc_window.cpp,CTempMenu
+007471FC,5,CMenu,src/lib/mfc_window.h,CMenu
+00747214,5,CTempMenu,src/lib/mfc_window.cpp,CTempMenu
 00747240,6,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
 007472B0,1,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image (named_data.RETIRED_POINTED)"

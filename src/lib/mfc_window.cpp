@@ -36,163 +36,74 @@ constinit unsigned g_dragListMessage = /*007CAA64*/ {};
 // 007043FA, a static initialiser (cdecl; the list holds a jump to its body 007043FF).
 void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
-// CWnd's 46 slots (C19; MFC 4.2's CWnd virtuals in declaration order): CCmdTarget's 20, then the window's, all
-// unported but the destructor (config/standalone_unreachable.csv: the image makes MFC's four static windows only).
-template <typename Self, const CRuntimeClass* kClass>
-struct WndTable : CmdTargetTable<Self, kClass> {
-    void OnFinalRelease() override { ei::UnportedSlot(0x00705190); }                                 // 4
-    const void* GetMessageMap() const override { ei::UnportedSlot(0x0070588F); }                     // 10
-    virtual void PreSubclassWindow() { ei::UnportedSlot(0x007049D5); }                               // 20
-    virtual BOOL Create(const char*, const char*, DWORD, const RECT*, CWnd*, UINT, void*) {          // 21
-        ei::UnportedSlot(0x00704F97);
-    }
-    virtual BOOL DestroyWindow() { ei::UnportedSlot(0x007051A1); }                                   // 22
-    virtual BOOL PreCreateWindow(CREATESTRUCTA*) { ei::UnportedSlot(0x00704F77); }                   // 23
-    virtual void CalcWindowRect(RECT*, UINT) { ei::UnportedSlot(0x0070674E); }                       // 24
-    virtual int OnToolHitTest(POINT, void*) const { ei::UnportedSlot(0x007052AF); }                  // 25
-    virtual CWnd* GetScrollBarCtrl(int) const { ei::UnportedSlot(0x007062F0); }                      // 26
-    virtual void WinHelp(DWORD, UINT) { ei::UnportedSlot(0x007057AD); }                              // 27
-    virtual BOOL ContinueModal() { ei::UnportedSlot(0x007074D8); }                                   // 28
-    virtual void EndModalLoop(int) { ei::UnportedSlot(0x007074DF); }                                 // 29
-    virtual BOOL OnCommand(WPARAM, LPARAM) { ei::UnportedSlot(0x00705ED3); }                         // 30
-    virtual BOOL OnNotify(WPARAM, LPARAM, LRESULT*) { ei::UnportedSlot(0x00705F5F); }                // 31
-    virtual WNDPROC* GetSuperWndProcAddr() { ei::UnportedSlot(0x00705235); }                         // 32
-    virtual void DoDataExchange(void*) { ei::UnportedSlot(0x006E7128); }                             // 33
-    virtual void BeginModalState() { ei::UnportedSlot(0x006E712B); }                                 // 34
-    virtual void EndModalState() { ei::UnportedSlot(0x006E7137); }                                   // 35
-    virtual BOOL PreTranslateMessage(MSG*) { ei::UnportedSlot(0x00705239); }                         // 36
-    virtual BOOL OnAmbientProperty(void*, long, void*) { ei::UnportedSlot(0x007037E1); }             // 37
-    virtual LRESULT WindowProc(UINT, WPARAM, LPARAM) { ei::UnportedSlot(0x007058EA); }               // 38
-    virtual BOOL OnWndMsg(UINT, WPARAM, LPARAM, LRESULT*) { ei::UnportedSlot(0x0070592E); }          // 39
-    virtual LRESULT DefWindowProc(UINT, WPARAM, LPARAM) { ei::UnportedSlot(0x007051EE); }            // 40
-    virtual void PostNcDestroy() { ei::UnportedSlot(0x0070518F); }                                   // 41
-    virtual BOOL OnChildNotify(UINT, WPARAM, LPARAM, LRESULT*) { ei::UnportedSlot(0x0070694E); }     // 42
-    virtual BOOL CheckAutoCenter() { ei::UnportedSlot(0x0070711E); }                                 // 43
-    virtual BOOL IsFrameWnd() const { ei::UnportedSlot(0x00707877); }                                // 44
-    virtual BOOL SetOccDialogInfo(void*) { ei::UnportedSlot(0x00707503); }                           // 45
-};
-// game.exe's 00746DA8 (0: 0070D35D, 1: 0070452A).
-struct PlainWndTable final : WndTable<PlainWndTable, &kClassCWnd> {
-    void* DeleteScalar(unsigned flags) override { return ObjectAs<CWnd>()->DeletingDestructor(flags); }
-};
-// CTempWnd (game.exe's 00746EC4; 0: 0070D3C8, 1: 0070D3A3): ~CWnd, the memory back to the fixed allocator.
-struct TempWndTable final : WndTable<TempWndTable, &kClassCTempWnd> {
-    void* DeleteScalar(unsigned flags) override {
-        auto* self = ObjectAs<CWnd>();
-        self->Destruct();
-        if (flags & 1) TempWndAlloc().Free(self);
-        return self;
-    }
+// CTempWnd (game.exe's 00746EC4; 0: 0070D3C8, deleting destructor 0070D3A3): ~CWnd, the memory back to the fixed
+// allocator.
+class CTempWnd final : public CWnd {
+public:
+    const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempWnd; }
+    static void* operator new(std::size_t) noexcept { return TempWndAlloc().Alloc(); }
+    static void operator delete(void* block) { TempWndAlloc().Free(block); }
 };
 
-// CMenu's 5 slots: 0 GetRuntimeClass, 1 the scalar deleting destructor (unported: ~CMenu destroys the menu through
-// MFC's menu handle map, which the image does not have), 2 Serialize (CObject's, empty), 3 DrawItem and 4
-// MeasureItem (empty: 00707D0C / 00707D0F).
-template <typename Self, const CRuntimeClass* kClass>
-struct MenuTable : ei::CompiledTag<Self> {
-    virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }   // 0
-    virtual void* DeleteScalar(unsigned flags) = 0;                           // 1
-    virtual void Serialize(void*) {}                                          // 2: 00444B00
-    virtual void DrawItem(DRAWITEMSTRUCT*) {}                                 // 3
-    virtual void MeasureItem(MEASUREITEMSTRUCT*) {}                           // 4
-};
-// game.exe's 007471FC (0: 0070DC9A) and CTempMenu's 00747214 (0: 0070DD05).
-struct PlainMenuTable final : MenuTable<PlainMenuTable, &kClassCMenu> {
-    void* DeleteScalar(unsigned) override { ei::UnportedSlot(0x006E7150); }
-};
-struct TempMenuTable final : MenuTable<TempMenuTable, &kClassCTempMenu> {
-    void* DeleteScalar(unsigned) override { ei::UnportedSlot(0x0070DCBC); }
+// CTempMenu (game.exe's 00747214; 0: 0070DD05).
+class CTempMenu final : public CMenu {
+public:
+    // 0070DCBC (deleting): unported, as ~CMenu.
+#pragma warning(suppress : 4722)   // the unported body does not return
+    ~CTempMenu() override { ei::UnportedSlot(0x0070DCBC); }
+    const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempMenu; }
+    static void* operator new(std::size_t) noexcept { return TempMenuAlloc().Alloc(); }
+    static void operator delete(void* block) { TempMenuAlloc().Free(block); }
 };
 
 } // namespace
 
-void* CWnd::Vtable() { return PlainWndTable::Vtable(); }
-void* CWnd::TempVtable() { return TempWndTable::Vtable(); }
-void* CMenu::Vtable() { return PlainMenuTable::Vtable(); }
-void* CMenu::TempVtable() { return TempMenuTable::Vtable(); }
+const CRuntimeClass* CWnd::GetRuntimeClass() const { return &kClassCWnd; }
+const CRuntimeClass* CMenu::GetRuntimeClass() const { return &kClassCMenu; }
 
-CCmdTarget* CCmdTarget::Construct() {
-    refCount = 1;
-    outerUnknown = nullptr;
-    innerUnknownVtable = nullptr;
-    dispatchVtable = nullptr;
-    resultExpected = TRUE;
-    connectionPoints = nullptr;
-    return this;
-}
+#pragma warning(suppress : 4722)   // the unported body does not return
+CMenu::~CMenu() { ei::UnportedSlot(0x006E7150); }
 
-void CCmdTarget::Destruct() {
+CCmdTarget::CCmdTarget()
+    : refCount(1), outerUnknown(nullptr), innerUnknownVtable(nullptr), dispatchVtable(nullptr), resultExpected(TRUE),
+      connectionPoints(nullptr) {}
+
+CCmdTarget::~CCmdTarget() {
     if (dispatchVtable) reinterpret_cast<COleDispatchImpl*>(&dispatchVtable)->Disconnect();
 }
 
-CWnd* CWnd::Construct(HWND handle) {
-    base.Construct();
-    base.vtable = Vtable();
-    owner = nullptr;
-    flags = 0;
-    superProc = nullptr;
-    modalResult = 0;
-    dropTarget = nullptr;
-    controlContainer = nullptr;
-    controlSite = nullptr;
-    window = handle;
-    return this;
-}
+CWnd::CWnd(HWND handle) : window(handle) {}
 
-void CWnd::Destruct() {
-    base.vtable = Vtable();
+CWnd::~CWnd() {
     // CWnd::DestroyWindow (007051A1) is not ported: the image makes MFC's four static windows only.
     if (window && !IsStaticWindow(this)) ei::UnportedSlot(0x007051A1);
-    if (controlContainer) static_cast<mfc::CObjectVirtuals*>(controlContainer)->DeletingDestructor(1);
+    delete controlContainer;
     if (controlSite && controlSite->windowControl == this) controlSite->windowControl = nullptr;
-    base.Destruct();
 }
 
-CWnd* CWnd::DeletingDestructor(unsigned deleteFlags) {
-    Destruct();
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+void __fastcall DestroyStaticWindow(CWnd* window) { window->~CWnd(); }
 
-void* __stdcall CreateCWnd() {
-    auto* wnd = gamecrt::operator_new_as<CWnd>();
-    return wnd ? wnd->Construct(nullptr) : nullptr;
-}
+void* __stdcall CreateCWnd() { return new CWnd(); }
 
-void* __stdcall CreateCTempWnd() {
-    auto* wnd = static_cast<CWnd*>(TempWndAlloc().Alloc());
-    if (!wnd) return nullptr;
-    wnd->Construct(nullptr);
-    wnd->base.vtable = CWnd::TempVtable();
-    return wnd;
-}
+void* __stdcall CreateCTempWnd() { return new CTempWnd(); }
 
-void* __stdcall CreateCMenu() {
-    auto* menu = gamecrt::operator_new_as<CMenu>();
-    if (!menu) return nullptr;
-    menu->vtable = CMenu::Vtable();
-    menu->menu = nullptr;
-    return menu;
-}
+void* __stdcall CreateCMenu() { return new CMenu(); }
 
-void* __stdcall CreateCTempMenu() {
-    auto* menu = static_cast<CMenu*>(TempMenuAlloc().Alloc());
-    if (!menu) return nullptr;
-    menu->menu = nullptr;
-    menu->vtable = CMenu::TempVtable();
-    return menu;
-}
+void* __stdcall CreateCTempMenu() { return new CTempMenu(); }
 
-EI_REWRITTEN(0x00703EAE, CCmdTarget::Construct);
+EI_REWRITTEN_SPECIAL(0x00703EAE, CCmdTarget::CCmdTarget);
 EI_REPLACE(0x0070D32B, CreateCWnd);
 EI_REPLACE(0x0070D363, CreateCTempWnd);
 EI_REPLACE(0x0070DC80, CreateCMenu);
 EI_REPLACE(0x0070DCA0, CreateCTempMenu);
-EI_REWRITTEN(0x00703EC8, CCmdTarget::Destruct);
+EI_REWRITTEN_SPECIAL(0x00703EC8, CCmdTarget::~CCmdTarget);
 EI_REPLACE(0x007043FA, RegisterDragListMessage);
 EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
-EI_REPLACE_METHOD(0x00704FE3, CWnd::Destruct);
-EI_REWRITTEN(0x0070452A, CWnd::DeletingDestructor);
+EI_REWRITTEN_SPECIAL(0x007068AA, CWnd::CWnd);
+EI_REPLACE(0x00704FE3, DestroyStaticWindow);
+EI_REWRITTEN_SPECIAL(0x0070452A, CWnd::~CWnd);   // deleting
+EI_REWRITTEN(0x0070D35D, CWnd::GetRuntimeClass);
+EI_REWRITTEN(0x0070DC9A, CMenu::GetRuntimeClass);
 
 int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {
     if (!(type & MB_ICONMASK)) {
