@@ -18,6 +18,7 @@ namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
 namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
 namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
+class CInterface3D;             // ui.h
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 
 namespace console {
@@ -166,7 +167,7 @@ public:
     // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
     // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
     // Returns this.
-    ConsoleWindow* Construct(int* screen);
+    ConsoleWindow* Construct(CInterface3D* screen);
     void SetRect(const int* rect);   // 005E3E90 (800x600 coordinates)
     void SetHistory(int lines);      // 005E3F90
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
@@ -184,7 +185,7 @@ public:
     // Frees the surface and the font, then the members (lines, input text, command history).
     void DestroyBody();
 
-    int* screen_;                    // +0x00 the 3D interface; [0] width, [1] height in pixels
+    CInterface3D* screen_;           // +0x00 the 3D interface (its width_ and height_ in pixels)
     void* surface_;                  // +0x04 CUiSurface while shown
     ui_gdi::GameFont* font_;         // +0x08 CFont (selected into the surface's CDC)
     CStringArray commands_;          // +0x0C commands entered (input history)

@@ -120,7 +120,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     ChooseKeyboardLayout();
     keybind::LoadKeyBindings();
     auto* window = gamecrt::operator_new_as<console::ConsoleWindow>();
-    console_ = window ? window->Construct(&width_) : nullptr;
+    console_ = window ? window->Construct(this) : nullptr;
     DebugInfoPanel()->Init(this);
     auto* chat = gamecrt::operator_new_as<CChatOverlay>();
     root_ = chat ? chat->Construct(this) : nullptr;

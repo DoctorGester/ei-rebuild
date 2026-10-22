@@ -22,7 +22,7 @@ constexpr int kNoCommand = -1;
 void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 } // namespace
 
-ConsoleWindow* ConsoleWindow::Construct(int* screen) {
+ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     new (this) ConsoleWindow;   // commands_, input_ (empty), lines_
     screen_ = screen;
     surface_ = nullptr;
