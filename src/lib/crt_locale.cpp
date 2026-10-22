@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
+#include "lib/compiled_vtable.h"
 
 #include <cstring>
 
@@ -32,15 +33,28 @@ constexpr int kCollate = 1;   // LC_COLLATE
 constexpr int kCtype = 2;     // LC_CTYPE
 constexpr int kLastCategory = 5;
 
-// __lc_category (00797888): each category's name, its locale name (the static "C" 00797778 or a heap
-// copy) and the function that rebuilds its tables (0 on success).
+// The categories' table builders (0 on success): __init_dummy (LC_ALL) and __init_collate have nothing to build;
+// LC_CTYPE's is InitCtype; LC_MONETARY's, LC_NUMERIC's and LC_TIME's are not ported (the game sets LC_CTYPE only).
+int __cdecl InitDummy() { return 0; }     // 006EA766
+int __cdecl InitCollate() { return 0; }   // 006F4A40
+int __cdecl InitMonetary() { ei::UnportedSlot(0x006F4589); }
+int __cdecl InitNumeric() { ei::UnportedSlot(0x006F437D); }
+int __cdecl InitTime() { ei::UnportedSlot(0x006F3E0E); }
+
+// __lc_category: each category's name, its locale name (the static "C" or a heap copy) and its table builder.
 struct LocaleCategory {
     const char* name;
     char* locale;
     int(__cdecl* init)();
 };
-LocaleCategory* Categories() { return ei::GamePointer<LocaleCategory>(0x00797888); }
-const char* StaticC() { return ei::GamePointer<const char>(0x00797778); }
+char g_cLocaleName[4] = /*00797778*/ {"C"};
+LocaleCategory g_localeCategories[6] = /*00797888*/ {
+    {"LC_ALL", nullptr, InitDummy},
+    {"LC_COLLATE", g_cLocaleName, InitCollate},
+    {"LC_CTYPE", g_cLocaleName, InitCtype},
+    {"LC_MONETARY", g_cLocaleName, InitMonetary},
+    {"LC_NUMERIC", g_cLocaleName, InitNumeric},
+    {"LC_TIME", g_cLocaleName, InitTime}};
 // The state setlocale writes (__lc_handle, __lc_id, the code pages, getqloc's cache): crt_locale_data.h.
 
 // The class tables (_ctype, _pctype / _pwctype), the heap blocks behind them and __mb_cur_max:
@@ -554,7 +568,7 @@ char* SetCategory(int category, const char* name) {
     if (!ExpandLocale(name, qualified, &id, &codePage)) return nullptr;
     char* copy = static_cast<char*>(gamecrt::malloc(std::strlen(qualified) + 1));
     if (!copy) return nullptr;
-    LocaleCategory& entry = Categories()[category];
+    LocaleCategory& entry = g_localeCategories[category];
     char* const oldLocale = entry.locale;
     const unsigned oldHandle = g_lcHandle[category];
     const unsigned oldCodePage = g_lcCodePage;
@@ -572,7 +586,7 @@ char* SetCategory(int category, const char* name) {
         g_lcCodePage = oldCodePage;
         return nullptr;
     }
-    if (oldLocale != StaticC()) gamecrt::free(oldLocale);
+    if (oldLocale != g_cLocaleName) gamecrt::free(oldLocale);
     return entry.locale;
 }
 
@@ -716,10 +730,13 @@ int InitCtype() {
 
 char* __cdecl Setlocale(int category, const char* locale) {
     if (category < kAll || category > kLastCategory || category == kAll) return nullptr;
-    if (locale == nullptr) return Categories()[category].locale;
+    if (locale == nullptr) return g_localeCategories[category].locale;
     return SetCategory(category, locale);
 }
 EI_REWRITTEN(0x006EA234, libcrt::Setlocale);
+EI_REWRITTEN(0x006EA766, libcrt::InitDummy);
+EI_REWRITTEN(0x006F4A40, libcrt::InitCollate);
+EI_REWRITTEN(0x006F47FB, libcrt::InitCtype);
 
 int __cdecl Setmbcp(int codePage) {
     const unsigned page = SystemCodePage(codePage);

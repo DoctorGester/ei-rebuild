@@ -20,7 +20,7 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names what game.exe's pointer in its place points at,
     and that is compared: a string literal the text at the target, the name of another named range its address
     (qualified or not; or `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
-    registration (EI_REPLACE*), nullptr a zero;
+    registration (EI_REPLACE*, EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), nullptr a zero;
   * nothing else reaches a named range: no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked)
     inside it, no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it but at its
     pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
@@ -110,6 +110,7 @@ TYPES = {
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
+    'LocaleCategory': 'PPP',                 # crt_locale.cpp: __lc_category's name, locale name, init function
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
@@ -137,6 +138,10 @@ TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*
 # Registrations of our functions at game.exe's addresses (ei/hook.h): what a code pointer element may name.
 REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
+# The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
+# reports game.exe's unported function (ei::UnportedSlot: crt_locale.cpp's category builders).
+REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
+UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 ORIGINAL_READ = re.compile(r'\bOriginalGameData\s*<[^<>()]*>\s*\(\s*$')   # just before a literal
@@ -297,6 +302,12 @@ class Targets:
         for s in sources:
             for m in REGISTRATION.finditer(s.code):
                 self.functions[m.group(2).lstrip(':')].add(int(m.group(1), 16))
+            for m in REWRITTEN.finditer(s.code):   # also unqualified: the table names it inside its namespace
+                name = m.group(2).lstrip(':')
+                self.functions[name].add(int(m.group(1), 16))
+                self.functions[name.split('::')[-1]].add(int(m.group(1), 16))
+            for m in UNPORTED.finditer(s.code):
+                self.functions[m.group(1)].add(int(m.group(2), 16))
 
 
 def tokens(body):
@@ -412,7 +423,7 @@ def _pack_pointers(self, fmt, img, targets):
                 return
         else:
             self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                            'ours with a registration (EI_REPLACE*) or nullptr')
+                            'ours with a registration (EI_REPLACE*, EI_REWRITTEN, UnportedSlot) or nullptr')
             return
         self.pointers.add(len(out))
         out += struct.pack('<I', cell)

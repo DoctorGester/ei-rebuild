@@ -73,10 +73,9 @@ struct StringAbi : string {
     static char* EndOfStorage(const string& s) { return s.eos_; }
 };
 
-// __stl_throw_out_of_range("basic_string") (004410A0; substr past the end): the text as a string,
-// MSVC 6's out_of_range made on the stack from it (the exe's __Named_exception vtable 0073B994, its
-// 256-byte name, then out_of_range's vtable 0073BE8C) and thrown with the exe's throw information
-// 0074C640 through _CxxThrowException; the string's block is freed as the throw unwinds this frame.
+// __stl_throw_out_of_range("basic_string") (004410A0; substr past the end): the text as a string, an
+// out_of_range made from it (stlp_string.cpp's class) and thrown; the string's block is freed as the
+// throw unwinds this frame.
 [[noreturn]] void __fastcall ThrowOutOfRange();
 
 } // namespace stlp

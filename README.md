@@ -10,7 +10,9 @@ references (goldens, function vectors, Rebirth's frames); none of our code runs 
 
 ## Build
 
-Requires the VS 2022 Build Tools (MSVC 14.43, x86) at `E:\bin\vs\buildtools` (edit `build.cmd` if elsewhere).
+Requires the VS 2022 Build Tools (MSVC 14.43, x86) at `E:\bin\vs\buildtools` (edit `build.cmd` if elsewhere) and
+Python 3. The build needs no game.exe; the harness runs the original game.exe for its references, and
+`tools\check_against_exe.cmd` holds the checks that compare our code with it.
 
 ```
 build.cmd release    # the product: the standalone image (ei_standalone.exe, ei_hook.dll)

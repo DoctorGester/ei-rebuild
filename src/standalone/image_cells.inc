@@ -434,13 +434,6 @@
 {DataId(0x0079B138), DataId(0x007472B0)},
 {DataId(0x0079B150), DataId(0x007472B0)},
 {DataId(0x0079B178), DataId(0x007472B0)},
-// the CRT's locale categories (00797888): their names ("LC_ALL", ...)
-{DataId(0x00797888), DataId(0x0074731C)},
-{DataId(0x00797894), DataId(0x00747310)},
-{DataId(0x007978A0), DataId(0x00747304)},
-{DataId(0x007978AC), DataId(0x007472F8)},
-{DataId(0x007978B8), DataId(0x007472EC)},
-{DataId(0x007978C4), DataId(0x007472E4)},
 // the CRT's __lc_time_c: day and month names, AM / PM, the date and time formats
 {DataId(0x00797A60), DataId(0x007474B4)},
 {DataId(0x00797A64), DataId(0x007474B0)},
@@ -701,12 +694,6 @@
 // MFC CString's shared empty string (afxEmptyString's data) and _afxDataNil
 {DataId(0x00796E48), DataId(0x00796E5C)},
 {DataId(0x00796E4C), DataId(0x00796E50)},
-// the CRT's locale categories (00797888): their locale names
-{DataId(0x00797898), DataId(0x00797778)},
-{DataId(0x007978A4), DataId(0x00797778)},
-{DataId(0x007978B0), DataId(0x00797778)},
-{DataId(0x007978BC), DataId(0x00797778)},
-{DataId(0x007978C8), DataId(0x00797778)},
 // the CRT's __lc_time_curr: __lc_time_c (day and month names)
 {DataId(0x00797A58), DataId(0x00797A60)},
 // the CRT's lock table (_locktable, _mtinitlocks 006F0741): preallocated critical sections

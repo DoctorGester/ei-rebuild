@@ -2949,7 +2949,14 @@ id = "C25c"
 title = "Build without game.exe: out_of_range's throw information, then the switch"
 group = "cleanup"
 depends = ["C25a"]
-note = "User 2026-10-22: no switch; the game.exe-free build is the only build; no reference to game.exe in the build; drop the tools that only served the move (kept list, image trace, switch-only checks, named_data move modes). Locale rows go into our source if C26 hasn't removed them."
+note = "User 2026-10-22: no switch; the game.exe-free build is the only build; no reference to game.exe in the build; drop the tools that only served the move (kept list, image trace, switch-only checks, named_data move modes). Locale rows go into our source if C26 hasn't removed them. Done 2026-10-22 (scope widened by the user: the zero build is the only one, no game.exe in the build). out_of_range is a class of ours the compiler throws (stlp_string.cpp: NamedException : std::exception, LogicError, OutOfRange); __lc_category 00797888 and its static \"C\" 00797778 are named in crt_locale.cpp (InitDummy / InitCollate ported, InitCtype registered, monetary / numeric / time UnportedSlot). Dropped: EI_IMAGE_BYTES_FROM_EXE and EI_GAME_EXE's lookup (CMake), the trial (EI_IMAGE_ZERO_TRIAL, build.cmd trial, gen_image_cells --zero and its non-zero --bytes path), config/image_kept.csv and its handling, the static proof zero_roots (it proved the switch; data_seam's ratchet keeps new raw data addresses out), EI_IMAGE_TRACE (harness_image_trace) and tools/image_trace.py, EI_NO_GAME_EXE (exe_path), cast_scan --exe. Kept, not in the build any more: the seven checks against game.exe (check_fp_fold, rdata_literals, named_data --check, check_short_functions, check_static_init, gen_image_cells --check, gen_iat --check) as tools/check_against_exe.cmd [release|verify], run by hand (worker brief), because C18t / C28 still name data and retire vtables against game.exe's bytes; gen_image_cells' scan (regenerating the cells), named_data's modes (--emit, --rewrite, --split, --refs, --owner: C18's naming tools), exe_path, check_signatures / check_stolen (vector recorders) and the harness. named_data accepts EI_REWRITTEN and UnportedSlot functions as code pointers; standalone_gaps leaves named ranges out. Proof: clean verify and release with EI_EXE pointing at nothing (every game.exe reader goes through exe_path) green; image suite 121 the same / 23 without a golden, original 114 / 12; check_against_exe 0 problems."
+
+[[ticket]]
+id = "C18u"
+title = "Named data: name the function-local statics' guard 007CAEE4 in gen_static_init, then the 11 static-init-only objects"
+group = "cleanup"
+model = "opus"
+note = "After C18t/C25c: 56 game data addresses left; 11 are reached only from generated static init / exit, and 175 generated d.Once tests use the guard 007CAEE4. Name the guard in gen_static_init's output, then the objects as lib::StaticObject or plain globals. Also: drop the stale 'vtable 007472B0' line in config/standalone_unreachable.csv and the outdated ostream vbtable sentence in docs/notes/standalone.md (both from C25c's report)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
