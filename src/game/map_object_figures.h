@@ -90,22 +90,34 @@ static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 class CBaseManager;   // base_manager.h
 
 // The side-specific half of a 3D object (CObject3D + 0x94): CObject3DClientSpecific (class id
-// 0x37, vtable 0073DE90; map_object_shadow.h) on the client, CObject3DServer (0x38, 0073DFBC,
-// stubs) on the server. Only the slots the rewritten code calls are named; the classes
-// themselves do not derive from this declaration (their rewritten slots are registered by
-// address), the 3D object reaches its half through CObject3D::Specific().
+// 0x37; map_object_shadow.h) on the client, CObject3DServer (0x38, stubs) on the server. Only the
+// slots the rewritten code calls are named; the classes themselves do not derive from this
+// declaration, the 3D object reaches its half through CObject3D::Specific(). Their constructors
+// and destructors store compiled tags' tables (object3d_halves.cpp, C19) in place of game.exe's
+// 0073DEFC (the base half's, BaseVtable), 0073DFBC (the server's, ServerVtable) and 0073DE90 (the
+// client's, CObject3DClientSpecific::Vtable).
 class CObject3DSpecific;
 class CObject3DClientSpecific;   // map_object_shadow.h
 // 0051F240 (object3d_halves.cpp). The server half's constructor (the engine object's fields inline): no
 // object. Returns the half.
 CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
+// object3d_halves.cpp: the server half's slots 2 (1), 3 (no object), 11 / 12 (its class name and id) and
+// the base half's empty slot 21.
+int __fastcall Object3DServerCreate(CObject3DSpecific* self);
+void __fastcall Object3DServerDestroy(CObject3DSpecific* self);
+const char* __fastcall Object3DServerClassName(CObject3DSpecific* self);
+int __fastcall Object3DServerClassId(CObject3DSpecific* self);
+void __fastcall SpecificBaseNothing(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
+    // The compiled tables of the base half and of the server half (object3d_halves.cpp).
+    static void* BaseVtable();
+    static void* ServerVtable();
     // 0051F2E0 (slot 0 of the server half, RET 4; object3d_halves.cpp). The destructor, then freed when
     // bit 0 of `flags` is set. Returns this.
-    CObject3DSpecific* DeleteServerHalf(unsigned flags);
+    CObject3DSpecific* DeletingDestruct(unsigned flags);
     void IgnoreArgument(int);
-    int ReturnZero(void*);
+    int ReturnZero(const void*);
     int DrawNothing(void* /*context*/, int* /*dirty*/);
     virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,

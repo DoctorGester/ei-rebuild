@@ -130,7 +130,9 @@ public:
     // the shadow texture released, the arrays' blocks freed, then the base half's.
     void DestructBody();
     // 0051AD70 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
-    CObject3DClientSpecific* DeleteClient(unsigned flags);
+    CObject3DClientSpecific* DeletingDestruct(unsigned flags);
+    // The compiled table (object3d_halves.cpp, C19) in place of game.exe's 0073DE90.
+    static void* Vtable();
     // 0051AEC0 (slot 2). The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
     // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
     // Returns 1.
