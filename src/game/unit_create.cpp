@@ -41,7 +41,7 @@ CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); 
 
 // The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
 bool IsBroken(const CItem* item) {
-    return x87::fistp(std::bit_cast<float>(item->condition_)) <= 0;
+    return x87::fistp(item->condition_) <= 0;
 }
 
 using ItemList = mfc::CTypedPtrList<CItem>;

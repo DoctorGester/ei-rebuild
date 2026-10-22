@@ -40,7 +40,7 @@ void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
 
 CItemArmor* CUnit::EquipArmour(CItem* item) {
     if (!item) return nullptr;
-    if (x87::fistp(std::bit_cast<float>(item->condition_)) <= 0) return nullptr;   // broken
+    if (x87::fistp(item->condition_) <= 0) return nullptr;   // broken
     CItemArmor* piece = AsArmor(item);
     CItemArmor* previous = armor[piece->GetType()];
     armor[piece->GetType()] = piece;

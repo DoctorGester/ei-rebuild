@@ -276,7 +276,7 @@ double ItemPrice(const CItem* item) {
 // How worn the item is: 1 - durability (+0x20) / maximum (+0x24). Rebirth's FixRepairPrice treats a
 // negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
 float WornFraction(const CItem* item) {
-    float durability = std::bit_cast<float>(item->condition_), maximum = std::bit_cast<float>(item->conditionMax_);
+    float durability = item->condition_, maximum = item->conditionMax_;
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
         return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
     float a = kPriceZero < durability ? durability : kPriceZero;
@@ -320,7 +320,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
         int type = ItemType(item);
-        if ((type == 0x3004 || type == 0x3005) && x87::fistp(std::bit_cast<float>(item->condition_)) <= 0 && mode == 1) return false;
+        if ((type == 0x3004 || type == 0x3005) && x87::fistp(item->condition_) <= 0 && mode == 1) return false;
         return type == 0x3004 || type == 0x3005 || type == 0x3006;
     }
     case 1: {   // trade: a spell container only for a hero who can cast its spell
@@ -426,7 +426,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     case 6: {   // repair: worn weapons and armour
         int type = ItemType(item);
         if (type != 0x3004 && type != 0x3005) return false;
-        return std::bit_cast<float>(item->conditionMax_) > std::bit_cast<float>(item->condition_);
+        return item->conditionMax_ > item->condition_;
     }
     default:
         return false;
