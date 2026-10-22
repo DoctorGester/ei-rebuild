@@ -31,7 +31,6 @@ cbuffer fs_params : register(b0) {
     float4 light_sun_colour;
     float4 light_ambient;
     float4 light_emissive;
-    float4 light_map_sun;  // xyz: towards the shadow map's light in model space (unit)
     float4 light_points[16];   // per light: model-space position, 1 / range squared; lit colour
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0;
@@ -75,17 +74,13 @@ SamplerState shadow_linear : register(s4);   // the range, filtered (R25)
 // A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point
 // `p` with the normal `n` (as the mesh holds it): per channel the largest of the ambient colour, the sun's
 // lit colour times the cosine to it and each light's lit colour times its cosine and falloff, plus the
-// emissive colour, at most 1. `hidden`: how much of the sun the shadow map hides, `strength` its
-// darkening: in the shade the sun's term gives way to the ambient colour, and is never lighter than the
-// sunlit colour times 1 - strength on faces turned to the map's light (as the ground's, scene_lighting.hlsli).
-// The crown: pulled towards its average colour, taken as the average over every direction a normal can
-// face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over -1 .. 1).
-float3 figure_light(float3 p, float3 n, float hidden, float strength) {
+// emissive colour, at most 1. The crown: pulled towards its average colour, taken as the average over
+// every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread evenly over
+// -1 .. 1). The shadow map darkens it after (ps_main), as it darkened the CPU-lit colours before R16i.
+float3 figure_light(float3 p, float3 n) {
     float3 ambient = light_ambient.rgb;
     float facing = dot(light_sun.xyz, n);
-    float3 sunlit = max(ambient, light_sun_colour.rgb * facing);
-    float turned = saturate(dot(light_map_sun.xyz, n) * rsqrt(max(dot(n, n), 1e-20)) * 6.0);
-    float3 lit = min(lerp(sunlit, ambient, hidden), sunlit * (1.0 - hidden * strength * turned));
+    float3 lit = max(ambient, light_sun_colour.rgb * facing);
     int count = (int)light_on.z;
     for (int k = 0; k < count; ++k) {
         float4 at = light_points[2 * k], colour = light_points[2 * k + 1];
@@ -147,16 +142,18 @@ bool passes(int func, float a, int reference) {
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     bool lit_here = light_on.x > 0.5;
-    // How much of the sun the shadow map hides: on a figure part lit here by its normals; on the other
-    // meshes (lit by the game, or not at all) only on faces turned to the sun (their face normal).
+    // How much of the sun the shadow map hides, on faces turned to the sun only (by their face normal; the
+    // figure parts' smoothed vertex normals can lean far from their faces: a plank's top read sideways).
+    // Every mesh is darkened by it alike, the colour lit here or by the game, the lamps' light and the
+    // ambient light with the sun's (as before R16i: in the towns the ambient light is nearly the sun's).
     float hidden = 0.0;
     if (shadow_on.x > 0.5) {
         hidden = shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_linear, i.shadow.xyz, dsx, dsy, shadow_on,
                                shadow_scale, shadow_soft, i.pos.xy);
-        if (!lit_here) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy, shadow_scale, shadow_camera);
+        hidden *= shadow_facing(i.shadow.xyz, dsx, dsy, shadow_scale, shadow_camera);
     }
     float4 diffuse = i.col;
-    if (lit_here) diffuse.rgb = figure_light(i.model, i.normal, hidden, shadow_on.y);
+    if (lit_here) diffuse.rgb = figure_light(i.model, i.normal);
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
     // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).
@@ -187,7 +184,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
     if (switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow_on.x > 0.5) {
         if (shadow_on.z > 0.5) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview
-        if (!lit_here) rgb *= 1.0 - hidden * shadow_on.y;
+        rgb *= 1.0 - hidden * shadow_on.y;
     }
     if (switches.y != 0) rgb = lerp(fog_colour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);

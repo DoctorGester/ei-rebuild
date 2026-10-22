@@ -226,10 +226,9 @@ struct MeshLightParams {
     float sunColour[4];    // rgb: the sun's lit colour (none: 0)
     float ambient[4];      // rgb
     float emissive[4];     // rgb
-    float mapSun[4];       // xyz: towards the shadow map's light in model space (MapLightDirection), unit
     float points[kMostMeshLights][2][4];   // model-space position xyz, 1 / range squared; lit colour rgb
 };
-static_assert(sizeof(MeshLightParams) == 96 + kMostMeshLights * 32);
+static_assert(sizeof(MeshLightParams) == 80 + kMostMeshLights * 32);
 void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
 
 // A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and

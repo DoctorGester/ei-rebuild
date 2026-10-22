@@ -108,16 +108,6 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
         p.ambient[k] = l.ambientColour[k];
         p.emissive[k] = l.emissiveColour[k];
     }
-    const ShadowFrame& sh = CurrentFrame().shadow;
-    Vector3 travel = l.sunDirection;
-    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
-    const Vector3 towardsMap = toModel(-travel);
-    const float mapLength = Length<Sum3::XYZ>(towardsMap);
-    if (mapLength > 1e-20f) {
-        p.mapSun[0] = towardsMap.x / mapLength;
-        p.mapSun[1] = towardsMap.y / mapLength;
-        p.mapSun[2] = towardsMap.z / mapLength;
-    }
     // The lights nearest the part's origin.
     static std::vector<std::pair<float, int>> order;
     order.clear();

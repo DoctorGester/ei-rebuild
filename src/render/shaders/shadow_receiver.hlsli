@@ -2,10 +2,9 @@
 // much of the sun the map hides at a pixel (0 .. 1; the receivers darken by it times the strength, on.y,
 // or take the sun's light away by it: R16i). `s` is the pixel's position in the map's clip space, `dsx` /
 // `dsy` its screen derivatives (taken before any discard), `pixel` its screen position. Every comparison
-// follows the receiver's plane (its depth slope across the map, clamped). A receiver lit on the GPU
-// (R16i: the ground, the figure parts) weighs it by its normal's facing to the sun, so a face turned away
-// is not shadowed (its own object's shadow there would be acne); `shadow_facing` gives the others that
-// weight from their face normal (the derivatives).
+// follows the receiver's plane (its depth slope across the map, clamped). A receiver weighs it by its
+// facing to the sun, so a face turned away is not shadowed (its own object's shadow there would be acne):
+// the ground by its normal (R16i), the meshes by their face normal (`shadow_facing`, the derivatives).
 // Soft edges (R16j2), contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
 // the nearest and the farthest depth of the cells within the widest filter's reach and one cell more
 // (x, y), and the cell's own nearest (z). It is read filtered (`range_smp`: bilinear between the four

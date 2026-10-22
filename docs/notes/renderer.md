@@ -1080,11 +1080,19 @@ across runs; the goldens check the game state.
      and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
      colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
      (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
-   - **Shadows in the light.** A shadow takes away the sun's part: lit = the smaller of the light with the sun
-     hidden (the ambient plus the material's own, as the ray march left a vertex) and the sunlit light x (1 -
-     hidden x strength x the face's turn towards the map's sun), so never lighter than half the sunlit light. Receivers look up the map at their point moved 1.5 map texels along the normal
-     (normal-offset bias). The ground casts into the map (its faces turned away from the sun). R22's caster ids are
-     gone: a receiver darkens by its own N.L like any other (the ids' R16UI image, the harness's `shadowfacing`).
+   - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light
+     with the sun hidden (the ambient plus the material's own, as the ray march left a vertex) and the sunlit
+     light x (1 - hidden x strength x the normal's turn towards the map's sun), so never lighter than half the
+     sunlit light; the point lights' light is darkened alike (the towns' lamps burn by day too, and their
+     unshadowed light hid the units' shadows on the ground: the user's review). Every mesh, lit here or by the
+     game, is darkened as before R16i: its colour (lamps and ambient light included) x (1 - hidden x strength) on
+     faces turned to the map's sun by their face normal (`shadow_facing`). Not by the vertex normals: the figure
+     parts' smoothed normals can lean far from their faces (the shop's plank table in bz1g read sideways, and
+     stayed lit under the roof at night). Receivers look up the map at their point moved 1.5 map texels along
+     the normal (normal-offset bias). The ground casts into the map (its faces turned away from the sun). R22's
+     caster ids are gone: a receiver darkens by its own facing like any other (the ids' R16UI image, the
+     harness's `shadowfacing`). Checked against main in bz1g with four units by noon and at night: the mean
+     shadowed / lit brightness under the shadow view's mask is within 0.01 of main's (units, the shop, the frame).
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
      part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local

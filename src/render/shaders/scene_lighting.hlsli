@@ -21,17 +21,18 @@ cbuffer light_params : register(b1) {
 // shade alone hardly shows), on faces turned to the map's light (by their facing to it: the map's sun,
 // at least 20 degrees high, is what casts; a face turned away keeps its light, its own object's shadow
 // there is no acne). The point lights (each material + its light, at most 1 per channel, by its falloff
-// and facing, dimmed under the water by the light's vertical part) take the largest per channel, the
-// specular ones apart (`spec`, added after the texture as the specular word was). The colour word's light
-// is returned.
+// and facing, dimmed under the water by the light's vertical part) take the largest per channel, darkened
+// by the same shade (the towns' lamps light the ground by day too: the units' shadows would vanish under
+// them; the point lights cast no shadow of their own), the specular ones (shaded alike) apart (`spec`,
+// added after the texture as the specular word was). The colour word's light is returned.
 float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float hidden, float strength,
                     out float3 spec) {
     float3 ambient = ambient_colour.rgb * saturate(1.0 - loss);
     float facing = -dot(sun_dir.xyz, n);
     float3 direct = facing > 0.0 ? min(1.0, m + facing * sun_colour.rgb) : m;
     float3 sunlit = max(direct, ambient);
-    float3 lit = min(lerp(sunlit, min(1.0, ambient + m), hidden),
-                     sunlit * (1.0 - hidden * strength * saturate(-dot(map_sun.xyz, n) * 6.0)));
+    float shade = 1.0 - hidden * strength * saturate(-dot(map_sun.xyz, n) * 6.0);
+    float3 lit = min(lerp(sunlit, min(1.0, ambient + m), hidden), sunlit * shade);
     spec = 0.0;
     int count = (int)light_counts.x;
     for (int k = 0; k < count; ++k) {
@@ -45,8 +46,8 @@ float3 ground_light(float3 p, float3 n, float3 m, float3 mp, float loss, float h
         float turned = c <= 0.0 ? c + 1.0 : 1.0;
         float under = max(0.0, 1.0 - loss * to.z * to.z);
         float3 v = min(1.0, mp + turned * falloff * under * colour.rgb);
-        if (colour.w > 0.5) spec = max(spec, v);
-        else lit = max(lit, v);
+        if (colour.w > 0.5) spec = max(spec, v * shade);
+        else lit = max(lit, v * shade);
     }
     return min(1.0, max(lit, spec));
 }
