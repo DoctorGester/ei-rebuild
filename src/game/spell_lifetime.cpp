@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -83,7 +84,7 @@ CSpellEffect* CSpellEffect::Construct() {
     sound = nullptr;
     light = nullptr;
     position = Vector3{0.0f, 0.0f, 0.0f};
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     timer = 0;
     world = nullptr;
     flags = 0;
@@ -94,7 +95,7 @@ CSpellEffect* CSpellEffect::Construct() {
 EI_REWRITTEN(0x0067E510, CSpellEffect::Construct);
 
 void CSpellEffect::Destruct() {
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     if (footprintStamped) UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 0);
     if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id_));
     Drop(visual);
@@ -118,7 +119,16 @@ CSpellEffect* CSpellEffect::DeletingDestruct(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0067E5B0, CSpellEffect::DeletingDestruct);
+EI_REWRITTEN(0x0067E5B0, CSpellEffect::DeletingDestruct);
+
+namespace {
+// game.exe's 0074399C compiled (C19).
+struct SpellEffectClass final : ei::CompiledDeleter<SpellEffectClass, &CSpellEffect::DeletingDestruct> {
+    virtual void Serialize(ChunkArchive*) {}   // 1: 00412580 (empty)
+};
+} // namespace
+
+void* CSpellEffect::Vtable() { return SpellEffectClass::Vtable(); }
 
 // --- A-H25: the cast's start values and the object it forgets ------------------------------------
 

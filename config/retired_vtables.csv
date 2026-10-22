@@ -469,6 +469,7 @@ vtable,slots,class,file,note
 0074381C,24,CEffectShowVisibilityClass,src/game/world_effect_class.h,shown visibility
 0074387C,24,CEffectMoshkaClass,src/game/world_effect_class.h,the client's bird
 007438F8,24,CEffectTornadoClass,src/game/world_effect_class.h,tornado
+0074399C,2,SpellEffectClass,src/game/spell_lifetime.cpp,"the cast spell (CSpellEffect; the harness's digest recognises it by CSpellEffect::Vtable in the image)"
 007439C8,13,CSpellConstructorClass,src/game/spell_class.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
 00743A94,5,CSpellClass,src/game/spell_class.h,spell
