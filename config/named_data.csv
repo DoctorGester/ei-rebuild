@@ -242,8 +242,6 @@ address,size,name,file
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp
 0079C838,1600,g_noiseUp,src/game/lightning.cpp
 007A9694,4,g_lightningNoiseLoaded,src/game/class_slots.cpp
-007A9738,16,g_scratch,src/game/world_object_sets.cpp
-007A9748,1,g_scratchGuard,src/game/world_object_sets.cpp
 007A9780,4,g_keepSnapshot1,src/game/net_delta.h
 007A9784,4,g_keepSnapshot0,src/game/net_delta.h
 007A9794,4,g_readSnapshot,src/game/net_delta.h

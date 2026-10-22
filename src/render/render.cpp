@@ -7,7 +7,7 @@
 #include "render_ui.h"
 
 #include "../hook/log.h"
-#include "ei/hook.h"   // ei::Standalone
+#include "ei/hook.h"
 #include "ei/x87.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -720,9 +720,7 @@ void PrepareDevice() {
     g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
 }
 
-// game.exe (the harness and the vector recorders in the original's process) never runs the new
-// renderer: its frames are the original's.
-bool Active() { return ei::Standalone() && !g_failed; }
+bool Active() { return !g_failed; }
 
 namespace {
 bool g_meshCornersFull = false;   // the harness's "meshcorners full" (R16k)

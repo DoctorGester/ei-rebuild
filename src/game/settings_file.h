@@ -104,7 +104,7 @@ long Set(const void* key, const char* sub, const char* name, unsigned long type,
 void Flush();
 
 // RegQueryValueEx of the value `name` of HKEY_CURRENT_USER\<path>, for the readers that open, query and close
-// a key directly: the settings file's in the standalone, else the registry's (text::sys, read only).
+// a key directly: the settings file's.
 long ReadValue(const char* path, const char* name, unsigned long* type, void* data, unsigned long* size);
 
 // A change of each value read (the harness's and ei_hook.dll's redirects of the game paths, hook/paths.cpp):

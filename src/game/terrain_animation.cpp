@@ -206,23 +206,17 @@ void SectorData::Animate(Terrain* landscape, int frame) {
 
 namespace {
 
-// 006C8E90. The relight order, meant as (sy, sx) of the sectors, but qsort hands it the addresses
-// of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
-// (past the end for the last ones). Kept as the original sorts.
-int __cdecl CompareSlots(const void* a, const void* b) {
-    const auto* x = static_cast<const SectorData*>(a);
-    const auto* y = static_cast<const SectorData*>(b);
+// The relight order, (sy, sx) of the sectors. The original's comparator (006C8E90) meant this, but qsort
+// hands it the addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two
+// slots further on (past the end for the last ones), so its order follows the heap. Ours compares the
+// sectors themselves (address_order.h).
+int __cdecl CompareSectors(const void* a, const void* b) {
+    const auto* x = *static_cast<const SectorData* const*>(a);
+    const auto* y = *static_cast<const SectorData* const*>(b);
     if (x->sy < y->sy) return -1;
     if (x->sy > y->sy) return 1;
     if (x->sx < y->sx) return -1;
     return x->sx > y->sx ? 1 : 0;
-}
-
-// The order CompareSlots meant, on the sectors themselves: harness runs and the standalone
-// (address_order.h), since the slots' neighbours' pointers follow the heap and the last slots read
-// past the array.
-int __cdecl CompareSectors(const void* a, const void* b) {
-    return CompareSlots(*static_cast<const SectorData* const*>(a), *static_cast<const SectorData* const*>(b));
 }
 
 // SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270).
@@ -281,8 +275,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
             sorted[index] = sector;
         }
     }
-    libcrt::Qsort(sorted.data, sorted.size, sizeof(SectorData*),
-                  address_order::ById() ? terrain::CompareSectors : terrain::CompareSlots);
+    libcrt::Qsort(sorted.data, sorted.size, sizeof(SectorData*), terrain::CompareSectors);
     if (sorted.size == 0) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / sorted.size);
     float at = 0.0f;

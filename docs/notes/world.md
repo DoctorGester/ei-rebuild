@@ -66,7 +66,8 @@ walk, one 12-byte node per finished object, hash nodes freed in the erase pass, 
 objects the player should see (camera range from 0073F91C, own units, named objects, the units its units can hear:
 max(perception * factor, minimum) * 0073F910 + 0073BF34 via the sector map) and the timed objects whose reach covers the
 camera, compared with what it was sent (0047B1F0) in function statics 007AFF18-007AFF48. Object sets are aligned pointer
-arrays (`world_object_sets.cpp`: 0047ADF0 sort-unique by a byte-wise radix sort of four passes of 0047B120, `DiffObjectSets`
+arrays (`world_object_sets.cpp`: 0047ADF0 sort-unique, the original's by address through a byte-wise radix sort of four passes
+of 0047B120, ours by id (address_order.h), `DiffObjectSets`
 0047B1F0: new objects get a reference, gone ones are released through slot 4; the original names the outputs added / gone /
 same, `world_sync.cpp` added / kept / removed).
 

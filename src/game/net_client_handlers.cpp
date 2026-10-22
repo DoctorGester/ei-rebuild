@@ -221,11 +221,11 @@ EI_REWRITTEN(0x0041E3E0, ClientDropParty);
 // The binding of this client: kept at +0x25F0 (0041E430), dropped (0041E460). An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
 // come before the binding; their refresh then listed nobody (ShowPlayers lists only with the binding)
-// and the original's binding does not refresh: the base screen's faces followed the heap (UB1). By id
-// (address_order.h) the binding refreshes the list when players came before it, as if it came first.
+// and the original's binding does not refresh: the base screen's faces followed the heap (UB1). Ours
+// (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
-    if (address_order::ById() && !self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
+    if (!self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
 }
 void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players on +0x25D8, with the interface's player list refreshed.

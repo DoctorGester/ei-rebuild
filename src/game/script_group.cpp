@@ -24,8 +24,6 @@ void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
-std::uintptr_t Address(const CEngineObject* object) { return reinterpret_cast<std::uintptr_t>(object); }
-
 void AddRef(CEngineObject* object) {
     if (object) ++object->refCount_;
 }
@@ -56,14 +54,9 @@ int __cdecl CompareMembers(const void* a, const void* b) {
 
 // ---- Member order (SV7b1) -------------------------------------------------------------------------
 
-bool ScriptGroup::IdAfter(const CEngineObject* x, const CEngineObject* y) {
+bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     if (!x || !y) return x != nullptr;
     return x->id_ > y->id_;
-}
-
-bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
-    if (ei::Standalone()) return IdAfter(x, y);
-    return Address(x) > Address(y);
 }
 
 // ---- ScriptObjectRef ----------------------------------------------------------------------------

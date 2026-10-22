@@ -43,10 +43,10 @@ keep their pixels in memory the new renderer owns (sections 6, 7), and captures 
 `frames\<name>.bmp`. When the Direct3D 11 device cannot be made at the start, 004EDD70 throws the game's error ("Can't
 start the renderer (no Direct3D 11 device).") and WinMain ends the game.
 
-`render::Active()` is the one query: the image (`ei::Standalone()`) and not failed (no device at the start, a sokol
-panic, a lost device not made again: R9c1). Every `render::` entry point checks it itself, so game code does not ask.
-In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
-the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
+`render::Active()` is the one query: not failed (no device at the start, a sokol panic, a lost device not made again:
+R9c1). Every `render::` entry point checks it itself, so game code does not ask. Only the image runs it: in game.exe
+(the harness and the vector recorders run inside the original's process) nothing of ours draws, and the harness asks
+`ei::Standalone()` first (HarnessRenderActive): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
 comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `classicshadows` (the game's shadow
 decals instead of the shadow map, R16j, section 13), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
 and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
