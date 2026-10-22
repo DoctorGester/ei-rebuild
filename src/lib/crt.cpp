@@ -24,10 +24,24 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
-void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
-void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
-void __cdecl free(void* p) { libcrt::Free(p); }
+// In game.exe (the harness's runs of the original) the heap stays the game CRT's own code: the harness frees blocks
+// the game allocated and the other way round. In the image, ours.
+void* __cdecl operator_new(std::size_t size) {
+    if (ei::Standalone()) return libcrt::OperatorNew(size);
+    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x007005AF)(size);
+}
+void __cdecl operator_delete(void* p) {
+    if (ei::Standalone()) return libcrt::OperatorDelete(p);
+    reinterpret_cast<void(__cdecl*)(void*)>(0x007005D8)(p);
+}
+void* __cdecl malloc(std::size_t size) {
+    if (ei::Standalone()) return libcrt::Malloc(size);
+    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x006EABD1)(size);
+}
+void __cdecl free(void* p) {
+    if (ei::Standalone()) return libcrt::Free(p);
+    reinterpret_cast<void(__cdecl*)(void*)>(0x006EA8AD)(p);
+}
 #endif
 
 namespace {
