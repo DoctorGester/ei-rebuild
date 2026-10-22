@@ -245,7 +245,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 
     ClearVictims(this);
 
-    period = static_cast<int>(record->period);
+    period = record->period;
     countdown = 0;
     singleTarget = record->singleTarget != 0 ? 1 : 0;
 }

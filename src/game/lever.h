@@ -5,7 +5,9 @@
 #include "map_object.h"
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-#include "unit.h"   // LockKey
+#include "lock_key.h"
+#include "map_spec.h"   // LeverSetup
+#include "unit.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -67,17 +69,6 @@ static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTa
 // The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
 extern lib::StaticObject<LeverRecordTable> g_leverTable;
 inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
-
-// The lever part of a zone file's lever record (map_spec.h LeverSpec + 0x8C), what SetUp reads.
-struct LeverSetup {
-    LockKey lock;                   // +0x00
-    int state;                      // +0x0C
-    int stateCount;                 // +0x10
-    std::uint8_t flag260;           // +0x14
-    std::uint8_t keepsMapFlag;      // +0x15
-    std::uint8_t cycling;           // +0x16
-};
-static_assert(offsetof(LeverSetup, cycling) == 0x16);
 
 // Levers (GetClassName "CLeverObject", class id 0x5D, 0x264 bytes; made by the factory 00512730;
 // gates are levers too, e.g. zone1's "VGate", id 1889; a real virtual class: the compiler makes its

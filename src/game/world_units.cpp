@@ -502,7 +502,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
-        static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&message->As<mapspec::TrapSpec>()->diplomacy));
+        static_cast<MagicTrap*>(object)->SetUp(&message->As<mapspec::TrapSpec>()->trap);
         return result;
     }
     case 1:
@@ -565,7 +565,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object->MarkChanged(6);
             object->MarkChanged(0xB);
         } else if (type == 8) {
-            static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(message->As<mapspec::LeverSpec>()->stats));
+            static_cast<Lever*>(object)->SetUp(&message->As<mapspec::LeverSpec>()->lever);
             object->MarkChanged(5);
         } else {
             objectManager->GiveDefaults(object);
