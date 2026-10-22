@@ -87,7 +87,7 @@ void SetElementFloat(CParticleSource* s, int index, int offset, float value) {
 void SetElementCount(CParticleSource* s, int n) {
     if (n == 0) {
         if (s->elements) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
+            lib::FreeAligned32(s->elements);
             s->elements = nullptr;
         }
         s->elementCapacity = 0;
@@ -109,7 +109,7 @@ void SetElementCount(CParticleSource* s, int n) {
         if (!(capacity > n)) capacity = n;
         ParticleElement* data = AllocateElements(capacity);
         std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
+        lib::FreeAligned32(s->elements);
         s->elements = data;
         s->elementCount = n;
         s->elementCapacity = capacity;
@@ -815,7 +815,7 @@ void CParticleSource::Reset() {
     SetBits(&windStrength, 0);
     SetBits(&additiveBlend, 0);
     if (elements) {
-        gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
+        lib::FreeAligned32(elements);
         elements = nullptr;
     }
     elementCapacity = 0;
@@ -950,7 +950,7 @@ void CParticleSource::Destruct() {
     particles.head = nullptr;
     mfc::PlexFreeDataChain(particles.blocks);
     particles.blocks = nullptr;
-    if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
+    if (elements) lib::FreeAligned32(elements);
     ei::SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }

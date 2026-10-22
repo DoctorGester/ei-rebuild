@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_core.h"
@@ -42,16 +43,6 @@ void DeleteTooltip(CUiTooltip* tip) {
 }
 } // namespace
 
-// --- Aligned storage -------------------------------------------------------------------------
-
-void* AllocAligned(std::size_t bytes) {
-    auto* block = static_cast<char*>(gamecrt::operator_new(bytes + 0x24));
-    auto* data = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<void**>(data)[-1] = block;
-    return data;
-}
-
-void FreeAligned(void* data) { gamecrt::operator_delete(static_cast<void**>(data)[-1]); }
 
 EI_REWRITTEN(0x006003D0, UiPtrArray<CEngineObject>::SetSize);
 EI_REWRITTEN(0x006004E0, UiPtrArray<CEngineObject>::SetSize);
@@ -582,11 +573,11 @@ void CUiWindow::DestroyBase() {
     models_.SetSize(0, -1);
     flags_ = 0;
     // The arrays' destructors (their storage is already freed above, so these find nothing).
-    if (models_.data) FreeAligned(models_.data);
-    if (regions_.data) FreeAligned(regions_.data);
-    if (surfaces_.data) FreeAligned(surfaces_.data);
-    if (sceneObjects_.data) FreeAligned(sceneObjects_.data);
-    if (objects_.data) FreeAligned(objects_.data);
+    if (models_.data) lib::FreeAligned32(models_.data);
+    if (regions_.data) lib::FreeAligned32(regions_.data);
+    if (surfaces_.data) lib::FreeAligned32(surfaces_.data);
+    if (sceneObjects_.data) lib::FreeAligned32(sceneObjects_.data);
+    if (objects_.data) lib::FreeAligned32(objects_.data);
     // The CTransformObject and CEngineObject levels.
     inputVtable_ = ei::GamePointer<void*>(0x007401D0);
     vtable_ = ei::GamePointer<void*>(0x0073BA38);

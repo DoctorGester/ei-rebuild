@@ -413,11 +413,6 @@ extern lib::StaticObject<CInterface3D> g_interface;
 template <typename T>
 using UiPtrArray = lib::AlignedArray<T*>;
 
-// Allocates storage for `bytes` with the interface arrays' 32-byte alignment (00600A80 for 4-byte
-// elements, 004F65B0 for 8-byte ones); FreeAligned releases it.
-void* AllocAligned(std::size_t bytes);
-void FreeAligned(void* data);
-
 // The tooltip attached to a region (CUiWindow, below).
 class CUiRegion;
 struct CUiTooltip;

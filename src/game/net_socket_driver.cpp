@@ -38,8 +38,7 @@ unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->a
 
 std::int32_t Length(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
-    return b->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->begin)) +
-           static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
+    return b->PositionOf(b->high);
 }
 
 } // namespace
@@ -298,8 +297,7 @@ int __fastcall MasterLinkTick(MasterLink* self) {
             // arrived (base - begin + high of +0x1C, `high` as it stands) is left as it is.
             GameBuffer* received = &self->in;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
-                received->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(received->begin)) +
-                        static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(received->high)) ==
+                received->PositionOf(received->high) ==
                     0)
                 return self->state;
             close(3);

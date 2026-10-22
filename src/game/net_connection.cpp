@@ -62,8 +62,7 @@ void UpdateHigh(GameBuffer* b) {
 // Bytes in a buffer (written so far).
 std::int32_t BufferedSize(GameBuffer* b) {
     UpdateHigh(b);
-    return b->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->begin)) +
-           static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
+    return b->PositionOf(b->high);
 }
 
 // A tree iterator moved on (the library's ++).
@@ -770,8 +769,7 @@ void Connection::ProcessHeaders() {
             if (node->data.Sequence() == incomingSequence_) {
                 GameBuffer* in = &reliableIn_;
                 if (in->cur > in->high) in->high = in->cur;
-                in->Seek(in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
-                         static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
+                in->Seek(in->PositionOf(in->high));
                 std::uint32_t size = node->data.Size();
                 const std::uint8_t* from = node->data.bytes + 3;
                 if (in->cur + size > in->end) {

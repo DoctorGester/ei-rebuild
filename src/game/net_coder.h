@@ -132,6 +132,10 @@ public:
     // they fit before `end`, otherwise through slot 4. Returns `size` or what slot 4 left.
     unsigned BufferWrite(const void* from, unsigned size);
 
+    // The stream position of `at` in the block: base plus its offset from begin (the lengths and
+    // offsets the readers inline, e.g. 00441640's base - begin + high).
+    std::int32_t PositionOf(const std::uint8_t* at) const { return base + static_cast<std::int32_t>(at - begin); }
+
     std::uint8_t* begin;       // +0x04
     std::uint8_t* cur;         // +0x08
     std::uint8_t* end;         // +0x0C capacity

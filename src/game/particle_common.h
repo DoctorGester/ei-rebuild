@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_world.h"
@@ -65,7 +66,7 @@ inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 inline void SetElementCount(CParticleSource* s, int n) {
     if (n == 0) {
         if (s->elements) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
+            lib::FreeAligned32(s->elements);
             s->elements = nullptr;
         }
         s->elementCapacity = 0;
@@ -87,7 +88,7 @@ inline void SetElementCount(CParticleSource* s, int n) {
         if (!(capacity > n)) capacity = n;
         ParticleElement* data = AllocateElements(capacity);
         std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
+        lib::FreeAligned32(s->elements);
         s->elements = data;
         s->elementCount = n;
         s->elementCapacity = capacity;

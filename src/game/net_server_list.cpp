@@ -32,8 +32,7 @@ void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
 }
 
 std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
-    return b.base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b.begin)) +
-           static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p));
+    return b.PositionOf(p);
 }
 
 } // namespace

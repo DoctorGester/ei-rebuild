@@ -68,13 +68,13 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
         reg->GetIntArray(entry.section, entry.name, reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
         if (values.size != 4) {
             int result = game::FatalError(entry.error);
-            if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
+            if (values.data) lib::FreeAligned32(values.data);
             reg->Destroy();
             return result;
         }
         setRect(rects + entry.offset, values.data[0], values.data[1], values.data[2], values.data[3]);
     }
-    if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
+    if (values.data) lib::FreeAligned32(values.data);
     reg->Destroy();
     return 1;
 }

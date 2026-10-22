@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -38,12 +39,9 @@ constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 // 0049BB10 inlined: `count` vertices from the game's heap, 32-byte aligned, the block's own
 // address in the dword before them (freed through it).
 LineVertex* NewVertices(int count) {
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count * 0x18 + 0x24)));
-    auto* data = reinterpret_cast<LineVertex*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<void**>(data)[-1] = block;
-    return data;
+    return static_cast<LineVertex*>(lib::AllocAligned32(static_cast<std::size_t>(count * 0x18)));
 }
-void DeleteVertices(LineVertex* data) { gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]); }
+void DeleteVertices(LineVertex* data) { lib::FreeAligned32(data); }
 
 // The draw itself, under the device lock, after the new renderer has taken it.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {

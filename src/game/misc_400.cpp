@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -68,14 +69,8 @@ namespace misc400 {
 // 00406B30 / 00406B50: memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32
 // bytes with the block's address in the dword before it (vertex and index arrays; freed through
 // that address).
-void* AlignedNew(std::size_t bytes) {
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
-    auto* start = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-    std::memcpy(start - 4, &block, 4);
-    return start;
-}
-void* __fastcall AlignedWords(int count) { return AlignedNew(static_cast<std::size_t>(count * 2 + 0x24)); }
-void* __fastcall AlignedDwords(int count) { return AlignedNew(static_cast<std::size_t>(count * 4 + 0x24)); }
+void* __fastcall AlignedWords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 2)); }
+void* __fastcall AlignedDwords(int count) { return lib::AllocAligned32(static_cast<std::size_t>(count * 4)); }
 
 // 00433F10: an exception cleanup step: the pointer ECX points at is cleared where it points.
 void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullptr; }

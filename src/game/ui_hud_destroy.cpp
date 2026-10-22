@@ -4,6 +4,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -45,8 +46,8 @@ void CHudActionColumn::DestroyBody() {
 EI_REWRITTEN(0x0063F490, CHudActionColumn::DestroyBody);
 
 void CHudMap::DestroyBody() {
-    if (visibleArea_.data) FreeAligned(visibleArea_.data);
-    if (viewPolygon_.data) FreeAligned(viewPolygon_.data);
+    if (visibleArea_.data) lib::FreeAligned32(visibleArea_.data);
+    if (viewPolygon_.data) lib::FreeAligned32(viewPolygon_.data);
     DestroyBase();
 }
 EI_REWRITTEN(0x00635CA0, CHudMap::DestroyBody);

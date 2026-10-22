@@ -9,6 +9,7 @@
 #include "unit_client_models.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -40,12 +41,9 @@ const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n"
 // A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
 template <typename T>
 T* NewAligned(std::size_t bytes) {
-    char* raw = static_cast<char*>(gamecrt::operator_new(bytes + 0x24));
-    char* data = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<char**>(data)[-1] = raw;
-    return reinterpret_cast<T*>(data);
+    return static_cast<T*>(lib::AllocAligned32(bytes));
 }
-void DeleteAligned(void* data) { gamecrt::operator_delete(static_cast<void**>(data)[-1]); }
+void DeleteAligned(void* data) { lib::FreeAligned32(data); }
 
 // The cached file's extra block (the original keeps it as an aligned byte array).
 struct ReadBuffer {

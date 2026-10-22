@@ -14,6 +14,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -114,9 +115,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
         auto* request = new (storage) SkinRequest{nullptr, 0, 0, 0, {}, 0};
         // 004ECB50: six level bytes in 32-byte aligned storage (the block kept before them).
-        auto* block = static_cast<char*>(gamecrt::operator_new(kBodyParts + 0x24));
-        request->layers = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<void**>(request->layers)[-1] = block;
+        request->layers = static_cast<std::uint8_t*>(lib::AllocAligned32(kBodyParts));
         request->capacity = kBodyParts;
         request->layerBytes = kBodyParts;
         if (WoundLevels(&request->layers)) {
@@ -133,7 +132,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             result = ComposeTexture(TheTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
         }
         request->textures.~CStringArray();
-        gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
+        lib::FreeAligned32(request->layers);
     }
     return result;
 }

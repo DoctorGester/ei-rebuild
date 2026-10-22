@@ -140,8 +140,7 @@ EI_REWRITTEN(0x00441410, ClientQueries::QueriesFind);
 // 00441640: a buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
-    return b->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->begin)) +
-           static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
+    return b->PositionOf(b->high);
 }
 EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
 EI_REWRITTEN(0x00441640, BufferLength);
@@ -201,8 +200,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     Put(&b, &joinId_, 4);
     Put(&b, &rate, 4);
     if (data->cur > data->high) data->high = data->cur;
-    unsigned length = static_cast<unsigned>(data->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->begin)) +
-                                            static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->high)));
+    unsigned length = static_cast<unsigned>(data->PositionOf(data->high));
     Put(&b, data->begin, length);
     Send(address, &b);
     GrowingBufferDestruct(&b);
@@ -397,15 +395,13 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         RefPtr entry{nullptr};
         GameBuffer& r = q->reply;
         if (r.cur > r.high) r.high = r.cur;
-        if (r.base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.begin)) +
-                static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.high)) != 0) {
+        if (r.PositionOf(r.high) != 0) {
             BufferCursor c;
             c.Reset(nullptr, 0, 0);
             c.sink = nullptr;
             r.Seek(0);
             BufferUpdateHigh(&r);
-            c.BeginRead(&r, r.base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.begin)) +
-                                static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.high)));
+            c.BeginRead(&r, r.PositionOf(r.high));
             CreateEntry(&entry);
             EntryIn(entry)->Read(&c);
             c.FlushBits();

@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/stlp.h"
 #include "originals_render.h"
 #include "originals_ui.h"
@@ -57,7 +58,7 @@ void CUiContainer::DestroyContainer() {
     if (inputsBegin_)
         stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
     // The children array's destructor (its storage is already freed).
-    if (children_.data) FreeAligned(children_.data);
+    if (children_.data) lib::FreeAligned32(children_.data);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00600BA0, CUiContainer::DestroyContainer);
