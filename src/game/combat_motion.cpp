@@ -190,8 +190,7 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
         AddEmote(steps, kEmoteStand);
         return;
     }
-    const auto* entry = reinterpret_cast<const FigureAnimation*>(
-        self->unit->FindAnimation(WeaponAndModeBits(self) | kKeyIdle, 1));
+    const FigureAnimation* entry = self->unit->FindAnimation(WeaponAndModeBits(self) | kKeyIdle, 1);
     if (entry) AddEmote(steps, entry->index);
 }
 
@@ -348,7 +347,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
         }
     }
-    if (const auto* entry = reinterpret_cast<const FigureAnimation*>(self->FindAnimation(key, 1))) {
+    if (const FigureAnimation* entry = self->FindAnimation(key, 1)) {
         std::uint8_t index = entry->index;
         if (!once) {
             AddEmote(steps, index);

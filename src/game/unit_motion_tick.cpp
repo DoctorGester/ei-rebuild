@@ -188,7 +188,7 @@ void HitWhileMoving(CUnitServer* c) {
     if (Queue(c)->count > 0) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
                             Queue(c)->steps[0].animation;
-        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitOf(c)->AnimationEntry(key));
+        const FigureAnimation* entry = UnitOf(c)->AnimationEntry(key);
         if (entry && (entry->key & 0x3C0000) == 0x200000) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;

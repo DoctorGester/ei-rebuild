@@ -33,7 +33,7 @@ const char* ModelName(const CFigureAnimationState* state) { return state->owner-
 
 // The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
-    if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation ? animation->name : nullptr)) return;
+    if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation)) return;
     for (auto* node = state->bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
@@ -66,7 +66,7 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
         node = node->next;
         bone->pose = AnimatorOf(bone);
     }
-    if (!FigureManagerOf(this)->SetFigureAnimation(this, ModelName(this), animation ? animation->name : nullptr)) {
+    if (!FigureManagerOf(this)->SetFigureAnimation(this, ModelName(this), animation)) {
         for (auto* node = bones.head; node;) {
             FigureBone* bone = node->data;
             node = node->next;
