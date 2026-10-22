@@ -34,8 +34,8 @@ struct TempStream {
     CMemoryStream* Get() { return bytes.Get(); }
 };
 
-void ReleaseFog(CEngineObject*& fog) {
-    CEngineObject* old = fog;
+void ReleaseFog(CVisibilityFog*& fog) {
+    CVisibilityFog* old = fog;
     fog = nullptr;
     if (old != nullptr) old->Release();
 }
@@ -77,7 +77,7 @@ CEffectShowVisibility* CEffectShowVisibility::DeletingDestruct(unsigned flags) {
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.
 void CEffectShowVisibility::Reset() {
     grid_.Clear();
-    if (fog_ != nullptr) Fog()->Reveal(&grid_);
+    if (fog_ != nullptr) fog_->Reveal(&grid_);
     observerId_ = -1;
     seerId_ = -1;
     ReleaseFog(fog_);
@@ -90,13 +90,13 @@ void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
 
 void CEffectShowVisibility::Start(int update) {
     if (update == 0) {
-        CEngineObject* created = VisFogManagerAdd(FogManager());
-        CEngineObject* old = fog_;
+        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(FogManager()));
+        CVisibilityFog* old = fog_;
         fog_ = created;
         if (created != nullptr) ++created->refCount_;
         if (old != nullptr) old->Release();
     }
-    if (fog_ != nullptr) Fog()->Reveal(&grid_);
+    if (fog_ != nullptr) fog_->Reveal(&grid_);
 }
 
 int CEffectShowVisibility::Unpack(int update, DeltaField* field) {
