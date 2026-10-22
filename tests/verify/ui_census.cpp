@@ -26,7 +26,6 @@
 // checksummed again; a change with no hooked drawing, write lock, blit into it or session since the
 // last frame is reported too.
 #include "ui_census.h"
-#include "slot_recorder.h"
 #include "harness_objects.h"
 #include "harness_starter.h"
 
@@ -34,6 +33,9 @@
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_briefing.h"
+#include "../../src/game/ui_item_info.h"
+#include "../../src/game/ui_screens.h"
 #include "../../src/hook/log.h"
 #include "../../src/render/render.h"
 #include "ei/hook.h"
@@ -209,6 +211,46 @@ bool InGameVtables(std::uintptr_t vtable) {
     return vtable >= ei::kImportsEnd && vtable < 0x007D7000;
 }
 
+// The windows the image builds with compiled tables (C19, ui_window_class.h), each with game.exe's table it stands in
+// for: a window's label is game.exe's address of its kind (what game.exe's run prints), as the digest's AI modes are
+// (harness_digest.cpp, ModeKinds).
+struct WindowKind {
+    const void* original;   // game.exe's table: the label
+    const void* compiled;   // the image's
+};
+
+const std::vector<WindowKind>& WindowKinds() {
+    static const std::vector<WindowKind> kinds = {
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740F60), CUiWindow::PlainVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742C18), CUiScrollbar::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742CBC), CUiSlider::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742E9C), CUiScrollText::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742D5C), CUiSpin::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742DF4), CUiEditField::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742F64), CUiTooltip::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007400DC), CChatOverlay::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741478), CChatWindow::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740444), CItemIconWindow::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742498), CHudTopPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742530), CHudMovePanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007425C8), CHudClock::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742660), CHudMap::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007426F8), CHudUnitPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074279C), CHudWeaponBar::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074283C), CHudQuickItems::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007428E4), CHudSpellColumn::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742980), CHudActionColumn::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742A18), CHudPortraits::Vtable()},
+    };
+    return kinds;
+}
+
+// The surfaces' tables: game.exe's data, or the compiled CUiSurface (00740F28) and scrolling surface (00742FD8) ones.
+bool SurfaceVtable(std::uintptr_t vtable) {
+    return InGameVtables(vtable) || vtable == reinterpret_cast<std::uintptr_t>(UiSurfaceClass::Vtable()) ||
+           vtable == reinterpret_cast<std::uintptr_t>(CUiScrollingSurface::Vtable());
+}
+
 // The members of a CUiSurface the census reads; false when it cannot be read or is no surface.
 struct SurfaceView {
     HDC dc = nullptr;
@@ -221,7 +263,7 @@ bool ReadSurface(const CUiSurface* surface, SurfaceView* view) {
     alignas(4) unsigned char raw[sizeof(CUiSurface)];
     if (!SafeRead(surface, raw, sizeof(raw))) return false;
     const auto* copy = reinterpret_cast<const CUiSurface*>(raw);
-    if (!InGameVtables(reinterpret_cast<std::uintptr_t>(copy->vtable_))) return false;
+    if (!SurfaceVtable(reinterpret_cast<std::uintptr_t>(copy->vtable_))) return false;
     view->dc = copy->dc_;
     view->holder = copy->holder_;
     view->width = copy->width_;
@@ -244,22 +286,10 @@ std::string Size(int width, int height) {
 }
 
 
-// The game vtable of an object that may wear a verify check's stand-in copy of it for the length of
-// a call: verify_ui_window_slots.cpp's StandInTable (the real vtable in the entry before the table;
-// a container's children while their slots 22 / 23 / 24 are dispatched, which is when the item
-// panels, the unit panel and the HUD map draw) or slot_recorder.h's SlotRecorder (its real vtable).
-// Such a copy lives on the heap: it gave N0's census window labels like W2FBD6554 (ui-census.md).
+// A window's table as its label names it: game.exe's for a compiled one (WindowKinds), else its own.
 std::uintptr_t RealVtable(std::uintptr_t vtable) {
-    if (vtable == 0 || InGameVtables(vtable)) return vtable;
-    std::uintptr_t before = 0, slot0 = 0, realSlot0 = 0;
-    if (!SafeRead(reinterpret_cast<const void*>(vtable), &slot0, sizeof(slot0))) return vtable;
-    if (SafeRead(reinterpret_cast<const void*>(vtable - 4), &before, sizeof(before)) && InGameVtables(before) &&
-        SafeRead(reinterpret_cast<const void*>(before), &realSlot0, sizeof(realSlot0)) && realSlot0 == slot0)
-        return before;
-    auto recorded = reinterpret_cast<std::uintptr_t>(SlotRecorder::RealVtable());
-    if (InGameVtables(recorded) && SafeRead(reinterpret_cast<const void*>(recorded), &realSlot0, sizeof(realSlot0)) &&
-        realSlot0 == slot0)
-        return recorded;
+    for (const WindowKind& kind : WindowKinds())
+        if (reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable) return reinterpret_cast<std::uintptr_t>(kind.original);
     return vtable;
 }
 

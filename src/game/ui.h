@@ -691,7 +691,7 @@ struct UiInputSide {
 };
 static_assert(offsetof(UiInputSide, handled_) == 0x08);
 
-// Base of the interface windows (constructor 005FE700, vtables 00740F60 and 00740F2C at +0x94).
+// Base of the interface windows (constructor 005FE700; compiled tables for game.exe's 00740F60 / 00740F2C).
 // It derives from the engine's transform object, which is kept opaque here.
 class CUiWindow {
 public:
@@ -750,6 +750,10 @@ public:
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
     // with 1). Returns this (ui_window.cpp).
     CUiWindow* Construct(CInterface3D* ui);
+    // The plain window's compiled tables (C19, ui_window_class.h / ui_input_class.h) in place of game.exe's 00740F60 /
+    // 00740F2C (not Vtable(): a derived window without its own would inherit the plain one's).
+    static void** PlainVtable();
+    static void** PlainInputVtable();
 
     // +0x00..+0x54 the engine's transform object (CTransformObject, core_transform.h), of which
     // the window's code touches only these.
@@ -984,6 +988,9 @@ struct CUiTooltip : CUiWindow {
     // 0065E4D0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiTooltip* TooltipDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
     void SetText(const char* text);
@@ -1145,6 +1152,9 @@ constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 // (80..240, 520..600).
 class CHudWeaponBar : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 0074279C / 00742768.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063C6D0
     void OnMouseUp(int buttons, int x, int y);     // 0063C710: selects a weapon
     void OnMouseMove(int buttons, int x, int y);   // 0063C7D0
@@ -1200,6 +1210,9 @@ static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 // at (520..720, 500..600).
 class CHudQuickItems : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 0074283C / 00742808.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063DAA0
     void OnDoubleClick(int buttons, int x, int y); // 0063DAE0
     void OnMouseMove(int buttons, int x, int y);   // 0063E270
@@ -1294,6 +1307,9 @@ static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 // 760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007428E4 / 007428B0.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063F1E0
     void OnDoubleClick(int buttons, int x, int y); // 0063F220
     void OnMouseUp(int buttons, int x, int y);     // 0063F260
@@ -1358,6 +1374,9 @@ static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator n
 // buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742980 / 0074294C.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063FDA0
     void OnMouseUp(int buttons, int x, int y);     // 0063FDE0
     void OnMouseMove(int buttons, int x, int y);   // 0063FE40
@@ -1455,6 +1474,9 @@ static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 // Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742A18 / 007429E4.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00641CE0
     void OnMouseUp(int buttons, int x, int y);     // 00641E20: selects the unit
     void OnMouseMove(int buttons, int x, int y);   // 00641EA0: shows the unit / sets the cursor
@@ -1672,6 +1694,9 @@ void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growB
 // above them, 6 the whole panel.
 class CHudMap : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742660 / 0074262C.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
     // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the map's centre at
     // 700 + shift).
@@ -1756,6 +1781,9 @@ static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007426F8 / 007426C4.
+    static void** Vtable();
+    static void** InputVtable();
     // 0x00647040 (ui_hud_unit_info.cpp).
     void DrawUnitInfo(CUnit* unitIn);
     // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
@@ -1846,6 +1874,9 @@ static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007425C8 / 00742594.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
     // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
     // The button released over the clock that took it: region 0 toggles the pause (with the
@@ -1884,6 +1915,9 @@ static_assert(offsetof(CHudClock, highlight_) == 0x158);
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
 class CHudMovePanel : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742530 / 007424FC.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00649630
     void OnMouseUp(int buttons, int x, int y);     // 00649670
     void OnMouseMove(int buttons, int x, int y);   // 00649750
@@ -1920,6 +1954,8 @@ static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel,
 // the sling button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
 public:
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00742498.
+    static void** Vtable();
     void OnMouseDown(int buttons, int x, int y);   // 0064A1C0
     void OnMouseUp(int buttons, int x, int y);     // 0064A200
     void OnMouseMove(int buttons, int x, int y);   // 0064A2C0
@@ -2427,6 +2463,9 @@ public:
     // 0065AFA0 (the slider's 0065BC90; RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor:
     // DestroyBody, then the memory freed when bit 0 of `flags` is set. Returns this.
     CUiScrollbar* ScrollbarDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742C18 / 00742BE4.
+    static void** Vtable();
+    static void** InputVtable();
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -2471,8 +2510,12 @@ public:
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
     // the position again (through slot 25, so it counts as moved).
     void SetRect(const RECT* rect);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742CBC / 00742C88.
+    static void** Vtable();
+    static void** InputVtable();
 };
 static_assert(sizeof(CUiSlider) == 0x18C);
+
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
@@ -2547,6 +2590,9 @@ public:
     // 0065CE00 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiScrollText* ScrollTextDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742E9C / 00742E68.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
     // that far from the end (the position plus the growth of the maximum).
     void AddText(const char* text);
@@ -2628,6 +2674,9 @@ public:
     // 0065BDF0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiSpin* SpinDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742D5C / 00742D28.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
     // sound and the next value (SetValue: back to the first past the last text).
     void OnLButtonDown(int flags, int x, int y);
@@ -3172,6 +3221,9 @@ public:
     // 0065C120 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiEditField* EditFieldDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742DF4 / 00742DC0.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
@@ -3351,8 +3403,10 @@ public:
     // 005E28C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CChatOverlay* ChatOverlayDelete(unsigned flags);
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 007400DC.
+    static void** Vtable();
     // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
-    // (its sentinel from the node pool), an empty typed line, the vtables 007400DC / 007400A8, the
+    // (its sentinel from the node pool), an empty typed line, the compiled tables (game.exe's 007400DC / 007400A8), the
     // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
     // typed line drawn (005E3700, Rebirth-patched). Returns this.
     CChatOverlay* Construct(CInterface3D* ui);

@@ -3,6 +3,7 @@
 #include "figure_mesh.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_window_class.h"
 
 #include "material.h"
 
@@ -492,20 +493,23 @@ void ClearArray(UiPtrArray<T>& array) {
 }
 } // namespace
 
+void** CUiWindow::PlainVtable() { return static_cast<void**>(UiWindowBaseClass::Vtable()); }
+void** CUiWindow::PlainInputVtable() { return static_cast<void**>(UiWindowInputClass::Vtable()); }
+
 CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     EngineObjectConstruct(reinterpret_cast<CEngineObject*>(this));
     localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
     worldRotation_.SetIdentity();
     interface_ = ui;
-    inputVtable_ = ei::GamePointer<void*>(0x007401D0);
+    inputVtable_ = BaseInputVtable();
     std::memset(spareA0_, 0, sizeof(spareA0_));
     ClearArray(objects_);
     ClearArray(sceneObjects_);
     ClearArray(surfaces_);
     ClearArray(regions_);
     ClearArray(models_);
-    vtable_ = ei::GamePointer<void*>(0x00740F60);
-    inputVtable_ = ei::GamePointer<void*>(0x00740F2C);
+    vtable_ = PlainVtable();
+    inputVtable_ = PlainInputVtable();
     flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
     localRotation_ = ei::GameData<const Quaternion>(0x007C7E58);
@@ -539,8 +543,8 @@ EI_REWRITTEN(0x00600D30, CUiContainer::AddChild);
 // --- 005FE930: the destructor body -------------------------------------------------------------
 
 void CUiWindow::DestroyBase() {
-    vtable_ = ei::GamePointer<void*>(0x00740F60);
-    inputVtable_ = ei::GamePointer<void*>(0x00740F2C);
+    vtable_ = PlainVtable();
+    inputVtable_ = PlainInputVtable();
     for (CEngineObject** held : {&blackMaterial_, &whiteMaterial_, &heldObject_}) {
         if (*held) (*held)->Release();
         *held = nullptr;
@@ -579,7 +583,7 @@ void CUiWindow::DestroyBase() {
     if (sceneObjects_.data) lib::FreeAligned32(sceneObjects_.data);
     if (objects_.data) lib::FreeAligned32(objects_.data);
     // The CTransformObject and CEngineObject levels.
-    inputVtable_ = ei::GamePointer<void*>(0x007401D0);
+    inputVtable_ = BaseInputVtable();
     vtable_ = ei::GamePointer<void*>(0x0073BA38);
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }

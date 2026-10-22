@@ -87,7 +87,8 @@ int CSceneRenderer::BeginScene() {
     if (result != 0) app::FatalErrorCode(result, "Can't begin scene.\n");
     return 1;
 }
-EI_REPLACE_METHOD(0x00503F40, CSceneRenderer::BeginScene);
+int __fastcall RendererBeginSceneHook(CSceneRenderer* self) { return self->CSceneRenderer::BeginScene(); }
+EI_REWRITTEN(0x00503F40, RendererBeginSceneHook);
 
 int CSceneRenderer::EndScene() {
     CTextureDevice* device = device_;
@@ -104,7 +105,8 @@ int CSceneRenderer::EndScene() {
     lastFrameStart_ = frameStart_;
     return 1;
 }
-EI_REPLACE_METHOD(0x005040A0, CSceneRenderer::EndScene);
+int __fastcall RendererEndSceneHook(CSceneRenderer* self) { return self->CSceneRenderer::EndScene(); }
+EI_REWRITTEN(0x005040A0, RendererEndSceneHook);
 
 int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale) {
     if (!texture) return 0;
@@ -128,4 +130,7 @@ int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale
     device->drawCount_ += 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x00504860, CSceneRenderer::DrawTexture);
+int __fastcall RendererDrawTextureHook(CSceneRenderer* self, void*, CTexture* texture, float x, float y, float scale) {
+    return self->CSceneRenderer::DrawTexture(texture, x, y, scale);
+}
+EI_REWRITTEN(0x00504860, RendererDrawTextureHook);

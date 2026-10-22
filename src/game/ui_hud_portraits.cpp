@@ -301,4 +301,4 @@ void CHudPortraits::Update() {
         }
     }
 }
-EI_REPLACE_METHOD(0x00641080, CHudPortraits::Update);
+EI_REWRITTEN(0x00641080, CHudPortraits::Update);

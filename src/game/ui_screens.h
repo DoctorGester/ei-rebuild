@@ -919,7 +919,8 @@ public:
     int endOffset_;             // +0x50 offset_ when the end of the text came into view (0: not yet)
     HMODULE richEditLibrary_;   // +0x54 "Riched20.dll" (null when it did not load)
 
-    static constexpr std::uintptr_t kScrollingVtableAddress = std::uintptr_t(0x00742FD8);
+    // The compiled table (C19, ui_scrolling_surface.cpp) in place of game.exe's 00742FD8: 0 Draw, 1 DeletingDestruct.
+    static void* Vtable();
 };
 static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
 static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);

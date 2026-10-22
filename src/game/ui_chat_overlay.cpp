@@ -6,6 +6,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
+#include "ui_window_class.h"
 #include "ui_gdi.h"
 #include "ui_screens.h"
 #include "world.h"
@@ -29,8 +30,18 @@ constexpr int kTop = 10;
 constexpr int kLineHeight = 16;
 // The typed line's surface.
 constexpr int kTypedLeft = 10, kTypedTop = 0x23D, kTypedRight = 0x316, kTypedBottom = 0x24E, kTypedFormat = 4;
-void** ChatOverlayVtable() { return ei::GamePointer<void*>(0x007400DC); }
-void** ChatOverlayInputVtable() { return ei::GamePointer<void*>(0x007400A8); }
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 007400DC / 007400A8: its own redraw (22) and
+// update (24); the input side's keys (9) and characters (10).
+struct ChatOverlayClass final : UiWindowClass<ChatOverlayClass, &CChatOverlay::ChatOverlayDelete> {
+    void Redraw() override { AsWindow()->CChatOverlay::Redraw(); }   // 22: 005E29E0
+    void Update() override { AsWindow()->CChatOverlay::Update(); }   // 24: 005E2990
+};
+struct ChatOverlayInputClass final : InputSideClass<ChatOverlayInputClass, &CChatOverlay::ChatOverlayDelete> {
+    int KeyDown(int k, int r, int f) override { return SideWindow()->OnKeyDown(k, r, f), 0; }   // 9: 005E3230
+    int Char(int k, int r, int f) override { return SideWindow()->OnChar(k, r, f), 0; }         // 10: 005E3550
+};
+void** ChatOverlayVtable() { return static_cast<void**>(ChatOverlayClass::Vtable()); }
+void** ChatOverlayInputVtable() { return static_cast<void**>(ChatOverlayInputClass::Vtable()); }
 // The typed line: at most 200 characters and narrower than 780 pixels in font 1.
 constexpr int kMaxTyped = 200;
 constexpr int kMaxTypedWidth = 0x30C;
@@ -337,10 +348,12 @@ void CChatOverlay::OnChar(int key, int, int) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x005E3230, InputForward<&CChatOverlay::OnKeyDown>::Call);
-EI_REPLACE_METHOD(0x005E3550, InputForward<&CChatOverlay::OnChar>::Call);
+EI_REWRITTEN(0x005E3230, InputForward<&CChatOverlay::OnKeyDown>::Call);
+EI_REWRITTEN(0x005E3550, InputForward<&CChatOverlay::OnChar>::Call);
 
 // --- 005E26F0: the constructor ---------------------------------------------------------------------
+
+void** CChatOverlay::Vtable() { return ChatOverlayVtable(); }
 
 CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     CUiWindow::Construct(ui);
@@ -379,7 +392,7 @@ void CChatOverlay::Update() {
         node = next;
     }
 }
-EI_REPLACE_METHOD(0x005E2990, CChatOverlay::Update);
+EI_REWRITTEN(0x005E2990, CChatOverlay::Update);
 
 void CChatOverlay::Redraw() {
     int y = kTop;
@@ -390,4 +403,4 @@ void CChatOverlay::Redraw() {
     }
     RedrawBase();
 }
-EI_REPLACE_METHOD(0x005E29E0, CChatOverlay::Redraw);
+EI_REWRITTEN(0x005E29E0, CChatOverlay::Redraw);

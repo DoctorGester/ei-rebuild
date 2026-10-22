@@ -231,4 +231,4 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     DrawBase(pass);
     return 1;
 }
-EI_REPLACE_METHOD(0x006462A0, CHudUnitPanel::DrawVanilla);
+EI_REWRITTEN(0x006462A0, CHudUnitPanel::DrawVanilla);

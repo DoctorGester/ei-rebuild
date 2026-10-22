@@ -137,6 +137,8 @@ public:
     // 00608EB0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CChatWindow* ChatWindowDelete(unsigned flags);
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00741478.
+    static void** Vtable();
     // 00608F90 (RET 8). A face: every fourth one first makes a 256 x 256 texture (kind 0x20);
     // `texture` is copied into the newest texture's quarter (count % 4: left / right, top / bottom)
     // and a sprite of `model` placed at the face's centre (depth 7, scale 0.3, turned pi * 1.05

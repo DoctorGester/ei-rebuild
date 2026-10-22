@@ -72,7 +72,7 @@ void DestroyForReset(Connection* c) {
 // tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
 Connection* Connection::Construct(std::uint32_t id) {
-    ei::SetVtable(this, CRefObject::kVtableAddress);
+    ei::SetVtable(this, CRefObject::Vtable());
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     received_.ConstructEmpty();   // vector<int>() (00438CE0)
     address_ = NetAddress{};
@@ -192,7 +192,7 @@ namespace net {
 Connection* Connection::Clone() {
     auto* copy = NewMessageMemory<Connection>();
     if (!copy) return nullptr;
-    ei::SetVtable(copy, CRefObject::kVtableAddress);
+    ei::SetVtable(copy, CRefObject::Vtable());
     copy->sendSequence_ = sendSequence_;
     copy->lastReceived_ = lastReceived_;
     copy->sequenceHigh_ = sequenceHigh_;
@@ -262,7 +262,7 @@ void ReleaseEntryObject(ReplicaEntry* e) {
 ReplicaEntry* ReplicaEntry::Clone() {
     auto* copy = NewMessageMemory<ReplicaEntry>();
     if (!copy) return nullptr;
-    ei::SetVtable(copy, CRefObject::kVtableAddress);
+    ei::SetVtable(copy, CRefObject::Vtable());
     copy->version_ = version_;
     copy->id_ = id_;
     copy->type_ = type_;

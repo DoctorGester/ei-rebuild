@@ -2,6 +2,7 @@
 // (0063B5D0) and the battle screen's portraits panel (0063FE70). Their Create / Build (slot 25)
 // does the rest. See ui.h and docs/notes/ui.md.
 #include "ui.h"
+#include "ui_window_class.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -23,8 +24,12 @@ void** MessageBoxInputVtable() { return ei::GamePointer<void*>(0x00742314); }
 void** ObjectivesVtable() { return ei::GamePointer<void*>(0x007411BC); }
 void** ObjectivesInputVtable() { return ei::GamePointer<void*>(0x00741188); }
 void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }
-void** PortraitsVtable() { return ei::GamePointer<void*>(0x00742A18); }
-void** PortraitsInputVtable() { return ei::GamePointer<void*>(0x007429E4); }
+// The portraits' compiled tables (C19, ui_window_class.h) in place of game.exe's 00742A18 / 007429E4: its update (24);
+// the input side's left button and mouse moves.
+struct PortraitsClass final : UiWindowClass<PortraitsClass, &CHudPortraits::HudPortraitsDelete> {
+    void Update() override { AsWindow()->Update(); }   // 24: 00641080
+};
+struct PortraitsInputClass final : PanelInputClass<PortraitsInputClass, &CHudPortraits::HudPortraitsDelete, CHudPortraits> {};
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 
@@ -88,14 +93,17 @@ EI_REWRITTEN(0x0063B5D0, CObjectivesWindow::Construct);
 
 // --- 0063FE70: the portraits panel ---------------------------------------------------------------
 
+void** CHudPortraits::Vtable() { return static_cast<void**>(PortraitsClass::Vtable()); }
+void** CHudPortraits::InputVtable() { return static_cast<void**>(PortraitsInputClass::Vtable()); }
+
 CHudPortraits* CHudPortraits::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
     slots_ = nullptr;
     slotsEnd_ = nullptr;
     slotsCapacity_ = nullptr;
-    vtable_ = PortraitsVtable();
-    inputVtable_ = PortraitsInputVtable();
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     rect_ = RECT{250, 440, 550, 600};
     count_ = 0;
     AddSprite(0)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);

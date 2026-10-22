@@ -314,86 +314,52 @@ static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) ==
 static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
 static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelper, presets_) == 0x10C);
 
-// The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
-// Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
-class __declspec(novtable) CSceneRenderer {
+// The scene renderer's base class (CVisualizator in the original's messages; C19: game.exe's 0073D8A0, 25 slots):
+// slots 1 (the destructor), 2 (CreateBase), 3 (DestroyBase) and 7 (SetBaseColour) are its own, the rest pure (the
+// compiler CRT's `_purecall`, as game.exe's 006E73EB). It owns +0x04 .. +0x1C. Nothing has it as its final class:
+// only CSceneRenderer's construction and destruction pass through it.
+class CVisualizator {
 public:
-    // Body of the slot at 005045D0 (registered by member pointer).
-    int PolylineImpl(const ScreenPoints* points, std::uint32_t colour);
-    // 0: 00501AB0. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
-    virtual void SetFogColourState(std::uint32_t colour);
-    int SetFogColourStateImpl(std::uint32_t colour);   // body of the slot above (registered by member pointer)
-    // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). Destructor body (00500AC0), then operator delete
-    // when bit 0 of `flags` is set. Returns this.
-    virtual void* DeleteRenderer(unsigned flags);
-    void* DeleteRendererImpl(unsigned flags);   // body of the slot above (registered by member pointer)
-    virtual void Unknown2();   // 2: 00500B70 (the creation, renderer_init.cpp)
-    void CreateRendererImpl(void* window, options::GameOptions* settings);   // body of the slot above (registered by member pointer)
-    // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
-    // helper and the device object dropped (each set to null, then released).
+    // 0: 00501AB0 in the renderer. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
+    virtual int SetFogColourState(std::uint32_t colour) = 0;
+    // 1: the scalar deleting destructor (00500460: DestroyBase, then operator delete when bit 0 of the flags is set;
+    // returns this). The renderer's is 00500AA0.
+    virtual ~CVisualizator();
+    // 2: the creation (00500540: CreateBase; the renderer's 00500B70, renderer_init.cpp).
+    virtual void CreateRenderer(void* window, options::GameOptions* settings);
+    // 3: 005006E0 (DestroyBase; the renderer's 005019F0).
     virtual void DestroyRenderer();
-    virtual void Unknown4();   // 4: 00503F40 (BeginScene below)
-    virtual void Unknown5();   // 5: 005040A0 (EndScene below)
-    // 6: 00500A90 (too short to hook). The last frame's time in ms (frameTime_).
-    virtual std::uint32_t FrameTime();
-    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
-    // device object's colour_), the transform object's ambient from it (SetBaseColour).
+    virtual int BeginScene() = 0;            // 4: the renderer's 00503F40
+    virtual int EndScene() = 0;              // 5: 005040A0
+    virtual std::uint32_t FrameTime() = 0;   // 6: 00500A90
+    // 7: 00500740 (SetBaseColour; the renderer's 00501CC0 also tints the device object). Sets the draw colour.
     virtual void SetColour(std::uint32_t colour);
-    void SetColourImpl(std::uint32_t colour);   // body of the slot above (registered by member pointer)
-    // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
-    // has one) to the fog colour and 1.
-    virtual int ClearFrame();
-    // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
-    virtual std::uint32_t ZEnable();
-    virtual void Unknown10();
-    int SetBlendImpl(std::uint32_t source, std::uint32_t dest);   // body of the slot above (registered by member pointer)
-    // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
-    virtual int SetTexture(int stage, void* texture);
-    int SetTextureImpl(int stage, void* texture);   // body of the slot above (registered by member pointer)
-    // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
-    // (00500970) and binds it to `stage` through slot 11.
-    int BindHeldTexture(int stage, CTexture** holder);
-    // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
-    // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
-    virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
-    int DrawTrianglesImpl(void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);   // body of the slot above (registered by member pointer)
-    // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
-    // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
-    // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
+    virtual int ClearFrame() = 0;                                     // 8: 00501A40
+    virtual std::uint32_t ZEnable() = 0;                              // 9: 00501AA0
+    virtual int SetBlend(std::uint32_t source, std::uint32_t dest) = 0;   // 10: 00501C60
+    virtual int SetTexture(int stage, void* texture) = 0;             // 11: 00501AF0
+    virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
+                              unsigned indexCount) = 0;                // 12: 00501BB0
     virtual int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
-                              CTexture* textureA, CTexture* textureB);
-    int DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
-                              CTexture* textureA, CTexture* textureB);   // body of the slot above (registered by member pointer)
-    // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
-    // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
-    // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
-    // and third arguments are not read there.
+                              CTexture* textureA, CTexture* textureB) = 0;   // 13: 00501D40
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
-                           tagRECT* screen);
-    int DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
-                           tagRECT* screen);   // body of the slot above (registered by member pointer)
-    // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
-    virtual void DrawLineList(void* lines);
-    void DrawLineListImpl(void* lines);   // body of the slot above (registered by member pointer)
-    // 16 (six arguments). Draws a strip along `points` (a lightning segment's aligned points) of
-    // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
-    // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
-    virtual int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant);
-    int DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize);   // body of the slot above (registered by member pointer)
-    // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
-    // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
-    // rectangles. The first argument is 0 at every call known.
-    virtual int DrawSprites(int unknown, void* points, void* sprites);
-    int DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray);   // body of the slot above (registered by member pointer)
-    virtual void Unknown18();
-    // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
-    // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
-    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
-    int DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline);   // body of the slot above (registered by member pointer)
+                           tagRECT* screen) = 0;                       // 14: 00501D00
+    virtual void DrawLineList(void* lines) = 0;                        // 15: 00501CE0
+    virtual int DrawStrip(void* points, float width, int visibility, float length, float offset,
+                          float slant) = 0;                            // 16: 00501D90
+    virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;   // 17: 00502CA0
+    virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
+                                    const Vector3* axisY) = 0;         // 18: 00503A40
+    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;   // 19: 005041F0
+    virtual int Polyline(const ScreenPoints* points, std::uint32_t colour) = 0;   // 20: 005045D0
+    virtual int DrawTexture(CTexture* texture, float x, float y, float scale) = 0;   // 21: 00504860
+    virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;      // 22: 00504A60
+    virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;   // 23: 00504A40
+    virtual bool RestoreSurfaces() = 0;                                // 24: 00504780
 
-    // renderer_lifetime.cpp (A-U11). The base class (CVisualizator in the original's messages, vtable
-    // 0073D8A0: slots 1 00500460, 2 00500540, 3 005006E0, 7 00500740, the rest pure) owns +0x04 ..
-    // +0x1C; these are its methods, named apart from the renderer's.
+    // Freed into the game's heap (the scalar deleting destructor's operator delete).
+    static void operator delete(void* memory);
+
     // 00500540 (base slot 2, RET 8; renderer_base_create.cpp, A-U12; the renderer's creation calls
     // it first). A new transform pipeline (004F0B90, with the options' work path) replaces the held
     // one; CPUID function 1 goes to the globals at 007CAED0 and a processor without MMX is fatal
@@ -401,16 +367,12 @@ public:
     // GetGraphicsProcessor() kept (fatal when either is missing). `window` is not read. Returns the
     // graphics processor.
     void* CreateBase(void* window, options::GameOptions* settings);
-    // 005015A0 (virtual slot 25, RET 8; renderer_init.cpp, A-U12; nothing calls it). The pipeline's
-    // matrix stacks emptied and filled again for `screen` and a field of view (0: the camera's), as
-    // the creation fills them, then the transform object's projection and viewport size.
-    void SetView(const tagRECT* screen, float fieldOfView);
-    // 00500440. Base constructor: vtable 0073D8A0, flags_, pipeline_ and sun_ cleared. Returns this.
-    CSceneRenderer* ConstructBase();
-    // 00500480. Base destructor body: vtable 0073D8A0, then DestroyBase.
+    // 00500440 (the base constructor's work, renderer_lifetime.cpp): flags_, pipeline_ and sun_ cleared. Returns this.
+    CVisualizator* SetUpBase();
+    // 00500480. The base destructor (DestroyBase, the base's compiled table left), called qualified.
     void DestructBase();
     // 00500460 (base slot 1, RET 4). DestructBase, operator delete when bit 0 of `flags` is set.
-    CSceneRenderer* DeleteBase(unsigned flags);
+    CVisualizator* DeleteBase(unsigned flags);
     // 005006E0 (base slot 3). The sun dropped (set to null, then released) and the transform object
     // told (AddSun with null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and
     // its processor forgotten.
@@ -424,55 +386,6 @@ public:
     // 00500800 (RET 0x10). SetSun, then the colour (slot 7) from r, g, b in 0..1, packed as
     // SetFogColour packs them.
     void SetSunAndAmbient(CLight* light, float r, float g, float b);
-    // 00500A70. Constructor: ConstructBase, device_ and helper_ cleared, vtable 0073D93C. Returns this.
-    CSceneRenderer* ConstructRenderer();
-    // 00500AC0. Destructor body: vtable 0073D93C; the device object dropped (null, then released),
-    // the helper released (left set), then DestructBase.
-    void DestructRenderer();
-    // 00504A40 (virtual slot 23, RET 0xC). The display settings SetGamma last kept.
-    void GetGamma(float* brightness, float* contrast, float* gamma) const;
-    // 00504780 (virtual slot 24, plain RET, AL; WM_ACTIVATE after a switch back, app.cpp). False without
-    // a device object. A full-screen device gets its cooperative level (004EECF0 with its screen
-    // rectangle) and display mode (004EEBC0: the render target's size and depth) back; then
-    // IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
-    // surfaces restored, and the texture manager's restore (00693F60), whose result is returned.
-    bool RestoreSurfaces();
-
-    // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
-    // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
-    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
-    void SetFogColour(float r, float g, float b);
-    // 00503A40 (RET 0x10, EAX 1; renderer_marker.cpp, A-U9). The selection marker under a selected
-    // unit (00569E40's draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
-    // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
-    // geometry draw (004EA4A0) as six triangles of two vertex blocks.
-    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY);
-    // 00504A60 (virtual slot 22, RET 0xC, AL; renderer_gamma.cpp, A-U9; the options' brightness,
-    // contrast and gamma, at start-up, from the options screen and with zeros at exit). Without a
-    // device or a primary-surface gamma ramp (DDCAPS2_PRIMARYGAMMA) false. Keeps the three values,
-    // then sets the primary surface's gamma ramp (calibrated when the driver can): each value
-    // clamped to -1..1 and halved; level i / 255 raised to 1 / (1 + 5 g) (g > 0) or 1 / (1 + g / 2)
-    // (g < 0), times the contrast's scale (1 + 4 |c|, inverted for c < 0) and centred, clamped to
-    // 0..1, plus the brightness, clamped again, times 65280 (truncated) for all three channels.
-    // True when SetGammaRamp succeeds.
-    bool SetGamma(float brightness, float contrast, float gamma);
-    // renderer_scene.cpp (A-U10).
-    // 00503F40 (virtual slot 4, plain RET). 0 unless flags_ bit 0 is set. The frame statistics:
-    // this frame's time since the last EndScene, the shortest (nonzero) and longest (under 1000 ms),
-    // the total and count, and once a second's worth has passed the average over it; then ClearFrame
-    // (slot 8), the device's counters cleared and IDirect3DDevice7::BeginScene. When a scene is
-    // still open (D3DERR_SCENE_IN_SCENE) the batches are flushed, the scene ended and begun again;
-    // other failures are fatal ("Can't begin scene." / "Can't end scene."). Returns 1.
-    int BeginScene();
-    // 005040A0 (virtual slot 5, plain RET). Flushes the device's two batches and ends the scene
-    // (fatal on failure other than D3DERR_SCENE_NOT_IN_SCENE), then sets the debug panel's "FPS"
-    // (1000 / frame time, "%g"), "num verts" and "num trias" ("%d") and remembers the frame's start.
-    // Returns 1.
-    int EndScene();
-    // 00504860 (virtual slot 21, RET 0x10). Draws `texture` at (x, y) scaled by `scale` as a
-    // pre-transformed strip of four vertices (z 0.9, white, specular 0xFF000000) through stage 0
-    // (slot 11). 0 without a texture, else 1.
-    int DrawTexture(CTexture* texture, float x, float y, float scale);
 
     std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
     CTransformPipeline* pipeline_;   // +0x08 counted
@@ -483,6 +396,155 @@ public:
     // +0x1C the sun (counted; 00500800 sets it with the ambient colour, the client's lighting
     // 00566360 moves it every frame).
     CLight* sun_;
+
+protected:
+    CVisualizator();   // 00500440's work (SetUpBase)
+};
+
+// The scene renderer (the global at 007AF060, 26 slots; 00500960 returns it). C19: a real virtual class over
+// CVisualizator, the compiler's table in place of game.exe's 0073D93C; the static initialiser's constructor
+// (00500A70) and the exit's destructor (00500AC0) construct and destroy it in place.
+class CSceneRenderer : public CVisualizator {
+public:
+    int SetFogColourState(std::uint32_t colour) override { return SetFogColourStateImpl(colour); }   // 0
+    // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). The device object dropped (null, then released), the helper
+    // released (left set), then the base's destructor.
+    ~CSceneRenderer() override;
+    void CreateRenderer(void* window, options::GameOptions* settings) override {   // 2: 00500B70
+        CreateRendererImpl(window, settings);
+    }
+    // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
+    // helper and the device object dropped (each set to null, then released).
+    void DestroyRenderer() override;
+    // renderer_scene.cpp (A-U10).
+    // 4: 00503F40 (plain RET). 0 unless flags_ bit 0 is set. The frame statistics:
+    // this frame's time since the last EndScene, the shortest (nonzero) and longest (under 1000 ms),
+    // the total and count, and once a second's worth has passed the average over it; then ClearFrame
+    // (slot 8), the device's counters cleared and IDirect3DDevice7::BeginScene. When a scene is
+    // still open (D3DERR_SCENE_IN_SCENE) the batches are flushed, the scene ended and begun again;
+    // other failures are fatal ("Can't begin scene." / "Can't end scene."). Returns 1.
+    int BeginScene() override;
+    // 5: 005040A0 (plain RET). Flushes the device's two batches and ends the scene
+    // (fatal on failure other than D3DERR_SCENE_NOT_IN_SCENE), then sets the debug panel's "FPS"
+    // (1000 / frame time, "%g"), "num verts" and "num trias" ("%d") and remembers the frame's start.
+    // Returns 1.
+    int EndScene() override;
+    // 6: 00500A90 (too short to hook). The last frame's time in ms (frameTime_).
+    std::uint32_t FrameTime() override { return frameTime_; }
+    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
+    // device object's colour_), the transform object's ambient from it (SetBaseColour).
+    void SetColour(std::uint32_t colour) override { SetColourImpl(colour); }
+    // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
+    // has one) to the fog colour and 1.
+    int ClearFrame() override;
+    // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
+    std::uint32_t ZEnable() override;
+    // 10: 00501C60 (RET 8; device_states.cpp). Sets SRCBLEND, then DESTBLEND.
+    int SetBlend(std::uint32_t source, std::uint32_t dest) override { return SetBlendImpl(source, dest); }
+    // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
+    int SetTexture(int stage, void* texture) override { return SetTextureImpl(stage, texture); }
+    // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
+    // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
+    int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override {
+        return DrawTrianglesImpl(const_cast<void*>(vertices), vertexCount, indices, indexCount);
+    }
+    // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
+    // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
+    // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
+    int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
+                      CTexture* textureB) override {
+        return DrawFigureLitImpl(figure, lights, material, alpha, screen, textureA, textureB);
+    }
+    // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
+    // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
+    // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
+    // and third arguments are not read there.
+    int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+                   tagRECT* screen) override {
+        return DrawFigureImpl(figure, unknownA, unknownB, material, alpha, screen);
+    }
+    // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
+    void DrawLineList(void* lines) override { DrawLineListImpl(lines); }
+    // 16 (six arguments). Draws a strip along `points` (a lightning segment's aligned points) of
+    // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
+    // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
+    int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant) override {
+        return DrawStripImpl(static_cast<const int*>(points), width, visibility, length, offset, slant);
+    }
+    // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
+    // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
+    // rectangles. The first argument is 0 at every call known.
+    int DrawSprites(int unknown, void* points, void* sprites) override {
+        return DrawSpritesImpl(static_cast<char>(unknown), points, sprites);
+    }
+    // 18: 00503A40 (RET 0x10, EAX 1; renderer_marker.cpp, A-U9). The selection marker under a selected
+    // unit (00569E40's draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
+    // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
+    // geometry draw (004EA4A0) as six triangles of two vertex blocks.
+    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) override;
+    // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
+    // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
+    int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override {
+        return DrawRectangleImpl(left, top, right, bottom, static_cast<char>(alpha), static_cast<char>(outline));
+    }
+    // 20: 005045D0 (RET 8; renderer_lines.cpp). A screen polyline in `colour`.
+    int Polyline(const ScreenPoints* points, std::uint32_t colour) override { return PolylineImpl(points, colour); }
+    // 21: 00504860 (RET 0x10). Draws `texture` at (x, y) scaled by `scale` as a
+    // pre-transformed strip of four vertices (z 0.9, white, specular 0xFF000000) through stage 0
+    // (slot 11). 0 without a texture, else 1.
+    int DrawTexture(CTexture* texture, float x, float y, float scale) override;
+    // 22: 00504A60 (RET 0xC, AL; renderer_gamma.cpp, A-U9; the options' brightness,
+    // contrast and gamma, at start-up, from the options screen and with zeros at exit). Without a
+    // device or a primary-surface gamma ramp (DDCAPS2_PRIMARYGAMMA) false. Keeps the three values,
+    // then sets the primary surface's gamma ramp (calibrated when the driver can): each value
+    // clamped to -1..1 and halved; level i / 255 raised to 1 / (1 + 5 g) (g > 0) or 1 / (1 + g / 2)
+    // (g < 0), times the contrast's scale (1 + 4 |c|, inverted for c < 0) and centred, clamped to
+    // 0..1, plus the brightness, clamped again, times 65280 (truncated) for all three channels.
+    // True when SetGammaRamp succeeds.
+    bool SetGamma(float brightness, float contrast, float gamma) override;
+    // 23: 00504A40 (RET 0xC). The display settings SetGamma last kept.
+    void GetGamma(float* brightness, float* contrast, float* gamma) const override;
+    // 24: 00504780 (plain RET, AL; WM_ACTIVATE after a switch back, app.cpp). False without
+    // a device object. A full-screen device gets its cooperative level (004EECF0 with its screen
+    // rectangle) and display mode (004EEBC0: the render target's size and depth) back; then
+    // IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
+    // surfaces restored, and the texture manager's restore (00693F60), whose result is returned.
+    bool RestoreSurfaces() override;
+    // 25: 005015A0 (RET 8; renderer_init.cpp, A-U12; nothing calls it). The pipeline's
+    // matrix stacks emptied and filled again for `screen` and a field of view (0: the camera's), as
+    // the creation fills them, then the transform object's projection and viewport size.
+    virtual void SetView(const tagRECT* screen, float fieldOfView);
+
+    // The slots' bodies (registered at their addresses).
+    int PolylineImpl(const ScreenPoints* points, std::uint32_t colour);
+    int SetFogColourStateImpl(std::uint32_t colour);
+    void* DeleteRendererImpl(unsigned flags);
+    void CreateRendererImpl(void* window, options::GameOptions* settings);
+    void SetColourImpl(std::uint32_t colour);
+    int SetBlendImpl(std::uint32_t source, std::uint32_t dest);
+    int SetTextureImpl(int stage, void* texture);
+    int DrawTrianglesImpl(void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
+    int DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+                          CTexture* textureA, CTexture* textureB);
+    int DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+                       tagRECT* screen);
+    void DrawLineListImpl(void* lines);
+    int DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize);
+    int DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray);
+    int DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline);
+
+    // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
+    // (00500970) and binds it to `stage` through slot 11.
+    int BindHeldTexture(int stage, CTexture** holder);
+    // 00500A70. The static initialiser's constructor: the renderer constructed in place. Returns this.
+    CSceneRenderer* ConstructRenderer();
+    // 00500AC0. The exit's destructor: the renderer's destructor, called qualified.
+    void DestructRenderer();
+    // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
+    // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
+    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
+    void SetFogColour(float r, float g, float b);
+
     CTextureDevice* device_;         // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
     CRenderHelper* helper_;          // +0x24 counted
     // +0x28 .. +0x30: the display settings slot 22 (SetGamma) last applied, as given.
@@ -501,6 +563,8 @@ public:
     std::uint32_t lastFrameStart_;   // +0x50 the previous frame's (the creation: its time)
     std::uint32_t windowTime_;       // +0x54 the time and frames toward the average
     std::uint32_t windowFrames_;     // +0x58
+
+    CSceneRenderer();   // 00500A70's work: the base, device_ and helper_ cleared
 };
 static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
               offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);

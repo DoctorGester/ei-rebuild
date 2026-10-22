@@ -2,6 +2,7 @@
 // handler (0065C930), and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
 // docs/notes/items_spells.md (A-H19).
 #include "ui.h"
+#include "ui_window_class.h"
 #include "ui_screens.h"
 
 #include "asset_text.h"
@@ -89,13 +90,18 @@ void CUiEditField::OnKeyDown(int key, int, int) {
     inputHandled_ = true;
 }
 
-EI_REPLACE_METHOD(0x0065C610, InputForward<&CUiEditField::OnKeyDown>::Call);
+EI_REWRITTEN(0x0065C610, InputForward<&CUiEditField::OnKeyDown>::Call);
 
 // --- A-H19: 0065C010 and 0065C930 --------------------------------------------------------------------
 
 namespace {
-constexpr std::uintptr_t kEditFieldVtable = std::uintptr_t(0x00742DF4);
-constexpr std::uintptr_t kEditFieldInputVtable = std::uintptr_t(0x00742DC0);
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742DF4 / 00742DC0: the window's slots; the
+// input side's keys (9) and characters (10).
+struct EditFieldTable final : UiWindowClass<EditFieldTable, &CUiEditField::EditFieldDelete> {};
+struct EditFieldInputTable final : InputSideClass<EditFieldInputTable, &CUiEditField::EditFieldDelete> {
+    int KeyDown(int k, int r, int f) override { return SideWindow()->OnKeyDown(k, r, f), 0; }   // 9: 0065C610
+    int Char(int k, int r, int f) override { return SideWindow()->OnChar(k, r, f), 0; }         // 10: 0065C930
+};
 constexpr int kSurfaceFormat = 5;
 constexpr int kKeyTab = 0x09;
 constexpr int kKeyEnter = 0x0D;
@@ -132,11 +138,14 @@ std::uint32_t CharClass(int key) {
 }
 } // namespace
 
+void** CUiEditField::Vtable() { return static_cast<void**>(EditFieldTable::Vtable()); }
+void** CUiEditField::InputVtable() { return static_cast<void**>(EditFieldInputTable::Vtable()); }
+
 CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     CUiWindow::Construct(ui);
     new (&Text()) mfc::CString;
-    vtable_ = ei::GamePointer<void*>(kEditFieldVtable);
-    inputVtable_ = ei::GamePointer<void*>(kEditFieldInputVtable);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     charClasses_ = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred_ = 0;
     font_ = 1;
@@ -178,7 +187,7 @@ void CUiEditField::OnChar(int key, int, int) {
     inputHandled_ = true;
 }
 
-EI_REPLACE_METHOD(0x0065C930, InputForward<&CUiEditField::OnChar>::Call);
+EI_REWRITTEN(0x0065C930, InputForward<&CUiEditField::OnChar>::Call);
 
 // --- 0065C1A0 / 0065C290 / 0065C2D0 (A-H25): the look, the text and the focus -----------------------
 
