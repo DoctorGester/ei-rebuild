@@ -62,11 +62,4 @@ struct GameFont : mfc::impl::CFont {
 };
 static_assert(sizeof(GameFont) == 8);
 
-// The DC of an interface surface (CUiSurface; also the console window's surface).
-struct SurfaceDC {
-    // 005FDC00 (null when the surface has no DirectDraw surface) and 005FDC60.
-    GameDC* GetDC() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
-    void ReleaseDC() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
-};
-
 } // namespace ui_gdi

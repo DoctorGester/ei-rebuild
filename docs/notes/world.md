@@ -397,7 +397,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 - 00564AF0 (`CObject3D::PartBox`) runs on a platform object (AddObject passes it in ECX; it reads CObject3D::parts +0xD0 /
   +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the platform set's face list (PlatformSet
   +0x1D4: an engine object, then an mfc::CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
-- Unverified: owned1A8_ / owned1B0_ are engine objects (only slots 0 / 2 are called); the +0xA0 array's elements are engine
+- bird_ (+0x1B0) is the CEffectMoshka SummonBird makes. Unverified: the +0xA0 array's elements are engine
   objects (00570000 calls their slot 4). CWorldServer's +0x170..+0x2838 is its CAIMap (lib::InPlace, AIMap(); sizeof 0x26C8):
   the old aiLayer_ (+0x2468, 005B1380's argument) is its region map, occluderReplanTime_ (+0x2804) its footprintTick (the
   world tick StampFootprint stores), the grid at +0x2808 its cells. world.h's SaveFileRead parameters `minimum` / `maximum` are swapped

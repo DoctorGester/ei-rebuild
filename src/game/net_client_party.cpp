@@ -136,7 +136,7 @@ EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 
 // 0041E220: the received offer (list +0x2610) that pairs with ours (+0x260C): its partner is our
 // player and its player our partner, and it is live. Null without one.
-void* __fastcall ClientFindParty(ClientSession* self) {
+PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
     if (!ours) return nullptr;
     for (OfferNode* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
@@ -164,7 +164,7 @@ EI_REWRITTEN(0x0041E180, ClientCommitParty);
 // with id -1, packed id, Load). The items are added to the party (00661DB0 with 1, 1), which takes
 // the offer's money first; trade records older than the offer's revision are dropped.
 void __fastcall ClientApplyParty(ClientSession* self) {
-    auto* remote = static_cast<PartyMessage*>(ClientFindParty(self));
+    PartyMessage* remote = ClientFindParty(self);
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {

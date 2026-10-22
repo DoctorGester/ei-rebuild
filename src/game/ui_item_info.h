@@ -126,6 +126,7 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 
 class CParty;
 class CItemScreen;
+struct PartyUnitRecord;
 // 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
 // 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
 // CArray at +0x19C): both caches' objects released and their maps destroyed, then the container
@@ -204,6 +205,49 @@ public:
     float WeightDefault();
     int PriceDefault(CItem* item, int kind);
 
+    // The item screens' slots 42-54 through the vtable (ItemScreenClass, ui_container_class.h, names them): what
+    // the item strips and panels call on their owner, as the original does.
+    void VirtualTakeItem(CItem* item, int mode) {                                   // 42 (+0xA8)
+        using Fn = void(__thiscall*)(CItemScreen*, CItem*, int);
+        ei::VirtualSlot<Fn>(vtable_, 42)(this, item, mode);
+    }
+    bool VirtualCanEquip(CItem* item, int mode) {                                   // 43 (+0xAC, AL)
+        using Fn = bool(__thiscall*)(CItemScreen*, CItem*, int);
+        return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
+    }
+    void VirtualTopicClicked(int topic, int mode) {                                 // 44 (+0xB0)
+        using Fn = void(__thiscall*)(CItemScreen*, int, int);
+        ei::VirtualSlot<Fn>(vtable_, 44)(this, topic, mode);
+    }
+    void VirtualBestPartySkill(int school, int* skill, int* mana) {                 // 45 (+0xB4)
+        using Fn = void(__thiscall*)(CItemScreen*, int, int*, int*);
+        ei::VirtualSlot<Fn>(vtable_, 45)(this, school, skill, mana);
+    }
+    void VirtualRefreshWeapons() { CallVirtual(46); }                               // 46 (+0xB8)
+    void VirtualRefreshStats() { CallVirtual(47); }                                 // 47 (+0xBC)
+    void VirtualNextHero() { CallVirtual(48); }                                     // 48 (+0xC0)
+    void VirtualPreviousHero() { CallVirtual(49); }                                 // 49 (+0xC4)
+    CUnit* VirtualHeroUnit(int index) {                                             // 50 (+0xC8)
+        using Fn = CUnit*(__thiscall*)(CItemScreen*, int);
+        return ei::VirtualSlot<Fn>(vtable_, 50)(this, index);
+    }
+    PartyUnitRecord* VirtualHeroRecord() {                                          // 51 (+0xCC) the shown hero
+        using Fn = PartyUnitRecord*(__thiscall*)(CItemScreen*);
+        return ei::VirtualSlot<Fn>(vtable_, 51)(this);
+    }
+    void VirtualChooseFigure(const char* prototype) {                               // 52 (+0xD0)
+        using Fn = void(__thiscall*)(CItemScreen*, const char*);
+        ei::VirtualSlot<Fn>(vtable_, 52)(this, prototype);
+    }
+    double VirtualWeight() {                                                        // 53 (+0xD4, ST0)
+        using Fn = double(__thiscall*)(CItemScreen*);
+        return ei::VirtualSlot<Fn>(vtable_, 53)(this);
+    }
+    int VirtualPrice(CItem* item, int kind) {                                       // 54 (+0xD8)
+        using Fn = int(__thiscall*)(CItemScreen*, CItem*, int);
+        return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
+    }
+
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
     CItemIconWindow* iconWindow_;    // +0x16C (005EDD80)
@@ -213,14 +257,8 @@ public:
 static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
 static_assert(sizeof(CItemIconWindow) == 0x148);
 
-inline void CUiItemPanel::OwnerTakeItem(CItem* item) {
-    using Fn = void(__thiscall*)(CItemScreen*, CItem*, int);
-    ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
-}
-inline void CUiItemPanel::OwnerTopicClicked(int topic) {
-    using Fn = void(__thiscall*)(CItemScreen*, int, int);
-    ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
-}
+inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->VirtualTakeItem(item, mode_); }
+inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->VirtualTopicClicked(topic, mode_); }
 static_assert(offsetof(CItemScreen, models_) == 0x170);
 static_assert(offsetof(CItemScreen, textures_) == 0x180);
 

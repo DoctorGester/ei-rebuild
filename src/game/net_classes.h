@@ -143,7 +143,7 @@ inline ClientSession*& GameClient() { return g_gameClient; }
 // 0041DA50 publishes our offer, 0041E220 finds the partner's offer that pairs with ours (a
 // PartyMessage, or null), 0041E180 takes the acceptance back, 0041E3E0 drops the offer.
 void __fastcall ClientPublishParty(ClientSession* self);
-void* __fastcall ClientFindParty(ClientSession* self);
+PartyMessage* __fastcall ClientFindParty(ClientSession* self);
 void __fastcall ClientCommitParty(ClientSession* self);
 void __fastcall ClientDropParty(ClientSession* self);
 

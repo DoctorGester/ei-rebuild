@@ -42,9 +42,6 @@ constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 constexpr int kGameOverResult = 0x20000;
 
-// 006091C0: the chat window shows itself (thiscall, plain RET).
-__declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
-
 int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
 const char* ZoneTopicFormat() { return "b.%s"; }
@@ -85,18 +82,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
         GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
-        auto* window = gamecrt::operator_new_as<CSaveLoadWindow>();
-        if (window) {
-            window->CUiContainer::Construct(interface_);
-            window->entriesBegin_ = nullptr;
-            window->entriesEnd_ = nullptr;
-            window->entriesCapacity_ = nullptr;
-            window->isSave_ = false;
-            window->sliding_ = false;
-            new (static_cast<void*>(&window->name_)) mfc::CString();
-            window->vtable_ = CSaveLoadWindow::Vtable();
-            window->inputVtable_ = CSaveLoadWindow::InputVtable();
-        }
+        CSaveLoadWindow* window = CSaveLoadWindow::New(interface_);
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
         window->sliding_ = false;
@@ -211,7 +197,7 @@ EI_REPLACE_METHOD(0x006030C0, CBriefingScreen::OnBriefing);
 // --- 00603090: slot 36 --------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
-    if (IsMultiplayerClient() && show && chat_) ChatWindowShowAt(chat_);
+    if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
 EI_REPLACE_METHOD(0x00603090, CBriefingScreen::ShowChat);
 

@@ -240,7 +240,7 @@ EI_REWRITTEN(0x00603B90, CObjectivesWindow::DestroyBody);
 
 void CSaveLoadWindow::DestroyBody() {
     CStringDestroy(&name_);
-    for (SaveEntry* entry = entriesBegin_; entry != entriesEnd_; ++entry) {
+    for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
         entry->stringArrays_[1].Destruct();
         entry->stringArrays_[0].Destruct();
         CStringDestroy(&entry->zone_);
@@ -248,7 +248,7 @@ void CSaveLoadWindow::DestroyBody() {
         CStringDestroy(&entry->folder_);
         CStringDestroy(&entry->title_);
     }
-    FreeVectorStorage(entriesBegin_, entriesCapacity_);
+    FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
     DestroyContainer();
 }
 EI_REWRITTEN(0x006070C0, CSaveLoadWindow::DestroyBody);

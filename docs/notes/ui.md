@@ -317,7 +317,8 @@ Hazards and facts:
   3 never equips quick items.
 - **Battle screen Create** reads its part of a save (007AFDF8; from 0x47 an int and a string appended to the top panel's text and,
   on page 0, the message log; from 0x62 +0x18C and +0x188), builds the unit panel, map, clock, movement and top panels inline
-  (owner +0x148) and puts the "pers <name>" texts into the map<int, CString> at +0x1F0.
+  (owner +0x148; each panel from `operator_new_as<T>()` with a size assert, the window base and its setup called directly)
+  and puts the "pers <name>" texts into the map<int, CString> at +0x1F0.
 - **Global map**: positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, each step stored; `turn` =
   spin about z by +0x1FC times a tilt of 0.8 pi about x, inlined with its own operand order: `TurnProduct`); markers come from the
   player's variables ("z.<zone>", "q.<zone>.<quest>" = 1 by bit compare with 1.0f, ways out whose "z.<way>" equals 2 by FCOMP:
@@ -651,3 +652,9 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   pointers a Create sets later (the global map's weather object).
 - A wrongly placed field hides bugs for long (`CMpHeroScreen::rotating_`): when a state seems stuck, compare the offset in
   the handler that sets it with the one that clears it.
+- The item screens' slots 42-54 (what the strips and panels call on their owner: TakeItem, CanEquip, TopicClicked,
+  BestPartySkill, RefreshWeapons / RefreshStats, Next / PreviousHero, HeroUnit, HeroRecord, ChooseFigure, Weight, Price) go
+  through `CItemScreen::Virtual*` (ui_item_info.h; ItemScreenClass names the same slots); a panel's Build (slot 18) through
+  `CUiWindow::VirtualBuild`. The save window's entries (+0x164), the HUD portraits' slots (+0x158) and the quick items'
+  entries (+0x158) are typed containers (`stlp::vector<SaveEntry>`, `stlp::vector<HudPortraitSlot>`,
+  `mfc::CArray<Entry>`), called with their element policies.

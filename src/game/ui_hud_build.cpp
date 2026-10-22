@@ -232,8 +232,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
     CUiWindow::Construct(ui);
     owner_ = owner;
-    auto* entries = reinterpret_cast<mfc::CArray<Entry>*>(&entriesVtable_);
-    entries->Construct(mfc::impl::QuickEntryArrayClass::Vtable());
+    entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
     vtable_ = Vtable();
     inputVtable_ = InputVtable();
@@ -249,7 +248,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    entries->SetSize(0, -1);
+    entries_.SetSize(0, -1);
     unit_ = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     AddLabels(&labels_, ids);

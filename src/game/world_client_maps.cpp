@@ -962,7 +962,7 @@ void CWorldClient::Teardown() {
         gamecrt::operator_delete(p);
         skyDome_ = nullptr;
     }
-    DeleteOwned(owned1B0_);
+    DeleteOwned(bird_);
     ReleaseItemsAndSpells();
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
@@ -1020,7 +1020,7 @@ void CWorldClient::ResetZoneObjects() {
             });
     ObjectListIterator it{nullptr, nullptr};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
-    if (owned1B0_) TimedSlots(owned1B0_)->Reset();
+    if (bird_) TimedSlots(bird_)->Reset();
     // The iterator's destructor, inlined: the manager's count drops without a release.
     if (it.manager) --it.manager->refCount_;
 }

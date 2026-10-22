@@ -144,8 +144,7 @@ void CItemScreen::CreateBase() {
     iconWindow_ = icons;
     AddChild(icons);
     iconWindow_->AddObject(objects_.data[0]);
-    using BuildFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<BuildFn>(iconWindow_->vtable_, 18)(iconWindow_);
+    iconWindow_->VirtualBuild();
     LoadTexture("modifiers2", 3, 0);
     LoadTexture("campslots", 3, 0);
     std::uint32_t zero = 0;

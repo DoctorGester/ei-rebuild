@@ -266,13 +266,13 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 // ---- The bird and quest variables ----------------------------------------------------------------
 
 void CWorldClient::SummonBird() {
-    if (!owned1B0_) {
+    if (!bird_) {
         auto* memory = gamecrt::operator_new_as<CEffectMoshka>();
-        owned1B0_ = memory ? memory->Construct() : nullptr;
+        bird_ = memory ? memory->Construct() : nullptr;
     }
-    TimedSlots(owned1B0_)->Reset();
+    TimedSlots(bird_)->Reset();
     auto* leader = session_->Party()->members_.data;
-    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unitId));
+    bird_->Follow(static_cast<int>(leader->unitId));
 }
 
 void CWorldClient::OnQuestVariable(const char* variable, float value) {
@@ -457,7 +457,7 @@ int CWorldClient::Segment() {
         }
         for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())
             object->RunTick();
-        if (owned1B0_) owned1B0_->RunTick();
+        if (bird_) bird_->RunTick();
     }
     if (IsMultiplayerClient()) {
         if (static_cast<int>(TheInterface()->stackEnd_ - TheInterface()->stackBegin_) > 1) {

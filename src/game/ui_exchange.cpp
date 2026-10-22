@@ -152,10 +152,6 @@ CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
 
 CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
 
-// 0041E220 (net::ClientFindParty): the partner's offer that pairs with ours, or null.
-net::PartyMessage* ClientFindPartyAt(net::ClientSession* client) {
-    return static_cast<net::PartyMessage*>(net::ClientFindParty(client));
-}
 } // namespace
 
 void CExchangeScreen::Create() {
@@ -310,7 +306,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface = surfaces_.data[2];
     UiSurfaceGetDC(surface);
     surface->Clear();
-    net::PartyMessage* partner = ClientFindPartyAt(client);
+    net::PartyMessage* partner = net::ClientFindParty(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
         texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
@@ -325,12 +321,12 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface = surfaces_.data[3];
     UiSurfaceGetDC(surface);
     surface->Clear();
-    partner = ClientFindPartyAt(client);
+    partner = net::ClientFindParty(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
         texts->GetString("xch_remote_header", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        texts->GetString(ClientFindPartyAt(client)->accepted_ ? "xch_remote_ok"
+        texts->GetString(net::ClientFindParty(client)->accepted_ ? "xch_remote_ok"
                                                               : "xch_remote_cancel",
                          &text);
         rect = RECT{0, 0x28, 200, 0x3C};
@@ -343,8 +339,8 @@ BOOL CExchangeScreen::Draw(int pass) {
     bool accepted = LiveAccepted(client->party_.Get());
     SetTint(Sprite(sceneObjects_.data[0]), accepted ? 0.5f : 1.0f);
     SetTint(Sprite(sceneObjects_.data[1]), accepted ? 1.0f : 0.5f);
-    partner = ClientFindPartyAt(client);
-    bool partnerAccepted = partner && !(partner->flags7_ & CRefObject::kDetached) && ClientFindPartyAt(client)->accepted_;
+    partner = net::ClientFindParty(client);
+    bool partnerAccepted = partner && !(partner->flags7_ & CRefObject::kDetached) && net::ClientFindParty(client)->accepted_;
     SetTint(Sprite(sceneObjects_.data[2]), partnerAccepted ? 0.5f : 1.0f);
 
     AsContainer(this)->DrawContainer(pass);
@@ -357,7 +353,6 @@ EI_REPLACE_METHOD(0x0062C9C0, CExchangeScreen::Draw);
 namespace {
 const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
 const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
-constexpr int kSlotCanMove = 43;
 constexpr int kOfferLimit = 8;
 } // namespace
 
@@ -365,8 +360,7 @@ bool CExchangeScreen::CanMove(CItem*, int) { return true; }
 EI_REPLACE_METHOD(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
-    using CanMoveFn = bool(__thiscall*)(CExchangeScreen*, CItem*, int);
-    if (!ei::VirtualSlot<CanMoveFn>(vtable_, kSlotCanMove)(this, item, mode)) {
+    if (!VirtualCanEquip(item, mode)) {   // slot 43 (CanMove here)
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
         return;
     }

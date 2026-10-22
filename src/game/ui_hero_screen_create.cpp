@@ -55,7 +55,6 @@ constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops befo
 
 constexpr int kTextureKind = 3;
 constexpr int kSurfaceFormat = 5;
-constexpr int kSlotBuild = 18;          // the statistics and trade panels' Build
 constexpr int kModeHeroList = 9;
 constexpr std::uint32_t kPlainSprite = 0x100;
 constexpr std::uint32_t kSelectionColour = 0xC8A06800;
@@ -104,12 +103,6 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) {
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) {
     CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
     return memory ? memory->Construct(ui, rect) : nullptr;
-}
-
-// Slot 18 of a panel: its Build.
-void BuildPanel(CUiWindow* panel) {
-    using BuildFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
 
 // std::sort(begin, end) as the original inlines it (its first level of the introsort loop does
@@ -246,7 +239,7 @@ void CMpHeroScreen::Create() {
     statsPanel_ = stats;
     AsContainer(this)->AddChild(stats);
     stats->AddObject(texture(kPanelTexture));
-    BuildPanel(stats);
+    stats->VirtualBuild();
 
     // The equipment (without the body) and the quick items.
     auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
@@ -275,7 +268,7 @@ void CMpHeroScreen::Create() {
     tradePanel_ = trade;
     AsContainer(this)->AddChild(trade);
     trade->AddObject(texture(kPanelTexture));
-    BuildPanel(trade);
+    trade->VirtualBuild();
 
     {
         CUiScrollbar* bar = NewScrollbar(interface_, RECT{110, 250, 384, 490});

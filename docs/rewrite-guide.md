@@ -172,7 +172,11 @@ does not need a second pass:
   it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
   window` member and being punned; the item panels' owner_ is the CItemScreen. A compiled tag's
   table goes into a `void**` vtable field as `Tag::Slots()`, and a container's input side is
-  `CUiContainer::ContainerInput()`.
+  `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
+  `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
+  `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
+  are an STLport vector are an `stlp::vector<T>` member, called with the element policy
+  (`entries_.InsertOverflow<recordvec::SaveEntryElement>(...)`).
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

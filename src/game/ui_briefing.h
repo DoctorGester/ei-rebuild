@@ -33,7 +33,7 @@ struct BriefingMover {
     Vector3 target;                  // +0x08
     Vector3 direction;               // +0x14 the facing at the target
     int state;                       // +0x20 kDone, kWalking or kTurning
-    CEngineObject* person;           // +0x24 the client object
+    CUnit* person;                   // +0x24 the client unit
     bool waited;                     // +0x28 the dialogue waits for this one
     std::uint8_t unused_29[3];
     float time;                      // +0x2C seconds on the way (Update gives up after 30)
@@ -422,7 +422,7 @@ public:
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
     bool autosave_;                  // +0x27E Create sets it unless loading or back from the camp
     std::uint8_t unused_27F;
-    CUiWindow* chat_;                // +0x280 a network client's chat window (608D20), else null
+    CChatWindow* chat_;              // +0x280 a network client's chat window (608D20), else null
     stlp::vector<int> people_;       // +0x284 ids of the local player's objects that are text keys (Create)
     float markPhase_;                // +0x290 Update adds the frame time, kept below 1
     BriefingSpeaker* speakers_;      // +0x294 the people in the dialogue (vector begin, end, capacity)

@@ -2149,14 +2149,14 @@ std::string HudState(const std::string& argument) {
     if (quickPanel) {
         for (int r = 0; r < 4; ++r) {
             int entry = quickPanel->regionItem_[r];
-            if (entry >= 0 && entry < quickPanel->entryCount_ && quickPanel->entries_[entry].own) ++own;
+            if (entry >= 0 && entry < quickPanel->entries_.size && quickPanel->entries_[entry].own) ++own;
         }
         const int* items = quickPanel->regionItem_;
         Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
-            quickPanel->unit_, quickPanel->entryCount_, own, quickPanel->selected_, items[0], items[1], items[2],
+            quickPanel->unit_, quickPanel->entries_.size, own, quickPanel->selected_, items[0], items[1], items[2],
             items[3], items[4], items[5], items[6], items[7]);
         // The player's quest items in the top row: the id a lever's lock matches (SetScience).
-        for (int e = 0; e < quickPanel->entryCount_; ++e) {
+        for (int e = 0; e < quickPanel->entries_.size; ++e) {
             const CHudQuickItems::Entry& entry = quickPanel->entries_[e];
             if (!entry.own && entry.item && entry.item->type_ == 0x3009)
                 Log("harness: hudstate: quick panel entry %d: quest item id %u (object %d)", e,

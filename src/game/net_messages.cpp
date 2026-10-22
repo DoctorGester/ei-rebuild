@@ -222,12 +222,14 @@ Message* TextMessage::CreateAs(const void* vtable) {
     ei::SetVtable(p, vtable);
     return p;
 }
-TextMessage* TextMessage::CloneAs(const void* vtable) {
-    auto* p = NewMessageMemory<TextMessage>();
+template <class Self>
+Self* TextMessage::CloneAs() {
+    static_assert(sizeof(Self) == sizeof(TextMessage));
+    auto* p = NewMessageMemory<Self>();
     if (!p) return nullptr;
     CloneHeader(p, this);
     StringCopy(p->text_, text_);
-    ei::SetVtable(p, vtable);
+    ei::SetVtable(p, Self::Vtable());
     return p;
 }
 void TextMessage::ResetAs(const void* vtable) {
@@ -253,7 +255,7 @@ SayMessage* SayMessage::Construct() {   // 004138A0
     ei::SetVtable(this, Vtable());
     return this;
 }
-SayMessage* SayMessage::Clone() { return static_cast<SayMessage*>(CloneAs(Vtable())); }   // 00413930
+SayMessage* SayMessage::Clone() { return CloneAs<SayMessage>(); }   // 00413930
 int SayMessage::OnShutdown() {   // 00413A50
     ResetAs(Vtable());
     return 0;
@@ -269,7 +271,7 @@ ZoneMessage* ZoneMessage::Construct() {   // 00418C30
     ei::SetVtable(this, Vtable());
     return this;
 }
-ZoneMessage* ZoneMessage::Clone() { return static_cast<ZoneMessage*>(CloneAs(Vtable())); }   // 00415620
+ZoneMessage* ZoneMessage::Clone() { return CloneAs<ZoneMessage>(); }   // 00415620
 int ZoneMessage::OnShutdown() {   // 00415740
     ResetAs(Vtable());
     return 0;
@@ -279,7 +281,7 @@ void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 004158
 void ZoneMessage::Destruct() { DestructAs(Vtable()); }           // 00415930
 
 Message* __fastcall MapMessage::Create() { return CreateAs(Vtable()); }   // 00415D50
-MapMessage* MapMessage::Clone() { return static_cast<MapMessage*>(CloneAs(Vtable())); }   // 00415E00
+MapMessage* MapMessage::Clone() { return CloneAs<MapMessage>(); }   // 00415E00
 int MapMessage::OnShutdown() {   // 00415F20
     ResetAs(Vtable());
     return 0;
@@ -355,13 +357,15 @@ void PairMessage::ConstructAs(const void* vtable) {
     second_.ptr = nullptr;
     ei::SetVtable(this, vtable);
 }
-PairMessage* PairMessage::CloneAs(const void* vtable) {
-    auto* p = NewMessageMemory<PairMessage>();
+template <class Self>
+Self* PairMessage::CloneAs() {
+    static_assert(sizeof(Self) == sizeof(PairMessage));
+    auto* p = NewMessageMemory<Self>();
     if (!p) return nullptr;
     CloneHeader(p, this);
     CopyCounted(p->first_, first_);
     CopyCounted(p->second_, second_);
-    ei::SetVtable(p, vtable);
+    ei::SetVtable(p, Self::Vtable());
     return p;
 }
 void PairMessage::ResetAs(const void* vtable) {
@@ -388,7 +392,7 @@ BindingMessage* BindingMessage::Construct() {   // 0041C870
     ConstructAs(Vtable());
     return this;
 }
-BindingMessage* BindingMessage::Clone() { return static_cast<BindingMessage*>(CloneAs(Vtable())); }   // 00415350
+BindingMessage* BindingMessage::Clone() { return CloneAs<BindingMessage>(); }   // 00415350
 int BindingMessage::OnShutdown() {   // 004153B0
     ResetAs(Vtable());
     return 0;
@@ -402,7 +406,7 @@ FileRequestMessage* FileRequestMessage::Construct() {   // 004140B0
     ConstructAs(Vtable());
     return this;
 }
-FileRequestMessage* FileRequestMessage::Clone() { return static_cast<FileRequestMessage*>(CloneAs(Vtable())); }   // 004140D0
+FileRequestMessage* FileRequestMessage::Clone() { return CloneAs<FileRequestMessage>(); }   // 004140D0
 int FileRequestMessage::OnShutdown() {   // 00414130
     ResetAs(Vtable());
     return 0;

@@ -238,7 +238,10 @@ void EmptyDeferred() {
 template <typename T>
 void DrawLightEffects(stlp::list<T>& list) {
     typename stlp::list<T>::Node* head = list.head;
-    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) static_cast<GroundPrint*>(&node->data)->Draw();
+    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) {
+        GroundPrint* print = &node->data;
+        print->Draw();
+    }
 }
 template <typename T>
 bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
@@ -439,7 +442,7 @@ int CWorldClient::DrawPass() {
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
     const float* position = &CameraAnchor(camera_)->x;
-    if (void* listener = owned1B0_) static_cast<CEffectMoshka*>(listener)->Update(animTime);
+    if (bird_) bird_->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 0073B84C) and to 0, in 16-unit sectors.
@@ -596,9 +599,9 @@ int CWorldClient::DrawPass() {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;
                     std::memcpy(&point, &object->localPosition_, sizeof(point));
-                    if (void* part = object->FindPartByPrefix(MarkerPartName())) {
+                    if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
-                        const float* at = object->PartWorldPosition(&scratch.x, static_cast<const CFigureMesh*>(part));
+                        const float* at = object->PartWorldPosition(&scratch.x, part);
                         std::memcpy(&point, at, sizeof(point));
                         point.z = Reload(object->localPosition_.z);
                     }

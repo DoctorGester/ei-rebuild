@@ -169,7 +169,7 @@ void CSaveLoadWindow::Build() {
         selected_ = 0;
         if (EntryCount() != 0) {
             nameTyped_ = false;
-            name_ = entriesBegin_->title_;
+            name_ = entries_.begin()->title_;
             cursor_ = name_.GetLength();
         }
     } else {
@@ -291,22 +291,6 @@ void SetVtables(CUiWindow* window, void** main, void** input) {
     window->inputVtable_ = input;
 }
 
-// What the original's inlined CSaveLoadWindow constructor does. Null when allocation failed.
-CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
-    CSaveLoadWindow* memory = gamecrt::operator_new_as<CSaveLoadWindow>();
-    if (!memory) return nullptr;
-    auto* w = memory;
-    w->CUiContainer::Construct(ui);
-    w->entriesBegin_ = nullptr;   // vector<SaveEntry>() (0062B550)
-    w->entriesEnd_ = nullptr;
-    w->entriesCapacity_ = nullptr;
-    w->isSave_ = false;
-    w->sliding_ = false;
-    ::new (&w->name_) mfc::CString();
-    SetVtables(w, CSaveLoadWindow::Vtable(), CSaveLoadWindow::InputVtable());
-    return w;
-}
-
 // The inlined COptionsWindow constructor.
 COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     COptionsWindow* memory = gamecrt::operator_new_as<COptionsWindow>();
@@ -321,6 +305,18 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     return w;
 }
 } // namespace
+
+CSaveLoadWindow* CSaveLoadWindow::New(CInterface3D* ui) {
+    CSaveLoadWindow* w = gamecrt::operator_new_as<CSaveLoadWindow>();
+    if (!w) return nullptr;
+    w->CUiContainer::Construct(ui);
+    w->entries_.ConstructEmpty();   // vector<SaveEntry>() (0062B550)
+    w->isSave_ = false;
+    w->sliding_ = false;
+    ::new (&w->name_) mfc::CString();
+    SetVtables(w, Vtable(), InputVtable());
+    return w;
+}
 
 void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = window.interface_;
@@ -338,7 +334,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
             open = false;
             break;
         }
-        CSaveLoadWindow* w = NewSaveLoadWindow(ui);
+        CSaveLoadWindow* w = CSaveLoadWindow::New(ui);
         // (Like the original, these two stores do not check the allocation.)
         w->isSave_ = region == 0;
         w->sliding_ = true;
@@ -408,7 +404,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 1: {
         // Load.
         ui->PlaySound(okSound, 0);
-        CSaveLoadWindow* w = NewSaveLoadWindow(ui);
+        CSaveLoadWindow* w = CSaveLoadWindow::New(ui);
         // (Like the original, these two stores do not check the allocation.)
         w->isSave_ = false;
         w->sliding_ = false;

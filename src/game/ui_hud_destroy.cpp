@@ -25,8 +25,8 @@ EI_REWRITTEN(0x0063BC70, CHudWeaponBar::DestroyBody);
 
 void CHudQuickItems::DestroyBody() {
     labels_.Destruct();
-    entriesVtable_ = QuickEntriesVtable();
-    if (entries_) gamecrt::operator_delete(entries_);
+    entries_.vtable = QuickEntriesVtable();
+    if (entries_.data) gamecrt::operator_delete(entries_.data);
     DestroyBase();
 }
 EI_REWRITTEN(0x0063CA70, CHudQuickItems::DestroyBody);

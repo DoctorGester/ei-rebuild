@@ -89,7 +89,7 @@ CEffectTornado* CEffectTornado::DeletingDestruct(unsigned flags) {
 
 void CEffectTornado::Reset() {
     ResetBase();
-    if (source_ != nullptr) Source()->StopAndClear();
+    if (source_ != nullptr) source_->StopAndClear();
     if (sound_ != -1) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
     CEngineObject* source = source_;
@@ -122,10 +122,10 @@ int CEffectTornado::Tick() {
     if (moving_ != 0) {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
-        if (source_ != nullptr) Source()->localPosition_ = localPosition_;
+        if (source_ != nullptr) source_->localPosition_ = localPosition_;
         if (sound_ != -1) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
-    if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) Source()->Stop();
+    if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
     CWorld* world = WorldOf(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
         mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
@@ -164,7 +164,7 @@ void CEffectTornado::Pack(DeltaField* field) {
 
 void CEffectTornado::Start(int update) {
     if (update == 0 && source_ != nullptr) {
-        Source()->Stop();
+        source_->Stop();
         CEngineObject* source = source_;
         source_ = nullptr;
         if (source != nullptr) source->Release();
@@ -173,13 +173,13 @@ void CEffectTornado::Start(int update) {
     if (sound_ == -1) {
         sound_ = TheSoundManager()->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
-    CEngineObject* source = ParticleManagerObject()->CreateSource(kTornadoParticles);
+    CParticleSource* source = ParticleManagerObject()->CreateSource(kTornadoParticles);
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;
     if (old != nullptr) old->Release();
-    Source()->localPosition_ = localPosition_;
-    Source()->ScaleSize(1.0f);
+    source_->localPosition_ = localPosition_;
+    source_->ScaleSize(1.0f);
     int behind = CurrentClientTick() - launchTick_;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;
     for (int i = 1; i < behind; ++i) source_->RunTick();

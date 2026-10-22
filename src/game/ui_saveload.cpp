@@ -84,8 +84,6 @@ __declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 // _Construct(p, x) (00657C60).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
-// Its insert that reallocates (006579C0) and erase (006578F0): recordvec::SaveEntryVector's.
-stlp::vector<SaveEntry>* Entries(void* vector) { return static_cast<stlp::vector<SaveEntry>*>(vector); }
 // CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the original calls it.
 BOOL IsDirectory(const mfc::CFileFind& find) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
@@ -150,9 +148,6 @@ private:
 // The escape menu's 256x192 5:6:5 copy of the screen (interface +0x5C), or null.
 const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
-// The entry vector (+0x164) as the STLport helpers take it.
-void* EntryVector(CSaveLoadWindow* w) { return &w->entriesBegin_; }
-
 } // namespace
 
 // --- Forwarders through the original addresses ---------------------------------------------------
@@ -169,7 +164,7 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 0;
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entriesBegin_ + selected;
+    SaveEntry* entry = entries_.begin() + selected;
     if (entry->broken_) return;
     if (isSave_ && selected == 0) {
         // The new save: the game's picture.
@@ -248,7 +243,7 @@ EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
 void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entriesBegin_ + selected;
+    SaveEntry* entry = entries_.begin() + selected;
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
@@ -277,14 +272,14 @@ void CSaveLoadWindow::SaveGame() {
         info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
-        entriesBegin_->title_ = name_;
+        entries_.begin()->title_ = name_;
     else if (selected_ == 0)
-        entriesBegin_->title_.Empty();
+        entries_.begin()->title_.Empty();
     else
-        entriesBegin_->title_ = entry->title_;
+        entries_.begin()->title_ = entry->title_;
     mfc::impl::CTime now;
-    entriesBegin_->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
-    SaveEntry* first = entriesBegin_;
+    entries_.begin()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
+    SaveEntry* first = entries_.begin();
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
@@ -325,7 +320,7 @@ void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
     pattern.Format(game::savewords::SavePattern(), DataFolderText());
     mfc::CFileFind find;
-    static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->EraseRange(entriesBegin_, entriesEnd_);
+    entries_.EraseRange<recordvec::SaveEntryElement>(entries_.begin(), entries_.end());
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern, 0);
@@ -334,13 +329,13 @@ void CSaveLoadWindow::FillEntries() {
         more = found;
         if (find.IsDots() || !IsDirectory(find)) continue;
         LocalEntry fresh;
-        if (entriesEnd_ != entriesCapacity_) {
-            EntryConstruct(entriesEnd_, &fresh.e);
-            ++entriesEnd_;
+        if (entries_.end() != entries_.EndOfStorage()) {
+            EntryConstruct(entries_.end(), &fresh.e);
+            ++entries_.Finish();
         } else {
-            static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->InsertOverflow(entriesEnd_, fresh.e, 1);
+            entries_.InsertOverflow<recordvec::SaveEntryElement>(entries_.end(), fresh.e, 1);
         }
-        SaveEntry* entry = entriesEnd_ - 1;
+        SaveEntry* entry = entries_.end() - 1;
         entry->folder_ = FileName(find);
         mfc::CFileFind infoFind;
         BOOL hasInfo;
@@ -383,8 +378,8 @@ void CSaveLoadWindow::FillEntries() {
         }
     }
     find.Close();
-    SaveEntry* first = entriesBegin_;
-    SaveEntry* end = entriesEnd_;
+    SaveEntry* first = entries_.begin();
+    SaveEntry* end = entries_.end();
     if (first != end) {
         int depth = 0;
         for (int n = static_cast<int>(end - first); n != 1; n >>= 1) ++depth;
@@ -395,20 +390,20 @@ void CSaveLoadWindow::FillEntries() {
     if (isSave_) {
         // The new save first (STLport's insert at begin(), inlined by the original).
         LocalEntry fresh;
-        SaveEntry* at = entriesBegin_;
-        if (entriesEnd_ == entriesCapacity_) {
-            static_cast<recordvec::SaveEntryVector*>(Entries(EntryVector(this)))->InsertOverflow(at, fresh.e, 1);
-        } else if (at == entriesEnd_) {
-            if (entriesEnd_) entriesEnd_->CopyConstruct(&fresh.e);
-            ++entriesEnd_;
+        SaveEntry* at = entries_.begin();
+        if (entries_.end() == entries_.EndOfStorage()) {
+            entries_.InsertOverflow<recordvec::SaveEntryElement>(at, fresh.e, 1);
+        } else if (at == entries_.end()) {
+            if (entries_.end()) entries_.end()->CopyConstruct(&fresh.e);
+            ++entries_.Finish();
         } else {
-            EntryConstruct(entriesEnd_, entriesEnd_ - 1);
-            ++entriesEnd_;
+            EntryConstruct(entries_.end(), entries_.end() - 1);
+            ++entries_.Finish();
             LocalEntry copy(fresh.e);
-            stl_sorts::SaveCopyBackward(at, entriesEnd_ - 2, entriesEnd_ - 1);
+            stl_sorts::SaveCopyBackward(at, entries_.end() - 2, entries_.end() - 1);
             at->Assign(&copy.e);
         }
-        SaveEntry* entry = entriesBegin_;
+        SaveEntry* entry = entries_.begin();
         entry->folder_.Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         {
@@ -641,13 +636,13 @@ EI_REWRITTEN(0x00655380, CSaveLoadWindow::AskDelete);
 void CSaveLoadWindow::LoadSelected() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    if (entriesBegin_[selected].broken_) return;
+    if (entries_.begin()[selected].broken_) return;
     mfc::CString notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
     TheInterface()->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
-    Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);
+    Flow()->RequestLoad(entries_.begin()[selected_].folder_, 0);
 }
 EI_REWRITTEN(0x00655A10, CSaveLoadWindow::LoadSelected);
 
@@ -655,7 +650,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     mfc::CString folder;
-    folder.Format(kFolderFormat, DataFolderText(), entriesBegin_[selected].folder_.GetString());
+    folder.Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.GetString());
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {

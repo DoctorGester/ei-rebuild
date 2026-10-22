@@ -78,8 +78,7 @@ int CTradePanel::Experience() const {
 EI_REWRITTEN(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
-    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
+    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
 EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
@@ -167,7 +166,7 @@ void CMpHeroScreen::Update() {
     if (mode_ != kModeNewHero) return;
 
     mfc::CString name(nameEdit_->text_);
-    const UnitStats* stats = StatsOf(Hero());
+    const UnitStats* stats = StatsOf(VirtualHeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     // FCOMP; TEST AH,0x40: equal.
     float target = NewHeroPoints();
@@ -390,7 +389,7 @@ void CMpHeroScreen::ShowHero(int index) {
         MpHeroesObject()->Select(SavedHero(static_cast<int>(index)));
     }
     MakePreview(1);
-    auto* hero = Hero();
+    auto* hero = VirtualHeroRecord();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) unit->AddWeapon(hero->weapons[i]);

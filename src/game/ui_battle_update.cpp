@@ -52,17 +52,6 @@ namespace {
 // (at most eight).
 __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const char* /*model*/, const char* /*image*/)
     EI_ORIGINAL(0x0063CAE0)
-// 0064B060 (thiscall, RET 8): the entries' CArray SetSize (zeroed new entries; `growBy` -1 keeps
-// the step). The original inlines the same code after each sprite.
-void EntriesSetSize(void* entries, int size) {
-    static_cast<mfc::impl::Plain12::Array*>(entries)->SetSize(size, -1);
-}
-
-// The item's slot 19 (the picture's name) and 20 (the model's name).
-void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
-    using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    ei::ObjectSlot<Fn>(item, slot)(item, out->Slot());
-}
 
 } // namespace
 
@@ -77,12 +66,12 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    EntriesSetSize(&entriesVtable_, 0);
+    entries_.SetSize(0, -1);   // 0064B060 (zeroed new entries)
     if (!unit_) return;
 
     // The entry of the sprite just added.
     auto finish = [&](CEngineObject* item, bool own) {
-        EntriesSetSize(&entriesVtable_, shownCount_);
+        entries_.SetSize(shownCount_, -1);
         Entry& entry = entries_[shownCount_ - 1];
         entry.own = own;
         entry.id = item->id_;
@@ -111,11 +100,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            ReturnedString image;
-            ItemName(item, 19, &image);
-            ReturnedString model;
-            ItemName(item, 20, &model);
-            AddItemSprite(this, nullptr, model.data, image.data);
+            mfc::CString image = item->FigureName();   // slot 19
+            mfc::CString model = item->PictureName();  // slot 20
+            AddItemSprite(this, nullptr, model, image);
         }
         finish(item, true);
         ItemTip(slot, &tip);
@@ -133,20 +120,18 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     int slot = 4;
     while (node) {
         if (slot - 4 >= 4) break;
-        CEngineObject* item = node->data;
+        CItem* item = node->data;
         node = node->prev;
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            ReturnedString image;
-            ItemName(item, 19, &image);
-            ReturnedString model;
-            ItemName(item, 20, &model);
-            AddItemSprite(this, nullptr, model.data, image.data);
+            mfc::CString image = item->FigureName();   // slot 19
+            mfc::CString model = item->PictureName();  // slot 20
+            AddItemSprite(this, nullptr, model, image);
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        TheTextManager()->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
+        TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;

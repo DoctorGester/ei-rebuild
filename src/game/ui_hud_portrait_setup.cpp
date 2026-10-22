@@ -39,10 +39,6 @@ float Fat() { return 0.8f /*0073CCA8*/; }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
 const Quaternion& Identity() { return ei::GameData<const Quaternion>(0x007C8150); }
 
-// The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
-// orientations, empty strings), 0064AD40 erases [first, last): recordvec::HudPortraitSlotVector's.
-stlp::vector<HudPortraitSlot>* Slots(HudPortraitSlot** vector) { return reinterpret_cast<stlp::vector<HudPortraitSlot>*>(vector); }
-
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
     for (;; ++a, ++b) {
@@ -110,7 +106,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
     CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
-    recordvec::HudPortraitSlotVector::PushDefault(Slots(&slots_));
+    slots_.PushDefault<recordvec::HudPortraitSlotElement>();   // 0064AB20: identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
 
@@ -196,7 +192,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString picture;
     mfc::CString model;
     mfc::CString tip;
-    static_cast<recordvec::HudPortraitSlotVector*>(Slots(&slots_))->EraseRange(slots_, slotsEnd_);
+    slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());   // 0064AD40
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];

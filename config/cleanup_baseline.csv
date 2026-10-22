@@ -36,10 +36,7 @@ src/game/script_parse_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/text_sources.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/ui_battle_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/ui_battle_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_briefing.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_briefing_create.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/ui_create_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_edit_field.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1

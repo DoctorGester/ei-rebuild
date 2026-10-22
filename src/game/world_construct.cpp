@@ -181,7 +181,7 @@ CWorldClient* CWorldClient::Construct() {
     terrain_ = nullptr;
     session_ = nullptr;
     skyDome_ = nullptr;
-    owned1B0_ = nullptr;
+    bird_ = nullptr;
     for (int& value : constants7C4_) value = 0;
     cursor_ = nullptr;
     appName_ = "EvilIslands";

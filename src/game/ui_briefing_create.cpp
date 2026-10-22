@@ -56,8 +56,6 @@ const char* ConstructorTopic() { return "constr"; }
 const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
-// 00608D20: a network client's chat window (0x170 bytes; RET 4, returns this).
-__declspec(naked) CUiWindow* __fastcall ChatWindowConstruct(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x00608D20)
 
 constexpr int kFromCamp = 5;              // CPlayer::lastScreen_
 constexpr float kEdgeFade = 4.0f;
@@ -132,13 +130,13 @@ void PlaceMover(BriefingMover* node) {
     SectorMapMove(TheSectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
-    static_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
+    node->person->SetHeading(&facing.x);
     controller->ResyncWithUnit();
 }
 
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
-    const CUnit* person = static_cast<const CUnit*>(node->person);
+    const CUnit* person = node->person;
     float dy = node->target.y - person->localPosition_.y;
     float dx = node->target.x - person->localPosition_.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
@@ -151,7 +149,7 @@ void StepWalking(BriefingMover* node) {
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
 void StepTurning(BriefingMover* node) {
-    const CUnit* person = static_cast<const CUnit*>(node->person);
+    const CUnit* person = node->person;
     Vector3 axis;
     person->localRotation_.AxisY(&axis);
     float facingX = static_cast<float>(-axis.x);
@@ -248,14 +246,14 @@ void CBriefingScreen::Create() {
     GameSetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
-    auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
+    auto* input = gamecrt::operator_new_as<UiInputSide>();   // 0x0C bytes
     if (input) {
         input->vtable_ = InertInputVtable();
         input->owner_ = interface_;
     }
     AddInput(input);
-    void* memory = gamecrt::operator_new(0x2C);
-    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
+    CCameraInput* cameraInput = gamecrt::operator_new_as<CCameraInput>();
+    AddInput(cameraInput ? reinterpret_cast<UiInputSide*>(cameraInput->Construct(interface_)) : nullptr);
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null, as the original), the alternate limits, no target.
@@ -272,8 +270,8 @@ void CBriefingScreen::Create() {
     speaking_ = nullptr;
 
     if (IsMultiplayerClient()) {
-        memory = gamecrt::operator_new(0x170);
-        chat_ = memory ? ChatWindowConstruct(memory, nullptr, interface_) : nullptr;
+        CChatWindow* chat = gamecrt::operator_new_as<CChatWindow>();
+        chat_ = chat ? chat->Construct(interface_) : nullptr;
         AddChild(chat_);
         VirtualShowChat(1);
     } else {

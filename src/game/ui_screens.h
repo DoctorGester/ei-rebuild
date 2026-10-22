@@ -358,11 +358,9 @@ public:
     // Back from the statistics page to the new hero (mode 10).
     void BackToNewHero();
 
-    // Called through the vtable, as the original does.
-    PartyUnitRecord* Hero();            // slot 51 (+0xCC)
-
-    void Refresh();                     // slot 47 (+0xBC), 00618850 here
-    void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
+    // Slots 51 (the hero), 47 (Refresh, 00618850 here) and 52 (ChooseFigure) are called through
+    // the vtable, as the original does: CItemScreen's VirtualHeroRecord / VirtualRefreshStats /
+    // VirtualChooseFigure.
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
     // world; hero `index` (when in the list; else none, -1) copied into the local party and made
     // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots

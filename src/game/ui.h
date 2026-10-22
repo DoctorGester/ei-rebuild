@@ -539,7 +539,7 @@ public:
     // it): blits the surface onto the render target when it is shown.
     void Blit() {
         using Fn = void(__thiscall*)(CUiSurface*);
-        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this);
+        ei::ObjectSlot<Fn>(this, 0)(this);
     }
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
@@ -916,6 +916,8 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*, int);
         ei::VirtualSlot<Fn>(vtable_, 21)(this, pass);
     }
+    // Slot 18 (+0x48): a panel's Build (its sprites, regions and surfaces).
+    void VirtualBuild() { CallVirtual(18); }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -1291,15 +1293,11 @@ public:
     int shownCount_;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    void* entriesVtable_;            // +0x158 CArray<Entry>
-    Entry* entries_;                 // +0x15C
-    int entryCount_;                 // +0x160
-    int entryCapacity_;              // +0x164
-    int entryGrowBy_;                // +0x168
+    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass; SetSize 0064B060, inlined)
     int regionItem_[8];              // +0x16C
     mfc::CStringArray labels_;       // +0x18C the tooltip's labels
 };
-static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
+static_assert(offsetof(CHudQuickItems, entries_) == 0x158);
 static_assert(offsetof(CHudQuickItems, labels_) == 0x18C);
 static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator new
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
@@ -1517,9 +1515,9 @@ public:
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unused_150[0x158 - 0x150];
-    HudPortraitSlot* slots_;         // +0x158 STLport vector
-    HudPortraitSlot* slotsEnd_;      // +0x15C
-    HudPortraitSlot* slotsCapacity_; // +0x160
+    // +0x158 one per portrait (0064AB20 appends a default slot, 0064AD40 erases a range: with
+    // recordvec::HudPortraitSlotElement).
+    stlp::vector<HudPortraitSlot> slots_;
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
@@ -1778,6 +1776,7 @@ static_assert(offsetof(CHudMap, view_) == 0x1AC);
 static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
+static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
@@ -1872,6 +1871,7 @@ static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
+static_assert(sizeof(CHudUnitPanel) == 0x1C4);   // CBattleScreen's operator new
 
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1912,6 +1912,7 @@ public:
 };
 static_assert(offsetof(CHudClock, blink_) == 0x14C);
 static_assert(offsetof(CHudClock, highlight_) == 0x158);
+static_assert(sizeof(CHudClock) == 0x15C);   // CBattleScreen's operator new
 
 // Movement panel (set up by 00649190, vtables 00742530 / 007424FC; 0..80 x 520..600). Region 0
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
@@ -1950,6 +1951,7 @@ public:
     int flag_;                       // +0x150 common +0x438 of the selected units (-1, -2: none, mixed)
 };
 static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
+static_assert(sizeof(CHudMovePanel) == 0x154);   // CBattleScreen's operator new
 
 // Top panel (set up by 00649AF0, vtables 00742498 / ui_battle_setup.cpp's TopPanelInputClass (game.exe's 00742464);
 // 180..620 x 0..100). Regions: 0
@@ -2007,6 +2009,7 @@ public:
 static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
+static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
@@ -2542,7 +2545,7 @@ struct UiTextToken {
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
-        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this, 1);
+        ei::ObjectSlot<Fn>(this, 0)(this, 1);
     }
     // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
     // base: the base vtable 00742F24 back.
@@ -2781,6 +2784,10 @@ public:
     // 006070A0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CSaveLoadWindow* SaveLoadDelete(unsigned flags);
+    // The original's inlined constructor (the battle and briefing screens' game-over load, the Esc
+    // menu's windows; ui_layouts.cpp): the container, no entries (vector<SaveEntry>(), 0062B550), a
+    // load window not sliding, an empty name, the compiled tables. Null when the allocation fails.
+    static CSaveLoadWindow* New(CInterface3D* ui);
 
     // A-H14 (ui_saveload.cpp).
     // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
@@ -2828,7 +2835,7 @@ public:
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
 
-    int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
+    int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
     // 006577B0 (ui_menus.cpp). The selected save's title becomes the name being edited.
     void TakeSelectedTitle();
 
@@ -2850,9 +2857,9 @@ public:
     // "saveb"; no bound check).
     bool IsReservedSave(int index);
 
-    SaveEntry* entriesBegin_;        // +0x164
-    SaveEntry* entriesEnd_;          // +0x168
-    SaveEntry* entriesCapacity_;     // +0x16C
+    // +0x164 the saves (its insert that reallocates 006579C0 and erase 006578F0 with
+    // recordvec::SaveEntryElement).
+    stlp::vector<SaveEntry> entries_;
     int selected_;                   // +0x170
     int firstVisible_;               // +0x174 list scroll position
     bool isSave_;                    // +0x178 save (not load) window

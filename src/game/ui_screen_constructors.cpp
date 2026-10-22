@@ -95,9 +95,7 @@ void** CHudPortraits::InputVtable() { return static_cast<void**>(PortraitsInputC
 CHudPortraits* CHudPortraits::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
-    slots_ = nullptr;
-    slotsEnd_ = nullptr;
-    slotsCapacity_ = nullptr;
+    slots_.ConstructEmpty();
     vtable_ = Vtable();
     inputVtable_ = InputVtable();
     rect_ = RECT{250, 440, 550, 600};
@@ -110,12 +108,12 @@ EI_REWRITTEN(0x0063FE70, CHudPortraits::Construct);
 // --- 0063FF70: its destructor body -----------------------------------------------------------------
 
 void CHudPortraits::DestroyBody() {
-    for (HudPortraitSlot* slot = slots_; slot != slotsEnd_; ++slot) {
+    for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) {
         slot->modelSuffix_.~CString();
         slot->modelPrefix_.~CString();
         slot->faceName_.~CString();
     }
-    if (slots_) stlp::deallocate(slots_, static_cast<std::size_t>(slotsCapacity_ - slots_) * sizeof(HudPortraitSlot));
+    slots_.FreeStorage();
     DestroyBase();
 }
 EI_REWRITTEN(0x0063FF70, CHudPortraits::DestroyBody);
