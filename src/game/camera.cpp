@@ -134,7 +134,7 @@ void ResetMotion(CCamera* c) {
 
 void camera::NoteTargetTick(const CCamera* camera) {
     TargetTicks& ticks = g_targetTicks;
-    const CEngineObject* target = TheObjectManager()->FindObject(static_cast<unsigned>(camera->targetId_));
+    const CObject3D* target = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(camera->targetId_));
     if (!target) {
         ticks = TargetTicks{};
         return;
@@ -142,7 +142,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
     if (ticks.id != camera->targetId_) ticks = TargetTicks{camera->targetId_};
     ticks.previous = ticks.current;
     ticks.previousGround = ticks.currentGround;
-    const auto* body = static_cast<const CObject3D*>(target);
+    const CObject3D* body = target;
     std::memcpy(&ticks.current, &body->localPosition_, sizeof(Vector3));
     ticks.currentGround = body->localPosition_.z;
     if (ticks.count < 2) ++ticks.count;
@@ -348,13 +348,13 @@ void CCamera::Update(float dt) {
     TheSoundManager()->SetListener(&listener.x, &forward.x);
     if (flags_ & kPlaced) return;
 
-    CEngineObject* target = TheObjectManager()->FindObject(static_cast<unsigned>(targetId_));
+    CObject3D* target = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(targetId_));
     // The smooth camera (R18): the gains below by time, the target between its last two ticks.
     const bool smooth = render::SmoothCamera();
     Vector3 targetAt = {0.0f, 0.0f, 0.0f};
     float targetGround = 0.0f;
     if (target) {
-        const auto* body = static_cast<const CObject3D*>(target);
+        const CObject3D* body = target;
         std::memcpy(&targetAt, &body->localPosition_, sizeof(Vector3));
         CopyFloat(&targetGround, &body->localPosition_.z);
         if (smooth) TargetPlace(targetId_, &targetAt, &targetGround);
@@ -362,8 +362,8 @@ void CCamera::Update(float dt) {
     if (flags_ & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
-            const CTransformObject* t = static_cast<const CTransformObject*>(target);
-            const CObject3D* body = static_cast<const CObject3D*>(target);
+            const CTransformObject* t = target;
+            const CObject3D* body = target;
             double lift = D(body->above.z) + body->center.z;
             std::memcpy(&localPosition_.x, &targetAt.x, sizeof(float));
             std::memcpy(&localPosition_.y, &targetAt.y, sizeof(float));
