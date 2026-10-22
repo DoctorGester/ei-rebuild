@@ -4,9 +4,9 @@ Readable C++ source for the Russian `game.exe` 1.06, rebuilt with modern MSVC (x
 identical behaviour, not identical bytes.
 
 The product is the standalone image: `ei_standalone.exe` runs without `game.exe` and loads `ei_hook.dll`, which
-keeps game.exe's data (generated from it at build time) and takes each rewritten function as the code for its
-original address (docs/notes/standalone.md). The original `game.exe` runs only as the original game, for the harness's
-references (goldens, function vectors, Rebirth's frames).
+holds all of our code and the part of game.exe's data not yet named in our source (generated from it at build
+time; docs/notes/standalone.md). The original `game.exe` runs only as the original game, for the harness's
+references (goldens, function vectors, Rebirth's frames); none of our code runs in it.
 
 ## Build
 
@@ -33,14 +33,16 @@ with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces 
 ## Layout
 
 - `src/game/` rewritten game code. Each function notes its original address.
-- `src/hook/` the replacement framework (`include/ei/hook.h`): the jumps into the image, the image's
-  start (`standalone.cpp`), and in game.exe the vector recorders, coverage and profiler.
+- `src/hook/` the address framework (`include/ei/hook.h`): the registrations for the addresses game.exe's
+  data still names, the image's start (`standalone.cpp`), and in game.exe the vector recorders, coverage and
+  profiler.
+- `src/standalone/` the host exe and the generated image (code cells, data, imports, static initialisers).
 - `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`): the image always draws and
   presents with it (`EI_RENDER=new,present`, the default; `docs/notes/renderer.md`).
 - `tests/verify/` the harness (scenario runs of the image and of the original game), compiled into the `verify` build.
 - `tools/` launcher, Ghidra export (`export_functions.py`), PE inspection (`pe.py`).
 - `config/functions.csv` every function in game.exe with kind (game/lib/eh/thunk) and status.
-- `docs/` cleanup plan, rewrite guide, ticket queue and per-area notes (`docs/notes/`).
+- `docs/` worker brief, rewrite guide, cleanup plan, ticket queue and per-area notes (`docs/notes/`).
 
 ### Vanilla (no Rebirth)
 
@@ -208,7 +210,7 @@ The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` i
 the Rebirth data and
 goldens, the flags of `config/ei_rebirth_standalone.ini`; only on demand: `--rebirth` adds the smoke set of
 config/rebirth_scenarios.csv and the scenarios with Rebirth-specific steps, `--rebirth-only` runs those alone,
-`--all-rebirth` every scenario); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
+`--all-rebirth` every scenario); an address the image has no code for ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 The vanilla runs of the original carry Rebirth's bug fixes, the standalone's defaults (docs/notes/rebirth.md, "One test profile").
 Harness games never take the foreground (harness.cpp, `noforeground::`), and every run (the image's and the
 original's) keeps every window out of sight (cloaked tool windows: no window, taskbar button or Alt+Tab entry; `EI_HARNESS_SHOW_WINDOW=1` shows
