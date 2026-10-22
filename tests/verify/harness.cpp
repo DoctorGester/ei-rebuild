@@ -2279,13 +2279,13 @@ bool WindowVtable(const std::string& name, std::uintptr_t* vtable) {
     char* end = nullptr;
     unsigned long value = std::strtoul(name.c_str(), &end, 16);
     if (name.empty() || *end || value < 0x00401000 || value >= 0x00800000) return false;
-    *vtable = ei::GameAddress(value);
+    *vtable = value;
     return true;
 }
 
 // game.exe's table of the window on top (RealWindowVtable of its own), 0 without one.
 std::uintptr_t TopWindowVtable(CUiWindow* top) {
-    return top ? RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top)) : 0;
+    return top ? ei::OriginalAddress(RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top))) : 0;
 }
 
 // Whether the awaited window is on top and takes input (see the step's description).
@@ -2310,7 +2310,7 @@ std::string DescribeTopWindow() {
         if (vtable == reinterpret_cast<std::uintptr_t>(w.vtable)) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
+                  unsigned(vtable), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
                   HarnessCampaignMode());
     return text;
 }
