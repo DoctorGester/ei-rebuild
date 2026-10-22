@@ -2910,8 +2910,8 @@ note = "User 2026-10-22: the code should look like normal game code, not fake vt
 id = "C29"
 title = "Forwarders to direct calls: EI_ORIGINAL callers call our functions by name"
 group = "cleanup"
-model = "sonnet"
-note = "253 EI_ORIGINAL forwarders name 250 functions; 248 are our own registered code (e.g. SectorMapMove -> CSectorMap::Move; Rebirth's FixMoveObject is already inside it behind its flag). Call them by name and delete the forwarders and originals_*.h entries. Keep only addresses the harness redirects (tests/verify/harness.cpp:1481, harness_clock.cpp:809) or that the vector recorders need; the 2 library ones (006F00D1, 007051A1) get ported or called on the host. Both suites keep their goldens."
+model = "opus"
+note = "User 2026-10-22: don't tie the standalone to game.exe addresses for the harness either. The harness's standalone hooks (FixedIsaacSeed at 0049F660, the traced rand at 006E77F7, via RedirectCode) become named seams in our code that the harness sets (e.g. a deterministic-seed switch in our Isaac seeding, a draw callback in our rand). Then every EI_ORIGINAL forwarder goes, RedirectCode and CodeLink binding go, and the address registry stays only where something still needs an address (the game.exe side of the harness patches game.exe by address, which is fine). Model opus, not sonnet."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
