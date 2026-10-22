@@ -2569,7 +2569,7 @@ title = "Compiler-made vtables: real virtual classes instead of game.exe's table
 group = "cleanup"
 model = "opus"
 depends = ["C18"]
-note = "Batch 18 (2026-10-22): 29 rows retired (388 -> 417): the counted roots 0073BB68 / 0073C368, the render helper and preset, the cloud noise, the item turn, input sides (container, top panel, camera, inert 00741154), the figure loader, seven engine objects, the party (00743000 / 0074306C / 00742FF4) and the player connections (007431E0 / 00743180 / 00743280). Code cells 4,548 -> 4,229; game data addresses 1,065 -> 1,039 (vtables 171); 109 registrations EI_REWRITTEN. Suites: 121 image goldens the same (hooks), 114 the same (no-hooks fresh). Left: window main tables (harness census), scene renderer 0073D93C / 0073D8A0, CRefObject 0073BB58 (after C21), map spec readers, streams, MFC."
+note = "batch 19 (2026-10-22): CRefObject 0073BB58, the scene renderer 0073D93C / 0073D8A0 (real virtual CVisualizator / CSceneRenderer) and 42 window tables (plain window, base input side, controls, unit pick, chat overlay / window, icon window, scrolling surface, the 19 HUD panel tables) compiled; census WindowKinds as the harness id; CTextManager::CreateImpl EI_REWRITTEN. Retired rows 417 -> 462, code cells 4,229 -> 3,393, game data addresses 994 (main had 1,039). Suites: 121 goldens the same (standalone), 114 the same (--no-hooks --fresh), all pass. Left: containers / screens (42 / 55 slots, kKnownWindows mapping), camp panels (C15's ui_camp_create.cpp), console 00740034, streams, MFC kind."
 
 [[ticket]]
 id = "C20"
