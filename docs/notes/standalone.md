@@ -1175,9 +1175,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
     `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
   - **The streams** (core_streams.cpp): StreamClass (0073BDB0, 1-6 `_purecall`), MemoryStreamClass (0073BD90 with its
-    tail 0073BD98) and QueueStreamClass (0073C960). `kStreamVtable` / `kMemoryStreamVtable` are `StreamTableName`s
-    that convert to the compiled tables, so `ei::SetVtable(stream, kMemoryStreamVtable)` in net_link.cpp and
-    world_game.cpp (C21's area) stays as it is; the queue streams' stores call `CMemoryStream::QueueStreamVtable()`.
+    tail 0073BD98) and QueueStreamClass (0073C960). The stores call the accessors (`ei::SetVtable(stream,
+    CMemoryStream::MemoryStreamVtable())`, `CStream::StreamVtable()`, `CMemoryStream::QueueStreamVtable()`; batch 21
+    switched the last world_* / net_* users and removed the `kStreamVtable` / `kMemoryStreamVtable` names).
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
   - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's
@@ -1195,6 +1195,37 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
     and the module / thread state records (mfc_thread, mfc_window, mfc_state), CCmdUI / CTestCmdUI,
     CCommandLineInfo, CRecentFileList, 00746E60 and type_info 007472B0 (the RTTI type descriptors point at it).
+- **Batch 21's families** (2026-10-22): the rest of the MFC library kind and stlp's out_of_range: 36 rows (retired
+  524 -> 560), 2,154 -> 1,696 code cells, game data addresses 936 -> 918 (no library vtable is named in src/ any more).
+  - **Unported slots**: a slot of a compiled table whose game.exe body is not ported (the image never reaches it) is
+    `ei::UnportedSlot(<game.exe's address>)` (compiled_vtable.h): reached anyway, it reports "no code at <address>"
+    through `ei::ReportNoCode` (now declared in ei/hook.h), as the old table's slot did. config/standalone_unreachable.csv
+    lists those addresses (`address` lines: standalone_gaps.py counts them as code literals) with the reason; the
+    retired tables' `vtable` lines are gone (a retired table's slots are no data reference, so the line covered nothing).
+    Port only what the image reaches (or what a ported body calls: CDC::Detach's slot 5); the rest stays unported.
+  - **mfc_gdi**: GdiObjectTable (CGdiObject, CBrush, CPen, CTempGdiObject: 0 the class's record, 1 the deleting
+    destructor, CTempGdiObject's back to its fixed allocator) and DCTable (CDC, CTempDC: 29 slots; 3-6, 10, 12, 26, the
+    destructor, Detach ported, the rest unported). ui_gdi.h's GameBrush stores `CBrush::Vtable()`. CClientDC,
+    CWindowDC, CPaintDC and CRgn are retired with no class of ours.
+  - **CHandleMap** (mfc_handle_map.cpp): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
+    CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
+    through its slot 1, the CTempDC / CTempGdiObject destructors above).
+  - **Windows and threads**: mfc_window.h's CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
+    the class's own); WndTable (CWnd, CTempWnd: 46 slots, only the destructors ported), MenuTable (CMenu,
+    CTempMenu: the destructors unported, they need the menu handle map) and WinThreadTable (31 slots: the destructor
+    and Delete ported; WinThread::Delete now deletes through DeletingDestructor). Retired with no class of ours:
+    CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
+    (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
+    _AFX_BASE_MODULE_STATE).
+  - **The CFile family** (mfc_file.cpp): FileTable (CFile; CStdioFile's StdioFileTable over it with 16 = its
+    LockRange body and 21-23 its own), FileFindTable and mfc_exception.cpp's FileExceptionTable; every slot was
+    registered already. CMemFile retired with no class of ours. Overloaded slots (CFileFind's CTime / FILETIME
+    getters, CStdioFile's two ReadStrings) get distinct names: MSVC groups a name's overloads in the table.
+  - **stlp's out_of_range** (stlp_string.cpp): NamedExceptionClass / OutOfRangeClass (0 std::exception's deleting
+    destructor, 1 what: the name). The throw keeps game.exe's ThrowInfo 0074C640; its copy constructor 00429130 is
+    unported (a catch by value would report it; nothing catches one).
+  - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
+    the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
