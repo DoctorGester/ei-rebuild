@@ -40,9 +40,6 @@ namespace {
 constexpr std::uint32_t kEflagsId = 0x00200000;    // EFLAGS.ID: can be flipped when CPUID exists
 constexpr std::uint32_t kFeatureMmx = 0x00800000;  // CPUID.1:EDX bit 23
 
-// What CPUID function 1 reported (007CAED0, ProcessorInfo in sys_info.h; renderer_base_create.cpp
-// fills it the same way).
-ProcessorInfo& Processor() { return ei::GameData<ProcessorInfo>(0x007CAED0); }
 
 // Whether the processor has CPUID: the ID flag flips. As in the original it stays flipped.
 bool HasCpuid() {
@@ -153,7 +150,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     ei::SetVtable(this, DirectDrawClass::Vtable());
     const RECT screen = {0, 0, width, height};
 
-    ProcessorInfo& processor = Processor();
+    ProcessorInfo& processor = *TheProcessorInfo();   // renderer_base_create.cpp fills it the same way
     processor.terminator = 0;
     if (HasCpuid()) {
         int registers[4];
