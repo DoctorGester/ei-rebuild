@@ -1190,9 +1190,9 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
             auto* list = TheServerWorld()->itemManager_;
-            ObjectIterator it;
+            ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
-            for (CEngineObject* object = it.First(list); object; object = it.Next()) static_cast<CItem*>(object)->Repair();
+            for (CItem* item = it.First(list); item; item = it.Next()) item->Repair();
             if (it.manager) {   // destructor (004BB050)
                 --it.manager->refCount_;
                 it.manager = nullptr;

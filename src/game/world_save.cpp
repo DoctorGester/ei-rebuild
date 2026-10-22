@@ -710,9 +710,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
     // The item manager's object records.
     {
-        ObjectListIterator it{nullptr, nullptr};
-        for (CEngineObject* item = it.First(ItemFactory()); item; item = it.Next()) {
-            CItemLink* record = static_cast<CItem*>(item)->ServerLink();   // the item manager holds items
+        ObjectListIteratorOf<CItem> it{};
+        for (CItem* item = it.First(ItemFactory()); item; item = it.Next()) {
+            CItemLink* record = item->ServerLink();
             if (!record) continue;
             WriteCopy(stream, item->id_);
             WriteCopy(stream, record->value);

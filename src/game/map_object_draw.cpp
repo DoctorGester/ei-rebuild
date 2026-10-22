@@ -104,14 +104,14 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
 
     // The lights within reach (the list starts with room for 16).
     LightList list{nullptr, 0, 0, 0};
-    ObjectListIterator lights{nullptr, nullptr};
-    CEngineObject* light = lights.First(TheLightFactory());
+    ObjectListIteratorOf<CLight> lights{};
+    CLight* light = lights.First(TheLightFactory());
     list.data = reinterpret_cast<CEngineObject**>(aligned::AllocateDwords(0x10));
     list.capacity = 0x10;
     list.size = 0;
     for (; light; light = lights.Next()) {
         if (context->sun_ == light) continue;
-        if (!InReach(object, static_cast<CLight*>(light))) continue;
+        if (!InReach(object, light)) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
         list.SetAtGrow(list.size, light);   // 0051EE50
