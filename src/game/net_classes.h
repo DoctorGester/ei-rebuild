@@ -503,10 +503,11 @@ public:
     void Tick(double dt) override;                                           // 14: 00443590
     void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     virtual void Describe(RefPtr* out) = 0;                                  // 15: this server's entry into *out
-    // 16: 00443050 (admits everybody). Whether a client from `address` may join: `*password` (moved
-    // past the password when one is checked) and `*reason` (1 full, 2 banned, 3 bad password).
-    virtual bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);
-    bool AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
+    // 16: 00443050 (admits everybody). Whether a client from `from` may join: `*password` (the login
+    // cursor's next byte, moved past the password when one is checked) and `*reason` (1 full, 2
+    // banned, 3 bad password).
+    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);
+    bool AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
     // 004132F0. The destructor body of this layer: the pending joins, then the session base.
     void DestructBase();
@@ -539,8 +540,8 @@ public:
     void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void Describe(RefPtr* out) override;                                      // 15: 0041A7E0
     void DescribeImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
-    bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) override;   // 16: 0041A050
-    bool AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
+    bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;   // 16: 0041A050
+    bool AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t kind);
@@ -896,8 +897,8 @@ public:
     }
     void Tick(double dt) override { As<ServerBase>()->TickImpl(dt); }   // 14: 00443590
     virtual void Describe(RefPtr*) { _purecall(); }                     // 15: pure
-    virtual bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {   // 16: 00443050
-        return As<ServerBase>()->AdmitImpl(address, password, reason);
+    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {   // 16: 00443050
+        return As<ServerBase>()->AdmitImpl(from, password, reason);
     }
 };
 
@@ -916,8 +917,8 @@ public:
     }
     void Tick(double dt) override { As<ServerSession>()->TickImpl(dt); }              // 14: 004182E0
     void Describe(RefPtr* out) override { As<ServerSession>()->DescribeImpl(out); }   // 15: 0041A7E0
-    bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) override {   // 16: 0041A050
-        return As<ServerSession>()->AdmitImpl(address, password, reason);
+    bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override {   // 16: 0041A050
+        return As<ServerSession>()->AdmitImpl(from, password, reason);
     }
 };
 
