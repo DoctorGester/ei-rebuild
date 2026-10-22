@@ -310,7 +310,7 @@ vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 
 ## Textures: mmp and composed (texture_mmp, texture_compose)
 
-Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset` P; `ComposeTexture` 00693180 (RET 0x1C) O;
+Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset` P; `CTextureManager::Compose` 00693180 (RET 0x1C) O;
 `FillSurface` 0068FA10 (O: result = FilledBytes over the chain), `CopyToSurface`, `ConvertToSurface` (8888 to 16 bits),
 `UnpackToSurface` (DXT through the converter's slot 10): S (the original fills, levels read back and overwritten, ours fills,
 compared; texture_fill); `CTextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
@@ -320,7 +320,7 @@ references undone between the runs); `DeleteComposedTextures` 006916F0 (texture_
 through the game's DeleteFileA, failures to the debug log; O counted only: the harness overlay decides what a delete does);
 `LoadBmp` 00690260 (alpha "a_<file>" beside it; no scenario: no loose .bmp).
 
-ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header
+CTextureManager::Compose: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header
 +0x48), so an unchanged request is reused (1). When `name` has no file and differs from the fallback name, the fallback's
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (`CTextureManager::DrawLayers`, S
 on an image copy; returns the layers drawn, converter slot 5 per layer) and written, each level converted to 16 bits by the
@@ -454,7 +454,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   original reads past its code table), `CItemSpell::PictureName` ("initqi1item"), `CItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `CSpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
-  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888` (texture_slots.cpp; ComposeTexture keeps its
+  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888` (texture_slots.cpp; Compose keeps its
   forwarders so the wrappers run; S), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against

@@ -161,7 +161,7 @@ void CTextManager::Destruct() {
     // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
     sources_.ClearWith([](TextSource* source) { source->name.~string(); });
     stlp::deallocate(sources_.head, sizeof(TextSourceNode));
-    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+    DestructBase();
 }
 
 CTextManager* CTextManager::DeletingDestruct(unsigned flags) {
@@ -200,7 +200,7 @@ void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
 }
 EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
-int CTextManager::Create() {
+int CTextManager::CreateImpl() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
     // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c). With
     // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
@@ -211,7 +211,7 @@ int CTextManager::Create() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);
+EI_REPLACE_METHOD(0x004DED20, CTextManager::CreateImpl);
 
 EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);

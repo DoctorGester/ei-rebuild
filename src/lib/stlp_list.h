@@ -124,6 +124,12 @@ struct list {
         deallocate(pos, sizeof(Node));
         return next;
     }
+    // list(const list&) (e.g. 00437930): a sentinel, then a copy of each element of `from`.
+    template <typename E = Element<T>>
+    void CopyConstruct(const list& from) {
+        Construct();
+        InsertRange<E>(head, from.First(), from.End());
+    }
     // clear() (e.g. 00427100).
     template <typename E = Element<T>>
     void Clear() {

@@ -47,7 +47,7 @@ their tables (game flow's zone names, the hero part names, the attribute and ski
 zones), options_defaults' value names and the lexer's comment tokens. The strings were read from both exes by script
 (`tools/exe_strings.py`; `--wrap X` takes `X(0x...)` and `X(std::uintptr_t(0x...))`, `--before RE` a parameter position,
 `--skip` leaves addresses), not typed. Keep a string by address only where code compares the pointer itself
-(`game::kEmptyTextAddress` and the per-file `EmptyText()` copies of 0079B298), where the game writes into the string
+(`game::EmptyText()`, 0079B298), where the game writes into the string
 (the window title 0079BB24, the digit at 007930F6, the pointer cells LoadingMovieName 00791EE0), and in the CRT
 (`crt_locale` compares its locale names by pointer; `_iob` is not a string). A pointer-sized cell read as
 `const char* const*` holds the address of the text, not the text: read the cell's pointer first.

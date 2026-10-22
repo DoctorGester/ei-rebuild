@@ -16,6 +16,9 @@
 #include "net_classes.h"
 #include "net_coder.h"
 
+#include "lib/stlp_list_refs.h"
+#include "lib/stlp_tree_abi.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -131,12 +134,43 @@ struct AttachedId {
     std::uint8_t unused_3;
 };
 
+// The connection's five STLport maps as registered instantiations (net_connection_trees.cpp): their
+// value policies and stlp::TreeAbi types, which the connection's fields are.
+namespace trees {
+
+// Counted references to a replica entry, copied with one more reference and released.
+struct CountedValue : stlp::CountedRef {
+    using Type = RefPtrTo<ReplicaEntry>;
+};
+// A record copied as the pair constructor 0043A090 and _M_create_node 0043DF00 copy it: shared,
+// then the version; destroyed with the owner's detach.
+struct RecordValue {
+    using Type = Record;
+    static void Copy(Record* to, const Record& from) {
+        to->object.Share(from.object.ptr);
+        to->version = from.version;
+    }
+    static void Destroy(Record* p) { p->object.Destroy(); }
+};
+
+template <typename K, typename Second>
+using PairTree = stlp::TreeAbi<stlp::map<K, typename Second::Type>,
+                               stlp::PairElement<typename stlp::map<K, typename Second::Type>::Value, Second>>;
+
+using SentIds = PairTree<std::int32_t, CountedValue>;    // type << 16 | id -> entry
+using Objects = PairTree<CRefObject*, CountedValue>;     // object -> entry
+using Entries = PairTree<ReplicaEntry*, CountedValue>;   // entry -> entry
+using Records = PairTree<std::int32_t, RecordValue>;     // type << 16 | id -> record
+using Attached = stlp::TreeAbi<stlp::map<CRefObject*, AttachedId>>;   // object -> (type, id)
+
+} // namespace trees
+
 class __declspec(novtable) Connection : public CRefObject {
 public:
     static void* Vtable();   // the compiled table (below; game.exe's 0073BF38)
 
-    using EntryMap = stlp::map<ReplicaEntry*, RefPtr>;
-    using RecordMap = stlp::map<std::int32_t, Record>;
+    using EntryMap = trees::Entries;
+    using RecordMap = trees::Records;
 
     // 0: 004334C0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     // 2: 00433320 (net_connection_life.cpp). Destroyed and built again with id 0; returns what
@@ -230,13 +264,13 @@ public:
     IdPool idPools_[kMessageTypes];     // +0x0054 one per message type
     stlp::list<FreedIds> freedIds_;     // +0x1054 batches of ids returned to the pools later
     float freedTimer_;                  // +0x1058
-    stlp::map<std::int32_t, RefPtr> bySentId_;    // +0x105C type << 16 | id -> entry
-    stlp::map<CRefObject*, RefPtr> byObject_;     // +0x1068 object -> entry
+    trees::SentIds bySentId_;           // +0x105C type << 16 | id -> entry
+    trees::Objects byObject_;           // +0x1068 object -> entry
     EntryMap priorities_[11];           // +0x1074 per priority: entry -> entry
     stlp::list<SentPacket> history_;    // +0x10F8 packets sent, waiting for an acknowledgement
     stlp::list<SentPacket> acknowledged_;   // +0x10FC lost packets, kept a while for late acknowledgements
     RecordMap records_;                 // +0x1100 objects received (key type << 16 | id)
-    stlp::map<CRefObject*, AttachedId> attached_;   // +0x110C received object -> (type, id)
+    trees::Attached attached_;          // +0x110C received object -> (type, id)
     std::uint16_t headerSequence_;      // +0x1118 sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // +0x111A sequence of the next reliable chunk expected
     stlp::list<ReliableChunk> headers_;    // +0x111C reliable chunks waiting to be sent

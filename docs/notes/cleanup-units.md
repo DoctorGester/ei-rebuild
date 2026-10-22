@@ -156,9 +156,9 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
 - **Callbacks by function.** `src/game/at_exit_functions.h` declares what function-local statics register with `GameAtExit`
   (`atexit400::DestroyGlobalVector`, `ei::static_init::Exit...`, `ei::short_functions::Ret`); the eh-vector iterators take
   `void*` and the functions themselves.
-- **Left raw** (about 20 `kX` constants): the hook/ and standalone/ image addresses, `kEmptyTextAddress`, `kStateBlockAlpha`,
-  `kMasterHost`, unit_ai's world / time / console, the candidates list and guard, the script queue, options' two float
-  factors (they feed naked `FtolProduct` / `StoreUnsignedProduct` that take an address).
+- **Left raw**: no `constexpr uintptr_t kX = 0x00...` in src (tools/progress.py 0, C11 batch 33). game.exe's text
+  bounds, WinMain and CRT atexit are `ei::kGameTextBegin / kGameTextEnd / kGameWinMain / kGameAtExit` (include/ei/hook.h);
+  `game::EmptyText()` reads 0079B298 itself (callers compare the pointer).
 - **Library forwarder wrappers.** One-line file-local wrappers over the `originals_library.h` forwarders were inlined; kept:
   wrappers with a typed result (`(Node*)ListNewNode...Original`), integer-to-pointer casts, `const_cast` / `static_cast`
   arguments, wrappers used as function pointers (hash table `FindOrInsert(..., ObjectsResize, ObjectsNewNode)`), and every

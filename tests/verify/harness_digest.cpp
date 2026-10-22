@@ -224,7 +224,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Int("cave", w->cave_);
     b.Int("weather", w->weather_);
     b.Float("weatherStrength", w->weatherStrength_);
-    b.Int("exits", w->exitCount_);
+    b.Int("exits", w->exits_.size);
     b.Int("gameResult", w->gameResult_);
     b.Unsigned("lastRainBoltTick", w->lastRainBoltTick_);
     b.Int("zoneLoaded", w->zoneLoaded_);

@@ -701,7 +701,7 @@ void CMpConnectScreen::Create() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    void* texts = GameClientTexts();   // 00578E20: the client's text table
+    CTextManager* texts = GameClientTexts();   // 00578E20: the client's text table
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);

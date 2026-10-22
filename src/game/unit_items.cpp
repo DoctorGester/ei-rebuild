@@ -25,8 +25,6 @@ constexpr int kControllerArmourRemoved = 0x6C / 4;
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
 
-int ArmourType(CItem* item) { return static_cast<CItemArmor*>(item)->GetType(); }
-
 void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
     for (int i = 0; i < count; ++i) {
         CItem* item = slots[i];
@@ -40,25 +38,26 @@ void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
 // 00514930: the unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
 // unit_create.cpp, called through its address.
 
-CItem* CUnit::EquipArmour(CItem* item) {
+CItemArmor* CUnit::EquipArmour(CItem* item) {
     if (!item) return nullptr;
     if (x87::fistp(std::bit_cast<float>(item->condition_)) <= 0) return nullptr;   // broken
-    CItem* previous = armor[ArmourType(item)];
-    armor[ArmourType(item)] = item;
-    ++item->refCount_;
-    Controller()->ArmourPutOn(item->prototypeId_);
+    CItemArmor* piece = AsArmor(item);
+    CItemArmor* previous = armor[piece->GetType()];
+    armor[piece->GetType()] = piece;
+    ++piece->refCount_;
+    Controller()->ArmourPutOn(piece->prototypeId_);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
     return previous;
 }
 EI_REPLACE_METHOD(0x00530730, CUnit::EquipArmour);
 
-CItem* CUnit::UnequipArmour(int slot) {
-    CItem* item = armor[slot];
+CItemArmor* CUnit::UnequipArmour(int slot) {
+    CItemArmor* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
         void* const* vtable = *reinterpret_cast<void* const* const*>(controller);   // read before the call
-        int type = ArmourType(item);
+        int type = item->GetType();
         reinterpret_cast<int(__fastcall*)(CEngineObject*, void*, int)>(vtable[kControllerArmourRemoved])(controller,
                                                                                                         nullptr, type);
         item->Release();
@@ -71,12 +70,12 @@ EI_REPLACE_METHOD(0x00530840, CUnit::UnequipArmour);
 
 void CUnit::ReleaseAllItems() {
     ReleaseSlots(this, weapons, 4);
-    for (CItem*& slot : armor) {
-        CItem* item = slot;
+    for (CItemArmor*& slot : armor) {
+        CItemArmor* item = slot;
         slot = nullptr;
         if (item) {
             void* const* vtable = *reinterpret_cast<void* const* const*>(controller);
-            int type = ArmourType(item);
+            int type = item->GetType();
             reinterpret_cast<int(__fastcall*)(CEngineObject*, void*, int)>(vtable[kControllerArmourRemoved])(
                 controller, nullptr, type);
             item->Release();

@@ -50,7 +50,7 @@ BOOL CItem::IsSameAsImpl(CItem* other) {
 
 BOOL CItemArmor::IsSameAsImpl(CItem* item) {
     if (!CItem::IsSameAsImpl(item)) return 0;
-    auto* other = static_cast<CItemArmor*>(item);
+    auto* other = AsArmor(item);
     // Both absorption rows and the layer masks, compared as dwords.
     static_assert(offsetof(CItemArmor, layerMask_) + sizeof(layerMask_) - offsetof(CItemArmor, absorb_) == 0x40);
     return std::memcmp(absorb_, other->absorb_, 0x40) == 0 ? 1 : 0;
@@ -68,7 +68,7 @@ BOOL CItemQuest::IsSameAsImpl(CItem* other) {
 
 BOOL CItemLoot::IsSameAsImpl(CItem* item) {
     if (!CItem::IsSameAsImpl(item)) return 0;
-    auto* other = static_cast<CItemLoot*>(item);
+    auto* other = AsLoot(item);
     if (other->kind_ != kind_ || other->recordType_ != recordType_) return 0;
     return other->index_ == index_ ? 1 : 0;
 }

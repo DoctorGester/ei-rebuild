@@ -32,9 +32,6 @@ struct Result {
 template <class>
 using Word = std::uint32_t;
 
-// The CRT's atexit in game.exe, which Run::AtExit reaches through GameAtExit (originals_library.h).
-constexpr std::uintptr_t kCrtAtExit = 0x006E727B;
-
 // The operations that do what they say, on game.exe's memory and code: the static initialisers (Run) and
 // the exit functions they register (static_exit.cpp) run through them. A data address is the original's:
 // each operation that takes one resolves it through the data seam (game_data.h), At an argument that is one.
@@ -193,7 +190,7 @@ public:
     }
     void AtExit(std::uintptr_t fn) {
         exits.push_back(fn);
-        calls.push_back(kCrtAtExit);
+        calls.push_back(kGameAtExit);   // Run::AtExit's GameAtExit (ei/hook.h)
     }
 
     std::vector<std::uintptr_t> calls, imports, exits;
