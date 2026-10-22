@@ -189,7 +189,7 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     std::memcpy(&m[14], &moved[2], sizeof(float));
 }
 
-EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigureImpl);
-EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);
-EI_REPLACE_METHOD(0x0059F710, CFigureMesh::SaveToFile);
+EI_REWRITTEN(0x0059F0F0, CFigureMesh::CopyFigureImpl);
+EI_REWRITTEN(0x0059F510, CFigureMesh::SetPose);
+EI_REWRITTEN(0x0059F710, CFigureMesh::SaveToFile);
 EI_REWRITTEN(0x0059F8F0, CPlainFigureMesh::LoadFromFile);
