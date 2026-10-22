@@ -24,9 +24,9 @@ namespace net {
 
 namespace {
 
-using ObjectMap = stlp::map<CRefObject*, RefPtr>;
-using SentIdMap = stlp::map<std::int32_t, RefPtr>;
-using AttachedMap = stlp::map<CRefObject*, AttachedId>;
+using ObjectMap = trees::Objects;
+using SentIdMap = trees::SentIds;
+using AttachedMap = trees::Attached;
 using EntryMap = Connection::EntryMap;
 using RecordMap = Connection::RecordMap;
 
@@ -89,10 +89,10 @@ RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::in
     Record empty;
     ::RefPtrNull(&empty.object);
     empty.version = 0;   // left uninitialised by the original; overwritten by every caller
-    RecordMap::Value pair;
-    static_cast<trees::Records::ValueAbi*>(&pair)->MakeValue(key, empty);
+    RecordMap::ValueAbi pair;
+    pair.MakeValue(key, empty);
     RecordMap::Node* inserted;
-    static_cast<trees::Records*>(&records)->InsertHint(&inserted, hint, pair);
+    records.InsertHint(&inserted, hint, pair);
     pair.second.object.Destroy();
     empty.object.Destroy();
     return inserted;
@@ -101,7 +101,7 @@ RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::in
 // The node for `key` in `records`, inserted when missing (the lower_bound + hinted insert idiom).
 RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
     RecordMap::Node* lb;
-    static_cast<trees::Records*>(&records)->LowerBound(&lb, key);
+    records.LowerBound(&lb, key);
     if (lb == records.end() || key < lb->first) lb = InsertRecord(records, lb, key);
     return lb;
 }
@@ -204,13 +204,13 @@ EI_REWRITTEN(0x00433F20, Connection::RollBack);
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedMap::Node* lb;
-    static_cast<trees::Attached*>(&attached_)->LowerBound(&lb, object);
-    if (lb == attached_.end() || reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
+    attached_.LowerBound(&lb, object);
+    if (lb == attached_.end() || object < lb->first) {
         // The pair holds the type dword in the id's place (both fields are written below).
         AttachedMap::Value pair{object, {static_cast<std::uint16_t>(type), static_cast<std::uint8_t>(type >> 16),
                                          static_cast<std::uint8_t>(type >> 24)}};
         AttachedMap::Node* inserted;
-        static_cast<trees::Attached*>(&attached_)->InsertHint(&inserted, lb, pair);   // 00439B80
+        attached_.InsertHint(&inserted, lb, pair);   // 00439B80
         lb = inserted;
     }
     lb->second.id = static_cast<std::uint16_t>(key);
@@ -255,7 +255,7 @@ bool Connection::SendUpdate(int budget) {
         EntryMap& map = priorities_[priority];
         EntryMap::Node* it = map.begin();
         while (it != map.end()) {
-            ReplicaEntry* entry = static_cast<ReplicaEntry*>(it->second.ptr);
+            ReplicaEntry* entry = it->second.Get();
             Message* object = entry->Object();
             bool alive;
             if (object && !(object->flags7_ & CRefObject::kDetached)) {
@@ -267,7 +267,7 @@ bool Connection::SendUpdate(int budget) {
                 if (entry->id_ == 0) {
                     entry->id_ = idPools_[entry->type_].Allocate();
                     std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                    static_cast<trees::SentIds*>(&bySentId_)->Subscript(key)->Assign(entry);   // 00437B90
+                    bySentId_.Subscript(key)->Assign(entry);   // 00437B90
                 }
                 c.PutBits(1, 1);
                 std::uint32_t id = entry->id_;
@@ -283,7 +283,7 @@ bool Connection::SendUpdate(int budget) {
                 }
                 if (entry->object_.ptr) {
                     CRefObject* key = entry->object_.ptr;
-                    static_cast<trees::Objects*>(&byObject_)->EraseKey(key);
+                    byObject_.EraseKey(key);
                     entry->object_.Assign(nullptr);
                     entry->version_ = 0;
                 }
@@ -346,7 +346,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     cursor->ReadBytes(&id, 2);
     std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
     RecordMap::Node* found;
-    static_cast<trees::Records*>(&records_)->Find(&found, key);
+    records_.Find(&found, key);
     SessionBase* session = g_currentSession;
 
     if (!created) {
@@ -362,7 +362,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         RefPtr* slot = &found->second.object;
         if (slot->ptr) {
             CRefObject* object = slot->ptr;
-            attached_.EraseKey<stlp::TreeElement<AttachedMap::Value>>(object);
+            attached_.EraseKey(object);
             object = slot->ptr;
             session = g_currentSession;
             CallHandlers(session, 2, type, object);
@@ -441,14 +441,14 @@ void Connection::Track(Replicated* item) {
 
     CRefObject* key = item->object;
     ObjectMap::Node* lb;
-    static_cast<trees::Objects*>(&byObject_)->LowerBound(&lb, key);   // 0043C4B0
-    if (lb == byObject_.end() || reinterpret_cast<std::uintptr_t>(item->object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
-        RefPtr none;
+    byObject_.LowerBound(&lb, key);   // 0043C4B0
+    if (lb == byObject_.end() || item->object < lb->first) {
+        RefPtrTo<ReplicaEntry> none;
         ::RefPtrNull(&none);
-        ObjectMap::Value pair;
-        static_cast<trees::Objects::ValueAbi*>(&pair)->MakeValue(key, none);   // 0043A050
+        ObjectMap::ValueAbi pair;
+        pair.MakeValue(key, none);   // 0043A050
         ObjectMap::Node* inserted;
-        static_cast<trees::Objects*>(&byObject_)->InsertHint(&inserted, lb, pair);   // 00439540
+        byObject_.InsertHint(&inserted, lb, pair);   // 00439540
         lb = inserted;
         if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
@@ -461,14 +461,14 @@ void Connection::Track(Replicated* item) {
 
     EntryMap& map = priorities_[static_cast<std::int8_t>(item->priority)];
     EntryMap::Node* lb2;
-    static_cast<trees::Entries*>(&map)->LowerBound(&lb2, entry);
-    if (lb2 == map.end() || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->first)) {
-        RefPtr none;
+    map.LowerBound(&lb2, entry);
+    if (lb2 == map.end() || entry < lb2->first) {
+        RefPtrTo<ReplicaEntry> none;
         ::RefPtrNull(&none);
-        EntryMap::Value pair;
-        static_cast<trees::Entries::ValueAbi*>(&pair)->MakeValue(entry, none);   // 0043A070
+        EntryMap::ValueAbi pair;
+        pair.MakeValue(entry, none);   // 0043A070
         EntryMap::Node* inserted;
-        static_cast<trees::Entries*>(&map)->InsertHint(&inserted, lb2, pair);   // 00439730
+        map.InsertHint(&inserted, lb2, pair);   // 00439730
         lb2 = inserted;
         if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
@@ -507,7 +507,7 @@ void Connection::CollectChanges() {
     Replicated* end = items.end();
     ObjectMap::Node* header = byObject_.end();
     ObjectMap::Node* node = byObject_.begin();
-    auto entryAt = [](ObjectMap::Node* n) { return static_cast<ReplicaEntry*>(n->second.ptr); };
+    auto entryAt = [](ObjectMap::Node* n) { return n->second.Get(); };
     if (item != end) {
         do {
             if (node == header) {
@@ -515,8 +515,8 @@ void Connection::CollectChanges() {
                 return;
             }
             ReplicaEntry* entry = entryAt(node);
-            auto listed = reinterpret_cast<std::uintptr_t>(item->object);
-            auto tracked = reinterpret_cast<std::uintptr_t>(entry->object_.ptr);
+            CRefObject* listed = item->object;
+            CRefObject* tracked = entry->object_.ptr;
             if (listed == tracked) {
                 Increment(node);
                 ++item;
@@ -529,14 +529,14 @@ void Connection::CollectChanges() {
                 Increment(node);
                 entry = entryAt(gone);
                 if (entry->id_ == 0) {
-                    static_cast<trees::Entries*>(&priorities_[entry->flags_ >> 1])->EraseKey(entry);
+                    priorities_[entry->flags_ >> 1].EraseKey(entry);
                 } else {
                     CRefObject* old = entry->object_.ptr;
                     entry->object_.ptr = nullptr;
                     if (old) old->Release();
                     entry->version_ = 0;
                 }
-                static_cast<trees::Objects*>(&byObject_)->EraseAt(gone);
+                byObject_.EraseAt(gone);
             }
         } while (item != end);
     }
@@ -545,12 +545,12 @@ void Connection::CollectChanges() {
         Increment(node);
         ReplicaEntry* entry = entryAt(gone);
         if (entry->id_ == 0) {
-            static_cast<trees::Entries*>(&priorities_[entry->flags_ >> 1])->EraseKey(entry);
+            priorities_[entry->flags_ >> 1].EraseKey(entry);
         } else {
             entry->object_.Assign(nullptr);
             entry->version_ = 0;
         }
-        static_cast<trees::Objects*>(&byObject_)->EraseAt(gone);
+        byObject_.EraseAt(gone);
     }
 }
 EI_REWRITTEN(0x004346D0, Connection::CollectChanges);
@@ -594,13 +594,13 @@ bool Usable(const CRefObject* object) { return object && !(object->flags7_ & CRe
 void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (Usable(object)) {
         ObjectMap::Node* found;
-        static_cast<trees::Objects*>(&byObject_)->Find(&found, object);
+        byObject_.Find(&found, object);
         if (found != byObject_.end()) {
-            auto* entry = static_cast<ReplicaEntry*>(found->second.ptr);
+            auto* entry = found->second.Get();
             if (entry->id_ == 0) {
                 entry->id_ = idPools_[entry->type_].Allocate();
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                AssignEntry(static_cast<trees::SentIds*>(&bySentId_)->Subscript(key), entry);
+                AssignEntry(bySentId_.Subscript(key), entry);
             }
             std::uint16_t id = entry->id_;
             std::uint8_t type = entry->type_;
@@ -610,7 +610,7 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
             return;
         }
         AttachedMap::Node* node;
-        static_cast<trees::Attached*>(&attached_)->Find(&node, object);
+        attached_.Find(&node, object);
         if (node != attached_.end()) {
             std::uint16_t id = node->second.id;
             std::uint8_t type = node->second.type;
@@ -640,14 +640,14 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if ((id & 0xFFFF) == 0) return nullptr;
     if (sent) {
         SentIdMap::Node* node;
-        static_cast<trees::SentIds*>(&bySentId_)->Find(&node, key);   // 0043BF00
+        bySentId_.Find(&node, key);   // 0043BF00
         if (node == bySentId_.end()) return nullptr;
-        return static_cast<ReplicaEntry*>(node->second.ptr)->object_.ptr;
+        return node->second.Get()->object_.ptr;
     }
     RecordMap::Node* found;
-    static_cast<trees::Records*>(&records_)->Find(&found, key);
+    records_.Find(&found, key);
     if (found == records_.end()) {
-        Record* record = static_cast<trees::Records*>(&records_)->Subscript(key);
+        Record* record = records_.Subscript(key);
         CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (!object) return nullptr;
         if (object != record->object.ptr) {
@@ -669,7 +669,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         slot->Share(object);
     }
     found->second.version = 0;
-    AttachedId* attachedId = static_cast<trees::Attached*>(&attached_)->Subscript(object);
+    AttachedId* attachedId = attached_.Subscript(object);
     attachedId->id = static_cast<std::uint16_t>(key);
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;
@@ -838,7 +838,8 @@ void Connection::Close() {
     while (it != records_.end()) {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
-            std::uint32_t objectVtable = *reinterpret_cast<const std::uint32_t*>(object);
+            std::uint32_t objectVtable;
+            std::memcpy(&objectVtable, object, 4);
             SessionBase* session = g_currentSession;
             TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(objectVtable);
             std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
