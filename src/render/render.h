@@ -154,6 +154,11 @@ void BeginShadowWalk();
 void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
+// SetShadowFacing (the harness build's "shadowfacing others|all", R22): others (the default): a receiver's
+// own object shadows only its faces turned to the sun, every other object all its faces; all: every caster
+// only the faces turned to the sun (as before R22: faces turned away kept as the game lit them).
+enum class ShadowFacing { Others, All };
+void SetShadowFacing(ShadowFacing mode);
 // R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
 // raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
 // BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection
