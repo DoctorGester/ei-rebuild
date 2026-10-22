@@ -3,6 +3,7 @@
 #include "dib.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/mfc_runtime_class.h"
 #include "lib/mfc_state.h"
@@ -14,7 +15,15 @@
 
 namespace {
 
-const void* DibVtable() { return ei::GamePointer<const void>(0x00744288); }
+// CDib's table: the compiler's (C19; game.exe's 00744288, the same slots): 0 GetRuntimeClass, 1 the scalar
+// deleting destructor, 2 Serialize.
+struct DibClass final : ei::CompiledTag<DibClass> {
+    virtual const void* GetRuntimeClass() const { return reinterpret_cast<const CDib*>(this)->GetRuntimeClass(); }   // 0
+    virtual CDib* Delete(unsigned flags) { return reinterpret_cast<CDib*>(this)->Delete(flags); }                   // 1
+    virtual void Serialize(mfc::CArchive* archive) { reinterpret_cast<CDib*>(this)->Serialize(archive); }          // 2
+};
+
+const void* DibVtable() { return DibClass::Vtable(); }
 
 constexpr int kMaskBytes = 3 * sizeof(std::uint32_t);   // the channel masks of a BI_BITFIELDS header
 constexpr std::uint16_t kPaletteVersion = 0x300;
@@ -91,17 +100,17 @@ CDib* CDib::Delete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006D4B10, CDib::Delete);
+EI_REWRITTEN(0x006D4B10, CDib::Delete);
 
 const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
-EI_REPLACE_METHOD(0x006D4A60, CDib::GetRuntimeClass);
+EI_REWRITTEN(0x006D4A60, CDib::GetRuntimeClass);
 
 void CDib::Serialize(mfc::CArchive* archive) {
     archive->Flush();
     if (archive->IsLoading()) Read(archive->File());
     else Write(archive->File());
 }
-EI_REPLACE_METHOD(0x006D5BB0, CDib::Serialize);
+EI_REWRITTEN(0x006D5BB0, CDib::Serialize);
 
 void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     // What Empty looks at (the constructor above leaves the object raw).

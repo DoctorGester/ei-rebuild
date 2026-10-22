@@ -1,6 +1,7 @@
-// The debug information panel at 0079B930 (vtable 0073BFA4 on the abstract 0073BFAC): an STLport
-// map<string, string> at +4 with a setter (slot 0) and a remover (slot 1), drawn as "key  value"
-// lines (shadowed, 15 pixels apart) into a panel surface of the interface at most twice a second.
+// The debug information panel at 0079B930 (the compiler's vtable in place of 0073BFA4, on the
+// abstract 0073BFAC): an STLport map<string, string> at +4 with a setter (slot 0) and a remover
+// (slot 1), drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the
+// interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
 // constructor (00444740) runs from a static initialiser before the hooks are installed; a start-up
 // check compared what it built (verify_static_initialisers.cpp until S21d). See docs/notes/app.md.
@@ -8,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
@@ -60,7 +62,7 @@ void CDebugPanel::Set(const char* key, const char* value) {
     }
     it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
 }
-EI_REPLACE_METHOD(0x004447E0, CDebugPanel::Set);
+EI_REWRITTEN(0x004447E0, CDebugPanel::Set);
 
 // 004449A0 (slot 1): removes `key`.
 void CDebugPanel::Remove(const char* key) {
@@ -72,7 +74,7 @@ void CDebugPanel::Remove(const char* key) {
     }
     if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
 }
-EI_REPLACE_METHOD(0x004449A0, CDebugPanel::Remove);
+EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
 // 00444690: the table's destructor (at exit): every node destroyed and freed, then the header.
 void CDebugPanel::Destruct() {
@@ -100,9 +102,17 @@ EI_REPLACE_METHOD(0x00444690, CDebugPanel::Destruct);
 // vtable (0073BFAC, abstract) first, the empty map (its header node from the node pool), then the
 // panel's vtable; the interface, surface and font are PanelInit's. The map's compare byte is an
 // uninitialised stack byte in the original and is left as it is here.
+namespace {
+// The panel's table: the compiler's (C19; game.exe's 0073BFA4, the same slots): 0 Set, 1 Remove.
+struct DebugPanelClass final : ei::CompiledTag<DebugPanelClass> {
+    virtual void Set(const char* key, const char* value) { reinterpret_cast<CDebugPanel*>(this)->Set(key, value); }   // 0
+    virtual void Remove(const char* key) { reinterpret_cast<CDebugPanel*>(this)->Remove(key); }                       // 1
+};
+} // namespace
+
 CDebugPanel* CDebugPanel::Construct() {
     entries_.Construct();
-    ei::SetVtable(this, 0x0073BFA4);
+    vtable_ = DebugPanelClass::Vtable();
     return this;
 }
 EI_REPLACE_METHOD(0x00444740, CDebugPanel::Construct);

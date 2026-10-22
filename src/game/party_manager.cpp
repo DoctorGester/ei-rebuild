@@ -202,7 +202,7 @@ void PartyRecord::Serialize(ChunkArchive* ar) {
         p->LoadParty(&local.stream, 1);
     }
 }
-EI_REPLACE_METHOD(0x004A5AF0, PartyRecord::Serialize);
+EI_REWRITTEN(0x004A5AF0, PartyRecord::Serialize);
 
 void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(1, &type, 4);
@@ -228,7 +228,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     }
     ar->Field(6, &flag38, 1);
 }
-EI_REPLACE_METHOD(0x004A6C40, ClassTemplate::Serialize);
+EI_REWRITTEN(0x004A6C40, ClassTemplate::Serialize);
 
 // ---- Redeploy -------------------------------------------------------------------------------------
 

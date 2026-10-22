@@ -445,7 +445,7 @@ void CreateMouse() {
         mouse->references_ = 0;
         mouse->input_ = nullptr;
         mouse->device_ = nullptr;
-        mouse->vtable_ = &ei::GameData<char>(0x0073C350);
+        mouse->vtable_ = CDirectInputMouse::Vtable();
     }
     CDirectInputMouse* old = Mouse();
     Mouse() = mouse;

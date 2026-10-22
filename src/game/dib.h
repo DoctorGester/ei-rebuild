@@ -1,7 +1,7 @@
-// CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0, vtable 00744288): a device
-// independent bitmap as a .bmp file holds one. The game reads loose textures\<name>.bmp overrides
-// with it (texture_bmp.cpp) and writes the screenshots and movie frames a surface capture
-// (below) fills. See docs/notes/models.md ("CDib").
+// CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0; the compiler's vtable in place
+// of 00744288, C19): a device independent bitmap as a .bmp file holds one. The game reads loose
+// textures\<name>.bmp overrides with it (texture_bmp.cpp) and writes the screenshots and movie
+// frames a surface capture (below) fills. See docs/notes/models.md ("CDib").
 #pragma once
 
 #include "lib/gameapi.h"
@@ -52,7 +52,7 @@ struct CDib {
     // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
     int Write(mfc::CFile* file);
 
-    const void* vtable;              // 00744288: GetRuntimeClass, Delete, Serialize
+    const void* vtable;              // dib.cpp's DibClass: GetRuntimeClass, Delete, Serialize
     RGBQUAD* colours;                // +0x04: after the header
     HBITMAP bitmap;                  // +0x08
     std::uint8_t* bits;              // +0x0C

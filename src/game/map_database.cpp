@@ -15,6 +15,7 @@
 #include "originals_ui.h"
 #include "text_reader.h"
 #include "game_arrays.h"
+#include "game_slots.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
@@ -307,7 +308,7 @@ EI_REWRITTEN(0x0045EA00, CMapDatabase::LoadAll);
 
 CMapDatabase* CMapDatabase::Construct() {
     allods.Construct(mfc::impl::AllodArrayClass::Vtable());
-    maps.Construct(kMapArrayVtable);
+    maps.Construct(gameslots::MapRecordArrayClass::Vtable());
     return this;
 }
 EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);

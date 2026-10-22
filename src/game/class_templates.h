@@ -1,9 +1,9 @@
 #pragma once
 
-// Class templates (0x28C bytes, vtable 0073D0C4): one per hero class a new game offers, each with
-// the weapons, armors, items, spells and modifiers that class may use (the records' class masks).
-// Built by 004A7630 at new game into the vector at +0x38 of the object at 007AA5A0. Names are
-// provisional.
+// Class templates (0x28C bytes; the compiler's vtable in place of game.exe's 0073D0C4, C19): one per
+// hero class a new game offers, each with the weapons, armors, items, spells and modifiers that class
+// may use (the records' class masks). Built by 004A7630 at new game into the vector at +0x38 of the
+// object at 007AA5A0. Names are provisional.
 
 #include "item_stock.h"
 #include "party_storage.h"
@@ -16,7 +16,6 @@ class ChunkArchive;
 #include <cstdint>
 
 struct ClassTemplate {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D0C4);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root (CRefCounted)
 
     // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
@@ -42,7 +41,7 @@ struct ClassTemplate {
     CParty* ItemsParty() { return items.Party(); }
     CParty* SpellsParty() { return spells.Party(); }
 
-    void* vtable;                   // 0073D0C4 (base 0073BB68)
+    void* vtable;                   // ClassTemplateClass (game.exe: 0073D0C4; base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
     int type;                       // +0x08 class 1..5; bit (type - 1) of the records' class masks

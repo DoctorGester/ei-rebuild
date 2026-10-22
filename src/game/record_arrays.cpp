@@ -156,7 +156,7 @@ EI_REWRITTEN(0x004CCF50, ScalarDeleting<&SubCalls::Destruct<SubCallBaseClass>>::
 EI_REWRITTEN(0x00510160, ScalarDeleting<&DeltaFields::Destruct<DeltaFieldArrayClass>>::Delete);
 EI_REWRITTEN(0x00556BE0, ScalarDeleting<&Behaviours::Destruct<BehaviourArrayClass>>::Delete);
 EI_REWRITTEN(0x005587E0, ScalarDeleting<&Behaviours::Destruct<BehaviourArrayClass>>::Delete);
-EI_REPLACE_METHOD(0x006B5980, ScalarDeleting<&Themes::Destruct<ThemeArrayClass>>::Delete);
+EI_REWRITTEN(0x006B5980, ScalarDeleting<&Themes::Destruct<ThemeArrayClass>>::Delete);
 EI_REWRITTEN(0x00454CC0, ScalarDeleting<&scene::FaceGroupArrayDestruct>::Delete);
 EI_REWRITTEN(0x006C4EC0, ScalarDeleting<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>::Delete);
 EI_REWRITTEN(0x006C4E80, ScalarDeleting<&SectorVertices::Destruct<SectorVertexArrayClass>>::Delete);
@@ -175,7 +175,7 @@ EI_REWRITTEN(0x004C52A0, SubCalls::Serialize);
 EI_REWRITTEN(0x004C7820, Definitions::Serialize);
 EI_REWRITTEN(0x0050FC80, DeltaFields::Serialize);
 EI_REWRITTEN(0x00557960, Behaviours::Serialize);
-EI_REPLACE_METHOD(0x006B5770, Themes::Serialize);
+EI_REWRITTEN(0x006B5770, Themes::Serialize);
 EI_REWRITTEN(0x006C4790, SectorVertices::Serialize);
 EI_REWRITTEN(0x00571240, WaterLevels::Serialize);
 EI_REWRITTEN(0x005993A0, Sectors::Serialize);

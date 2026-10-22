@@ -84,7 +84,7 @@ EI_REWRITTEN(0x004C3BE0, gamearrays::Groups::Serialize);       // the script's g
 EI_REWRITTEN(0x004C5E60, gamearrays::PointLights::Serialize);  // the script's point lights
 EI_REWRITTEN(0x004C9E20, gamearrays::Objectives::Serialize);   // a quest's objectives
 EI_REWRITTEN(0x00460270, gamearrays::Exits::Serialize);        // a zone's exits
-EI_REPLACE_METHOD(0x0045FEB0, BuiltZoneRecords::Serialize);         // the map database's zones
+EI_REWRITTEN(0x0045FEB0, BuiltZoneRecords::Serialize);         // the map database's zones
 EI_REWRITTEN(0x00511C30, gamearrays::Particles::Serialize);    // a map object client's effect particles
 EI_REWRITTEN(0x00556E10, ObjectValues::Serialize);             // a unit memory's object records
 EI_REWRITTEN(0x004C55C0, BuiltCommands::Serialize);            // a command block

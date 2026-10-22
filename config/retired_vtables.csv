@@ -34,6 +34,7 @@ vtable,slots,class,file,note
 0073BF38,4,ConnectionClass,src/game/net_connection.h,a connection (Connection)
 0073BF4C,4,ReplicaEntryClass,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
 0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
+0073BFA4,2,DebugPanelClass,src/game/string_map.cpp,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
@@ -57,12 +58,15 @@ vtable,slots,class,file,note
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
+0073C350,1,MouseClass,src/game/app_lifetime.cpp,the DirectInput mouse (CDirectInputMouse)
+0073C360,2,PartyRecordClass,src/game/app_lifetime.cpp,a named party record (PartyRecord)
 0073C37C,3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
 0073C388,3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
 0073C394,3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
 0073C3A0,3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
 0073C3D0,3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
 0073C3DC,3,AllodArrayClass,src/lib/mfc_slots.h,CArray (the map database's allods)
+0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
@@ -97,6 +101,7 @@ vtable,slots,class,file,note
 0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
+0073D0C4,2,ClassTemplateClass,src/game/class_template_stock.cpp,a hero class template (ClassTemplate)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
 0073D128,13,GuardClass,src/game/ai_mode_class.h,the Guard AI mode
@@ -364,6 +369,7 @@ vtable,slots,class,file,note
 00744064,1,ArmorRecordClass,src/game/item_db.h,an armour record (ArmorRecord)
 00744068,1,WeaponRecordClass,src/game/item_db.h,a weapon record (WeaponRecord)
 00744098,13,CMusicSystem,src/game/sound.h,
+007440CC,3,ThemeArrayClass,src/game/record_arrays.h,CArray<MusicTheme> (the music system's themes)
 007440F0,13,CSoundManager,src/game/sound.h,
 00744124,3,WaveListClass,src/game/game_slots.h,CList (the sound cache's wave records)
 00744130,3,SoundListClass,src/lib/mfc_slots.h,CList (the sound manager's list)
@@ -375,3 +381,4 @@ vtable,slots,class,file,note
 00744228,3,TerrainArrayCClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC530)
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
+00744288,3,DibClass,src/game/dib.cpp,CDib
