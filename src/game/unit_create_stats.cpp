@@ -593,7 +593,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
-        object->SetServerDataImpl(&vitals);
+        object->CMapObject::SetServerData(&vitals);
         object->SetStats(&stats);
         // The figure stands lower by the model's height.
         float lift = static_cast<float>(-static_cast<double>(model->height));

@@ -16,11 +16,11 @@ constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 constexpr int kNoSound = -1;
 } // namespace
 
-bool CMapObject::ApplyScienceImpl(int, int) {
+bool CMapObject::ApplyScience(int, int) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }
-EI_REWRITTEN(0x0050F0F0, CMapObject::ApplyScienceImpl);
+EI_REWRITTEN(0x0050F0F0, CMapObject::ApplyScience);
 
 void CMapObject::FreeArray(UseSpotArray* array, int) {
     if (array->data) {

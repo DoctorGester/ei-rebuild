@@ -62,7 +62,7 @@ void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
 void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
 
 std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
-    if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObjectImpl(object);
+    if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObject(object);
     CTorchObjectSpec* old = spec;
     spec = static_cast<CTorchObjectSpec*>(object);
     if (spec) ++spec->refCount_;
@@ -74,7 +74,7 @@ std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
 EI_REWRITTEN(0x0052C2C0, CTorchObject::AttachTorchObject);
 
 void CTorchObject::WriteTorchNetState() {
-    WriteNetStateImpl();
+    CMapObject::WriteNetState();
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return;
     std::uint32_t value = spec->lightKind_;
@@ -89,7 +89,7 @@ void CTorchObject::WriteTorchNetState() {
 EI_REWRITTEN(0x0052C180, CTorchObject::WriteTorchNetState);
 
 std::uint32_t CTorchObject::ReadTorchNetState(int first) {
-    std::uint32_t complete = ReadNetStateImpl(first);
+    std::uint32_t complete = CMapObject::ReadNetState(first);
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return complete;
     spec->ReadNetState(field);

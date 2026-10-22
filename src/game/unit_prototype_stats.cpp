@@ -7,7 +7,7 @@
 
 #include "ei/hook.h"
 
-void CUnit::TakePrototypeImpl(const char* prototype) {
+void CUnit::TakePrototype(const char* prototype) {
     // The original's stack copies start uninitialised; the resets and the builder (its defaults
     // too, for an unknown prototype) write every field the packers read.
     UnitVitals vitals{};
@@ -18,4 +18,4 @@ void CUnit::TakePrototypeImpl(const char* prototype) {
     vitals.Pack(&packedVitals);
     stats.Pack(nullptr, Params());
 }
-EI_REWRITTEN(0x0052EB70, CUnit::TakePrototypeImpl);
+EI_REWRITTEN(0x0052EB70, CUnit::TakePrototype);

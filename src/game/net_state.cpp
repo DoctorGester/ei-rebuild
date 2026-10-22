@@ -1,7 +1,6 @@
 // The network state writers of map objects (0050EAF0) and units (0052EC70): the virtual slot
 // that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
-// docs/notes/units.md ("Network state"). The slots are virtual; their bodies are the *Impl members,
-// registered by member pointer (rewrite-guide rule 4).
+// docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
 
@@ -34,7 +33,7 @@ void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value,
 
 } // namespace
 
-void CMapObject::WriteNetStateImpl() {
+void CMapObject::WriteNetState() {
     DeltaState* state = NetState();   // +0x1C4
     if (DeltaField* field = state->BeginField(0)) {
         field->WriteDelta(&packedVitals, 0x18);   // 00523700
@@ -63,8 +62,8 @@ void CMapObject::WriteNetStateImpl() {
     }
 }
 
-void CUnit::WriteNetStateImpl() {
-    CMapObject::WriteNetStateImpl();
+void CUnit::WriteNetState() {
+    CMapObject::WriteNetState();
     CUnit* unit = this;
     DeltaState* state = NetState();
     if (DeltaField* field = state->BeginField(4)) {
@@ -150,7 +149,7 @@ std::uint32_t SnapshotConsumed() {
 
 } // namespace
 
-std::uint32_t CMapObject::ReadNetStateImpl(int first) {
+std::uint32_t CMapObject::ReadNetState(int first) {
     DeltaState* state = NetState();
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
@@ -228,10 +227,10 @@ bool Exceeds(float v) {
 
 } // namespace
 
-std::uint32_t CUnit::ReadNetStateImpl(int first) {
+std::uint32_t CUnit::ReadNetState(int first) {
     CUnit* unit = this;
     float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
-    std::uint32_t complete = CMapObject::ReadNetStateImpl(first);
+    std::uint32_t complete = CMapObject::ReadNetState(first);
     DeltaState* state = NetState();
     bool gotItems = false;
     bool changed = false;
@@ -394,7 +393,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
     return complete;
 }
 
-EI_REWRITTEN(0x0052EF90, CUnit::ReadNetStateImpl);
-EI_REWRITTEN(0x0050EC30, CMapObject::ReadNetStateImpl);
-EI_REWRITTEN(0x0050EAF0, CMapObject::WriteNetStateImpl);
-EI_REWRITTEN(0x0052EC70, CUnit::WriteNetStateImpl);
+EI_REWRITTEN(0x0052EF90, CUnit::ReadNetState);
+EI_REWRITTEN(0x0050EC30, CMapObject::ReadNetState);
+EI_REWRITTEN(0x0050EAF0, CMapObject::WriteNetState);
+EI_REWRITTEN(0x0052EC70, CUnit::WriteNetState);

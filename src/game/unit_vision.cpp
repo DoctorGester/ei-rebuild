@@ -43,7 +43,7 @@ double UnitParams::VisionRange(float daylight) {
 }
 EI_REWRITTEN(0x005271E0, UnitParams::VisionRange);
 
-void CUnit::AdvanceTimeImpl(float time) {
+void CUnit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!(IsTextKey(id_) & 0xFF)) return;
     float daylight = static_cast<float>(TheClientWorld()->NightLevel());
@@ -51,7 +51,7 @@ void CUnit::AdvanceTimeImpl(float time) {
     if (moveMode == 0) range = range * kOne;
     TheClientWorld()->MarkFootprintsInSight(&localPosition_.x, range);
 }
-EI_REWRITTEN(0x0052FC40, CUnit::AdvanceTimeImpl);
+EI_REWRITTEN(0x0052FC40, CUnit::AdvanceTime);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = ObjectSlots(this);

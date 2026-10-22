@@ -151,7 +151,7 @@ std::uintptr_t CUnit::SetFlag40000000Off(bool on) {
 }
 EI_REWRITTEN(0x0052EBE0, CUnit::SetFlag40000000Off);
 
-std::uint32_t CUnit::SetStunnedImpl(int on) {
+std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
         flags_ |= 0x1000000u;
     } else {
@@ -159,7 +159,7 @@ std::uint32_t CUnit::SetStunnedImpl(int on) {
     }
     return flags_;
 }
-EI_REWRITTEN(0x0052F7F0, CUnit::SetStunnedImpl);
+EI_REWRITTEN(0x0052F7F0, CUnit::SetStunned);
 
 // --- Equipment -------------------------------------------------------------------------------
 
@@ -422,14 +422,14 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
 }
 EI_REWRITTEN(0x005327D0, CUnit::ActionSpeed);
 
-bool CUnit::AcceptsAnimationImpl(const void* entry) {
+bool CUnit::AcceptsAnimation(const void* entry) {
     if (type_ != kUnitTypeHero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
     if (Controller()->HasMainArmour()) required |= 0x20;
     return (static_cast<const FigureAnimation*>(entry)->flags & required) == required;
 }
-EI_REWRITTEN(0x00532DA0, CUnit::AcceptsAnimationImpl);
+EI_REWRITTEN(0x00532DA0, CUnit::AcceptsAnimation);
 
 double CUnit::AnimationRatio() {
     float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local

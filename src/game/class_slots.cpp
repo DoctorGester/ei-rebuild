@@ -59,16 +59,17 @@ EI_REWRITTEN(0x004468D0, FakeUnitGetClassName);
 // ---- CUnit slots shared with the fake unit (vtables 0073EA8C and 0073BFE8) ------------------------
 
 // 004467F0, slot 31 (RET 0xC): the hit passed to the controller's slot 20 (the server's TakeHit).
-int CUnit::TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) {
-    return Controller()->TakeHit(hit, static_cast<CUnit*>(attacker), static_cast<CUnit*>(source));
+void CUnit::ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) {
+    Controller()->TakeHit(hit, static_cast<CUnit*>(attacker), static_cast<CUnit*>(caster));
 }
-EI_REWRITTEN(0x004467F0, CUnit::TakeHitImpl);
+EI_REWRITTEN(0x004467F0, CUnit::ReceiveHit);
 
-// 00446850, slot 56 (RET 4): the controller's slot 42 (ObjectDeleted).
-void CUnit::ObjectDeletedImpl(CEngineObject* object) {
+// 00446850, slot 56 (RET 4): the controller's slot 42 (ObjectDeleted). Nothing reads the result.
+int CUnit::ForgetObject(CEngineObject* object) {
     Controller()->ObjectDeleted(object);
+    return 0;
 }
-EI_REWRITTEN(0x00446850, CUnit::ObjectDeletedImpl);
+EI_REWRITTEN(0x00446850, CUnit::ForgetObject);
 
 // 004468B0, slot 59: the forward one of the unit's movement speeds (GetMoveSpeeds).
 float __fastcall UnitForwardSpeed(CUnit* unit) {
@@ -79,13 +80,9 @@ float __fastcall UnitForwardSpeed(CUnit* unit) {
 }
 EI_REWRITTEN(0x004468B0, UnitForwardSpeed);
 
-// 00446830, slot 61 (RET 4): the script name (the CString at +0x238) becomes `name`. Returns the
-// string, as the assignment does.
-const mfc::CString* CUnit::SetScriptNameImpl(const char* newName) {
-    mfc::CString* text = &scriptName;
-    return &(*text = newName);
-}
-EI_REWRITTEN(0x00446830, CUnit::SetScriptNameImpl);
+// 00446830, slot 61 (RET 4): the script name (the CString at +0x238) becomes `name`.
+void CUnit::SetScriptName(const char* newName) { scriptName = newName; }
+EI_REWRITTEN(0x00446830, CUnit::SetScriptName);
 
 // 00446810, slot 58: a tail jump to the controller's slot 31 (RefreshWounds: 1 from the client's,
 // 0 from the base's).
@@ -103,11 +100,11 @@ EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 // 004467C0, slot 47 (RET 4) of the unit, the fake unit and nine other map object classes (eleven
 // vtables): the visibility mode is handed to the companion's slot 19 (the client's shows or hides
 // the object's light); what that leaves in EAX is passed on.
-std::uintptr_t CMapObject::SetVisibilityModeImpl(int mode) {
+int CMapObject::SetVisibilityMode(int mode) {
     companion->SetLightMode(mode);
     return 0;
 }
-EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityModeImpl);
+EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityMode);
 
 // ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
 

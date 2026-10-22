@@ -79,7 +79,7 @@ int CMapObject::NotifyCompanion() {
 }
 EI_REWRITTEN(0x0050E930, CMapObject::NotifyCompanion);
 
-void CMapObject::TakePrototypeImpl(const char* prototype) {
+void CMapObject::TakePrototype(const char* prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics
     // too), and the original then packs what its stack held; the harness zeroes them there too
     // (a determinism fix, SV7b3, harness_leftovers.h).
@@ -87,7 +87,7 @@ void CMapObject::TakePrototypeImpl(const char* prototype) {
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
-EI_REWRITTEN(0x0050E9B0, CMapObject::TakePrototypeImpl);
+EI_REWRITTEN(0x0050E9B0, CMapObject::TakePrototype);
 
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
@@ -128,7 +128,6 @@ EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
 void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }
 void CMapObject::Save(CStream* stream) { SaveMapObject(stream); }
-std::uintptr_t CMapObject::AttachObject(CEngineObject* object) { return AttachObjectImpl(object); }
 bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
 std::uintptr_t CMapObject::EffectsChanged() { return 0; }
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
@@ -141,29 +140,19 @@ int CMapObject::StatsChanged() { return PackVitals(); }
 std::uintptr_t CMapObject::ScaleEffectChanged(int scaleEffect) {
     return static_cast<std::uintptr_t>(ScaleEffectChangedDefault(scaleEffect));
 }
-void CMapObject::TakePrototype(const char* prototype) { TakePrototypeImpl(prototype); }
 std::uintptr_t CMapObject::SetStats(const UnitStats*) { return 0; }
-std::uintptr_t CMapObject::SetServerData(const void* data) { return SetServerDataImpl(data); }
 std::uintptr_t CMapObject::UpdateSizeClasses() { return 0; }
 int CMapObject::IsUsable() { return 0; }
 int CMapObject::IsDirectUseBlocked() { return 0; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
-bool CMapObject::ApplyScience(int first, int second) { return ApplyScienceImpl(first, second); }
 int CMapObject::AcceptsKey(const LockKey* key) { return AcceptsNoKey(key); }
 bool CMapObject::KeepsMapFlag() { return true; }
 void CMapObject::UseSpots(UseSpotArray* out, float) { FreeArray(out, 0); }
-std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) { return AddEffectImpl(effect); }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
-int CMapObject::SetVisibilityMode(int mode) { return static_cast<int>(SetVisibilityModeImpl(mode)); }
 Vector3* CMapObject::EyePoint(Vector3* out) {
     GroundPoint(&out->x);
     return out;
 }
-std::uint32_t CMapObject::ReadNetState(int first) {
-    return ReadNetStateImpl(first);
-}
-void CMapObject::WriteNetState() { WriteNetStateImpl(); }
-void CMapObject::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
 Vector3* CMapObject::PositionAt(Vector3* out, int time) {
     GetPosition(&out->x, time);
     return out;

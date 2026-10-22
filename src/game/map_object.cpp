@@ -104,7 +104,7 @@ void CMapObject::SetEffectCount(int count) {
     reinterpret_cast<mfc::impl::Plain20::Array*>(&effectsVtable)->SetSize(count, -1);
 }
 
-std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
+std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
     if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
     int count = effectCount;
@@ -129,7 +129,7 @@ std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
     return result;
 }
-EI_REWRITTEN(0x0050F1E0, CMapObject::AddEffectImpl);
+EI_REWRITTEN(0x0050F1E0, CMapObject::AddEffect);
 // Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is
 // in CWorldServer::UpdateUnits (0058D670, original).
 
@@ -232,20 +232,20 @@ float* CMapObject::GroundPoint(float* out) {
 }
 EI_REWRITTEN(0x0050F730, CMapObject::GroundPoint);
 
-void CMapObject::PlaceOnGroundImpl(float offset) {
+void CMapObject::PlaceOnGround(float offset) {
     double height = GroundHeight(World(), localPosition_.x, localPosition_.y);
     localPosition_.z = static_cast<float>(height + offset);
 }
-EI_REWRITTEN(0x0050F020, CMapObject::PlaceOnGroundImpl);
+EI_REWRITTEN(0x0050F020, CMapObject::PlaceOnGround);
 
 // --- Companion -------------------------------------------------------------------------------
 
-std::uintptr_t CMapObject::SetServerDataImpl(const void* data) {
+std::uintptr_t CMapObject::SetServerData(const void* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return static_cast<std::uintptr_t>(classId);
     return ServerCompanion()->SetData(data);
 }
-EI_REWRITTEN(0x0050F050, CMapObject::SetServerDataImpl);
+EI_REWRITTEN(0x0050F050, CMapObject::SetServerData);
 
 void CMapObject::AttachCompanion(CEngineObject* object) {
     if (companion) {
@@ -265,7 +265,7 @@ constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the compani
 
 } // namespace
 
-std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
+std::uintptr_t CMapObject::AttachObject(CEngineObject* object) {
     if (!object || object->type_ != kTypeMapCompanion) {
         CObject3D::AttachSpecific(object);   // 00516D50, the 3D object's slot 19 (no result)
         return 0;
@@ -278,7 +278,7 @@ std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
     CompanionOwner(object) = this;
     return static_cast<std::uintptr_t>(++companion->refCount_);
 }
-EI_REWRITTEN(0x0050E890, CMapObject::AttachObjectImpl);
+EI_REWRITTEN(0x0050E890, CMapObject::AttachObject);
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;

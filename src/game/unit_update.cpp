@@ -65,8 +65,8 @@ std::uintptr_t CUnit::LoadFigures() {
 std::uintptr_t __fastcall UnitLoadFiguresHook(CUnit* self) { return self->CUnit::LoadFigures(); }
 EI_REWRITTEN(0x0052E910, UnitLoadFiguresHook);
 
-std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
-    if (!object || object->type_ != kControllerType) return CMapObject::AttachObjectImpl(object);
+std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
+    if (!object || object->type_ != kControllerType) return CMapObject::AttachObject(object);
     if (controller) {
         Controller()->unit = nullptr;
         controller->Release();
@@ -75,7 +75,7 @@ std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
     static_cast<CUnitController*>(object)->unit = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
-EI_REWRITTEN(0x0052E870, CUnit::AttachObjectImpl);
+EI_REWRITTEN(0x0052E870, CUnit::AttachObject);
 
 int CUnit::StatsChanged() {
     PackVitals();
@@ -85,18 +85,18 @@ int CUnit::StatsChanged() {
 int __fastcall UnitStatsChangedHook(CUnit* self) { return self->CUnit::StatsChanged(); }
 EI_REWRITTEN(0x0052EB50, UnitStatsChangedHook);
 
-std::uintptr_t CUnit::ScaleEffectChangedImpl(int value) {
+std::uintptr_t CUnit::ScaleEffectChanged(int value) {
     if (!controller) return 0;
     return static_cast<std::uintptr_t>(Controller()->RefreshVitals(static_cast<char>(value)));
 }
-EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChangedImpl);
+EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChanged);
 
-std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
+std::uintptr_t CUnit::SetStats(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
     return ServerController()->SetStats(stats);
 }
-EI_REWRITTEN(0x00530A20, CUnit::SetStatsImpl);
+EI_REWRITTEN(0x00530A20, CUnit::SetStats);
 
 std::uintptr_t CUnit::UpdateSizeClasses() {
     Controller()->UpdateSizeClasses();
@@ -127,7 +127,7 @@ float* CUnit::StandPoint(float* out) {
 }
 EI_REWRITTEN(0x005303A0, CUnit::StandPoint);
 
-void CUnit::PlaceOnGroundImpl(float offset) {
+void CUnit::PlaceOnGround(float offset) {
     float x = localPosition_.x;
     float y = localPosition_.y;
     heightOffset = offset;
@@ -142,7 +142,7 @@ void CUnit::PlaceOnGroundImpl(float offset) {
         localPosition_.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
-EI_REWRITTEN(0x0052F740, CUnit::PlaceOnGroundImpl);
+EI_REWRITTEN(0x0052F740, CUnit::PlaceOnGround);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(this, Params());
@@ -172,36 +172,13 @@ void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::GetClassName() { return kUnitClassName; }
 int CUnit::GetClassId() { return kUnitClassId; }
-bool CUnit::AcceptsAnimation(const void* entry) { return AcceptsAnimationImpl(entry); }
-std::uintptr_t CUnit::AttachObject(CEngineObject* object) { return AttachObjectImpl(object); }
-void CUnit::AdvanceTime(float time) { AdvanceTimeImpl(time); }
 bool CUnit::IsSynchronised() { return true; }
-void CUnit::ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) { TakeHitImpl(hit, attacker, caster); }
-std::uintptr_t CUnit::ScaleEffectChanged(int value) { return ScaleEffectChangedImpl(value); }
-void CUnit::TakePrototype(const char* prototype) { TakePrototypeImpl(prototype); }
-std::uintptr_t CUnit::SetStats(const UnitStats* stats) { return SetStatsImpl(stats); }
-std::uint32_t CUnit::SetStunned(int on) { return SetStunnedImpl(on); }
 Vector3* CUnit::EyePoint(Vector3* out) {
     StandPoint(&out->x);
     return out;
 }
-std::uint32_t CUnit::ReadNetState(int first) { return ReadNetStateImpl(first); }
-void CUnit::WriteNetState() { WriteNetStateImpl(); }
-void CUnit::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
-Vector3* CUnit::PositionAt(Vector3* out, int time) {
-    PositionAtImpl(out, time);
-    return out;
-}
-Vector3* CUnit::AimPoint(Vector3* out) {
-    AimPointImpl(out);
-    return out;
-}
 int CUnit::IsLargeUnit() { return static_cast<int>(obstacle); }
 int CUnit::IsDead() { return dead; }
-int CUnit::ForgetObject(CEngineObject* object) {
-    ObjectDeletedImpl(object);
-    return 0;
-}
 void CUnit::UpdateMoveFactors() { Controller()->MoveFactorsChanged(); }
 void CUnit::RefreshWounds() { Controller()->RefreshWounds(); }
 double CUnit::MoveSpeed() {
@@ -211,4 +188,3 @@ double CUnit::MoveSpeed() {
     return forward;
 }
 float CUnit::Radius() { return unitRadius; }
-void CUnit::SetScriptName(const char* newName) { SetScriptNameImpl(newName); }

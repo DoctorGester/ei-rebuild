@@ -1,9 +1,9 @@
 # Reviewed constants of tools/check_fp_fold.py: "<value> <function or *>  # reason".
-0.001 CMapObject::AddEffectImpl  # addon.dll's own double (100181D5), not a fold: RemoveOutdatedEffects inlined (/Ob2)
+0.001 CMapObject::AddEffect  # addon.dll's own double (100181D5), not a fold: RemoveOutdatedEffects inlined (/Ob2)
 1.5707963267948966 ::ArcCosineOrSine  # _CIacos / _CIasin (006E733D, 006E83DD) return FLDPI / 2 for +-1: extended-precision constants of the routine itself (a callee of the registered 006E7334 / 006E83D4 wrappers), not a fold
 -1.5707963267948966 ::ArcCosineOrSine  # the same, negated (asin(-1))
 3.141592653589793 ::ArcCosineOrSine  # the same: acos(-1) = pi
 0.7071067811865476 libcrt::CiPow  # _CIpow (006E81C2) normalises the mantissa to [sqrt(1/2), sqrt(2)): the routine's own bound (our reformulation of FYL2X's 64-bit product), not a fold
-0.001 ::RemoveOutdatedEffects  # the same addon.dll double (100181D5) when the verify build does not inline it into AddEffectImpl
+0.001 ::RemoveOutdatedEffects  # the same addon.dll double (100181D5) when the verify build does not inline it into AddEffect
 0.46511627906976744 ::TimeGain  # R18's smooth camera: kGainReference, (2000 / 55) / (1000 / 55 + 60), the option's own time per call (not in the original), not a fold
 0.06666666666666667 CWorldServer::SetTimeSpeed  # CWorld::SetTimeSpeed (0055FB50) inlined (C19; a qualified call since C28g): 0055FB50's own double 1/15 (0073F3C8), run-time product as in the original, not a fold

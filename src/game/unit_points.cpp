@@ -1,6 +1,6 @@
 // Two CUnit virtual slots giving points of the unit (vtable 0073EA8C, shared by CFakeUnit
 // 0073BFE8): 52 the position predicted along its path (0052FCC0) and 53 the point its current
-// animation acts on (0052FDF0). Registered as members PositionAtImpl / AimPointImpl (rule 4). See
+// animation acts on (0052FDF0). See
 // docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -117,7 +117,7 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     return out;
 }
 
-Vector3* CUnit::PositionAtImpl(Vector3* out, int time) { return PredictPosition(this, out, time); }
-EI_REWRITTEN(0x0052FCC0, CUnit::PositionAtImpl);
-Vector3* CUnit::AimPointImpl(Vector3* out) { return ActionPoint(this, out); }
-EI_REWRITTEN(0x0052FDF0, CUnit::AimPointImpl);
+Vector3* CUnit::PositionAt(Vector3* out, int time) { return PredictPosition(this, out, time); }
+EI_REWRITTEN(0x0052FCC0, CUnit::PositionAt);
+Vector3* CUnit::AimPoint(Vector3* out) { return ActionPoint(this, out); }
+EI_REWRITTEN(0x0052FDF0, CUnit::AimPoint);

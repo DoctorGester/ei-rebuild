@@ -241,12 +241,6 @@ public:
     ~CUnit() override;
     // The deleting destructor (slot 0, 0052E2A0) frees into the game's heap.
 
-    // Body of the slot at 00446830 (registered by member pointer).
-    const mfc::CString* SetScriptNameImpl(const char* newName);
-    // Body of the slot at 00446850 (registered by member pointer).
-    void ObjectDeletedImpl(CEngineObject* object);
-    // Body of the slot at 004467F0 (registered by member pointer).
-    int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
     CItem* CarriedItem(int index) const;
 
     // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
@@ -263,32 +257,30 @@ public:
     const char* GetClassName() override;     // 11: 0052E280 "CUnit"
     int GetClassId() override;               // 12: 0052E290 (0x50)
     bool IsSynchronised() override;          // 29: 004467E0 (true)
-    // 31: 004467F0 TakeHitImpl (the controller's TakeHit).
+    // 31: 004467F0 (class_slots.cpp): the controller's TakeHit.
     void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) override;
     Vector3* EyePoint(Vector3* out) override;              // 48: 005303A0 StandPoint
     std::uint32_t ReadNetState(int first) override;        // 49: 0052EF90 (net_state.cpp)
     void WriteNetState() override;                         // 50: 0052EC70 (net_state.cpp)
-    // net_state.cpp: the bodies of the two slots above (registered by member pointer): the map
-    // object's fields, then the unit's own.
-    std::uint32_t ReadNetStateImpl(int first);
-    void WriteNetStateImpl();
-    Vector3* PositionAt(Vector3* out, int time) override;  // 52: 0052FCC0 PositionAtImpl
-    Vector3* AimPoint(Vector3* out) override;              // 53: 0052FDF0 AimPointImpl
+    // (The two above: the map object's fields, then the unit's own.)
+    // 52: 0052FCC0 / 53: 0052FDF0 (RET 8 / RET 4; unit_points.cpp): the position predicted along the path at
+    // world time `time`, the point the animation acts on.
+    Vector3* PositionAt(Vector3* out, int time) override;
+    Vector3* AimPoint(Vector3* out) override;
     int IsLargeUnit() override;              // 54: 00446890 obstacle
     int IsDead() override;                   // 55: 00446880 dead
-    // 56: 00446850 ObjectDeletedImpl (the controller's slot 42). Nothing reads the result (0).
+    // 56: 00446850 (class_slots.cpp): the controller's slot 42. Nothing reads the result (0).
     int ForgetObject(CEngineObject* object) override;
     void UpdateMoveFactors() override;       // 57: 00446870 the controller's slot 53
     void RefreshWounds() override;           // 58: 00446810 the controller's slot 31
     double MoveSpeed() override;             // 59: 004468B0 the forward speed (GetMoveSpeeds)
     float Radius() override;                 // 60: 004468A0 unitRadius
-    void SetScriptName(const char* newName) override;   // 61: 00446830 SetScriptNameImpl
+    void SetScriptName(const char* newName) override;   // 61: 00446830 (class_slots.cpp)
 
     // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
     // (0056D740): its VisionRange at the world's daylight (0055FC50), around its position.
     void AdvanceTime(float time) override;
-    void AdvanceTimeImpl(float time);   // body of the slot above (registered by member pointer)
 
     // 0052E940. Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
     // Returns the new mask. (0052E970 sets the mask and tells the controller; not rewritten.)
@@ -315,7 +307,6 @@ public:
     std::uintptr_t SetFlag40000000Off(bool on);
     // 0052F7F0. Virtual slot 46: sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
-    std::uint32_t SetStunnedImpl(int on);   // body of the slot above (registered by member pointer)
 
     // 0052EC10. Writes the item ids (+0x18) of the 4 weapons and then of the 7 armour pieces to
     // `out` (-1 for an empty slot).
@@ -389,7 +380,6 @@ public:
     // 00532DA0. Virtual slot 18: for hero units, whether the animation entry's flags (+0x18) have
     // the bits the controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
     bool AcceptsAnimation(const void* entry) override;
-    bool AcceptsAnimationImpl(const void* entry);   // body of the slot above (registered by member pointer)
 
     // 00532E00. Ratio of the animation factors (00518D30) of the scale's and the base scale's z.
     double AnimationRatio();
@@ -413,17 +403,14 @@ public:
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
     std::uintptr_t AttachObject(CEngineObject* object) override;
-    std::uintptr_t AttachObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged() override;
     // 0052EB30. Slot 33: the controller's slot 19 with `value` (0 without a controller).
     std::uintptr_t ScaleEffectChanged(int value) override;
-    std::uintptr_t ScaleEffectChangedImpl(int value);   // body of the slot above (registered by member pointer)
     // 00530A20. Slot 35: a server controller (class 0x3E) copies `stats` in (00552F40). Returns
     // what is left in EAX (the controller's class id when it is not one).
     std::uintptr_t SetStats(const UnitStats* stats) override;
-    std::uintptr_t SetStatsImpl(const UnitStats* stats);   // body of the slot above (registered by member pointer)
     // 00530A50. Slot 37: the controller's slot 23.
     std::uintptr_t UpdateSizeClasses() override;
     // 005303A0. Slot 48 (another name, as CMapObject::GroundPoint): `out` = the position with z =
@@ -432,11 +419,6 @@ public:
     // 0052F740. Slot 51: stores `offset` (+0x320) and puts the unit on the ground (or, for
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
-    void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
-    // 0052FCC0 / 0052FDF0 (RET 8 / RET 4; unit_points.cpp). Slots 52 (PositionAt) and 53 (AimPoint):
-    // the position predicted along the path at world time `time`, the point the animation acts on.
-    Vector3* PositionAtImpl(Vector3* out, int time);
-    Vector3* AimPointImpl(Vector3* out);
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
@@ -475,7 +457,6 @@ public:
     // record's prototype name): fresh vitals and statistics (reset, then the owner's
     // BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
     void TakePrototype(const char* prototype) override;
-    void TakePrototypeImpl(const char* prototype);   // body of the slot above (registered by member pointer)
     // 00531110. Sends the equipment ids to the controller (slot 32: the 7 armour ids, slot 33:
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
     std::uintptr_t SendEquipment();
