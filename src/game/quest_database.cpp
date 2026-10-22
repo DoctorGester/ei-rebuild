@@ -11,6 +11,7 @@
 #include "registry.h"
 
 #include "../lib/mfc.h"
+#include "lib/static_object.h"
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "record_vectors.h"
@@ -21,11 +22,6 @@
 #include <new>
 
 namespace {
-
-
-// The records are built in raw stack buffers (their constructors are the original's own calls).
-constexpr std::size_t kQuestSize = sizeof(QuestRecord);
-constexpr std::size_t kBriefingSize = sizeof(QuestBriefingRecord);
 
 // The section and key names, by their original addresses.
 // The quest registry (registry.cpp).
@@ -132,7 +128,7 @@ void ConstructBriefing(QuestBriefingRecord* briefing) {
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
 void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    briefing->field10 = 0;
+    briefing->specials = 0;
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
     for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing);
     AddReceiveBriefing(db, briefing);
@@ -168,8 +164,8 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         return false;
     }
 
-    alignas(4) char questStorage[kQuestSize];
-    auto* quest = reinterpret_cast<QuestRecord*>(questStorage);
+    lib::InPlace<QuestRecord> questStorage;   // built and destroyed below, as the original
+    QuestRecord* quest = questStorage.Get();
     stlp::StringElement::Default(&quest->name);
     quest->places.ConstructEmpty();
     stlp::StringElement::Default(&quest->text);
@@ -178,8 +174,8 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         ReadQuest(reg, quest, places);
         AddQuest(db, quest);
 
-        alignas(4) char briefingStorage[kBriefingSize];
-        auto* briefing = reinterpret_cast<QuestBriefingRecord*>(briefingStorage);
+        lib::InPlace<QuestBriefingRecord> briefingStorage;
+        QuestBriefingRecord* briefing = briefingStorage.Get();
         ConstructBriefing(briefing);
         ReadReceiveBriefing(reg, db, briefing);
         ReadRejectBriefing(reg, db, briefing);

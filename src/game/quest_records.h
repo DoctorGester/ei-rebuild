@@ -57,12 +57,18 @@ struct QuestBriefingRecord {
     void AssignBriefing(const QuestBriefingRecord* source);
     void ConstructDefault();
 
+    // The lists (lists[k]): item names given and taken, quest variables ("a.b.<quest>") given and
+    // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
+    enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
+
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
     float money;                    // +0x10
-    CStringVector lists[6];         // +0x14 give items, remove items, give quests, complete quests, available zones, complete zones
+    CStringVector lists[6];         // +0x14 by ListKind
     stlp::string text;              // +0x5C
-    std::uint32_t field10;          // +0x68 archive field 10 (0 when loaded from the quests); nothing else reads it
+    // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
+    // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
+    std::int32_t specials;
 };
 static_assert(offsetof(QuestBriefingRecord, lists) == 0x14);
 static_assert(offsetof(QuestBriefingRecord, text) == 0x5C);

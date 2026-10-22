@@ -37,7 +37,7 @@ __declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEn
 // 00522AE0 (thiscall on 8 damage words, RET 4): the sum over words 1..7 of what exceeds the
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
-                                                                      const std::uint16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
+                                                                      const std::int16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
 
 // An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)

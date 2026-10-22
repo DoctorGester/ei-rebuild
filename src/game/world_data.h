@@ -15,6 +15,7 @@
 
 class CInterface3D;   // ui.h
 class CLight;   // spell.h
+struct QuestBriefingRecord;   // quest_records.h
 
 namespace worlddata {
 
@@ -151,9 +152,9 @@ inline const char* MercHiredFormat() { return "amerc_%i"; }
 // "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
 inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,\"%s\",2 ) #OnBriefingComplete( %i, \"%s\" ) )"; }
 inline const char* HumanHeroText() { return "Human Hero"; }
-// The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h;
-// operator[] 004297A0: stlp::NamedSlot).
-stlp::NameMap& QuestBriefings();   // database_globals.cpp
+// The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]
+// 004297A0: stlp::NamedSlot).
+stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();   // database_globals.cpp
 // ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }

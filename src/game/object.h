@@ -15,26 +15,8 @@
 #include <cstdint>
 #include <cstring>
 
-// Reads a field of an object whose class layout is owned by another area (CUnit in ai_map.h) or not
-// recovered yet. Copies the bytes, so floats are not re-rounded.
-template <typename T>
-T FieldAt(const void* object, std::size_t offset) {
-    T value;
-    std::memcpy(&value, static_cast<const char*>(object) + offset, sizeof(T));
-    return value;
-}
-
 // 007AFFA0: the manager that owns the world's objects (units, buildings, ...).
 inline CBaseManager* WorldObjectManager() { return ei::GameData<CBaseManager*>(0x007AFFA0); }
-
-// CUnit fields used here (ai_map.h owns the class layout).
-namespace unitfield {
-constexpr std::size_t kName = 0x238;          // char* (CString): slot 7 returns it
-constexpr std::size_t kController = 0x240;    // object most unit virtuals forward to
-constexpr std::size_t kFlag274 = 0x274;       // slot 55 (AI map: non-zero skips the unit layers)
-constexpr std::size_t kFlag278 = 0x278;       // slot 54 (AI map: large unit)
-constexpr std::size_t kValue328 = 0x328;      // slot 60, float
-} // namespace unitfield
 
 
 // Virtual getters shared by CUnit (vtable 0073EA8C) and CFakeUnit (0073BFE8). Written as __fastcall
@@ -45,7 +27,7 @@ int __fastcall UnitGetFlag274(const CUnit* unit);            // slot 55: 0044688
 float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60: 004468A0
 
 // Slot 7 (GetName) of game.exe's base CFigure table (0073C224; the figure classes' GetName) and of
-// CFakeFigure (0073C274): the name pointer at +0x120 / +0x94.
+// CFakeFigure (0073C274): CFigureMesh::name_ (+0x120) / SceneMesh::name (+0x94).
 const char* __fastcall FigureGetName(const CEngineObject* figure);       // 00453440
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 004547C0
 

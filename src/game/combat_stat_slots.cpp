@@ -57,13 +57,13 @@ void CUnitServer::UpdateProtection() {
 EI_REPLACE_METHOD(0x00553450, CUnitServer::UpdateProtection);
 
 void CUnitServer::RepackStats() {
-    std::uint8_t speedsBefore[sizeof(unit->modeSpeeds)];
-    std::memcpy(speedsBefore, unit->modeSpeeds, sizeof(speedsBefore));
+    std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
+    std::memcpy(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore));
     stats.Pack(unit, unit->Params());
     stats.flags = 0;
     UpdateProtection();
     unit->MarkChanged(4);
-    if (std::memcmp(speedsBefore, unit->modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
+    if (std::memcmp(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore)) != 0) motionChanged = 1;
 }
 EI_REWRITTEN(0x00553500, CUnitServer::RepackStats);
 

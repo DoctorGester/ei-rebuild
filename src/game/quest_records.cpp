@@ -83,7 +83,7 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->SerializeCStrings(3, &lists[0], ar);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
-    ar->Field(10, &field10, 4);
+    ar->Field(10, &specials, 4);
 }
 EI_REWRITTEN(0x006AD900, QuestBriefingRecord::Serialize);
 
@@ -142,7 +142,7 @@ void QuestBriefingRecord::CopyConstruct(const QuestBriefingRecord* source) {
     money = source->money;
     for (int i = 0; i < 6; ++i) lists[i].CopyConstruct<NameElement>(source->lists[i]);
     new (&text) stlp::string(source->text);
-    field10 = source->field10;
+    specials = source->specials;
 }
 
 void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
@@ -151,7 +151,7 @@ void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
     money = source->money;
     for (int i = 0; i < 6; ++i) lists[i].AssignVector<NameElement>(source->lists[i]);
     text.AssignFrom(source->text);
-    field10 = source->field10;
+    specials = source->specials;
 }
 
 void QuestBriefingRecord::ConstructDefault() {

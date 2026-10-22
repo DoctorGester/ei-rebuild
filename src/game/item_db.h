@@ -376,10 +376,9 @@ struct QuestItemRecord : ItemRecordHead {
     // 0069F9C0 (RET 4). The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString* zonesBegin;           // +0x70 STLport vector<CString>
-    mfc::CString* zonesEnd;             // +0x74
-    mfc::CString* zonesCapacity;        // +0x78
+    stlp::vector<mfc::CString> zones;   // +0x70 the zone names
 };
+static_assert(offsetof(QuestItemRecord, zones) == 0x70);
 static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 
 // The prototype of a CItemLoot (table 007C8778): kind (the head's category), record type, index.

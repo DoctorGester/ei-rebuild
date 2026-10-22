@@ -25,7 +25,7 @@ constinit lib::StaticObject<PrintsDatabase> g_printsDatabase = /*007C89C8*/ {};
 constinit lib::StaticObject<acks::AckDatabase> g_ackDatabase = /*007C8A60*/ {};
 
 // The briefings by name (world_data.h): the database's briefing table's index.
-stlp::NameMap& worlddata::QuestBriefings() { return reinterpret_cast<stlp::NameMap&>(TheQuestDatabase().briefings.index); }
+QuestBriefingTable::Index& worlddata::QuestBriefings() { return TheQuestDatabase().briefings.index; }
 
 namespace {
 

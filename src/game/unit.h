@@ -13,6 +13,7 @@
 #include "map_object.h"   // CMapObjectCompanion
 #include "maths.h"
 #include "object_tables.h"
+#include "unit_motion.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -44,19 +45,82 @@ constexpr int kUnitTypeHero = 0x32;
 // (GetClassName "CUnitClientSpecific"); their items live in the player's inventory records.
 constexpr int kClassPartyController = 0x3D;
 
-// One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
-// part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
-struct UnitBodyPart {
-    int state;                      // +0x00
-    std::int16_t durability;        // +0x04
-    std::uint16_t maxDurability;    // +0x06
-    std::uint8_t unused_08[0x1C - 0x08];
+// A body slot as UnitParams keeps it (0x1C bytes; UnitStatSlot rounded).
+struct UnitParamsSlot {
+    int type;                       // +0x00
+    std::uint8_t vitalMask;         // +0x04
+    std::uint8_t unused_05;
+    std::int16_t protection[7];     // +0x06 the three layers' absorb values summed, per damage type
+    // +0x14 the part's state as the unit panel shows it (00647B70): 0 none (not shown), 1 drawn in
+    // red, 3 with a bar of current / maximum.
+    int kind;
+    std::int16_t current;           // +0x18
+    std::uint16_t maximum;          // +0x1A
 };
-static_assert(sizeof(UnitBodyPart) == 0x1C);
+static_assert(sizeof(UnitParamsSlot) == 0x1C);
+
+// The unit's parameter block (CUnit + 0x330, 0x108 bytes): UnitStats rounded to bytes and
+// shorts (00522CE0 writes it), what the client and the saved games see. Names provisional.
+struct UnitParams {
+    // 005271C0. 25 / attackRate.
+    double Period();
+    // 00523550. Zeroes the block; the slot types become 4 and +0x20 7. Returns 0 (EAX).
+    int Reset();
+    // 00527850 (unit_params_skill.cpp; the client's GetAttackParams 00538960 uses it for party
+    // units). UnitStats::WeaponSkillBonus on the packed bytes, with the weapon's prototype record
+    // `weapon` (or null) given: types 0-4 skill 0 + the weapon's +0x7B, 5-6 skill 1 + +0x7C, each
+    // plus (the stat named by the skill's first letter - 25) and the level value of skill `type`;
+    // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned in ST0 unrounded.
+    double WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
+
+    std::uint8_t unused_00[4];
+    int experience;                 // +0x04
+    int unspentExperience;          // +0x08 experience + pending - spent
+    std::uint8_t stat10;            // +0x0C
+    std::uint8_t stat18;            // +0x0D
+    std::uint8_t attackRate;        // +0x0E (UnitStats::stat20 rounded)
+    std::uint8_t movementKind;      // +0x0F (UnitStats +0x60) 2: moves on the water surface
+    // +0x10 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats +0x34.. * 255 / 2,
+    // at most 255)
+    std::uint8_t modeSpeeds[4];
+    std::uint8_t baseSpeed;         // +0x14 (UnitStats::speed * 25.5, at most 255)
+    std::uint8_t rate;              // +0x15
+    std::int16_t capacity;          // +0x16
+    std::uint8_t combat[5];         // +0x18 reach, attack, attack spread, defence, speed
+    std::uint8_t damage;            // +0x1D (truncated)
+    std::uint8_t damageSpread;      // +0x1E (truncated)
+    std::uint8_t naturalWeapon;     // +0x1F
+    std::int16_t lastHitSource;         // +0x20 what last damaged the unit (7 after Reset; combat.cpp)
+    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current ([0] / [1]: the sight range by night / the
+                                    //       percentage of it by day, VisionRange)
+    std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
+    std::uint8_t unused_2E[2];
+    UnitParamsSlot slots[6];        // +0x30
+    std::uint8_t attributes[3];     // +0xD8
+    std::uint8_t skills[8];         // +0xDB
+    std::uint8_t skillLevels[0x24]; // +0xE3
+    std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
+
+    // unit_vision.cpp (A-U3). 005271E0 (RET 4): the sight range at `daylight` (0 night .. 1 day):
+    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
+    double VisionRange(float daylight);
+
+    // unit_params_protection.cpp (A-U4). 005270E0 (RET 0xC): the seven protection values the unit
+    // panel shows, into `out`: for text-key units (`keyed`) each body slot whose kind is above 1
+    // adds its protection times its type's weight (kSlotWeights), the sums are divided by the weights'
+    // total (0 when none) and the packed vitals' protection added; others get the packed
+    // protection times the difficulty factor (007C54A0).
+    void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
+};
+static_assert(offsetof(UnitParams, attackRate) == 0x0E);
+static_assert(offsetof(UnitParams, combat) == 0x18);
+static_assert(offsetof(UnitParams, slots) == 0x30);
+static_assert(offsetof(UnitParams, attributes) == 0xD8);
+static_assert(offsetof(UnitParams, flags) == 0x107);
+static_assert(sizeof(UnitParams) == 0x108);
 
 struct AIPath;       // ai_map.h
 struct PathOrder;    // ai_map.h
-struct UnitMotion;   // ai_motion.h
 struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
@@ -526,11 +590,11 @@ public:
     CUnitServer* ServerController() const;
     // The controller as a party unit's client half (unit_client_models.h; class 0x3D). Defined there.
     CUnitClientSpecific* ClientController() const;
-    // The parameter block at +0x330 (the fields below repeat parts of it).
-    UnitParams* Params() { return reinterpret_cast<UnitParams*>(paramsHead); }
+    // The parameter block at +0x330.
+    UnitParams* Params() { return &params; }
     // The unit as the map object it is (map_object.h).
     CMapObject* MapObject() { return this; }
-    UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
+    UnitMotion* Motion() { return &motion; }
 
     // +0x000-0x237: CMapObject.
     mfc::CString scriptName;        // +0x238 (virtual slot 61 sets it; network field 9; GetName)
@@ -555,19 +619,15 @@ public:
     int pendingWeapon;              // +0x270 the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
     std::uint32_t obstacle;             // +0x278 the unit blocks others on the sector map (slot 54 returns it)
-    std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
+    UnitMotion motion;              // +0x27C the trajectory (unit_motion.h)
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
     float unitRadius;               // +0x328 virtual slot 60 (Radius); 0.75 after Reset
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
-    std::uint8_t paramsHead[0x33E - 0x330];// +0x330 the UnitParams block (Params()) starts here
-    std::uint8_t attackRate;        // +0x33E (25 / value: see UnitParamsPeriod)
-    std::uint8_t movementKind;      // +0x33F 2: moves on the water surface
-    std::uint8_t modeSpeeds[4];     // +0x340 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0
-    std::uint8_t baseSpeed;         // +0x344
-    std::uint8_t paramsMiddle[0x374 - 0x345];// +0x345 more of the UnitParams block
-    UnitBodyPart bodyParts[6];      // +0x374 as the unit panel shows them (00647B70)
-    std::uint8_t paramsTail[0x438 - 0x41C];// +0x41C the end of the UnitParams block
+    // +0x330 the parameter block (UnitStats rounded): the attack rate (+0x33E), the movement kind
+    // (+0x33F; 2 moves on the water surface), the mode and base speeds (+0x340 / +0x344) and the six
+    // body slots (+0x360; the unit panel's parts are their kind / current / maximum).
+    UnitParams params;
     int fightAtWill;                    // +0x438 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts;         // +0x43C set: path searches use the AI map's alternative cost table
     CItem* weapons[4];              // +0x440
@@ -582,7 +642,7 @@ public:
     float actionSpeeds[6];          // +0x4B0 per action kind (ActionSpeed; the model record's +0x2C)
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
-static_assert(offsetof(CUnit, bodyParts) == 0x374);
+static_assert(offsetof(CUnit, params) == 0x330);
 static_assert(offsetof(CUnit, controller) == 0x240);
 static_assert(offsetof(CUnit, player) == 0x24C);
 static_assert(offsetof(CUnit, side) == 0x250);
@@ -590,7 +650,6 @@ static_assert(offsetof(CUnit, moveMode) == 0x264);
 static_assert(offsetof(CUnit, activeWeapon) == 0x26C);
 static_assert(offsetof(CUnit, sizeClass) == 0x324);
 static_assert(offsetof(CUnit, standingHeight) == 0x32C);
-static_assert(offsetof(CUnit, modeSpeeds) == 0x340);
 static_assert(offsetof(CUnit, fightAtWill) == 0x438);
 static_assert(offsetof(CUnit, weapons) == 0x440);
 static_assert(offsetof(CUnit, quickItems) == 0x450);
@@ -607,7 +666,6 @@ static_assert(offsetof(CUnit, pendingWeapon) == 0x270);
 static_assert(offsetof(CUnit, unitRadius) == 0x328);
 static_assert(offsetof(CUnit, obstacle) == 0x278);
 static_assert(offsetof(CUnit, motion) == 0x27C);
-static_assert(offsetof(CUnit, paramsHead) == 0x330);
 static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
@@ -623,75 +681,6 @@ inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return obje
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 
-// A body slot as UnitParams keeps it (0x1C bytes; UnitStatSlot rounded).
-struct UnitParamsSlot {
-    int type;                       // +0x00
-    std::uint8_t vitalMask;         // +0x04
-    std::uint8_t unused_05;
-    std::int16_t protection[7];     // +0x06 the three layers' absorb values summed, per damage type
-    int kind;                       // +0x14
-    std::int16_t current;           // +0x18
-    std::int16_t maximum;           // +0x1A
-};
-static_assert(sizeof(UnitParamsSlot) == 0x1C);
-
-// The unit's parameter block (CUnit + 0x330, 0x108 bytes): UnitStats rounded to bytes and
-// shorts (00522CE0 writes it), what the client and the saved games see. Names provisional.
-struct UnitParams {
-    // 005271C0. 25 / attackRate.
-    double Period();
-    // 00523550. Zeroes the block; the slot types become 4 and +0x20 7. Returns 0 (EAX).
-    int Reset();
-    // 00527850 (unit_params_skill.cpp; the client's GetAttackParams 00538960 uses it for party
-    // units). UnitStats::WeaponSkillBonus on the packed bytes, with the weapon's prototype record
-    // `weapon` (or null) given: types 0-4 skill 0 + the weapon's +0x7B, 5-6 skill 1 + +0x7C, each
-    // plus (the stat named by the skill's first letter - 25) and the level value of skill `type`;
-    // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned in ST0 unrounded.
-    double WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
-
-    std::uint8_t unused_00[4];
-    int experience;                 // +0x04
-    int unspentExperience;          // +0x08 experience + pending - spent
-    std::uint8_t stat10;            // +0x0C
-    std::uint8_t stat18;            // +0x0D
-    std::uint8_t attackRate;        // +0x0E (UnitStats::stat20 rounded)
-    std::uint8_t movementKind;      // +0x0F (UnitStats +0x60)
-    std::uint8_t modeSpeeds[4];     // +0x10 (UnitStats +0x34.. * 255 / 2, at most 255)
-    std::uint8_t baseSpeed;         // +0x14 (UnitStats::speed * 25.5, at most 255)
-    std::uint8_t rate;              // +0x15
-    std::int16_t capacity;          // +0x16
-    std::uint8_t combat[5];         // +0x18 reach, attack, attack spread, defence, speed
-    std::uint8_t damage;            // +0x1D (truncated)
-    std::uint8_t damageSpread;      // +0x1E (truncated)
-    std::uint8_t naturalWeapon;     // +0x1F
-    std::int16_t lastHitSource;         // +0x20 what last damaged the unit (7 after Reset; combat.cpp)
-    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current ([0] / [1]: the sight range by night / the
-                                    //       percentage of it by day, VisionRange)
-    std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
-    std::uint8_t unused_2E[2];
-    UnitParamsSlot slots[6];        // +0x30
-    std::uint8_t attributes[3];     // +0xD8
-    std::uint8_t skills[8];         // +0xDB
-    std::uint8_t skillLevels[0x24]; // +0xE3
-    std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
-
-    // unit_vision.cpp (A-U3). 005271E0 (RET 4): the sight range at `daylight` (0 night .. 1 day):
-    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
-    double VisionRange(float daylight);
-
-    // unit_params_protection.cpp (A-U4). 005270E0 (RET 0xC): the seven protection values the unit
-    // panel shows, into `out`: for text-key units (`keyed`) each body slot whose kind is above 1
-    // adds its protection times its type's weight (kSlotWeights), the sums are divided by the weights'
-    // total (0 when none) and the packed vitals' protection added; others get the packed
-    // protection times the difficulty factor (007C54A0).
-    void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
-};
-static_assert(offsetof(UnitParams, attackRate) == 0x0E);
-static_assert(offsetof(UnitParams, combat) == 0x18);
-static_assert(offsetof(UnitParams, slots) == 0x30);
-static_assert(offsetof(UnitParams, attributes) == 0xD8);
-static_assert(offsetof(UnitParams, flags) == 0x107);
-static_assert(sizeof(UnitParams) == 0x108);
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {

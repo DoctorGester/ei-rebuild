@@ -68,27 +68,6 @@ struct BriefingShownItem {
 };
 static_assert(sizeof(BriefingShownItem) == 0x18);
 
-// A briefing's record (0x6C bytes; the quest database's briefings, by topic in the hash_map at
-// 007C87D4, read by quest_database.cpp): its rewards as NextPhrase lists them.
-struct BriefingRecord {
-    using NameList = stlp::vector<mfc::CString>;
-    std::uint8_t unused_00[0x0C];
-    float experience;                // +0x0C
-    float gold;                      // +0x10
-    NameList giveItems;              // +0x14 item names
-    NameList removeItems;            // +0x20
-    NameList giveQuests;             // +0x2C variables "a.b.<quest>"
-    NameList completeQuests;         // +0x38
-    NameList availableZones;         // +0x44 variables raised to 1 (CWorldServer::CompleteBriefing)
-    NameList completeZones;          // +0x50 variables set to 2
-    std::uint8_t unused_5C[0x68 - 0x5C];   // +0x5C a string
-    int specials;                    // +0x68 "brief_get_specials_<n>" when above 0
-};
-static_assert(offsetof(BriefingRecord, giveItems) == 0x14);
-static_assert(offsetof(BriefingRecord, completeQuests) == 0x38);
-static_assert(offsetof(BriefingRecord, completeZones) == 0x50);
-static_assert(sizeof(BriefingRecord) == 0x6C);
-
 // The local player's name (its zone): 00578A90 copy-constructs it into raw storage, destroyed at
 // the end of the scope.
 class BriefingPlayerName {

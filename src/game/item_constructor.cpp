@@ -96,7 +96,7 @@ ItemRecordHead* NewRecord(int classId) {
         auto* record = gamecrt::operator_new_as<QuestItemRecord>();
         if (!record) return nullptr;
         record->ConstructHead(ItemRecordHead::BaseVtable());
-        std::memset(&record->zonesBegin, 0, 3 * sizeof(record->zonesBegin));   // an empty STLport vector (0055A3E0)
+        record->zones.ConstructEmpty();   // 0055A3E0
         ei::SetVtable(record, QuestItemRecord::Vtable());
         return record;
     }

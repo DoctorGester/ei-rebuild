@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
@@ -45,9 +46,9 @@ CursorLock CursorLockAtCallSite() {
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
-__declspec(naked) void __fastcall IniConstruct(void*) EI_ORIGINAL(0x00695B80)
-__declspec(naked) int __fastcall IniSetPath(void*, void*, const char*) EI_ORIGINAL(0x00695BF0)
-__declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
+__declspec(naked) void __fastcall IniConstruct(CIniFile*) EI_ORIGINAL(0x00695B80)
+__declspec(naked) int __fastcall IniSetPath(CIniFile*, void*, const char*) EI_ORIGINAL(0x00695BF0)
+__declspec(naked) void __fastcall IniDestruct(CIniFile*) EI_ORIGINAL(0x00695BE0)
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
@@ -108,7 +109,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     rect[3] = height;
     CDib* bitmap = CaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
     if (bitmap) bitmap->Write(&file);
-    if (bitmap) reinterpret_cast<mfc::CObjectVirtuals*>(bitmap)->DeletingDestructor(1);   // slot 1 Delete(1)
+    if (bitmap) bitmap->Delete(1);   // through its slot 1 in the original (always a CDib)
     file.Close();
     ++g_movieFrame;
 }
@@ -120,13 +121,14 @@ EI_REPLACE(0x00458010, FrameStep);
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
     mfc::CStringArray list;
     list.Construct();
-    alignas(4) std::uint8_t ini[4];
+    lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the original's calls
+    CIniFile* ini = iniStorage.Get();
     IniConstruct(ini);
     {
         mfc::CString path(mfc::CString::kUnset);
         IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
-    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", &list, ',');
+    ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         {

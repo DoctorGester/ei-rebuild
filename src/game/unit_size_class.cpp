@@ -20,14 +20,14 @@ constexpr float kMaxHeight = 2.0f;        // 0073E9E0
 constexpr float kDeepPrototype = 1.5f;    // 0073C51C
 constexpr std::uint32_t kShallowHeight = 0x3C23D70A;   // 0.01f
 constexpr std::uint32_t kDefaultRadius = 0x3F400000;   // 0.75f
-constexpr std::uint8_t kMovesOnWater = 2;               // movementKind
+constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementKind
 
 } // namespace
 
 void CUnit::UpdateSizeClass() {
     Controller()->UpdateMoveFactors();   // the server's 005536B0; empty (00533D10) on the others
     if (controller->GetClassId() != kClassUnitServer) {
-        sizeClass = movementKind == kMovesOnWater ? 0 : 3;
+        sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
         std::memcpy(&unitRadius, &kDefaultRadius, 4);
         return;
     }

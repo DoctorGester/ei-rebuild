@@ -14,6 +14,7 @@
 #include "map_object.h"
 #include "party.h"
 #include "player_messages.h"
+#include "quest_records.h"
 #include "ui_briefing.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -160,8 +161,6 @@ namespace {
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
-using NameList = BriefingRecord::NameList;
-
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
@@ -181,13 +180,13 @@ CItem* CreateNamedItem(const char* name, bool fromSecond) {
 }
 
 // The rewards of a briefing record for `player`.
-void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* record) {
-    float experience = record->experience;
+void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
+    float experience = record->exp;
     EI_NAN_AUDIT(experience);
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
-    PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
+    PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->money));
 
     mfc::CTypedPtrList<CItem> items;
     items.vtable = mfc::impl::ItemListClass::Vtable();
@@ -197,7 +196,8 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
     items.free = nullptr;
     items.blocks = nullptr;
     items.blockSize = 10;
-    for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kGiveItems].begin();
+         name != record->lists[QuestBriefingRecord::kGiveItems].end(); ++name) {
         CItem* item = CreateNamedItem(*name, true);
         if (!item) continue;
         auto* node = items.NewNode(items.tail, nullptr);
@@ -208,7 +208,8 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
     }
     if (items.count) player->GiveItems(&items, 0);
 
-    for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kRemoveItems].begin();
+         name != record->lists[QuestBriefingRecord::kRemoveItems].end(); ++name) {
         CItem* item = CreateNamedItem(*name, false);
         if (!item) continue;
         ++item->refCount_;
@@ -218,13 +219,17 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
     }
 
     CPlayerServer* state = player->Server();
-    for (const mfc::CString* name = record->giveQuests.begin(); name != record->giveQuests.end(); ++name)
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kGiveQuests].begin();
+         name != record->lists[QuestBriefingRecord::kGiveQuests].end(); ++name)
         PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
-    for (const mfc::CString* name = record->completeQuests.begin(); name != record->completeQuests.end(); ++name)
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kCompleteQuests].begin();
+         name != record->lists[QuestBriefingRecord::kCompleteQuests].end(); ++name)
         state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
-    for (const mfc::CString* name = record->availableZones.begin(); name != record->availableZones.end(); ++name)
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kAvailableZones].begin();
+         name != record->lists[QuestBriefingRecord::kAvailableZones].end(); ++name)
         PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
-    for (const mfc::CString* name = record->completeZones.begin(); name != record->completeZones.end(); ++name)
+    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kCompleteZones].begin();
+         name != record->lists[QuestBriefingRecord::kCompleteZones].end(); ++name)
         state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
@@ -247,10 +252,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     }
     console::CStringArray parts;
     text::Split(name, &parts, '.');
-    BriefingRecord* record = nullptr;
+    QuestBriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
         stlp::string key(parts[2]);
-        record = stlp::NamedSlot<BriefingRecord>(worlddata::QuestBriefings(), key);
+        record = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
     }
     CPlayer* player = nullptr;
     {

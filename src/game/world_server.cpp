@@ -28,7 +28,7 @@
 namespace {
 
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
-// FindPlayer (0041A2E0) is the player record with +0x2C == id, or null.
+// FindPlayer (0041A2E0) is the player record with that id, or null.
 net::ServerSession* ActiveGameServer() {
     net::ServerSession* server = net::GameServer();
     if (!server || (server->flags7_ & CRefCounted::kDetached)) return nullptr;

@@ -18,10 +18,9 @@
 namespace net {
 
 namespace {
-__declspec(naked) void __fastcall CoderConstruct(void* /*coder*/) EI_ORIGINAL(0x0042FCA0)
-__declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
+__declspec(naked) void __fastcall CoderConstruct(CoderState* /*coder*/) EI_ORIGINAL(0x0042FCA0)
+__declspec(naked) void __fastcall CoderDecompress(CoderState* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
-constexpr std::size_t kCoderSize = 0x2828;
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
 // through slot 3, else from memory (00401310).
@@ -48,16 +47,15 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     stlp::StringElement::Default(&record->description);
     GameBuffer buffer;
     buffer.ConstructGrowing();
-    alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
-    CoderConstruct(coder);
-    auto* coderCursor = reinterpret_cast<BufferCursor*>(coder + 0x2800);
+    CoderState coder;
+    CoderConstruct(&coder);
     in->Seek(0);
     std::uint32_t size;
     ReadBytes(in, &size, 4);
     if (in->cur > in->high) in->high = in->cur;
     bool complete = false;
     if (size == static_cast<std::uint32_t>(Offset(*in, in->high))) {
-        CoderDecompress(coder, nullptr, in, &buffer);
+        CoderDecompress(&coder, nullptr, in, &buffer);
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
         buffer.cur = begin;
@@ -94,7 +92,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
             AddServer(entry);
         }
     }
-    coderCursor->End();
+    coder.out.End();
     GrowingBufferDestruct(&buffer);
 }
 EI_REWRITTEN(0x0041D600, ClientSession::ReadServerListImpl);

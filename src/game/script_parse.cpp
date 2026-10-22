@@ -64,24 +64,6 @@ const char* CommentOpen() { return "/*"; }
 const char* CommentClose() { return "*/"; }
 const char* LineComment() { return "//"; }
 
-// Takes a node from the list's free chain, carving a block of `blockSize` nodes when it is empty
-// (CList::NewNode as the game inlines it). Shared by the token and define lists (16-byte nodes).
-template <typename List>
-typename List::Node* TakeNode(List* list) {
-    using Node = typename List::Node;
-    static_assert(sizeof(Node) == 16);
-    if (!list->free) {
-        mfc::CPlex* block = mfc::PlexCreate(list->blocks, list->blockSize, sizeof(Node));
-        Node* node = reinterpret_cast<Node*>(block + 1) + (list->blockSize - 1);
-        for (int i = list->blockSize - 1; i >= 0; --i, --node) {
-            node->next = list->free;
-            list->free = node;
-        }
-    }
-    Node* node = list->free;
-    list->free = node->next;
-    return node;
-}
 
 } // namespace
 
@@ -301,11 +283,8 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
         mfc::CString text;
         reinterpret_cast<StringOps*>(&text)->InitN(buffer, static_cast<int>(std::strlen(buffer)) - rest);
 
-        ScriptTokenList::Node* node = TakeNode(tokens);
-        node->prev = tokens->tail;
-        node->next = nullptr;
-        ++tokens->count;
-        std::memset(&node->data, 0, sizeof(node->data));
+        // CList::AddTail as the game inlines it: the new node's token zeroed, then constructed.
+        ScriptTokenList::Node* node = tokens->NewNode(tokens->tail, nullptr);
         node->data.Construct();
         node->data.text = text;
         node->data.line = line;
@@ -374,13 +353,7 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
             before = before->next;
         }
         Node* prev = before->prev;
-        Node* node = TakeNode(defines);
-        node->prev = prev;
-        node->next = before;
-        ++defines->count;
-        std::memset(&node->data, 0, sizeof(node->data));
-        new (&node->data.name) mfc::CString;
-        new (&node->data.value) mfc::CString;
+        Node* node = defines->NewNode(prev, before);   // the strings constructed empty
         node->data.name = define->name;
         node->data.value = define->value;
         if (before->prev) before->prev->next = node;
@@ -389,13 +362,7 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
         return;
     }
     Node* tail = defines->tail;
-    Node* node = TakeNode(defines);
-    node->prev = tail;
-    node->next = nullptr;
-    ++defines->count;
-    std::memset(&node->data, 0, sizeof(node->data));
-    new (&node->data.name) mfc::CString;
-    new (&node->data.value) mfc::CString;
+    Node* node = defines->NewNode(tail, nullptr);
     node->data.name = define->name;
     node->data.value = define->value;
     if (defines->tail) defines->tail->next = node;

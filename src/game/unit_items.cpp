@@ -19,9 +19,6 @@ namespace {
 constexpr int kPartEquipment = 5;
 constexpr int kPartStats = 4;
 
-// Controller slot 27 (ArmourTakenOff), called through the vtable read before the argument.
-constexpr int kControllerArmourRemoved = 0x6C / 4;
-
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
 
@@ -56,10 +53,7 @@ CItemArmor* CUnit::UnequipArmour(int slot) {
     CItemArmor* item = armor[slot];
     armor[slot] = nullptr;
     if (item) {
-        void* const* vtable = *reinterpret_cast<void* const* const*>(controller);   // read before the call
-        int type = item->GetType();
-        reinterpret_cast<int(__fastcall*)(CEngineObject*, void*, int)>(vtable[kControllerArmourRemoved])(controller,
-                                                                                                        nullptr, type);
+        Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
         item->Release();
     }
     MarkChanged(kPartEquipment);
@@ -74,10 +68,7 @@ void CUnit::ReleaseAllItems() {
         CItemArmor* item = slot;
         slot = nullptr;
         if (item) {
-            void* const* vtable = *reinterpret_cast<void* const* const*>(controller);
-            int type = item->GetType();
-            reinterpret_cast<int(__fastcall*)(CEngineObject*, void*, int)>(vtable[kControllerArmourRemoved])(
-                controller, nullptr, type);
+            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(item->GetType()));
             item->Release();
         }
         MarkChanged(kPartEquipment);

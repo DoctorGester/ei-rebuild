@@ -369,7 +369,8 @@ Layout: speakers +0x1A4 hero, +0x1A8 person, +0x1AC third; places_ +0x1B0 / dire
 third), thirdPlace_ / thirdDirection_ +0x210 / +0x21C, personHome_ / personHomeDirection_ +0x228 / +0x234, firstPhrase_ +0x244,
 dialogueText_ +0x248, speaking_ +0x254, shown_ +0x278 (BriefingShownItem list), immediate_ +0x27C, autosave_ +0x27E, people_
 +0x284 (stlp::vector<int>), markPhase_ +0x290, speakers_ +0x294 (12-byte BriefingSpeaker), text_ a CUiScrollText;
-`BriefingRecord` 0x6C (exp, gold, four name lists, specials +0x68). The "constr" topic's number is `Mid(7)` (006FD9B4, not
+the rewards are the quest database's `QuestBriefingRecord` (quest_records.h, 0x6C: exp, money, the lists by
+`ListKind`, specials +0x68). The "constr" topic's number is `Mid(7)` (006FD9B4, not
 Right). Helpers: `BriefingVariables` (00578C40 into a 100-bucket table, 00581790; walked with 005E0DB0), `BriefingPlayerName`
 (00578A90). player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarders
 (originals_ui.h) and `player_out_mark.h`. Inlined in the original, not functions: 00609A80, 0060B490 / 0060AC00, 00609A40 (pool

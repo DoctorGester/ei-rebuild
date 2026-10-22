@@ -54,8 +54,6 @@ inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 
 
-using SlotEvent = void(__thiscall*)(void*, int, int, int);
-
 // The local view's spell and quick item orders (thiscall, RET 0x10): on a unit 0066AC70 (spell) /
 // 0066AD40 (quick item) with (slot, member, target, ctrl), at a point 0066ACD0 / 0066ADD0 with
 // (slot, member, &point, 0).
@@ -145,7 +143,7 @@ void CBattleScreen::ToggleMember(int index) {
         CUnit* member = unitAt(i);
         if (member && chosen.data[i] != 0) {
             TheClientWorld()->Select(member);
-            if (index == i) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 0, 0);
+            if (index == i) VirtualUnitSpeech(unitAt(i)->id_, 0, nullptr);
         }
     }
 
@@ -187,7 +185,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         portraits_->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
-        if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
+        if (targetLevel - memberLevel > 5) VirtualUnitSpeech(unitAt(i)->id_, 10, nullptr);
     }
     if (units.size != 0) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
