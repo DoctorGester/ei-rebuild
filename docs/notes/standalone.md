@@ -249,8 +249,8 @@ each step green on the goldens and removing a measured tie:
   routes it (ImageRoute: GetCommandLineA; with EI_UTF8 the `EI_UTF8_ROUTE` list of game/system_text.cpp), the
   harness takes it (any import slot address tests/ names: window focus, cursor, files and saves, profile, registry,
   clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
-  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP: LoadIconA /
-  LoadStringA, which C23 changes, and GetVersionExA, deprecated in the SDK: a direct call warns); the other 343 are `using ::X;`, the Windows function through ei_hook.dll's own imports
+  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (67, with gen_iat's KEEP:
+  GetVersionExA, deprecated in the SDK: a direct call warns); the other 344 are `using ::X;`, the Windows function through ei_hook.dll's own imports
   (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `--check` fail until gen_iat.py
   is rerun, which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,

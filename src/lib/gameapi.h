@@ -319,7 +319,7 @@ using ::ShowOwnedPopups;  // USER32.dll
 using ::InsertMenuA;  // USER32.dll
 using ::DeleteMenu;  // USER32.dll
 using ::GetMenuStringA;  // USER32.dll
-inline auto& LoadIconA = ei::Imports().LoadIconA;  // USER32.dll, through the slot
+using ::LoadIconA;  // USER32.dll
 inline auto& RegisterClassExA = ei::Imports().RegisterClassExA;  // USER32.dll, through the slot
 using ::RegisterWindowMessageA;  // USER32.dll
 using ::PostQuitMessage;  // USER32.dll

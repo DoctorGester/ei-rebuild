@@ -38,9 +38,9 @@ ORDINALS = {('WSOCK32.dll', 1): 'accept', ('WSOCK32.dll', 2): 'bind', ('WSOCK32.
             ('WSOCK32.dll', 57): 'gethostname', ('WSOCK32.dll', 115): 'WSAStartup', ('WSOCK32.dll', 116): 'WSACleanup',
             ('WSOCK32.dll', 151): 'WSAFDIsSet', ('DSOUND.dll', 2): 'DirectSoundEnumerateA',
             ('COMCTL32.dll', 17): 'InitCommonControls'}
-# Called through the slot although nothing routes them: the window class's icon and strings (C23 changes them),
-# and what the Windows SDK declares deprecated (a direct call warns, C4996).
-KEEP = {'LoadIconA', 'LoadStringA', 'GetVersionExA'}
+# Called through the slot although nothing routes them: what the Windows SDK declares deprecated (a direct call
+# warns, C4996).
+KEEP = {'GetVersionExA'}
 # game_data.h's kImportsBegin / kImportsEnd: the import address table, the first 0x820 bytes of .rdata.
 IAT_BEGIN, IAT_END = 0x0073B000, 0x0073B820
 
