@@ -3,6 +3,7 @@
 // dropped, effects removed, globals zeroed, the WorldScript blocks started again). See script.h and
 // docs/notes/script.md.
 #include "script.h"
+#include "world_effect.h"
 
 #include "lib/static_object.h"
 #include "lib/crt.h"

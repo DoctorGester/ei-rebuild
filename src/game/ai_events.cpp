@@ -196,7 +196,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     archive->Construct();
     bool failed;
     {
-        mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+        mfc::CString folder(TheTextFolder());
         mfc::CString path = folder + kAiInfoArchive;
         failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
     }

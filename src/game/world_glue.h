@@ -63,8 +63,10 @@ double GameServerTimeOfDay();
 void __stdcall GamePassTime(float offset);
 // 00578730 (RET 8; the client's state block 00567AB0). CWorldServer::EnsureZone.
 void __stdcall GameEnsureZone(const char* map, const char* mob);
-// 00578750 (the client's state block 00567AB0 hands it to 00667B40). The object at 007C2D60.
-void* GameObject7C2D60();
+// 00578750 (the client's state block 00567AB0 hands it to 00667B40). The memory stream at 007C2D60
+// (the local server's pending messages).
+class CMemoryStream;   // core_streams.h
+CMemoryStream* GameObject7C2D60();
 // 00578760 (RET 8; the briefing screen). The server unit with id `id` moves to height `z` (its
 // sector map entry follows, part 2 marked changed) unless it is there already (or NaN).
 void __stdcall GameSetUnitHeight(int id, float z);

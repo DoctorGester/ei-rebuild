@@ -71,7 +71,7 @@ void CMapObjectServer::DestroyServer() {
 EI_REWRITTEN(0x005157E0, CMapObjectServer::DestroyServer);
 
 int CMapObject::CompanionQuery(int first, int second, int) {
-    return static_cast<CMapObjectCompanion*>(companion)->Query(first, second);
+    return companion->Query(first, second);
 }
 EI_REPLACE_METHOD(0x0050E460, CMapObject::CompanionQuery);
 

@@ -16,6 +16,7 @@ class CItemConstructor;
 struct CItemManager;
 class CSpell;
 class CPlayer;
+class CBaseManager;   // base_manager.h
 
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
@@ -34,7 +35,7 @@ __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, voi
 __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*party*/) EI_ORIGINAL(0x006611D0)
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
-__declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
+__declspec(naked) inline CPlayer* __fastcall PlayerCreateOriginal(CBaseManager* /*players*/) EI_ORIGINAL(0x0066C180)
 // 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
 // type (bytes) and raises the fatal error 00480080; returns its result.
 __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)

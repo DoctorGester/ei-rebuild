@@ -11,6 +11,7 @@
 #include "core_streams.h"
 #include "script.h"
 #include "script_array.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -162,11 +163,12 @@ int StreamVersion(const ScriptStream* stream) { return reinterpret_cast<const in
 // The script being loaded (as in Save; the run loader finds a run's instance through it).
 CScript*& LoadingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
-// An object id as the list loaders resolve it: -1 is none, else the registry's object with its
-// reference count raised.
-CEngineObject* AcquireById(int id) {
+// An object id as the list loaders resolve it: -1 is none, else the registry's object (the list's
+// effect class) with its reference count raised.
+template <class T>
+T* AcquireById(int id) {
     if (id == -1) return nullptr;
-    CEngineObject* object = RegistryObject(id);
+    auto* object = static_cast<T*>(RegistryObject(id));
     if (object) ++object->refCount_;
     return object;
 }
@@ -431,7 +433,7 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
     for (auto* node = list->head; node;) {
         ScriptParticleSource* source = &node->data;
         node = node->next;
-        source->object = AcquireById(ReadInt(stream));
+        source->object = AcquireById<CEffectParticle>(ReadInt(stream));
         stream->Read(&source->id, 4);
         stream->Read(&source->deleteAfterMove, 4);
         stream->Read(&source->moving, 4);
@@ -476,7 +478,7 @@ void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStr
     for (auto* node = list->head; node;) {
         ScriptLightning* bolt = &node->data;
         node = node->next;
-        bolt->object = AcquireById(ReadInt(stream));
+        bolt->object = AcquireById<CEffectLightning>(ReadInt(stream));
         stream->Read(&bolt->id, 4);
     }
 }

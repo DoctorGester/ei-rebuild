@@ -139,7 +139,7 @@ int CMaterialManager::Create() {
     // Rebirth's ResOverride (0068E648): the mod's archives open here if nothing opened them yet.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     if (!CBaseManager::Create()) return 0;
-    const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    const mfc::CString folder(TheTextFolder());
     AddArchive(folder + "materials.res");
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
@@ -170,7 +170,7 @@ CEngineObject* CMaterialManager::NewObjectImpl(int type) {
 }
 
 CMaterial* CMaterialManager::NewMaterial(int type) {
-    auto* material = static_cast<CMaterial*>(CreateObject(type, -1));
+    auto* material = CreateObjectAs<CMaterial>(type, -1);
     // The original sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
     material->flags_ |= 8;

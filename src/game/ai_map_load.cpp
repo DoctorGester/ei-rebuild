@@ -209,7 +209,7 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
+        mfc::CString folder(TheTextFolder());
         opened = archive.Open(folder + "aiinfo.res");
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");

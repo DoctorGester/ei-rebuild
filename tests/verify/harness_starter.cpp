@@ -165,7 +165,7 @@ std::string ModFileStep(const std::string& argument) {
         return "modfile " + argument + ": not <archive> <file> <bytes>";
     // The archive as the game opens its own: the text resources' folder and the name. In game.exe's --no-hooks
     // runs its own folder: our named copy (C18) is never set there.
-    const mfc::CString& folder = ei::Standalone() ? *static_cast<const mfc::CString*>(worlddata::TextPathString())
+    const mfc::CString& folder = ei::Standalone() ? TheTextFolder()
                                                   : ei::OriginalGameData<mfc::CString>(0x007AF45C);
     const mfc::CString path = folder + archive;
     void* memory = ::operator new(sizeof(CMappedResource));

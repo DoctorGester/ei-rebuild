@@ -113,7 +113,7 @@ bool GSGetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     CPlayer* player = GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *static_cast<float*>(call->result) = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
+    *call->FloatResult() = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
     return true;
 }
 
@@ -211,7 +211,7 @@ bool IsFileExists(Call* call) {
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
     DWORD attributes = text::sys::GetFileAttributesA(path.c_str());
-    Store(static_cast<float*>(call->result), attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
+    Store(call->FloatResult(), attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
     return true;
 }
 

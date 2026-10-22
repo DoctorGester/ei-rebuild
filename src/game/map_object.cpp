@@ -255,7 +255,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
         CompanionOwner(companion) = nullptr;
         companion->Release();
     }
-    companion = object;
+    companion = CompanionSlots(object);
     if (object) {
         CompanionOwner(object) = this;
         ++companion->refCount_;
@@ -277,7 +277,7 @@ std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
         CompanionOwner(companion) = nullptr;
         companion->Release();
     }
-    companion = object;
+    companion = CompanionSlots(object);
     CompanionOwner(object) = this;
     return static_cast<std::uintptr_t>(++companion->refCount_);
 }

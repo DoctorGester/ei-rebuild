@@ -69,6 +69,7 @@ class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
+namespace mapspec { struct Spec; }   // map_spec.h
 
 class CWorldServer;
 
@@ -375,12 +376,12 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CMapObject* FindObject(unsigned id);
-    // 005927C0 (RET 4; world_units.cpp). Creates the object a creation message (+0x48 its kind)
+    // 005927C0 (RET 4; world_units.cpp). Creates the object a .mob record (base.kind its kind)
     // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
     // into the object maps, the update map and the sector map; sounds (3), lights (2) and kind 4
     // become timed objects. Returns the new id, -1 when refused, the message's address for an
     // unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
-    int CreateObject(std::uint8_t* message);
+    int CreateObject(mapspec::Spec* message);
     // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
     // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
     // states forget it, and the maps' reference is released. An unknown id crashes the original
@@ -718,7 +719,7 @@ public:
     // 0058ECE0 (RET 8). A quick item (potion) is used by `unit`: the effect object "st.tr.130"
     // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
     // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
-    void UseQuickItem(void* item, CEngineObject* unit);
+    void UseQuickItem(CItem* item, CUnit* unit);
 
     // world_sync.cpp
     // 0058B750 (RET 4). Brings `player`'s view up to date (once per world update): the zone when

@@ -69,7 +69,7 @@ static void ReleaseTextures(CTextureManager* manager) {
 int CTextureManager::Create() {
     if (!CBaseManager::Create()) return 0;
     DeleteComposedTextures();
-    const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    const mfc::CString folder(TheTextFolder());
     BOOL opened = AddArchive(folder + "textures.res");
     opened = AddArchive(folder + "redress.res") && opened ? 1 : 0;
     if (!AddArchive(folder + "menus.res") || !opened) return 0;

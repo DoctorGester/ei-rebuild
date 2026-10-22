@@ -38,7 +38,7 @@ constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
 int CWorldServer::Setup() {
     Destroy();
     if (!WorldCreateManagers(this)) return game::FatalError(CantCreateText());
-    mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    mfc::CString folder(TheTextFolder());
     BOOL opened;
     {
         mfc::CString path = folder + kMessagesFileName;

@@ -61,7 +61,7 @@ CEngineObject* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObjectImpl(kPlayerType, -1));
     if (!player) return nullptr;
     CBaseManager* specific = ContextAsWorld()->SpecificManager();
-    player->SetConnection(static_cast<CPlayerConnection*>(specific->CreateObject(kConnectionType, -1)));
+    player->SetConnection(specific->CreateObjectAs<CPlayerConnection>(kConnectionType, -1));
     ++player->refCount_;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
         player->playerId_ = NextPlayerNumber(player, 0);

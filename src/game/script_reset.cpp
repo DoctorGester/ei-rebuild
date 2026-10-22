@@ -4,6 +4,7 @@
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "script.h"
+#include "world_effect.h"
 #include "game_strings.h"
 
 #include "ei/hook.h"

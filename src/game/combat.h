@@ -718,7 +718,7 @@ public:
     void LiftNearby(void* list, const float* point, char moving);
     // 0054EB30. Tells a party unit's player how a path to `path`'s goal turned out (0066D490 and
     // messages 0x0E / 0x01), unless the brain's mode is 6.
-    void ReportPath(void* path, char partial);
+    void ReportPath(AIPath* path, char partial);
     // 00546480. The controller's reset (constructor and Load): orders, queue, plan, hit, records,
     // effect object, brain, alarm, factors, stats, animation caches, the armour spell list.
     void ResetController();
@@ -745,11 +745,11 @@ public:
     // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
     // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
     // Every order's point gets z -1 first. Callers test AL.
-    bool FindUseSpot(UnitAction* order, void* motionOrder);
+    bool FindUseSpot(UnitAction* order, AIPath* motionOrder);
     // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
     // until the order's target is in reach (and seen, when the order needs a line of sight); the
     // time it takes (ST0), 0 for other kinds.
-    double TimeUntilAction(const UnitAction* order, void* motionOrder);
+    double TimeUntilAction(const UnitAction* order, AIPath* motionOrder);
     // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
     // sector map) and whether the unit can act from its end, with the player's path message;
     // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only

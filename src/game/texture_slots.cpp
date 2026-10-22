@@ -146,7 +146,7 @@ EI_REWRITTEN(0x00691A70, TextureDestroyHook);
 void* CTextureManager::GetFileData(const char* name) { return GetFile(name, nullptr); }
 EI_REWRITTEN(0x00691CF0, CTextureManager::GetFileData);
 
-CTexture* CTextureManager::NewTextureOfType(int type) { return static_cast<CTexture*>(CreateObject(type, -1)); }
+CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }
 EI_REWRITTEN(0x00691D40, CTextureManager::NewTextureOfType);
 
 CTexture* CTextureManager::FindOrCreate(int type, const char* name) {

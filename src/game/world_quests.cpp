@@ -213,7 +213,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, BriefingRecord* r
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
-            PlayerEraseQuestItemOriginal(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_));
+            PlayerEraseQuestItemOriginal(player, nullptr, static_cast<int>(AsQuest(item)->questItemId_));
         item->Release();
     }
 

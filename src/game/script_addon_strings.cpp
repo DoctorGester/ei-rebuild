@@ -33,8 +33,6 @@ namespace {
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 
 
-float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
-mfc::CString* StringResult(Call* call) { return static_cast<mfc::CString*>(call->result); }
 const mfc::CString& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 
 // 10010D8F: every string argument appended in order (each by its CString length).
@@ -46,7 +44,7 @@ std::string Joined(Call* call) {
 }
 
 // std::string's c_str() assigned to the result (the text up to its first NUL).
-void Assign(Call* call, const std::string& text) { *StringResult(call) = text.c_str(); }
+void Assign(Call* call, const std::string& text) { *call->StringResult() = text.c_str(); }
 
 // A NUL-terminated copy changed in place by CharLowerA / CharUpperA (the user's code page).
 std::string CaseConverted(const char* text, bool upper) {
@@ -86,12 +84,12 @@ bool FloatToStr(Call* call) {
     }
     if (text[i] == '.') text[i] = 0;
     else text[i + 1] = 0;
-    *StringResult(call) = text;
+    *call->StringResult() = text;
     return true;
 }
 
 bool StrToFloat(Call* call) {
-    Store(FloatResult(call), static_cast<float>(GameAtof(Arg(call, 0))));
+    Store(call->FloatResult(), static_cast<float>(GameAtof(Arg(call, 0))));
     return true;
 }
 
@@ -102,19 +100,19 @@ bool StrCat(Call* call) {
 
 // The length in characters (U5: with EI_UTF8 a UTF-8 sequence counts once; without it the bytes).
 bool StrLen(Call* call) {
-    Store(FloatResult(call), static_cast<float>(text::CharacterCount(Arg(call, 0))));
+    Store(call->FloatResult(), static_cast<float>(text::CharacterCount(Arg(call, 0))));
     return true;
 }
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
     std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
-    *StringResult(call) = Arg(call, static_cast<int>(index)).GetString();
+    *call->StringResult() = Arg(call, static_cast<int>(index)).GetString();
     return true;
 }
 
 bool StrHas(Call* call) {
-    Store(FloatResult(call), std::strstr(Arg(call, 0), Arg(call, 1)) ? 1.0f : 0.0f);
+    Store(call->FloatResult(), std::strstr(Arg(call, 0), Arg(call, 1)) ? 1.0f : 0.0f);
     return true;
 }
 

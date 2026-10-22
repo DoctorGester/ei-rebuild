@@ -114,7 +114,6 @@ AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
 int& QueueTime(CUnitServer* self) { return Queue(self).extra; }       // +0x38
 int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }   // +0x15C
 OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
-void* Motion(CUnitServer* self) { return &self->motion; }
 
 // A queue that has no start time yet starts now.
 void StartQueueIfUnset(CUnitServer* self) {
@@ -368,7 +367,7 @@ void CUnitServer::AdvanceAnimation() {
         // Frozen: everything waits one more update.
         unit->SetPathTimeShift(1);
         unit->SetMotionMode(1);
-        static_cast<AIPath*>(Motion(this))->ShiftTime(1);
+        motion.ShiftTime(1);
         ++QueueTime(this);
         ++SavedQueueTime(this);
         ++Plan(this).startTime;
@@ -378,7 +377,7 @@ void CUnitServer::AdvanceAnimation() {
     }
     bool held = animationHeld != 0;
     if (held) {
-        static_cast<AIPath*>(Motion(this))->ShiftTime(1);
+        motion.ShiftTime(1);
         ++SavedQueueTime(this);
         ++Plan(this).startTime;
         ++Plan(this).endTime;
@@ -478,7 +477,7 @@ void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
 EI_REWRITTEN(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
-    static_cast<AIPath*>(Motion(this))->Clear();
+    motion.Clear();
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->localRotation_);
@@ -616,7 +615,7 @@ void CUnitServer::TickAction() {
         unit->UpdateSizeClass();
         DropEffectObject(this);
     }
-    static_cast<AIPath*>(Motion(this))->Clear();
+    motion.Clear();
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
     QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
