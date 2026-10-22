@@ -61,7 +61,9 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   `Back()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
   the owning figure manager; `CMapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
   `CUnit::Controller()` for the controller's own slots (also from inside CUnitClientSpecific, which is not
-  declared as a CUnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share),
+  declared as a CUnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share;
+  `CTexture::Manager()` / `CParticleSource::Manager()` for the owning manager; particle_common.h's `Carrier(object)`
+  for the attached object's map object slots; `AsQuest` / `AsArmor` on a `CItem*` (CPlayer::items_ holds `CItem*`)),
   not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.

@@ -185,7 +185,10 @@ does not need a second pass:
   its `inputHandled_` member. A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
-  written by a transform slot is an `mfc::CFileVirtuals*`.
+  written by a transform slot is an `mfc::CFileVirtuals*`, and so is a chunk's `Chunk::File()`. A use order's spots
+  are a `UseSpotArray` (map_object.h, `mfc::CArray<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
+  connection is a `RefPtrTo<Connection>`; the changed variables are an `stlp::vector<VariableNode*>`; a map object's
+  slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
