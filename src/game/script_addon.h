@@ -16,6 +16,12 @@ namespace scriptaddon {
 // CalcString's mfc::CString*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
 // flag (1 on entry) and `run` the running script; `result` is null.
 struct Call {
+    // The result slot as the function's return type gives it.
+    float* FloatResult() const { return static_cast<float*>(result); }
+    mfc::CString* StringResult() const { return static_cast<mfc::CString*>(result); }
+    ScriptObjectRef* ObjectResult() const { return *static_cast<ScriptObjectRef**>(result); }
+    ScriptGroup* GroupResult() const { return *static_cast<ScriptGroup**>(result); }
+
     SSCCmd* cmd;
     CScript* script;
     void* result;
