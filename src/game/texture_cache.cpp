@@ -96,11 +96,11 @@ EI_REWRITTEN(0x00691BF0, CTextureManager::TakeFromCache);
 // Original details kept: a texture taken back from the cache here is not subtracted from
 // cachedBytes_ (00691BF0 does subtract it).
 CTexture* CTextureManager::FindTexture(const char* name) {
-    ObjectListIterator registered{nullptr, nullptr};
+    ObjectListIteratorOf<CTexture> registered{};
     CTexture* found = nullptr;
-    for (CEngineObject* object = registered.First(this); object; object = registered.Next()) {
-        if (std::strcmp(object->GetName(), name) == 0) {
-            found = static_cast<CTexture*>(object);
+    for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
+        if (std::strcmp(texture->GetName(), name) == 0) {
+            found = texture;
             break;
         }
     }
@@ -125,11 +125,11 @@ EI_REWRITTEN(0x00693C60, CTextureManager::FindTexture);
 // --- 00692D30 ----------------------------------------------------------------------------------------
 
 CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
-    ObjectListIterator registered{nullptr, nullptr};
+    ObjectListIteratorOf<CTexture> registered{};
     CTexture* found = nullptr;
-    for (CEngineObject* object = registered.First(this); object; object = registered.Next()) {
-        if (object->type_ == type && std::strcmp(object->GetName(), name) == 0) {
-            found = static_cast<CTexture*>(object);
+    for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
+        if (texture->type_ == type && std::strcmp(texture->GetName(), name) == 0) {
+            found = texture;
             break;
         }
     }

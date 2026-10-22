@@ -97,8 +97,11 @@ float EffectValueField(const MapEffect& effect) {
     return value;
 }
 
-CEngineObject* ServerObjectOf(const CUnit* unit) { return unit->companion; }
-UnitVitals* VitalsOf(CEngineObject* server) { return &static_cast<CMapObjectServer*>(server)->vitals; }
+// The vitals on the unit's server companion, or null when the companion is not one (on a client).
+UnitVitals* ServerVitals(CUnit* unit) {
+    CMapObjectServer* server = unit->ServerCompanion();
+    return server->GetClassId() == kClassServerObject ? &server->vitals : nullptr;
+}
 
 // strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k), the numerator stored as a
 // float; 1 without a unit. Unrounded.
@@ -494,9 +497,8 @@ double LevelWorth(int level) {
 // Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old
 // one as experience (into the spent experience too). Then the maxima and a recomputation.
 bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
-    CEngineObject* server = ServerObjectOf(unit);
-    if (server->GetClassId() != kClassServerObject) return false;
-    UnitVitals* vitals = VitalsOf(server);
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return false;
     std::uint8_t old = levels[index];
     int raised = (amount & 0xFF) + old;
     float worthNew = static_cast<float>(LevelWorth(raised));
@@ -518,10 +520,10 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
 } // namespace
 
 void UnitStats::GainExperience(CUnit* unit, float amount) {
-    CEngineObject* server = ServerObjectOf(unit);
-    if (server->GetClassId() != kClassServerObject) return;
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return;
     AddPending(this, IntelligenceFactor(&stat20) * amount);
-    RefreshMaxima(this, VitalsOf(server), unit);
+    RefreshMaxima(this, vitals, unit);
 }
 EI_REWRITTEN(0x005239B0, UnitStats::GainExperience);
 
@@ -534,9 +536,8 @@ bool UnitStats::RaiseAttribute(int index, int amount, CUnit* unit) {
 EI_REWRITTEN(0x00528DA0, UnitStats::RaiseAttribute);
 
 bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
-    CEngineObject* server = ServerObjectOf(unit);
-    if (server->GetClassId() != kClassServerObject) return false;
-    UnitVitals* vitals = VitalsOf(server);
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return false;
     stat10Base = static_cast<float>(static_cast<double>(amount) + stat10Base);
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
     float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
@@ -557,9 +558,8 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
 EI_REWRITTEN(0x00529090, UnitStats::RaiseStrength);
 
 bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
-    CEngineObject* server = ServerObjectOf(unit);
-    if (server->GetClassId() != kClassServerObject) return false;
-    UnitVitals* vitals = VitalsOf(server);
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return false;
     stat18Base = static_cast<float>(static_cast<double>(amount) + stat18Base);
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
     float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
@@ -589,9 +589,8 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
 EI_REWRITTEN(0x00529220, UnitStats::RaiseDexterity);
 
 bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
-    CEngineObject* server = ServerObjectOf(unit);
-    if (server->GetClassId() != kClassServerObject) return false;
-    UnitVitals* vitals = VitalsOf(server);
+    UnitVitals* vitals = ServerVitals(unit);
+    if (!vitals) return false;
     stat20Base = static_cast<float>(static_cast<double>(amount) + stat20Base);
     RefreshMaxima(this, vitals, unit);
     Recompute(vitals, unit);
