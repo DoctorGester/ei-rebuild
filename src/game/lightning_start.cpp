@@ -108,13 +108,13 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
 
     Animate();
     UpdateBounds();
-    boundsMin_.x -= 1.0f;
-    boundsMin_.y -= 1.0f;
-    boundsMin_.z -= 1.0f;
-    boundsMax_.x += 1.0f;
-    boundsMax_.y += 1.0f;
-    boundsMax_.z += 1.0f;
-    radius_ = boundsMax_.Length();
+    bounds_.boxMin.x -= 1.0f;
+    bounds_.boxMin.y -= 1.0f;
+    bounds_.boxMin.z -= 1.0f;
+    bounds_.boxMax.x += 1.0f;
+    bounds_.boxMax.y += 1.0f;
+    bounds_.boxMax.z += 1.0f;
+    bounds_.radius = bounds_.boxMax.Length();
     CTexture** glow = &glowTexture_;
     CTexture** main = &texture_;
     if (demon) {
@@ -127,12 +127,9 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
 }
 
 namespace {
-// CRT eh vector constructor / destructor iterators (pointer, element size, count, [constructor,]
-// destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
-// object's destructor body 00455930.
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
-// The segment's element constructor and destructor as the iterators call them (ECX the element).
+// The segment's element constructor (00468900) and destructor (00468920) as the CRT's eh vector
+// constructor / destructor iterators call them (libcrt::ConstructElements / DestroyElements; ECX
+// the element).
 void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct(); }
 void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
 
@@ -151,7 +148,6 @@ void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::
 CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     auto* bolt = gamecrt::operator_new_as<CLightning>();
     if (!bolt) return nullptr;
-    auto* bytes = reinterpret_cast<std::uint8_t*>(bolt);
     SetVtable(bolt, CEngineObject::kVtableAddress);
     bolt->refCount_ = 0;
     bolt->id_ = -1;
@@ -161,13 +157,14 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     bolt->owner_ = nullptr;
     bolt->texture_ = nullptr;
     bolt->glowTexture_ = nullptr;
-    std::memset(bytes + 0x24, 0, 14 * 4);
+    std::memset(static_cast<void*>(&bolt->bounds_), 0, sizeof(bolt->bounds_));
+    std::memset(&bolt->boundsSpare_, 0, sizeof(bolt->boundsSpare_));
     bolt->main_.points.data = nullptr;
     bolt->main_.points.growBy = 0;
     bolt->main_.points.capacity = 0;
     bolt->main_.points.size = 0;
-    VectorCtorIterator(bolt->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentConstruct),
-                       reinterpret_cast<void*>(SegmentDestruct));
+    libcrt::ConstructElements(bolt->branches_, sizeof(LightningSegment), 6, libcrt::Element<SegmentConstruct>,
+                              libcrt::Element<SegmentDestruct>);
     SetVtable(bolt, CLightning::kVtableAddress);
     std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
     std::memcpy(&bolt->power_, &one, 4);
@@ -190,7 +187,7 @@ void __fastcall LightningDestruct(CLightning* self) {
     std::memcpy(&self->amplitude_, &tenth, 4);
     DropTexture(self->texture_);
     DropTexture(self->glowTexture_);
-    VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentDestruct));
+    libcrt::DestroyElements(self->branches_, sizeof(LightningSegment), 6, libcrt::Element<SegmentDestruct>);
     if (self->main_.points.data) lib::FreeAligned32(self->main_.points.data);
     if (self->glowTexture_) self->glowTexture_->Release();
     if (self->texture_) self->texture_->Release();

@@ -280,12 +280,12 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < segment->points.size; ++i) {
         const LightningPoint& p = segment->points.data[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
-        boundsMin_.x = p.x >= boundsMin_.x ? boundsMin_.x : p.x;
-        boundsMin_.y = p.y >= boundsMin_.y ? boundsMin_.y : p.y;
-        boundsMin_.z = p.z >= boundsMin_.z ? boundsMin_.z : p.z;
-        boundsMax_.x = boundsMax_.x >= p.x ? boundsMax_.x : p.x;
-        boundsMax_.y = boundsMax_.y >= p.y ? boundsMax_.y : p.y;
-        boundsMax_.z = boundsMax_.z >= p.z ? boundsMax_.z : p.z;
+        bounds_.boxMin.x = p.x >= bounds_.boxMin.x ? bounds_.boxMin.x : p.x;
+        bounds_.boxMin.y = p.y >= bounds_.boxMin.y ? bounds_.boxMin.y : p.y;
+        bounds_.boxMin.z = p.z >= bounds_.boxMin.z ? bounds_.boxMin.z : p.z;
+        bounds_.boxMax.x = bounds_.boxMax.x >= p.x ? bounds_.boxMax.x : p.x;
+        bounds_.boxMax.y = bounds_.boxMax.y >= p.y ? bounds_.boxMax.y : p.y;
+        bounds_.boxMax.z = bounds_.boxMax.z >= p.z ? bounds_.boxMax.z : p.z;
     }
 }
 EI_REPLACE_METHOD(0x00466FD0, CLightning::ExpandBounds);
@@ -293,32 +293,32 @@ EI_REPLACE_METHOD(0x00466FD0, CLightning::ExpandBounds);
 void CLightning::UpdateBounds() {
     const float largest = FromBits(0x7149F2CA);      // 1e30
     const float lowest = FromBits(0xF149F2CA);    // -1e30
-    boundsMin_.x = largest;
-    boundsMin_.y = largest;
-    boundsMin_.z = largest;
-    boundsMax_.x = lowest;
-    boundsMax_.y = lowest;
-    boundsMax_.z = lowest;
+    bounds_.boxMin.x = largest;
+    bounds_.boxMin.y = largest;
+    bounds_.boxMin.z = largest;
+    bounds_.boxMax.x = lowest;
+    bounds_.boxMax.y = lowest;
+    bounds_.boxMax.z = lowest;
     ExpandBounds(&main_);
     for (int i = 0; i < 6; ++i) ExpandBounds(&branches_[i]);
 
-    double sumX = static_cast<double>(boundsMin_.x) + boundsMax_.x;
-    float sumY = static_cast<float>(static_cast<double>(boundsMin_.y) + boundsMax_.y);
-    float sumZ = static_cast<float>(static_cast<double>(boundsMin_.z) + boundsMax_.z);
-    center_.x = static_cast<float>(sumX * 0.5);
-    center_.y = static_cast<float>(static_cast<double>(sumY) * 0.5);
-    center_.z = static_cast<float>(static_cast<double>(sumZ) * 0.5);
+    double sumX = static_cast<double>(bounds_.boxMin.x) + bounds_.boxMax.x;
+    float sumY = static_cast<float>(static_cast<double>(bounds_.boxMin.y) + bounds_.boxMax.y);
+    float sumZ = static_cast<float>(static_cast<double>(bounds_.boxMin.z) + bounds_.boxMax.z);
+    bounds_.center.x = static_cast<float>(sumX * 0.5);
+    bounds_.center.y = static_cast<float>(static_cast<double>(sumY) * 0.5);
+    bounds_.center.z = static_cast<float>(static_cast<double>(sumZ) * 0.5);
     boundsSpare_.x = 0.0f;
     boundsSpare_.y = 0.0f;
     boundsSpare_.z = 0.0f;
-    boundsMin_.x = static_cast<float>(static_cast<double>(boundsMin_.x) - center_.x);
-    boundsMin_.y = static_cast<float>(static_cast<double>(boundsMin_.y) - center_.y);
-    boundsMin_.z = static_cast<float>(static_cast<double>(boundsMin_.z) - center_.z);
-    boundsMax_.x = static_cast<float>(static_cast<double>(boundsMax_.x) - center_.x);
-    boundsMax_.y = static_cast<float>(static_cast<double>(boundsMax_.y) - center_.y);
-    boundsMax_.z = static_cast<float>(static_cast<double>(boundsMax_.z) - center_.z);
-    boundsKind_ = 3;
-    radius_ = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(boundsMax_)));
+    bounds_.boxMin.x = static_cast<float>(static_cast<double>(bounds_.boxMin.x) - bounds_.center.x);
+    bounds_.boxMin.y = static_cast<float>(static_cast<double>(bounds_.boxMin.y) - bounds_.center.y);
+    bounds_.boxMin.z = static_cast<float>(static_cast<double>(bounds_.boxMin.z) - bounds_.center.z);
+    bounds_.boxMax.x = static_cast<float>(static_cast<double>(bounds_.boxMax.x) - bounds_.center.x);
+    bounds_.boxMax.y = static_cast<float>(static_cast<double>(bounds_.boxMax.y) - bounds_.center.y);
+    bounds_.boxMax.z = static_cast<float>(static_cast<double>(bounds_.boxMax.z) - bounds_.center.z);
+    bounds_.flags = 3;
+    bounds_.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds_.boxMax)));
 }
 EI_REWRITTEN(0x00467150, CLightning::UpdateBounds);
 

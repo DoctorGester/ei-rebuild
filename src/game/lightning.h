@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "maths.h"
+#include "model.h"   // ClipBounds
 #include "game_data.h"
 
 #include <cstddef>
@@ -108,11 +109,8 @@ public:
 
     CTexture* texture_;                 // +0x1C
     CTexture* glowTexture_;             // +0x20
-    int boundsKind_;                    // +0x24 3 once the bounds are set (passed to the renderer)
-    Vector3 center_;                    // +0x28
-    float radius_;                      // +0x34
-    Vector3 boundsMin_;                 // +0x38 relative to center_
-    Vector3 boundsMax_;                 // +0x44
+    // +0x24 the bounds the renderer clips by: flags 3 once set, the box relative to the centre.
+    ClipBounds bounds_;
     Vector3 boundsSpare_;               // +0x50 cleared with the bounds, never read
     LightningSegment main_;             // +0x5C
     LightningSegment branches_[6];      // +0x104
@@ -121,7 +119,7 @@ public:
     float amplitude_;                   // +0x510 noise amplitude of the branch sway
 };
 static_assert(offsetof(CLightning, texture_) == 0x1C);
-static_assert(offsetof(CLightning, boundsMin_) == 0x38);
+static_assert(offsetof(CLightning, bounds_) == 0x24);
 static_assert(offsetof(CLightning, main_) == 0x5C);
 static_assert(offsetof(CLightning, branches_) == 0x104);
 static_assert(offsetof(CLightning, branchPos_) == 0x4F4);

@@ -187,6 +187,18 @@ using ElementFunction = void(__fastcall*)(void* element, void* unused);
 void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy);                      // 006E8693
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy); // 006E859F
+// A constructor or destructor of T (fastcall, the element in ECX) as an ElementFunction:
+// libcrt::Element<&Destruct>.
+template <typename F>
+struct ElementOf;
+template <typename R, typename T>
+struct ElementOf<R(__fastcall*)(T*)> {
+    using Type = T;
+};
+template <auto Function>
+void __fastcall Element(void* element, void*) {
+    Function(static_cast<typename ElementOf<decltype(Function)>::Type*>(element));
+}
 
 // The STLport node allocator (__node_alloc<true, 0>): its pool is the exe's data, so the same in
 // both builds.

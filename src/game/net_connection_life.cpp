@@ -26,17 +26,13 @@ namespace {
 
 using AttachedMap = trees::Attached;
 
-// CRT eh vector constructor / destructor iterators (stdcall).
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 }  // namespace
 IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {
 // An id pool's destructor: its vector of free ids freed.
 void __fastcall IdPoolDestruct(IdPool* pool) { pool->free.FreeStorage(); }
-// A function as the pointer the iterators take.
-template <typename F>
-void* Callback(F function) { return reinterpret_cast<void*>(function); }
+// The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
+using libcrt::Element;
 
 // The lists' element policies (library_net_lists.h).
 using netlists::ChunkElement;
@@ -59,14 +55,14 @@ void DestroyForReset(Connection* c) {
     trees::Records::Destroy(&c->records_);
     c->acknowledged_.Release<PacketRecordElement>();   // 004399C0
     c->history_.Release<PacketRecordElement>();
-    VectorDtorIterator(c->priorities_, sizeof(Connection::EntryMap), 11, Callback(trees::Entries::Destroy));
+    libcrt::DestroyElements(c->priorities_, sizeof(Connection::EntryMap), 11, Element<trees::Entries::Destroy>);
     trees::Objects::Clear(&c->byObject_);
     trees::Objects::FreeHeader(&c->byObject_);
     trees::SentIds::Clear(&c->bySentId_);   // 004394A0
     trees::SentIds::FreeHeader(&c->bySentId_);   // 00439500
     c->freedIds_.Clear<FreedIdsElement>();   // 0043BA20
     stlp::deallocate(c->freedIds_.End(), sizeof(FreedBatch));   // 0043A410
-    VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
+    libcrt::DestroyElements(c->idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(c);
 }
 
@@ -80,11 +76,12 @@ Connection* Connection::Construct(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     received_.ConstructEmpty();   // vector<int>() (00438CE0)
     address_ = NetAddress{};
-    VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
+    libcrt::ConstructElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolConstruct>, Element<IdPoolDestruct>);
     freedIds_.Construct();   // 00439120
     bySentId_.ConstructWith(&tags[3], &tags[2]);   // 004393C0
     byObject_.ConstructWith(&tags[2], &tags[3]);
-    VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
+    libcrt::ConstructElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Construct>,
+                              Element<trees::Entries::Destroy>);
     history_.Construct();   // 00439960
     acknowledged_.Construct();
     // The trees' comparison byte is copied from the stack slot of the id argument.
@@ -166,14 +163,14 @@ void Connection::Destruct() {
     stlp::deallocate(acknowledged_.End(), sizeof(HistoryNode));   // 0043AAF0
     history_.Clear<PacketRecordElement>();
     stlp::deallocate(history_.End(), sizeof(HistoryNode));
-    VectorDtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Destroy));
+    libcrt::DestroyElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Destroy>);
     trees::Objects::Clear(&byObject_);
     stlp::deallocate(byObject_.end(), 24);   // 0043A4E0
     trees::SentIds::Clear(&bySentId_);
     stlp::deallocate(bySentId_.end(), 24);   // 0043A480
     freedIds_.Clear<FreedIdsElement>();
     stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));   // 0043B180
-    VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
+    libcrt::DestroyElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(this);
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
