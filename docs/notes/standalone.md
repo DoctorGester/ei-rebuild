@@ -1114,8 +1114,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CTransformPipeline 0073D778, whose MatrixStack members construct and free themselves); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
     UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
     CUiSurface 00740F28 (a real class since C28m: slot 0 Blit; CUiScrollingSurface 00742FD8 over it, built with
-    `new`, freed with `delete`) and the scrolling text's tokens (TextTokenClass
-    00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
+    `new`, freed with `delete`) and the scrolling text's tokens (UiTextToken
+    00742F24, UiFormatToken 00742F28, UiWordToken 00742F20; ui.h; real classes since C28m); CResourceBase / CResourceStream
     (00743324 / 00743320: real virtual classes since C15 batch 11); the item records (item_db.h, 00744054-00744068: real
     classes since C28i, ItemRecordHead abstract with Kind as slot 0 (its 00744060's slot is the compiler CRT's
     `_purecall` as game.exe's 006E73EB, reached only by a bug), constructors and copy constructors per kind); prints.db's PrintRecord /
@@ -1230,7 +1230,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Small tags**: the renderer's helper CRenderHelper (0073D840) and its preset CRenderPreset (0073D880), real
     classes since C28j (their fieldless abstract bases 0073D860 / 0073D888 are not modelled); the cloud
     noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
-    turn's ItemTurnClass (007403F8); the figure loader CLinkFigureLoader (0073D808), the wounds material (0073DF68) and
+    turn's ItemTurn (007403F8, a real CRefObject since C28m); the figure loader CLinkFigureLoader (0073D808), the wounds material (0073DF68) and
     the DirectInput mouse (0073C350), real classes since C28j (the loader's abstract base 0073D824 is not modelled).
   - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
     input side's bodies (1-6 and 9-11 empty, returning 0 where the original leaves EAX; 7 / 8 the double click as a
