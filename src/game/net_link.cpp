@@ -94,7 +94,7 @@ FileStream* FileStream::Construct() {   // 00478470
     ei::SetVtable(this, kStreamVtable);
     version_ = kStreamLimit;
     ok_ = 1;
-    new (file_) mfc::CFile();
+    new (file_.Get()) mfc::CFile();
     ei::SetVtable(this, Vtable());
     return this;
 }
@@ -105,7 +105,7 @@ EI_REWRITTEN(0x00479B10, FileStream::CopyConstruct);
 
 void FileStream::Destruct() {   // 00477FB0
     ei::SetVtable(this, Vtable());
-    reinterpret_cast<mfc::CFile*>(file_)->~CFile();
+    file_->~CFile();
     ei::SetVtable(this, kStreamVtable);
 }
 EI_REWRITTEN(0x00477FB0, FileStream::Destruct);

@@ -136,7 +136,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     // 0073FAD4: RootChunk's slots).
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
-    auto* fileObject = reinterpret_cast<mfc::CFileVirtuals*>(&root->file_);
+    auto* fileObject = root->file_.Virtuals();
 
     mfc::CString path;
     ServerMapPathOriginal((void*)this, nullptr, (void*)&path, file);   // constructs the CString in place

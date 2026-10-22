@@ -247,7 +247,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     mfc::CFile file;
     if (!(flags_ & CCamera::kRecording)) return 0;
     if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
-    reinterpret_cast<mfc::CFileVirtuals*>(&file)->Seek(0, 2);   // Seek(0, end), through slot 10
+    file.Virtuals()->Seek(0, 2);   // Seek(0, end), through slot 10
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
     std::memcpy(&record.position, &localPosition_, sizeof(record.position));

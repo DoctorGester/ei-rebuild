@@ -786,7 +786,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         mfc::impl::MessageBoxText(message, 0x10, 0);
         return 0;
     }
-    s.info.Load(reinterpret_cast<mfc::CFileVirtuals*>(&s.file), meshes, helpers, &s.nodes);
+    s.info.Load(s.file.Virtuals(), meshes, helpers, &s.nodes);
     s.file.Close();
 
     // Exactly one node may have no parent.

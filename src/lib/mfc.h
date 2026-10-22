@@ -73,6 +73,8 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
+class CFileVirtuals;
+
 // CFile (0x10 bytes): vtable, OS handle, close-on-delete flag, file name. The game calls these
 // methods non-virtually, so the forwarders are plain members.
 class CFile {
@@ -88,6 +90,8 @@ public:
     void Close();                                                   // 00701403
     // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
     void* Handle() const { return handle_; }
+    // The file as code that calls through its vtable sees it (CFileVirtuals, below).
+    CFileVirtuals* Virtuals();
 
 private:
     void* vtable_;
@@ -126,6 +130,7 @@ public:
     // 20: 0070150F (0: no buffer of its own; CArchive reads and writes through the file then).
     virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);
 };
+inline CFileVirtuals* CFile::Virtuals() { return reinterpret_cast<CFileVirtuals*>(this); }
 
 // The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
 // through an object's vtable as the original does (its inlined DestructElements calls slot 1 with

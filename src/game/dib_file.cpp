@@ -38,7 +38,7 @@ int ColourCount(const BITMAPINFOHEADER* header, int current) {
 } // namespace
 
 int CDib::Read(mfc::CFile* source) {
-    auto* input = reinterpret_cast<mfc::CFileVirtuals*>(source);
+    auto* input = source->Virtuals();
     Empty();
     {
         mfc::ExceptionLink link;
@@ -75,7 +75,7 @@ int CDib::Read(mfc::CFile* source) {
 EI_REWRITTEN(0x006D5910, CDib::Read);
 
 int CDib::Write(mfc::CFile* target) {
-    auto* output = reinterpret_cast<mfc::CFileVirtuals*>(target);
+    auto* output = target->Virtuals();
     BITMAPFILEHEADER fileHeader;
     fileHeader.bfType = kBitmapFileType;
     fileHeader.bfSize = imageSize + maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);
