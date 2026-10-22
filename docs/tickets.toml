@@ -2973,6 +2973,13 @@ group = "cleanup"
 model = "opus"
 note = "User 2026-10-22: the original (--no-hooks) suite is only needed when the harness changes. Today the harness's game.exe side still calls some of our code (CString / string allocators, Harness* accessors, PickAt2 / UnitAt and others C18t met; 33 scenarios crashed when that code changed), so --fresh was used defensively. Make the game.exe side call game.exe's own functions and read its objects (OriginalGameData) only, list what it still links from src/, and put exactly that in run_all's reference key (with tests/verify and src/hook). Then the suite reuses cached references unless the harness changed."
 
+[[ticket]]
+id = "C29a"
+title = "C29 leftovers: crt* unread registrations, always-zero forwarder counts in tools"
+group = "cleanup"
+model = "sonnet"
+note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
