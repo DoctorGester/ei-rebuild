@@ -50,7 +50,6 @@ them per file).
 |---|---|---|
 | hand-built tables (`static void* Vtable()`, `ei::SetVtable`, slot templates and slot calls), `...Hook` / `...Impl` slot shims | real virtual classes | C28 |
 | `offsetof` / `sizeof` asserts | dropped, except where bytes leave the process or come from the data image | C28 |
-| `EI_ORIGINAL` forwarders, `RedirectCode` / `CodeLink`, the harness's address redirections in the image | direct calls by name; named seams for the harness (fixed ISAAC seed, traced rand) | C29 |
 | data addresses in code | named globals (the build reads no game.exe since C25c) | C18, C18r, C18t |
 | import table cells, `gameapi::` | typed imports; direct Win32 calls except the routed ones | C18p |
 | `EI_REPLACE` registrations, code cells of the data image | `EI_REWRITTEN` only (the tools' function-to-original map); no address map of game.exe's code | C20, C20e-g |

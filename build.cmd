@@ -33,8 +33,6 @@ rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide
 python "%~dp0tools\check_thunks.py" || exit /b 1
 rem One address, one registration per kind (replacement, recorder), read from the built DLL (SV6d).
 python "%~dp0tools\check_registrations.py" --dll "%OUT%\ei_hook.dll" || exit /b 1
-rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).
-python "%~dp0tools\check_forwarders.py" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1
 rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,

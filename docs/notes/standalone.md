@@ -8,8 +8,7 @@ changes are checked: docs/notes/standalone-verification.md. Per-ticket history: 
 ## 1. What ties the code to the exe
 
 The list, each item with the ticket that removes it: docs/standalone-cleanup.md. The counts: `python tools/progress.py`
-and `tools/dashboard_data.py` (the dashboard's standalone panel). `tools/direct_calls.py` (`--report -v --cast --library`)
-lists the forwarders left and why each stays (skip list config/direct_calls_skip.csv). The game glue (00578xxx) ignores
+and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue (00578xxx) ignores
 `this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
@@ -181,14 +180,10 @@ each step green on the goldens and removing a measured tie:
   prints them as the original's with `ei::OriginalAddress` (game_data.h; DescribeTopWindow, harness_digest's
   missile vtable, ui_census's window labels and its game-vtable test).
 - **Code** (S18i, src/standalone/image_code.cpp): `ei::CodeAddress(address)` (ei/hook.h; `ei::Code<F>`) is what
-  runs for game.exe's function at an address: in game.exe the address; in the image the harness's replacement
-  (`RedirectCode`: FixedIsaacSeed, the clock's rand), else the registration (InstallHooks hands its table over),
-  else a stub (16 bytes, CALL NoCodeEntry plus the address) that reports `no code at`. Who asks: the forwarders
-  (S18i1: `EI_ORIGINAL` keeps a `CodeLink` per forwarder, {code, address}; bound, it jumps through it directly;
-  unbound, it pushes the link and jumps to `ei_code_bind`, which keeps EAX / ECX / EDX and asks `BindCode`: a link
-  binds once its code is fixed, the registration or the address itself in game.exe, never a redirection or a stub;
-  `RedirectCode` unbinds them all; the harness step `codebinding off` too, for an A/B), the static
-  initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
+  runs for game.exe's function at an address: in game.exe the address; in the image the registration (InstallHooks
+  hands its table over), else a stub (16 bytes, CALL NoCodeEntry plus the address) that reports `no code at`. The
+  harness changes nothing by address in the image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`,
+  `gamecrt::SetRandObserver`). Who asks: the static initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
   the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes

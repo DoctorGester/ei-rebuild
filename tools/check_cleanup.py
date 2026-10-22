@@ -83,8 +83,8 @@ PATTERNS = {
                                 r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
-    # A forwarder through an original address (C13): the image's jump there leads to our function
-    # registered for it, which callers call directly instead (tools/direct_calls.py converts them).
+    # A forwarder through an original address (C13; none left since C29: callers call our functions by name, and
+    # the macro is the harness's only, tests/verify/harness_original.h).
     'EI_ORIGINAL forwarder': re.compile(r'\bEI_ORIGINAL\s*\('),
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its unrounded

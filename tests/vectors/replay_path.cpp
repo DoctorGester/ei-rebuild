@@ -33,21 +33,6 @@ namespace {
 using namespace ei::vectors;
 using namespace ei::vectors::path;
 
-// ---- Stand-ins for what the replay leaves out ------------------------------------------------------
-
-// The sector map's Add and Remove (FindPath reaches them through their addresses, other code
-// directly; both defined below).
-bool __fastcall NoSectorChange(CSectorMap*, void*, CEngineObject*) { return true; }
-int __cdecl NoAtExit(void(__cdecl*)()) { return 0; }
-
-struct StandIns {
-    StandIns() {
-        ReplayStandIn(0x005C1010, reinterpret_cast<void*>(&NoSectorChange), "CSectorMap::Remove");
-        ReplayStandIn(0x005C0DF0, reinterpret_cast<void*>(&NoSectorChange), "CSectorMap::Add");
-        ReplayStandIn(0x006E727B, reinterpret_cast<void*>(&NoAtExit), "atexit");
-    }
-} g_standIns;
-
 // ---- The unit -----------------------------------------------------------------------------------------
 
 UnitState g_unitState;
@@ -474,10 +459,7 @@ bool Guarded(Fn& fn, char* d, std::size_t n, const char* what) {
     } __except (Filter(GetExceptionInformation(), &code, &at)) {
     }
     if (done) return true;
-    if (code == kMissingForwarder)
-        std::snprintf(d, n, "%s: a forwarder to %08X with nothing behind it in ei_vectors", what, static_cast<unsigned>(at));
-    else
-        std::snprintf(d, n, "%s: exception %08lX at %08X", what, code, static_cast<unsigned>(at));
+    std::snprintf(d, n, "%s: exception %08lX at %08X", what, code, static_cast<unsigned>(at));
     g_mapOf = nullptr;   // the map may be half-changed: built again for the next record
     return false;
 }

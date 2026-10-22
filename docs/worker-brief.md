@@ -39,7 +39,7 @@ Rules:
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
   reaches it, or which function vectors replay it.
-- No new `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
+- No `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
 - Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
   hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
