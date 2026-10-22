@@ -103,7 +103,7 @@ void CBattleScreen::CreateScreen() {
         }
     }
 
-    // The screen's own input handler (InertInputVtable(), 0x0C bytes).
+    // The screen's own input handler (0x0C bytes).
     UiInputSide* input = new UiInertInput(interface_);
     AddInput(input);   // 00600CC0
 

@@ -10,12 +10,8 @@
 #include "game_data.h"
 
 namespace {
-// The display object (00500960): slot 6 gives the last frame's length in milliseconds.
-std::uint32_t FrameMilliseconds() {
-    void* display = SceneRenderer();
-    using Fn = std::uint32_t(__thiscall*)(void*);
-    return ei::ObjectSlot<Fn>(display, 6)(display);
-}
+// The scene renderer (00500960): the last frame's length in milliseconds.
+std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 
 } // namespace
 

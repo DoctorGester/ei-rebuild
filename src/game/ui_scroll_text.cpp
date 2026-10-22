@@ -97,14 +97,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
                 break;
             }
             if (!format) {
-                format = gamecrt::operator_new_as<UiFormatToken>();
-                if (format) {
-                    ei::SetVtable(format, FormatTokenClass::Vtable());
-                    format->type_ = kFormatType;
-                    format->newline_ = false;
-                    format->colour_ = kConstructedColour;
-                    format->font_ = font;
-                }
+                format = new UiFormatToken(font);
                 // (A null token is written through, as in the original.)
                 format->font_ = font;
                 format->colour_ = colour;
@@ -125,15 +118,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         }
         if (format) Append(tokens_, format);
         if (word) {
-            auto* w = gamecrt::operator_new_as<UiWordToken>();
-            if (w) {
-                ei::SetVtable(w, TextTokenClass::Vtable());   // the base, replaced by the word's
-                w->type_ = 0;
-                ::new (&w->text_) mfc::CString;   // afxEmptyString
-                w->type_ = kWordType;
-                ei::SetVtable(w, WordTokenClass::Vtable());
-                w->width_ = 0;
-            }
+            auto* w = new UiWordToken();
             SIZE size = TextExtent(interface_, token, font);
             w->width_ = size.cx;
             w->text_ = token;
@@ -284,7 +269,7 @@ EI_REWRITTEN_SPECIAL(0x0065CC00, CUiScrollText::CUiScrollText);
 
 void CUiScrollText::DeleteTokens() {
     for (int i = 0; i < tokens_.size; ++i)
-        if (UiTextToken* token = tokens_.data[i]) token->Delete();
+        if (UiTextToken* token = tokens_.data[i]) delete token;
 }
 
 void CUiScrollText::PlaceText(const RECT& rect) {
@@ -408,13 +393,19 @@ EI_REWRITTEN(0x0065AFE0, CUiScrollbar::SetMaximum);
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
-void UiTextToken::DestroyBase() { ei::SetVtable(this, TextTokenClass::Vtable()); }
-EI_REWRITTEN(0x0065D8E0, UiTextToken::DestroyBase);
-EI_REWRITTEN(0x0065D960, UiTextToken::DestroyBase);
+void* UiTextToken::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void UiTextToken::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-void UiWordToken::DestroyWord() {
-    ei::SetVtable(this, WordTokenClass::Vtable());
-    text_.~CString();
-    ei::SetVtable(this, TextTokenClass::Vtable());
-}
-EI_REWRITTEN(0x0065D910, UiWordToken::DestroyWord);
+UiFormatToken::UiFormatToken(int font) : UiTextToken(kFormatType), newline_(false), font_(font), colour_(kConstructedColour) {}
+
+UiTextToken::~UiTextToken() {}
+EI_REWRITTEN_SPECIAL(0x0065D960, UiTextToken::~UiTextToken);
+EI_REWRITTEN_SPECIAL(0x0065D8A0, UiTextToken::~UiTextToken);   // deleting
+
+UiFormatToken::~UiFormatToken() {}
+EI_REWRITTEN_SPECIAL(0x0065D8E0, UiFormatToken::~UiFormatToken);
+EI_REWRITTEN_SPECIAL(0x0065D8C0, UiFormatToken::~UiFormatToken);   // deleting
+
+UiWordToken::~UiWordToken() {}
+EI_REWRITTEN_SPECIAL(0x0065D910, UiWordToken::~UiWordToken);
+EI_REWRITTEN_SPECIAL(0x0065D8F0, UiWordToken::~UiWordToken);   // deleting

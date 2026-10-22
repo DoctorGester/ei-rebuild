@@ -47,13 +47,6 @@ double Ease(float slide) {
     return 1.0f - e;
 }
 
-// The display settings object (007AF060), as the options window's cancel puts its settings back
-// (the sound manager's volumes too: 006B7740 / 006B7A00 / 006B78A0).
-struct UiDisplaySettings {
-    void** vtable_;   // slot 22: applies three values (gamma and two more)
-};
-// 00500960 (not rewritten). Returns the display settings object (007AF060).
-UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(); }
 } // namespace
 
 // --- Helpers -----------------------------------------------------------------------------------
@@ -132,7 +125,7 @@ BOOL CSaveLoadWindow::Draw(int pass) {
     if (!model) return 1;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<UiDrawPass*>(pass));
+    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
     return 1;
 }
 
@@ -189,11 +182,9 @@ void COptionsWindow::RestoreSettings() {
     TheSoundManager()->SetEffectsVolume(options::TheOptions()->audioSfx_);
     TheSoundManager()->SetMusicVolume(options::TheOptions()->audioStreaming_);
     TheSoundManager()->SetSpeechVolume(options::TheOptions()->audioSpeech_);
-    UiDisplaySettings* display = DisplaySettings();
-    using Fn = void(__thiscall*)(UiDisplaySettings*, std::uint32_t, std::uint32_t, std::uint32_t);
-    ei::VirtualSlot<Fn>(display->vtable_, 22)(display, std::bit_cast<std::uint32_t>(options::TheOptions()->brightness_),
-                                               std::bit_cast<std::uint32_t>(options::TheOptions()->contrast_),
-                                               std::bit_cast<std::uint32_t>(options::TheOptions()->gamma_));
+    // The scene renderer's gamma (007AF060, slot 22).
+    SceneRenderer()->SetGamma(options::TheOptions()->brightness_, options::TheOptions()->contrast_,
+                              options::TheOptions()->gamma_);
 }
 
 void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
@@ -263,7 +254,7 @@ BOOL COptionsWindow::Draw(int pass) {
     if (!model) return 1;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<UiDrawPass*>(pass));
+    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
     return 1;
 }
 
@@ -319,9 +310,7 @@ void COptionsWindow::Update() {
                 float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
                 float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
                 float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
-                UiDisplaySettings* display = DisplaySettings();
-                using Fn = void(__thiscall*)(UiDisplaySettings*, float, float, float);
-                ei::VirtualSlot<Fn>(display->vtable_, 22)(display, r, g, b);
+                SceneRenderer()->SetGamma(r, g, b);
             }
         }
         if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {

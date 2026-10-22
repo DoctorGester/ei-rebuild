@@ -927,7 +927,7 @@ public:
     // original does. Then the container's handler.
     void OnLButtonDown(int buttons, int x, int y);
     // 006326B0 (slot 25). The interface's saved state cleared (005F51F0), the flow's party step 0,
-    // an inert extra input side (InertInputVtable()), the full-screen rectangle, the version line, the
+    // an inert extra input side (UiInertInput), the full-screen rectangle, the version line, the
     // six regions; the default music, the map edge fade kept (+0x178) and set to 6, rain by a coin
     // toss (+0x16C), daylight between 7 and 21 (+0x16D), the rain started before 7; the camera path
     // "MainMenu.cam" and the menu music.

@@ -1,6 +1,7 @@
 // A window's 3D model preview (CUiModel, ui.h): its object's animations, parts and drawing. The
 // object is a CObject3D (map_object_figures.h). See docs/notes/ui.md, section 2.
 #include "map_object_shadow.h"
+#include "model.h"
 #include "ui.h"
 
 #include "base_manager.h"
@@ -34,16 +35,6 @@ void ShowFigurePart(CFigureMesh* part, int show) {
     CEngineObject* object = part;
     if (static_cast<std::uint8_t>(show)) object->flags_ &= ~kHidden;
     else object->flags_ |= kHidden;
-}
-
-// The object's virtual slots 25 (the animation clock, seconds as float) and 23 (draw in `pass`).
-void SetClock(CObject3D* object, float seconds) {
-    using Fn = void(__thiscall*)(CObject3D*, float);
-    ei::ObjectSlot<Fn>(object, 25)(object, seconds);
-}
-void DrawObject(CObject3D* object, UiDrawPass* pass) {
-    using Fn = void(__thiscall*)(CObject3D*, UiDrawPass*);
-    ei::ObjectSlot<Fn>(object, 23)(object, pass);
 }
 
 // The interface's animation clock: timeGetTime() * 1/67 (00740EFC), the milliseconds loaded as an
@@ -102,13 +93,13 @@ EI_REWRITTEN(0x005FC4F0, CUiModel::ShowAllParts);
 // 005FC2F0 (RET 4). Draws the object in `pass` in plain white (the pass's colour, slot 7, put back
 // afterwards) at the interface clock, with flag 0x800 set during the draw. The original builds
 // the white from three FISTPs of 255.0.
-void CUiModel::Draw(UiDrawPass* pass) {
+void CUiModel::Draw(CSceneRenderer* pass) {
     std::uint32_t saved = pass->colour_;
     pass->SetColour(0xFFFFFFFF);
     CObject3D* object = Figure();
     object->flags_ |= kPreviewDraw;
-    SetClock(object, InterfaceClock());
-    DrawObject(object, pass);
+    object->AdvanceTime(InterfaceClock());
+    object->DrawCollectDirty(pass);
     Figure()->flags_ &= ~kPreviewDraw;
     pass->SetColour(saved);
 }

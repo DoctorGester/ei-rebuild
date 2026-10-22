@@ -602,19 +602,6 @@ inline std::uint32_t& UiSurfaceKeptBytes() { return g_uiSurfaceKeptBytes; }
 inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
 
-// The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
-struct UiDrawPass {
-    void SetColour(std::uint32_t colour) {
-        using Fn = void(__thiscall*)(UiDrawPass*, std::uint32_t);
-        ei::VirtualSlot<Fn>(vtable_, 7)(this, colour);
-    }
-
-    void** vtable_;
-    std::uint8_t unused_04[0x18 - 0x04];
-    std::uint32_t colour_;           // +0x18
-};
-static_assert(offsetof(UiDrawPass, colour_) == 0x18);
-
 class CObject3D;
 
 // A 3D model shown in a window (an inventory item, a portrait): one pointer to a scene object
@@ -626,9 +613,10 @@ public:
     void SetScreenPosition(float x, float y, float depth);
     // 005FC1D0. Releases the object (slot 4) and clears the pointer.
     void ReleaseObject();
-    // 005FC2F0 (RET 4). Draws the object in `pass` (a UiDrawPass) in white at the interface's
+    // 005FC2F0 (RET 4). Draws the object in `pass` (the scene renderer a window's slot 20 is given) in white at the
+    // interface's
     // animation clock (timeGetTime / 67), with object flag 0x800 set while it draws.
-    void Draw(UiDrawPass* pass);
+    void Draw(CSceneRenderer* pass);
     // 005FC1F0 (RET 0xC). A new map object (class 0x33, id 0x88CA6C00) of the client world's map
     // object manager, referenced, flag 0x4000000, at (0, 0, 3), with the figure of model `name`
     // (all parts, 00516DA0), its textures (0051C970 on +0x94), animations (00518840 / 00518860)
@@ -2410,33 +2398,31 @@ static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
 namespace mfc { class CString; }
 
-// The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, FormatTokenClass,
-// type 1) or a word (0x10 bytes, WordTokenClass over the base TextTokenClass, type 2).
+// The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, type 1) or a word (0x10
+// bytes, type 2) over the base token (game.exe's tables: the base 00742F24, the format token 00742F28, the word
+// 00742F20, each one slot: the deleting destructor). Made by CUiScrollText::Tokenize (ui_scroll_text.cpp).
 struct UiFormatToken;
 struct UiWordToken;
 struct UiTextToken {
-    // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
-    void Delete() {
-        using Fn = void(__thiscall*)(UiTextToken*, int);
-        ei::ObjectSlot<Fn>(this, 0)(this, 1);
-    }
-    // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
-    // base: the base vtable 00742F24 back.
-    void DestroyBase();
-    // 0065D8A0 / 0065D8C0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructors of the base
-    // token (its body inlined: the base vtable written) and of a format token (DestroyBase), then the
-    // memory freed when bit 0 of `flags` is set. Return this.
-    UiTextToken* TextTokenDelete(unsigned flags);
-    UiTextToken* FormatTokenDelete(unsigned flags);
+    explicit UiTextToken(int type) : type_(type) {}
+    // 0065D960 (ui_scroll_text.cpp; deleting 0065D8A0): nothing of its own.
+    virtual ~UiTextToken();
+    // The game's heap (null without memory: then no constructor runs).
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
     // The token as the kind type_ says it is (1 format, 2 word).
     UiFormatToken* AsFormat();
     const UiFormatToken* AsFormat() const;
     UiWordToken* AsWord();
 
-    void* vtable_;
     int type_;                       // +0x04 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
+    // The format token in `font` (inlined by Tokenize): no line break, the constructor's colour.
+    explicit UiFormatToken(int font);
+    // 0065D8E0 (deleting 0065D8C0): nothing of its own.
+    ~UiFormatToken() override;
+
     bool newline_;                   // +0x08 a line break (a newline token, or a font change after
                                      //       the first token)
     std::uint8_t unused_09[3];
@@ -2445,11 +2431,10 @@ struct UiFormatToken : UiTextToken {
 };
 static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
-    // 0065D910 (ui_scroll_text.cpp): the destructor body: the text released, the base vtable back.
-    void DestroyWord();
-    // 0065D8F0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyWord, then the
-    // memory freed when bit 0 of `flags` is set. Returns this.
-    UiWordToken* WordTokenDelete(unsigned flags);
+    // An empty word of width 0 (inlined by Tokenize).
+    UiWordToken() : UiTextToken(2), width_(0) {}
+    // 0065D910 (deleting 0065D8F0): the text released (a member), then the base's.
+    ~UiWordToken() override;
 
     mfc::CString text_;              // +0x08
     int width_;                      // +0x0C its width in the token's font (005F8340)
@@ -2458,11 +2443,6 @@ static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x0
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-// The tokens' compiled tables (C19, lib/compiled_vtable.h), each one slot (the deleting destructor), in place of
-// game.exe's: the base 00742F24, the format token 00742F28, the word 00742F20.
-struct TextTokenClass final : ei::CompiledDeleter<TextTokenClass, &UiTextToken::TextTokenDelete> {};
-struct FormatTokenClass final : ei::CompiledDeleter<FormatTokenClass, &UiTextToken::FormatTokenDelete> {};
-struct WordTokenClass final : ei::CompiledDeleter<WordTokenClass, &UiWordToken::WordTokenDelete> {};
 // MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
 // A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only

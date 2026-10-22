@@ -52,16 +52,9 @@ int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }
 int SurfaceBytesAllocated() { return static_cast<int>(UiSurfaceBytes()); }
 // The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
 
-constexpr int kRedrawSlot = 22;   // a window's surfaces blit themselves
-constexpr int kTipsSlot = 23;     // its tooltips follow the mouse and redraw
 constexpr DWORD kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
-
-void CallSlot(void* window, int slot) {
-    using Fn = void(__thiscall*)(void*);
-    ei::ObjectSlot<Fn>(window, slot)(window);
-}
 
 // A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
 // the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
@@ -140,8 +133,8 @@ void CInterface3D::DrawOverlays() {
     text.Format("%d", SurfaceBytesAllocated());
     panel->Set("surface alloc", text);
     if (stackBegin_ != stackEnd_) {
-        CallSlot(stackEnd_[-1], kRedrawSlot);
-        CallSlot(stackEnd_[-1], kTipsSlot);
+        stackEnd_[-1]->Redraw();       // its surfaces blit themselves
+        stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
     }
     // (The original calls 005E6B80 on the fade here: an empty function.)
     if (statusSurface_) statusSurface_->Blit();
@@ -162,7 +155,7 @@ void CInterface3D::DrawOverlays() {
         backdrop_->CaptureScreen();
         backdropMode_ = 4;
     }
-    if (IsMultiplayerClient() && stackEnd_ - stackBegin_ == 1) CallSlot(root_, kRedrawSlot);
+    if (IsMultiplayerClient() && stackEnd_ - stackBegin_ == 1) root_->Redraw();
     panel->Tick();
 
     ++fpsFrames_;

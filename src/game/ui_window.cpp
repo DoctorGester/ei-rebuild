@@ -175,7 +175,7 @@ EI_REWRITTEN(0x005FED00, CUiWindow::RedrawRegionTips);
 BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < sceneObjects_.size; ++i)
         SceneMesh(i)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
-    for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
+    for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<CSceneRenderer*>(pass));
     return 1;
 }
 EI_REWRITTEN(0x005FEB90, CUiWindow::DrawBase);
@@ -413,8 +413,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         float scale = old->GetScaleX();
         AsUiMesh(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
-        using ReleaseFn = void(__thiscall*)(void*);
-        ei::ObjectSlot<ReleaseFn>(object, 4)(object);
+        object->Release();
         // Back in at the same place: the original grows the array as SetSize does (inlined when
         // the place is the end) and shifts the rest up with memmove.
         int size = sceneObjects_.size;
