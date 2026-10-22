@@ -386,13 +386,13 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
 EI_REWRITTEN(0x0051C250, CObject3DClientSpecific::SetSkins);
 
 void CObject3DClientSpecific::ApplyMaterials() {
-    void* manager = WorldContext()->MaterialManager();
+    CMaterialManager* manager = WorldContext()->MaterialManager();
     if (materials.size <= 0) {
         materialCursor = -1;
     } else {
         materialCursor = 0;
         for (CMaterial* material = materials[0]; material;) {
-            static_cast<CMaterialManager*>(manager)->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
+            manager->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
             ++materialCursor;
             if (materials.size <= materialCursor) break;
             material = materials[materialCursor];

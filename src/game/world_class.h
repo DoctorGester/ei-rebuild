@@ -41,7 +41,7 @@ public:
     virtual double SurfaceHeightAt(float, float) { return _purecall(); }      // 30: pure
     virtual void SetTime(float hours) { World()->CWorld::SetTimeImpl(hours); }              // 31: 0055FB30
     virtual void SetTimeSpeed(float speed) { World()->CWorld::SetTimeSpeedImpl(speed); }    // 32: 0055FB50
-    virtual void* MaterialManager() { return nullptr; }                // 33: 0055EBE0
+    virtual CMaterialManager* MaterialManager() { return nullptr; }    // 33: 0055EBE0
     virtual CTextureManager* TextureManager() { return nullptr; }      // 34: 0055EBF0
     virtual CBaseManager* ClientLightManager() { return nullptr; }     // 35: 0055EC00
     virtual CParticleManager* ClientParticleManager() { return nullptr; }   // 36: 0055EC10
@@ -69,7 +69,7 @@ public:
     double RawSurfaceHeightAt(float x, float y) override { return Client()->ClientRawSurfaceHeight(x, y); }   // 28: 00564070
     double GroundHeightAt(float x, float y) override { return Client()->ClientGroundHeight(x, y); }          // 29: 005618E0
     double SurfaceHeightAt(float x, float y) override { return Client()->ClientSurfaceHeight(x, y); }        // 30: 00561930
-    void* MaterialManager() override { return WorldClientMaterialManager(Client()); }             // 33: 00561980
+    CMaterialManager* MaterialManager() override { return WorldClientMaterialManager(Client()); }             // 33: 00561980
     CTextureManager* TextureManager() override { return WorldClientTextureManager(Client()); }    // 34: 00561990
     CBaseManager* ClientLightManager() override { return WorldClientLightManager(Client()); }     // 35: 005619A0
     CParticleManager* ClientParticleManager() override { return WorldClientParticleManager(Client()); }   // 36: 005619B0

@@ -8,6 +8,7 @@
 #include <cstdint>
 
 class CBaseManager;
+class CMaterialManager;
 class CEngineObject;
 class CFigureManager;
 class CLightningManager;
@@ -64,7 +65,7 @@ int __fastcall PartyBaseCreate(CEngineObject*);
 // (+0x188), 34 the texture manager (+0x18C), 35 the light manager (+0x190), 36 the particle
 // manager (+0x19C), 37 / 38 the managers at +0x194 / +0x198.
 const char* __fastcall WorldClientTexturePath(CWorldClient*);        // 00561890
-CBaseManager* __fastcall WorldClientMaterialManager(CWorldClient*);  // 00561980
+CMaterialManager* __fastcall WorldClientMaterialManager(CWorldClient*);   // 00561980
 CTextureManager* __fastcall WorldClientTextureManager(CWorldClient*);   // 00561990
 CBaseManager* __fastcall WorldClientLightManager(CWorldClient*);     // 005619A0
 CParticleManager* __fastcall WorldClientParticleManager(CWorldClient*);   // 005619B0

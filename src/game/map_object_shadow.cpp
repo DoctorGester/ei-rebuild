@@ -304,9 +304,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // The lights reaching the object.
     Vector3 sum;
     std::memcpy(&sum, DefaultLight(), sizeof(sum));
-    ObjectListIterator lights{nullptr, nullptr};
-    for (auto* light = static_cast<CLight*>(lights.First(TheLightFactory())); light;
-         light = static_cast<CLight*>(lights.Next())) {
+    ObjectListIteratorOf<CLight> lights{};
+    for (CLight* light = lights.First(TheLightFactory()); light; light = lights.Next()) {
         if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;
         Vector3 share;
         if (light->type_ == kTypePointLight) {

@@ -96,11 +96,6 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 // (CPlayer::items_, AddTail 004C98F0); only head and the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
 
-// The item link record of an item of the item manager (CItem::link_).
-CItemLink* LinkOf(CEngineObject* item) {
-    return static_cast<CItem*>(item)->ServerLink();
-}
-
 // The memory stream locals of LoadSave / SaveWorld are built in place.
 void InitMemoryStream(CMemoryStream* stream) {
     std::memset(stream, 0, sizeof(*stream));
@@ -507,7 +502,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     stream->Read(&id, 4);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
-                    CEngineObject* object = ItemFactory()->FindObject(id);
+                    CItem* object = FindItem(ItemFactory(), id);
                     if (!object) continue;
                     auto* record = gamecrt::operator_new_as<CItemLink>();
                     // The count's whole dword is cleared, before the null test.
@@ -515,8 +510,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     record->refsHigh = 0;
                     if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
-                    CItemLink* old = LinkOf(object);
-                    static_cast<CItem*>(object)->link_ = record;
+                    CItemLink* old = object->ServerLink();
+                    object->link_ = record;
                     if (record) ++record->references;
                     if (old) RefObjectRelease(old);
                 }
@@ -715,15 +710,15 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
     // The item manager's object records.
     {
-        PlayerIterator it;
-        for (auto* item = reinterpret_cast<CEngineObject*>(it.First(ItemFactory())); item;
-             item = reinterpret_cast<CEngineObject*>(it.Next())) {
-            CItemLink* record = LinkOf(item);
+        ObjectListIteratorOf<CItem> it{};
+        for (CItem* item = it.First(ItemFactory()); item; item = it.Next()) {
+            CItemLink* record = item->ServerLink();
             if (!record) continue;
             WriteCopy(stream, item->id_);
             WriteCopy(stream, record->value);
         }
         WriteCopy(stream, -1);
+        if (it.manager) --it.manager->refCount_;   // the iterator's inlined destructor
     }
 
     WriteCopy(stream, mobFiles_.size);

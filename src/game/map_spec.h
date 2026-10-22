@@ -406,7 +406,19 @@ static_assert(sizeof(SoundSpec) == 0x88);
 // A unit record (vtable 0073C6E0, 0x324 bytes; code in map_spec_unit.cpp). The world server's
 // CreateUnits (0058EF20) fills one on the stack for each unit it creates.
 struct UnitSpec {
+    // 0046C010 (0xBBBB0000). Constructor; returns this.
+    UnitSpec* UnitSpecConstruct();
+    // 0046C140. The destructor body.
+    void UnitSpecDestruct();
+    // 0046C120 (slot 10, RET 4). UnitSpecDestruct, then operator delete when bit 0 of `flags` is set.
     UnitSpec* DeleteScalar(unsigned flags);
+    // 0046C4D0 (slot 7). Makes the unit, or moves, turns and rescales it.
+    void UnitSpecApply();
+    // 0046CF10 (slot 9). Chunk BBBB0000.
+    void UnitSpecSave();
+    // 0046D080 (slot 0). The chunk just read, by its id.
+    void UnitSpecOnChunk();
+
     ObjectSpec object;           // +0x000
     std::int32_t behaviours;     // +0x08C records read so far
     Behaviour behaviour[5];      // +0x090
@@ -419,7 +431,6 @@ static_assert(offsetof(UnitSpec, record) == 0x210);
 static_assert(sizeof(UnitSpec) == 0x324);
 
 // Record constructors (each returns this), by .mob chunk id.
-UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self);             // 0046C010 (0xBBBB0000, 0x324)
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);  // 0046E5E0
 // The records of a .mob file by id (00481660's local): an STLport hash_map<int, record*> (100
 // buckets to start) and the largest id read.

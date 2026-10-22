@@ -401,9 +401,8 @@ int CPlayerClient::OnParty() {
             party->LoadParty(block.Get(), 1);
             mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
             recharging.RemoveAll();
-            ObjectListIterator walk{nullptr, nullptr};
-            for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
-                auto* item = static_cast<CItem*>(object);
+            ObjectListIteratorOf<CItem> walk{};
+            for (CItem* item = walk.First(party->ItemManager()); item != nullptr; item = walk.Next()) {
                 if (item->chargeMax_ > item->charge_)
                     recharging.AddTail(static_cast<std::uint32_t>(item->id_));
             }

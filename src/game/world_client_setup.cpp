@@ -168,7 +168,7 @@ void CWorldClient::LoadSky() {
     object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
     object->flags_ |= kSkyObjectFlag;
     AssignCounted(skyDome_->object, object);
-    auto* material = reinterpret_cast<CEngineObject*>(static_cast<CMaterialManager*>(MaterialManager())->NewMaterial(kSkyMaterialType));
+    auto* material = reinterpret_cast<CEngineObject*>(MaterialManager()->NewMaterial(kSkyMaterialType));
     AssignCounted(skyDome_->material, material);
 }
 EI_REWRITTEN(0x00562F70, CWorldClient::LoadSky);
