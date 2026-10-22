@@ -36,6 +36,7 @@
 #include "mod_folders.h"
 #include "world_map_files.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
@@ -558,8 +559,8 @@ int __stdcall StartNetworkZone(const char* zone) {
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
-        alignas(ZoneExit) std::uint8_t copy[sizeof(ZoneExit)];
-        ZoneExit* exit = source->CopyAt(reinterpret_cast<ZoneExit*>(copy), i);
+        lib::InPlace<ZoneExit> copy;
+        ZoneExit* exit = source->CopyAt(copy.Get(), i);
         exits.data[i].Assign(exit);
         exit->target.~CString();
     }
@@ -2015,8 +2016,8 @@ void SavedParties::Reload() {
     if (search == INVALID_HANDLE_VALUE) return;
     do {
         // The party records and the file name, side by side as the list's entries are.
-        alignas(MpHeroRecord) std::uint8_t storage[sizeof(MpHeroRecord)];
-        auto* entry = reinterpret_cast<MpHeroRecord*>(storage);
+        lib::InPlace<MpHeroRecord> storage;
+        auto* entry = storage.Get();
         entry->Party()->Construct();
         new (&entry->file) mfc::CString();
         entry->file = found.cFileName;

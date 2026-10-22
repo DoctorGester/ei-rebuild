@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/mfc.h"
 #include "lib/mfc_file.h"
 #include "game_data.h"
@@ -66,8 +67,8 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         mfc::CString name;
         name.Format("shot%.4d.bmp", g_shotCounter);
         ++g_shotCounter;
-        alignas(4) std::uint8_t storage[sizeof(mfc::CFile)];
-        auto* file = reinterpret_cast<mfc::CFile*>(storage);
+        lib::InPlace<mfc::CFile> storage;
+        auto* file = storage.Get();
         reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite
         picture->Write(file);
         file->Close();

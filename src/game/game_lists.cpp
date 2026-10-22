@@ -6,6 +6,7 @@
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
@@ -60,8 +61,8 @@ void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&to->commands);
     mfc::impl::ArrayAs<recordarrays::Cmds>(to->commands).SetSize(from->commands.size, -1);
     for (int i = 0; i < from->commands.size; ++i) {
-        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
-        auto* copy = reinterpret_cast<SSCCmd*>(storage);
+        lib::InPlace<SSCCmd> storage;
+        auto* copy = storage.Get();
         from->commands.CopyAt(copy, i);
         to->commands.data[i].ScriptCmdAssign(copy);
         ScriptCmdDestruct(copy);

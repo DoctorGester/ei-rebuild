@@ -4,6 +4,7 @@
 // docs/notes/script.md.
 #include "script.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "game_lists.h"
 #include "originals_library.h"
@@ -60,9 +61,9 @@ void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
 // 004BE490: every instance and every run removed from the head of its list and destroyed.
 void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     while (script->instances_.count != 0) {
-        alignas(ScriptDefinition) unsigned char element[sizeof(ScriptDefinition)];
-        script->instances_.PopHead(reinterpret_cast<ScriptDefinition*>(element));
-        auto* instance = reinterpret_cast<ScriptDefinition*>(element);
+        lib::InPlace<ScriptDefinition> element;
+        script->instances_.PopHead(element.Get());
+        auto* instance = element.Get();
         ScriptVars& vars = instance->vars;
         DestroyGroupVariables(vars);
         ScriptObjectsDestruct(NamedValues<ScriptObjectRef>(&vars.objects));
@@ -73,9 +74,9 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         instance->name.~CString();
     }
     while (script->runs_.count != 0) {
-        alignas(ScriptRun) unsigned char element[sizeof(ScriptRun)];
-        script->runs_.PopHead(reinterpret_cast<ScriptRun*>(element));
-        ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
+        lib::InPlace<ScriptRun> element;
+        script->runs_.PopHead(element.Get());
+        ScriptVars& vars = element.Get()->vars;
         DestroyGroupVariables(vars);
         ScriptNamesDestruct(&vars.objectNames);
         vars.objects.vtable = mfc::impl::ObjectRefArrayClass::Vtable();

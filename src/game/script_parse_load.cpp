@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc_string.h"
 #include "lib/mfc_array.h"
@@ -194,23 +195,23 @@ void DeleteCmd(SSCCmd* cmd) {
 
 // An SSCCmd on the stack (the loaders keep one and copy it into their result arrays).
 struct LocalCmd {
-    alignas(4) unsigned char storage[sizeof(SSCCmd)];
+    lib::InPlace<SSCCmd> storage;
     LocalCmd() { Get()->Construct(); }
     ~LocalCmd() { Get()->Destruct(); }
-    SSCCmd* Get() { return reinterpret_cast<SSCCmd*>(storage); }
+    SSCCmd* Get() { return storage.Get(); }
 };
 
 // A ScriptVars on the stack.
 struct LocalVars {
-    alignas(4) unsigned char storage[sizeof(ScriptVars)];
+    lib::InPlace<ScriptVars> storage;
     LocalVars() { Get()->ScriptVarsConstruct(); }
     ~LocalVars() { ScriptVarsDestruct(Get()); }
-    ScriptVars* Get() { return reinterpret_cast<ScriptVars*>(storage); }
+    ScriptVars* Get() { return storage.Get(); }
 };
 
 // The ScriptDefinition Load keeps on its stack.
 struct LocalDefinition {
-    alignas(4) unsigned char storage[sizeof(ScriptDefinition)];
+    lib::InPlace<ScriptDefinition> storage;
     LocalDefinition() {
         ScriptDefinition* d = Get();
         new (&d->name) mfc::CString;
@@ -224,7 +225,7 @@ struct LocalDefinition {
         d->index = 0;
     }
     ~LocalDefinition() { ScriptDefinitionDestruct(Get()); }
-    ScriptDefinition* Get() { return reinterpret_cast<ScriptDefinition*>(storage); }
+    ScriptDefinition* Get() { return storage.Get(); }
 };
 
 // What DeclareScript and GlobalVars do to Load's definition before parsing (inline in the game).

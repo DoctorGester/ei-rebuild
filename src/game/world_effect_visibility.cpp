@@ -1,5 +1,6 @@
 // CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
+#include "lib/static_object.h"
 #include "world_effect.h"
 #include "world_effect_class.h"
 
@@ -27,10 +28,10 @@ ClientArrayManager* FogManager() { return ei::GameData<ClientArrayManager*>(0x00
 
 // A memory stream on the stack, as the original builds and destroys it inline.
 struct TempStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    lib::InPlace<CMemoryStream> bytes;
     TempStream() { Get()->Construct(); }
     ~TempStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    CMemoryStream* Get() { return bytes.Get(); }
 };
 
 void ReleaseFog(CEngineObject*& fog) {

@@ -21,6 +21,7 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/stlp_string.h"
 #include "originals_units.h"
@@ -184,11 +185,11 @@ void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    alignas(4) char listStorage[sizeof(RecordList)];
-    RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
+    lib::InPlace<RecordList> listStorage;
+    RecordList& list = *listStorage.Get();
     list.ConstructEmpty();   // 0056F570
-    alignas(4) char setStorage[sizeof(SkinComposition)];
-    SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
+    lib::InPlace<SkinComposition> setStorage;
+    SkinComposition& set = *setStorage.Get();
     set.bytes.Construct();
     new (&set.names) console::CStringArray;
 
@@ -263,9 +264,9 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     alignas(4) char firstStorage[sizeof(StringList)];
-    alignas(4) char secondStorage[sizeof(StringList)];
+    lib::InPlace<StringList> secondStorage;
     StringList& first = *reinterpret_cast<StringList*>(firstStorage);
-    StringList& second = *reinterpret_cast<StringList*>(secondStorage);
+    StringList& second = *secondStorage.Get();
     first.ConstructEmpty();   // 0053BB80
     second.ConstructEmpty();
 

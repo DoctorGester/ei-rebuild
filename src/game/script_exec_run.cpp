@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
@@ -241,8 +242,8 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
 EI_REWRITTEN(0x004BB520, ScriptIfThen::Run);
 
 void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
-    alignas(4) unsigned char storage[sizeof(ScriptRun)];
-    auto* run = reinterpret_cast<ScriptRun*>(storage);
+    lib::InPlace<ScriptRun> storage;
+    auto* run = storage.Get();
     run->block = nullptr;
     run->index = 0;
     run->ticks = 0;
@@ -278,8 +279,8 @@ EI_REWRITTEN(0x004BC420, CScript::RunCommands);
 
 void CScript::RunWorldScript(ScriptDecl* block) {
     CScript* script = this;
-    alignas(4) unsigned char storage[sizeof(ScriptRun)];
-    auto* run = reinterpret_cast<ScriptRun*>(storage);
+    lib::InPlace<ScriptRun> storage;
+    auto* run = storage.Get();
     run->block = nullptr;
     run->index = 0;
     run->ticks = 0;

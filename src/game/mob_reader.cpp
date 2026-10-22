@@ -18,6 +18,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -173,8 +174,8 @@ bool MobFile::Load(void*, int keepIds) {
     MobRecords records;
     records.byId.InitBuckets(100);
     records.maxId = 0;
-    alignas(ZoneDiplomacy) std::uint8_t diplomacyStorage[sizeof(ZoneDiplomacy)];
-    auto* diplomacy = reinterpret_cast<ZoneDiplomacy*>(diplomacyStorage);
+    lib::InPlace<ZoneDiplomacy> diplomacyStorage;
+    auto* diplomacy = diplomacyStorage.Get();
     DiplomacyConstruct(diplomacy);
     alignas(mfc::CString) std::uint8_t scriptsStorage[sizeof(mfc::CString)];   // destroyed by hand, in order
     auto* scripts = new (scriptsStorage) mfc::CString();

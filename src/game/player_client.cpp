@@ -93,10 +93,10 @@ const char* QuestPrefix() { return "q."; }
 
 // A memory stream on the stack, as the original builds (0041DD70 inlined) and destroys it.
 struct MemoryStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    lib::InPlace<CMemoryStream> bytes;
     MemoryStream() { Get()->Construct(); }
     ~MemoryStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    CMemoryStream* Get() { return bytes.Get(); }
 };
 
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
@@ -433,8 +433,8 @@ int CPlayerClient::OnPartyUpdate() {
 }
 
 int CPlayerClient::OnPathMarker() {
-    alignas(4) unsigned char fieldBytes[sizeof(DeltaField)];
-    auto* field = reinterpret_cast<DeltaField*>(fieldBytes);
+    lib::InPlace<DeltaField> fieldBytes;
+    auto* field = fieldBytes.Get();
     field->Construct();
     CParticleSource* pathSource = nullptr;
     int kind;

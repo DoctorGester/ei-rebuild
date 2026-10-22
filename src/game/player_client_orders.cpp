@@ -2,6 +2,7 @@
 // screen queue them as messages for the server (CPlayerServer's handlers, player_server_handlers.cpp).
 // Each is a type byte and a payload written to the request stream; blocks the original writes in one
 // piece are written in one piece here too.
+#include "lib/static_object.h"
 #include "player_client.h"
 
 #include "item.h"
@@ -70,10 +71,10 @@ int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units
 
 // A memory stream on the stack, as the original builds (0041DD70's fields inlined) and destroys it.
 struct LocalStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    lib::InPlace<CMemoryStream> bytes;
     LocalStream() { Get()->Construct(); }
     ~LocalStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    CMemoryStream* Get() { return bytes.Get(); }
 };
 
 // A potion used from a quick slot is counted off at once.

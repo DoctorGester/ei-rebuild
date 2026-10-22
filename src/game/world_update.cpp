@@ -1,6 +1,7 @@
 // CWorldServer::Update (vtable slot 6, 0058DFF0): one world update. See world.h and
 // docs/notes/world.md.
 #include "world.h"
+#include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
 #include "combat.h"
@@ -111,17 +112,17 @@ int CWorldServer::Update() {
     for (int i = 0; i < names.size; ++i) {
         bool found;
         {
-            alignas(4) unsigned char storage[sizeof(mfc::CString)];
-            mfc::CString* name = names.CopyAt(reinterpret_cast<mfc::CString*>(storage), i);
+            lib::InPlace<mfc::CString> storage;
+            mfc::CString* name = names.CopyAt(storage.Get(), i);
             found = gamecrt::mbscmp(name->GetString(),
                                     worlddata::HeroesGroupText()) == 0;
             name->~CString();
         }
         if (found) {
-            alignas(4) std::uint8_t storage[sizeof(ScriptGroup)];
-            ScriptGroup* group = globals.groups.CopyAt(reinterpret_cast<ScriptGroup*>(storage), i);
+            lib::InPlace<ScriptGroup> storage;
+            ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);
-            ScriptGroupDestructOriginal((void*)reinterpret_cast<ScriptGroup*>(storage));
+            ScriptGroupDestructOriginal((void*)storage.Get());
             break;
         }
     }
