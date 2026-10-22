@@ -114,7 +114,7 @@ CObject3D* CObject3D::Construct() {
     SetVtable(this, CTransformObject::BaseVtable());
     ::new (&name) mfc::CString;
     SetUpObject3D();
-    SetVtable(this, CObject3D::kVtableAddress);
+    SetVtable(this, CObject3D::Object3DVtable());
     return this;
 }
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
@@ -155,7 +155,7 @@ void CObject3D::SetUpObject3D() {
 }
 
 void CObject3D::DestructBody() {
-    SetVtable(this, CObject3D::kVtableAddress);
+    SetVtable(this, CObject3D::Object3DVtable());
     TearDownObject3D();
     name.~CString();
     SetVtable(this, CTransformObject::BaseVtable());
@@ -193,7 +193,7 @@ CMapObject* CMapObject::Construct() {
     CObject3D::Construct();   // 00515BD0
     ::new (&name2) mfc::CString;
     SetUpMapObject();
-    SetVtable(this, CMapObject::kVtableAddress);
+    SetVtable(this, CMapObject::MapObjectVtable());
     return this;
 }
 EI_REWRITTEN(0x0050E2D0, CMapObject::Construct);
@@ -235,7 +235,7 @@ void CMapObject::SetUpMapObject() {
 }
 
 void CMapObject::DestructBody() {
-    SetVtable(this, CMapObject::kVtableAddress);
+    SetVtable(this, CMapObject::MapObjectVtable());
     TearDownMapObject();
     name2.~CString();
     effectsVtable = mfc::impl::EffectArrayClass::Vtable();

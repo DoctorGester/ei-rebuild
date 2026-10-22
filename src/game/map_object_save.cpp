@@ -53,7 +53,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     }
     if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
 }
-EI_REPLACE_METHOD(0x0050F7A0, CMapObject::LoadMapObject);
+EI_REWRITTEN(0x0050F7A0, CMapObject::LoadMapObject);
 
 void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
@@ -71,7 +71,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
     WriteText(stream, name2);
     stream->Write(&baseScale, sizeof(baseScale));
 }
-EI_REPLACE_METHOD(0x0050F900, CMapObject::SaveMapObject);
+EI_REWRITTEN(0x0050F900, CMapObject::SaveMapObject);
 
 void CMapObjectServer::LoadServer(CStream* stream) {
     stream->Read(&vitals, sizeof(vitals));

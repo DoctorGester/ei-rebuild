@@ -67,7 +67,7 @@ int CObject3D::Create3D() {
     partBoxCount = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00515F70, CObject3D::Create3D);
+EI_REWRITTEN(0x00515F70, CObject3D::Create3D);
 
 void CObject3D::Destroy3D() {
     FigureRef().Assign(nullptr);
@@ -107,7 +107,7 @@ void CObject3D::Destroy3D() {
     animations = nullptr;
     flags_ = 0;
 }
-EI_REPLACE_METHOD(0x00516080, CObject3D::Destroy3D);
+EI_REWRITTEN(0x00516080, CObject3D::Destroy3D);
 
 void CObject3D::AddEffectSource(CEngineObject* source) {
     if (effectSources.Find(source)) return;

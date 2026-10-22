@@ -224,4 +224,4 @@ int CObject3D::LoadFiguresImpl() {
     flags_ |= kFlagFiguresLoaded;
     return 1;
 }
-EI_REPLACE_METHOD(0x00517500, CObject3D::LoadFiguresImpl);
+EI_REWRITTEN(0x00517500, CObject3D::LoadFiguresImpl);

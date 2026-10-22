@@ -20,7 +20,7 @@ CObject3D* CObject3D::DeleteObject3D(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00515D50, CObject3D::DeleteObject3D);
+EI_REWRITTEN(0x00515D50, CObject3D::DeleteObject3D);
 
 void CObject3D::SetSpecific(CObject3DSpecific* half) {
     if (attached) {

@@ -387,7 +387,7 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 // CollectVisible sets to the position in view space, local rotation +0x34, world rotation +0x44).
 class CObject3D : public CTransformObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
+    static void* Object3DVtable();   // the compiled 0073DDD4 (map_object_tables.cpp)
 
     ~CObject3D() override;   // 00515D70's work without the vtables (map_object_lifetime.cpp)
     int Create() override { return Create3D(); }          // 2: 00515F70

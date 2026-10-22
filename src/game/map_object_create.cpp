@@ -62,14 +62,14 @@ int CMapObject::CreateMapObject() {
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;
 }
-EI_REPLACE_METHOD(0x0050E770, CMapObject::CreateMapObject);
+EI_REWRITTEN(0x0050E770, CMapObject::CreateMapObject);
 
 void CMapObject::DestroyMapObject() {
     SetEffectCount(0);
     DetachCompanion(this);
     Destroy3D();
 }
-EI_REPLACE_METHOD(0x0050E840, CMapObject::DestroyMapObject);
+EI_REWRITTEN(0x0050E840, CMapObject::DestroyMapObject);
 
 // --- Units and torches -----------------------------------------------------------------------------
 
