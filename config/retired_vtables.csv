@@ -175,6 +175,8 @@ vtable,slots,class,file,note
 0073D778,1,TransformPipelineClass,src/game/model.h,the transform pipeline (CTransformPipeline)
 0073D790,15,CLinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
 0073D7CC,15,CLinkMeshBase,src/game/link_figure.h,CLinkMesh's base (stored by its constructor and destructors 004F2C00 / 004F2D40 / 004F2E40)
+0073D808,7,LinkFigureLoaderClass,src/game/link_loader_create.cpp,the link figure loader (CLinkFigureLoader)
+0073D824,7,LinkFigureLoaderBaseClass,src/game/link_loader_create.cpp,the figure loader's abstract base (slots 1-6 _purecall)
 0073D840,8,RenderHelperClass,src/game/render_helper.cpp,the renderer's helper (CRenderHelper)
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D880,2,RenderPresetClass,src/game/render_helper.cpp,a render state preset (CRenderPreset)

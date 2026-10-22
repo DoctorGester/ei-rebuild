@@ -571,13 +571,15 @@ static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureMode
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
 void __fastcall DestroyFigureModel(FigureModel* model);
 
-// Loads .lnk link files and the figures they name (vtable 0073D808, 7 slots; created at startup with
+// Loads .lnk link files and the figures they name (Vtable() in place of game.exe's 0073D808, 7 slots; created at
+// startup with
 // figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of
 // parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
 // multimap by name (a counted reference each) and hands out a cached one whose coefficients are
 // within 1e-5 (squared distance, the double at 0073B860) unless asked for a fresh one. Parts come
 // from the figure's own archive set when there is one (004FAB00), else from the open archives
-// as "<figure><part>.fig". link_loader.cpp (A-S7). The game's code stores the vtable (novtable).
+// as "<figure><part>.fig". link_loader.cpp (A-S7). The constructor stores the compiled tables
+// (link_loader_create.cpp; the class is novtable).
 class CLinkMesh;
 class CTextureDevice;
 class ITransformPipeline;
@@ -654,7 +656,10 @@ public:
     // root's vtable (PlainRootVtable()) left.
     void Destruct();
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D808);
+    // The compiled tables (C19, link_loader_create.cpp): the loader's (game.exe's 0073D808) and its abstract base's
+    // (0073D824: slot 0 leaves the plain counted root's table and frees, 1-6 _purecall).
+    static void* Vtable();
+    static void* BaseVtable();
 
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC

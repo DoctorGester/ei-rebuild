@@ -302,7 +302,7 @@ void ClearArchives(LinkArchiveNode* head) {
 } // namespace
 
 void CLinkFigureLoader::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next) {
         n->resource->CloseResource();
         if (n->resource) delete n->resource;
@@ -368,9 +368,9 @@ namespace {
 void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }
 int __fastcall CacheBytesHook(CLinkFigureLoader* self) { return self->CLinkFigureLoader::CacheBytes(); }
 } // namespace
-EI_REPLACE_METHOD(0x004F7150, CLinkFigureLoader::LoadFigureImpl);
-EI_REPLACE_METHOD(0x004F7080, CLinkFigureLoader::LoadLinkImpl);
-EI_REPLACE(0x004F7020, ClearCacheHook);
-EI_REPLACE(0x004FAAA0, CacheBytesHook);
-EI_REPLACE_METHOD(0x004F6A30, CLinkFigureLoader::DeleteThisImpl);
-EI_REPLACE_METHOD(0x004F75E0, CLinkFigureLoader::RemorphImpl);
+EI_REWRITTEN(0x004F7150, CLinkFigureLoader::LoadFigureImpl);
+EI_REWRITTEN(0x004F7080, CLinkFigureLoader::LoadLinkImpl);
+EI_REWRITTEN(0x004F7020, ClearCacheHook);
+EI_REWRITTEN(0x004FAAA0, CacheBytesHook);
+EI_REWRITTEN(0x004F6A30, CLinkFigureLoader::DeleteThisImpl);
+EI_REWRITTEN(0x004F75E0, CLinkFigureLoader::RemorphImpl);
