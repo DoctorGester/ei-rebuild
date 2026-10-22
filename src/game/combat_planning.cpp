@@ -213,7 +213,7 @@ EI_REWRITTEN(0x0054DF50, CUnitServer::FindUseSpot);
 
 // --- The time along a path until an action is possible -----------------------------------------
 
-double CUnitServer::TimeUntilAction(const UnitAction* order, AIPath* motionOrder) {
+double CUnitServer::TimeUntilAction(const AIOrder* order, AIPath* motionOrder) {
     const MotionOrder* pathOrder = OrderOf(motionOrder);
     if (pathOrder->kind != kMotionPath) return 0.0f;
     ObjectWorld(this);

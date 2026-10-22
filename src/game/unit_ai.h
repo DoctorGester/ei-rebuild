@@ -107,11 +107,13 @@ struct AIOrder {
     // an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    int kind;                       // +0x00
-    int what;                       // +0x04 6 for an attack, the spell for a cast
-    AIRefTo<CMapObject> object;     // +0x08 counted
-    Vector3 point;                  // +0x0C left uninitialised by the AI's orders
-    std::uint8_t flag;              // +0x18
+    int kind;                       // +0x00 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
+    std::uint32_t source;           // +0x04 6 for an attack, the spell for a cast; in a UnitAction
+                                    //       (combat.h) the spell slot, or quick item slot | 0x80000000;
+                                    //       0x18A95 for a skill used on a target (kind 6)
+    AIRefTo<CMapObject> target;     // +0x08 counted
+    Vector3 point;                  // +0x0C target point; left uninitialised by the AI's orders
+    std::uint8_t flag18;            // +0x18
     std::uint8_t unused_19[3];
 };
 static_assert(sizeof(AIOrder) == 0x1C);

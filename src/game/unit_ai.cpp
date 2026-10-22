@@ -462,16 +462,16 @@ void AIBrain::AttackTarget(CMapObject* object) {
     if (owner->unit->player) {
         AIOrder order{};
         order.kind = 3;
-        order.what = 6;
-        order.object = nullptr;
-        order.flag = 0;
+        order.source = 6;
+        order.target = nullptr;
+        order.flag18 = 0;
         if (object) {
-            order.object = object;
+            order.target = object;
             ++object->refCount_;
         }
-        if (owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-        if (order.object) order.object->Release();
-        order.object = nullptr;
+        if (owner->CanReachAndPlan(&order)) flags = -1;
+        if (order.target) order.target->Release();
+        order.target = nullptr;
     }
     owner->OrderAttack(target, 6, 0, flags);
 }

@@ -114,13 +114,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     brain.StopAction();
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
-        ReferenceRelease(&action2.target);
+        action2.target.Reset();
         action2.flag18 = 0;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = 0;
         if (action2.target) {
-            ReferenceRelease(&action2.target);
+            action2.target.Reset();
             action2.target = nullptr;
         }
         action2.modifier = 0;

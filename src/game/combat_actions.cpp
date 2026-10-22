@@ -171,7 +171,7 @@ void CUnitServer::FinishAction(int location, char) {
     default:
         return;
     }
-    action.ClearOrder();
+    action.Clear();
     action.param = 0;
     action.modifier = 0;
     if (action2.kind == 9) Idle();

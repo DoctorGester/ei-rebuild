@@ -140,7 +140,7 @@ void TellParty(CUnit* unit, int message) {
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
 void ClearAction(UnitAction* order) {
-    order->ClearOrder();
+    order->Clear();
     order->param = 0;
     order->modifier = 0;
 }
@@ -590,7 +590,7 @@ void SetModeInline(CUnit* unit, int mode) {
     unit->MarkChanged(kPartMoveModes);
 }
 
-bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
+bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
     if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
     CUnit* other = UnitOrNull(order->target);
     if (!other || IsDead(other)) return false;
@@ -601,13 +601,13 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
 }
 } // namespace
 
-bool CUnitServer::CanReachAndPlan(const UnitAction* order) {
+bool CUnitServer::CanReachAndPlan(const AIOrder* order) {
     if (OutOfReachUp(this, order)) return false;
     return CanPlanAction(order);
 }
 EI_REWRITTEN(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
-bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* point) {
+bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point) {
     if (OutOfReachUp(this, order)) return false;
     // The position is swapped bitwise, as the original does.
     Vector3 saved;

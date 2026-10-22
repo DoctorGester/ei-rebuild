@@ -114,11 +114,11 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
 
     AIOrder order;
-    order.object = nullptr;
+    order.target = nullptr;
     order.Clear();
     order.MakeAttack(enemy);
-    bool allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), &end);
-    order.object.Reset();
+    bool allowed = brain->owner->CanReachAndPlanFrom(&order, &end);
+    order.target.Reset();
     if (!allowed) return false;
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
