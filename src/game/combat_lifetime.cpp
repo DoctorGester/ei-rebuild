@@ -22,11 +22,6 @@
 #include <cstring>
 
 namespace {
-// The vtables the constructors and destructors install.
-void* const kAlarmRecordsVtable = ei::GamePointer<void>(0x0073F04C);
-void* const kReportsVtable = ei::GamePointer<void>(0x0073F140);
-void* const kCallsVtable = ei::GamePointer<void>(0x0073F070);
-
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
 constexpr int kBlockSize = 10;
@@ -170,7 +165,7 @@ AIBrain* AIBrain::Construct() {
     modes.blockSize = kBlockSize;
     current = nullptr;
     alarmRecords = {};
-    alarmRecords.vtable = kAlarmRecordsVtable;
+    alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();   // game.exe: 0073F04C (the same slots)
     attention.weapons = {};
     attention.weapons.vtable = mfc::impl::AttackOptionArrayClass::Vtable();
     attention.spells = {};
@@ -183,9 +178,9 @@ AIBrain* AIBrain::Construct() {
     InitObjectList(memory.seenCorpses);
     InitObjectList(memory.corpses);
     memory.reports = {};
-    memory.reports.vtable = kReportsVtable;
+    memory.reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();   // game.exe: 0073F140 (the same slots)
     memory.calls = {};
-    memory.calls.vtable = kCallsVtable;
+    memory.calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();   // game.exe: 0073F070 (the same slots)
     Init();
     return this;
 }

@@ -1,6 +1,7 @@
 // The player and tamed AI modes' own vtable slots (00551E10-00552180, A-U6): clone, reset,
 // destructors, priority and type. The tamed mode (vtable 0073F0C4) is the player mode a taming
 // installs (combat_taming.cpp); its slots differ only in the vtable they leave and their constants.
+#include "ai_mode_class.h"
 #include "unit_ai.h"
 
 #include "ei/hook.h"
@@ -16,7 +17,7 @@ PlayerMode* CloneWith(const PlayerMode* self, void* vtable) {
     copy->refs = 0;   // written before the test, as the original does
     copy->refsHigh = 0;
     if (!copy) return nullptr;
-    copy->vtable = aimode::kActionBaseVtable;
+    copy->vtable = aimode::ActionBaseClass::Vtable();
     copy->target = nullptr;
     if (self->target) {
         ++self->target->refCount_;
@@ -35,14 +36,14 @@ PlayerMode* CloneWith(const PlayerMode* self, void* vtable) {
 }
 } // namespace
 
-PlayerMode* PlayerMode::ClonePlayer() { return CloneWith(this, aimode::kPlayerVtable); }
-EI_REPLACE_METHOD(0x00551F50, PlayerMode::ClonePlayer);
+PlayerMode* PlayerMode::ClonePlayer() { return CloneWith(this, aimode::PlayerClass::Vtable()); }
+EI_REWRITTEN(0x00551F50, PlayerMode::ClonePlayer);
 
-PlayerMode* PlayerMode::CloneTamed() { return CloneWith(this, aimode::kTamedVtable); }
-EI_REPLACE_METHOD(0x00551E10, PlayerMode::CloneTamed);
+PlayerMode* PlayerMode::CloneTamed() { return CloneWith(this, aimode::TamedClass::Vtable()); }
+EI_REWRITTEN(0x00551E10, PlayerMode::CloneTamed);
 
 void PlayerMode::Destruct() {
-    vtable = aimode::kPlayerVtable;
+    vtable = aimode::PlayerClass::Vtable();
     if (leader) leader->Release();
     leader = nullptr;
     if (target) target->Release();
@@ -57,31 +58,31 @@ PlayerMode* PlayerMode::DeletingDestruct(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005520B0, PlayerMode::DeletingDestruct);
-EI_REPLACE_METHOD(0x00552160, PlayerMode::DeletingDestruct);
+EI_REWRITTEN(0x005520B0, PlayerMode::DeletingDestruct);
+EI_REWRITTEN(0x00552160, PlayerMode::DeletingDestruct);
 
 PlayerMode* PlayerMode::ResetPlayer() {
     Destruct();
     return Construct();
 }
-EI_REPLACE_METHOD(0x00552000, PlayerMode::ResetPlayer);
+EI_REWRITTEN(0x00552000, PlayerMode::ResetPlayer);
 
 PlayerMode* PlayerMode::ResetTamed() {
     Destruct();
     Construct();
-    vtable = aimode::kTamedVtable;
+    vtable = aimode::TamedClass::Vtable();
     return this;
 }
-EI_REPLACE_METHOD(0x00551EC0, PlayerMode::ResetTamed);
+EI_REWRITTEN(0x00551EC0, PlayerMode::ResetTamed);
 
 int AIMode::PlayerPriority(AIBrain*) { return kPlayerPriority; }
-EI_REPLACE_METHOD(0x00552090, AIMode::PlayerPriority);
+EI_REWRITTEN(0x00552090, AIMode::PlayerPriority);
 
 int AIMode::TamedPriority(AIBrain*) { return kTamedPriority; }
-EI_REPLACE_METHOD(0x00552140, AIMode::TamedPriority);
+EI_REWRITTEN(0x00552140, AIMode::TamedPriority);
 
 int __fastcall aimode::PlayerType(AIMode*) { return kModePlayer; }
-EI_REPLACE(0x005520A0, aimode::PlayerType);
+EI_REWRITTEN(0x005520A0, aimode::PlayerType);
 
 int __fastcall aimode::TamedType(AIMode*) { return kModeTamed; }
-EI_REPLACE(0x00552150, aimode::TamedType);
+EI_REWRITTEN(0x00552150, aimode::TamedType);

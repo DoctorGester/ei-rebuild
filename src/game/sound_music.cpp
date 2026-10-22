@@ -305,7 +305,7 @@ const char* MusicClassNameText() { return "CMusicSystem"; }
 
 CMusicSystem::CMusicSystem() {
     ClearFields();
-    themesVtable = ei::GamePointer<void>(kThemeArrayVtable);
+    themesVtable = recordarrays::ThemeArrayClass::Vtable();   // game.exe: 007440CC (the same slots)
     themes = nullptr;
     themeGrow = 0;
     themeMax = 0;

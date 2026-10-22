@@ -51,7 +51,7 @@ PartyRecord* NewRecord() {
     record->vtable = ei::GamePointer<void>(0x0073BB68);
     record->Party()->Construct();
     ::new (&record->name) mfc::CString;   // afxEmptyString
-    record->vtable = ei::GamePointer<void>(0x0073C360);
+    record->vtable = PartyRecord::Vtable();
     record->Party()->Create();   // slot 2
     return record;
 }

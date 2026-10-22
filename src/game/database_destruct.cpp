@@ -7,6 +7,7 @@
 // database_construct.cpp's. Checked in game by verify_exit_destructors.cpp until S21d.
 #include "acks_db.h"
 #include "game_arrays.h"
+#include "game_slots.h"
 #include "item_db.h"
 #include "model.h"
 #include "object_tables.h"
@@ -46,7 +47,7 @@ struct AllodElements {
 
 void CMapDatabase::Destruct() {
     auto& mapRecords = reinterpret_cast<gamearrays::ZoneRecords::Array&>(maps);
-    mapRecords.vtable = ei::GamePointer<void>(kMapArrayVtable);
+    mapRecords.vtable = gameslots::MapRecordArrayClass::Vtable();
     mapRecords.FreeData();
     auto& allodRecords = reinterpret_cast<mfc::CArray<AllodRecord, AllodElements>&>(allods);
     allodRecords.vtable = mfc::impl::AllodArrayClass::Vtable();

@@ -161,21 +161,22 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     if (old) old->Release();
 }
 
-// The material's constructor, inlined by 0051C3D0: the counted root's fields, then its own.
+// A new material (0051C3D0 inlines its constructor).
 WoundsMaterial* NewWoundsMaterial() {
-    auto* material = gamecrt::operator_new_as<WoundsMaterial>();
-    if (!material) return nullptr;
-    material->refCount = 0;
-    ei::SetVtable(material, WoundsMaterial::kRootVtableAddress);
-    material->blend = 1;
-    material->sourceBlend = kSourceAlpha;
-    material->destBlend = kInverseSourceAlpha;
-    material->preset = nullptr;
-    new (&material->stages) stlp::vector<MaterialStage>();
-    ei::SetVtable(material, WoundsMaterial::kVtableAddress);
-    return material;
+    void* memory = gamecrt::operator_new(sizeof(WoundsMaterial));
+    return memory ? new (memory) WoundsMaterial() : nullptr;
 }
 } // namespace
+
+// The counted root's fields (the root's vtable is the compiled class's here), then its own; the stages
+// vector is constructed empty.
+WoundsMaterial::WoundsMaterial() {
+    refCount = 0;
+    blend = 1;
+    sourceBlend = kSourceAlpha;
+    destBlend = kInverseSourceAlpha;
+    preset = nullptr;
+}
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;

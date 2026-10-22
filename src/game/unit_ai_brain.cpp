@@ -3,6 +3,8 @@
 #include "map_spec.h"
 #include "unit_ai.h"
 
+#include "ai_mode_class.h"
+
 #include "combat.h"
 #include "console.h"
 #include "core_refcount.h"
@@ -206,21 +208,21 @@ EI_REWRITTEN(0x005CB0F0, AIMemory::Reset);
 // --- Standard mode sets ---------------------------------------------------------------------------
 
 void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
-    auto* mode = NewMode<GuardMode>(aimode::kGuardVtable);
+    auto* mode = NewMode<GuardMode>(aimode::GuardClass::Vtable());
     if (mode) mode->Set(point, radius, wander);
     AddMode(mode);
 }
 EI_REWRITTEN(0x005D6300, AIBrain::AddGuardMode);
 
 void AIBrain::AddSuspectionMode() {
-    auto* mode = NewMode<SuspectionMode>(aimode::kSuspectionVtable);
+    auto* mode = NewMode<SuspectionMode>(aimode::SuspectionClass::Vtable());
     if (mode) mode->ClearFields();   // SV7d4: not left as memory held them
     AddMode(mode);
 }
 EI_REWRITTEN(0x005D63B0, AIBrain::AddSuspectionMode);
 
 void AIBrain::AddAggressionMode() {
-    auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
+    auto* mode = NewMode<AggressionMode>(aimode::AggressionClass::Vtable());
     if (mode) {
         mode->enemy = nullptr;
         mode->chosen.object = nullptr;
@@ -231,11 +233,11 @@ void AIBrain::AddAggressionMode() {
 }
 EI_REWRITTEN(0x005D63F0, AIBrain::AddAggressionMode);
 
-void AIBrain::AddCorpseWatcherMode() { AddMode(NewMode<CorpseWatcherMode>(aimode::kCorpseWatcherVtable)); }
+void AIBrain::AddCorpseWatcherMode() { AddMode(NewMode<CorpseWatcherMode>(aimode::CorpseWatcherClass::Vtable())); }
 EI_REWRITTEN(0x005D6440, AIBrain::AddCorpseWatcherMode);
 
 FearMode* FearMode::Construct(std::uint8_t newFlag) {
-    vtable = aimode::kFearVtable;
+    vtable = aimode::FearClass::Vtable();
     std::uint32_t bits = FearDistanceBits();
     std::memcpy(&distance, &bits, sizeof(bits));
     spread = 3.0f;
@@ -247,7 +249,7 @@ FearMode* FearMode::Construct(std::uint8_t newFlag) {
 EI_REPLACE_METHOD(0x005D2850, FearMode::Construct);
 
 void AIBrain::AddFearMode(std::uint8_t flag) {
-    auto* mode = NewMode<FearMode>(aimode::kFearVtable);
+    auto* mode = NewMode<FearMode>(aimode::FearClass::Vtable());
     if (mode) {
         mode->ClearFields();   // SV7b2: not left as memory held them
         mode->Construct(flag);    // inlined by the original
@@ -257,7 +259,7 @@ void AIBrain::AddFearMode(std::uint8_t flag) {
 EI_REWRITTEN(0x005D6480, AIBrain::AddFearMode);
 
 void AIBrain::AddSentryMode(const Vector3* point) {
-    auto* mode = NewMode<SentryMode>(aimode::kSentryVtable);
+    auto* mode = NewMode<SentryMode>(aimode::SentryClass::Vtable());
     if (mode) mode->point = *point;
     AddMode(mode);
 }
@@ -533,21 +535,21 @@ void WriteCopy(CStream* stream, const T& value) {
 AIMode* NewModeOfType(int type) {
     switch (type) {
     case kModeGuard: {
-        auto* mode = NewMode<GuardMode>(aimode::kGuardVtable);
+        auto* mode = NewMode<GuardMode>(aimode::GuardClass::Vtable());
         mode->failures = 0;
         return mode;
     }
     case kModePatrol: {
-        auto* mode = NewMode<PatrolMode>(aimode::kPatrolVtable);
+        auto* mode = NewMode<PatrolMode>(aimode::PatrolClass::Vtable());
         mode->Construct();
         return mode;
     }
     case kModeSentry:
-        return NewMode<SentryMode>(aimode::kSentryVtable);
+        return NewMode<SentryMode>(aimode::SentryClass::Vtable());
     case kModeSuspection:
-        return NewMode<SuspectionMode>(aimode::kSuspectionVtable);
+        return NewMode<SuspectionMode>(aimode::SuspectionClass::Vtable());
     case kModeAggression: {
-        auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
+        auto* mode = NewMode<AggressionMode>(aimode::AggressionClass::Vtable());
         mode->enemy = nullptr;
         mode->chosen.object = nullptr;
         mode->chosen.part = -1;
@@ -555,25 +557,25 @@ AIMode* NewModeOfType(int type) {
         return mode;
     }
     case kModeCorpseWatcher:
-        return NewMode<CorpseWatcherMode>(aimode::kCorpseWatcherVtable);
+        return NewMode<CorpseWatcherMode>(aimode::CorpseWatcherClass::Vtable());
     case kModePlayer: {
-        auto* mode = NewMode<PlayerMode>(aimode::kPlayerVtable);
+        auto* mode = NewMode<PlayerMode>(aimode::PlayerClass::Vtable());
         mode->Construct();
         return mode;
     }
     case kModeFear: {
-        auto* mode = NewMode<FearMode>(aimode::kFearVtable);
+        auto* mode = NewMode<FearMode>(aimode::FearClass::Vtable());
         mode->Construct(0);
         return mode;
     }
     case kModeTamed: {
-        auto* mode = NewMode<PlayerMode>(aimode::kPlayerVtable);
+        auto* mode = NewMode<PlayerMode>(aimode::PlayerClass::Vtable());
         mode->Construct();
-        mode->vtable = aimode::kTamedVtable;
+        mode->vtable = aimode::TamedClass::Vtable();
         return mode;
     }
     case kModeFollow: {
-        auto* mode = NewMode<FollowMode>(aimode::kFollowVtable);
+        auto* mode = NewMode<FollowMode>(aimode::FollowClass::Vtable());
         mode->leader = nullptr;
         return mode;
     }

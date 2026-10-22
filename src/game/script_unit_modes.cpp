@@ -3,6 +3,7 @@
 // allocates the mode (operator new) and constructs it here; the layouts are in unit_ai.h. Then the
 // modes' own small slots (clone, reset, destructors, types; 004BA250-004BA9B0). See
 // docs/notes/script.md.
+#include "ai_mode_class.h"
 #include "unit_ai.h"
 
 #include "ei/hook.h"
@@ -13,33 +14,33 @@
 
 // 004BA1C0 (RET 0xC)
 GuardMode* GuardMode::ScriptGuardModeConstruct(const Vector3* newPoint, float newRadius, float newWander) {
-    vtable = aimode::kGuardVtable;
+    vtable = aimode::GuardClass::Vtable();
     Set(newPoint, newRadius, newWander);
     return this;
 }
 
 // 004BA360 (RET 4)
 SentryMode* SentryMode::ScriptSentryModeConstruct(const Vector3* newPoint) {
-    vtable = aimode::kSentryVtable;
+    vtable = aimode::SentryClass::Vtable();
     Set(newPoint);
     return this;
 }
 
 // 004BA450 (RET 4). The leader is referenced.
 FollowMode* FollowMode::ScriptFollowModeConstruct(CMapObject* newLeader) {
-    vtable = aimode::kBaseVtable;
+    vtable = aimode::ModeBaseClass::Vtable();
     leader = nullptr;
     if (newLeader) {
         ++newLeader->refCount_;
         leader = newLeader;
     }
-    vtable = aimode::kFollowVtable;
+    vtable = aimode::FollowClass::Vtable();
     return this;
 }
 
 // 004BA610
 SuspectionMode* SuspectionMode::ScriptSuspectionModeConstruct() {
-    vtable = aimode::kSuspectionVtable;
+    vtable = aimode::SuspectionClass::Vtable();
     return this;
 }
 
@@ -48,7 +49,7 @@ AggressionMode* AggressionMode::ScriptAggressionModeConstruct() {
     enemy = nullptr;
     chosen.object = nullptr;
     chosen.part = -1;
-    vtable = aimode::kAggressionVtable;
+    vtable = aimode::AggressionClass::Vtable();
     fixed = 0;
     return this;
 }
@@ -58,14 +59,14 @@ AggressionMode* AggressionMode::ScriptRevengeModeConstruct(int newFixed) {
     enemy = nullptr;
     chosen.object = nullptr;
     chosen.part = -1;
-    vtable = aimode::kAggressionVtable;
+    vtable = aimode::AggressionClass::Vtable();
     fixed = static_cast<std::uint8_t>(newFixed);
     return this;
 }
 
 // 004BA920
 CorpseWatcherMode* CorpseWatcherMode::ScriptCorpseWatcherModeConstruct() {
-    vtable = aimode::kCorpseWatcherVtable;
+    vtable = aimode::CorpseWatcherClass::Vtable();
     return this;
 }
 
@@ -145,12 +146,12 @@ GuardMode* GuardMode::GuardClone() const {
     std::memcpy(&copy->radius, &radius, sizeof(copy->radius));
     std::memcpy(&copy->wander, &wander, sizeof(copy->wander));
     copy->failures = failures;
-    copy->vtable = aimode::kGuardVtable;
+    copy->vtable = aimode::GuardClass::Vtable();
     return copy;
 }
 
 void GuardMode::GuardReset() {
-    vtable = aimode::kGuardVtable;
+    vtable = aimode::GuardClass::Vtable();
     failures = 0;
 }
 
@@ -163,11 +164,11 @@ SentryMode* SentryMode::SentryClone() const {
     auto* copy = NewMode<SentryMode>();
     if (!copy) return nullptr;
     std::memcpy(&copy->point, &point, sizeof(copy->point));
-    copy->vtable = aimode::kSentryVtable;
+    copy->vtable = aimode::SentryClass::Vtable();
     return copy;
 }
 
-void SentryMode::SentryReset() { vtable = aimode::kSentryVtable; }
+void SentryMode::SentryReset() { vtable = aimode::SentryClass::Vtable(); }
 
 SentryMode* SentryMode::SentryDeletingDestruct(int flags) {
     DestructToRoot();
@@ -178,14 +179,14 @@ FollowMode* FollowMode::FollowClone() const {
     auto* copy = NewMode<FollowMode>();
     if (!copy) return nullptr;
     copy->leader = Reference(leader.object);
-    copy->vtable = aimode::kFollowVtable;
+    copy->vtable = aimode::FollowClass::Vtable();
     return copy;
 }
 
 void FollowMode::FollowReset() {
     FollowDestruct();
     leader = nullptr;
-    vtable = aimode::kFollowVtable;
+    vtable = aimode::FollowClass::Vtable();
 }
 
 FollowMode* FollowMode::FollowDeletingDestruct(int flags) {
@@ -194,7 +195,7 @@ FollowMode* FollowMode::FollowDeletingDestruct(int flags) {
 }
 
 void FollowMode::FollowDestruct() {
-    vtable = aimode::kFollowVtable;
+    vtable = aimode::FollowClass::Vtable();
     leader.Reset();
     vtable = aimode::kRootVtable;
 }
@@ -204,11 +205,11 @@ SuspectionMode* SuspectionMode::SuspectionClone() const {
     if (!copy) return nullptr;
     std::memcpy(&copy->point, &point, sizeof(copy->point));
     copy->level = level;
-    copy->vtable = aimode::kSuspectionVtable;
+    copy->vtable = aimode::SuspectionClass::Vtable();
     return copy;
 }
 
-void SuspectionMode::SuspectionReset() { vtable = aimode::kSuspectionVtable; }
+void SuspectionMode::SuspectionReset() { vtable = aimode::SuspectionClass::Vtable(); }
 
 SuspectionMode* SuspectionMode::SuspectionDeletingDestruct(int flags) {
     DestructToRoot();
@@ -221,7 +222,7 @@ AggressionMode* AggressionMode::AggressionClone() const {
     copy->enemy = Reference(enemy.object);
     copy->fixed = fixed;
     copy->chosen = chosen;
-    copy->vtable = aimode::kAggressionVtable;
+    copy->vtable = aimode::AggressionClass::Vtable();
     return copy;
 }
 
@@ -230,7 +231,7 @@ void AggressionMode::AggressionReset() {
     enemy = nullptr;
     chosen.object = nullptr;
     chosen.part = -1;
-    vtable = aimode::kAggressionVtable;
+    vtable = aimode::AggressionClass::Vtable();
     fixed = 0;
 }
 
@@ -244,7 +245,7 @@ AggressionMode* AggressionMode::AggressionDeletingDestruct(int flags) {
 }
 
 void AggressionMode::AggressionDestruct() {
-    vtable = aimode::kAggressionVtable;
+    vtable = aimode::AggressionClass::Vtable();
     enemy.Reset();
     vtable = aimode::kRootVtable;
 }
@@ -252,11 +253,11 @@ void AggressionMode::AggressionDestruct() {
 CorpseWatcherMode* CorpseWatcherMode::CorpseWatcherClone() const {
     auto* copy = NewMode<CorpseWatcherMode>();
     if (!copy) return nullptr;
-    copy->vtable = aimode::kCorpseWatcherVtable;
+    copy->vtable = aimode::CorpseWatcherClass::Vtable();
     return copy;
 }
 
-void CorpseWatcherMode::CorpseWatcherReset() { vtable = aimode::kCorpseWatcherVtable; }
+void CorpseWatcherMode::CorpseWatcherReset() { vtable = aimode::CorpseWatcherClass::Vtable(); }
 
 CorpseWatcherMode* CorpseWatcherMode::CorpseWatcherDeletingDestruct(int flags) {
     DestructToRoot();
@@ -269,31 +270,31 @@ EI_REWRITTEN(0x004BA440, AIMode::DestructToRoot);
 EI_REWRITTEN(0x004BA6A0, AIMode::DestructToRoot);
 EI_REWRITTEN(0x004BA700, AIMode::DestructToRoot);
 EI_REWRITTEN(0x004BA9B0, AIMode::DestructToRoot);
-EI_REPLACE_METHOD(0x004BA340, AIMode::DeletingDestructBase);
-EI_REPLACE_METHOD(0x004BA680, AIMode::DeletingDestructBase);
-EI_REPLACE_METHOD(0x004BA410, AIMode::SentryType);
-EI_REPLACE_METHOD(0x004BA580, AIMode::FollowType);
-EI_REPLACE_METHOD(0x004BA6D0, AIMode::SuspectionType);
-EI_REPLACE_METHOD(0x004BA860, AIMode::AggressionType);
-EI_REPLACE_METHOD(0x004BA980, AIMode::CorpseWatcherType);
-EI_REPLACE_METHOD(0x004BA250, GuardMode::GuardClone);
-EI_REPLACE_METHOD(0x004BA2D0, GuardMode::GuardReset);
-EI_REPLACE_METHOD(0x004BA300, GuardMode::GuardDeletingDestruct);
-EI_REPLACE_METHOD(0x004BA3B0, SentryMode::SentryClone);
-EI_REPLACE_METHOD(0x004BA3F0, SentryMode::SentryReset);
-EI_REPLACE_METHOD(0x004BA420, SentryMode::SentryDeletingDestruct);
-EI_REPLACE_METHOD(0x004BA4A0, FollowMode::FollowClone);
-EI_REPLACE_METHOD(0x004BA510, FollowMode::FollowReset);
-EI_REPLACE_METHOD(0x004BA590, FollowMode::FollowDeletingDestruct);
+EI_REWRITTEN(0x004BA340, AIMode::DeletingDestructBase);
+EI_REWRITTEN(0x004BA680, AIMode::DeletingDestructBase);
+EI_REWRITTEN(0x004BA410, AIMode::SentryType);
+EI_REWRITTEN(0x004BA580, AIMode::FollowType);
+EI_REWRITTEN(0x004BA6D0, AIMode::SuspectionType);
+EI_REWRITTEN(0x004BA860, AIMode::AggressionType);
+EI_REWRITTEN(0x004BA980, AIMode::CorpseWatcherType);
+EI_REWRITTEN(0x004BA250, GuardMode::GuardClone);
+EI_REWRITTEN(0x004BA2D0, GuardMode::GuardReset);
+EI_REWRITTEN(0x004BA300, GuardMode::GuardDeletingDestruct);
+EI_REWRITTEN(0x004BA3B0, SentryMode::SentryClone);
+EI_REWRITTEN(0x004BA3F0, SentryMode::SentryReset);
+EI_REWRITTEN(0x004BA420, SentryMode::SentryDeletingDestruct);
+EI_REWRITTEN(0x004BA4A0, FollowMode::FollowClone);
+EI_REWRITTEN(0x004BA510, FollowMode::FollowReset);
+EI_REWRITTEN(0x004BA590, FollowMode::FollowDeletingDestruct);
 EI_REWRITTEN(0x004BA5B0, FollowMode::FollowDestruct);
-EI_REPLACE_METHOD(0x004BA630, SuspectionMode::SuspectionClone);
-EI_REPLACE_METHOD(0x004BA6B0, SuspectionMode::SuspectionReset);
-EI_REPLACE_METHOD(0x004BA6E0, SuspectionMode::SuspectionDeletingDestruct);
-EI_REPLACE_METHOD(0x004BA730, AggressionMode::AggressionClone);
-EI_REPLACE_METHOD(0x004BA7C0, AggressionMode::AggressionReset);
-EI_REPLACE_METHOD(0x004BA870, AggressionMode::AggressionObjectDeleted);
-EI_REPLACE_METHOD(0x004BA8A0, AggressionMode::AggressionDeletingDestruct);
+EI_REWRITTEN(0x004BA630, SuspectionMode::SuspectionClone);
+EI_REWRITTEN(0x004BA6B0, SuspectionMode::SuspectionReset);
+EI_REWRITTEN(0x004BA6E0, SuspectionMode::SuspectionDeletingDestruct);
+EI_REWRITTEN(0x004BA730, AggressionMode::AggressionClone);
+EI_REWRITTEN(0x004BA7C0, AggressionMode::AggressionReset);
+EI_REWRITTEN(0x004BA870, AggressionMode::AggressionObjectDeleted);
+EI_REWRITTEN(0x004BA8A0, AggressionMode::AggressionDeletingDestruct);
 EI_REWRITTEN(0x004BA8C0, AggressionMode::AggressionDestruct);
-EI_REPLACE_METHOD(0x004BA930, CorpseWatcherMode::CorpseWatcherClone);
-EI_REPLACE_METHOD(0x004BA950, CorpseWatcherMode::CorpseWatcherReset);
-EI_REPLACE_METHOD(0x004BA990, CorpseWatcherMode::CorpseWatcherDeletingDestruct);
+EI_REWRITTEN(0x004BA930, CorpseWatcherMode::CorpseWatcherClone);
+EI_REWRITTEN(0x004BA950, CorpseWatcherMode::CorpseWatcherReset);
+EI_REWRITTEN(0x004BA990, CorpseWatcherMode::CorpseWatcherDeletingDestruct);

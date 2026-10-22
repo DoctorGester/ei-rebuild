@@ -24,8 +24,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kSpecificBaseVtable = std::uintptr_t(0x0073DEFC);
-constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073DFBC);
 constexpr const char* kServerClassName = "CObject3DServer";
 constexpr int kServerClassId = 0x38;
 // The shadow switches by the object's class: units (0x50), class 0x52, any other.
@@ -108,19 +106,19 @@ EI_REPLACE(0x0051E1C0, MatrixSetIdentity);
 
 // 0051AC60 (slot 19, RET 8): nothing is drawn; 0.
 int CObject3DSpecific::DrawNothing(void* /*context*/, int* /*dirty*/) { return 0; }
-EI_REPLACE_METHOD(0x0051AC60, CObject3DSpecific::DrawNothing);
+EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawNothing);
 // 0051AC70 (slot 20), 0051AC90 / 0051ACB0 / 0051ACA0 (slots 22-24), and the server half's part
 // slots 0051F270 / 0051F290 / 0051F280 / 0051F2B0 / 0051F2A0 (13-17), all RET 4: 0.
-int CObject3DSpecific::ReturnZero(void*) { return 0; }
-EI_REPLACE_METHOD(0x0051AC70, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051AC90, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051ACB0, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051ACA0, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051F270, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051F290, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051F280, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051F2B0, CObject3DSpecific::ReturnZero);
-EI_REPLACE_METHOD(0x0051F2A0, CObject3DSpecific::ReturnZero);
+int CObject3DSpecific::ReturnZero(const void*) { return 0; }
+EI_REWRITTEN(0x0051AC70, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051AC90, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051F270, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051F290, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051F280, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051F2B0, CObject3DSpecific::ReturnZero);
+EI_REWRITTEN(0x0051F2A0, CObject3DSpecific::ReturnZero);
 // 0051AC80 (slot 21): nothing. One byte, as 0051E830 (the empty destroy step the containers of
 // plain elements call): too short to hook, registered so the address is known.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
@@ -139,40 +137,40 @@ CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self) {
     self->ClearFields();
     self->prototypeId_ = 0;
     self->object = nullptr;
-    ei::SetVtable(self, kServerVtable);
+    ei::SetVtable(self, CObject3DSpecific::ServerVtable());
     return self;
 }
 EI_REPLACE(0x0051F240, Object3DServerConstruct);
 
 // 0051F300. The destructor body: the base half's vtable, no object, the engine object's.
 void __fastcall Object3DServerDestruct(CObject3DSpecific* self) {
-    ei::SetVtable(self, kSpecificBaseVtable);
+    ei::SetVtable(self, CObject3DSpecific::BaseVtable());
     self->object = nullptr;
     self->DestructBase();
 }
 EI_REPLACE(0x0051F300, Object3DServerDestruct);
 
 // 0051F2E0 (slot 0, RET 4).
-CObject3DSpecific* CObject3DSpecific::DeleteServerHalf(unsigned flags) {
+CObject3DSpecific* CObject3DSpecific::DeletingDestruct(unsigned flags) {
     Object3DServerDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0051F2E0, CObject3DSpecific::DeleteServerHalf);
+EI_REWRITTEN(0x0051F2E0, CObject3DSpecific::DeletingDestruct);
 
 // 0051F320 (slot 2): 1. 0051F330 (slot 3): no object.
 int __fastcall Object3DServerCreate(CObject3DSpecific*) { return 1; }
-EI_REPLACE(0x0051F320, Object3DServerCreate);
+EI_REWRITTEN(0x0051F320, Object3DServerCreate);
 void __fastcall Object3DServerDestroy(CObject3DSpecific* self) { self->object = nullptr; }
-EI_REPLACE(0x0051F330, Object3DServerDestroy);
+EI_REWRITTEN(0x0051F330, Object3DServerDestroy);
 
 // 0051F2C0 / 0051F2D0 (slots 11 / 12).
 const char* __fastcall Object3DServerClassName(CObject3DSpecific*) {
     return kServerClassName;
 }
-EI_REPLACE(0x0051F2C0, Object3DServerClassName);
+EI_REWRITTEN(0x0051F2C0, Object3DServerClassName);
 int __fastcall Object3DServerClassId(CObject3DSpecific*) { return kServerClassId; }
-EI_REPLACE(0x0051F2D0, Object3DServerClassId);
+EI_REWRITTEN(0x0051F2D0, Object3DServerClassId);
 
 // --- The wounds material and the stage copies ---------------------------------------------------------
 
@@ -194,7 +192,7 @@ WoundsMaterial* WoundsMaterial::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0051C710, WoundsMaterial::DeleteScalar);
+EI_REWRITTEN(0x0051C710, WoundsMaterial::DeleteScalar);
 
 // 0051C800. A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {
