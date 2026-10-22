@@ -29,13 +29,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
         if (files_.At(node)->name_ == *name) return;
 
-    auto* file = NewMessageMemory<FileMessage>();
-    if (file) {
-        MessageConstructBase(file);
-        stlp::StringElement::Default(&file->name_);
-        file->chunks_.ConstructEmpty();
-        ei::SetVtable(file, FileMessage::Vtable());
-    }
+    auto* file = NewCounted<FileMessage>();
 
     BufferUpdateHigh(data);
     std::int32_t size = data->PositionOf(data->high);
@@ -44,12 +38,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     file->size_ = size;
     file->chunkCount_ = static_cast<std::uint16_t>(chunkCount);
 
-    auto* chunk = NewMessageMemory<FileChunkMessage>();
-    if (chunk) {
-        MessageConstructBase(chunk);
-        chunk->file_.ptr = nullptr;   // RefPtr() (0041FFC0)
-        ei::SetVtable(chunk, FileChunkMessage::Vtable());
-    }
+    auto* chunk = NewCounted<FileChunkMessage>();
     RefPtr filler;
     filler.Share(chunk);
     RefVector& chunks = file->chunks_;

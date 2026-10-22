@@ -55,15 +55,7 @@ EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 // second delay. `text` is the caller's string (made in the argument slot), destroyed here as the
 // callee destroys a by-value argument.
 void ServerSession::QueueAward(CRefObject* connection, int kind, float value, stlp::string text) {
-    auto* award = NewMessageMemory<AwardMessage>();
-    if (award) {
-        RefValueConstructBase(award);
-        ei::SetVtable(award, Message::Vtable());
-        award->version_ = 1;
-        award->connection_.ptr = nullptr;
-        stlp::StringElement::Default(&award->text_);
-        ei::SetVtable(award, AwardMessage::Vtable());
-    }
+    auto* award = NewCounted<AwardMessage>();
     CRefObject* previous = award->connection_.ptr;
     award->connection_.ptr = connection;
     if (connection) ++connection->refs_;

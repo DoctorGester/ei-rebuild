@@ -58,13 +58,7 @@ EI_REWRITTEN(0x0041D1A0, ClientSession::AddTimed);
 // 0041D260: sends the server a command message, kept 60 seconds on the timers list.
 void ClientSession::SendCommand(int kind, const char* text) {
     ClientSession* self = this;
-    auto* command = NewMessageMemory<CommandMessage>();
-    if (command) {
-        ei::SetVtable(command, Message::Vtable());
-        command->version_ = 1;
-        stlp::StringElement::Default(&command->text_);
-        ei::SetVtable(command, CommandMessage::Vtable());
-    }
+    auto* command = NewCounted<CommandMessage>();
     command->kind_ = static_cast<std::uint32_t>(kind);
     // The inlined assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
@@ -85,20 +79,7 @@ EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 // 0041D420 (slot 16): makes `*out` an empty server entry (no name or description, kind 4, no
 // players).
 void ClientSession::CreateEntryImpl(RefPtr* out) {
-    auto* entry = NewMessageMemory<ServerEntry>();
-    if (entry) {
-        entry->ConstructBase();
-        stlp::StringElement::Default(&entry->name_);
-        stlp::StringElement::Default(&entry->description_);
-        ei::SetVtable(entry, ServerEntry::Vtable());
-        const char* empty = game::QuestionMarkText();
-        entry->name_.Assign(empty);
-        entry->kind_ = 4;
-        entry->description_.Assign(empty);   // inlined: overwrite, then cut or append
-        entry->players_ = 0;
-        entry->maxPlayers_ = 0;
-        entry->password_ = 0;
-    }
+    auto* entry = NewCounted<ServerEntry>();
     if (entry == out->ptr) return;
     if (CRefObject* old = out->ptr) {
         if (old->refs_ != 1) {

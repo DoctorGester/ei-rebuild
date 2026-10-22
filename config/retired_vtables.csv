@@ -7,33 +7,33 @@ vtable,slots,class,file,note
 0073B994,2,NamedException,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base; C25c: a class of ours, its table the compiler's)"
 0073B9E0,18,CCamera,src/game/camera.h,the camera (CCamera)
 0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
-0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
-0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
+0073BB28,6,ServerEntry,src/game/net_classes.h,the lobby's server entry
+0073BB40,6,ServerEntryBase,src/game/net_classes.h,the server entry's base; slots 2-5 _purecall
 0073BB58,4,RefObjectBaseClass,src/game/core_streams.cpp,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)
 0073BB68,2,CountedRootClass,src/game/core_streams.cpp,the counted root (CRefCounted; every counted class's destructor leaves it)
 0073BB70,17,ServerSessionClass,src/game/net_classes.h,the game server (ServerSession)
 0073BBB4,17,ServerBaseClass,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
-0073BBF8,6,LoginMessageClass,src/game/net_messages.h,ReplicatedClass (message type 5)
-0073BC10,6,MessageClass,src/game/net_messages.h,ReplicatedClass (the message base; slots 2-5 _purecall)
-0073BC28,6,SayMessageClass,src/game/net_messages.h,ReplicatedClass (message type 6)
-0073BC40,6,CommandMessageClass,src/game/net_messages.h,ReplicatedClass (message type 7)
-0073BC58,6,FileRequestMessageClass,src/game/net_messages.h,ReplicatedClass (message type 13)
-0073BC70,6,PlayerMessageClass,src/game/net_messages.h,ReplicatedClass (message type 1)
-0073BC88,6,LineMessageClass,src/game/net_messages.h,ReplicatedClass (message type 2)
-0073BCA0,6,HostMessageClass,src/game/net_messages.h,ReplicatedClass (message type 3)
-0073BCB8,6,BindingMessageClass,src/game/net_messages.h,ReplicatedClass (message type 4)
-0073BCD0,6,ZoneMessageClass,src/game/net_messages.h,ReplicatedClass (message type 8)
-0073BCE8,6,VariableMessageClass,src/game/net_messages.h,ReplicatedClass (message type 10)
-0073BD00,6,MapMessageClass,src/game/net_messages.h,ReplicatedClass (message type 9)
-0073BD18,6,FileMessageClass,src/game/net_messages.h,ReplicatedClass (message type 11)
-0073BD30,6,FileChunkMessageClass,src/game/net_messages.h,ReplicatedClass (message type 12)
-0073BD48,6,AwardMessageClass,src/game/net_messages.h,ReplicatedClass (message type 14)
-0073BD60,6,TradeMessageClass,src/game/net_messages.h,ReplicatedClass (message type 17)
-0073BD78,6,PartyMemberMessageClass,src/game/net_messages.h,ReplicatedClass (message type 16)
+0073BBF8,6,LoginMessage,src/game/net_messages.h,message type 5
+0073BC10,6,Message,src/game/net_classes.h,the message base; slots 2-5 _purecall
+0073BC28,6,SayMessage,src/game/net_messages.h,message type 6
+0073BC40,6,CommandMessage,src/game/net_messages.h,message type 7
+0073BC58,6,FileRequestMessage,src/game/net_messages.h,message type 13
+0073BC70,6,PlayerMessage,src/game/net_messages.h,message type 1
+0073BC88,6,LineMessage,src/game/net_messages.h,message type 2
+0073BCA0,6,HostMessage,src/game/net_messages.h,message type 3
+0073BCB8,6,BindingMessage,src/game/net_messages.h,message type 4
+0073BCD0,6,ZoneMessage,src/game/net_messages.h,message type 8
+0073BCE8,6,VariableMessage,src/game/net_messages.h,message type 10
+0073BD00,6,MapMessage,src/game/net_messages.h,message type 9
+0073BD18,6,FileMessage,src/game/net_messages.h,message type 11
+0073BD30,6,FileChunkMessage,src/game/net_messages.h,message type 12
+0073BD48,6,AwardMessage,src/game/net_messages.h,message type 14
+0073BD60,6,TradeMessage,src/game/net_messages.h,message type 17
+0073BD78,6,PartyMemberMessage,src/game/net_messages.h,message type 16
 0073BD90,2,CMemoryStream,src/game/core_streams.h,the memory stream (CMemoryStream)
 0073BD98,6,CMemoryStream,src/game/core_streams.h,the tail of 0073BD90 (a devirtualised slot call)
 0073BDB0,8,CStream,src/game/core_streams.h,the abstract stream (CStream; slots 1-6 _purecall)
-0073BDD0,6,PartyMessageClass,src/game/net_messages.h,ReplicatedClass (message type 15)
+0073BDD0,6,PartyMessage,src/game/net_messages.h,message type 15
 0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
 0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)

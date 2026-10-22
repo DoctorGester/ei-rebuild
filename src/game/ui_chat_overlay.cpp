@@ -57,13 +57,7 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
 void SendSay(const char* text) {
-    auto* say = net::NewMessageMemory<net::SayMessage>();
-    if (say) {
-        ei::SetVtable(say, net::Message::Vtable());
-        say->version_ = 1;
-        stlp::StringElement::Default(&say->text_);
-        ei::SetVtable(say, net::SayMessage::Vtable());
-    }
+    auto* say = net::NewCounted<net::SayMessage>();
     // As the original: a failed allocation is not checked from here on.
     say->text_.Assign(text);   // inlined by the original: overwrite, then cut or append
     net::GameClient()->AddTimed(say, kSayLifetime);

@@ -1,34 +1,23 @@
 #pragma once
 
-// The network message classes (vtables 0073BBF8 ... 0073BDD0, 0x18 apart; message types 1..17 as
+// The network message classes (game.exe's vtables 0073BBF8 ... 0073BDD0, 0x18 apart; message types 1..17 as
 // SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
 // docs/notes/cleanup-network.md and docs/notes/network.md.
 //
-// Every class has, besides its slots, a factory (the type registry's, a static Create), a
-// constructor body (Construct; only for the classes whose constructor is a function of its own,
-// net_messages.cpp) and a destructor body (Destruct); the scalar deleting destructors (slot 0) are
-// in deleting_destructors_400.cpp. Slot 1 is Serialize (empty), slot 2 (OnShutdown) resets the
-// message (destroyed and built again in place; EAX is left undefined by the original), slot 3
-// clones it, slots 4 / 5 write and read the fields at the cursor's byte position.
-//
-// Like the sessions, the classes are __declspec(novtable) and never built by C++: our rewrites of
-// the game's bodies store a table in the first dword, through which the virtual calls dispatch. The
-// tables are compiled tags' (C19; ReplicatedClass at the end, `X::Vtable()`), whose slots call the
-// same bodies game.exe's tables (retired) reached; the bodies stay registered through `...Hook`
-// shims (docs/rewrite-guide.md rule 4) until C20.
+// Every class has a factory (the type registry's, a static Create: a new message with no references), a
+// constructor, a copy constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp).
+// Slot 1 is Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is
+// left undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
 
 #include "net_classes.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "ei/vcall.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <type_traits>
 
 namespace net {
 
@@ -39,15 +28,16 @@ class PlayerMessage;
 // An STLport vector of counted pointers (start, finish, end of storage), as the file and party
 // messages embed it.
 using RefVector = stlp::vector<RefPtr>;
-static_assert(sizeof(RefVector) == 12);
 
 // ---- Client to server ---------------------------------------------------------------------------
 
 // 0073BBF8 (type 5, 0x34 bytes): the local player's login, kept by the client at +0x2600. The
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
-class __declspec(novtable) LoginMessage : public Message {
+class LoginMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BBF8)
+    LoginMessage();                              // 00413350
+    LoginMessage(const LoginMessage& other);     // Clone's copy (00413440, inlined)
+    ~LoginMessage() override;                    // 00413800 (deleting: 004137E0)
 
     int OnShutdown() override;                  // 2: 00413570
     LoginMessage* Clone() override;             // 3: 00413440
@@ -55,47 +45,37 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00413750
 
     static Message* __fastcall Create();        // 004170A0
-    LoginMessage* Construct();                  // 00413350
-    void Destruct();                            // 00413800
 
     stlp::string name_;             // +0x0C the player's name
     stlp::string text_;             // +0x18
-    std::uint8_t host_;          // +0x24 asks to host (honoured with a local client)
+    std::uint8_t host_ = 0;         // +0x24 asks to host (honoured with a local client)
     std::uint8_t unused_25[3];
-    std::uint32_t state_;        // +0x28 4 when made; the player record's state
-    std::int32_t id_;            // +0x2C -1 when made; the player record's id
-    RefPtrTo<BindingMessage> binding_;   // +0x30 the server's binding for this login (not sent)
+    std::uint32_t state_ = 4;       // +0x28 the player record's state
+    std::int32_t id_ = -1;          // +0x2C the player record's id
+    RefPtrTo<BindingMessage> binding_{};   // +0x30 the server's binding for this login (not sent)
 };
-static_assert(offsetof(LoginMessage, name_) == 0x0C);
-static_assert(offsetof(LoginMessage, host_) == 0x24);
-static_assert(offsetof(LoginMessage, state_) == 0x28);
-static_assert(offsetof(LoginMessage, binding_) == 0x30);
-static_assert(sizeof(LoginMessage) == 0x34);
 
 // One string at +0xC (0x18 bytes): the base of SayMessage, ZoneMessage and MapMessage, which
-// differ only in their vtables. The helpers are the slot bodies with the class's vtable.
-class __declspec(novtable) TextMessage : public Message {
+// differ only in their classes (game.exe has no table of its own for this layer).
+class TextMessage : public Message {
 public:
     stlp::string text_;             // +0x0C
 
 protected:
-    static Message* CreateAs(const void* vtable);
-    // A copy as a Self (a class over this one with only its own vtable), Self::Vtable() stored last.
-    template <class Self>
-    Self* CloneAs();
-    void ResetAs(const void* vtable);
+    TextMessage();
+    TextMessage(const TextMessage& other);
+    ~TextMessage() override;
     void WriteText(BufferCursor* cursor);
     void ReadText(BufferCursor* cursor);
-    void DestructAs(const void* vtable);
 };
-static_assert(offsetof(TextMessage, text_) == 0x0C);
-static_assert(sizeof(TextMessage) == 0x18);
 
 // 0073BC28 (type 6): a chat line from a client (the server's handler 0041B1C0 announces it with
 // the player's number and name).
-class __declspec(novtable) SayMessage : public TextMessage {
+class SayMessage final : public TextMessage {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BC28)
+    SayMessage();                                                      // 004138A0
+    SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
+    ~SayMessage() override {}                                          // 00413C40 (deleting: 00413C20)
 
     int OnShutdown() override;                  // 2: 00413A50
     SayMessage* Clone() override;               // 3: 00413930
@@ -103,15 +83,14 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00413B50
 
     static Message* __fastcall Create();        // 004171A0
-    SayMessage* Construct();                    // 004138A0
-    void Destruct();                            // 00413C40
 };
-static_assert(sizeof(SayMessage) == 0x18);
 
 // 0073BC40 (type 7, 0x1C bytes): a command for the server (ClientSession::SendCommand).
-class __declspec(novtable) CommandMessage : public Message {
+class CommandMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BC40)
+    CommandMessage();                                // 00413C90 (kind_ is not set)
+    CommandMessage(const CommandMessage& other);     // Clone's copy
+    ~CommandMessage() override {}                    // 00414060 (deleting: 00414040)
 
     int OnShutdown() override;                  // 2: 00413E40
     CommandMessage* Clone() override;           // 3: 00413D20
@@ -119,41 +98,33 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00413F50
 
     static Message* __fastcall Create();        // 00417250
-    CommandMessage* Construct();                // 00413C90 (kind_ is not set)
-    void Destruct();                            // 00414060
 
     std::uint32_t kind_;         // +0x0C
-    stlp::string text_;             // +0x10
+    stlp::string text_;          // +0x10
 };
-static_assert(offsetof(CommandMessage, text_) == 0x10);
-static_assert(sizeof(CommandMessage) == 0x1C);
 
 // Two counted pointers (0x14 bytes); only the first is sent. The base of BindingMessage and
-// FileRequestMessage, which differ only in their vtables and the names of the pointers.
-class __declspec(novtable) PairMessage : public Message {
+// FileRequestMessage, which differ only in their classes and the names of the pointers.
+class PairMessage : public Message {
 public:
-    RefPtr first_;               // +0x0C
-    RefPtrTo<Connection> second_;   // +0x10 the connection on the server (not sent)
+    RefPtr first_{};                  // +0x0C
+    RefPtrTo<Connection> second_{};   // +0x10 the connection on the server (not sent)
 
 protected:
-    static Message* CreateAs(const void* vtable);
-    // A copy as a Self (a class over this one with only its own vtable), Self::Vtable() stored last.
-    template <class Self>
-    Self* CloneAs();
-    void ResetAs(const void* vtable);
+    PairMessage() {}
+    PairMessage(const PairMessage& other);
+    ~PairMessage() override;
     void WriteFirst(BufferCursor* cursor);
     void ReadFirst(BufferCursor* cursor);
-    void DestructAs(const void* vtable);
-    void ConstructAs(const void* vtable);
 };
-static_assert(offsetof(PairMessage, first_) == 0x0C);
-static_assert(sizeof(PairMessage) == 0x14);
 
 // 0073BC58 (type 13): a client's request for a shared file (first_ the file message, second_ the
 // requesting connection on the server).
-class __declspec(novtable) FileRequestMessage : public PairMessage {
+class FileRequestMessage final : public PairMessage {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BC58)
+    FileRequestMessage();                                                          // 004140B0
+    FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
+    ~FileRequestMessage() override {}                                              // 00414270 (deleting: 00414250)
 
     int OnShutdown() override;                  // 2: 00414130
     FileRequestMessage* Clone() override;       // 3: 004140D0
@@ -161,19 +132,18 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00414210
 
     static Message* __fastcall Create();        // 004179E0
-    FileRequestMessage* Construct();            // 004140B0
-    void Destruct();                            // 00414270
 
     RefPtr& FileRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
 };
-static_assert(sizeof(FileRequestMessage) == 0x14);
 
 // 0073BDD0 (type 15, 0x34 bytes): a trade offer (the party a player offers to a partner; its
 // members are PartyMemberMessages). Kept by the client at +0x260C, by the server on +0x25B8.
-class __declspec(novtable) PartyMessage : public Message {
+class PartyMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BDD0)
+    PartyMessage();
+    PartyMessage(const PartyMessage& other);     // Clone's copy
+    ~PartyMessage() override;                    // 004178F0 (deleting: 004178D0)
 
     int OnShutdown() override;                  // 2: 004177A0
     PartyMessage* Clone() override;             // 3: 004176A0
@@ -181,30 +151,25 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00412B70
 
     static Message* __fastcall Create();        // 00417650
-    void Destruct();                            // 004178F0
 
     RefVector members_;              // +0x0C the party members (PartyMemberMessage)
-    std::uint32_t money_;            // +0x18 the offered party's money (CParty::Money)
-    std::uint8_t accepted_;          // +0x1C the partner's offer is accepted
+    std::uint32_t money_ = 0;        // +0x18 the offered party's money (CParty::Money)
+    std::uint8_t accepted_ = 0;      // +0x1C the partner's offer is accepted
     std::uint8_t unused_1D[3];
-    std::uint32_t acceptedRevision_; // +0x20 the partner's revision accepted
-    std::uint32_t revision_;         // +0x24 1 when made
-    RefPtrTo<PlayerMessage> player_;    // +0x28 the offering player's record
-    RefPtrTo<PlayerMessage> partner_;   // +0x2C the partner's record
-    std::uint8_t trading_;           // +0x30 in a trade (server side; not sent)
+    std::uint32_t acceptedRevision_ = 0;   // +0x20 the partner's revision accepted
+    std::uint32_t revision_ = 1;           // +0x24
+    RefPtrTo<PlayerMessage> player_{};     // +0x28 the offering player's record
+    RefPtrTo<PlayerMessage> partner_{};    // +0x2C the partner's record
+    std::uint8_t trading_ = 0;       // +0x30 in a trade (server side; not sent)
     std::uint8_t unused_31[3];
 };
-static_assert(offsetof(PartyMessage, money_) == 0x18);
-static_assert(offsetof(PartyMessage, accepted_) == 0x1C);
-static_assert(offsetof(PartyMessage, revision_) == 0x24);
-static_assert(offsetof(PartyMessage, player_) == 0x28);
-static_assert(offsetof(PartyMessage, trading_) == 0x30);
-static_assert(sizeof(PartyMessage) == 0x34);
 
 // 0073BD78 (type 16, 0x34 bytes): one member of an offered party, serialised into a memory stream.
-class __declspec(novtable) PartyMemberMessage : public Message {
+class PartyMemberMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD78)
+    PartyMemberMessage() {}
+    PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
+    ~PartyMemberMessage() override {}                      // 00417620 (deleting: 00417600)
 
     int OnShutdown() override;                  // 2: 004174F0
     PartyMemberMessage* Clone() override;       // 3: 00417420
@@ -212,19 +177,18 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 004175B0
 
     static Message* __fastcall Create();        // 00417300
-    void Destruct();                            // 00417620
 
     CMemoryStream stream_;       // +0x0C
 };
-static_assert(offsetof(PartyMemberMessage, stream_) == 0x0C);
-static_assert(sizeof(PartyMemberMessage) == 0x34);
 
 // ---- Server to client ---------------------------------------------------------------------------
 
 // 0073BC70 (type 1, 0x3C bytes): a player record (the server's +0x2590, the client's +0x25D8).
-class __declspec(novtable) PlayerMessage : public Message {
+class PlayerMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BC70)
+    PlayerMessage();                               // 0041C680
+    PlayerMessage(const PlayerMessage& other);     // Clone's copy
+    ~PlayerMessage() override {}                   // 004148E0 (deleting: 004148C0)
 
     int OnShutdown() override;                  // 2: 00414650
     PlayerMessage* Clone() override;            // 3: 00414500
@@ -232,30 +196,24 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00414820
 
     static Message* __fastcall Create();        // 00414420
-    PlayerMessage* Construct();                 // 0041C680
-    void Destruct();                            // 004148E0
 
     stlp::string name_;             // +0x0C
     stlp::string text_;             // +0x18
-    std::uint32_t state_;        // +0x24 1 when made (from the login)
-    std::uint8_t host_;          // +0x28 the hosting player
+    std::uint32_t state_ = 1;       // +0x24 (from the login)
+    std::uint8_t host_ = 0;         // +0x28 the hosting player
     std::uint8_t unused_29[3];
-    std::int32_t id_;            // +0x2C -1 when made (from the login)
-    std::int32_t serial_;        // +0x30 from the server's player serial (not sent)
-    std::int32_t number_;        // +0x34 the lowest number free when joining (not sent)
-    std::uint32_t firstLine_;    // +0x38 the first chat line it receives (not sent)
+    std::int32_t id_ = -1;          // +0x2C (from the login)
+    std::int32_t serial_ = -1;      // +0x30 from the server's player serial (not sent)
+    std::int32_t number_ = -1;      // +0x34 the lowest number free when joining (not sent)
+    std::uint32_t firstLine_;       // +0x38 the first chat line it receives (not sent)
 };
-static_assert(offsetof(PlayerMessage, state_) == 0x24);
-static_assert(offsetof(PlayerMessage, host_) == 0x28);
-static_assert(offsetof(PlayerMessage, id_) == 0x2C);
-static_assert(offsetof(PlayerMessage, serial_) == 0x30);
-static_assert(offsetof(PlayerMessage, firstLine_) == 0x38);
-static_assert(sizeof(PlayerMessage) == 0x3C);
 
 // 0073BC88 (type 2, 0x20 bytes): a chat or system line (the server's +0x2594, the client's +0x25DC).
-class __declspec(novtable) LineMessage : public Message {
+class LineMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BC88)
+    LineMessage();                               // 0041C740 (number_ is not set)
+    LineMessage(const LineMessage& other);       // Clone's copy
+    ~LineMessage() override;                     // 00414D10 (deleting: 00414CF0)
 
     int OnShutdown() override;                  // 2: 00414AC0
     LineMessage* Clone() override;              // 3: 00414A00
@@ -263,22 +221,19 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00414C00
 
     static Message* __fastcall Create();        // 00414960
-    LineMessage* Construct();                   // 0041C740 (number_ is not set)
-    void Destruct();                            // 00414D10
 
-    std::uint32_t number_;       // +0x0C
+    std::uint32_t number_;          // +0x0C
     stlp::string text_;             // +0x10
-    RefPtr connection_;          // +0x1C the only receiver (null: everyone; not sent)
+    RefPtr connection_{};           // +0x1C the only receiver (null: everyone; not sent)
 };
-static_assert(offsetof(LineMessage, text_) == 0x10);
-static_assert(offsetof(LineMessage, connection_) == 0x1C);
-static_assert(sizeof(LineMessage) == 0x20);
 
 // 0073BCA0 (type 3, 0x24 bytes): where the host's game is (the server's +0x25A0, the client's
 // +0x25EC; built by world_game.cpp's AnnounceHost).
-class __declspec(novtable) HostMessage : public Message {
+class HostMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BCA0)
+    HostMessage();                               // 0041C7C0
+    HostMessage(const HostMessage& other);       // Clone's copy
+    ~HostMessage() override {}                   // 004152A0 (deleting: 00415280)
 
     int OnShutdown() override;                  // 2: 00414FA0
     HostMessage* Clone() override;              // 3: 00414E80
@@ -286,20 +241,18 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00415120
 
     static Message* __fastcall Create();        // 00414DB0
-    HostMessage* Construct();                   // 0041C7C0
-    void Destruct();                            // 004152A0
 
     stlp::string address_;          // +0x0C "host:port"
     stlp::string zone_;             // +0x18
 };
-static_assert(offsetof(HostMessage, zone_) == 0x18);
-static_assert(sizeof(HostMessage) == 0x24);
 
 // 0073BCB8 (type 4): binds a player record (first_) to its connection (second_, not sent). The
 // server's +0x25A4; a client keeps its own at +0x25F0.
-class __declspec(novtable) BindingMessage : public PairMessage {
+class BindingMessage final : public PairMessage {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BCB8)
+    BindingMessage();                                                      // 0041C870
+    BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
+    ~BindingMessage() override {}                                          // 004154D0 (deleting: 004154B0)
 
     int OnShutdown() override;                  // 2: 004153B0
     BindingMessage* Clone() override;           // 3: 00415350
@@ -307,20 +260,19 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00415470
 
     static Message* __fastcall Create();        // 00415320
-    BindingMessage* Construct();                // 0041C870
-    void Destruct();                            // 004154D0
 
     RefPtr& PlayerRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
     // The bound player record.
     PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
 };
-static_assert(sizeof(BindingMessage) == 0x14);
 
 // 0073BCD0 (type 8): a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
-class __declspec(novtable) ZoneMessage : public TextMessage {
+class ZoneMessage final : public TextMessage {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BCD0)
+    ZoneMessage();                                                       // 00418C30
+    ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
+    ~ZoneMessage() override {}                                           // 00415930 (deleting: 00415910)
 
     int OnShutdown() override;                  // 2: 00415740
     ZoneMessage* Clone() override;              // 3: 00415620
@@ -328,15 +280,14 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00415840
 
     static Message* __fastcall Create();        // 00415570
-    ZoneMessage* Construct();                   // 00418C30
-    void Destruct();                            // 00415930
 };
-static_assert(sizeof(ZoneMessage) == 0x18);
 
 // 0073BD00 (type 9): the map being played (the server's +0x25A8, the client's +0x25F4).
-class __declspec(novtable) MapMessage : public TextMessage {
+class MapMessage final : public TextMessage {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD00)
+    MapMessage() {}
+    MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
+    ~MapMessage() override {}                                      // 00416110 (deleting: 004160F0)
 
     int OnShutdown() override;                  // 2: 00415F20
     MapMessage* Clone() override;               // 3: 00415E00
@@ -344,34 +295,33 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00416020
 
     static Message* __fastcall Create();        // 00415D50
-    void Destruct();                            // 00416110
 };
-static_assert(sizeof(MapMessage) == 0x18);
 
 // 0073BCE8 (type 10, 0x20 bytes): a script variable (the server's +0x25B0, the client's +0x25FC).
-class __declspec(novtable) VariableMessage : public Message {
+class VariableMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BCE8)
+    VariableMessage();                                 // value_ and serial_ are not set
+    VariableMessage(const VariableMessage& other);     // Clone's copy
+    ~VariableMessage() override {}                     // 00415D00 (deleting: 00415CE0)
 
     int OnShutdown() override;                  // 2: 00415B60
     VariableMessage* Clone() override;          // 3: 00415A30
     void Write(BufferCursor* cursor) override;  // 4: 00415C20
     void Read(BufferCursor* cursor) override;   // 5: 00415C80
 
-    static Message* __fastcall Create();        // 00415980 (value_ and serial_ are not set)
-    void Destruct();                            // 00415D00
+    static Message* __fastcall Create();        // 00415980
 
-    stlp::string name_;             // +0x0C
+    stlp::string name_;          // +0x0C
     float value_;                // +0x18
     std::uint32_t serial_;       // +0x1C from g_variableSerial
 };
-static_assert(offsetof(VariableMessage, value_) == 0x18);
-static_assert(sizeof(VariableMessage) == 0x20);
 
 // 0073BD18 (type 11, 0x2C bytes): a shared file (the server's +0x2598, the client's +0x25E0).
-class __declspec(novtable) FileMessage : public Message {
+class FileMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD18)
+    FileMessage();
+    FileMessage(const FileMessage& other);       // Clone's copy
+    ~FileMessage() override;                     // 00416640 (deleting: 00416620)
 
     int OnShutdown() override;                  // 2: 00416390
     FileMessage* Clone() override;              // 3: 00416220
@@ -379,24 +329,22 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00416530
 
     static Message* __fastcall Create();        // 00416160
-    void Destruct();                            // 00416640
 
     std::uint16_t chunkCount_;   // +0x0C
     std::uint16_t unused_0E;
     std::int32_t size_;          // +0x10 bytes
-    stlp::string name_;             // +0x14
+    stlp::string name_;          // +0x14
     RefVector chunks_;           // +0x20 the chunk messages (not sent)
 };
-static_assert(offsetof(FileMessage, size_) == 0x10);
-static_assert(offsetof(FileMessage, name_) == 0x14);
-static_assert(offsetof(FileMessage, chunks_) == 0x20);
-static_assert(sizeof(FileMessage) == 0x2C);
 
 // 0073BD30 (type 12, 0x54 bytes): 64 bytes of a shared file (the client's +0x25E4).
-class __declspec(novtable) FileChunkMessage : public Message {
+class FileChunkMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD30)
     static constexpr std::size_t kDataSize = 0x40;
+
+    FileChunkMessage() {}
+    FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
+    ~FileChunkMessage() override;                      // 004168E0 (deleting: 004168C0)
 
     int OnShutdown() override;                  // 2: 00416780
     FileChunkMessage* Clone() override;         // 3: 00416720
@@ -404,22 +352,20 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00416850
 
     static Message* __fastcall Create();        // 004166F0
-    void Destruct();                            // 004168E0
 
-    RefPtrTo<FileMessage> file_;   // +0x0C the file message
+    RefPtrTo<FileMessage> file_{};       // +0x0C the file message
     std::uint16_t index_;                // +0x10
     std::uint8_t data_[kDataSize];       // +0x12
     std::uint8_t unused_52[2];
 };
-static_assert(offsetof(FileChunkMessage, index_) == 0x10);
-static_assert(offsetof(FileChunkMessage, data_) == 0x12);
-static_assert(sizeof(FileChunkMessage) == 0x54);
 
 // 0073BD48 (type 14, 0x24 bytes): an award for one connection (the server's +0x25B4 with a delay,
 // the client's +0x2608; ClientSession::ApplyAwards).
-class __declspec(novtable) AwardMessage : public Message {
+class AwardMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD48)
+    AwardMessage();
+    AwardMessage(const AwardMessage& other);     // Clone's copy
+    ~AwardMessage() override;                    // 00416D70 (deleting: 00416D50)
 
     int OnShutdown() override;                  // 2: 00416B30
     AwardMessage* Clone() override;             // 3: 00416A10
@@ -427,22 +373,20 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00416C60
 
     static Message* __fastcall Create();        // 00416940
-    void Destruct();                            // 00416D70
 
-    RefPtr connection_;          // +0x0C the receiver (not sent)
+    RefPtr connection_{};        // +0x0C the receiver (not sent)
     std::uint32_t kind_;         // +0x10 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
     float value_;                // +0x14
-    stlp::string text_;             // +0x18 the item's name
+    stlp::string text_;          // +0x18 the item's name
 };
-static_assert(offsetof(AwardMessage, kind_) == 0x10);
-static_assert(offsetof(AwardMessage, text_) == 0x18);
-static_assert(sizeof(AwardMessage) == 0x24);
 
 // 0073BD60 (type 17, 0x28 bytes): a trade between two offers (the server's +0x25BC, the client's
 // +0x2618).
-class __declspec(novtable) TradeMessage : public Message {
+class TradeMessage final : public Message {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BD60)
+    TradeMessage() {}
+    TradeMessage(const TradeMessage& other);     // Clone's copy
+    ~TradeMessage() override;                    // 00416FC0 (deleting: 00416FA0)
 
     int OnShutdown() override;                  // 2: 00416EB0
     TradeMessage* Clone() override;             // 3: 00416E30
@@ -450,121 +394,18 @@ public:
     void Read(BufferCursor* cursor) override;   // 5: 00412CE0
 
     static Message* __fastcall Create();        // 00416DF0
-    void Destruct();                            // 00416FC0
 
-    RefPtrTo<PlayerMessage> player_;       // +0x0C the first offer's player (not sent)
-    RefPtrTo<PlayerMessage> partner_;      // +0x10 its partner (not sent)
-    RefPtrTo<PartyMessage> offer_;         // +0x14
-    RefPtrTo<PartyMessage> partnerOffer_;  // +0x18
-    std::uint8_t done_;          // +0x1C both sides accepted
+    RefPtrTo<PlayerMessage> player_{};       // +0x0C the first offer's player (not sent)
+    RefPtrTo<PlayerMessage> partner_{};      // +0x10 its partner (not sent)
+    RefPtrTo<PartyMessage> offer_{};         // +0x14
+    RefPtrTo<PartyMessage> partnerOffer_{};  // +0x18
+    std::uint8_t done_ = 0;                  // +0x1C both sides accepted
     std::uint8_t unused_1D[3];
-    std::uint32_t revision_;         // +0x20 the first offer's revision traded
-    std::uint32_t partnerRevision_;  // +0x24 the second's
+    std::uint32_t revision_ = 0;             // +0x20 the first offer's revision traded
+    std::uint32_t partnerRevision_ = 0;      // +0x24 the second's
 };
-static_assert(offsetof(TradeMessage, offer_) == 0x14);
-static_assert(offsetof(TradeMessage, done_) == 0x1C);
-static_assert(offsetof(TradeMessage, partnerRevision_) == 0x24);
-static_assert(sizeof(TradeMessage) == 0x28);
 
 // The serial the next variable or map record of the server gets (net_server_vars.cpp, net_server_map.cpp).
 inline std::uint32_t g_variableSerial = /*0079B608*/ {};
-
-// ---- The compiled tables ------------------------------------------------------------------------
-
-// A replicated class's compiled table (C19, lib/compiled_vtable.h) in place of game.exe's: slot 0 the scalar
-// deleting destructor (the class's destructor body `Destroy`, then the memory freed into the game's heap when bit 0
-// of the flags is set; returns the object: deleting_destructors_400.cpp's bodies), 1 Serialize (empty, RET 4:
-// 00412580), 2-5 the class's OnShutdown, Clone, Write and Read called qualified (no dispatch). An abstract class's
-// slots 2-5 are the compiler CRT's `_purecall`, as game.exe's 006E73EB in the bases' tables.
-
-template <typename Self, typename T, auto Destroy>
-class ReplicatedClass : public ei::CompiledTag<Self> {
-public:
-    virtual void* DeleteScalar(unsigned flags) {   // 0
-        T* object = Object();
-        if constexpr (std::is_member_function_pointer_v<decltype(Destroy)>) {
-            (object->*Destroy)();
-        } else {
-            Destroy(object);
-        }
-        if (flags & 1) gamecrt::operator_delete(object);
-        return object;
-    }
-    virtual void Serialize(ChunkArchive*) {}   // 1
-    virtual int OnShutdown() {   // 2
-        if constexpr (std::is_abstract_v<T>) {
-            return _purecall();
-        } else {
-            return Object()->T::OnShutdown();
-        }
-    }
-    virtual CRefObject* Clone() {   // 3
-        if constexpr (std::is_abstract_v<T>) {
-            _purecall();
-            return nullptr;
-        } else {
-            return Object()->T::Clone();
-        }
-    }
-    virtual void Write(BufferCursor* cursor) {   // 4
-        if constexpr (std::is_abstract_v<T>) {
-            _purecall();
-        } else {
-            Object()->T::Write(cursor);
-        }
-    }
-    virtual void Read(BufferCursor* cursor) {   // 5
-        if constexpr (std::is_abstract_v<T>) {
-            _purecall();
-        } else {
-            Object()->T::Read(cursor);
-        }
-    }
-
-private:
-    T* Object() { return this->template ObjectAs<T>(); }
-};
-
-struct MessageClass final : ReplicatedClass<MessageClass, Message, &RefObjectDestructBase> {};   // 0073BC10
-struct ServerEntryBaseClass final : ReplicatedClass<ServerEntryBaseClass, ServerEntryBase, &RefObjectDestructBase> {};   // 0073BB40
-struct ServerEntryClass final : ReplicatedClass<ServerEntryClass, ServerEntry, &ServerEntry::Destruct> {};   // 0073BB28
-struct LoginMessageClass final : ReplicatedClass<LoginMessageClass, LoginMessage, &LoginMessage::Destruct> {};   // 0073BBF8
-struct SayMessageClass final : ReplicatedClass<SayMessageClass, SayMessage, &SayMessage::Destruct> {};   // 0073BC28
-struct CommandMessageClass final : ReplicatedClass<CommandMessageClass, CommandMessage, &CommandMessage::Destruct> {};   // 0073BC40
-struct FileRequestMessageClass final : ReplicatedClass<FileRequestMessageClass, FileRequestMessage, &FileRequestMessage::Destruct> {};   // 0073BC58
-struct PlayerMessageClass final : ReplicatedClass<PlayerMessageClass, PlayerMessage, &PlayerMessage::Destruct> {};   // 0073BC70
-struct LineMessageClass final : ReplicatedClass<LineMessageClass, LineMessage, &LineMessage::Destruct> {};   // 0073BC88
-struct HostMessageClass final : ReplicatedClass<HostMessageClass, HostMessage, &HostMessage::Destruct> {};   // 0073BCA0
-struct BindingMessageClass final : ReplicatedClass<BindingMessageClass, BindingMessage, &BindingMessage::Destruct> {};   // 0073BCB8
-struct ZoneMessageClass final : ReplicatedClass<ZoneMessageClass, ZoneMessage, &ZoneMessage::Destruct> {};   // 0073BCD0
-struct VariableMessageClass final : ReplicatedClass<VariableMessageClass, VariableMessage, &VariableMessage::Destruct> {};   // 0073BCE8
-struct MapMessageClass final : ReplicatedClass<MapMessageClass, MapMessage, &MapMessage::Destruct> {};   // 0073BD00
-struct FileMessageClass final : ReplicatedClass<FileMessageClass, FileMessage, &FileMessage::Destruct> {};   // 0073BD18
-struct FileChunkMessageClass final : ReplicatedClass<FileChunkMessageClass, FileChunkMessage, &FileChunkMessage::Destruct> {};   // 0073BD30
-struct AwardMessageClass final : ReplicatedClass<AwardMessageClass, AwardMessage, &AwardMessage::Destruct> {};   // 0073BD48
-struct TradeMessageClass final : ReplicatedClass<TradeMessageClass, TradeMessage, &TradeMessage::Destruct> {};   // 0073BD60
-struct PartyMemberMessageClass final : ReplicatedClass<PartyMemberMessageClass, PartyMemberMessage, &PartyMemberMessage::Destruct> {};   // 0073BD78
-struct PartyMessageClass final : ReplicatedClass<PartyMessageClass, PartyMessage, &PartyMessage::Destruct> {};   // 0073BDD0
-
-inline void* Message::Vtable() { return MessageClass::Vtable(); }
-inline void* ServerEntryBase::Vtable() { return ServerEntryBaseClass::Vtable(); }
-inline void* ServerEntry::Vtable() { return ServerEntryClass::Vtable(); }
-inline void* LoginMessage::Vtable() { return LoginMessageClass::Vtable(); }
-inline void* SayMessage::Vtable() { return SayMessageClass::Vtable(); }
-inline void* CommandMessage::Vtable() { return CommandMessageClass::Vtable(); }
-inline void* FileRequestMessage::Vtable() { return FileRequestMessageClass::Vtable(); }
-inline void* PlayerMessage::Vtable() { return PlayerMessageClass::Vtable(); }
-inline void* LineMessage::Vtable() { return LineMessageClass::Vtable(); }
-inline void* HostMessage::Vtable() { return HostMessageClass::Vtable(); }
-inline void* BindingMessage::Vtable() { return BindingMessageClass::Vtable(); }
-inline void* ZoneMessage::Vtable() { return ZoneMessageClass::Vtable(); }
-inline void* VariableMessage::Vtable() { return VariableMessageClass::Vtable(); }
-inline void* MapMessage::Vtable() { return MapMessageClass::Vtable(); }
-inline void* FileMessage::Vtable() { return FileMessageClass::Vtable(); }
-inline void* FileChunkMessage::Vtable() { return FileChunkMessageClass::Vtable(); }
-inline void* AwardMessage::Vtable() { return AwardMessageClass::Vtable(); }
-inline void* TradeMessage::Vtable() { return TradeMessageClass::Vtable(); }
-inline void* PartyMemberMessage::Vtable() { return PartyMemberMessageClass::Vtable(); }
-inline void* PartyMessage::Vtable() { return PartyMessageClass::Vtable(); }
 
 } // namespace net

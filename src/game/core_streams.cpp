@@ -72,9 +72,7 @@ void* CRefObject::Vtable() { return RefObjectBaseClass::Vtable(); }
 
 void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::RootVtable()); }
 EI_REWRITTEN(0x00412720, RefObjectDestructBase);
-EI_REWRITTEN(0x00413430, RefObjectDestructBase);
 EI_REWRITTEN(0x005ED7A0, RefObjectDestructBase);
-EI_REWRITTEN(0x00412960, RefObjectDestructBase);
 EI_REWRITTEN(0x004368C0, RefObjectDestructBase);
 EI_REWRITTEN(0x00562770, RefObjectDestructBase);
 EI_REWRITTEN(0x0058FBE0, RefObjectDestructBase);

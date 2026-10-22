@@ -19,10 +19,8 @@
 //   0073BB40  ServerEntry's base and 0073BB28 ServerEntry (below): a server as the lobby lists it.
 //
 // The sessions are allocated and built by the game's code (or our rewrites of their constructor
-// bodies), which store the game's vtables. The classes are __declspec(novtable) and never built by
-// C++, so their virtual functions dispatch through the vtable the object holds; the slots that are
-// not rewritten are declared only. The message classes and the server entries store compiled tags'
-// tables in place of game.exe's (C19; net_messages.h's ReplicatedClass, `X::Vtable()`).
+// bodies), which store the compiled tags' tables in place of game.exe's (C19, below). The messages and the
+// server entries are real C++ classes (C28k).
 
 #include "core_refcount.h"
 #include "net_coder.h"
@@ -62,8 +60,29 @@ class PlayerMessage;
 class VariableMessage;
 class ZoneMessage;
 
-// The memory of a message (or another reference-counted object) as the game's code allocates it
-// inline: operator new, then the reference count dword cleared before the null check.
+// A new counted object of the network code: no references and no flags (the original clears the count dword
+// before it tests the allocation; ours tests first), or null without memory.
+template <typename T, typename... Args>
+T* NewCounted(const Args&... args) {
+    T* object = new T(args...);
+    if (object) {
+        object->refs_ = 0;
+        object->flags6_ = 0;
+        object->flags7_ = 0;
+    }
+    return object;
+}
+
+// Slot 2 (OnShutdown) of the messages and the server entries: `self` destroyed and built again in place (the count
+// and the flags kept).
+template <typename T>
+void Rebuild(T* self) {
+    self->T::~T();
+    new (self) T();
+}
+
+// The memory of a reference-counted object as the game's code allocates it inline: operator new, then the
+// reference count dword cleared before the null check (the sessions, the links and the connections).
 template <typename T>
 T* NewMessageMemory() {
     auto* p = gamecrt::operator_new_array<std::uint8_t>(sizeof(T));
@@ -158,20 +177,27 @@ void __fastcall ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 
-// A replicated network object (vtable 0073BC10): a connection sends it again whenever its version
+// A replicated network object (game.exe's vtable 0073BC10): a connection sends it again whenever its version
 // differs from the one last sent. Slot 2 (OnShutdown) of the message classes resets the message
 // (destroyed and built again in place), slot 3 clones it.
-class __declspec(novtable) Message : public CRefObject {
+class Message : public CRefObject {
 public:
-    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BC10)
-
-    // 0: 00413410 deleting destructor; 1: Serialize (empty); 2 / 3 pure in the base.
+    // 00413430 (deleting: 00413410; net_messages.cpp).
+    ~Message() override;
+    // 1: Serialize (empty); 2 / 3 pure in the base.
     virtual void Write(BufferCursor* cursor) = 0;   // 4: the fields at the cursor's byte position
     virtual void Read(BufferCursor* cursor) = 0;    // 5
 
-    std::uint32_t version_;   // +0x08 1 when constructed; raised by every change
+    std::uint32_t version_ = 1;   // +0x08 1 when constructed; raised by every change
+
+protected:
+    // 004186E0 (net_messages.cpp). The count and the flags are the creator's (a message rebuilt in place keeps
+    // them).
+    Message();
+    // A clone's: the source's version.
+    Message(const Message& other) : CRefObject(), version_(other.version_) {}
+
 };
-static_assert(sizeof(Message) == 12);
 
 using MessageFactory = Message* (__fastcall*)();
 
@@ -182,24 +208,18 @@ template <typename T>
 T* NewRefObjectAs() {
     return static_cast<T*>(NewRefObject(sizeof(T)));
 }
-// 004186E0. The message base constructor body: the base table (Message::Vtable()), version 1. Returns this.
-Message* __fastcall MessageConstructBase(Message* self);
-
 // The message classes are declared in net_messages.h.
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-// A server entry's base (vtable 0073BB40, 0x28 bytes; constructor body 004413E0).
-class __declspec(novtable) ServerEntryBase : public CRefObject {
+// A server entry's base (game.exe's vtable 0073BB40, 0x28 bytes).
+class ServerEntryBase : public CRefObject {
 public:
-    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BB40)
-
-    // 0: 00412970 deleting destructor; 1: Serialize; 2 / 3 pure.
+    // 00412960 (deleting: 00412970; net_messages.cpp).
+    ~ServerEntryBase() override;
+    // 1: Serialize; 2 / 3 pure.
     virtual void Write(BufferCursor* cursor) = 0;   // 4
     virtual void Read(BufferCursor* cursor) = 0;    // 5
-
-    // 004413E0. The constructor body (the reference header is left alone). Returns this.
-    ServerEntryBase* ConstructBase();
 
     enum State : std::uint32_t {
         kLocal = 0,        // found by a broadcast ping
@@ -213,24 +233,32 @@ public:
     std::uint8_t foreign_;   // +0x20 the reply's echoed word differs from the magic
     std::uint8_t unused_21[3];
     std::uint32_t state_;    // +0x24 State
+
+protected:
+    // 004413E0 (net_lobby.cpp): no address, timeout 0, the unknown ping, local (the count and the flags are the
+    // creator's).
+    ServerEntryBase();
+    // A clone's: the address, the timeout and ping (as dwords), the flag and the state.
+    ServerEntryBase(const ServerEntryBase& other);
 };
 static_assert(offsetof(ServerEntryBase, address_) == 0x08);
 static_assert(offsetof(ServerEntryBase, state_) == 0x24);
 static_assert(sizeof(ServerEntryBase) == 0x28);
 
-// A server entry (vtable 0073BB28, 0x48 bytes): what a server says about itself (net_server_entry.cpp)
-// and the client lists (net_lobby.cpp, net_server_list.cpp).
-class __declspec(novtable) ServerEntry : public ServerEntryBase {
+// A server entry (game.exe's vtable 0073BB28, 0x48 bytes): what a server says about itself (net_server_entry.cpp)
+// and the client lists (net_lobby.cpp, net_server_list.cpp). net_messages.cpp.
+class ServerEntry final : public ServerEntryBase {
 public:
-    static void* Vtable();   // the compiled table (net_messages.h; game.exe's 0073BB28)
-
-    // 0: 004128C0 deleting destructor; 1: 00412580 (empty). net_messages.cpp.
+    // As 0041A7E0, 0041D420 and 0041D600 inline it: the name and the description "?", kind 4, no players, no
+    // password.
+    ServerEntry();
+    ServerEntry(const ServerEntry& other);       // Clone's copy
+    ~ServerEntry() override {}                   // 004128E0 (deleting: 004128C0)
+    // 1: 00412580 (empty).
     int OnShutdown() override;                  // 2: 00412750 reset (EAX undefined in the original)
     ServerEntry* Clone() override;              // 3: 00412590
     void Write(BufferCursor* cursor) override;  // 4: 00412990
     void Read(BufferCursor* cursor) override;   // 5: 00412A30
-
-    void Destruct();                            // 004128E0
 
     stlp::string name_;              // +0x28
     std::uint32_t kind_;          // +0x34 the game kind (4: none)
@@ -294,7 +322,13 @@ struct TypeRegistry {
     ByVtable byVtable;     // +0x00 message vtable -> type id (constructor 00438B70, 100 buckets)
     ByType byType;         // +0x14 type id -> factory (constructor 00439F20, 100 buckets)
 
-    // 00429F40. The type id of the message class whose vtable is *key, or -1.
+    // The key of a message's class: its vtable (the object's first dword), as the original keys the registry.
+    static std::uint32_t KeyOf(const CRefObject* message) {
+        std::uint32_t key;
+        std::memcpy(&key, message, sizeof(key));   // read before any null check, as the original
+        return key;
+    }
+    // 00429F40. The type id of the message class whose key is *key, or -1.
     int TypeOf(const std::uint32_t* key) const;
     // 0042A890. Registers `type`: makes a prototype with `factory` (to learn its vtable), maps the
     // vtable to the type and the type to the factory, and releases the prototype.
@@ -428,12 +462,11 @@ public:
     // 004142F0. Clears the reliable flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
     // A handler registration as the session constructors inline it (not a function of its own in
-    // the original): a prototype message T (net_messages.h) built by its constructor body, held
-    // through a counted reference while its type id is looked up by vtable, then AddHandler.
+    // the original): a prototype message T (net_messages.h), held through a counted reference while its type
+    // id is looked up by its class, then AddHandler.
     template <typename T>
     void AddHandlerFor(int channel, void* handler) {
-        auto* memory = NewRefObjectAs<T>();
-        AddHandlerForPrototype(memory ? memory->Construct() : nullptr, channel, handler);
+        AddHandlerForPrototype(NewCounted<T>(), channel, handler);
     }
     void AddHandlerForPrototype(Message* prototype, int channel, void* handler);
 

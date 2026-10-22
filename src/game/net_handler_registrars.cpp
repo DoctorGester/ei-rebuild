@@ -3,8 +3,7 @@
 // the class is made and shared to learn its type id (looked up by vtable), `handler` is added for
 // that type on `channel`, and the prototype is released. The instantiations inline the class
 // constructors; the prototypes here come from the classes' factories (net_messages.cpp),
-// which allocate the same blocks in the same order and set the same vtable. Only the vtable of the
-// prototype is read. See docs/notes/network.md.
+// which allocate the same blocks in the same order. Only the class of the prototype is read. See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 
@@ -19,9 +18,8 @@ namespace {
 void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__fastcall* factory)()) {
     RefPtr prototype;
     prototype.Share(factory());
-    std::uint32_t vtable;
-    std::memcpy(&vtable, prototype.ptr, sizeof(vtable));   // read before any null check, as the original
-    int type = self->types_.TypeOf(&vtable);
+    const std::uint32_t key = TypeRegistry::KeyOf(prototype.ptr);
+    int type = self->types_.TypeOf(&key);
     self->AddHandler(channel, static_cast<std::uint32_t>(type), handler);
     prototype.Destroy();
 }

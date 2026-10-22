@@ -1127,10 +1127,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     them breaks the strings); a rerun's rows need that check before they are copied into config/vtables.csv.
 - **Batch 14's families** (2026-10-21): the network area's tables and the items': 42 rows, 6,126 -> 5,666 code cells,
   220 slot registrations EI_REWRITTEN.
-  - **Messages and server entries** (net_messages.h): `ReplicatedClass<Self, T, Destroy>` declares the six CRefObject
-    slots (0 Destroy plus operator delete, 1 an empty Serialize, 2-5 OnShutdown / Clone / Write / Read called qualified,
-    `_purecall` where T is abstract); one final tag per message class (20 rows 0073BB28-0073BDD0). The message
-    registry keys on the stored table, so every store uses `X::Vtable()`.
+  - **Messages and server entries** (net_messages.h, net_classes.h; 20 rows 0073BB28-0073BDD0): real C++ classes since
+    C28k (a constructor, Clone's copy constructor, OnShutdown destroying and rebuilding in place, a destructor). The
+    message registry keys on the object's class (TypeRegistry::KeyOf: its vtable).
   - **Sessions** (net_classes.h): SessionBaseClass (15 slots), ServerBaseClass / ClientBaseClass (17) and the final
     ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
     **Links** (net_link.h): NetLinkClass and its Loopback / Replay / Framed / Driver tags (FileStream is a real class),

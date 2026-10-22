@@ -61,19 +61,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
                 complete = true;
                 break;
             }
-            auto* entry = NewMessageMemory<ServerEntry>();
-            if (entry) {
-                entry->ConstructBase();
-                stlp::StringElement::Default(&entry->name_);
-                stlp::StringElement::Default(&entry->description_);
-                ei::SetVtable(entry, ServerEntry::Vtable());
-                entry->name_.Assign(game::QuestionMarkText());
-                entry->kind_ = 4;
-                entry->description_.Assign(game::QuestionMarkText());
-                entry->players_ = 0;
-                entry->maxPlayers_ = 0;
-                entry->password_ = 0;
-            }
+            auto* entry = NewCounted<ServerEntry>();
             ReadBytes(&buffer, &entry->address_, 0x10);
             if (!record->Read(&buffer)) break;
             entry->kind_ = record->kind;

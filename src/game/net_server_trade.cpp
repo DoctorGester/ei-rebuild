@@ -110,18 +110,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
         TellPartner(self, message, 10);
         return;
     }
-    auto* trade = NewMessageMemory<TradeMessage>();
-    if (trade) {
-        MessageConstructBase(trade);
-        trade->player_.ptr = nullptr;   // RefPtr() (0041FF80)
-        trade->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
-        trade->offer_.ptr = nullptr;   // RefPtr() (0041FFD0)
-        trade->partnerOffer_.ptr = nullptr;   // RefPtr() (0041FFD0)
-        ei::SetVtable(trade, TradeMessage::Vtable());
-        trade->done_ = 0;
-        trade->revision_ = 0;
-        trade->partnerRevision_ = 0;
-    }
+    auto* trade = NewCounted<TradeMessage>();
     trade->offer_.Assign(message);
     trade->partnerOffer_.Assign(other);
     trade->player_.Assign(message->player_.ptr);

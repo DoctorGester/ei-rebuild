@@ -121,16 +121,14 @@ ServerEntry* EntryIn(const RefPtr& entry) { return static_cast<ServerEntry*>(ent
 
 // ---- Small members --------------------------------------------------------------------------------
 
-ServerEntryBase* ServerEntryBase::ConstructBase() {
+ServerEntryBase::ServerEntryBase() {
     std::memset(&address_, 0, sizeof(address_));
-    ei::SetVtable(this, Vtable());
     SetBits(timeout_, 0);
     ping_ = 9.999f /*0073BFA0*/;
     foreign_ = 0;
     state_ = kLocal;
-    return this;
 }
-EI_REWRITTEN(0x004413E0, ServerEntryBase::ConstructBase);
+EI_REWRITTEN_SPECIAL(0x004413E0, ServerEntryBase::ServerEntryBase);
 
 // 00441410: the query with `address`, or the end.
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }

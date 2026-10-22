@@ -181,21 +181,7 @@ void ClientSession::StartParty(CRefObject* partner) {
     BindingMessage* binding = binding_;
     if (!IsLive(binding)) return;
     if (!IsLive(binding->PlayerRef().ptr)) return;
-    auto* party = NewMessageMemory<PartyMessage>();
-    if (party) {
-        RefValueConstructBase(party);
-        ei::SetVtable(party, Message::Vtable());
-        party->version_ = 1;
-        party->members_.ConstructEmpty();   // 0041FFF0
-        party->player_.ptr = nullptr;
-        party->partner_.ptr = nullptr;   // RefPtr() (0041FF80)
-        ei::SetVtable(party, PartyMessage::Vtable());
-        party->acceptedRevision_ = 0;
-        party->revision_ = 1;
-        party->accepted_ = 0;
-        party->money_ = 0;
-        party->trading_ = 0;
-    }
+    auto* party = NewCounted<PartyMessage>();
     auto* holder = &party_;
     if (party != holder->ptr) {
         if (CRefObject* old = holder->ptr) {
@@ -280,15 +266,7 @@ void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
     AppendRaw(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
-    auto* request = NewMessageMemory<FileRequestMessage>();
-    if (request) {
-        RefValueConstructBase(request);
-        ei::SetVtable(request, Message::Vtable());
-        request->version_ = 1;
-        request->FileRef().ptr = nullptr;
-        request->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(request, FileRequestMessage::Vtable());
-    }
+    auto* request = NewCounted<FileRequestMessage>();
     AssignRef(&request->FileRef(), message);
     AppendRaw(self->fileRequests_, request);
 }

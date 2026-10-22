@@ -74,17 +74,7 @@ ClientSession* ClientSession::Construct() {
     ei::SetVtable(this, Vtable());
 
     // The local player's login.
-    auto* record = NewMessageMemory<LoginMessage>();
-    if (record) {
-        MessageConstructBase(record);
-        stlp::StringElement::Default(&record->name_);
-        stlp::StringElement::Default(&record->text_);
-        record->binding_.ptr = nullptr;   // 0041FFE0
-        ei::SetVtable(record, LoginMessage::Vtable());
-        record->host_ = 0;
-        record->state_ = 4;
-        record->id_ = -1;
-    }
+    auto* record = NewCounted<LoginMessage>();
     if (record != player_.ptr) {
         player_.Destroy();
         player_.Share(record);

@@ -42,20 +42,14 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     {
         stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix2Text());
-        auto* memory = NewRefObjectAs<ZoneMessage>();
-        ZoneMessage* message = memory ? memory->Construct() : nullptr;
+        auto* message = NewCounted<ZoneMessage>();
         message->text_.AssignFrom(messageName);
         RefPtr ref;
         queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
         RefPtrClear(&ref);   // 00421360
     }
 
-    auto* mapMessage = NewMessageMemory<MapMessage>();
-    if (mapMessage) {
-        MessageConstructBase(mapMessage);
-        stlp::StringElement::Default(&mapMessage->text_);
-        ei::SetVtable(mapMessage, MapMessage::Vtable());
-    }
+    auto* mapMessage = NewCounted<MapMessage>();
     RefPtr* holder = &map_;
     if (mapMessage != holder->ptr) {
         holder->Destroy();
@@ -123,12 +117,7 @@ void ServerSession::QueueMapList() {
     for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) {
         {
             stlp::string key = stlp::Plus(*zone, game::ZoneSuffix1Text());
-            auto* message = NewMessageMemory<ZoneMessage>();
-            if (message) {
-                MessageConstructBase(message);
-                stlp::StringElement::Default(&message->text_);
-                ei::SetVtable(message, ZoneMessage::Vtable());
-            }
+            auto* message = NewCounted<ZoneMessage>();
             message->text_.AssignFrom(key);
             RefPtr ref;
             queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
@@ -160,12 +149,7 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     queuedMaps_.Clear();
 
     stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix3Text());
-    auto* message = NewMessageMemory<ZoneMessage>();
-    if (message) {
-        MessageConstructBase(message);
-        stlp::StringElement::Default(&message->text_);
-        ei::SetVtable(message, ZoneMessage::Vtable());
-    }
+    auto* message = NewCounted<ZoneMessage>();
     message->text_.AssignFrom(messageName);
     RefPtr ref;
     queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50

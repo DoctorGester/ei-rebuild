@@ -42,11 +42,9 @@ EI_REWRITTEN(0x00429F40, TypeRegistry::TypeOf);
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
     if (prototype) ++prototype->refs_;
-    std::uint32_t vtable;
-    std::memcpy(&vtable, prototype, sizeof(vtable));   // the original reads it before any null check
     // operator[] as inlined: find_or_insert of {key, value()} (resize 0042B9C0 / 0042AA90, new
     // node 0042B8A0 / 0042AA00).
-    byVtable.FindOrInsert({vtable, 0})->value = type;
+    byVtable.FindOrInsert({KeyOf(prototype), 0})->value = type;
     byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
@@ -99,7 +97,8 @@ EI_REWRITTEN(0x004377D0, SessionBase::AddHandler);
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* handler) {
     RefPtr ref;
     ref.ShareReturn(prototype);
-    int type = types_.TypeOf(reinterpret_cast<const std::uint32_t*>(ref.ptr));
+    const std::uint32_t key = TypeRegistry::KeyOf(ref.ptr);
+    int type = types_.TypeOf(&key);
     AddHandler(channel, static_cast<std::uint32_t>(type), handler);
     ref.Destroy();
 }

@@ -423,16 +423,7 @@ void AnnounceHost(const char* zone) {
     address.Parse(host, kHostPort);   // 00440440
     stlp::string text;
     mfc::CString formatted(address.ToString(&text)->data());   // 00435010
-    // (the count cleared before the null test)
-    auto* memory = net::NewRefObjectAs<net::HostMessage>();
-    net::HostMessage* record = nullptr;
-    if (memory) {
-        net::MessageConstructBase(memory);   // 004186E0
-        stlp::StringElement::Default(&memory->address_);
-        stlp::StringElement::Default(&memory->zone_);
-        ei::SetVtable(memory, net::HostMessage::Vtable());
-        record = memory;
-    }
+    net::HostMessage* record = net::NewCounted<net::HostMessage>();
     RefPtr& slot = net::GameServer()->hostInfo_;
     if (record != slot.ptr) {
         slot.Destroy();

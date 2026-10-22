@@ -85,12 +85,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < party->items_.size; ++i) {
-        auto* message = NewMessageMemory<PartyMemberMessage>();
-        if (message) {
-            MessageConstructBase(message);
-            new (&message->stream_) CMemoryStream();
-            ei::SetVtable(message, PartyMemberMessage::Vtable());
-        }
+        auto* message = NewCounted<PartyMemberMessage>();
         RefPtr ref;
         ref.FromRawCounted(message);
         CStream* stream = StreamOf(ref.ptr);

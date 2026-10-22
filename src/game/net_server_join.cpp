@@ -28,18 +28,7 @@ std::uint32_t g_playerSerial = /*0079B60C*/ {};
 // binding (the player and the current connection) the login keeps. The player is the host when
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
 void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
-    auto* player = NewMessageMemory<PlayerMessage>();
-    if (player) {
-        MessageConstructBase(player);
-        stlp::StringElement::Default(&player->name_);
-        stlp::StringElement::Default(&player->text_);
-        ei::SetVtable(player, PlayerMessage::Vtable());
-        player->host_ = 0;
-        player->state_ = 1;
-        player->id_ = -1;
-        player->number_ = -1;
-        player->serial_ = -1;
-    }
+    auto* player = NewCounted<PlayerMessage>();
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, player);   // 00428040
     self->players_.Insert(self->players_.End(), *value);
@@ -47,13 +36,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     ref.Destroy();
     PlayerMessage* record = self->players_.Back();
 
-    auto* binding = NewMessageMemory<BindingMessage>();
-    if (binding) {
-        MessageConstructBase(binding);
-        binding->PlayerRef().ptr = nullptr;   // RefPtr() (0041FF80)
-        binding->ConnectionRef().ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(binding, BindingMessage::Vtable());
-    }
+    auto* binding = NewCounted<BindingMessage>();
     value = RefPtrFromRaw(&ref, binding);   // 00428050
     self->bindings_.Insert(self->bindings_.End(), *value);
     ref.ptr = nullptr;

@@ -422,9 +422,7 @@ EI_REWRITTEN(0x00435F30, Connection::ReadRecord);
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
-    std::uint32_t objectVtable;
-    std::memcpy(&objectVtable, object, 4);
-    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(objectVtable);   // 0042A810
+    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));   // 0042A810
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
@@ -835,10 +833,8 @@ void Connection::Close() {
     while (it != records_.end()) {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
-            std::uint32_t objectVtable;
-            std::memcpy(&objectVtable, object, 4);
             SessionBase* session = g_currentSession;
-            TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(objectVtable);
+            TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(TypeRegistry::KeyOf(object));
             std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }

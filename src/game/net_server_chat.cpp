@@ -22,15 +22,7 @@ constexpr std::uint32_t kMaxLines = 50;
 // 0041A310: appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
 void ServerSession::Announce(const char* text, CRefObject* player) {
-    auto* line = NewMessageMemory<LineMessage>();
-    if (line) {
-        RefValueConstructBase(line);
-        ei::SetVtable(line, Message::Vtable());
-        line->version_ = 1;
-        stlp::StringElement::Default(&line->text_);
-        line->connection_.ptr = nullptr;   // RefPtr() (0041FF70)
-        ei::SetVtable(line, LineMessage::Vtable());
-    }
+    auto* line = NewCounted<LineMessage>();
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030
     lines_.Insert(lines_.End(), *value);

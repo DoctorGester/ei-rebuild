@@ -21,19 +21,7 @@ namespace net {
 // as the description when a map message is held (else empty), the number of clients, the maximum
 // and whether a password is set.
 void ServerSession::DescribeImpl(RefPtr* out) {
-    auto* entry = NewMessageMemory<ServerEntry>();
-    if (entry) {
-        entry->ConstructBase();
-        stlp::StringElement::Default(&entry->name_);
-        stlp::StringElement::Default(&entry->description_);
-        ei::SetVtable(entry, ServerEntry::Vtable());
-        entry->name_.Assign(game::QuestionMarkText());
-        entry->kind_ = 4;
-        entry->description_.Assign(game::QuestionMarkText());
-        entry->players_ = 0;
-        entry->maxPlayers_ = 0;
-        entry->password_ = 0;
-    }
+    auto* entry = NewCounted<ServerEntry>();
     if (&name_ != &entry->name_) entry->name_.AssignFrom(name_);
     entry->kind_ = kind_;
     stlp::string* description = &entry->description_;
