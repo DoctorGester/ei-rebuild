@@ -65,9 +65,9 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         auto* instance = reinterpret_cast<ScriptDefinition*>(element);
         ScriptVars& vars = instance->vars;
         DestroyGroupVariables(vars);
-        ScriptObjectsDestruct(reinterpret_cast<ScriptNamedValues<ScriptObjectRef>*>(&vars.objects));
-        ScriptStringsDestruct(reinterpret_cast<ScriptNamedValues<mfc::CString>*>(&vars.strings));
-        ScriptFloatsDestruct(reinterpret_cast<ScriptNamedValues<float>*>(&vars.floats));
+        ScriptObjectsDestruct(NamedValues<ScriptObjectRef>(&vars.objects));
+        ScriptStringsDestruct(NamedValues<mfc::CString>(&vars.strings));
+        ScriptFloatsDestruct(NamedValues(&vars.floats));
         mfc::impl::DestructHeader<mfc::impl::ScriptIfThenArrayClass>(&instance->ifThen);
         instance->params.~CString();
         instance->name.~CString();

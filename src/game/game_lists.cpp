@@ -82,24 +82,16 @@ void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from)
 
 // A run's copy constructor (inlined by 004C82B0): the variables through the four value-and-names
 // copy constructors.
-template <typename T>
-ScriptNamedValues<T>* Pair(mfc::CArray<T>* values) {
-    return reinterpret_cast<ScriptNamedValues<T>*>(values);
-}
-template <typename T>
-const ScriptNamedValues<T>* Pair(const mfc::CArray<T>* values) {
-    return reinterpret_cast<const ScriptNamedValues<T>*>(values);
-}
 void CopyConstructRun(ScriptRun* to, const ScriptRun* from) {
     to->block = from->block;
     to->index = from->index;
     to->ticks = from->ticks;
     to->sleepStart = from->sleepStart;
     to->killFlag = from->killFlag;
-    Pair(&to->vars.floats)->CopyConstruct(Pair(&from->vars.floats));
-    Pair(&to->vars.strings)->CopyConstruct(Pair(&from->vars.strings));
-    Pair(&to->vars.objects)->CopyConstruct(Pair(&from->vars.objects));
-    Pair(&to->vars.groups)->CopyConstruct(Pair(&from->vars.groups));
+    NamedValues(&to->vars.floats)->CopyConstruct(NamedValues(&from->vars.floats));
+    NamedValues(&to->vars.strings)->CopyConstruct(NamedValues(&from->vars.strings));
+    NamedValues(&to->vars.objects)->CopyConstruct(NamedValues(&from->vars.objects));
+    NamedValues(&to->vars.groups)->CopyConstruct(NamedValues(&from->vars.groups));
 }
 
 // A group's copy constructor: an empty group, then the references copied.
