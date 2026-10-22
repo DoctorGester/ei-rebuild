@@ -79,6 +79,13 @@ inline CUiWindow* HarnessActiveWindow(CInterface3D* ui) {
                             : ei::verify::OriginalCode<CUiWindow*(__thiscall*)(CInterface3D*)>(0x005F7590)(ui);
 }
 
+// Sets one of the game's strings: in game.exe through its own CString::operator= (00700AF9: game.exe's allocator
+// frees the old text and makes the new), in the image ours.
+inline void HarnessSetString(mfc::CString* string, const char* text) {
+    if (ei::Standalone()) *string = text;
+    else ei::verify::OriginalCode<const mfc::CString&(__thiscall*)(mfc::CString*, const char*)>(0x00700AF9)(string, text);
+}
+
 // Whether the image's renderer draws (render::Active): never in game.exe's runs, which draw with the original code.
 inline bool HarnessRenderActive() {
     return ei::Standalone() && render::Active();

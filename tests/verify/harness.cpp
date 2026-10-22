@@ -3120,7 +3120,7 @@ void RunSteps() {
             HarnessInterfaceHasScreen() = 0;
             HarnessFlow()->state_ = 3;
         } else if (s.verb == "load") {
-            HarnessFlow()->requestTarget_ = s.argument.c_str();
+            HarnessSetString(&HarnessFlow()->requestTarget_, s.argument.c_str());
             HarnessFlow()->state_ = 2;
         } else if (s.verb == "hold" || s.verb == "release") {
             std::string bad;
@@ -3256,10 +3256,7 @@ void RunSteps() {
             std::string error = SameFileStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
-            // game.exe's string through its own CString::operator= (00700AF9: its allocator) in its runs.
-            mfc::CString& host = HarnessOptions()->masterServerName_;
-            if (ei::Standalone()) host = s.argument.c_str();
-            else OriginalCode<const mfc::CString&(__thiscall*)(mfc::CString*, const char*)>(0x00700AF9)(&host, s.argument.c_str());
+            HarnessSetString(&HarnessOptions()->masterServerName_, s.argument.c_str());
         } else if (s.verb == "waterwaves") {
             if (s.argument == "0" || s.argument == "1") HarnessOptions()->enableWaterWaves_ = s.argument == "1";
             else g_failures.push_back("waterwaves needs 0 or 1");
