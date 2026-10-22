@@ -13,7 +13,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 - **Virtual slots used instead of VCall.** CWorld: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
   CMapObject: `ReceiveHit` 31, `ApplyScience` 41, `EyePoint` 48, `PositionAt` 52, `AimPoint` 53, `IsLargeUnit` 54, `IsDead` 55, `ForgetObject` 56,
   `UpdateMoveFactors` 57, `MoveSpeed` 59, `Radius` 60. Also CBaseManager `CreateObject`, CStream `Read` / `Write`, mfc::CFileVirtuals `Close`,
-  CItem `GetUse`, CParty `ItemManager`, CPlayerSource `TakeNew` / `Query`, CEngineObject `ClearState` / `Release`, Projectile `DeletingDestructor`.
+  CItem `GetUse`, CParty `ItemManager`, CPlayerSource `TakeNew` / `Query`, CEngineObject `ClearState` / `Release`, CSpellEffect `DeletingDestructor`.
 - **Members instead of offsets:** `CEffect::startTick_` (timed objects), `CParty::Money()` (player gold), `CPlayerServer::partyUnits_`,
   `AIBrain::visible` / `unknown_37`, `CUnitServer::stats`, `CTextManager::cursor_`, `CWorld::shared5C_`, `CWorldServer::hoover_`,
   `CPlayer::units_` / `Server()`.
