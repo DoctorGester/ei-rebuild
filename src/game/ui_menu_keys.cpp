@@ -17,8 +17,6 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -158,16 +156,10 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
 // --- 00655050 ------------------------------------------------------------------------------------
 
 namespace {
-// The width of `text` in interface font `font` (005F8340, through its address: it takes the
-// CString by value, so a counted copy's data is handed over and released by the callee).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 } // namespace

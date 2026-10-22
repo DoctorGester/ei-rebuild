@@ -6,7 +6,6 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_library.h"
 
 #include <cstring>
 

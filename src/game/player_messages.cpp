@@ -15,11 +15,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_ai.h"
-#include "originals_script.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/static_object.h"

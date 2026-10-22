@@ -15,12 +15,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>

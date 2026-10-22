@@ -7,7 +7,6 @@
 
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "lib/crt.h"
-#include "originals_engine.h"    // game::FatalError
 #include "record_vectors.h"      // recordvec::SkillLevelVector
 
 #include "ei/hook.h"

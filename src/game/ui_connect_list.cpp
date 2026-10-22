@@ -18,8 +18,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>

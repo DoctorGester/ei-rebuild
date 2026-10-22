@@ -12,8 +12,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 
 #include <cstring>
 #include <string>

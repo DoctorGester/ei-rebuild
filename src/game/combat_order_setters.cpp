@@ -7,8 +7,6 @@
 #include "base_manager.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "player_messages.h"
 #include "sector_map.h"
 #include "unit_ai.h"

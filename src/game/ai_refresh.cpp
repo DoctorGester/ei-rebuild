@@ -14,7 +14,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
 #include "game_data.h"
 
 namespace {

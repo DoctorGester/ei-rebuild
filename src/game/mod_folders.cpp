@@ -5,7 +5,6 @@
 
 #include "registry.h"
 #include "resource.h"
-#include "originals_engine.h"
 #include "settings_file.h"
 #include "system_text.h"
 
@@ -258,7 +257,7 @@ void LoadModArchives() {
             std::memset(memory, 0, sizeof(CMappedResource));
             CMappedResource* res = static_cast<CMappedResource*>(memory)->Construct();
             tables.modArchives[key].push_back(res);
-            MappedResourceOpenOriginal(res, nullptr, path.c_str(), 0);
+            res->CMappedResource::OpenResourceImpl(path.c_str(), 0);
         }
     }
 }

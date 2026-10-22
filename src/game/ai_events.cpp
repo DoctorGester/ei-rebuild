@@ -6,7 +6,6 @@
 
 #include "combat.h"
 #include "core_streams.h"
-#include "originals_engine.h"
 #include "resource.h"
 #include "world_data.h"
 
@@ -17,7 +16,6 @@
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game_data.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -54,7 +52,7 @@ namespace {
 void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }   // 005C8FB0
 void __cdecl ConstructEventPool() {   // 005C8F90
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
-    GameAtExit(DestroyEventPool);
+    libcrt::AtExit(DestroyEventPool);
 }
 } // namespace
 EI_REPLACE(0x005C8F90, ConstructEventPool);
@@ -212,7 +210,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     {
         mfc::CString folder(TheTextFolder());
         mfc::CString path = folder + kAiInfoArchive;
-        failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
+        failed = archive->CMappedResource::OpenResourceImpl(path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;
@@ -222,12 +220,12 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     }
     if (!data) {
         const int result = game::FatalError(error);
-        MappedResourceDestroyOriginal(archive);
+        archive->CMappedResource::Destroy();
         return result;
     }
     std::memcpy(g_normalTable, data, kNormalTableSize);
     archive->CMappedResource::CloseFileImpl(data);
-    MappedResourceDestroyOriginal(archive);
+    archive->CMappedResource::Destroy();
     return 1;
 }
 EI_REPLACE_METHOD(0x005C9310, AIEventTable::Setup);

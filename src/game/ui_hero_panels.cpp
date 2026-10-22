@@ -18,8 +18,6 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "ui_mesh_build.h"
 #include "unit.h"
 #include "combat.h"
@@ -40,7 +38,7 @@ void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 
 CUiRegion* AddRect(CUiWindow* window, const RECT& r) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(r.left, r.top, r.right, r.bottom);
+    region->SetRect(r.left, r.top, r.right, r.bottom);
     return region;
 }
 

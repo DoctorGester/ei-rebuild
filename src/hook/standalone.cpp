@@ -8,7 +8,6 @@
 #include "log.h"
 #include "standalone/static_init.h"
 #include "game/game_data.h"
-#include "game/originals_library.h"
 #include "game/system_text.h"
 #include "lib/crt.h"
 #include "render/render.h"

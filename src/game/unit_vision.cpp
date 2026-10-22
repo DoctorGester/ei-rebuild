@@ -5,8 +5,6 @@
 #include "item_db.h"
 #include "map_object.h"
 #include "object_tables.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world.h"
 #include "game_singletons.h"
 

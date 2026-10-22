@@ -6,8 +6,6 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 #include "object_tables.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "random.h"
 #include "resource_manager.h"
 #include "spell.h"

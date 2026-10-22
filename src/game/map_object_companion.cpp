@@ -13,8 +13,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

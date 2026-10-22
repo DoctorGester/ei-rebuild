@@ -3,7 +3,7 @@
 #include "harness_starter.h"
 
 #include "harness_addon.h"
-#include "../../src/game/originals_engine.h"
+#include "harness_original.h"
 #include "../../src/game/resource.h"
 #include "../../src/game/world_data.h"
 #include "../../src/hook/log.h"
@@ -155,8 +155,15 @@ void Install(const char* savesDir) {
             music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
-// 00671280: CMappedResource::Construct at its address (a vanilla run constructs with the game's own code).
-__declspec(naked) CMappedResource* __fastcall HarnessMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
+// CMappedResource's Construct (00671280), OpenResourceImpl (00671730) and Destroy (006714A0): ours, or in a
+// --no-hooks run the game's own code.
+__declspec(naked) CMappedResource* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
+__declspec(naked) int __fastcall OriginalMappedResourceOpen(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
+    EI_ORIGINAL(0x00671730)
+__declspec(naked) void __fastcall OriginalMappedResourceDestroy(CMappedResource*) EI_ORIGINAL(0x006714A0)
+CMappedResource* HarnessMappedResourceConstruct(void* memory) {
+    return ei::Standalone() ? static_cast<CMappedResource*>(memory)->Construct() : OriginalMappedResourceConstruct(memory);
+}
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
     long expected = -1;
@@ -172,13 +179,13 @@ std::string ModFileStep(const std::string& argument) {
     std::memset(memory, 0, sizeof(CMappedResource));
     CMappedResource* res = HarnessMappedResourceConstruct(memory);
     long got = -2;   // the archive did not open
-    if (MappedResourceOpenOriginal(res, nullptr, path, 0)) {
+    if (ei::Standalone() ? res->CMappedResource::OpenResourceImpl(path, 0) : OriginalMappedResourceOpen(res, nullptr, path, 0)) {
         std::uint32_t size = 0;
         void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
         got = data ? static_cast<long>(size) : 0;
         if (data) res->CloseFile(data);
     }
-    MappedResourceDestroyOriginal(res);
+    ei::Standalone() ? res->CMappedResource::Destroy() : OriginalMappedResourceDestroy(res);
     ::operator delete(memory);
     Log("harness: modfile %s %s: %ld bytes (expected %ld)", static_cast<const char*>(path), name, got, expected);
     if (got == expected) return std::string();

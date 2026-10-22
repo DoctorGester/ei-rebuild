@@ -4,8 +4,6 @@
 #include "ui.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "text_split.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress

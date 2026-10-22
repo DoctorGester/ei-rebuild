@@ -11,7 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 namespace {
 constexpr int kNoKey = -123;                    // slot 40: the object asks for no key

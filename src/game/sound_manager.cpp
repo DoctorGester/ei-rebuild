@@ -22,7 +22,6 @@
 #include <bit>
 #include <cstring>
 #include <new>
-#include "originals_library.h"
 #include "game_lists.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -199,7 +198,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    double angle = CIacos(D(ahead) / distF);
+    double angle = gamecrt::acos(D(ahead) / distF);
     if (angle > kHalfPi) angle = D(Pi()) - angle;
     double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the FDIV at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));

@@ -13,8 +13,6 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/stlp_list_refs.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_data.h"
 
 #include <cstring>

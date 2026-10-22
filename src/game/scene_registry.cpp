@@ -16,7 +16,6 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "lib/mfc_list.h"
-#include "originals_library.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"

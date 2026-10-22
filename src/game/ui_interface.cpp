@@ -4,7 +4,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_ui.h"
 #include "ui_widescreen.h"
 
 #include <cstring>

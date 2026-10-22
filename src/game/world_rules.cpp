@@ -15,7 +15,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

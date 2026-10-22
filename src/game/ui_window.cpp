@@ -12,11 +12,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_core.h"
-#include "originals_ui.h"
 #include "ui_widescreen.h"
-#include "originals_units.h"
-#include "originals_render.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -53,8 +49,6 @@ EI_REWRITTEN(0x00600950, UiPtrArray<CUiModel>::SetSize);
 EI_REWRITTEN(0x006005F0, UiPtrArray<CEngineObject>::SetAtGrow);
 EI_REWRITTEN(0x00601D00, UiPtrArray<CUiWindow>::SetSize);
 // --- CUiTooltip ------------------------------------------------------------------------------
-
-__declspec(naked) void CUiTooltip::OnMouseMove(int, int) EI_ORIGINAL(0x0065E580)
 
 // --- CUiRegion -------------------------------------------------------------------------------
 

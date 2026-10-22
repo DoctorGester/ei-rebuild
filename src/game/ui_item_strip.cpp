@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <cmath>
 #include <cstring>
-#include "originals_ui.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -27,7 +26,7 @@ namespace {
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 

@@ -19,9 +19,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -161,7 +158,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f /*0073EEB8*/;
     sprite->texture_ = objects_.data[objects_.size - 1];
     ++portraits_;
-    AddRegion()->CallSetRect(left, 0, right, 0x50);
+    AddRegion()->SetRect(left, 0, right, 0x50);
 }
 EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 

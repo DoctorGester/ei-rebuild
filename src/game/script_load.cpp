@@ -19,10 +19,6 @@
 #include "record_arrays.h"
 
 #include "ei/hook.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_world.h"
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "game_data.h"
@@ -218,7 +214,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
             ref->Reset();
             ref->object = nullptr;
         } else {
-            CEngineObject* object = WorldFindObjectOriginal(TheServerWorld(), nullptr, id);
+            CEngineObject* object = TheServerWorld()->FindObject(id);
             ref->Reset();
             if (object) ++object->refCount_;
             ref->object = object;
@@ -243,7 +239,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             int id = 0;
             stream->Read(&id, 4);
             CEngineObject* object =
-                id == -1 ? nullptr : WorldFindObjectOriginal(TheServerWorld(), nullptr, id);
+                id == -1 ? nullptr : TheServerWorld()->FindObject(id);
             group->data[k].Assign(object);
         }
         group->Sort();
@@ -387,7 +383,7 @@ void ScriptVars::Load(ScriptStream* stream) {
             ref->Reset();
             ref->object = nullptr;
         } else {
-            ref->Assign(WorldFindObjectOriginal(TheServerWorld(), nullptr, slot));
+            ref->Assign(TheServerWorld()->FindObject(slot));
         }
         ScriptStringLoad(&objectNames.data[i], stream);
     }

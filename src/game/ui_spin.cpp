@@ -6,7 +6,6 @@
 #include "ui_screens.h"
 #include "game_strings.h"
 
-#include "originals_ui.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"

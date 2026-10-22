@@ -30,17 +30,11 @@
 #include "lib/mfc_slots.h"
 #include "unit.h"
 #include "world.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "originals_ui.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -97,7 +91,6 @@ constexpr std::uint32_t kCameraFollows = 8;
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 
 // --- Weapon bar --------------------------------------------------------------------------------
 

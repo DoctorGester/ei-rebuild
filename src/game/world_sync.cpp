@@ -20,11 +20,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "game_hashes.h"
 #include "game_data.h"
 
@@ -110,7 +105,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     array.growBy = 0;
     array.capacity = 0;
     array.size = 0;
-    GameAtExit(destructor);
+    libcrt::AtExit(destructor);
 }
 
 const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }

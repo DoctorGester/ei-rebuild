@@ -12,8 +12,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>

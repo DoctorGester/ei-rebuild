@@ -10,7 +10,6 @@
 // stays empty.
 #include "options.h"
 #include "game_strings.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 
@@ -163,7 +162,7 @@ EI_REPLACE(0x00458870, OptionsConstruct);
 namespace {
 void __cdecl ConstructGameOptions() {   // 00458700
     g_options.Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x00458720));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00458720));
 }
 void __cdecl DestroyGameOptions() { g_options.Destroy(); }   // 00458720
 } // namespace

@@ -2,14 +2,14 @@
 // for them and their exit functions (static_init.h; docs/notes/standalone.md, S3, S3a).
 #include "static_init.h"
 
-#include "game/originals_library.h"
 #include "hook/log.h"
+#include "lib/crt.h"
 
 #include <set>
 
 namespace ei::static_init {
 
-void Run::AtExit(std::uintptr_t fn) { GameAtExit(reinterpret_cast<void(__cdecl*)()>(fn)); }
+void Run::AtExit(std::uintptr_t fn) { libcrt::AtExit(reinterpret_cast<void(__cdecl*)()>(fn)); }
 
 void RunStaticInitialisers() {
     Run run;

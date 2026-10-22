@@ -16,8 +16,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

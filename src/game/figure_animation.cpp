@@ -10,9 +10,6 @@
 #include <cstdint>
 #include "figure_manager.h"
 #include "map_object_figures.h"
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 
 namespace {
 

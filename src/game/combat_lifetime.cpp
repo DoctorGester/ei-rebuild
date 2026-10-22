@@ -4,8 +4,6 @@
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"
-#include "originals_library.h"
-#include "originals_units.h"
 #include "record_arrays.h"
 #include "unit_ai.h"
 

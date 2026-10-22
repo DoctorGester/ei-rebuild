@@ -12,11 +12,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -270,7 +266,7 @@ int CVisibilityFog::UpdateCells() {
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
         dead.ConstructEmpty();   // 004E2BA0
-        GameAtExit(DestroyDeadCells);
+        libcrt::AtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original

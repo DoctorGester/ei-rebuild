@@ -12,7 +12,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 
 namespace {
 

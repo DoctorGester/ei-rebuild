@@ -29,14 +29,6 @@
 #include "ei/x87.h"
 #include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_ai.h"
-#include "originals_world.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 
@@ -279,7 +271,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
-    ScriptLoadLine(MainScript(), nullptr, &script, 1);
+    MainScript()->Load(&script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }

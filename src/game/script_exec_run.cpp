@@ -18,9 +18,6 @@
 #include "lib/mfc_list.h"
 #include "game_arrays.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_effects.h"
 #include "game_singletons.h"
 
 #include <bit>

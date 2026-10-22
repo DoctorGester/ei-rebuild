@@ -11,14 +11,8 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "net_classes.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
 #include "acks_db.h"
 #include "world_glue.h"
-#include "originals_units.h"
 #include "model.h"
 #include "net_messages.h"
 #include "party.h"
@@ -253,7 +247,7 @@ void __fastcall LoadVar(CStringArray* args) {
         text::Split(line, &parts, ' ');
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
-            float value = static_cast<float>(GameAtof(parts[1]));
+            float value = static_cast<float>(libcrt::Atof(parts[1]));
             state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
     }
@@ -311,7 +305,7 @@ void __fastcall Give(CStringArray* args) {
     if (ArgIs(args, 1, "exp") && args->GetSize() > 2) {
         int count = player->Party()->members_.size;
         // Rounded to float once, as the original stores it.
-        float share = static_cast<float>(GameAtof((*args)[2]) / count);
+        float share = static_cast<float>(libcrt::Atof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             player->Party()->members_.data[i].stats.AddScaledExperience(share);
         return state->SendParty();

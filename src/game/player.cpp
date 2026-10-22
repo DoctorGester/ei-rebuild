@@ -5,8 +5,6 @@
 
 #include "item.h"
 #include "net_link.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "party.h"
 #include "unit.h"
 

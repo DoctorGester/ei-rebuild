@@ -10,7 +10,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 namespace {

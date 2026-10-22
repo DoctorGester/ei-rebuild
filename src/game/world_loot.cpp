@@ -13,9 +13,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_world.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "lib/mfc_list.h"
 #include "game_lists.h"
 #include "game_singletons.h"

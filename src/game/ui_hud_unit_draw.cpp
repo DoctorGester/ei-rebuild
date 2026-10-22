@@ -21,8 +21,6 @@
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
-#include "originals_render.h"    // the batch flushes
-#include "originals_ui.h"        // the sprite draw and Place, the surface's DC
 #include "render/render.h"
 #include "render/render_state.h"
 #include "game_data.h"

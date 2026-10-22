@@ -20,10 +20,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_engine.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

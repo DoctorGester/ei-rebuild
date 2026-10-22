@@ -14,9 +14,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ini_file.h"
@@ -45,8 +42,8 @@ CursorLock CursorLockAtCallSite() {
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
 // The original fills the device object's screen rectangle of the primary surface with black (a
 // colour-fill Blt under the render lock, taken twice) and keeps the result in the device's

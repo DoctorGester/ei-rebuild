@@ -7,7 +7,6 @@
 #include "net_delta.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 #include "game_data.h"
 
 #include <cstring>

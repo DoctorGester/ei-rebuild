@@ -4,7 +4,6 @@
 #include "game_strings.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 
 namespace text {
 

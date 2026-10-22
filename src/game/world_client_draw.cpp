@@ -36,18 +36,12 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
 
 #include <windows.h>
 
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "ui.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
@@ -92,7 +86,7 @@ void PushMatrix(MatrixStack& stack, const float* matrix) {
         std::memcpy(matrices, matrix, sizeof(Matrix4));
     } else {
         int d = ++depth;
-        MatrixMultiplyOriginal(matrices[d - 1].m, nullptr, matrices[d - 2].m, matrix);
+        matrices[d - 1].Multiply(matrices[d - 2].m, matrix);
     }
 }
 void PopMatrix(MatrixStack& stack) {

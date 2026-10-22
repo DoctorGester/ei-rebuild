@@ -49,14 +49,14 @@ public:
     int DrawFlatBlocks(const void* positions, const char* uvs, int blocks, const std::uint16_t* indices, int indexCount,
                  std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
     // 0x004E9A50 (device_mesh.cpp).
-    int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, int unused5,
+    int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, const void* unused5,
                   int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                  const void* corners, int cornerCount, int unused13, int unused14, std::uint16_t* indices,
+                  const void* corners, int cornerCount, const void* unused13, int unused14, std::uint16_t* indices,
                   int indexCount, float uOffset, float vOffset, int alpha, int flags);
     // 0x004E9010 (device_mesh.cpp).
-    int DrawMeshBlocks(const void* positions, int blocks, int unused5, int colourCount, std::uint32_t* colours,
+    int DrawMeshBlocks(const void* positions, int blocks, const void* unused5, int colourCount, std::uint32_t* colours,
                  std::uint32_t* speculars, const void* uvs, int unused10, const void* corners, int cornerCount,
-                 int unused13, int unused14, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
+                 const void* unused13, int unused14, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
                  int alpha, int flags);
     // 0x004EB370 (device_draw.cpp).
     int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive, int fvf, void* vertices,

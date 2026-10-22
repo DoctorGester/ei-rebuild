@@ -6,7 +6,6 @@
 
 #include "link_figure.h"
 #include "model.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 

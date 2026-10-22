@@ -14,7 +14,6 @@
 #include "camera.h"
 #include "game_arrays.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -32,7 +31,7 @@ void __cdecl DestroyDrawOrder() {   // 00498930
 }
 void __cdecl ConstructDrawOrder() {   // 00498910
     mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
-    GameAtExit(DestroyDrawOrder);
+    libcrt::AtExit(DestroyDrawOrder);
 }
 
 // The camera's orientation (0079B2DC).

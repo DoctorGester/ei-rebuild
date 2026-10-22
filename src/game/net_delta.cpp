@@ -3,15 +3,14 @@
 
 #include "core_maths.h"
 #include "net_coder.h"
+#include "lib/mfc.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
-#include "originals_engine.h"
 
 // --- BitStream ---------------------------------------------------------------------------------
 

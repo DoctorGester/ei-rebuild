@@ -5,8 +5,6 @@
 #include "terrain_sector.h"
 #include "console.h"
 #include "material.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "sound.h"
 #include "spell.h"
 #include "texture.h"
@@ -15,9 +13,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

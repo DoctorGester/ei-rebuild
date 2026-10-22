@@ -11,7 +11,6 @@
 #include "core_maths.h"
 #include "engine_object.h"
 #include "map_object.h"
-#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -29,15 +28,6 @@
 #include "lib/mfc_list.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_gameplay.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -98,7 +88,7 @@ constexpr int kMessagePartial = 0x01;
 // blank step; 00544FD0 OrderPlan's reset.
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }

@@ -6,7 +6,6 @@
 #include "world_effect_internal.h"
 
 #include "lib/mfc.h"
-#include "originals_effects.h"
 #include "game_singletons.h"
 
 #include <cstring>

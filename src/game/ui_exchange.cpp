@@ -13,10 +13,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
@@ -155,13 +151,13 @@ CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
 void CExchangeScreen::Create() {
     LoadTexture("campinfo", 3, nullptr);
     CUiRegion* region = AddRegion();
-    region->CallSetRect(12, 450, 52, 490);
+    region->SetRect(12, 450, 52, 490);
     region->SetTip(0xA028, 1, 0);
     region = AddRegion();
-    region->CallSetRect(148, 450, 188, 490);
+    region->SetRect(148, 450, 188, 490);
     region->SetTip(0xA029, 1, 0);
     region = AddRegion();
-    region->CallSetRect(740, 460, 780, 490);
+    region->SetRect(740, 460, 780, 490);
     region->SetTip(0xA02B, 1, 0);
     // The buttons: accept, take back, a hidden one, leave (shaded).
     AddSprite(nullptr)->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);

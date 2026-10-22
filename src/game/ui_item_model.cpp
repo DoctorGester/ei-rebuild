@@ -6,7 +6,6 @@
 #include "ui.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 namespace {

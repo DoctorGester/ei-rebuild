@@ -6,8 +6,6 @@
 #include "ui_screens.h"
 
 #include "asset_text.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "ui_gdi.h"
 
 #include "ei/hook.h"
@@ -108,16 +106,10 @@ constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
-// The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 

@@ -7,7 +7,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_library.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "lib/mfc_string.h"
@@ -191,7 +190,7 @@ double CIniFile::GetDouble(const char* section, const char* key, double defaultV
     mfc::CString text;
     text.Format(kDoubleFormat, defaultValue);
     mfc::CString value = ReadString(this, section, key, text);
-    volatile double result = GameAtof(value);   // stored as a double, as the original does
+    volatile double result = libcrt::Atof(value);   // stored as a double, as the original does
     return result;
 }
 EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);

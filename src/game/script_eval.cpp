@@ -31,11 +31,6 @@
 #include "lib/nan_audit.h"
 #include "lib/stlp.h"
 #include "random.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_script.h"
 #include "game_lists.h"
 #include "game_singletons.h"
 
@@ -192,7 +187,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(GameMbscmp(stringArgs.data[0], stringArgs.data[1]) == 0);
+        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0], stringArgs.data[1]) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];

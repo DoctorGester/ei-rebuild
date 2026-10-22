@@ -4,7 +4,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <bit>
@@ -128,8 +127,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             {
                 // MFC's result-slot calls (GetFilePath, operator+) construct these.
                 mfc::CString path(finder.GetFilePath());
-                mfc::CString sub(mfc::CString::kUnset);
-                CStringConcatTextOriginal(&sub, &path, SubdirectoryPattern());
+                mfc::CString sub(path + SubdirectoryPattern());
                 found = FindSeedFile(out, sub, target, counter);
             }
             if (found == 1) return 1;

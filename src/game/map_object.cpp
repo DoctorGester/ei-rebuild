@@ -7,9 +7,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_library.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 

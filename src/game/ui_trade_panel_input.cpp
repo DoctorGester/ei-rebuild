@@ -9,8 +9,6 @@
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "unit_db.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

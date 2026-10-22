@@ -19,8 +19,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"

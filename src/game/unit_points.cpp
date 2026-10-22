@@ -12,10 +12,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_core.h"
-#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>

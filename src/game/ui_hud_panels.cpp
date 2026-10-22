@@ -15,9 +15,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -193,7 +190,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             icons[i] = static_cast<int>(spell->icon);
             code = spell->code.GetString();
             // The texts' section "spell <code>": its first line is the spell's name.
-            bool found = TextsOpenSection(texts, nullptr, mfc::CString("spell ") + code) != 0;
+            bool found = texts->CTextManager::Open(mfc::CString("spell ") + code) != 0;
             if (found) texts->ReadLine(&text, 1);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
@@ -304,7 +301,7 @@ void CHudTopPanel::ShowItems() {
     text.Empty();
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
-        TextsGetString(texts, nullptr, "format_money", &format);
+        texts->CTextManager::GetString("format_money", &format);
         line.Format(format, static_cast<int>(party->money_));
         text += line;
         text += kNewLine;

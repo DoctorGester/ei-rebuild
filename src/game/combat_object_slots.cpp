@@ -7,7 +7,6 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "originals_ai.h"
 #include "sector_map.h"
 #include "unit_ai.h"
 #include "world.h"

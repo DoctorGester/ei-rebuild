@@ -16,9 +16,6 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -280,11 +277,11 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
                     out->SetAtGrow(out->GetSize(), token);
                     token.Empty();
                 }
-                p = MbsInc(p);
+                p = gamecrt::mbsinc(p);
                 continue;
             }
             if (state != 2) {
-                p = MbsInc(p);
+                p = gamecrt::mbsinc(p);
                 continue;
             }
         } else if (c == '"') {
@@ -299,7 +296,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
             Ops(character).AssignChar(p[0]);
         }
         token += character;
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     if (token.GetLength() != 0) {
         out->SetAtGrow(out->GetSize(), token);

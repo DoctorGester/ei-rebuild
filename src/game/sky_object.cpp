@@ -5,7 +5,6 @@
 // windows.h (texture.h) renames CEngineObject's GetClassName.
 #undef GetClassName
 
-#include "originals_core.h"
 #include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"

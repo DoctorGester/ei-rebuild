@@ -7,18 +7,13 @@
 #include "acks_db.h"
 #include "unit_create.h"
 #include "unit_db.h"   // UnitPrototypeRecord
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_units.h"
 #include "console.h"
 #include "item.h"
 #include "party.h"
@@ -95,7 +90,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
-    TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
+    GameClientTexts()->CTextManager::GetString("reserved_04", &text);
     TheInterface()->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     TheGameFlow()->EndSession();

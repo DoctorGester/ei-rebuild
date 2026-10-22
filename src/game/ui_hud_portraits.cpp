@@ -19,7 +19,6 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
-#include "originals_ui.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

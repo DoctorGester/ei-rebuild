@@ -11,10 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"

@@ -9,7 +9,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -45,15 +44,15 @@ void CHudTopPanel::Build(int page, int shown) {
     slideDirection_ = in ? 1.0f : -1.0f;
 
     CUiRegion* region = AddRegion();
-    region->CallSetRect(0x181, 0, 0x19F, 0x14);   // the slide button
+    region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
     region->SetTip(0x27D8, 1, 0);
     region = AddRegion();
-    region->CallSetRect(0xB9, 0, 0xD7, 0x14);     // page 0
+    region->SetRect(0xB9, 0, 0xD7, 0x14);     // page 0
     region->SetTip(0x27D9, 1, 0x32);
     region = AddRegion();
-    region->CallSetRect(0xD7, 0, 0xF5, 0x14);     // page 1
+    region->SetRect(0xD7, 0, 0xF5, 0x14);     // page 1
     region->SetTip(0x27DA, 1, 0x33);
-    AddRegion()->CallSetRect(0xB4, 0, 0x26C, 100);
+    AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
     CUiMesh* back = AddSprite(nullptr);
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);

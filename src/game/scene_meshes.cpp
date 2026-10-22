@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstdint>

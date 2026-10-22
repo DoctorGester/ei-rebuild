@@ -3,7 +3,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "game/originals_library.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 #include "text_case.h"
@@ -704,7 +703,7 @@ bool InStandalone() {
 unsigned& RandSeed() {
     thread_local unsigned standaloneSeed = 1;
     if (InStandalone()) return standaloneSeed;
-    return static_cast<CrtThreadData*>(CrtThreadDataOriginal())->randSeed;
+    return static_cast<CrtThreadData*>(gamecrt::GameThreadData())->randSeed;
 }
 } // namespace
 

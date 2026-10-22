@@ -17,9 +17,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_ai.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
@@ -506,7 +503,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(guard & 1)) {
         guard |= 1;
         mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);
-        GameAtExit(DestroyCandidates);
+        libcrt::AtExit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());

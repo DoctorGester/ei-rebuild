@@ -35,11 +35,6 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
-#include "originals_effects.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -102,10 +97,10 @@ struct Texts : CTextManager {
     BOOL GetString(const char* name, mfc::CString* out); // 004E0020
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
-BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
+BOOL Texts::Open(const char* key) { return CTextManager::Open(key); }
 BOOL Texts::NextLine() { return TextNextLine(this); }
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return CTextManager::ReadLine(a0, a1); }
-BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
+BOOL Texts::GetString(const char* key, mfc::CString* out) { return CTextManager::GetString(key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return GetItemTexts(item, name, description, kind);
 }

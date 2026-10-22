@@ -6,7 +6,6 @@
 #include "ei/x87.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "record_arrays.h"
 #include "ei/vcall.h"

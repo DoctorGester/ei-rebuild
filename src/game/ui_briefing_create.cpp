@@ -30,12 +30,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
@@ -128,7 +122,7 @@ void PlaceMover(BriefingMover* node) {
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    SectorMapMove(TheSectorMap(), nullptr, unit, &target);
+    TheSectorMap()->Move(unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
     node->person->SetHeading(&facing.x);

@@ -16,9 +16,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_vector_refs.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
 #include "record_vectors.h"
 
 #include <cstring>

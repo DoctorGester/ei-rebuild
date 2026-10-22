@@ -12,8 +12,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
 #include "record_vectors.h"
 
 namespace net {

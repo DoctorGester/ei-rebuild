@@ -17,8 +17,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -49,16 +47,10 @@ constexpr int kTypedFont = 1;
 // A chat message stays on the client's timers list for 60 s (the float's bits).
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
-// The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 
@@ -126,7 +118,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     bool mark = false;
     // With EI_UTF8 a character is its whole UTF-8 sequence (U5), so a word wider than a line is broken
     // between characters and measured as text.
-    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : MbsInc(p)) {
+    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
         console::Ops(ch).AssignChar(p[0]);
         if constexpr (text::kUtf8) {
             for (int k = 1; k < text::CharacterLength(p); ++k) console::Ops(ch).AppendChar(p[k]);

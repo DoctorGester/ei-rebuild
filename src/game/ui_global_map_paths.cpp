@@ -8,7 +8,6 @@
 #include "game_strings.h"
 
 #include "object_tables.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "ui_widescreen.h"

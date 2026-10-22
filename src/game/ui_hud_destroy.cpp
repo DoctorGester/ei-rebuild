@@ -7,7 +7,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 

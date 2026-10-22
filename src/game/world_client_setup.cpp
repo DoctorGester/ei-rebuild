@@ -6,9 +6,7 @@
 
 #include "model.h"
 #include "game_strings.h"
-#include "originals_render.h"
 #include "sky_object.h"
-#include "originals_ui.h"
 #include "texture.h"
 #include "ui_flying_hit_points.h"
 #include "unit_db.h"
@@ -16,7 +14,6 @@
 #include "console.h"
 #include "core_maths.h"
 #include "ini_file.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"

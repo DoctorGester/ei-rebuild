@@ -11,8 +11,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "ei/x87.h"

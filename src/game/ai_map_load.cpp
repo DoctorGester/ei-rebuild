@@ -15,8 +15,6 @@
 #include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
-#include "originals_engine.h"    // game::FatalError, MappedResourceOpenOriginal, MappedResourceDestroyOriginal
-#include "originals_library.h"   // CStringFindCharOriginal
 #include "registry.h"
 #include "resource.h"
 #include "sector_map.h"
@@ -121,10 +119,10 @@ struct MapDescription {
 // body's address.
 struct Archive {
     Archive() { Get()->Construct(); }
-    ~Archive() { MappedResourceDestroyOriginal(Get()); }
+    ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }
-    bool Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0) != 0; }
+    bool Open(const char* path) { return Get()->CMappedResource::OpenResourceImpl(path, 0) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFileImpl(name, size); }
     void Close(void* file) { Get()->CMappedResource::CloseFileImpl(file); }
 

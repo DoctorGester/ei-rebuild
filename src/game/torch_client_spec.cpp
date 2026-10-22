@@ -9,7 +9,6 @@
 #include "map_object.h"    // CMapObject::position
 #include "sound.h"         // CSoundManager
 #include "spell.h"         // CLight, CLightFactory
-#include "originals_effects.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable

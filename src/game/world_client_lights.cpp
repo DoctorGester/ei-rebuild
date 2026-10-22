@@ -17,7 +17,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
-#include "originals_render.h"
 
 #include <bit>
 #include <cmath>

@@ -16,8 +16,6 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_script.h"
-#include "originals_library.h"
 #include "record_vectors.h"
 #include "../hook/log.h"
 #include "game_data.h"

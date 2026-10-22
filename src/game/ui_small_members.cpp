@@ -11,8 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -157,7 +155,7 @@ CInterface3D* TheInterface() { return &*g_interface; }
 namespace {
 void __cdecl ConstructInterface() {   // 005F4680
     g_interface->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
 }
 void __cdecl DestroyInterface() { g_interface->DestroyBody(); }   // 005F4780
 } // namespace

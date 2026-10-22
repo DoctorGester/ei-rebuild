@@ -5,7 +5,6 @@
 #include "lightning.h"
 
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 #include "resource_local.h"
 #include "world_data.h"
 

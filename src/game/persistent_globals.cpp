@@ -10,8 +10,6 @@
 #include "object_tables.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 
 #include <cstring>
 #include <iterator>

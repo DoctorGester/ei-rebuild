@@ -15,9 +15,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 
 namespace {

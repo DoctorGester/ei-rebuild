@@ -25,13 +25,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -1236,7 +1229,7 @@ void CCampPages::ShowHero() {
         {
             mfc::CString prefix("pers ");
             mfc::CString key = prefix + own;
-            found = TextsOpenSection(table, nullptr, key);
+            found = table->CTextManager::Open(key);
         }
         if (found) table->ReadLine(&name, 1);
     } else {

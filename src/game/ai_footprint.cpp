@@ -10,10 +10,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_units.h"
 
 #include <cstring>
 
@@ -37,7 +33,7 @@ using spellfx::g_spellFootprint;
 namespace {
 void __cdecl ConstructSpellFootprint() {   // 0067E4C0
     g_spellFootprint->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
 }
 void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }   // 0067E500
 } // namespace

@@ -8,8 +8,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "bink_video.h"
 
 #include <cstring>

@@ -18,8 +18,6 @@
 #include "lib/stlp.h"
 #include "lib/stlp_vector.h"
 #include "lib/stlp_vector_refs.h"
-#include "originals_core.h"
-#include "originals_library.h"
 
 #include <cstring>
 

@@ -206,7 +206,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
 }
 EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
 
-void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border,
+void CUiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
@@ -256,9 +256,9 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrameVanilla);
+EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrame);
 
-void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
+void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
     SetFlatNormals(this, 4);
     Vertices().SetSize(4);
@@ -297,4 +297,4 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangleVanilla);
+EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangle);

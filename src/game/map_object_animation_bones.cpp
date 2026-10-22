@@ -9,7 +9,6 @@
 #include "base_manager.h"
 #include "core_maths.h"
 #include "figure_mesh.h"
-#include "originals_units.h"
 #include "world.h"
 
 #include "ei/hook.h"

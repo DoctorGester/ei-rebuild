@@ -15,9 +15,6 @@
 #include "game_strings.h"
 
 #include "dx_errors.h"
-#include "originals_engine.h"    // game::FatalError
-#include "originals_library.h"   // ExitGame
-#include "originals_render.h"
 #include "settings_file.h"
 #include "sys_info.h"   // ProcessorInfo
 #include "texture.h"

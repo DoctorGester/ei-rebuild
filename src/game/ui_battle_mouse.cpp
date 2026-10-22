@@ -14,7 +14,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 
 namespace {

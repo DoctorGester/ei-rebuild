@@ -14,8 +14,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp_tree_abi.h"
-#include "originals_script.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstring>

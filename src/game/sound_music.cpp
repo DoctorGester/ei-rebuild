@@ -16,7 +16,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_library.h"
 #include "record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"

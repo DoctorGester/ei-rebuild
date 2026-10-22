@@ -10,9 +10,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 
 namespace {
 

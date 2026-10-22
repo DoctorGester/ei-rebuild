@@ -21,11 +21,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
@@ -447,7 +442,7 @@ void UpdateMotion(CUnitServer* c) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
+    if (!replan && canStand && world->Sectors()->Move(UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         UnitOf(c)->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);

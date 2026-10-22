@@ -18,7 +18,6 @@
 #include "render/render.h"
 
 #include <cstdint>
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

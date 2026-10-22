@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_script.h"
 #include "unit_ai.h"
 
 #pragma warning(disable : 4740) // naked forwarders

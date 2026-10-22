@@ -10,8 +10,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "render/render.h"   // SetInterfaceDraw
 #include "ui_widescreen.h"
 #include "world_class_slots.h"   // I3DFigureClassName / Id

@@ -4,7 +4,6 @@
 #include "ui_camp.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
 
 namespace {
 // Key actions 0x11..0x16 hold the order keys; each releases its flag in orderKeys_.

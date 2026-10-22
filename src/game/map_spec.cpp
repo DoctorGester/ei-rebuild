@@ -14,11 +14,6 @@
 
 #include <cstring>
 #include <new>
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "game_data.h"
@@ -306,7 +301,7 @@ void ObjectSpec::ObjectSpecApply() {
         return;
     }
     Selection()->BeginRefresh();
-    AsSectorMap(TheSectorMap())->Remove(MapObject());
+    TheSectorMap()->Remove(MapObject());
     CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
     std::memcpy(&object->localRotation_, &base.rotation, 16);
@@ -318,7 +313,7 @@ void ObjectSpec::ObjectSpecApply() {
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    AsSectorMap(TheSectorMap())->Add(MapObject());
+    TheSectorMap()->Add(MapObject());
     Selection()->EndRefresh();
 }
 EI_REWRITTEN(0x0046AFB0, ObjectSpec::ObjectSpecApply);

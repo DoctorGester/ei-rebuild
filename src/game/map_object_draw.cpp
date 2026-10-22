@@ -17,13 +17,9 @@
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
-#include "originals_core.h"
-#include "originals_effects.h"
 
 #include <bit>
 #include <cstring>
-#include "originals_render.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 
 // The light range test keeps its sums on the FPU stack like the original.

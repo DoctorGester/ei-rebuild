@@ -10,9 +10,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

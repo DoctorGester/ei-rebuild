@@ -35,10 +35,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "record_lifetime.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
@@ -70,8 +66,6 @@ constexpr int kVisibleRows = 16;
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
 
 // 004800E0 (cdecl): DirectX error report; nonzero to go on.
-// 0057BC30 (thiscall on the game flow): the space a save needs.
-__declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0057BC30)
 // 005E5200 (CCursor::ChangeShape): the cursor's shape (3 busy, 0 normal).
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
 // 006E80D8: atoi.
@@ -243,7 +237,7 @@ void CSaveLoadWindow::SaveGame() {
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
-        int needed = SaveSpaceNeeded(TheGameFlow());
+        int needed = CurrentSaveSize();   // 0057BC30
         if (static_cast<double>(needed) > space) {
             CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
             CUiWindow* box = memory ? memory->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
@@ -464,7 +458,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
-    if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(TheGameFlow())) > space) return;
+    if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();

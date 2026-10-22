@@ -34,10 +34,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_data.h"
 #include "game_singletons.h"

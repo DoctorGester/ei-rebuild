@@ -13,6 +13,7 @@
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
 #include "game_arrays.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -22,12 +23,6 @@
 #include "map_object.h"
 #include "lib/containers.h"
 #include "lib/mfc_array.h"
-#include "originals_gameplay.h"
-#include "originals_script.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_core.h"
-#include "originals_ai.h"
 #include "lib/mfc_slots.h"
 
 namespace {
@@ -65,8 +60,8 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         aiMap->BeginRefresh();
         bool failed;
         {
-            mfc::CString path(mfc::CString::kUnset);   // ServerMapPathOriginal constructs it
-            ServerMapPathOriginal(this, nullptr, &path, map);
+            mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+            MapPath(&path, map);
             failed = static_cast<CAIMap*>(aiMap)->Load(path) == 0;
         }
         if (failed) return 0;
@@ -319,7 +314,7 @@ EI_REWRITTEN(0x00595C70, CWorldServer::LoadMap);
 EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
-    if (GameMbscmp(mapName_, map) == 0 && GameMbscmp(mobName_, mob) == 0) return;
+    if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
     NewZone(map, mob, nullptr);   // patched by Rebirth: stays the original
     TeardownZone();
 }

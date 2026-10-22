@@ -11,14 +11,9 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "net_classes.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_core.h"
 #include "ui_cursor.h"
 #include "world.h"
 #include "world_glue.h"

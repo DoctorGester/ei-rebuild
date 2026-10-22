@@ -2,8 +2,8 @@
 // (mfc_state.h).
 #include "mfc_state.h"
 
+#include "crt.h"
 #include "ei/hook.h"
-#include "game/originals_library.h"   // GameAtExit
 #include "gameapi.h"
 #include "game/game_data.h"
 
@@ -217,7 +217,7 @@ char& AfxWingdixTermResult() { return ei::GameData<char>(0x007C8D44); }
 
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&AfxHalftoneBrush()); }
 
-void __cdecl AfxWingdixTermInit() { AfxWingdixTermResult() = static_cast<char>(GameAtExit(WingdixTermAt())); }
+void __cdecl AfxWingdixTermInit() { AfxWingdixTermResult() = static_cast<char>(libcrt::AtExit(WingdixTermAt())); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);
 EI_REWRITTEN(0x0070CE8C, ImageModuleState);

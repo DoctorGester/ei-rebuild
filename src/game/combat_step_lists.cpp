@@ -3,7 +3,6 @@
 #include "combat.h"
 #include "lib/mfc_array.h"
 
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"

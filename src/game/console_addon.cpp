@@ -17,9 +17,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "game_data.h"
 #include "game_singletons.h"

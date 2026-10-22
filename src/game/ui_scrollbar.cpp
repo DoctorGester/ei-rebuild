@@ -107,9 +107,9 @@ void CUiScrollbar::SetRect(const RECT* rect) {
     Sprite(this, kDownArrow)->SetRectangle(depth_, 100.0f, AsFloat(rect->right - 10), AsFloat(rect->bottom - 0xC),
                                            AsFloat(rect->right), AsFloat(rect->bottom), 0x28, 0x80, 0x50, 0xB0);
 
-    regions_.data[kUpRegion]->CallSetRect(rect->right - 10, rect->top, rect->right, rect->top + 0xC);
-    regions_.data[kDownRegion]->CallSetRect(rect->right - 10, rect->bottom - 0xC, rect->right, rect->bottom);
-    regions_.data[kTrackRegion]->CallSetRect(rect->left, rect->top, rect->right - 10, rect->bottom);
+    regions_.data[kUpRegion]->SetRect(rect->right - 10, rect->top, rect->right, rect->top + 0xC);
+    regions_.data[kDownRegion]->SetRect(rect->right - 10, rect->bottom - 0xC, rect->right, rect->bottom);
+    regions_.data[kTrackRegion]->SetRect(rect->left, rect->top, rect->right - 10, rect->bottom);
 
     int position = position_;
     position_ = position - 1;

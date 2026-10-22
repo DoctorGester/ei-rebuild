@@ -15,10 +15,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_core.h"
-#include "originals_units.h"
 #include "game_data.h"
 
 #include <cmath>

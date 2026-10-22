@@ -7,7 +7,6 @@
 #include "party.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
 
 namespace {
 

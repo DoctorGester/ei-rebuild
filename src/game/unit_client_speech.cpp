@@ -10,9 +10,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 
 namespace {

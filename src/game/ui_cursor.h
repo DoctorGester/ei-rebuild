@@ -4,7 +4,6 @@
 // "Cursor"). Only the members the rewritten draws use; the object is created by original code.
 
 #include <cstddef>
-#include "originals_ui.h"
 
 #include "lib/containers.h"
 #include "lib/static_object.h"
@@ -196,3 +195,8 @@ static_assert(sizeof(CCursor) == 0xB8);
 // The game's cursor (the object at 007C7BD8; ui_cursor_setup.cpp): built by the static initialiser 005E4DD0 in the
 // list's order, destroyed by the exit function it registers (005E4DF0).
 extern lib::StaticObject<CCursor> g_cursor;
+
+// 005DAEA0 (fastcall, RET 8; cursor_setup.cpp): the cursor (007C7BD8) initialised and given its shapes.
+void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags);
+// 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
+void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags);

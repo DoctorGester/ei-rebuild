@@ -22,7 +22,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
-#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>

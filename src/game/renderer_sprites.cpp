@@ -17,8 +17,6 @@
 #include "render/render_state.h"
 #include "render/render.h"
 #include "ei/x87.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "device_buffers.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
@@ -102,22 +100,22 @@ void EnsureStatics() {
     if (!(g_guards & 1)) {
         g_guards |= 1;
         Unused() = lib::AlignedArray<ProjectedVertex>{};
-        GameAtExit(AtExit(0x00503A20));
+        libcrt::AtExit(AtExit(0x00503A20));
     }
     if (!(g_guards & 2)) {
         g_guards |= 2;
         Corners() = lib::AlignedArray<TLVertex>{};
-        GameAtExit(AtExit(0x00503A00));
+        libcrt::AtExit(AtExit(0x00503A00));
     }
     if (!(g_guards & 4)) {
         g_guards |= 4;
         mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes);   // 006FF5EA
-        GameAtExit(DestroyOutcodes);
+        libcrt::AtExit(DestroyOutcodes);
     }
     if (!(g_guards & 8)) {
         g_guards |= 8;
         mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_indices);    // 006FEE9A
-        GameAtExit(DestroyIndices);
+        libcrt::AtExit(DestroyIndices);
     }
 }
 
@@ -127,7 +125,7 @@ void EnsureSortStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintpt
     if (g_sortGuards & bit) return;
     g_sortGuards |= bit;
     array = lib::AlignedArray<T>{};
-    GameAtExit(AtExit(onExit));
+    libcrt::AtExit(AtExit(onExit));
 }
 void EnsureSortStatics() {
     EnsureSortStatic(1, CornersCopy(), 0x005039C0);

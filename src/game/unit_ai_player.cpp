@@ -6,7 +6,6 @@
 
 #include "logic_settings.h"
 #include "map_object.h"
-#include "originals_ai.h"
 #include "player_messages.h"
 #include "world.h"
 #include "game_singletons.h"

@@ -1,7 +1,6 @@
 // The world's player manager (player_manager.h; A-H15).
 #include "player_manager.h"
 
-#include "originals_gameplay.h"
 #include "player_messages.h"
 #include "world.h"
 #include "game_singletons.h"

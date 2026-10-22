@@ -51,12 +51,6 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/vecmath.h"
-#include "originals_core.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "render/render.h"
 #include "world_glue.h"
 #include "../hook/log.h"
@@ -104,23 +98,23 @@ using AtExitFunction = void(__cdecl*)();
 // The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
 void __cdecl ConstructCameraFile() {   // 00455CE0
     g_cameraFile.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D00));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D00));
 }
 void __cdecl ConstructCommandLineScript() {   // 00455D10
     g_commandLineScript.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D30));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D30));
 }
 void __cdecl ConstructCommandLineMob() {   // 00455D40
     g_commandLineMob.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D60));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D60));
 }
 void __cdecl ConstructCommandLineMap() {   // 00455D70
     g_commandLineMap.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D90));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D90));
 }
 void __cdecl ConstructMovieFolder() {   // 00455DA0
     g_movieFolder.Construct(".\\capture\\");
-    GameAtExit(ei::Code<AtExitFunction>(0x00455DC0));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455DC0));
 }
 
 // The exit functions.
@@ -407,12 +401,12 @@ bool CheckDrives(const console::CStringArray& messages) {
     if (FreeDiskSpace(dataFolder, &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (GameMbscmp(dataFolder, discFolder) != 0) {
+    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder, parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (GameMbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -547,13 +541,15 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
+int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }   // 0058DFF0
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }   // 005641F0
 WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
-    return reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal);
+    return &UpdateServer;
 }
 WorldUpdate ClientSegment() {
     if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook;
-    return reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal);
+    return &RunClientSegment;
 }
 
 // The smooth camera's clock (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the
@@ -822,7 +818,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     std::uintptr_t reusedSlot = CreateRenderer();
     if (options->audio_) reusedSlot = OpenSound();
 
-    PlayMoviesOriginal("Start", 1, 1, 1, 1);
+    PlayMovies("Start", true, true, 1, 1);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();

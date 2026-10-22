@@ -23,15 +23,11 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
-#include "originals_world.h"
-#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
 #include <new>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"

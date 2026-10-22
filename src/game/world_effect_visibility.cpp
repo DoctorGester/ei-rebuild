@@ -5,8 +5,6 @@
 #include "world_effect_class.h"
 
 #include "map_object.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "world.h"
 #include "unit.h"
 #include "unit_ai.h"

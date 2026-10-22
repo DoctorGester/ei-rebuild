@@ -24,16 +24,11 @@
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/stlp_string.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "unit_looks.h"
-#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include "originals_render.h"
-#include "originals_world.h"
 
 
 namespace {

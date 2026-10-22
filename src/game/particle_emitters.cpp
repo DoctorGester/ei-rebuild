@@ -13,8 +13,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -38,7 +36,7 @@ double Unsigned(std::uint32_t value) {
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 
-double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), nullptr, min, max); }
+double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // The source's element array is MFC-style (data +0x154, size +0x158, max +0x15C, grow by +0x160);
 // the emitters inline SetSize(n) for an empty array (no elements to keep, none zeroed).

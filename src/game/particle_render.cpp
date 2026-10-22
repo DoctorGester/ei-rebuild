@@ -18,8 +18,6 @@
 #include <cstdint>
 #include <cstring>
 #include "model.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -54,7 +52,7 @@ void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
-        GameAtExit(DestroySprites);
+        libcrt::AtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
         Vertices().data = nullptr;
@@ -62,7 +60,7 @@ void ConstructArrays() {
         Vertices().growBy = 0;
         Vertices().capacity = 0;
         Vertices().size = 0;
-        GameAtExit(FreeVertices);   // 00497D10
+        libcrt::AtExit(FreeVertices);   // 00497D10
     }
 }
 

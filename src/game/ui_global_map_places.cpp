@@ -13,10 +13,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 
@@ -86,9 +82,9 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* n
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
             while (words.GetSize() < 3) words.SetAtGrow(words.GetSize(), kMissingNumber);
-            out->x = static_cast<float>(GameAtof(words[0]));
-            out->y = static_cast<float>(GameAtof(words[1]));
-            out->z = static_cast<float>(GameAtof(words[2]));
+            out->x = static_cast<float>(libcrt::Atof(words[0]));
+            out->y = static_cast<float>(libcrt::Atof(words[1]));
+            out->z = static_cast<float>(libcrt::Atof(words[2]));
             found = true;
         }
     }

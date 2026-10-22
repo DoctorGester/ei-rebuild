@@ -3,7 +3,6 @@
 #include "stlp_string.h"
 
 #include "ei/hook.h"
-#include "game/originals_library.h"
 #include "lib/crt.h"
 
 #include <algorithm>

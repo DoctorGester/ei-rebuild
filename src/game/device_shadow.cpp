@@ -11,9 +11,6 @@
 #include "device_buffers.h"
 #include "model.h"   // CTransformPipeline, ITransformPipeline
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "texture.h"
 #include "lib/nan_audit.h"
 

@@ -19,10 +19,6 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_world.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "game_lists.h"
 #include "game_data.h"
 

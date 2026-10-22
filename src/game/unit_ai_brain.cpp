@@ -10,8 +10,6 @@
 #include "core_refcount.h"
 #include "logic_settings.h"
 #include "object_diplomacy.h"
-#include "originals_ai.h"
-#include "originals_library.h"
 #include "world.h"
 
 #include "ei/hook.h"

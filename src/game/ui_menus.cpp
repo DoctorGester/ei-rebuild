@@ -10,11 +10,8 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_render.h"
-#include "originals_effects.h"
 
 #include <cstdint>
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

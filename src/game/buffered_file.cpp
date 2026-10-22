@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "lib/static_object.h"
 #include "lib/stlp_hash.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -257,7 +256,7 @@ constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {
 void __cdecl ConstructUnreadSet() {   // 004DB870
     g_unreadSet->Construct(100, 0, 0, 0);
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x004DB890));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004DB890));
 }
 void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }   // 004DB890
 } // namespace

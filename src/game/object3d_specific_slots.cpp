@@ -14,7 +14,6 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_render.h"
 
 void CObject3DClientSpecific::ExtraScale(float* x, float* y, float* z) {
     *x = figureScale.x;

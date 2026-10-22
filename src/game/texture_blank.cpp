@@ -12,8 +12,6 @@
 
 #include "dx_surface.h"
 #include "game_strings.h"
-#include "originals_engine.h"
-#include "originals_render.h"
 
 #include "ei/hook.h"
 #include "lib/containers.h"

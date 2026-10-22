@@ -9,7 +9,6 @@
 
 #include "database_file.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"

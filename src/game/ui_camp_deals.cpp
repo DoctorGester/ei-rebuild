@@ -16,8 +16,6 @@
 
 #include "ei/hook.h"
 #include "lib/stlp_hash.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>

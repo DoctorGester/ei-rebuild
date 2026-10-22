@@ -15,8 +15,6 @@
 #include "dx_errors.h"
 #include "engine_object.h"
 #include "model.h"               // CTransformPipeline
-#include "originals_engine.h"
-#include "originals_render.h"
 #include "texture.h"
 
 #include "ei/hook.h"

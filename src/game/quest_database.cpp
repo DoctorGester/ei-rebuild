@@ -13,7 +13,6 @@
 #include "../lib/mfc.h"
 #include "lib/static_object.h"
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "record_vectors.h"
 #include "text_split.h"
 
@@ -66,9 +65,9 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
         places[i].TrimRight('}');
         text::Split(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
-            float x = static_cast<float>(GameAtof(parts[0]));
+            float x = static_cast<float>(libcrt::Atof(parts[0]));
             PushPlace(quest, x);
-            float y = static_cast<float>(GameAtof(parts[1]));
+            float y = static_cast<float>(libcrt::Atof(parts[1]));
             PushPlace(quest, y);
         }
     }

@@ -16,8 +16,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 

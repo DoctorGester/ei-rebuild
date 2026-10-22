@@ -20,8 +20,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -86,7 +84,7 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
                          static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
 }
 
-void SetRegion(CUiRegion* region, const RECT& rect) { region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void SetRegion(CUiRegion* region, const RECT& rect) { region->SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // Rebirth's WideScreen (addon's handler 10023702, a context hook over the first AddSprite of a
 // "#rectangle" line at 00659994): on a message window (message_), the page "<text_>:<page_>" of the
@@ -113,7 +111,7 @@ int TutorialFrameShift(const CHelpWindow* window) {
 
 } // namespace
 
-void CHelpWindow::ShowPageVanilla() {
+void CHelpWindow::ShowPage() {
     pulsing_.ClearWith([](CUiMesh**) {});
     pictures_.ClearWith([](CUiMesh**) {});
     ClearSurfaces();
@@ -333,4 +331,4 @@ void CHelpWindow::ShowPageVanilla() {
     entries.ClearWith([](PageEntry* entry) { entry->~PageEntry(); });
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
-EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPageVanilla);
+EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPage);

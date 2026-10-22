@@ -13,7 +13,6 @@
 #include "player_messages.h"
 #include "unit.h"
 
-#include "originals_world.h"
 #include "lib/crt.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -21,12 +20,8 @@
 #include "game_lists.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 #include <cstring>
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -64,8 +59,6 @@ using RecordArray = RecordPtrArray;
 const MapRecord* FindZone(const char* name) {
     return TheMapDatabase()->FindMap(name);
 }
-// 0049ECC0 (RET 8). Quaternion from an axis and an angle.
-__declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
 
 void InitList(ObjectList& list) {
     list.vtable = PtrListVtable();
@@ -216,9 +209,9 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
                                                        static_cast<double>(start.x) - centreX) - kFacingOffset);
     if (exit && exit->hasDeployAngle) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};
-    QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
+    rotation.FromAxisAngle(up, angle);   // 0049ECC0
 
-    WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
+    CreateUnits(player, &records, &start, rotation, placements);
     if (placements)   // 0059C3D0
         mfc::impl::ArrayAs<mfc::impl::Placements>(*placements).SetSize(0, -1);
     CPlayerServer* state = player->Server();

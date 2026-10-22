@@ -9,7 +9,6 @@
 #define DIRECTINPUT_VERSION 0x0700
 #include "class_templates.h"
 #include "core_refcount.h"
-#include "originals_script.h"
 #include "party.h"
 #include "party_manager.h"
 #include "party_records.h"
@@ -20,7 +19,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
 #include "game_hashes.h"
 #include "game_data.h"
 
@@ -158,7 +156,7 @@ PartyManager* ThePartyManager() { return &*g_partyManager; }
 namespace {
 void __cdecl ConstructPartyManager() {   // 004A56D0
     g_partyManager->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
 }
 void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }   // 004A56F0
 } // namespace

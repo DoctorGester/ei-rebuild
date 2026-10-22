@@ -19,9 +19,6 @@
 #include "lib/stlp_hash.h"
 
 #include <cstring>
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
 #include "spell.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"

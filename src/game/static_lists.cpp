@@ -7,7 +7,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 
 #include <cstdint>
 
@@ -33,14 +32,14 @@ void __stdcall ConstructDeferredUnits() { g_deferredUnits->Construct(); }
 namespace {
 void __cdecl ConstructProtectionChecksList() {   // 00455E30
     app::ConstructProtectionChecks();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455F00));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455F00));
 }
 void __cdecl DestroyProtectionChecks() {   // 00455F00
     stlp::ListAbi<std::uint8_t>::Destruct(&g_protectionChecks.Get());
 }
 void __cdecl ConstructDriversList() {   // 004ED520
     ConstructDirectDrawDrivers();
-    GameAtExit(ei::Code<AtExitFunction>(0x004ED5F0));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x004ED5F0));
 }
 void __cdecl DestroyDrivers() {   // 004ED5F0
     if (g_driversDestroyed & 1) return;
@@ -49,7 +48,7 @@ void __cdecl DestroyDrivers() {   // 004ED5F0
 }
 void __cdecl ConstructDeferredUnitsList() {   // 0056A3F0
     ConstructDeferredUnits();
-    GameAtExit(ei::Code<AtExitFunction>(0x0056A4C0));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0056A4C0));
 }
 void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }   // 0056A4C0
 } // namespace

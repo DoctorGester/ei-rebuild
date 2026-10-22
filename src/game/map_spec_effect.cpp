@@ -17,10 +17,6 @@
 
 #include <cstring>
 #include <new>
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_effects.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

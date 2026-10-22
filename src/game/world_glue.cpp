@@ -18,17 +18,12 @@
 #include "sound.h"
 #include "terrain.h"
 #include "unit.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 
 #include <cmath>
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -57,7 +52,7 @@ CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 
 int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
     CScript* script = CommandScript();
-    int loaded = ScriptLoadLine(script, nullptr, text, 1);
+    int loaded = script->Load(text, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
         // (00456360, inlined here: a copy of the script's error record.)
@@ -148,7 +143,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     EI_NAN_AUDIT(unit->localPosition_.z, z);
     if (unit->localPosition_.z == z) return;
     Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
+    world->Sectors()->Move(unit, &target);   // 005C11D0
     unit->MarkChanged(2);
 }
 EI_REWRITTEN(0x00578760, GameSetUnitHeight);

@@ -13,6 +13,7 @@
 #include "object_tables.h"
 #include "game_arrays.h"
 #include "world_deleting_destructors.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -28,11 +29,6 @@
 
 #include <cstring>
 #include <new>
-#include "originals_world.h"
-#include "originals_units.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -52,7 +48,7 @@ Quaternion DefaultRotation() { return kNewUnitRotation; }
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 
-// 0058EF20 (RET 0x20): WorldCreateUnitsOriginal creates the units described by `records` (pointers to 0x784-byte unit
+// 0058EF20 (RET 0x20): CWorldServer::CreateUnits creates the units described by `records` (pointers to 0x784-byte unit
 // records) around `position` with `rotation`; ids come from the records (+0x1C).
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
@@ -120,7 +116,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.SetSize(1, -1);
     records.data[0] = record;
     record->unitId = id;   // the unit's id
-    WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
+    CreateUnits(nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
     builder.Destruct();
@@ -136,7 +132,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     auto* fileObject = root->file_.Virtuals();
 
     mfc::CString path;
-    ServerMapPathOriginal((void*)this, nullptr, (void*)&path, file);   // constructs the CString in place
+    MapPath(&path, file);   // constructs the CString in place
     int result;
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);

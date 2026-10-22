@@ -13,9 +13,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -242,7 +239,7 @@ std::uint32_t __fastcall LeverKeyIdHook(Lever* self) { return self->Lever::KeyId
 EI_REPLACE(0x0052BBC0, LeverKeyIdHook);
 
 bool Lever::ApplyKey(const LockKey* key, int) {
-    if (!LockOpensOriginal(key, nullptr, &lock)) return false;
+    if (!key->Opens(&lock)) return false;
     SetState(-1, kNextStateDuration);
     flags_ |= kDisabled;
     MarkChanged(kLeverField);
@@ -250,7 +247,7 @@ bool Lever::ApplyKey(const LockKey* key, int) {
 }
 EI_REWRITTEN(0x0052BB50, Lever::ApplyKey);
 
-BOOL Lever::KeyOpens(const LockKey* key) { return LockOpensOriginal(key, nullptr, &lock); }
+BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 EI_REWRITTEN(0x0052BBA0, Lever::KeyOpens);
 
 double Lever::RadiusSlot() { return radius; }

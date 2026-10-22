@@ -12,8 +12,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "random.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "system_text.h"
 
@@ -89,7 +87,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(GameAtof(Arg(call, 0))));
+    Store(call->FloatResult(), static_cast<float>(libcrt::Atof(Arg(call, 0))));
     return true;
 }
 

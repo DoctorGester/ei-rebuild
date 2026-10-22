@@ -34,10 +34,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -190,7 +186,7 @@ private:
 
 void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     region->SetTip(tip, 1, 0);
 }
 
@@ -202,7 +198,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
     int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
     int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
-    map->AddRegion()->CallSetRect(left, top, right, bottom);
+    map->AddRegion()->SetRect(left, top, right, bottom);
 }
 
 } // namespace
@@ -612,7 +608,7 @@ void CGlobalMap::Update() {
             int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
             int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
             int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
-            regions_.data[3 + i]->CallSetRect(left, top, right, bottom);
+            regions_.data[3 + i]->SetRect(left, top, right, bottom);
         }
     }
 
@@ -702,8 +698,8 @@ void DestroyArray(Array* array, void* vtable) {
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {
-        CStringDestroy(&array->data[i].title);
-        CStringDestroy(&array->data[i].name);
+        array->data[i].title.~CString();
+        array->data[i].name.~CString();
     }
     gamecrt::operator_delete(array->data);
 }
@@ -711,15 +707,15 @@ void DestroyArray(Array* array, void* vtable) {
 
 // 00600BA0: the container base's destructor body.
 void __fastcall GlobalMapDestroy(CGlobalMap* self) {
-    CStringDestroy(&self->shownName_);
+    self->shownName_.~CString();
     self->arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
-    CStringDestroy(&self->target_);
+    self->target_.~CString();
     stlp::deallocate(self->path_.Start(), static_cast<std::size_t>(self->path_.EndOfStorage() - self->path_.Start()) *
                                               sizeof(GlobalMapStep));   // 005FA7E0
     DestroyArray(&self->quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     DestroyArray(&self->links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     DestroyArray(&self->zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
-    CStringDestroy(&self->allodTitle_);
+    self->allodTitle_.~CString();
     static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6920, GlobalMapDestroy);

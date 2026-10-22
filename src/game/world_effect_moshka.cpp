@@ -14,8 +14,6 @@
 #include "console.h"
 #include "game_strings.h"
 #include "map_object_figures.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "random.h"
 #include "world.h"
 #include "world_effect_internal.h"

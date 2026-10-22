@@ -23,11 +23,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_world.h"
-#include "originals_ui.h"
 #include "game_flow_data.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -57,7 +52,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     {
         mfc::CString prefix(game::briefingwords::BriefingSection());
         mfc::CString section = prefix + briefing;
-        missing = TextsOpenSection(texts, nullptr, section) == 0;
+        missing = texts->CTextManager::Open(section) == 0;
     }
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
@@ -318,7 +313,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     {
         mfc::CString prefix(game::briefingwords::QuestSection());
         mfc::CString section = prefix + name;
-        found = TextsOpenSection(texts, nullptr, section);
+        found = texts->CTextManager::Open(section);
     }
     if (found) texts->ReadLine(&name, 1);
     return new (out) mfc::CString(name);

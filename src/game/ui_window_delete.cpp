@@ -20,8 +20,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 
@@ -117,14 +115,14 @@ EI_REWRITTEN(0x0060E600, CSpellMakerPage::DestroyBody);
 
 void CHeroStatsPanel::DestroyBody() {
     texts_.Destruct();
-    CStringDestroy(&title_);
+    title_.~CString();
     DestroyBase();
 }
 EI_REWRITTEN(0x0060E360, CHeroStatsPanel::DestroyBody);
 
 void CMessageBox::DestroyBody() {
-    CStringDestroy(&text_);
-    CStringDestroy(&title_);
+    text_.~CString();
+    title_.~CString();
     DestroyContainer();
 }
 EI_REWRITTEN(0x0061E3E0, CMessageBox::DestroyBody);
@@ -229,23 +227,23 @@ void CObjectivesWindow::DestroyBody() {
     quests_.Destruct();
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    CStringDestroy(&shownZone_);
-    CStringDestroy(&zoneName_);
-    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) CStringDestroy(zone);
+    shownZone_.~CString();
+    zoneName_.~CString();
+    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) zone->~CString();
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
     DestroyContainer();
 }
 EI_REWRITTEN(0x00603B90, CObjectivesWindow::DestroyBody);
 
 void CSaveLoadWindow::DestroyBody() {
-    CStringDestroy(&name_);
+    name_.~CString();
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
         entry->stringArrays_[1].Destruct();
         entry->stringArrays_[0].Destruct();
-        CStringDestroy(&entry->zone_);
-        CStringDestroy(&entry->map_);
-        CStringDestroy(&entry->folder_);
-        CStringDestroy(&entry->title_);
+        entry->zone_.~CString();
+        entry->map_.~CString();
+        entry->folder_.~CString();
+        entry->title_.~CString();
     }
     FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
     DestroyContainer();

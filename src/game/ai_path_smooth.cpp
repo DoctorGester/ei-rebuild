@@ -17,7 +17,6 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 
 #include <cstdint>
 
@@ -373,7 +372,7 @@ constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 namespace {
 
 using AtExitFunction = void(__cdecl*)();
-void RegisterExit(std::uintptr_t exitFunction) { GameAtExit(ei::Code<AtExitFunction>(exitFunction)); }
+void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
 // 005C41C0: the tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
 void __cdecl ConstructSmoothTables() {

@@ -16,7 +16,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

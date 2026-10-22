@@ -17,11 +17,6 @@
 #include <cstdint>
 #include <cstring>
 #include "core_maths.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_units.h"
 #include "unit_db.h"
 #include "world_glue.h"
 #include "record_vectors.h"
@@ -64,15 +59,15 @@ void Clear(TradeRows* rows) {
 }
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
-int HasPerkText(void* table, const mfc::CString& name) {
+int HasPerkText(CTextManager* table, const mfc::CString& name) {
     mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
-    return TextsOpenSection(table, nullptr, key);
+    return table->CTextManager::Open(key);
 }
-int HasPerkText(void* table, const char* name) {
+int HasPerkText(CTextManager* table, const char* name) {
     mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
-    return TextsOpenSection(table, nullptr, key);
+    return table->CTextManager::Open(key);
 }
 
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
@@ -154,7 +149,7 @@ void CTradePanel::BuildLists() {
 
     mfc::CString text;
     mfc::CString perkLevel;
-    TextsGetString(table, nullptr, "perk_level", &perkLevel);
+    table->CTextManager::GetString("perk_level", &perkLevel);
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -330,7 +325,7 @@ int PartyRecordCount() { return LocalPlayerData()->members_.size; }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
@@ -381,11 +376,11 @@ void CTradePanel::Build() {
     CTextManager* table = GameClientTexts();
     {
         mfc::CString text;
-        TextsGetString(table, nullptr, "skills", &text);
+        table->CTextManager::GetString("skills", &text);
         texts_.SetAtGrow(texts_.size, text);
-        TextsGetString(table, nullptr, "perks", &text);
+        table->CTextManager::GetString("perks", &text);
         texts_.SetAtGrow(texts_.size, text);
-        TextsGetString(table, nullptr, "perks_av", &text);
+        table->CTextManager::GetString("perks_av", &text);
         texts_.SetAtGrow(texts_.size, text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).

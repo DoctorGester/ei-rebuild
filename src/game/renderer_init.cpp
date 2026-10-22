@@ -17,9 +17,6 @@
 #include "texture.h"       // CTextureDevice, DirectDrawDriver
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
@@ -45,7 +42,7 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
     if (previous) previous->Release();
 }
 // Matrices (model.cpp, called through their addresses): 004F1370 viewport,
-// 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
+// 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (Matrix4::Multiply).
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
@@ -78,7 +75,7 @@ void StackPush(MatrixStack& stack, const Matrix4* m) {
         return;
     }
     int n = ++stack.count;
-    MatrixMultiplyOriginal(stack.matrices[n - 1].m, nullptr, stack.matrices[n - 2].m, m->m);
+    stack.matrices[n - 1].Multiply(stack.matrices[n - 2].m, m->m);
 }
 const Matrix4* StackTop(const MatrixStack& stack) { return stack.matrices + (stack.count - 1); }
 

@@ -4,7 +4,6 @@
 
 #include "core_refcount.h"
 #include "link_figure.h"
-#include "originals_gameplay.h"
 #include "party.h"
 
 #include "ei/hook.h"

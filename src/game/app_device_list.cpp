@@ -7,7 +7,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 #include "record_vectors.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"

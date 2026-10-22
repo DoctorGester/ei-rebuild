@@ -10,7 +10,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_library.h"
 #include "win_registry.h"
 
 #include <cstring>

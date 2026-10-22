@@ -20,10 +20,6 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/mfc_slots.h"
 #include "lib/mfc_array.h"
 #include "world_data.h"
@@ -404,7 +400,7 @@ void UnitSpec::UnitSpecApply() {
         return;
     }
     CUnit* unit = object.Unit();
-    SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
+    TheSectorMap()->Move(unit, &b.position);
     TheServerWorld()->AIMap()->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->localRotation_, &b.rotation, 16);
     static_cast<CObject3D*>(b.object)->SetFigureScale(&object.scale.x);

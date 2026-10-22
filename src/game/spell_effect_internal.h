@@ -19,12 +19,6 @@
 #include "world_effect.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_effects.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_units.h"
-#include "originals_library.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"

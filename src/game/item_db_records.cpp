@@ -7,7 +7,6 @@
 #include "game_data.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "record_lifetime.h"
 
 #include <cstddef>

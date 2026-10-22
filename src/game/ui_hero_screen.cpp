@@ -20,11 +20,6 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "party.h"
@@ -91,13 +86,13 @@ void CMpHeroScreen::DrawExperience() {
     mfc::CString line;
     UiSurfaceGetDC(surface);
     static_cast<CUiSurface*>(surface)->Clear();
-    TextsGetString(TheTextManager(), nullptr, kLevelUpKey, &text);
+    TheTextManager()->CTextManager::GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
     text.Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
-    TextsGetString(TheTextManager(), nullptr, kCurrentExpKey, &text);
+    TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
     line.Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
@@ -203,8 +198,8 @@ EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
 // --- 00615800: a voice entry's destructor -------------------------------------------------------
 
 void MpVoiceEntry::Destroy() {
-    CStringDestroy(&name);
-    CStringDestroy(&file);
+    name.~CString();
+    file.~CString();
 }
 namespace {
 void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
@@ -228,14 +223,14 @@ void DestroyVoices(MpVoiceVector& voices) {
     stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));   // 006344C0
 }
 void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
-    for (mfc::CString* at = begin; at != end; ++at) CStringDestroy(at);
+    for (mfc::CString* at = begin; at != end; ++at) at->~CString();
 }
 } // namespace
 
 void CMpHeroScreen::Destroy() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
-    CStringDestroy(&text_);
+    text_.~CString();
     DestroyStrings(names_.begin(), names_.end());
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
     DestroyStrings(defaults_.begin(), defaults_.end());
@@ -304,7 +299,7 @@ void CMpHeroScreen::DrawVoices() {
     SelectionFrame(*this)->visible_ = 0;
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};
-    TextsGetString(TheTextManager(), nullptr, kVoicesKey, &title);
+    TheTextManager()->CTextManager::GetString(kVoicesKey, &title);
     surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);

@@ -27,12 +27,6 @@
 #include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -76,7 +70,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
 // map (007B01F4).

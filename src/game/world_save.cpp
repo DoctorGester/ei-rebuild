@@ -38,16 +38,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
-#include "originals_script.h"
-#include "originals_ui.h"
 
 #include <cstring>
 
@@ -137,8 +127,6 @@ void WriteCopy(WorldStream* stream, const T& value) {
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // 00461190 (RET 4). Reads a zero-terminated string; constructs the CString at `out` and returns it.
-// 00595080 (RET 4). Picks the loading movie for the zone. Patched by Rebirth: original address.
-__declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
@@ -383,7 +371,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
     zoneName_ = zoneName;
-    PickLoadingMovie(this, nullptr, zoneName);
+    SelectLoadingMovie(zoneName);   // 00595080
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
@@ -866,7 +854,7 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
 
 int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;
-    PickLoadingMovie(this, nullptr, zone);
+    SelectLoadingMovie(zone);   // 00595080
     ShowLoadProgress(kProgressStart);
     if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;

@@ -8,10 +8,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -83,7 +79,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = "Unknown";
             description.Format("school_%d", SpellPrototypeOf(data)->castType);
-            TextsGetString(TheTextManager(), nullptr, description, &line);
+            TheTextManager()->CTextManager::GetString(description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(labels[1],
                                                                 " "),
                                                  line),

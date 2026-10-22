@@ -11,8 +11,6 @@
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "stl_sorts.h"
 #include "text_reader.h"
 #include "ui.h"
@@ -28,14 +26,10 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
 #include <bit>
-#include "originals_ui.h"
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
@@ -531,7 +525,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         } else {
             key = "combat_get_quest";
         }
-        TextsGetString(texts, nullptr, key, &title);
+        texts->CTextManager::GetString(key, &title);
         text.Empty();
         BOOL found;
         {
@@ -560,7 +554,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         } else {
             key = "combat_get_subobj";
         }
-        TextsGetString(texts, nullptr, key, &title);
+        texts->CTextManager::GetString(key, &title);
         text.Empty();
         bool found = false;
         {

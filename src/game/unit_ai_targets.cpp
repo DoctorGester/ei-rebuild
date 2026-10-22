@@ -9,7 +9,6 @@
 #include "ai_scoped_path.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
-#include "originals_ai.h"
 #include "spell.h"
 #include "unit_db.h"
 #include "world.h"
@@ -55,7 +54,8 @@ float PrototypeSize(CUnit* unit) {
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
-    return ExcessDamageOriginal(option->damage, nullptr, target->ServerController()->protection);
+    return reinterpret_cast<const DamageWords*>(option->damage)
+        ->ExcessOver(reinterpret_cast<const DamageWords*>(target->ServerController()->protection));
 }
 
 // Cases 2 and 3: the damage summed over the group members within the option's radius of the

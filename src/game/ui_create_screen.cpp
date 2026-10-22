@@ -22,10 +22,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "world_glue.h"
 #include "library_trees.h"
@@ -420,7 +416,7 @@ void __fastcall Screen8Destroy(void* self) {
     lines.head->next = lines.head;
     lines.head->prev = lines.head;
     stlp::deallocate(lines.head, sizeof(Node));
-    MappedResourceDestroyOriginal(screen->archive_.Get());
+    screen->archive_.Get()->CMappedResource::Destroy();
     static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6E40, Screen8Destroy);

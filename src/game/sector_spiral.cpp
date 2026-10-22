@@ -10,7 +10,6 @@
 #include "game_arrays.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 
 static_assert(sizeof(mfc::CArray<int>) == 0x14 && sizeof(RadiusTree) == 0x1C && sizeof(mfc::CArray<SpiralOffset>) == 0x14);
 
@@ -21,7 +20,7 @@ constinit lib::StaticObject<mfc::CArray<SpiralOffset>> g_spiralOffsets = /*007C2
 namespace {
 
 using AtExitFunction = void(__cdecl*)();
-void RegisterExit(std::uintptr_t exitFunction) { GameAtExit(ei::Code<AtExitFunction>(exitFunction)); }
+void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
 void __cdecl ConstructSpiralOffsets() {   // 005BF810 (the constructor 005C18C0)
     mfc::impl::ConstructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);

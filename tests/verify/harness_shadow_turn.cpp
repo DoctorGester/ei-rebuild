@@ -1,7 +1,6 @@
 // The shadow's turn undone exactly in the original (harness_shadow_turn.h; ticket SV7b4a).
 #include "harness_shadow_turn.h"
 
-#include "../../src/game/originals_core.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "lib/vecmath.h"

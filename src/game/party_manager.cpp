@@ -7,8 +7,6 @@
 #include "chunk_archive.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "party.h"
 #include "resource_local.h"   // LocalStream
 

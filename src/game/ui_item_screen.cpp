@@ -15,10 +15,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_render.h"
-#include "originals_gameplay.h"
 #include "item.h"
 #include "party.h"
 #include "game_data.h"
@@ -213,7 +209,7 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     // The exchange window's figure names (vector<CString> at +0x1AC): the strings, then the
     // storage through STLport's node allocator (00404D70, inlined by the original).
     MpStringVector& names = static_cast<CExchangeScreen*>(self)->names_;
-    for (mfc::CString* at = names.begin(); at != names.end(); ++at) CStringDestroy(at);
+    for (mfc::CString* at = names.begin(); at != names.end(); ++at) at->~CString();
     stlp::deallocate(names.begin(), static_cast<std::size_t>(names.EndOfStorage() - names.begin()) * sizeof(mfc::CString));
     DestroyCache(self->textures_);
     DestroyCache(self->models_);

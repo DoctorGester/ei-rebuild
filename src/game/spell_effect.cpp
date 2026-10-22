@@ -13,8 +13,6 @@
 #include "lib/mfc.h"
 
 #include <cstring>
-#include "originals_effects.h"
-#include "originals_ai.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"

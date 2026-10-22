@@ -12,7 +12,6 @@
 #include "render/render_state.h"
 
 #include <cstdint>
-#include "originals_engine.h"
 
 // 00501AB0 (thiscall on the renderer, RET 4). Sets FOGCOLOR; a failure is a fatal error (its
 // result returned), else 1.

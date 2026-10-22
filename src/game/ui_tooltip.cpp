@@ -16,8 +16,6 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "object_tables.h"       // FindCommandByKey
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -64,16 +62,10 @@ float ShowDelay() { return options::TheOptions()->toolTipTime_; }
 float AppearTime() { return 0.0f /*00742F2C*/; }
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
-// The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size;
 }
 } // namespace
@@ -162,7 +154,7 @@ void CUiTooltip::DrawLines() {
 }
 EI_REWRITTEN(0x0065E880, CUiTooltip::DrawLines);
 
-void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
+void CUiTooltip::OnMouseMove(int x, int y) {
     switch (state_) {
     case kHovered: {
         const float delay = ShowDelay();
@@ -230,4 +222,4 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMoveVanilla);
+EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMove);

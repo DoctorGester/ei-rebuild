@@ -12,7 +12,6 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 
@@ -53,8 +52,6 @@ void ReadTutorText(CTextManager* texts, const mfc::CString& key, mfc::CString* t
 int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 } // namespace
-
-__declspec(naked) void CHelpWindow::ShowPage() EI_ORIGINAL(0x00659420)
 
 void CHelpWindow::Build() {
     LoadTexture(SaveLoadTexture(), 3, nullptr);

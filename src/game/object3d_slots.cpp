@@ -9,7 +9,6 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 #include <cstring>
 

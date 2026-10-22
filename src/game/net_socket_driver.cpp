@@ -10,7 +10,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_library.h"
 #include "../hook/log.h"
 #include "game_data.h"
 

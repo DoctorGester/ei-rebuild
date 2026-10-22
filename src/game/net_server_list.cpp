@@ -8,9 +8,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_strings.h"
 
 #include <cstring>

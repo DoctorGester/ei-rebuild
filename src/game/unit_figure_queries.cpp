@@ -5,7 +5,6 @@
 #include "unit.h"
 
 #include "ai_map.h"
-#include "originals_units.h"
 #include "unit_client_models.h"
 #include "world.h"
 

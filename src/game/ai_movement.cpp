@@ -15,7 +15,6 @@
 #include "lib/mfc_slots.h"
 
 #include <cstring>
-#include "originals_ai.h"
 #include "game_data.h"
 
 // The unit shape cache (ai_shape_cache.h). Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.

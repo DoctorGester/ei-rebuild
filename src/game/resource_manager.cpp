@@ -6,7 +6,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 #include <cstring>
 #include <type_traits>

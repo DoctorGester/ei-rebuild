@@ -8,7 +8,6 @@
 #include "lightning.h"
 #include "map_object.h"
 #include "object.h"
-#include "originals_engine.h"
 #include "scene_loader.h"
 #include "spell.h"
 #include "unit.h"

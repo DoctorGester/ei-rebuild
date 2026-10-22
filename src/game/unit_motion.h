@@ -40,7 +40,7 @@ struct MotionCubic {
 
     // 005C73B0. Hermite fit: value p0 / slope d0 at u = 0, value p1 / slope d1 at u = length.
     void Fit(float p0, float d0, float p1, float d1, float length);
-    // 004E5660 (forwarder). The value at u, unrounded (ST0).
+    // 004E5660. The value at u, unrounded (ST0).
     double Value(float u);
     // 005C7410. The slope at u, unrounded (ST0).
     double Slope(float u);

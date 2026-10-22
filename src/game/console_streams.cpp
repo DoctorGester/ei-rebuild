@@ -5,7 +5,6 @@
 // See docs/notes/console.md.
 #include "console.h"
 #include "library_trees.h"
-#include "originals_library.h"   // GameAtExit
 
 #include "ei/hook.h"
 
@@ -44,18 +43,18 @@ using ExitFunction = void(__cdecl*)();
 // A command map: built empty (map(), 005E0A90), destroyed by ~map (005DC080).
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     lib_trees::Commands::Construct(&map.Get());
-    GameAtExit(exit);
+    libcrt::AtExit(exit);
 }
 // A streambuf: built for its message filter (005DC200), destroyed by 005DC260.
 void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
     buffer->Construct(filter);
-    GameAtExit(exit);
+    libcrt::AtExit(exit);
 }
 // An ostream on its streambuf (ostream(streambuf*, 1), 006FC42F); destroyed through its ios, ostream's part
 // (006FC502) and then ios's (006FCEDC).
 void BuildStream(OStreamObject& stream, StreambufObject& buffer, ExitFunction exit) {
     stream.Construct(buffer->Base(), 1);
-    GameAtExit(exit);
+    libcrt::AtExit(exit);
 }
 void DestroyStream(OStreamObject& stream) {
     stream.ios.DestructOstream();

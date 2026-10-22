@@ -26,7 +26,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -34,9 +33,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-
-__declspec(naked) void CHudMap::CallLayout() EI_ORIGINAL(0x00642930)
-__declspec(naked) void CHudUnitPanel::CallLayout() EI_ORIGINAL(0x00645F80)
 
 namespace {
 
@@ -127,7 +123,7 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
 
 // --- The map -------------------------------------------------------------------------------------
 
-void CHudMap::LayoutVanilla() {
+void CHudMap::Layout() {
     widescreen::EnterRightPanel();   // addon's 10023366
     const float offset = static_cast<float>(offset_);
     const float centre = offset + MapCentreX();
@@ -147,7 +143,7 @@ void CHudMap::LayoutVanilla() {
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
-EI_REPLACE_METHOD(0x00642930, CHudMap::LayoutVanilla);
+EI_REPLACE_METHOD(0x00642930, CHudMap::Layout);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
@@ -166,7 +162,7 @@ void CHudMap::UpdateVanilla() {
 
     if (sliding_) {
         AdvanceSlide(this);
-        CallLayout();
+        Layout();
         // The sling button (scene object 5).
         // WideScreen: 00642D23 / 00642D7F.
         if (slideDirection_ == 1.0f)
@@ -184,7 +180,7 @@ EI_REWRITTEN(0x00642B40, CHudMap::UpdateVanilla);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
-void CHudUnitPanel::LayoutVanilla() {
+void CHudUnitPanel::Layout() {
     widescreen::EnterLeftPanel();    // addon's 100232AF
     const float offset = static_cast<float>(offset_);
     const float edge = UnitEdgeX() - offset;
@@ -214,12 +210,12 @@ void CHudUnitPanel::LayoutVanilla() {
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
 }
-EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::LayoutVanilla);
+EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::Layout);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
         AdvanceSlide(this);
-        CallLayout();
+        Layout();
         // The sling button (scene object 2).
         // WideScreen: 006480EB / 00648147.
         if (slideDirection_ == -1.0f)
@@ -266,14 +262,14 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
     // Regions: the sling button, the four body part buttons, the whole panel.
     CUiRegion* sling = AddRegion();
-    sling->CallSetRect(0, 0, 20, 30);
+    sling->SetRect(0, 0, 20, 30);
     sling->SetTip(0x2774, 1, 0);
     for (int i = 0; i < 4; ++i) {
         CUiRegion* part = AddRegion();
-        part->CallSetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
+        part->SetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
         part->SetTip(0x2775 + i, 1, 0x2E + i);
     }
-    AddRegion()->CallSetRect(0, 0, 185, 225);
+    AddRegion()->SetRect(0, 0, 185, 225);
 
     // Scene objects 0 and 1: the panel's and its edge's plain backgrounds.
     CUiMesh* back = AddSprite(nullptr);
@@ -333,7 +329,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
     bodyPart_ = bodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
-    CallLayout();
+    Layout();
     shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
 
@@ -428,7 +424,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // Regions: 0 the sling button, 1 the round map, 2 the map's square, 3 and 4 the view buttons,
     // 5 "camera north", 6 the whole panel.
     CUiRegion* sling = AddRegion();
-    sling->CallSetRect(780, 0, 800, 30);
+    sling->SetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 1, 0x34);
     // The round map's outline: each product and sum is a float on the game's FPU (24-bit
     // precision; FCOS / FSIN themselves are not rounded), so the point under the centre is 80
@@ -442,17 +438,17 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         const int x = static_cast<int>(gamecrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
         round->AddPoint(x, y);
     }
-    AddRegion()->CallSetRect(620, 0, 780, 160);
+    AddRegion()->SetRect(620, 0, 780, 160);
     CUiRegion* zoomIn = AddRegion();
-    zoomIn->CallSetRect(780, 100, 800, 130);
+    zoomIn->SetRect(780, 100, 800, 130);
     zoomIn->SetTip(0x283D, 1, 0);
     CUiRegion* zoomOut = AddRegion();
-    zoomOut->CallSetRect(780, 130, 800, 160);
+    zoomOut->SetRect(780, 130, 800, 160);
     zoomOut->SetTip(0x283E, 1, 0);
     CUiRegion* north = AddRegion();
-    north->CallSetRect(780, 70, 800, 100);
+    north->SetRect(780, 70, 800, 100);
     north->SetTip(0x283F, 1, 0xC);
-    AddRegion()->CallSetRect(615, 0, 800, 165);
+    AddRegion()->SetRect(615, 0, 800, 165);
 
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the
     // picture too; 2: the markers, four texels of one colour each.
@@ -518,7 +514,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
 
     view_ = 0;
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
-    CallLayout();
+    Layout();
     northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359
 }

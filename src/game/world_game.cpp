@@ -50,13 +50,6 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "party_manager.h"
 #include "party_records.h"
 #include "game_lists.h"
@@ -204,7 +197,7 @@ namespace {
 void __cdecl DestroySaveStream() { g_saveStream->Destruct(); }   // 00578550
 void __cdecl ConstructSaveStream() {                             // 00578530
     g_saveStream->Construct();
-    GameAtExit(DestroySaveStream);
+    libcrt::AtExit(DestroySaveStream);
 }
 } // namespace
 
@@ -887,7 +880,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
         // The graph chunk of the .mob file.
         {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-            mfc::CString* path = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, mob);
+            mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
@@ -897,7 +890,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     }
     // Otherwise <map without extension>.grp.
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* base = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, map);
+    mfc::CString* base = MapPath(reinterpret_cast<mfc::CString*>(storage), map);
     int dot = base->ReverseFind('.');
     if (dot > 0) {
         mfc::CString cut = base->Left(dot);
@@ -962,7 +955,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     decoder.input.ConstructEmpty();
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* path = (mfc::CString*)ServerMapPathOriginal((void*)this, nullptr, storage, mob);
+        mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
         file.Open(*path, kOpenRead, 1);
         path->~CString();
     }
@@ -981,7 +974,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         script = reinterpret_cast<const char*>(text.s.data_);
     }
     ScriptReset(MainScript());
-    ScriptLoadLine(MainScript(), nullptr, &script, 1);
+    MainScript()->Load(&script, 1);
     decoder.input.FreeStorage();
     decoder.text.FreeStorage();
 }
@@ -1445,8 +1438,6 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
 // update (0058DFF0); the network pump (004122D0).
-int __fastcall ClientSegmentAt(void* client) { return ClientSegmentOriginal(client); }
-int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOriginal(server); }
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
 
@@ -1487,7 +1478,7 @@ void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         g_lastResources.Construct(kResourcesSingle);
-        GameAtExit(DestroyLastResources);
+        libcrt::AtExit(DestroyLastResources);
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
     if (gamecrt::mbscmp(wanted.GetString(),
@@ -1534,10 +1525,10 @@ void GameFlow::ProcessRequest() {
         clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
-        ClientSegmentAt(clientWorld);
-        ServerUpdateAt(TheServerWorld());
-        ClientSegmentAt(clientWorld);
-        ServerUpdateAt(TheServerWorld());
+        clientWorld->Segment();
+        TheServerWorld()->Update();
+        clientWorld->Segment();
+        TheServerWorld()->Update();
         LoadGame(requestTarget_);
         if (requestArg_) {
             const char* autoplay = kAutoplay;
@@ -1745,7 +1736,7 @@ GameFlow* TheGameFlow() { return &*g_gameFlow; }
 namespace {
 void __cdecl ConstructGameFlow() {   // 00578440
     g_gameFlow->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
 }
 void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }   // 005784C0
 } // namespace

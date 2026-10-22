@@ -6,7 +6,6 @@
 
 #include "chunk_archive.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 #include "resource_local.h"
 
 #include "ei/hook.h"

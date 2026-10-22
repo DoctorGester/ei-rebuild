@@ -5,9 +5,6 @@
 #include "options.h"
 #include "game_strings.h"
 #include "mod_folders.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "record_arrays.h"
 
 #include "../lib/crt.h"

@@ -12,8 +12,6 @@
 
 #include "dib.h"
 #include "dx_surface.h"
-#include "originals_engine.h"
-#include "originals_render.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"

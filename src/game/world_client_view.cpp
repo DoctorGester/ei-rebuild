@@ -16,10 +16,6 @@
 
 #include <cmath>
 #include <cstring>
-#include "originals_render.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -44,9 +40,6 @@ float* StackTop(CTransformPipeline* device, int index) {
     MatrixStack& stack = device->stacks_[index];
     return stack.matrices[stack.count - 1].m;
 }
-
-// 004D9880. out = a * b (4x4 float matrices; RET 8).
-void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
 
@@ -82,7 +75,7 @@ void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix)
         std::memcpy(stack.matrices[0].m, matrix, 0x40);
     } else {
         int depth = ++stack.count;
-        MatrixMultiply(stack.matrices[depth - 1].m, stack.matrices[depth - 2].m, matrix);
+        stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, matrix);   // 004D9880
     }
 }
 

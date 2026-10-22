@@ -19,9 +19,6 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "text_reader.h"
 #include "game_arrays.h"
 #include "game_slots.h"
@@ -45,7 +42,7 @@ struct TextReader : CTextManager {
     int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
     mfc::BOOL Close();                                         // 004DF020
 };
-mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
+mfc::BOOL TextReader::Open(const char* key) { return CTextManager::Open(key); }
 mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
     return CTextManager::Split(words, flag);
@@ -63,10 +60,10 @@ constexpr ElementFn DestructMaps = mfc::impl::DestructElementsAt<gamearrays::Zon
 constexpr ElementFn ConstructExits = mfc::impl::ConstructElementsAt<mfc::impl::Exits3C>;
 constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Exits>;
 
-// *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
+// *out = float(libcrt::Atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
 void StoreRadians(float* out, const char* text) {
-    const double degrees = GameAtof(text);
+    const double degrees = libcrt::Atof(text);
     *out = static_cast<float>(degrees * ei::kRadiansPerDegree);
 }
 
@@ -228,9 +225,9 @@ bool Loader::MapLine(const char* word) {
         Split();
         if (Count() > 2) {
             Map().restricted = true;
-            Map().restrictX = static_cast<float>(GameAtof(Word(0)));
-            Map().restrictY = static_cast<float>(GameAtof(Word(1)));
-            Map().restrictRadius = static_cast<float>(GameAtof(Word(2)));
+            Map().restrictX = static_cast<float>(libcrt::Atof(Word(0)));
+            Map().restrictY = static_cast<float>(libcrt::Atof(Word(1)));
+            Map().restrictRadius = static_cast<float>(libcrt::Atof(Word(2)));
         }
     } else if (Is(word, game::mapwords::Sky())) {
         Split();
@@ -252,7 +249,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 3) {
             // Word i to the area's i-th coordinate (x1, y1, x2, y2), and to deploy[i].
             auto put = [&](int i, float& area) {
-                float v = static_cast<float>(GameAtof(Word(i)));
+                float v = static_cast<float>(libcrt::Atof(Word(i)));
                 area = v;
                 if (deploy) Exit().deploy[i] = v;
             };
@@ -265,7 +262,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 4) StoreRadians(&Exit().angle, Word(4));
     } else if (Is(word, game::mapwords::PassTime())) {
         Split();
-        if (Count() > 0) Exit().passTime = static_cast<float>(GameAtof(Word(0)));
+        if (Count() > 0) Exit().passTime = static_cast<float>(libcrt::Atof(Word(0)));
     } else if (Is(word, game::mapwords::View())) {
         Split();
         words_.SetAtGrow(Count(), game::mapwords::Zero());
@@ -327,7 +324,7 @@ namespace {
 void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }   // 0045E6E0
 void __cdecl ConstructMapDatabase() {                              // 0045E6C0
     g_mapDatabase->Construct();
-    GameAtExit(DestroyMapDatabase);
+    libcrt::AtExit(DestroyMapDatabase);
 }
 } // namespace
 

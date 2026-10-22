@@ -25,11 +25,6 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -72,7 +67,7 @@ void CBriefingScreen::StartPhrases() {
     // (The original also constructs and destroys an unused CStringArray here.)
     mfc::CString key(BriefingSection());
     key += topic_;
-    if (!TextsOpenSection(TheTextManager(), nullptr, key)) {
+    if (!TheTextManager()->CTextManager::Open(key)) {
         state_ = 0;
         return;
     }
@@ -105,7 +100,7 @@ EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The original compares a CString copy of the name.)
-    bool human = GameMbscmp(unit->name, HumanPrototype()) == 0;
+    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)

@@ -9,8 +9,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -44,7 +42,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     BOOL found;
     {
         mfc::CString key = mfc::CString(kPerkPrefix) + label;
-        found = TextsOpenSection(texts, nullptr, key);
+        found = texts->CTextManager::Open(key);
     }
     if (found)
         texts->ReadLine(&name, 1);
@@ -83,7 +81,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     mfc::CString unused;
     {
         mfc::CString key = mfc::CString(kPartPrefix) + name;
-        TextsGetString(TheTextManager(), nullptr, key, &label);
+        TheTextManager()->CTextManager::GetString(key, &label);
     }
     label = mfc::CString(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];

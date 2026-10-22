@@ -8,7 +8,6 @@
 
 #include "ei/hook.h"
 #include "game/game_data.h"
-#include "game/originals_library.h"
 #include "gameapi.h"
 
 #include <climits>
@@ -39,7 +38,7 @@ constexpr unsigned short kLeadByte = 0x8000;
 // callers never read it.
 void SetIllegalSequence() {
     static const bool standalone = ei::Standalone();
-    if (!standalone) static_cast<int*>(CrtThreadDataOriginal())[2] = 42;
+    if (!standalone) static_cast<int*>(gamecrt::GameThreadData())[2] = 42;
 }
 
 // ---- The 12-byte long double (_LDBL12): a 96-bit number as six 16-bit words, lowest first ----

@@ -11,8 +11,6 @@
 #include "core_maths.h"
 #include "core_streams.h"
 #include "map_object.h"
-#include "originals_ai.h"
-#include "originals_world.h"
 #include "party.h"
 #include "party_manager.h"
 #include "party_records.h"
@@ -29,7 +27,6 @@
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -94,7 +91,7 @@ void __cdecl DestroyReceivedMessages() {   // 0066C520
 }
 void __cdecl ConstructReceivedMessages() {   // 0066C4D0
     g_receivedMessages->ConstructQueueStream();
-    GameAtExit(DestroyReceivedMessages);
+    libcrt::AtExit(DestroyReceivedMessages);
 }
 } // namespace
 

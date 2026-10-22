@@ -458,9 +458,7 @@
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_client_models.h"
-#include "../../src/game/originals_engine.h"
-#include "../../src/game/originals_ui.h"
-#include "../../src/game/originals_world.h"
+#include "harness_original.h"
 #include "../../src/render/render.h"
 #include "game/object_tables.h"
 #include "game/player_messages.h"
@@ -496,8 +494,9 @@ using SyncFn = int(__thiscall*)(void*);
 using OverflowFn = int(__thiscall*)(void*, int);
 SyncFn g_sync;
 
-// 005DC620: the console's command executor; the command text is passed in ECX.
-__declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+// 005DC620: the console's command executor (console::Execute; the command text in ECX).
+__declspec(naked) void __fastcall OriginalConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+void ConsoleExecute(const char* text) { ei::Standalone() ? console::Execute(text) : OriginalConsoleExecute(text); }
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
@@ -511,8 +510,9 @@ void SetCurrentConstructor(float constructor) {
     auto value = std::bit_cast<std::uint32_t>(constructor);
     ei::Standalone() ? GameSetConstructionVariable(value) : OriginalSetConstructionVariable(value);
 }
-// 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
-__declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
+// 004A74F0 (TemplateTable::Find, __thiscall on the class template vector 007AA5D8): the template of a class, null
+// if none.
+__declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
 // 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -1981,18 +1981,31 @@ std::string PostUnitMouse(const std::string& argument) {
 // 10-pixel grid, then pixel by pixel around the best; fails when no point comes within 1.5 units (the
 // point is off screen or hidden). The pick only reads the view and the terrain (its pick stack entry
 // is popped again), so the step is the plain mouse step at the point found.
-__declspec(naked) float* __fastcall HarnessPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
+__declspec(naked) float* __fastcall OriginalPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x0056C350)
+void HarnessPickSurface(void* world, float* out, int x, int y) {
+    if (ei::Standalone()) static_cast<CWorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
+    else OriginalPickSurface(world, nullptr, out, x, y);
+}
 
 // --- blink faces|open|close (R11d) ------------------------------------------------------------------
 // faces: the client world loads its units' face textures (0056DE80, thiscall; the game does it when
 // a zone is entered between zones, not for a new game). open / close: every unit of the client
 // world with a face texture shows its face's open or closed state: the game's own blink (00539010 /
-// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. Through the original addresses,
-// so a run of the original code takes its own. Fails when no unit has a face.
-__declspec(naked) void __fastcall HarnessLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
-__declspec(naked) void __fastcall HarnessBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
-__declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. A run of the original code takes its
+// own (the original addresses). Fails when no unit has a face.
+__declspec(naked) void __fastcall OriginalLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
+__declspec(naked) void __fastcall OriginalBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
+__declspec(naked) void __fastcall OriginalBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+void HarnessLoadUnitFaces(void* world) {
+    ei::Standalone() ? static_cast<CWorldClient*>(world)->LoadUnitFaces() : OriginalLoadUnitFaces(world);
+}
+void HarnessBlinkOpen(void* half) {
+    ei::Standalone() ? static_cast<CUnitClientSpecific*>(half)->BlinkOpen(true) : OriginalBlinkOpen(half, nullptr, 1);
+}
+void HarnessBlinkClose(void* half) {
+    ei::Standalone() ? static_cast<CUnitClientSpecific*>(half)->BlinkClose(true) : OriginalBlinkClose(half, nullptr, 1);
+}
 
 std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
@@ -2006,8 +2019,8 @@ std::string BlinkStep(const std::string& argument) {
         if (!object || object->GetClassId() != kClassUnit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (!half || !half->faceTexture) continue;
-        if (argument == "open") HarnessBlinkOpen(half, nullptr, 1);
-        else if (argument == "close") HarnessBlinkClose(half, nullptr, 1);
+        if (argument == "open") HarnessBlinkOpen(half);
+        else if (argument == "close") HarnessBlinkClose(half);
         ++faces;
     }
     Log("harness: blink %s: %d units with a face", argument.c_str(), faces);
@@ -2026,7 +2039,7 @@ std::string PostGroundMouse(const std::string& argument) {
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
-        HarnessPickSurface(HarnessClientWorld(), nullptr, out, lx * cw / 800, ly * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), out, lx * cw / 800, ly * ch / 600);
         const double dx = double(out[0]) - wx, dy = double(out[1]) - wy;
         return dx * dx + dy * dy;
     };
@@ -2060,7 +2073,7 @@ void LogGroundView() {
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
         float out[3] = {};
-        HarnessPickSurface(HarnessClientWorld(), nullptr, out, at.first * cw / 800, at.second * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), out, at.first * cw / 800, at.second * ch / 600);
         const std::size_t used = std::strlen(text);
         std::snprintf(text + used, sizeof(text) - used, " (%d,%d) %.1f %.1f;", at.first, at.second, out[0], out[1]);
     }
@@ -2083,7 +2096,7 @@ std::string LookAt(const std::string& argument) {
     const RECT client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
-    HarnessPickSurface(HarnessClientWorld(), nullptr, out, 400 * cw / 800, 300 * ch / 600);
+    HarnessPickSurface(HarnessClientWorld(), out, 400 * cw / 800, 300 * ch / 600);
     const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
     if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
         Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
@@ -3148,9 +3161,9 @@ void RunSteps() {
             int id = 0, constr = 0;
             sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 &&
-                !FindClassTemplate(ei::Standalone() ? &ThePartyManager()->templates   // game.exe's own in --no-hooks runs
-                                                         : &ei::OriginalGameData<PartyManager>(0x007AA5A0).templates,
-                                   nullptr, constr)) {
+                !(ei::Standalone() ? static_cast<void*>(ThePartyManager()->templates.Find(constr))
+                                   : OriginalFindClassTemplate(&ei::OriginalGameData<PartyManager>(0x007AA5A0).templates,
+                                                               nullptr, constr))) {   // game.exe's own in --no-hooks runs
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

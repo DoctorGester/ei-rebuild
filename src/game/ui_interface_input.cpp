@@ -11,8 +11,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 UiInputSide* CInterface3D::MouseTarget() const {

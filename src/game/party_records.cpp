@@ -15,9 +15,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
@@ -28,7 +25,7 @@
 namespace {
 
 // 006E848B _mbscmp.
-int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
+int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).

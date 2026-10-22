@@ -13,9 +13,6 @@
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "unit.h"
 #include "world.h"
 

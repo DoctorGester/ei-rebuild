@@ -15,10 +15,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_world.h"
-#include "originals_effects.h"
-#include "originals_script.h"
 
 #include <cstring>
 
@@ -180,14 +176,14 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to) {
         unsigned sound = (IsaacRandom::Global().Next() & 3) + 1;
         text.Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
         mfc::CString line = prefix + text;
-        ScriptLoadLine(&ScriptQueue(), nullptr, &line, 1);
+        ScriptQueue().Load(&line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = IsaacRandom::Global().Next() % 3 + 1;
         text.Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
                     static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
-        ScriptLoadLine(&ScriptQueue(), nullptr, &text, 1);
+        ScriptQueue().Load(&text, 1);
     }
 }
 

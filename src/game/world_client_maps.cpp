@@ -39,7 +39,6 @@
 #include "unit_db.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
-#include "originals_engine.h"
 #include "mod_folders.h"
 #include "world_map_files.h"
 #include "world_glue.h"
@@ -56,11 +55,6 @@
 #include "lib/stlp_list_refs.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "player_client.h"
 #include "ui_flying_hit_points.h"
 #include "unit_client_models.h"
@@ -1079,9 +1073,8 @@ EI_REWRITTEN(0x00566030, CWorldClient::Select);
 namespace {
 
 
-// Rebirth-patched callees (config/rebirth_patches.csv), kept as forwarders: the lights table loader
-// [00563930 (file name)] and the sound manager's constructor [006B6040].
-__declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
+// The sound manager's constructor (006B6040).
+void* __fastcall ConstructSoundManager(void* memory) { return static_cast<CSoundManager*>(memory)->Construct(); }
 
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
@@ -1180,7 +1173,7 @@ int CWorldClient::Setup() {
     }
     LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
-    sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
+    sounds_ = MakeCounted<CSoundManager>(0x8C0, ConstructSoundManager);
 
     // The text resources: the engine object's fields (in the original's order), the table, then
     // the class's constructor body.
@@ -1606,7 +1599,7 @@ int CWorldClient::LoadZone(CStream* block) {
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
     allod.MakeLower();
-    if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
+    if (!terrain->LoadMap(map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), map.GetString());
 
     FitGrid(objectGrid_, terrain);

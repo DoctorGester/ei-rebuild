@@ -22,6 +22,7 @@
 #include "random.h"
 #include "unit.h"
 #include "world.h"
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -30,10 +31,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -659,7 +656,7 @@ void CMpConnectScreen::Create() {
 
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
-        added->CallSetRect(left, top, right, bottom);
+        added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip, 1, 0);
     };
     region(163, 526, 237, 574, 0x9E98);   // connect
@@ -703,7 +700,7 @@ void CMpConnectScreen::Create() {
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);
-        TextsGetString(texts, nullptr, text, &text);
+        texts->CTextManager::GetString(text, &text);
         allodNames_.SetAtGrow(allodNames_.GetSize(), text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
@@ -776,7 +773,7 @@ void CMpConnectScreen::Create() {
     }
     for (int i = 0; i < kTextCount; ++i) {
         text.Format(ConnectionTextFormat(), i);
-        TextsGetString(texts, nullptr, text, &text);
+        texts->CTextManager::GetString(text, &text);
         texts_.SetAtGrow(texts_.GetSize(), text);
     }
 

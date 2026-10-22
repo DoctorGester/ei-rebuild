@@ -11,7 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

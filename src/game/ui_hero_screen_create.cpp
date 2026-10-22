@@ -25,10 +25,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -150,7 +146,7 @@ void CMpHeroScreen::Create() {
 
     // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
-        AddRegion()->CallSetRect(left, top, right, bottom);
+        AddRegion()->SetRect(left, top, right, bottom);
     };
     region(600, 400, 680, 500);
     region(720, 400, 800, 500);

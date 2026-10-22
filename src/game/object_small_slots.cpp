@@ -9,9 +9,6 @@
 #include "lib/mfc_array.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
 
 namespace {
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;

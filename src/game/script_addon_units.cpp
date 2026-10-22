@@ -13,10 +13,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
 #include "random.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

@@ -10,8 +10,6 @@
 #include "lib/mfc.h"
 #include "figure_mesh.h"
 #include "link_figure.h"   // FigureMeshDrawer
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "record_arrays.h"
 #include "scene_loader.h"
 #include "world.h"

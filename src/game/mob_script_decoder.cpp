@@ -2,7 +2,6 @@
 #include "mob_script_decoder.h"
 
 #include "ei/hook.h"
-#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>

@@ -16,7 +16,6 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_library.h"
 
 #include <cstdarg>
 
@@ -31,7 +30,7 @@ namespace scriptparse {
 
 int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
 int __cdecl IsSpace(int c) { return gamecrt::isspace(c); }
-int __cdecl Mbscmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
+int __cdecl Mbscmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
 StringOps* StringOps::InitN(const char* text, int length) {
     new (this) mfc::CString(text, length);
@@ -39,18 +38,6 @@ StringOps* StringOps::InitN(const char* text, int length) {
 }
 char* StringOps::LockBuffer() { return reinterpret_cast<mfc::impl::CString*>(this)->LockBuffer(); }   // 00700E6A
 void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->UnlockBuffer(); }       // 00700E7C
-
-// Through the original addresses (Rebirth patches the keyword lookups). ei_vectors has no game and
-// no Rebirth: ours.
-#ifndef EI_VECTORS_REPLAY
-__declspec(naked) void __fastcall ClassifyAt(const char*, int*, int*) EI_ORIGINAL(0x004CF600)
-__declspec(naked) const char* __fastcall SignatureAt(int, int) EI_ORIGINAL(0x004D0B10)
-__declspec(naked) const char* __fastcall KeywordNameAt(int) EI_ORIGINAL(0x004D0BA0)
-#else
-void __fastcall ClassifyAt(const char* text, int* id, int* rest) { ClassifyToken(text, id, rest); }
-const char* __fastcall SignatureAt(int id, int type) { return FunctionSignature(id, type); }
-const char* __fastcall KeywordNameAt(int id) { return KeywordName(id); }
-#endif
 
 } // namespace scriptparse
 
@@ -68,7 +55,7 @@ int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* f
     return 0;
 }
 
-// 004CF470 (Rebirth patches it: vanilla only). CScript::Error calls the original address.
+// 004CF470 (Rebirth patches it: vanilla only).
 int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -474,7 +461,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
         if (length == 0) continue;
         buffer[length] = 0;
 
-        if (Strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
+        if (gamecrt::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
             if (!*p) return Error(this, line, 1, "End of file before '%s'", kCommentClose);
@@ -482,7 +469,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
                 const char c = *p;
                 if (c == '\n') ++line;
                 if (c == quote) inQuote = !inQuote;
-                if (!inQuote && Strncmp(p, kCommentClose, std::strlen(kCommentClose)) == 0) {
+                if (!inQuote && gamecrt::strncmp(p, kCommentClose, std::strlen(kCommentClose)) == 0) {
                     p += std::strlen(kCommentClose);
                     break;
                 }
@@ -499,7 +486,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
         // Keep only the part ClassifyToken recognises (a keyword prefix, a number, a quoted
         // string); the rest is scanned again as the next token.
         int rest;
-        ClassifyAt(buffer, nullptr, &rest);
+        ClassifyToken(buffer, nullptr, &rest);
         p -= rest;
         mfc::CString text;
         reinterpret_cast<StringOps*>(&text)->InitN(buffer, static_cast<int>(std::strlen(buffer)) - rest);
@@ -525,7 +512,7 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     token.CopyConstruct(node->data);
     mfc::CString text(token.text);
     int found;
-    ClassifyAt(text, &found, nullptr);
+    ClassifyToken(text, &found, nullptr);
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.GetString());
     return 1;
 }

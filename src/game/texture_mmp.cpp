@@ -17,7 +17,6 @@
 #include "lib/mfc.h"
 #include "render/render.h"
 #include "dx_surface.h"
-#include "originals_render.h"
 
 #include "../hook/log.h"
 #include "game_data.h"

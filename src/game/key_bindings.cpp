@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 #include "text_split.h"
 #include "ui.h"
 #include "world_glue.h"
@@ -52,7 +51,7 @@ signed char* ActionOfScan() { return g_keyActions; }
 
 
 // 00700C05: operator+(CString, LPCTSTR).
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {

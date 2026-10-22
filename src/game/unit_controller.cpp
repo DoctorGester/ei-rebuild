@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
 
 namespace {
 constexpr std::uint32_t kFlagRelationsChanged = 0x80000;   // flags_

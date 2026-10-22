@@ -29,15 +29,11 @@
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_effects.h"
-#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

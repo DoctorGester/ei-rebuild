@@ -7,8 +7,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 
 #include <bit>
 #include <cstdint>

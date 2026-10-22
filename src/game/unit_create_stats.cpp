@@ -21,7 +21,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
@@ -471,7 +470,7 @@ float CurveHitPoints(UnitStats* stats) {
 void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
     float oldHitPoints = static_cast<float>(Reduce(oldMaximum));
-    int index = SkillRecordIndex(database, nullptr, record);
+    int index = const_cast<SkillDatabase*>(database)->IndexOfLevel(record);
     int skill = index / 3;
     int level = index % 3;
     std::uint8_t& known = skillLevels[skill];   // unchecked, as the original
@@ -561,13 +560,13 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
-    int group = SkillRecordIndex(database, nullptr, record) / 3;
+    int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
     for (int k = 0; k < 26; ++k) {
         std::uint8_t level = skillLevels[k];
         if (level == 0) continue;
         const ::SkillLevelRecord* known = LevelRecordAt(static_cast<std::uint32_t>(3 * k + level - 1));
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
-        if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
+        if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return 0;
     }
     int own = database->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;

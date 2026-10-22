@@ -362,7 +362,7 @@ void Teleport(CSpellEffect* e) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }
-    SectorMapMove(e->world->Sectors(), nullptr, e->caster, &e->targetPoint);
+    e->world->Sectors()->Move(e->caster, &e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;

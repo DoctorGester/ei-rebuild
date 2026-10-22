@@ -11,9 +11,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_engine.h"
 #include "game_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders

@@ -5,7 +5,6 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "originals_engine.h"
 #include "text_split.h"
 #include "game_data.h"
 

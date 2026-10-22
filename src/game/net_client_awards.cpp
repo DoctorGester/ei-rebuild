@@ -12,10 +12,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_core.h"
 #include "lib/mfc_list.h"
 #include "game_slots.h"
 #include "world.h"

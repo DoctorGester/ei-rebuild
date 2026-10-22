@@ -13,10 +13,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 
 #include <bit>
 #include <cstring>

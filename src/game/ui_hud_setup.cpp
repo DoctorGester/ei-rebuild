@@ -17,8 +17,6 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"       // SpritePlaceOriginal
-#include "originals_world.h"
 #include "game_data.h"
 #include "world_data.h"
 

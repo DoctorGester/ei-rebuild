@@ -34,17 +34,12 @@ inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s);
 
 
 // 004CF470: formats the error message into the CScript's error text and sets code and line;
-// returns 0. (CScript::Error forwards to the original address.)
+// returns 0. (CScript::Error is the same.)
 int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
 int __cdecl ScriptError(CScript* script, int line, int code, const char* format, ...);
 
 // 004D5880 (ECX the path, EDX the text; script_text_file.cpp): a text file's lines joined into
 // *text (emptied first). 0 when the file cannot be opened or read (MFC's CFileException, caught).
 int __fastcall ReadTextFile(const char* path, mfc::CString* text);
-
-// Loader functions called through their original addresses.
-void __fastcall ClassifyAt(const char* text, int* id, int* rest);   // 004CF600
-const char* __fastcall SignatureAt(int id, int type);               // 004D0B10
-const char* __fastcall KeywordNameAt(int id);                        // 004D0BA0
 
 } // namespace scriptparse

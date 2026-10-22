@@ -6,9 +6,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_core.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
@@ -28,9 +25,6 @@ namespace {
 bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
     return search->Begin(unit, x0, y0, x1, y1);
 }
-// 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
-__declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
-    EI_ORIGINAL(0x005C46C0)
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
@@ -310,14 +304,11 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         float b = Abs(px - static_cast<float>(x87::fistp(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
-        std::uint32_t fractionBits;
-        std::memcpy(&fractionBits, &fraction, 4);
         int octant = x87::fistp(static_cast<float>(x87::fpatan(by, bx) * 1.273239605931458));
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);
-        path->smoothing = SmoothPath(&smoother, nullptr, unit, this, &pathCells,
-                                     direction + 1, fractionBits);
+        path->smoothing = smoother.Smooth(unit, this, &pathCells, direction + 1, fraction);   // 005C46C0
         if (!found) goto done;
         AdvancePath(unit, path);
     }

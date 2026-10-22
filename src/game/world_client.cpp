@@ -28,13 +28,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
-#include "originals_effects.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -187,7 +180,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < exits_.size; ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (GameMbscmp(exits_[i].target, "none") == 0) continue;
+        if (gamecrt::mbscmp(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
         return 1;
     }
@@ -283,7 +276,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     name = name.Right(length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (GameMbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+        if (gamecrt::mbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // FCOMP + TEST AH,0x40.
     EI_NAN_AUDIT(value);
@@ -329,9 +322,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     case 3: flags = 1; break;
     }
     static_assert(sizeof(rainSnow_) == sizeof(CRainSnow) && offsetof(CWorldClient, rainSnow_) + offsetof(CRainSnow, mode) == 0x7A8);
-    if (GameMbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (GameMbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (GameMbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
+    if (gamecrt::mbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
+    else if (gamecrt::mbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
+    else if (gamecrt::mbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
     const int weather = RainSnow()->mode;

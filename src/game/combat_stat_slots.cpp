@@ -6,7 +6,6 @@
 #include "item.h"
 #include "item_db.h"
 #include "map_object.h"
-#include "originals_ai.h"
 #include "ui.h"
 #include "unit_ai.h"
 #include "world.h"

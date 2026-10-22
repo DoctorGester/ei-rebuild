@@ -7,8 +7,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"

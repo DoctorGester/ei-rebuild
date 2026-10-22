@@ -11,12 +11,9 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -95,8 +92,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (CSpell* spell = weapon->spell_) {
             description = "Unknown";
-            int found = TextsOpenSection(TheTextManager(), nullptr,
-                                 mfc::operator+(mfc::CString("spell "),
+            int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("spell "),
                                                 SpellPrototype(spell)->code));
             if (found) TheTextManager()->ReadLine(&description, 1);
             line.Format("%s %s\n", labels_[3].GetString(), description.GetString());   // "%s %s\n"
@@ -210,10 +206,10 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     mfc::CString hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    int found = TextsOpenSection(TheTextManager(), nullptr, mfc::operator+(mfc::CString("perk "), title));
+    int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("perk "), title));
     if (found) TheTextManager()->ReadLine(&tip, 1);
     title.Format("%s %d\n", labels_[0].GetString(), shown->Params()->attributes[0]);   // "%s %d\n"
-    if (TextsOpenSection(TheTextManager(), nullptr, "tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
+    if (TheTextManager()->CTextManager::Open("tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }

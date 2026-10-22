@@ -21,11 +21,7 @@
 #include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "options.h"
-#include "originals_world.h"
-#include "originals_ui.h"
 #include "script.h"
 #include "texture.h"            // the renderer's device object
 #include "ui.h"

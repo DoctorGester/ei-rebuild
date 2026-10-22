@@ -12,9 +12,6 @@
 
 #include "ei/hook.h"
 #include "world.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 
 #include <cstdint>
 

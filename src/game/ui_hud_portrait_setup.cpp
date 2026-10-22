@@ -17,9 +17,6 @@
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "record_vectors.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -172,7 +169,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     Sprite(sceneObjects_.data[column * 5 + 4])->visible_ = 0;   // the column's frame
     slots_[column].restB_ = kHudRestRotation;
     ++count_;
-    AddRegion()->CallSetRect(x, 510, right, 600);
+    AddRegion()->SetRect(x, 510, right, 600);
 }
 
 void CHudPortraits::Rebuild(int wide) {

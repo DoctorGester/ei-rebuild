@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -72,7 +71,7 @@ int CTrapObject::UpdateTrap() {
         float y = localPosition_.y;
         double z = world->RawSurfaceHeightAt(x, y);
         line.Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
-        ScriptLoadLine(TheMissionScript(), nullptr, &line, 1);
+        TheMissionScript()->Load(&line, 1);
         flags_ &= ~kArmed;
     }
     units.RemoveAll();

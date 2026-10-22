@@ -17,16 +17,12 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "originals_world.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_ai.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"

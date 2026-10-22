@@ -13,9 +13,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -45,8 +42,8 @@ EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
 // --- 0062BCB0: a script line's destructor ---------------------------------------------------------
 
 void TitleLine::Destroy() {
-    CStringDestroy(&style);
-    CStringDestroy(&text);
+    style.~CString();
+    text.~CString();
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
@@ -81,7 +78,7 @@ BOOL CCreditsScreen::Draw(int pass) {
     }
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
-        PlayMoviesOriginal(mfc::operator+(name_, kOutroSuffix), 0, 0, 0, 0);
+        app::PlayMovies(mfc::operator+(name_, kOutroSuffix), false, false, 0, 0);
         app::g_interfaceHasScreen = 0;
         Close();
         return 1;

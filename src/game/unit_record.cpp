@@ -6,9 +6,6 @@
 
 #include "combat.h"
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"

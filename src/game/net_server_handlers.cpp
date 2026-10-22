@@ -13,7 +13,6 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "net_second_master.h"
-#include "originals_world.h"
 #include "world.h"             // TheGameFlow
 
 #include "ei/hook.h"

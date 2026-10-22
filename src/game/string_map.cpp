@@ -23,8 +23,6 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 namespace strmap {
@@ -108,7 +106,7 @@ namespace {
 void __cdecl DestroyDebugPanel() { g_debugPanel->Destruct(); }   // 00444680
 void __cdecl ConstructDebugPanel() {                             // 00444660
     g_debugPanel->Construct();
-    GameAtExit(DestroyDebugPanel);
+    libcrt::AtExit(DestroyDebugPanel);
 }
 } // namespace
 

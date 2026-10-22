@@ -19,8 +19,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -238,7 +236,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
         if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->Brain()->StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
-        AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
+        AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics_.SetAtGrow(topics_.size, GoodbyeTopic());
     topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
     topicBar_->CallSetPosition(0);

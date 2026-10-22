@@ -6,7 +6,6 @@
 // original's body has always run already; the rewrite is for the standalone build.
 #include "script.h"
 
-#include "originals_script.h"
 #include "world_glue.h"
 
 #include "ei/hook.h"

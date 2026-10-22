@@ -30,9 +30,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -83,7 +80,7 @@ mfc::CString& LastQuest() { return *g_lastQuest; }
 
 void __cdecl ConstructLastQuest() {   // 0064BE00
     g_lastQuest.Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
 }
 void __cdecl DestroyLastQuest() {   // 0064BE20
     if (g_lastQuestDestroyed & 1) return;
@@ -157,7 +154,7 @@ void Turn(CUiMesh* sprite, float angle) {
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 
@@ -311,7 +308,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             Turn(marker, kExitTurn);
             gameapi::OffsetRect(&rect, -10, 0);
         }
-        region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
+        region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
@@ -519,7 +516,7 @@ void CObjectivesWindow::ShowQuest() {
         int rightPixel = static_cast<int>(gamecrt::Ftol(D(right)));
         int topPixel = static_cast<int>(gamecrt::Ftol(D(top)));
         int leftPixel = static_cast<int>(gamecrt::Ftol(D(left)));
-        region->CallSetRect(leftPixel, topPixel, rightPixel, bottomPixel);
+        region->SetRect(leftPixel, topPixel, rightPixel, bottomPixel);
         region->SetTip(0x138F0, 1, 0);
     }
 }

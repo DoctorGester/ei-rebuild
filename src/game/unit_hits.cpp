@@ -18,8 +18,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "originals_library.h"
-#include "originals_units.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

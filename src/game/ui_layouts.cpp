@@ -28,12 +28,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_render.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "record_lists.h"
 #include "game_data.h"
@@ -47,12 +41,7 @@
 
 // --- Forwarders ---------------------------------------------------------------------------------
 
-__declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x005FC9E0)
-__declspec(naked) void CUiMesh::SetTriangle(float, float, float, float, float, float, float, float, float, float, float,
-                                            float, float, float) EI_ORIGINAL(0x005E99D0)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-__declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
-    EI_ORIGINAL(0x005E7D60)
 
 namespace {
 
@@ -66,7 +55,7 @@ void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 // A region with the rectangle (left, top, right, bottom).
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 
@@ -278,7 +267,7 @@ void CEscMenu::Build() {
         CUiRegion* region = window.AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, source);
-        region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
+        region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     window.models_.data[0]->Play(1);
     window.interface_->PlaySound("buttons\\menu\\shift.wav", 0);
@@ -458,7 +447,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // its second master server (its call at 006330A9, net_second_master.h).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
-        TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
+        GameClientTexts()->CTextManager::GetString("reserved_04", &text);
         TheInterface()->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
@@ -500,15 +489,10 @@ int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORRE
     return surface->DrawTextIn(text, rect, font, colour, format, flag);   // 005FDE20
 }
 
-// The extent of `text` in interface font `font`; the CString is taken by value and its data
-// handed over (the callee releases it).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
-    char* data;
-    std::memcpy(&data, &text, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&text, &empty, sizeof(data));   // the callee releases the data
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size;
 }
 } // namespace
@@ -663,7 +647,7 @@ void CCreditsScreen::Build() {
         TheMusicSystem()->Stop();
     }
     TheCursor()->ShowImage(0);
-    PlayMoviesOriginal(mfc::operator+(name, "fin"), 1, 0, 0, 0);   // "<name>fin"
+    app::PlayMovies(mfc::operator+(name, "fin"), true, false, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
@@ -699,7 +683,7 @@ void CCreditsScreen::Build() {
                                 0;   // "#scroll"
             }
             words.Next();
-            record.speed = static_cast<float>(GameAtof(words.word));
+            record.speed = static_cast<float>(libcrt::Atof(words.word));
             words.Next();
             record.style = words.WordOrNull();
             words.Next();

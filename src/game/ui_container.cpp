@@ -7,8 +7,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/stlp.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 namespace {

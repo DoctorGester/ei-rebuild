@@ -10,15 +10,12 @@
 #include "ui_item_info.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -120,7 +117,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text.Format(kMoveKey, moveBonus - 1);
-        TextsGetString(texts, nullptr, panel.text, &suffix);
+        texts->CTextManager::GetString(panel.text, &suffix);
     } else {
         suffix.Empty();
     }
@@ -143,7 +140,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text.Format(kDamageKey, combat.damageType);
-        TextsGetString(texts, nullptr, panel.text, &suffix);   // else the move text stays
+        texts->CTextManager::GetString(panel.text, &suffix);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
@@ -175,7 +172,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             } else {
                 suffix.Format(kWeaker, -difference);
             }
-            TextsGetString(texts, nullptr, suffix, &suffix);
+            texts->CTextManager::GetString(suffix, &suffix);
             panel.text.Format(kTwoTexts, panel.labels[16].GetString(), suffix.GetString());
             panel.DrawLine();
         }
@@ -184,7 +181,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     }
 
     if (IsMultiplayerClient() && !outside) {
-        TextsGetString(texts, nullptr, kCampExp, &suffix);
+        texts->CTextManager::GetString(kCampExp, &suffix);
         panel.text.Format(kValue, suffix.GetString(), params->unspentExperience);
         panel.DrawLine();
     }

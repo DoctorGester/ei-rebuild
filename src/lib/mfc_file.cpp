@@ -6,7 +6,6 @@
 
 #include "ei/hook.h"
 #include "gameapi.h"
-#include "game/originals_library.h"   // MbsInc
 #include "game/game_data.h"
 #include "game/asset_text.h"   // text::kUtf8
 
@@ -107,8 +106,8 @@ char* Fullpath(char* out, const char* path, std::size_t size) {
 
 // '\\' or '/'.
 bool IsSeparator(char c) { return c == '\\' || c == '/'; }
-char* Next(char* p) { return const_cast<char*>(::MbsInc(p)); }
-const char* Next(const char* p) { return ::MbsInc(p); }
+char* Next(char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
+const char* Next(const char* p) { return gamecrt::mbsinc(p); }
 
 
 constexpr unsigned kMaxFileName = 256;   // _MAX_FNAME, the name getters' buffer

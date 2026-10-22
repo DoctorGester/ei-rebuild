@@ -13,11 +13,6 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 

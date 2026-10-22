@@ -22,10 +22,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "bink_video.h"
 #include "game_data.h"
@@ -92,7 +88,7 @@ EI_REWRITTEN(0x005F51F0, CInterface3D::ResetSavedState);
 
 // --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
 
-void CUiRegion::SetRectFrom(RECT rect) { CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
 // --- 006335E0: the version line --------------------------------------------------------------
@@ -104,7 +100,7 @@ void CMainMenu::AddVersionLine() {
     UiSurfaceGetDC(surface);
     static_cast<CUiSurface*>(surface)->Clear();
     mfc::CString text;
-    TextsGetString(TheTextManager(), nullptr, kVersionKey, &text);
+    TheTextManager()->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);

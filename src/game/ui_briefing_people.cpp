@@ -22,10 +22,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "originals_ai.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -85,7 +81,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     if (!controller) return;
     Vector3 target{x, y, serverUnit->localPosition_.z};
     if (immediate) {
-        SectorMapMove(TheSectorMap(), nullptr, serverUnit, &target);
+        TheSectorMap()->Move(serverUnit, &target);
         Vector3 facing = Normalised(dx, dy, dz);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);

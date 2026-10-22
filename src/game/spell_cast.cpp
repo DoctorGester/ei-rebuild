@@ -12,9 +12,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"   // SetVtable
 #include "lib/crt.h"
-#include "originals_effects.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
 #include "lib/stlp_string.h"

@@ -10,7 +10,6 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "lib/mfc_string.h"
 #include "lib/mfc_slots.h"
@@ -27,17 +26,10 @@ constexpr COLORREF kConstructedColour = 0x1C8DC;     // the format token constru
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
-// 005F8340 (Rebirth-patched, called through its address; thiscall on the interface, RET 0xC):
-// the extent of `text` in interface font `font`. It takes a CString by value and releases it; a
-// naked forwarder cannot declare one, so the string's data pointer is handed over (as ui_text.cpp).
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size;
 }
 

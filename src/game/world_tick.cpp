@@ -22,10 +22,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_script.h"
 #include "game_lists.h"
 #include "game_data.h"
 
@@ -163,7 +159,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
         WakeCache().length = 0;
-        GameAtExit(ei::short_functions::Ret);
+        libcrt::AtExit(ei::short_functions::Ret);
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
@@ -240,12 +236,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        GameAtExit(FreeRemovedIds);
+        libcrt::AtExit(FreeRemovedIds);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        GameAtExit(FreeSleepingIds);
+        libcrt::AtExit(FreeSleepingIds);
     }
     RemovedIds().RemoveAll();
     SleepingIds().RemoveAll();

@@ -9,7 +9,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_library.h"
 
 #include <cstring>
 

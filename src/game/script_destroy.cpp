@@ -12,11 +12,8 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "engine_object.h"
-#include "originals_world.h"
-#include "originals_script.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "record_arrays.h"

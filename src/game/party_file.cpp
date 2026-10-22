@@ -6,8 +6,6 @@
 
 #include "core_streams.h"
 #include "net_link.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -121,7 +119,7 @@ constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 namespace {
 void __cdecl ConstructSavedParties() {   // 0065F2A0
     g_savedParties->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x0065F2C0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0065F2C0));
 }
 void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }   // 0065F2C0
 } // namespace

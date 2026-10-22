@@ -3,7 +3,6 @@
 // what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "ai_map.h"
 #include "combat.h"
-#include "originals_combat.h"
 #include "combat_plan.h"
 
 #include "item.h"
@@ -23,12 +22,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"

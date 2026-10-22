@@ -24,9 +24,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_render.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
@@ -60,7 +57,7 @@ double Unsigned(std::uint32_t value) {
 
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
-double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), nullptr, min, max); }
+double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.

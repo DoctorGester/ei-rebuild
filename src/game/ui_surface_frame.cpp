@@ -8,7 +8,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_gdi.h"
-#include "originals_ui.h"
 
 void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     if (!holder_) return;

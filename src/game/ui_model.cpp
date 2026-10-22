@@ -13,8 +13,6 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

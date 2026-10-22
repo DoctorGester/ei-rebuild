@@ -12,8 +12,6 @@
 #include "lib/mfc_array.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_ai.h"
 #include "unit_ai.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"

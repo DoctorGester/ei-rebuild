@@ -5,7 +5,6 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
-#include "game/originals_library.h"   // MbsInc
 #include "game/game_data.h"
 
 #include <cstring>
@@ -38,7 +37,7 @@ using uchar = unsigned char;
 // The string helpers take the CRT's char arguments the way the library passes them.
 const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
 uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
-char* Inc(const char* p) { return const_cast<char*>(::MbsInc(p)); }
+char* Inc(const char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
 bool Contains(const char* set, char c) { return libcrt::Mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
 bool IsSpace(char c) { return libcrt::Ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }

@@ -5,7 +5,6 @@
 #include "ai_alarm.h"
 #include "combat.h"
 #include "map_object.h"
-#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -27,11 +26,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
 #include "world_effect.h"
 #include "game_data.h"
 #include "game_singletons.h"

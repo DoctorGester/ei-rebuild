@@ -15,11 +15,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_core.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world.h"
 #include "world_data.h"
 #include "lib/crt_iostream.h"

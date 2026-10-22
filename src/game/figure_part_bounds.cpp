@@ -10,8 +10,6 @@
 #include "lib/crt.h"
 #include "ei/hook.h"
 #include "engine_object.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 
 #include <cstdint>
 

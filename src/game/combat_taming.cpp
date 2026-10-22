@@ -16,12 +16,8 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_ai.h"
 
 namespace {
 
@@ -37,7 +33,7 @@ void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 template <typename T>
 void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
 

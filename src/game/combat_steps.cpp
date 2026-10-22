@@ -14,8 +14,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_library.h"
-#include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

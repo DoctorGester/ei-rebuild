@@ -26,11 +26,6 @@
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -145,9 +140,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
             animation = libcrt::Atoi(words[1]);
         } else if (Compare(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kRadiansPerDegree * GameAtof(words[2]));
-                distance = static_cast<float>(GameAtof(words[3]));
-                height = static_cast<float>(GameAtof(words[4]));
+                angle = static_cast<float>(kRadiansPerDegree * libcrt::Atof(words[2]));
+                distance = static_cast<float>(libcrt::Atof(words[3]));
+                height = static_cast<float>(libcrt::Atof(words[4]));
                 view = true;
             }
             preset = libcrt::Atoi(words[1]);

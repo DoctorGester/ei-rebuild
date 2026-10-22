@@ -21,11 +21,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_world.h"
 #include "game_data.h"
 
 namespace {

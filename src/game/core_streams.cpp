@@ -9,13 +9,11 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 
 #include <intrin.h>
 
 #include <cstring>
 #include <new>
-#include "originals_engine.h"
 
 namespace {
 using ei::SetVtable;

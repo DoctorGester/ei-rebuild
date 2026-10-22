@@ -362,10 +362,16 @@ int Fileno(const gamecrt::CrtFile* file);
 } // namespace libcrt
 
 namespace gamecrt {
-// _mbsicmp (006E8767) on char strings (the single-byte code page makes them the same bytes).
+// _mbsicmp (006E8767) and _mbsinc (006E9947) on char strings (the single-byte code page makes them the same bytes).
 inline int __cdecl mbsicmp(const char* a, const char* b) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
+inline const char* __cdecl mbsinc(const char* p) {
+    return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
+}
+// The game CRT's _getptd (006F00D1, plain RET): game.exe's per-thread data (allocated on first use), for the paths
+// that run in game.exe (the harness's rand, errno); the image has no code at the address and never calls it.
+inline void* __cdecl GameThreadData() { return reinterpret_cast<void*(__cdecl*)()>(0x006F00D1)(); }
 } // namespace gamecrt
 
 // The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same

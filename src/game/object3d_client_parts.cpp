@@ -12,11 +12,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 
 #include <cstring>
 #include <new>

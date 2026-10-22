@@ -18,8 +18,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -48,16 +46,10 @@ constexpr int kMarkerSprite = 4;
 constexpr int kMinutesPerDay = 1440;
 
 
-// The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 

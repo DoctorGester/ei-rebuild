@@ -16,13 +16,9 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

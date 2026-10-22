@@ -41,14 +41,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_window.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_effects.h"
-#include "originals_gameplay.h"
-#include "originals_script.h"
-#include "originals_core.h"
 #include "game_data.h"
 #include "ei/vcall.h"
 
@@ -327,7 +319,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
     if (atStart && gameResult_ != kGameResultLost) script += worlddata::HeroArrivalText();
     script += worlddata::ScriptEndText();
-    if (player) ScriptLoadLine(MainScript(), nullptr, &script, 1);
+    if (player) MainScript()->Load(&script, 1);
 }
 
 // ---- UseQuickItem -------------------------------------------------------------------------------

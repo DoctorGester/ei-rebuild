@@ -21,8 +21,6 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "texture.h"   // g_stageBlocks
-#include "originals_ui.h"
-#include "originals_gameplay.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -30,7 +28,6 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "originals_world.h"
 #include "game_data.h"
 
 #include <cstdint>

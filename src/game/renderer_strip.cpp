@@ -16,10 +16,7 @@
 #include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
 #include "device_buffers.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -65,7 +62,7 @@ void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* o
     if (g_guards & bit) return;
     array = lib::AlignedArray<T>{};
     g_guards |= bit;
-    GameAtExit(onExit);
+    libcrt::AtExit(onExit);
 }
 
 void EnsureStatics() {

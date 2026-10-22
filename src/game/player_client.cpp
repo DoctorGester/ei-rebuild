@@ -11,11 +11,7 @@
 #include "app_helpers.h"
 #include "lib/crt_iostream.h"
 #include "camera.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "net_link.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "lib/static_object.h"
 #include "party.h"
 #include "player_messages.h"
@@ -27,12 +23,8 @@
 #include "effects.h"
 #include "item.h"
 #include "resource_manager.h"
-#include "originals_ai.h"
-#include "originals_effects.h"
-#include "originals_ui.h"
 #include "unit_client_models.h"
 #include "unit_db.h"
-#include "originals_units.h"
 #include "console.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -193,13 +185,13 @@ int CPlayerClient::DispatchMessages() {
     std::uint8_t type = 0xFF;
     std::uint8_t previous = 0xFF;
     for (;;) {
-        if (!in_.ok_) return PlayerMessageErrorOriginal(TextReadPastEnd(), previous, type);
+        if (!in_.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
         previous = type;
         if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
+        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
-        if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
-        if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);
+        if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
+        if (!handler(this, nullptr)) return PlayerMessageError(TextHandlerFailed(), previous, type);
     }
 }
 
@@ -629,7 +621,7 @@ int CPlayerClient::OnNewObject() {
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (int i = 0; i < parts.GetSize(); ++i) {
-            if (GameMbscmp(parts[i], TextHairPart()) != 0) continue;
+            if (gamecrt::mbscmp(parts[i], TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.RemoveAt(i, 1);
             else parts[i].Format(TextHairFormat(), hair);
@@ -867,7 +859,7 @@ constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
 void __cdecl ConstructPartyIdSet() {   // 00668B40
     g_partyIdSet->Construct(100, 0, 0, 0);
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
 }
 void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }   // 00668B60
 

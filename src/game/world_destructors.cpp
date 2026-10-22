@@ -8,7 +8,6 @@
 #include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
-#include "originals_world.h"
 #include "record_lifetime.h"
 #include "registry.h"
 #include "script.h"

@@ -12,8 +12,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_thread.h"
 #include "game_singletons.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 
 namespace {
@@ -141,7 +139,7 @@ long& MouseDragY() { return g_cursor->motion_.y; }
 namespace {
 void __cdecl ConstructGameCursor() {   // 005E4DD0
     g_cursor->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
 }
 void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }   // 005E4DF0
 } // namespace

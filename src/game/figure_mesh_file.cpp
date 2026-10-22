@@ -9,10 +9,8 @@
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 #include "object_maths.h"
-#include "originals_core.h"
 
 #include <cstring>
-#include "originals_library.h"
 #include "game_data.h"
 
 namespace {
@@ -139,7 +137,7 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     CrossProduct(&cross, v, *p);
     ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
     float ww = static_cast<float>(static_cast<double>(w) * w);
-    float k = static_cast<float>(ww - DotRaw(&v, &v));
+    float k = static_cast<float>(ww - Dot(v, v));
     ScaleVector(&scaled, *p, k);
     AddVectors(&sum, scaled, turned);
     AddVectors(&rotated, sum, along);

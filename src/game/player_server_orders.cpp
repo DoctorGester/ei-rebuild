@@ -9,7 +9,6 @@
 #include "map_object.h"
 #include "net_classes.h"
 #include "net_messages.h"
-#include "originals_world.h"
 #include "party.h"
 #include "unit.h"
 #include "ui.h"

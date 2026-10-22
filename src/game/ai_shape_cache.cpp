@@ -16,7 +16,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_hashes.h"
-#include "originals_library.h"
 
 #include <cstdint>
 #include <new>
@@ -86,7 +85,7 @@ namespace {
 void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }   // 005B31E0
 void __cdecl ConstructUnitShapes() {   // 005B31C0
     g_unitShapes->Construct();
-    GameAtExit(DestroyUnitShapes);
+    libcrt::AtExit(DestroyUnitShapes);
 }
 } // namespace
 
