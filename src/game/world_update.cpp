@@ -85,13 +85,11 @@ int CWorldServer::Update() {
             DropPlayer(this, player);
     }
 
-    if (CRefObject* held = shared5C_.ptr) {
-        auto* handle = static_cast<CWorldHandle*>(held);
+    if (CWorldHandle* handle = shared5C_.Get()) {
         handle->Pump();
         AcceptNewPlayers(handle);
     }
-    if (CRefObject* pending = netSession_.ptr) {
-        auto* session = static_cast<netlink::DriverSession*>(pending);
+    if (netlink::DriverSession* session = netSession_.Get()) {
         net::ServerSession* server = net::GameServer();
         if (server && !(server->flags7_ & CRefCounted::kDetached)) session->PumpDrivers(server);
         AcceptNewPlayers(session);

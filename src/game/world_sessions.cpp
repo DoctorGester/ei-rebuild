@@ -86,7 +86,7 @@ public:
     }
     virtual bool Query() { return _purecall() != 0; }                           // 4: pure
     virtual void Pump() {}                                                      // 5: 0055F190 (empty)
-    virtual void TakeNew(void*) { _purecall(); }                                // 6: pure
+    virtual void TakeNew(JoinedLinks*) { _purecall(); }                         // 6: pure
 
 private:
     CPlayerSource* Object() { return ObjectAs<CPlayerSource>(); }
@@ -101,7 +101,7 @@ public:
     virtual CRefObject* Clone() { return Object()->CWorldHandle::Clone(); }    // 3: 0055F1A0
     virtual bool Query() { return false; }                                      // 4: 0055F250
     virtual void Pump() {}                                                      // 5: 0055F190 (empty)
-    virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00478880
+    virtual void TakeNew(JoinedLinks* joined) { Object()->TakeNewImpl(joined); }   // 6: 00478880
 
 private:
     CWorldHandle* Object() { return ObjectAs<CWorldHandle>(); }
@@ -118,7 +118,7 @@ public:
     virtual CRefObject* Clone() { return Object()->CClientHandle::Clone(); }   // 3: 005626B0
     virtual bool Query() { return false; }                                      // 4: 005626F0
     virtual void Pump() {}                                                      // 5: 0055F190 (empty)
-    virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00562700
+    virtual void TakeNew(JoinedLinks* joined) { Object()->TakeNewImpl(joined); }   // 6: 00562700
 
 private:
     CClientHandle* Object() { return ObjectAs<CClientHandle>(); }
@@ -207,9 +207,8 @@ int CClientHandle::OnShutdown() {   // 005626D0
     return 0;
 }
 
-void CClientHandle::TakeNewImpl(void* joined) {   // 00562700
-    auto* links = static_cast<mfc::CList<RefPtr>*>(joined);
-    for (auto* node = links->head; node; node = node->next) ReleaseCounted(node->data.ptr);
+void CClientHandle::TakeNewImpl(JoinedLinks* links) {   // 00562700
+    for (auto* node = links->head; node; node = node->next) ReleaseCounted(node->data);
     links->RemoveAll();
 }
 
