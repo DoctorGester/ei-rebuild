@@ -83,7 +83,7 @@ void InitEngineObject(CEngineObject* object) {
 void ConstructString(void* string) { new (string) mfc::CString(); }
 void DestroyString(void* string) { static_cast<mfc::CString*>(string)->~CString(); }
 
-// A memory stream member (vtable 0073BD90 while it frees its buffer, then its base's).
+// A memory stream member (the memory stream table while it frees its buffer, then its base's).
 void DestroyStream(CMemoryStream* stream) {
     SetVtable(stream, kMemoryStreamVtable);
     if (stream->data_) gamecrt::operator_delete(stream->data_);
@@ -219,13 +219,13 @@ void CMapObject::SetUpMapObject() {
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
+    SetVtable(stream, CMemoryStream::QueueStreamVtable());
     stream = &records->header_[1];
     stream->ConstructBase();
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
+    SetVtable(stream, CMemoryStream::QueueStreamVtable());
     records->Reset();
     companion = nullptr;
     PackedVitals()->Reset();

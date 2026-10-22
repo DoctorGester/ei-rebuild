@@ -53,7 +53,7 @@ namespace {
 
 // ---- Constants --------------------------------------------------------------------------------
 
-// kMemoryStreamVtable (0073BD90) and kStreamVtable (0073BDB0, its CStream base): core_streams.h.
+// kMemoryStreamVtable and kStreamVtable (its CStream base; compiled tables in place of 0073BD90 / 0073BDB0): core_streams.h.
 // The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed

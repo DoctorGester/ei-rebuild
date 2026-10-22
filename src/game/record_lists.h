@@ -61,7 +61,7 @@ struct QueueStreamElement {
         to->Construct();
         to->SetSize(from.size_);
         to->Read(from.data_, to->size_);
-        ei::SetVtable(to, CMemoryStream::kQueueVtableAddress);
+        ei::SetVtable(to, CMemoryStream::QueueStreamVtable());
     }
     static void Destroy(CMemoryStream* p) { static_cast<CStream*>(p)->~CStream(); }
     static void Default(CMemoryStream* p) { p->ConstructQueueStream(); }
