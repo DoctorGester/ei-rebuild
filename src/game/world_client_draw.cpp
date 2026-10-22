@@ -261,15 +261,17 @@ int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
-    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun).
+    CTextureDevice* renderer = TheRenderDevice();
+    CTransformPipeline* device = ScenePipeline();
+    UpdateLighting();
+    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun), as this
+    // frame's lighting turned it; the GPU lighting's sun, ambient and point lights (R16i).
     if (terrain_ && terrain_->sun) {
         const Vector3& d = terrain_->sun->direction_;
         const float direction[3] = {d.x, d.y, d.z};
         render::ShadowSun(direction);
     }
-    CTextureDevice* renderer = TheRenderDevice();
-    CTransformPipeline* device = ScenePipeline();
-    UpdateLighting();
+    HandOverSceneLights(this);
     Matrix4 view;
     view::CameraViewMatrix(view.m, TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
     PopMatrix(device->stacks_[kStackView]);
@@ -314,7 +316,9 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
         terrain_->DrawWater(TheSceneRenderer());
     }
-    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above).
+    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above),
+    // and the ground's own (R16i).
+    if (flags_ & 0x100) HandOverTerrainCasters(this);
     HandOverOutsideCasters(this);
     net::Pump();
     if (flags_ & 0x400) {

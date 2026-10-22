@@ -70,7 +70,7 @@ extern const ShaderBytecode kMeshShader;                      // render_mesh.cpp
 extern const ShaderBytecode kTerrainShader;                   // render_terrain.cpp
 extern const ShaderBytecode kPresentShader;                   // render_window.cpp
 extern const ShaderBytecode kIntoMultisampledShader;          // render_smooth.cpp
-extern const ShaderBytecode kCasterShader, kReduceShader, kDilateShader;   // render_shadows.cpp
+extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, kDilateShader;   // render_shadows.cpp
 extern const ShaderBytecode kPerfOverlayShader;               // render_perf.cpp
 extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
     kUiBlitShader;   // render_ui.cpp
@@ -191,6 +191,20 @@ struct ShadowParams {
                        // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
 };
 static_assert(sizeof(ShadowParams) == 64);
+
+// The scene's light for the GPU lighting (R16i, render_lighting.cpp; shaders/scene_lighting.hlsli): the
+// sun, the ambient colour and the point lights render::SceneLighting kept, as a fragment uniform block.
+struct LightParams {
+    float sun[4];          // xyz: the direction the sun's light travels (unit)
+    float sunColour[4];
+    float ambient[4];
+    float counts[4];       // x: the point lights
+    float points[kMostSceneLights][2][4];   // position xyz, 1 / range squared; colour rgb, w: 1 specular
+};
+static_assert(sizeof(LightParams) == 64 + kMostSceneLights * 32);
+void LightUniforms(LightParams* params);
+// The sun's travel direction as kept (the terrain casters keep the faces turned away from it).
+Vector3 SceneSunDirection();
 
 // A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and
 // what PrepareShadows made of them: the matrices from each receiving mesh's model space (and the
@@ -430,6 +444,20 @@ void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 void TerrainPositions(const Frame& frame, std::size_t step, std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
+// The ground's casters into the shadow map (R16i; render::ShadowTerrainSector): the sectors handed over
+// this frame. UploadTerrainCasters writes the new ones into their pool (before the map's pass);
+// DrawTerrainCasters draws them inside it with `pipeline` (vertex buffer 0: TerrainCasterVertex, 32-bit
+// indices) whose uniforms the caller applied. TerrainCastersDone: after a present.
+struct TerrainCasterVertex {
+    Vector3 position;
+    Vector3 normal;
+};
+static_assert(sizeof(TerrainCasterVertex) == 24);
+std::size_t TerrainCasterCount();
+void UploadTerrainCasters();
+int DrawTerrainCasters(sg_pipeline pipeline);
+void TerrainCastersDone();
+void DropTerrainCasters();
 
 // The mesh pipelines and draws (render_mesh.cpp).
 bool CreateMeshShader();

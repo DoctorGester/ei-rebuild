@@ -214,6 +214,8 @@ struct CasterFs {
 
 sg_shader g_casterShader{};
 sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
+sg_shader g_terrainCasterShader{};    // the ground's casters (R16i, shaders/shadow_terrain.hlsl)
+sg_pipeline g_terrainCasterPipeline{};
 sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
 sg_sampler g_compare{};
@@ -285,6 +287,48 @@ bool MakeCasterPipelines() {
         ok = ok && sg_query_pipeline_state(g_casterPipelines[cached]) == SG_RESOURCESTATE_VALID;
     }
     if (!ok) ei::Log("render: the shadow casters' pipeline could not be created (see the sokol messages above)");
+    return ok;
+}
+
+// The ground's casters (R16i): TerrainCasterVertex (position, normal), the light matrix in the vertex
+// uniforms, the sun's direction in the fragment ones.
+bool MakeTerrainCasterPipeline() {
+    if (g_terrainCasterShader.id) return sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
+    sg_shader_desc s{};
+    SetBytecode(s, kTerrainCasterShader);
+    s.attrs[0].base_type = SG_SHADERATTRBASETYPE_FLOAT;
+    s.attrs[0].hlsl_sem_name = "POSITION";
+    s.attrs[1].base_type = SG_SHADERATTRBASETYPE_FLOAT;
+    s.attrs[1].hlsl_sem_name = "NORMAL";
+    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
+    s.uniform_blocks[0].size = sizeof(Matrix4);
+    s.uniform_blocks[0].hlsl_register_b_n = 0;
+    s.uniform_blocks[1].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.uniform_blocks[1].size = 16;
+    s.uniform_blocks[1].hlsl_register_b_n = 0;
+    s.label = "ei-shadow-terrain";
+    g_terrainCasterShader = sg_make_shader(&s);
+    sg_pipeline_desc p{};
+    p.shader = g_terrainCasterShader;
+    p.layout.buffers[0].stride = sizeof(TerrainCasterVertex);
+    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[0].offset = 0;
+    p.layout.attrs[1].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[1].offset = 12;
+    p.index_type = SG_INDEXTYPE_UINT32;
+    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+    p.cull_mode = SG_CULLMODE_NONE;
+    p.colors[0].pixel_format = kIdFormat;
+    p.depth.pixel_format = kDepthFormat;
+    p.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
+    p.depth.write_enabled = true;
+    p.depth.bias_slope_scale = 1.5f;
+    p.sample_count = 1;
+    p.label = "ei-shadow-terrain";
+    g_terrainCasterPipeline = sg_make_pipeline(&p);
+    bool ok = sg_query_shader_state(g_terrainCasterShader) == SG_RESOURCESTATE_VALID &&
+              sg_query_pipeline_state(g_terrainCasterPipeline) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the ground casters' pipeline could not be created (see the sokol messages above)");
     return ok;
 }
 
@@ -667,8 +711,9 @@ void CastsShadow(const void* object, float strength) {
     CurrentFrame().shadow.casters.emplace_back(object, strength);
 }
 
-bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    if (!Active() || !g_outsideOn || !area) return false;
+namespace {
+
+bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::shadowMs);
     const Fit& fit = FitMap(CurrentFrame());
@@ -685,6 +730,18 @@ bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     area->x1 = static_cast<float>(fit.highGround.x + std::max(0.0, towardsX) + margin);
     area->y1 = static_cast<float>(fit.highGround.y + std::max(0.0, towardsY) + margin);
     return true;
+}
+
+} // namespace
+
+bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
+    if (!Active() || !g_outsideOn || !area) return false;
+    return CasterArea(highestTop, widest, area);
+}
+
+bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area) {
+    if (!Active() || !area) return false;
+    return CasterArea(highestTop, 0.0f, area);
 }
 
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
@@ -826,6 +883,7 @@ void ShadowFrameDone() {
     g_outside.clear();
     g_drawnParts.clear();
     g_nearestCaster = 1e30;
+    TerrainCastersDone();
 }
 
 void PrepareShadows(Frame& f) {
@@ -834,7 +892,8 @@ void PrepareShadows(Frame& f) {
     sh.on = false;
     sh.lights.clear();
     g_info = ShadowInfo{};
-    if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty())) return;
+    if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0))
+        return;
     StatsTimer timer(&FrameStats::shadowMs);
     if (!FitMap(f).ok) return;
     // Along the light from the nearest caster that reaches the map (the ground's near side without one).
@@ -950,7 +1009,7 @@ void DrawShadowMap(Frame& f) {
         StatsTimer timer(&FrameStats::shadowMs);
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
-        bool ok = MakeCasterPipelines() &&
+        bool ok = MakeCasterPipelines() && MakeTerrainCasterPipeline() &&
                   (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture)) &&
                   (g_ids.id || MakeColour(kMapSize, kIdFormat, "ei-shadow-ids", &g_ids, &g_idsAttachment, &g_idsTexture)) &&
                   MakeRangePipeline(kReduceShader, SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT, false, "ei-shadow-cells",
@@ -971,6 +1030,7 @@ void DrawShadowMap(Frame& f) {
                 outsideIndices = g_outsideIndexBuffer.Append(g_outsideIndices.data(),
                                                              g_outsideIndices.size() * sizeof(std::uint32_t));
             }
+            UploadTerrainCasters();
             sg_pass pass{};
             pass.action.depth.load_action = SG_LOADACTION_CLEAR;
             pass.action.depth.clear_value = 1.0f;
@@ -1061,6 +1121,19 @@ void DrawShadowMap(Frame& f) {
                 }
                 g_info.outsideCasters = static_cast<int>(outside.size());
                 g_info.outsideCorners = static_cast<int>(g_outsideVertices.size());
+            }
+            // The ground (R16i): the sectors handed over, their faces turned away from the sun.
+            if (TerrainCasterCount() != 0) {
+                Matrix4 light = ToMatrix(g_fit.light);
+                sg_range vr{&light, sizeof(light)};
+                const float fs[4] = {static_cast<float>(g_fit.d.x), static_cast<float>(g_fit.d.y), static_cast<float>(g_fit.d.z), 0.0f};
+                sg_apply_pipeline(g_terrainCasterPipeline);
+                sg_apply_uniforms(0, &vr);
+                sg_range fr{fs, sizeof(fs)};
+                sg_apply_uniforms(1, &fr);
+                int draws = DrawTerrainCasters(g_terrainCasterPipeline);
+                Stats().shadowDraws += static_cast<std::uint64_t>(draws);
+                g_info.terrainCasters = draws;
             }
             sg_end_pass();
             RangePass(g_reducePipeline, g_cellsAttachment, g_mapTexture, nullptr, "ei-shadow-cells");
@@ -1183,6 +1256,10 @@ void DestroyShadows() {
         if (p.id) sg_destroy_pipeline(p);
         p = sg_pipeline{};
     }
+    if (g_terrainCasterPipeline.id) sg_destroy_pipeline(g_terrainCasterPipeline);
+    g_terrainCasterPipeline = sg_pipeline{};
+    if (g_terrainCasterShader.id) sg_destroy_shader(g_terrainCasterShader);
+    g_terrainCasterShader = sg_shader{};
     if (g_casterShader.id) sg_destroy_shader(g_casterShader);
     g_casterShader = sg_shader{};
 }

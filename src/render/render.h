@@ -17,6 +17,8 @@
 // "uiboth" / "uinative" (render_ui.h) and the harness build's "removable"; "new", "present" and
 // "cpuwindows" are accepted and change nothing.
 
+#include "lib/vecmath.h"
+
 #include <cstdint>
 #include <vector>
 
@@ -93,6 +95,39 @@ void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (CLight::direction_, z
 // negative by day), from CWorldClient::Render. Without it no shadow map is made.
 void ShadowSun(const float direction[3]);
+// R16i: the GPU lighting (docs/notes/renderer.md section 16). The world's draw (CWorldClient::Render, after
+// UpdateLighting) hands over the frame's light: the sun (the direction its light travels and its colour),
+// the ambient colour, the point lights the landscape lights its ground with (Terrain's table: position in
+// the landscape's space, 1 / range squared, colour, flag 0x40 specular) and the camera's position (the
+// nearest kMostSceneLights of them are kept). It stays until the next hand-over. GpuTerrainLighting: the
+// ground layer's vertex lighting is the GPU's (true when Active()): the game leaves its per-vertex sun,
+// ambient and point lights out (SectorData::Light writes only the edge fade) and the terrain shader
+// lights each pixel from the vertex normals, the sun, the shadow map and these lights.
+struct ScenePointLight {
+    Vector3 position;
+    float inverseRangeSquared;
+    float colour[3];
+    bool specular;
+};
+struct SceneLights {
+    Vector3 sunDirection;
+    float sunColour[3];
+    float ambientColour[3];
+    Vector3 camera;
+    const ScenePointLight* points;
+    int pointCount;
+};
+constexpr int kMostSceneLights = 16;
+void SceneLighting(const SceneLights& lights);
+bool GpuTerrainLighting();
+// R16i: the ground casts into the shadow map (the landscape's sun shadows, landscape flag 0x10, as its ray
+// march did). ShadowTerrainArea: as ShadowCasterArea (below) for a caster no higher than `highestTop`
+// (whatever SetOffscreenCasters says); false: no map this frame. ShadowTerrainSector: a sector whose
+// vertices are loaded and which stands in that area casts with its ground layer's 33 x 33 vertices (kept
+// on the GPU while its vertices stay the same) when ShadowCasterReaches its box.
+struct ShadowCasterRect;
+bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area);
+void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
 // draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
 // its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
@@ -179,6 +214,7 @@ struct ShadowInfo {
     int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
     int offScreen = 0, lost = 0;
     int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
+    int terrainCasters = 0;   // R16i: the ground's sectors drawn into the map
 };
 ShadowInfo ShadowState();
 

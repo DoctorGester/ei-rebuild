@@ -11,12 +11,16 @@
 // its goldens are those of a run without it.
 #include "world_client_shadow_casters.h"
 
+#include "camera.h"
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "options.h"
+#include "spell.h"
+#include "terrain.h"
+#include "terrain_sector.h"
 #include "texture.h"
 #include "world.h"
 
@@ -229,6 +233,56 @@ const HighestObject& Highest(const CWorldClient* world) {
 }
 
 } // namespace
+
+void HandOverSceneLights(CWorldClient* world) {
+    Terrain* terrain = world->terrain_;
+    CLight* sun = terrain && terrain->sun ? terrain->sun : SceneRenderer()->sun_;
+    if (!sun) return;
+    static std::vector<render::ScenePointLight> points;
+    points.clear();
+    if (terrain && terrain->mapLoaded) {
+        for (Terrain::LightTable::Node* node = terrain->lights.First(); node; node = terrain->lights.After(node)) {
+            const CLight* light = node->value.light;
+            if (!light) continue;
+            render::ScenePointLight p{};
+            p.position = light->localPosition_;
+            p.inverseRangeSquared = light->inverseRangeSquared_;
+            for (int k = 0; k < 3; ++k) p.colour[k] = light->color_[k];
+            p.specular = (light->flags_ & 0x40) != 0;
+            points.push_back(p);
+        }
+    }
+    render::SceneLights s{};
+    for (int k = 0; k < 3; ++k) s.sunColour[k] = sun->color_[k];
+    s.sunDirection = sun->direction_;
+    s.ambientColour[0] = world->frameAmbient_.r;
+    s.ambientColour[1] = world->frameAmbient_.g;
+    s.ambientColour[2] = world->frameAmbient_.b;
+    if (const CCamera* camera = world->camera_) s.camera = camera->localPosition_;
+    s.points = points.data();
+    s.pointCount = static_cast<int>(points.size());
+    render::SceneLighting(s);
+}
+
+void HandOverTerrainCasters(CWorldClient* world) {
+    Terrain* terrain = world->terrain_;
+    if (!terrain || !terrain->mapLoaded || !(terrain->landscapeFlags & 0x10) || !terrain->sectorGrid) return;
+    render::ShadowCasterRect area;
+    if (!render::ShadowTerrainArea(terrain->heightRange, &area)) return;
+    constexpr float kSector = 32.0f;   // vertices a sector side, one unit apart
+    auto sector = [](float v, int count) {
+        int s = v > 0.0f ? static_cast<int>(v / kSector) : 0;
+        return (std::min)(s, count - 1);
+    };
+    // A sector's vertices reach one unit into the next (its 33rd column and row): one sector more below.
+    const int firstX = (std::max)(sector(area.x0, terrain->sectorsX) - 1, 0), lastX = sector(area.x1, terrain->sectorsX);
+    const int firstY = (std::max)(sector(area.y0, terrain->sectorsY) - 1, 0), lastY = sector(area.y1, terrain->sectorsY);
+    for (int sx = firstX; sx <= lastX; ++sx)
+        for (int sy = firstY; sy <= lastY; ++sy) {
+            const Terrain::SectorCache::Node* node = terrain->sectorGrid[sx][sy];
+            if (node && node->data) render::ShadowTerrainSector(node->data);
+        }
+}
 
 void HandOverOutsideCasters(CWorldClient* world) {
     const std::uint32_t flags = world->flags_;
