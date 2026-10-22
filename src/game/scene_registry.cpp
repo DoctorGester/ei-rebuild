@@ -170,7 +170,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
             SceneMesh& mesh = MeshAt(unit, meshIndex);
             std::uint32_t t = mesh.faces.data[face].vertex2[k];
             if (MapLookup(seen, t)->value != 0) continue;
-            MapTexCoord(reinterpret_cast<float*>(&mesh.texCoords.data[t]), &m);   // (u, v) as floats
+            MapTexCoord(mesh.texCoords.data[t].uv, &m);   // (u, v) as floats
             MapMark(seen, t);
         }
     }

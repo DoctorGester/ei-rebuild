@@ -169,9 +169,9 @@ void BuildPairs(SceneMesh* mesh) {
     GameQsort(list.data, static_cast<unsigned>(list.size), 4, kComparePairs);
     if (list.size & 3) {
         int missing = 4 - (list.size & 3);
-        const auto* last = reinterpret_cast<const std::uint16_t*>(list.data) + (list.size - 1) * 2;
-        std::uint16_t vertex = last[0];
-        std::uint16_t position = last[1];
+        const std::uint32_t last = list.data[list.size - 1];   // words: vertex, position
+        std::uint16_t vertex = static_cast<std::uint16_t>(last);
+        std::uint16_t position = static_cast<std::uint16_t>(last >> 16);
         for (int i = 0; i < missing; ++i) {
             ++position;
             int at = list.size;

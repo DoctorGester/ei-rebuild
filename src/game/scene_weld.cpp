@@ -50,10 +50,10 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
         pointMap.SetSize(0);
         pointMap.SetSize(positions.size);
         for (int i = 0; i < positions.size; ++i) {
-            const Vector3& p = reinterpret_cast<Vector3*>(positions.data)[i];
+            const Vector3& p = positions.data[i].point;
             int index = 0;
             for (; index < points.size; ++index) {
-                const Vector3& q = reinterpret_cast<Vector3*>(points.data)[index];
+                const Vector3& q = points.data[index].point;
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
                 double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz));
                 EI_NAN_AUDIT(length);
@@ -86,10 +86,10 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
         coordMap.SetSize(0);
         coordMap.SetSize(texCoords.size);
         for (int i = 0; i < texCoords.size; ++i) {
-            const float* uv = reinterpret_cast<float*>(texCoords.data) + i * 2;
+            const float* uv = texCoords.data[i].uv;
             int index = 0;
             for (; index < coords.size; ++index) {
-                const float* known = reinterpret_cast<float*>(coords.data) + index * 2;
+                const float* known = coords.data[index].uv;
                 float du = known[0] - uv[0], dv = known[1] - uv[1];
                 const double distance = libcrt::Hypot(du, dv);
                 EI_NAN_AUDIT(distance);

@@ -156,7 +156,7 @@ int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int fra
         PointBuffer& positions = mesh->positions;
         const Vector3& pivot = node->pivot;
         for (int i = 0; i < positions.size; ++i) {
-            Vector3& p = reinterpret_cast<Vector3&>(positions.data[i]);   // the file's bits as floats
+            Vector3& p = positions.data[i].point;   // the file's bits as floats
             p = p - pivot;
             float rx = DotUnrounded<Sum3::XYZ>(m00, m01, m02, p.x, p.y, p.z);
             float ry = DotUnrounded<Sum3::XYZ>(m10, m11, m12, p.x, p.y, p.z);

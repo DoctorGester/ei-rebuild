@@ -22,10 +22,10 @@ constexpr double kMinimumSquare = 1e-10;
 } // namespace
 
 void MeshFace::ComputeNormal(const PointBuffer* positions) {
-    const auto* points = reinterpret_cast<const Vector3*>(positions->data);
-    const Vector3& origin = points[vertex[1]];
-    const Vector3& p2 = points[vertex[2]];
-    const Vector3& p0 = points[vertex[0]];
+    const PointBits* points = positions->data;
+    const Vector3& origin = points[vertex[1]].point;
+    const Vector3& p2 = points[vertex[2]].point;
+    const Vector3& p0 = points[vertex[0]].point;
 
     double ax = static_cast<double>(p2.x) - origin.x;
     double ay = static_cast<double>(p2.y) - origin.y;
@@ -66,7 +66,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
         normal.y = static_cast<float>(inverse * normal.y);
         normal.z = static_cast<float>(inverse * normal.z);
     }
-    const Vector3& at = points[vertex[1]];
+    const Vector3& at = points[vertex[1]].point;
     distance = static_cast<float>(DotZYX(at, normal));
 }
 EI_REWRITTEN(0x0049AEC0, MeshFace::ComputeNormal);

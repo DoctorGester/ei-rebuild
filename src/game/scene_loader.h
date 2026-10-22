@@ -59,18 +59,23 @@ struct OriginalElements {
 
 // The "aligned" arrays (vertex lists, 32-byte aligned blocks with the raw pointer stored before the
 // data; lib::AlignedArray), per element type. Positions and normals are kept as the bits that were
-// read: the loader copies some of them through the FPU, as the original does.
-struct PointBits {
+// read: the loader copies some of them through the FPU, as the original does. The later passes read
+// the same bits as floats (`point`, `uv`).
+union PointBits {
     std::uint32_t v[3];
+    Vector3 point;
 };
-struct UvBits {
+union UvBits {
     std::uint32_t v[2];
+    float uv[2];
 };
 using PointBuffer = lib::AlignedArray<PointBits>;
 using UvBuffer = lib::AlignedArray<UvBits>;
-struct Block64 {
-    std::uint8_t bytes[64];   // a matrix, or four normals / positions in lanes
+union Block64 {
+    std::uint8_t bytes[64];   // a matrix (the figures copy the blocks)
+    float block[16];          // four normals / positions in lanes: x[4], y[4], z[4], w[4]
 };
+static_assert(sizeof(PointBits) == 12 && sizeof(UvBits) == 8 && sizeof(Block64) == 64);
 using BlockBuffer = lib::AlignedArray<Block64>;
 using DwordBuffer = lib::AlignedArray<std::uint32_t>;
 
