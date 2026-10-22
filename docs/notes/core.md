@@ -306,7 +306,6 @@ to which template:
   Checks: `Next` and `FindListedName` side by side by content; `Start` against the original `Next` on a rewound
   copy (its own original would enter `Next`'s wrapper); `RemoveCarriageReturns` ours only. The credits screen
   (0062B7D0) is the only user of the first three and the scene registry of the fourth; no scenario reaches them.
-  ui_layouts.cpp and scene_registry.cpp keep their forwarders, which reach the hooked code.
 - `ObjectIdMap::ReleaseAll` (0047B670, object_id_map.cpp): every object released up to the first empty entry,
   the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with

@@ -20,16 +20,16 @@ The counts below come from game.exe's import table and from grepping `src/` at m
 
 ## The real blockers (in order of cost)
 
-1. **The port is not finished.** 74% of game functions are rewritten. The rest, plus the statically linked MFC / STLport / CRT, still run from game.exe through the hook DLL; the code holds about 13,500 references to fixed game addresses (forwarders and globals). A cross-platform build needs the standalone exe first: every function ours, every global a real variable.
-2. **32-bit layouts.** 1,806 offset / size asserts, about 730 pointer members in asserted structs, and 69 raw struct reads and writes on streams. The layouts mirror the original so that hooked and original code share memory. A 32-bit Linux build can keep them. A 64-bit build (macOS has no 32-bit) needs save files, resource files and network messages read field by field, and the asserts relaxed once the original no longer shares memory.
+1. **Addresses.** Every function is ported and runs in the standalone image, but the image still lays out game.exe's address space: registrations, code cells and forwarders by address, and the part of game.exe's data not yet named (docs/standalone-cleanup.md; C18, C20, C29). A cross-platform build needs every function called by name and every global a real variable.
+2. **32-bit layouts.** Offset / size asserts and raw struct reads and writes on streams. No original code shares our memory, so the asserts go except where bytes leave the process (C28). A 64-bit build (macOS has no 32-bit) needs save files, resource files and network messages read field by field.
 3. **x87 floating point.** 222 `__asm` blocks and code that relies on 24-bit x87 precision. On other CPUs (ARM, or SSE on x86-64) results stop being bit-exact. That is acceptable for single player (the tests use tolerances). Multiplayer with original clients would desync.
-4. **MSVC specifics.** About 10,800 `__fastcall` / `__thiscall` / `__stdcall` / naked annotations. They exist to match the original's calling conventions for the hooks and become plain functions in the standalone build. Mechanical work, but large.
+4. **MSVC specifics.** About 10,800 `__fastcall` / `__thiscall` / `__stdcall` / naked annotations. They match the original's calling conventions where an address is still reached (registrations, forwarders) and become plain functions as those go. Mechanical work, but large.
 
 ## Effort, in worker tickets (about one focused worker session each)
 
 | Phase | Work | Tickets |
 |---|---|---|
-| 0 | Finish porting (~26% of game code) and the standalone exe: globals as variables, forwarders gone, own MFC / STLport / CRT pieces | 25-35 (the bulk; already the main line of work) |
+| 0 | The cleanup track (docs/cleanup-plan.md): globals as variables, forwarders and registrations gone, standard containers and the host CRT | the C tickets |
 | 1 | `src/platform/` interface (window and events, time, threads and locks, files and directories, config, sockets) with a Windows backend over the current `gameapi::` calls; migrate the ~76 + 92 files | 8-12 |
 | 2 | Replace binary middleware: Miles to SDL3 / miniaudio, Bink decoder, DirectInput to SDL3, Winsock to BSD sockets, GDI text to a font rasteriser | 6-10 (needs dependency approvals) |
 | 3 | Build with clang for 32-bit Linux (i686): drop `__asm` for portable maths, drop calling-convention annotations, fix compiler differences | 5-8 |
