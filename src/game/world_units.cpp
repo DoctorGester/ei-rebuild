@@ -336,7 +336,7 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
 
 } // namespace
 
-void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
+void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     lib::InPlace<ObjectSpec> storage;
     auto* message = storage.Get();
     message->ObjectSpecConstruct();
@@ -348,7 +348,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     std::memset(&message->scale.y, 0, 4);
     // At the unit's position, on the ground.
-    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->localPosition_.x, 12);
+    std::memcpy(&message->base.position, &unit->localPosition_.x, 12);
     std::memset(&message->base.position.z, 0, 4);
     int id = WorldMakeObjectOriginal(this, nullptr, message);
     CEngineObject* effect = ObjectWithId(id);
@@ -384,12 +384,12 @@ mfc::CString* NameString(CMapObject* object) { return &object->name; }
 
 } // namespace
 
-int CWorldServer::CreateObject(std::uint8_t* message) {
+int CWorldServer::CreateObject(mapspec::Spec* message) {
     // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec),
     // 5 a unit record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle
     // source.
-    auto* spec = reinterpret_cast<ObjectSpec*>(message);
-    Spec& base = spec->base;
+    auto* spec = message->As<ObjectSpec>();
+    Spec& base = *message;
     auto created = [this, spec]() {
         return static_cast<CMapObject*>(MapObjectManager()->CreateObject(spec->parentId, spec->base.id));
     };
@@ -408,7 +408,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->base.kind == 5 ? (reinterpret_cast<UnitSpec*>(spec)->prototype).GetString()
+        const char* prototype = spec->base.kind == 5 ? spec->base.As<UnitSpec>()->prototype.GetString()
                                                      : spec->primaryTexture.GetString();
         ObjectSlots(object)->TakePrototype(prototype);
         object->WriteFullState();
@@ -431,7 +431,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
-        auto* flame = reinterpret_cast<mapspec::FlameSpec*>(message);
+        auto* flame = message->As<mapspec::FlameSpec>();
         CMapObject* object = created();
         if (!allowed(object)) return refuse(object);
         int id = object->id_;
@@ -504,7 +504,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
-        static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&reinterpret_cast<mapspec::TrapSpec*>(message)->diplomacy));
+        static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&message->As<mapspec::TrapSpec>()->diplomacy));
         return result;
     }
     case 1:
@@ -529,7 +529,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectSlots(object)->ScaleEffectChanged(0);
         int type = base.kind;
         if (type == 5) {
-            auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
+            auto* unitSpec = message->As<UnitSpec>();
             auto* unit = static_cast<CUnit*>(object);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
@@ -567,7 +567,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             object->MarkChanged(6);
             object->MarkChanged(0xB);
         } else if (type == 8) {
-            static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(reinterpret_cast<mapspec::LeverSpec*>(message)->stats));
+            static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(message->As<mapspec::LeverSpec>()->stats));
             object->MarkChanged(5);
         } else {
             ManagerRegister(MapObjectManager(), nullptr, object);
@@ -596,7 +596,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     }
     case 3: {   // a sound
         if (!loadedFresh_) return -1;
-        auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
+        auto* sound = message->As<mapspec::SoundSpec>();
         if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
             ambient->names_.Copy(sound->sounds);
@@ -622,7 +622,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     }
     case 2: {   // a light
         if (!loadedFresh_) return -1;
-        auto* lightSpec = reinterpret_cast<mapspec::LightSpec*>(message);
+        auto* lightSpec = message->As<mapspec::LightSpec>();
         auto* light = static_cast<CEffectPointLight*>(timedManager->CreateObject(kTimedLight, base.id));
         Copy(&light->localPosition_, &base.position, 12);
         Copy(&light->range_, &lightSpec->radius, 4);
@@ -631,7 +631,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     }
     case 4: {   // a particle source
         if (!loadedFresh_) return -1;
-        auto* particleSpec = reinterpret_cast<mapspec::ParticleSpec*>(message);
+        auto* particleSpec = message->As<mapspec::ParticleSpec>();
         auto* particle = static_cast<CEffectParticle*>(timedManager->CreateObject(kTimedParticle, base.id));
         Copy(&particle->localPosition_, &base.position, 12);
         Copy(&particle->type_, &particleSpec->type, 4);

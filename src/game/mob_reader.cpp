@@ -53,36 +53,36 @@ float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
 Spec* NewRecord(std::uint32_t id) {
     switch (id) {
     case 0xB001:
-        if (void* p = gamecrt::operator_new(sizeof(ObjectSpec)))
-            return &static_cast<ObjectSpec*>(p)->ObjectSpecConstruct()->base;
+        if (auto* p = gamecrt::operator_new_as<ObjectSpec>())
+            return &p->ObjectSpecConstruct()->base;
         return nullptr;
     case 0xAA01:
-        if (void* p = gamecrt::operator_new(0x68))
-            return reinterpret_cast<Spec*>(static_cast<LightSpec*>(p)->LightSpecConstruct());
+        if (auto* p = gamecrt::operator_new_as<LightSpec>())
+            return &p->LightSpecConstruct()->effect.base;
         return nullptr;
     case 0xCC01:
-        if (void* p = gamecrt::operator_new(0x88))
-            return reinterpret_cast<Spec*>(static_cast<SoundSpec*>(p)->SoundSpecConstruct());
+        if (auto* p = gamecrt::operator_new_as<SoundSpec>())
+            return &p->SoundSpecConstruct()->effect.base;
         return nullptr;
     case 0xDD01:
-        if (void* p = gamecrt::operator_new(0x5C))
-            return reinterpret_cast<Spec*>(static_cast<ParticleSpec*>(p)->ParticleSpecConstruct());
+        if (auto* p = gamecrt::operator_new_as<ParticleSpec>())
+            return &p->ParticleSpecConstruct()->effect.base;
         return nullptr;
     case 0xBBAB0000:
-        if (void* p = gamecrt::operator_new(sizeof(TrapSpec)))
-            return &static_cast<TrapSpec*>(p)->TrapSpecConstruct()->object.base;
+        if (auto* p = gamecrt::operator_new_as<TrapSpec>())
+            return &p->TrapSpecConstruct()->object.base;
         return nullptr;
     case 0xBBAC0000:
-        if (void* p = gamecrt::operator_new(sizeof(LeverSpec)))
-            return &static_cast<LeverSpec*>(p)->LeverSpecConstruct()->object.base;
+        if (auto* p = gamecrt::operator_new_as<LeverSpec>())
+            return &p->LeverSpecConstruct()->object.base;
         return nullptr;
     case 0xBBBB0000:
-        if (void* p = gamecrt::operator_new(0x324))
-            return &static_cast<UnitSpec*>(p)->UnitSpecConstruct()->object.base;
+        if (auto* p = gamecrt::operator_new_as<UnitSpec>())
+            return &p->UnitSpecConstruct()->object.base;
         return nullptr;
     case 0xBBBF0000:
-        if (void* p = gamecrt::operator_new(sizeof(FlameSpec)))
-            return &static_cast<FlameSpec*>(p)->FlameSpecConstruct()->object.base;
+        if (auto* p = gamecrt::operator_new_as<FlameSpec>())
+            return &p->FlameSpecConstruct()->object.base;
         return nullptr;
     default:
         return nullptr;
@@ -192,7 +192,7 @@ bool MobFile::Load(void*, int keepIds) {
     for (auto* node = records.byId.First(); node; node = records.byId.After(node)) {
         Spec* spec = node->value;
         if (spec->kind == kKindTrap) {
-            auto* trap = reinterpret_cast<TrapSpec*>(spec);
+            auto* trap = spec->As<TrapSpec>();
             trap->diplomacy = 0;
             trap->origin = spec->position;
             const std::int32_t* row = diplomacy->relations[trap->object.side];
@@ -200,13 +200,13 @@ bool MobFile::Load(void*, int keepIds) {
                 trap->diplomacy |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
         WorldMakeObjectOriginal(TheServerWorld(), nullptr, spec);
-        auto* object = reinterpret_cast<ObjectSpec*>(spec);
+        auto* object = spec->As<ObjectSpec>();
         bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = object->Unit()->ServerController();
-            controller->brain.SetAlarmRecords(reinterpret_cast<UnitSpec*>(spec)->behaviour, kBehaviourCount);
+            controller->brain.SetAlarmRecords(spec->As<UnitSpec>()->behaviour, kBehaviourCount);
         }
-        reinterpret_cast<SpecRecord*>(spec)->DeleteRecord(1);
+        spec->Record()->DeleteRecord(1);
         ++done;
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
