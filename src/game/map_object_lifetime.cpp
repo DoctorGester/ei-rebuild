@@ -442,7 +442,7 @@ void CMapObjectClientSpecific::DestructBody() {
         }
         int id = light->id_;
         stlp::ListRemoveInt(&TheLightFactory()->litIds_, id);
-        AssignHeld(&light, nullptr);
+        light.Assign(nullptr);
     }
     owner = nullptr;
     if (light) light->Release();

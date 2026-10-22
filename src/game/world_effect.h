@@ -207,7 +207,7 @@ public:
 
     Vector3 color_;            // +0x14C
     float range_;              // +0x158 negative: flag 0x400 on the light
-    CLight* light_;            // +0x15C reference counted, null: none
+    HeldObject<CLight> light_; // +0x15C reference counted, null: none
     std::uint32_t lightFlags_; // +0x160 ored into the light's flags
 };
 static_assert(offsetof(CEffectPointLight, color_) == 0x14C);
@@ -245,7 +245,7 @@ public:
     float param164_;           // +0x164 copied to the source's +0x11C
     int attachedTo_;           // +0x168 object id, -1: none
     Vector3 target_;           // +0x16C moves towards it
-    CParticleSource* source_;  // +0x178 reference counted
+    HeldObject<CParticleSource> source_;   // +0x178 reference counted
     int unitId_;               // +0x17C a unit whose position is used when unpacking, -1: none
 };
 static_assert(offsetof(CEffectParticle, source_) == 0x178);

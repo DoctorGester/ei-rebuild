@@ -729,7 +729,7 @@ bool CCampPages::CanMakeItem() {
     CResourceManager* factory = itemResults_->ItemManager();
     CSpellManager* manager = itemResults_->SpellManager();
     itemdb::ItemRecordHead* part = nullptr;
-    CEngineObject* spell = nullptr;   // a counted pointer (0052C690), released on the way out
+    HeldObject<CSpell> spell{nullptr};   // a counted pointer (0052C690), released on the way out
     itemdb::MaterialRecordHead* blueprint = nullptr;
     int blueprintCount = 0;
     int type = 0;            // the original's is uninitialised until a part sets it
@@ -742,7 +742,7 @@ bool CCampPages::CanMakeItem() {
         CItem* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
             CSpell* copy = item->spell_->Clone(manager);
-            HeldEngineObject::Of(&spell)->Assign(copy);   // 0052C690
+            spell.Assign(copy);   // 0052C690
         } else if (IsPart(item)) {
             switch (static_cast<int>(RecordType(item))) {
             case 0: type = 0x3004; part = PartRecord(item, 0); break;
@@ -773,7 +773,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!constructor->SetPrototype(part) ||
         !constructor->SetMaterial(blueprint) ||
-        !constructor->SetSpellObject(static_cast<CSpell*>(spell))) {
+        !constructor->SetSpellObject(spell)) {
         constructor->SetManager(nullptr);
         return fail();
     }

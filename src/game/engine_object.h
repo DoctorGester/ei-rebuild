@@ -77,20 +77,42 @@ public:
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
 
-// A counted engine object pointer (a texture, a light, a particle source) as the original's helpers
-// take it: by address, thiscall on the pointer.
-struct HeldEngineObject {
-    CEngineObject* object;
+// A counted engine object pointer (a texture, a light, a particle source, a spell) as the original's
+// helpers take it: by address, thiscall on the pointer. A field that holds a T is a HeldObject<T>
+// (HeldEngineObject: any engine object): reads see the object (the conversion and ->), a plain store
+// (`held = p`) counts nothing. The count and the release are the engine object's.
+template <typename T>
+struct HeldObject {
+    // 004EBE60 (RET 4; registered in refptr_copies.cpp; byte-identical to 00429B50, 00511B90,
+    // 0052C690, 00556C40, 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first,
+    // then the old one released through its slot 4.
+    void Assign(T* value) {
+        CEngineObject* previous = object;
+        object = value;
+        if (CEngineObject* taken = value) ++taken->refCount_;
+        if (previous) previous->Release();
+    }
+    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; registered in
+    // library_containers.cpp): the pointer copied, its count raised when not null; returns this.
+    HeldObject* Construct(T* const* value) {
+        object = *value;
+        if (CEngineObject* taken = object) ++taken->refCount_;
+        return this;
+    }
+    // A counted pointer kept in a container of plain pointers (a list's or a vector's element)
+    // seen as the holder it is.
+    static HeldObject* Of(T** pointer) { return reinterpret_cast<HeldObject*>(pointer); }
 
-    static HeldEngineObject* Of(CEngineObject** pointer) { return reinterpret_cast<HeldEngineObject*>(pointer); }
-    // 004EBE60 (RET 4; refptr_copies.cpp; byte-identical to 00429B50, 00511B90, 0052C690, 00556C40,
-    // 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first, then the old one
-    // released through its slot 4.
-    void Assign(CEngineObject* value);
-    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; library_containers.cpp):
-    // the pointer copied, its count raised when not null; returns this.
-    HeldEngineObject* Construct(CEngineObject* const* value);
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    HeldObject& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
 };
+using HeldEngineObject = HeldObject<CEngineObject>;
 static_assert(sizeof(HeldEngineObject) == 4);
 
 // A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
