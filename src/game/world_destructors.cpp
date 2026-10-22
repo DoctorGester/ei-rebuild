@@ -162,14 +162,9 @@ CParticleManager::~CParticleManager() {
     freeParticles.RemoveAll();
 }
 
-void CParticleManager::Destruct() { this->CParticleManager::~CParticleManager(); }
-EI_REWRITTEN(0x005627C0, CParticleManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x005627C0, CParticleManager::~CParticleManager);
 
-CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
-    this->CParticleManager::~CParticleManager();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x005627A0, CParticleManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005627A0, CParticleManager::~CParticleManager);
 
 void Terrain::Destruct() {
     ei::SetVtable(this, Vtable());

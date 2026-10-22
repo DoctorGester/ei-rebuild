@@ -46,8 +46,7 @@ int CWorldServer::Setup() {
     }
     if (!opened) return game::FatalError(CantOpenText());
 
-    auto* specific = gamecrt::operator_new_as<CServerSpecificManager>();
-    manager44_ = specific ? specific->Construct() : nullptr;
+    manager44_ = new CServerSpecificManager();
     ++manager44_->refCount_;   // the original counts the reference without testing the pointer
     manager44_->SetContext(this);
     auto* hoover = gamecrt::operator_new_as<CHoover>();

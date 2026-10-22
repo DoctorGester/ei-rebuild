@@ -52,7 +52,7 @@ EI_REWRITTEN(0x006916F0, DeleteComposedTextures);
 
 // Returns 0 (the original's EAX is the priority call's result, or a list node, on the cache path;
 // CEngineObject::Release, its caller, returns it but no caller reads it).
-int CTextureManager::ReleaseObjectImpl(CEngineObject* object) {
+int CTextureManager::ReleaseObject(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
     auto* texture = static_cast<CTexture*>(object);
     if (const auto* node = objects_.Find(static_cast<unsigned>(object->id_))) {
@@ -71,7 +71,7 @@ int CTextureManager::ReleaseObjectImpl(CEngineObject* object) {
 namespace {
 // The virtual slot's entry point (rewrite-guide rule 4).
 } // namespace
-EI_REWRITTEN(0x00691B00, CTextureManager::ReleaseObjectImpl);
+EI_REWRITTEN(0x00691B00, CTextureManager::ReleaseObject);
 
 // --- 00691BF0 ----------------------------------------------------------------------------------------
 

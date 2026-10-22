@@ -518,9 +518,6 @@ public:
     const char* GetClassName() override;     // 11: 0068D950 "CLightManager"
     int GetClassId() override;               // 12: 0068D960 (0x29)
 
-    // 0068D850 in storage someone else allocated (world_client_maps.cpp's MakeCounted). 0068D970 (slot 0) and
-    // 0068D990 are the destructor's.
-    CLightFactory* Construct() { return new (this) CLightFactory(); }
     // 14: 0068DA40. A new CLight (0x134 bytes) of type 0x2E or 0x31 (its type_); other types are
     // logged and give null.
     CEngineObject* NewObject(int type) override;

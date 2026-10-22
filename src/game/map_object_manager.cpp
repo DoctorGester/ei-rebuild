@@ -62,35 +62,24 @@ int ThirdHalfOf(int classId) {
 
 CMapObjectManager::CMapObjectManager() {}
 
-CMapObjectManager* CMapObjectManager::Construct() { return new (this) CMapObjectManager(); }
-EI_REWRITTEN(0x005125E0, CMapObjectManager::Construct);
+EI_REWRITTEN_SPECIAL(0x005125E0, CMapObjectManager::CMapObjectManager);
 
 CMapObjectManager::~CMapObjectManager() {}
 
-void CMapObjectManager::Destruct() { this->CMapObjectManager::~CMapObjectManager(); }
-EI_REWRITTEN(0x00512650, CMapObjectManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x00512650, CMapObjectManager::~CMapObjectManager);
 
-CMapObjectManager* CMapObjectManager::DeletingDestruct(unsigned flags) {
-    this->CMapObjectManager::~CMapObjectManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00512630, CMapObjectManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00512630, CMapObjectManager::~CMapObjectManager);
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
 const char* CMapObjectManager::GetClassName() { return kClassName; }
 int CMapObjectManager::GetClassId() { return kManagerClassId; }
 int CMapObjectManager::Create() { return CreateManager(); }
-CEngineObject* CMapObjectManager::NewObject(int classId) { return NewObjectImpl(classId); }
 CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return CreateMapObject(classId, id); }
 
 // 00512600 / 00512610 / 00512620 (slots 25, 11, 12).
-const char* __fastcall MapObjectManagerFolder(CMapObjectManager* self) { return self->CMapObjectManager::GetFolderName(); }
-EI_REPLACE(0x00512600, MapObjectManagerFolder);
-const char* __fastcall MapObjectManagerClassName(CMapObjectManager* self) { return self->CMapObjectManager::GetClassName(); }
-EI_REPLACE(0x00512610, MapObjectManagerClassName);
-int __fastcall MapObjectManagerClassId(CMapObjectManager* self) { return self->CMapObjectManager::GetClassId(); }
-EI_REPLACE(0x00512620, MapObjectManagerClassId);
+EI_REWRITTEN(0x00512600, CMapObjectManager::GetFolderName);
+EI_REWRITTEN(0x00512610, CMapObjectManager::GetClassName);
+EI_REWRITTEN(0x00512620, CMapObjectManager::GetClassId);
 
 int CMapObjectManager::CreateManager() {
     mfc::CString folder(TheTextFolder());
@@ -104,7 +93,7 @@ EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
 
 CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CResourceManager* manager = this;
-    CEngineObject* object = CBaseManager::CreateObjectImpl(classId, id);
+    CEngineObject* object = CBaseManager::CreateObject(classId, id);
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
     CMapObjectVirtuals* slots = ObjectSlots(object);

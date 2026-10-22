@@ -38,24 +38,6 @@ namespace {
 
 // 006D43E0 the world's +0x70 set up.
 
-using Construct = void* (__fastcall*)(void*);
-
-// operator new, the constructor (null without memory), an optional vtable, the reference.
-template <typename R = CEngineObject>
-R* Make(std::size_t size, Construct construct, const void* vtable) {
-    void* memory = gamecrt::operator_new(size);
-    R* object = nullptr;
-    if (memory) {
-        object = static_cast<R*>(construct(memory));
-        if (vtable) {
-            object = static_cast<R*>(memory);
-            ei::SetVtable(object, vtable);
-        }
-    }
-    ++object->refCount_;   // the original counts the reference without testing the pointer
-    return object;
-}
-
 // A new object (its class's operator new and constructor), counted once: the original counts the reference
 // without testing the pointer.
 template <class T>
@@ -82,13 +64,13 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make<CPlayerManager>(sizeof(CPlayerManager), ConstructOn<CPlayerManager, &CPlayerManager::Construct>, nullptr);
+    world->players_ = MakeNew<CPlayerManager>();
     Attach(world->players_, world);
-    world->manager40_ = Make<CMapObjectManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
+    world->manager40_ = MakeNew<CMapObjectManager>();   // 005125E0
     Attach(world->manager40_, world);
-    world->manager3C_ = Make<CBaseManager>(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
+    world->manager3C_ = MakeNew<CFigureManager>();   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make<CBaseManager>(sizeof(CEffectManager), ConstructOn<CEffectManager, &CEffectManager::Construct>, nullptr);
+    world->manager48_ = MakeNew<CEffectManager>();
     Attach(world->manager48_, world);
     world->manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
     world->manager50_->Create();
@@ -96,7 +78,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->manager4C_, world);
     world->manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
     world->manager58_->Create();
-    world->itemManager_ = Make<CItemManager>(CItemManager::kSize, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr);
+    world->itemManager_ = MakeNew<CItemManager>();
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).

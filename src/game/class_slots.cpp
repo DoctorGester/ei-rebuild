@@ -120,10 +120,7 @@ int CLightningManager::Create() {
     }
     return CBaseManager::Create();
 }
-namespace {
-int __fastcall LightningManagerCreateHook(CLightningManager* self) { return self->CLightningManager::Create(); }
-} // namespace
-EI_REWRITTEN(0x004689D0, LightningManagerCreateHook);
+EI_REWRITTEN(0x004689D0, CLightningManager::Create);
 
 // ---- CFakeUnit (vtable 0073BFE8) ------------------------------------------------------------------
 

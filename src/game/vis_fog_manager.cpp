@@ -42,7 +42,7 @@ HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<H
 
 // 004E2290 (slot 14, RET 4): a new CVisibilityFog, whatever the type asked: the engine object's
 // fields, everything up to the cell map zero, an empty cell map; null when the allocation fails.
-CEngineObject* ClientArrayManager::NewObjectImpl(int) {
+CEngineObject* ClientArrayManager::NewObject(int) {
     CVisibilityFog* memory = gamecrt::operator_new_as<CVisibilityFog>();
     if (!memory) return nullptr;
     auto* fog = memory;
@@ -55,7 +55,7 @@ CEngineObject* ClientArrayManager::NewObjectImpl(int) {
     fog->boundsValid = 0;
     return object;
 }
-EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
+EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
@@ -106,7 +106,6 @@ EI_REWRITTEN(0x004E2760, VisFogManagerTick);
 int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
 int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
-CEngineObject* ClientArrayManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 004E28D0: a new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {

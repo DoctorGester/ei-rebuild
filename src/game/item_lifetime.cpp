@@ -163,9 +163,5 @@ CEngineObject* CItemManager::NewObject(int kind) {
     return object;
 }
 
-namespace {
-// Slots 2 and 14's entry points (rule 4).
-int __fastcall ItemManagerCreateHook(CItemManager* self) { return self->CItemManager::Create(); }
-} // namespace
-EI_REWRITTEN(0x006AC780, ItemManagerCreateHook);
+EI_REWRITTEN(0x006AC780, CItemManager::Create);
 EI_REWRITTEN(0x006AC810, CItemManager::NewObject);

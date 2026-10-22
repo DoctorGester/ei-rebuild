@@ -2974,7 +2974,7 @@ title = "C28 managers: CBaseManager / CResourceManager bases without BaseVtable"
 group = "cleanup"
 model = "opus"
 files = ["src/game/base_manager.h", "src/game/base_manager.cpp", "src/game/resource_manager.h", "src/game/engine_object_class.h"]
-note = "engine_object_class.h's ManagerClass and the bases' BaseVtable (base_manager.h, resource_manager.h): the derived managers are real classes already (C19 batch 4); the registered ConstructBase / DestructBody bodies become the protected constructors' callers or go (C20). Also the bridge manager (world_construct.cpp) and the other manager tags."
+note = "engine_object_class.h's ManagerClass and the bases' BaseVtable (base_manager.h, resource_manager.h): the derived managers are real classes already (C19 batch 4); the registered ConstructBase / DestructBody bodies become the protected constructors' callers or go (C20). Also the bridge manager (world_construct.cpp) and the other manager tags. Done: CBaseManager / CResourceManager without BaseVtable, ManagerClass / ResourceManagerClass, ConstructBase / DestructBody / DeletingDestruct; slot Impl splits folded in the bases and every derived manager; managers' Construct / Destruct / DeletingDestruct wrappers and Create / Destroy / class-name hooks folded (unread registrations became tags); world_create / world_client_maps / party / server world make managers with new. CSoundManager left: its Construct is read by an EI_ORIGINAL forwarder (C29)."
 
 [[ticket]]
 id = "C28e"

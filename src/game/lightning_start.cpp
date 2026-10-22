@@ -142,7 +142,7 @@ void DropTexture(HeldTexture& slot) {
 // 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt (the
 // engine object's constructor inlined, the bounds cleared, the main segment's points empty, the
 // branches constructed), reset like slot 3.
-CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
+CEngineObject* CLightningManager::NewObject(int /*type*/) {
     auto* bolt = gamecrt::operator_new_as<CLightning>();
     if (!bolt) return nullptr;
     ei::SetVtable(bolt, CEngineObject::BaseVtable());
@@ -170,9 +170,8 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     DropTexture(bolt->glowTexture_);
     return bolt;
 }
-EI_REWRITTEN(0x00468680, CLightningManager::NewObjectImpl);
+EI_REWRITTEN(0x00468680, CLightningManager::NewObject);
 
-CEngineObject* CLightningManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 00468810: the destructor body: reset like slot 3, the branches destroyed, the main segment's
 // points freed, the texture references released again (both null by then), the engine object's

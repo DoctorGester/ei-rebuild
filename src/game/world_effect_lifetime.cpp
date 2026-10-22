@@ -285,7 +285,7 @@ CEngineObject* NewEffect() {
 
 } // namespace
 
-CEngineObject* CEffectManager::NewObjectImpl(int type) {
+CEngineObject* CEffectManager::NewObject(int type) {
     CEngineObject* object;
     switch (type) {
     case 0x48: object = NewEffect<CEffectSound>(); break;
@@ -305,4 +305,4 @@ CEngineObject* CEffectManager::NewObjectImpl(int type) {
     if (object != nullptr) object->type_ = type;
     return object;
 }
-EI_REWRITTEN(0x0067E170, CEffectManager::NewObjectImpl);
+EI_REWRITTEN(0x0067E170, CEffectManager::NewObject);

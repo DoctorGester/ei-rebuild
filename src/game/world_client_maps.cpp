@@ -1094,6 +1094,15 @@ T* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
     return object;
 }
 
+// A new object (its class's operator new and constructor), stored and referenced (the original does not
+// test the pointer before counting).
+template <typename T>
+T* NewCounted() {
+    T* object = new T();
+    ++object->refCount_;
+    return object;
+}
+
 // The grid set to 4 x 4 cells, reallocated unless its storage already has that size (the second
 // resize inlined).
 void GridToFour(SectorGrid& grid) {
@@ -1230,13 +1239,13 @@ int CWorldClient::Setup() {
     ++terrain->refCount_;
     zoneName_ = worlddata::GipathText();
 
-    manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
+    manager44_ = NewCounted<CClientSpecificManager>();
     manager44_->Init(this);
-    textureManager_ = MakeCounted<CTextureManager>(0xF0, ConstructOn<CTextureManager, &CTextureManager::Construct>);
-    textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
-    manager188_ = MakeCounted<CMaterialManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
+    textureManager_ = NewCounted<CTextureManager>();
+    textureManager_->CBaseManager::Init(this);   // 004031B0 called directly
+    manager188_ = NewCounted<CMaterialManager>();
     manager188_->Init(this);
-    manager190_ = MakeCounted<CBaseManager>(0xD8, ConstructOn<CLightFactory, &CLightFactory::Construct>);
+    manager190_ = NewCounted<CLightFactory>();
     manager190_->Init(this);
 
     std::uint8_t* particleMemory = New(sizeof(CParticleManager));
@@ -1476,15 +1485,9 @@ CLightningManager::~CLightningManager() {
     newBolts_.RemoveAll();
 }
 
-void CLightningManager::Destruct() { this->CLightningManager::~CLightningManager(); }
-EI_REWRITTEN(0x00562EC0, CLightningManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x00562EC0, CLightningManager::~CLightningManager);
 
-CLightningManager* CLightningManager::DeletingDestruct(unsigned flags) {
-    this->CLightningManager::~CLightningManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00562EA0, CLightningManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00562EA0, CLightningManager::~CLightningManager);
 
 ClientArrayManager::ClientArrayManager() {
     current = nullptr;
@@ -1498,15 +1501,9 @@ ClientArrayManager::~ClientArrayManager() {
     if (current) current->Release();
 }
 
-void ClientArrayManager::DestructBody() { this->ClientArrayManager::~ClientArrayManager(); }
-EI_REWRITTEN(0x00562DF0, ClientArrayManager::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00562DF0, ClientArrayManager::~ClientArrayManager);
 
-ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
-    this->ClientArrayManager::~ClientArrayManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00562DD0, ClientArrayManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00562DD0, ClientArrayManager::~ClientArrayManager);
 
 // ---- The zone's state block (00567AB0, A-W15) ----------------------------------------------------
 

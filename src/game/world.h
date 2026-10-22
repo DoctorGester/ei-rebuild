@@ -1141,12 +1141,6 @@ struct ClientArrayManager : CBaseManager {
 
     // Body of the slot at 004E2700 (registered by member pointer).
     int DrawImpl(CSceneRenderer* renderer);
-    // Body of the slot at 004E2290 (registered by member pointer).
-    CEngineObject* NewObjectImpl(int);
-    // The registrations (C20 retires them): 00562DF0 the destructor, 00562DD0 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void DestructBody();
-    ClientArrayManager* DeletingDestruct(unsigned flags);
 
     CEngineObject* current;               // +0xB0 counted
     mfc::CList<CEngineObject*> list;      // +0xB4 counted (vtable 0073F73C)

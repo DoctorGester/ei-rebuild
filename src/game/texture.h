@@ -512,12 +512,6 @@ public:
     // the cache emptied, the composed textures deleted, the device dropped,
     // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor.
     ~CTextureManager() override;
-    // The registrations (C20 retires them): 00691140 the constructor in place (returns this),
-    // 00691250 the destructor, 00691230 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CTextureManager* Construct();
-    void Destruct();
-    CTextureManager* DeletingDestruct(unsigned flags);
     const char* GetClassName() override;     // 11: 00691210 "CTextureManager"
     int GetClassId() override;               // 12: 00691220 (0x26)
     const char* GetFolderName() override;    // 25: 00691200 "textures"
@@ -531,7 +525,6 @@ public:
     // 23: 00691AA0. CBaseManager::CreateObject, then flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40
     // 0x200, any other 0x40 (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
     // 006922A0. Loads a texture: textures\<name>.bmp on disk if present, else <name>.mmp from the
     // archives, else <data path>textures\<name>.mmp on disk.
     int LoadTexture(CTexture* texture);
@@ -558,12 +551,10 @@ public:
     // registered one with a flag of 0x38 goes into the cache (cache_, cachedBytes_; the original also
     // sets its surface's priority to 0), any other is destroyed and kept as a spare. Returns 0.
     int ReleaseObject(CEngineObject* object) override;
-    int ReleaseObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
     // 14: 00691810 (texture.cpp). A new CTexture of `type`: the constructor and the reset inlined
     // (no name, no surface, an empty extra block, a pixel format of size 0x20 and nothing else).
     // Null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 006913A0 (texture.cpp; RET 4). Holds `device` (counted). Without one: textures limited to 511
     // pixels and mip level 2. Else the mip level from the texture quality setting (0, 1, 2, else 3),
     // the limit when the Direct3D device's largest texture is at most 256 pixels wide or high (or

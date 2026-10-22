@@ -85,7 +85,6 @@ struct CMapObjectManager : CResourceManager {
     // 00512730 (unit_create_stats.cpp). Slot 14's body: a new object of class id `classId`
     // (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null for
     // other ids.
-    CEngineObject* NewObjectImpl(int classId);
     // 005141F0 (RET 8; unit_equipment.cpp). Gives `unit` the starting equipment of prototype
     // `name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
     // slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
@@ -95,13 +94,7 @@ struct CMapObjectManager : CResourceManager {
     // prototype a FatalError message and 0; else 1.
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
-    // map_object_manager.cpp (A-U12). The registrations (C20 retires them): 005125E0 the
-    // constructor in place (returns this), 00512650 the destructor, 00512630 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    CMapObjectManager* Construct();
-    void Destruct();
-    CMapObjectManager* DeletingDestruct(unsigned flags);
-    // 00512660 (slot 2). The base manager's Create (00403020; 0 when it fails), then the archive
+    // map_object_manager.cpp (A-U12). 00512660 (slot 2). The base manager's Create (00403020; 0 when it fails), then the archive
     // "<text folder>database.res" added (slot 16). Returns 1.
     int CreateManager();
     // 00512A30 (slot 23, RET 8). The base manager's CreateObject (00403730); a new object gets an

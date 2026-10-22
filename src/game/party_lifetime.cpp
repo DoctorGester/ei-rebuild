@@ -290,8 +290,7 @@ EI_REWRITTEN(0x00661190, CParty::DeletingDestruct);
 
 BOOL CParty::CreateParty() {
     // The base class's slot 2 (0055E930) only returns 1.
-    CItemManager* items = gamecrt::operator_new_as<CItemManager>();
-    itemManager_ = items != nullptr ? items->Construct() : nullptr;
+    itemManager_ = new CItemManager();
     ++itemManager_->refCount_;   // not tested for null, as in the original
     itemManager_->Init(this);
 

@@ -488,7 +488,6 @@ struct CItemManager : CResourceManager {
     // CResourceManager's constructor, then this class's vtable (inlined where the original makes
     // one: the world's 0055EE40, a party's CreateParty 006614F0; world_managers.cpp).
     CItemManager();
-    CItemManager* Construct();   // the constructor in place; returns this
     // 0055F400. CResourceManager's destructor.
     ~CItemManager() override;
     const char* GetClassName() override;     // 11: 0055F3C0 "CItemManager"

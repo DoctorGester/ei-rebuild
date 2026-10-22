@@ -152,12 +152,6 @@ public:
     // 13: 00562D70, CBaseManager's Init (the same code at its own address).
     // 14: 00468680. A new bolt.
     CEngineObject* NewObject(int type) override;
-    // The registrations (C20 retires them): 00562EC0 the destructor, 00562EA0 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CLightningManager* DeletingDestruct(unsigned flags);
-    // Body of the slot at 00468680 (registered by member pointer).
-    CLightning* NewObjectImpl(int /*type*/);
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);

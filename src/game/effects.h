@@ -329,10 +329,6 @@ public:
     // 00498630. Every held source nobody else references (refCount_ 1) is released and leaves
     // `held_` (the client's zone load).
     void ReleaseUnheld();
-    // The registrations (C20 retires them): 005627C0 the destructor, 005627A0 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CParticleManager* DeletingDestruct(unsigned flags);
 
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
     HeldMap held_;                                  // +0x0CC id -> source holding a reference

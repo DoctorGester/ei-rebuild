@@ -30,16 +30,10 @@ const char* __fastcall WorldServerClassName(CWorldServer*);          // 0058A410
 int __fastcall WorldServerClassId(CWorldServer*);                    // 0058A420: 8
 const char* __fastcall BridgeManagerClassName(PlatformSet*);         // 00561870 (0073F4FC) "CBridgeManager"
 int __fastcall BridgeManagerClassId(PlatformSet*);                   // 00561880: 0x34
-const char* __fastcall ParticleManagerClassName(CParticleManager*);  // 00562780 (0073F644) "CParticleManager"
-int __fastcall ParticleManagerClassId(CParticleManager*);            // 00562790: 0x2C
 const char* __fastcall TextManagerClassName(CTextManager*);           // 00562970 (0073F6F0) "CTextManager"
 int __fastcall TextManagerClassId(CTextManager*);                     // 00562980: 0x2A
 const char* __fastcall TerrainClassName(Terrain*);                   // 00562B40 (0073F6A8) "CTerrain"
 int __fastcall TerrainClassId(Terrain*);                             // 00562B50: 0xB
-const char* __fastcall LightningManagerClassName(CLightningManager*);   // 00562D80 "CLightningManager"
-int __fastcall LightningManagerClassId(CLightningManager*);          // 00562D90: 0x35
-const char* __fastcall VisFogManagerClassName(ClientArrayManager*);  // 00562DB0 "CVisFogManager"
-int __fastcall VisFogManagerClassId(ClientArrayManager*);            // 00562DC0: 0x60
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // 005AACC0 (0073FC48) "CI3DFigure"
 int __fastcall I3DFigureClassId(CEngineObject*);                     // 005AACD0: 0x46
 const char* __fastcall FigureClientSpecificClassName(CEngineObject*);   // 005A7040 (0073FB10) "CFigureClientSpecific"
@@ -49,9 +43,6 @@ int __fastcall FigureClientSpecificClassId(CEngineObject*);          // 005A7050
 int __fastcall UiObjectCreate(CEngineObject*);                       // 00579560
 const char* __fastcall UiObjectClassName(CEngineObject*);            // 00579580
 int __fastcall UiObjectClassId(CEngineObject*);                      // 00579590
-
-// Slot 25 of a resource manager: the name of its resource folder.
-const char* __fastcall ItemManagerResourceName(CItemManager*);       // 0055F3B0 (0073F25C) "items"
 
 // 0055FAD0: slot 6 (RunTick) of the worlds' base vtable 0073F18C answers 1.
 int __fastcall WorldBaseRunTick(CWorld*);
@@ -72,5 +63,6 @@ CParticleManager* __fastcall WorldClientParticleManager(CWorldClient*);   // 005
 CEngineObject* __fastcall WorldClientManager194(CWorldClient*);      // 005619C0
 CEngineObject* __fastcall WorldClientManager198(CWorldClient*);      // 005619D0
 
-// 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers is CBaseManager::InitImpl
-// (004031B0), registered at both addresses in world_class_slots.cpp.
+// 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers is CBaseManager::Init
+// (004031B0); the particle, lightning and fog managers' class names and ids, the item manager's folder name
+// (0055F3B0) are their classes' overrides.

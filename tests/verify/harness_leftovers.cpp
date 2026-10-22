@@ -139,7 +139,7 @@ const Site kSites[] = {
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
     {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild), kStatsCopies},   // CMapObject::TakePrototype
     {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct), kStatsCopies},   // CParty::AddMember
-    // CServerSpecificManager::NewObjectImpl 004D6970: the player server, the 3D object server,
+    // CServerSpecificManager::NewObject 004D6970: the player server, the 3D object server,
     // CMapObjectServer, CUnitServer (its waitFrame +0x93C, which ResolveBlocker reads) and the torch spec.
     {0x004D69A2, kOperatorNew, kNew, kServerObjects},
     {0x004D69D7, kOperatorNew, kNew, kServerObjects},
