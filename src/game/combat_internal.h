@@ -19,8 +19,8 @@ struct GameOstream : libcrt::Ostream {
 };
 static_assert(sizeof(GameOstream) == 8);
 
-// The game's log stream (global 007AF3E8) and the manipulator that ends a line (00435000).
-inline GameOstream* GameLog() { return ei::GameData<GameOstream*>(0x007AF3E8); }
+// The combat log (the AI stream; combat.cpp) and the manipulator that ends a line (00435000).
+GameOstream* GameLog();
 inline const libcrt::Manipulator kLogEndLine = libcrt::FlushManipulator;
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.

@@ -12,14 +12,15 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
 --check (build.cmd):
   * every tagged initialiser is game.exe's bytes at the tag: its numbers are packed by the declared element type
     (TYPES; a struct type its fields' formats, nested braces flattened) and compared with the file's bytes
-    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site, no two ranges overlapping);
+    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site but NAMED_ADDON_SITES, the ones
+    the image writes itself, no two ranges overlapping);
   * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it, and
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names what game.exe's pointer in its place points at,
-    and that is compared: a string literal the text at the target, the name of another named range its address (or
-    `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
-    registration (EI_REPLACE*), nullptr a zero;
+    and that is compared: a string literal the text at the target, the name of another named range its address
+    (qualified or not; or `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
+    registration (EI_REPLACE*, EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), nullptr a zero;
   * nothing else reaches a named range: no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked)
     inside it, no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it but at its
     pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
@@ -108,11 +109,9 @@ TYPES = {
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
-    'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
-    'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
-    'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
+    'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
@@ -120,6 +119,7 @@ TYPES = {
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     'lib::StaticObject<mfc::CString>': 'I',
+    'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -134,6 +134,10 @@ TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*
 # Registrations of our functions at game.exe's addresses (ei/hook.h): what a code pointer element may name.
 REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
+# The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
+# reports game.exe's unported function (ei::UnportedSlot).
+REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
+UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 ORIGINAL_READ = re.compile(r'\bOriginalGameData\s*<[^<>()]*>\s*\(\s*$')   # just before a literal
@@ -165,7 +169,11 @@ STATIC_OBJECT_BYTES = {
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
     'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
-    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
+    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
+    'mfc::CList<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
+    'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
+    'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
+    'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
 }
 
 
@@ -290,6 +298,12 @@ class Targets:
         for s in sources:
             for m in REGISTRATION.finditer(s.code):
                 self.functions[m.group(2).lstrip(':')].add(int(m.group(1), 16))
+            for m in REWRITTEN.finditer(s.code):   # also unqualified: the table names it inside its namespace
+                name = m.group(2).lstrip(':')
+                self.functions[name].add(int(m.group(1), 16))
+                self.functions[name.split('::')[-1]].add(int(m.group(1), 16))
+            for m in UNPORTED.finditer(s.code):
+                self.functions[m.group(1)].add(int(m.group(2), 16))
 
 
 def tokens(body):
@@ -351,6 +365,8 @@ def _pack_pointers(self, fmt, img, targets):
         return
     out = bytearray()
     for i, (kind, v) in enumerate(values):
+        if kind == 'name' and v not in targets.ranges and v.rsplit('::', 1)[-1] in targets.ranges:
+            v = v.rsplit('::', 1)[-1]   # a named range in another namespace (`&console::g_aiLogOut`)
         code = fmt[i % len(fmt)]
         at = self.address + len(out)
         if code.endswith('s'):   # a char array field: a string literal, zero padded
@@ -403,7 +419,7 @@ def _pack_pointers(self, fmt, img, targets):
                 return
         else:
             self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                            'ours with a registration (EI_REPLACE*) or nullptr')
+                            'ours with a registration (EI_REPLACE*, EI_REWRITTEN, UnportedSlot) or nullptr')
             return
         self.pointers.add(len(out))
         out += struct.pack('<I', cell)
@@ -456,6 +472,15 @@ def addon_sites():
 # The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
 # generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
+# The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
+# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write,
+# or one the image's code reproduces by writing our global (C25a: WideScreen). address -> why. One in .rdata is written
+# all the same (not const).
+NAMED_ADDON_SITES = {
+    0x00742B08: "WideScreen's layout width: widescreen::g_layoutWidth, written by ui_widescreen.cpp's Startup",
+    0x007428AC: "WideScreen's panels' right column: widescreen::g_panelRight, written by ui_widescreen.cpp's Startup",
+    0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session_tick.cpp)",
+}
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 
 # Retired vtables game.exe's pointer cells may still point at: type_info's 007472B0 (C19 batch 23), the vtable field
@@ -652,7 +677,8 @@ def check(img, update, img_path):
         if not (RDATA[0] <= lo and hi <= RDATA[1] or DATA[0] <= lo and hi <= DATA[1]):
             problems.append(f'{d.where()}: {d.name} {lo:08X}+{d.size} is not in .rdata past the import table or .data')
             continue
-        if hi <= RDATA[1] and not d.const:
+        own_site = any(lo <= a < hi for a in NAMED_ADDON_SITES)
+        if hi <= RDATA[1] and not d.const and not own_site:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
         late = sorted(a for a in unknown if lo <= a < hi)
@@ -664,7 +690,7 @@ def check(img, update, img_path):
             problems.append(f'{d.where()}: {d.name} is not the bytes of game.exe: first difference at {lo + at:08X} '
                             f'(+{at}): ours {d.packed[at:at + 4].hex()}, game.exe {want[at:at + 4].hex()}')
         for a, b in addon_sites():
-            if a < hi and lo < b:
+            if a < hi and lo < b and a not in NAMED_ADDON_SITES:
                 problems.append(f'{d.where()}: {d.name} overlaps the addon.dll site {a:08X}: that cell is written')
     good = sorted((d for d in defs if d.size), key=lambda d: d.address)
     for x, y in zip(good, good[1:]):
@@ -731,7 +757,7 @@ def check(img, update, img_path):
             d = inside(a)
             # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
-            if d and not original_read and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
+            if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

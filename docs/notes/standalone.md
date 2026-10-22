@@ -2,38 +2,19 @@
 
 The product is the standalone image: `ei_standalone.exe` lays out game.exe's data without its code and runs our
 code from `ei_hook.dll`. game.exe runs only as the original game (the harness's references). This file holds how
-the image works, where the library code lives and what it must keep, the UTF-8 plan and what the hook retirement
-left. How changes are checked: docs/notes/standalone-verification.md. Per-ticket history: `git log --grep=<ID>`.
+the image works, where the library code lives and what it must keep, the UTF-8 plan and game.exe's role. How
+changes are checked: docs/notes/standalone-verification.md. Per-ticket history: `git log --grep=<ID>`.
 
-## 1. What ties the code to the exe (measured 2026-10-15)
+## 1. What ties the code to the exe
 
-| Tie | Count |
-|---|---|
-| Unported game functions | 0 (S2 did the last 200, all under 5 bytes; 00656D69 is not a function) |
-| Forwarders (`EI_ORIGINAL`) | 284 sites under src/ after C13d (3,817 addresses before C13, 294 sites before C13d): Rebirth-patched callees, the skip list's type-recovery rows, vector recorders and harness / replay entries (docs/notes/cleanup-tooling.md); forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
-| Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions |
-| Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0, all generated (S3); 190 exit functions generated (S3a, S16a) |
-| Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
-
-`tools/dashboard_data.py` measures the current numbers (the dashboard's standalone panel). C13 made 1,001 forwarders
-direct calls with `tools/direct_calls.py` (`--report -v --cast --library` lists the rest and why each stays; the
-skip list config/direct_calls_skip.csv; check_cleanup ratchets the count per file). C13a recovered the real types
-of about 360 more (per-file shims replaced by the real classes: the script interpreter's world, brain, AI map, lever,
-stats and mode calls, the options' registry key, the window procedure's input; float bits passed with std::bit_cast);
-C13a1 replaced the rest of the per-file shims (the UnitController overlay by CUnitServer, the script interpreter's
-call-only shims, the game glue objects, UiInput by UiContainerInput, the global map's and the stats panel's views, the
-registries by CFileRegistry, ui_gdi.h's GDI views by mfc::impl's classes, the sprite views by CUiMesh) and made 336
-forwarder sites direct calls (2,352 to 2,014). `direct_calls.py --loose` also converts forwarders whose types differ
-in ways a call site can spell (a cast written at the call; `--exclude` leaves files out, `--cast-sites` names calls that
-need a static_cast). The game glue (00578xxx) ignores `this`: its world_glue.h functions are called without the dummy
-this / EDX. 534 "types differ" (431 under --loose) and 102 skip-list rows are left for C13a2. S18 (after C13a2) removes
-the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
-plain new / delete; then the image and the read of game.exe go.
+The list, each item with the ticket that removes it: docs/standalone-cleanup.md. The counts: `python tools/progress.py`
+and `tools/dashboard_data.py` (the dashboard's standalone panel). `tools/direct_calls.py` (`--report -v --cast --library`)
+lists the forwarders left and why each stays (skip list config/direct_calls_skip.csv). The game glue (00578xxx) ignores
+`this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
 gen_/check_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, check_fp_fold, find_vtables,
-find_dead_code, standalone_gaps, and CMake's `EI_GAME_EXE`) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
+find_dead_code, standalone_gaps; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
 
@@ -155,11 +136,8 @@ each step green on the goldens and removing a measured tie:
   before it: the host lays out only the headers, the loader and the DLL's CRT start-up touch no game data;
   the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host copies neither section (it skips RVAs 0033B000 and 00383000); the build writes
-  their file bytes from 0073B000 up to .data's last nonzero dword, the import table's 0x820 bytes zero (our slots;
-  ResolveImageImports fills them), .rdata's tail past 007828B2 zero, the ranges our named globals hold zero
-  (config/named_data.csv, "Named data (C18)" below) (`tools/gen_image_cells.py --bytes`, a CMake
-  custom command from `EI_GAME_EXE`; empty by default: `tools/exe_path.py` finds it) into
-  build/<cfg>/image/image_data_bytes.inc, not committed (user 2026-10-21: the interim before named globals);
+  zero but the committed cells, from 0073B000 up to the last nonzero dword (C25c: no game.exe; `tools/gen_image_cells.py
+  --bytes`, a CMake custom command) into build/<cfg>/image/image_data_bytes.inc, not committed;
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
@@ -330,31 +308,37 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 
 ### The build without game.exe (C25)
 
-What the image still takes of game.exe's .rdata / .data bytes, measured two ways:
+The build reads no game.exe (C25c). The image's .rdata / .data bytes (`gen_image_cells.py --bytes`, CMake) are zero
+but the committed pointer and code cells (image_cells.inc, image_code_cells.inc); everything else our code reads
+there is a named global of ours (C18) or a literal. The resources are the host's own (C23). How it got there: C25a's
+trace of the reads and zero-filled trial, its kept list (`config/image_kept.csv`) and its static proof that every
+address src/ names held only zeros and cells; C25c named the last rows (out_of_range is a class of ours the compiler
+throws, stlp_string.cpp; `__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
+(EI_IMAGE_BYTES_FROM_EXE, the trial, EI_IMAGE_TRACE / image_trace.py, the kept list, the proof, EI_NO_GAME_EXE).
 
-- **The trace** (`EI_IMAGE_TRACE=1`, verify build, the image's runs; tests/verify/harness_image_trace.h): every page of
-  the storage's file bytes that holds a nonzero dword is made inaccessible at the harness's start; the first access
-  to each such dword is a line of the run folder's image_trace.txt, then the instruction is single-stepped with the
-  page open. `python tools/image_trace.py [--check] [--csv OUT]` names the readers (the map) and groups the reads; a
-  read of a cell (image_cells.inc, image_code_cells.inc) does not count, the cells come from the committed tables.
-  On the suite (144 runs, 2026-10-22, after C18o): 2238 dwords read, 1281 of them cells, 957 from game.exe's bytes. Pages that
-  trap more than 100,000 times are left open (the script keyword table 0078B000-0078DFFF, MFC's 00796000, the
-  CRT's 00797000, 0079B000's hot globals): the trace cannot see the rest of them, the trial covers that.
-- **The trial** (`build.cmd verify trial`, CMake `EI_IMAGE_ZERO_TRIAL`, `gen_image_cells.py --bytes OUT --zero`):
-  the image's bytes are zero but the cells and `config/image_kept.csv`'s ranges. Never the product: a zero where a
-  table or string is read changes behaviour silently (a failed lookup, a zero constant), so the proof is the image
-  suite with goldens the same, not a boot. With an empty list the trial does not read game.exe at all.
+The checks that compare with game.exe (check_fp_fold, rdata_literals, named_data, check_short_functions,
+check_static_init, `gen_image_cells --check`, `gen_iat --check`) are `tools\check_against_exe.cmd [release|verify]`,
+run by hand when a change touches what they cover; regenerating the cells (`gen_image_cells.py`) reads game.exe too.
+The harness still runs the original game.exe for goldens and vectors.
 
-`config/image_kept.csv` is that list (address, size, owner file, kind, what): whole objects, also the parts no run
-reaches (the locale abbreviation tables); `gen_image_cells.py --check` refuses a range that overlaps a
-named range (C18) or another, `image_trace.py --check` a traced read outside the list. Each row is a candidate for
-C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
-and the build needs nothing of game.exe (the resources are the host's own since C23).
-
-Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
-build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
-check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes.
+What C25a named or dropped of its list, still the code's form:
+- **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
+  `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
+  the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
+  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
+- **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
+  mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
+  function_sizes.inc); static_init.cpp calls it.
+- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+  `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
+  message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
+- **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
+  PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
+  game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
+  the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+- **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
+  header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
+  (counted, left out of the cells like LEFT_STRUCTURES): zero in the image.
 
 ### Named data (C18)
 
@@ -363,7 +347,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -446,11 +430,11 @@ kinds given.
   element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
   field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
   gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
-  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
-  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
-  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
-  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
-  (crt_x87.cpp) likewise, its readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
+  copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
+  file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
+  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
+  readers have no registration. Left: the CRT / MFC tables a static initialiser or the
   CRT's start-up fills (C18q's list below).
 - **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
   225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
@@ -467,7 +451,7 @@ kinds given.
   recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets the classes with SetReplayLocale).
   config/image_kept.csv (C25) lost the rows these names replace: the keyword table and the strings only its cells
   reached (0078BCA0, 0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), and the CRT's locale rows
-  (C18q, C26); the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
+  (C18q, C26).
   **Left in the CRT**, by reason:
   - unread by our code (the host CRT or a literal does the work; C25 zero-fills): the locale categories
     `__lc_category` 00797888 with the static "C" 00797778, getqloc's tables 00798914-00798BE8, `__rgcode_page_info`
@@ -533,10 +517,8 @@ kinds given.
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
     types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
-    over all of game.exe; a cell of the dead ones cannot be left out without breaking out_of_range's). **Left**:
-    stlp_string's out_of_range 0074C640, thrown by value: its object carries game.exe's vtables (C19) and the
-    ThrowInfo names the original's copy constructor and destructor (0041F760, 00429130 ...), so it still goes
-    through `CxxThrowException` with the original's record.
+    over all of game.exe). stlp_string's out_of_range (thrown by value, 0074C640) is a class of ours since C25c,
+    thrown by `throw` (std::exception, its 256-byte name, logic_error): its records are dead data too.
   - .data and .bss objects (C18d did particle*: 25 .data tables for 29 addresses, the bag's ball sizes 007A9BFC and the draw
     arrays' guard 007A9BF4). The form is the same; **const follows our code, not the section**: a .data table no
     code of ours writes is `constexpr` like an .rdata one (most are: the original's arrays lacked const;
@@ -629,8 +611,8 @@ kinds given.
       007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
       ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
       zero its first dword). A product or quotient of two named constants that the original computes at run time
-      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are: 007AF3E8 and
-      007C53C4 store the address of the log stream 007C5810 (a constructed object, not yet a name), 007C2F24 is a
+      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are (then): 007AF3E8 and
+      007C53C4 store the address of the log stream 007C5810 (named since C18s), 007C2F24 is a
       function-local guard (run-time state), 0079B2A0 (2 pi) and the folds that only game.exe's own code reads (the
       per-window pi / 2 and 1 / 1 copies in 007C7B70-007C8844) are no hand code's; sky_object 007AA890 /
       007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
@@ -648,7 +630,7 @@ kinds given.
       - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
         has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
         and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles); atexit_400.cpp has older ones.
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
@@ -716,10 +698,8 @@ kinds given.
         the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
         template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
         record's order.
-      - Not this rule (C19): an object that carries game.exe's vtable: the particle draw order 007A9C50, the CArrays
-        007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
-        006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
-        console's 007C54E8 store its address, so they wait with it) and the other ostreams 007C55B0-007C7B38.
+      - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream
+        (CMemoryStream 007AFDF8). The console's ostreams and their log pointers are named since C18s (below).
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
       initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
       initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no
@@ -744,6 +724,60 @@ kinds given.
     The verify build has no run where the original's initialisers and ours meet (since S21e game.exe runs only the
     original), so the comparison is the build's: exact for stores and folds of literals; a definition that a
     call fills (the sway curves) is compared at its zero start, and the goldens cover what the call builds.
+  - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
+    - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
+      the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
+      read through the object (`TheClientWorld()->manager3C_`); the accessors that need world.h are out of line in
+      world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
+      vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
+      007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
+      `named_data.py --owner` and against the logic settings (007C53F8) and the options (0079BC70) first.
+    - **Whole objects with a hand-ported initialiser**: the logic settings (g_logicSettings, its initialiser 005CDFB0;
+      TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
+      `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
+      name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
+      particles' draw order 007A9C50, the unit shape cache 007C2F70 (defined in ai_movement.cpp, which the path
+      vectors link), the AI events' pool 007C43A8 (and the free list 007C53F0, ai_grids.cpp), the terrain's projection
+      outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit function is ported
+      beside it and the port registers its own (`GameAtExit(DestroyX)`): the glow's and the particles' sprite arrays,
+      ai_region_reach's point arrays, Aggression's candidate list, the water patch, UseResources' CString.
+    - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
+      log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
+      none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
+      draw: its tile arrays 007C8848..007C88C8); a fold of ln in an unread object is `????????` in unread_data.csv.
+      Winsock's exit function 0047C330 is ported without the wait (only dead code counts the threads 007A9774).
+    - **Addon sites**: named_data.py's NAMED_ADDON_SITES lets a named range hold the site of a Rebirth patch disabled
+      here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
+      it for the harness in game.exe.
+    - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
+      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::OStreamObject`:
+      the ostream and its ios, the virtual base, 0x58 bytes; trivial, so a plain `constinit` aggregate, TYPES
+      'OStreamObject') and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
+      (005DC050 / 005DC120, 005DC1E0-005DC3F0, 005DC420-005DC5E0) and 18 exit functions ported on the names and
+      registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
+      initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
+      kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
+      kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
+      stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
+      (crt_iostream.cpp).
+    - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
+      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
+      (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
+      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
+      007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
+      initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
+      out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow; render_game.h's Addresses hold
+      pointers to it and the renderer), the stage blocks 007AEDD0 (g_stageBlocks, keyed by StageBlock), the loading
+      movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
+      005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
+      harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls
+      game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
+    - **Left**: MFC's module / thread state, window classes and the generated initialisers' / exits' MFC objects
+      (007C8BB8-007CAAA0: C18r), the CRT's (C26), EmptyText 0079B298 (15 pointer cells of game.exe's data point at it
+      and code compares its address), the function-local statics' guard 007CAEE4 (175 generated `d.Once` tests:
+      gen_static_init would have to name it), STLport's free lists 0079B224-0079B22C (the harness calls our allocator in
+      game.exe), and the section bounds in game_data.h (0073B000,
+      0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)
@@ -1278,8 +1312,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), stlp_string's
-    out_of_range tables 0073B994 / 0073BE8C (their slots are unregistered game code; a throw uses game.exe's
-    ThrowInfo), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
+    out_of_range tables 0073B994 / 0073BE8C (batch 21), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
     CFileFind 00745EE8), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
     CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
@@ -1311,9 +1344,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     LockRange body and 21-23 its own), FileFindTable and mfc_exception.cpp's FileExceptionTable; every slot was
     registered already. CMemFile retired with no class of ours. Overloaded slots (CFileFind's CTime / FILETIME
     getters, CStdioFile's two ReadStrings) get distinct names: MSVC groups a name's overloads in the table.
-  - **stlp's out_of_range** (stlp_string.cpp): NamedExceptionClass / OutOfRangeClass (0 std::exception's deleting
-    destructor, 1 what: the name). The throw keeps game.exe's ThrowInfo 0074C640; its copy constructor 00429130 is
-    unported (a catch by value would report it; nothing catches one).
+  - **stlp's out_of_range** (stlp_string.cpp): since C25c real classes (NamedException : std::exception, LogicError,
+    OutOfRange) the compiler throws; game.exe's ThrowInfo 0074C640 and its records are dead data.
   - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
     the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
 - **Batch 22's families** (2026-10-22): the bases' own tables, the zone records, the item panels, CFont and the map
@@ -1563,9 +1595,9 @@ the `--no-hooks` suite) keeps the registry.
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
-- Library bodies live in src/lib, layout- and allocator-compatible with the exe; game-element instantiations in
-  src/game (game_arrays, game_lists, game_slots, game_hashes, record_*, library_*). C13 made the matching CRT / MFC
-  call sites direct (libcrt::Fopen ...); the rest still go through forwarders (C13a2).
+- Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
+  game_hashes, record_*, library_*). Callers call them by name (libcrt::Fopen ...); the forwarders left are C29's, and
+  C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
@@ -1730,8 +1762,8 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
   `stlp::CStringLess` is `_mbscmp < 0`; the sent-ids map compares signed. operator[] of records and attached ids
   inserts a partly uninitialised value in the original.
 - **string** (stlp_string, `StringAbi`): append's capacity follows size + max(size, n) + 1; the from-text constructor
-  reads its allocator argument (callers pass a real one); `ThrowOutOfRange` builds MSVC 6's out_of_range
-  (__Named_exception vtable 0073B994, out_of_range 0073BE8C, throw info 0074C640).
+  reads its allocator argument (callers pass a real one); `ThrowOutOfRange` throws an out_of_range of ours
+  (std::exception, the 256-byte name, logic_error; C25c).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
   temporaries; registered sorts in src/game/stl_sorts.cpp). Comparator facts: the save list sorts by `!(a < b)`
@@ -1759,9 +1791,9 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.
-- A system call does not trap on an inaccessible page, it fails: the image trace's first suite saw WriteFile fail
-  (error 1784) on a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the
-  Win32 calls that take it (harness_image_trace.cpp's WriteFile).
+- A system call does not trap on an inaccessible page, it fails: C25's image trace saw WriteFile fail (error 1784) on
+  a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the Win32 calls that
+  take it.
 - Leftover memory is not preserved (user 2026-10-15): where the original reads never-set bytes, ours writes a
   canonical value (zero) and the harness patches the original the same way (standalone-verification.md section 5).
 
@@ -2006,66 +2038,24 @@ bytes compared and copied whole) or display text (fixed for UTF-8 with EI_UTF8; 
   the chat overlay: more than one line, each valid UTF-8, joined back to the text), and the frame comparison
   above.
 
-## 5. The hook retirement (S21-S21e, 2026-10-16)
+## 5. game.exe's role
 
-User 2026-10-15: the standalone image is the only product, checked by the goldens and the function vectors.
-- **Gone**: hooked runs of game.exe (`--hooked`, `--native`, `--dgvoodoo`, the hooked side of `--widescreen` and
-  compare.py, `EI_COVER=hooks`, `EI_PLAIN`); the verify wrappers (640 tests/verify/verify_*.cpp, verify.cpp,
-  verified.txt, disabled.txt, the start-up checks; the last commit with them is S21d's parent); InstallHooks'
-  game.exe mode (trampolines for rewrites, Rebirth detection, rebirth_sites.inc, DumpPatchedFunctions, FollowAddon,
-  `EI_RECORD_OURS`); check_returns and check_patched_calls; the "call Rebirth-patched callees through their
-  addresses" rule (rewrite guide rule 9: Rebirth's patches are flags now).
-- **game.exe** always runs the original: ei_launch sets `EI_NO_HOOKS=1` for it (`--no-hooks` is accepted and changes
-  nothing; the image never gets it). Its only hooks are the vector recorders with `EI_VECTORS=1` (refused when
-  addon.dll is loaded: recordings are the vanilla code's) and the harness's own patches.
+game.exe runs only as the original game, for the harness's references; none of our code runs in it.
+- ei_launch sets `EI_NO_HOOKS=1` for game.exe (`--no-hooks` is accepted and changes nothing; the image never gets it). Its
+  only hooks are the vector recorders with `EI_VECTORS=1` (refused when addon.dll is loaded: recordings are the vanilla
+  code's) and the harness's own patches, by address (that side of the harness keeps game.exe's addresses).
 - **Builds**: `release` is the product (the image); `verify` (CMake option EI_HARNESS) is the image plus the harness
   (tests/verify) and the recorders (tests/vectors).
-- **What stays**: the original's harness (goldens, vectors, widescreen references, the reference cache), the image's
-  harness, golden.py / savefile.py, ei_vectors.exe, the frame tools, the Rebirth flags, and the build checks that
-  hold for the image (check_registrations, check_short_functions, check_static_init, check_fp_fold, check_thunks,
-  check_x87, check_forwarders, check_cleanup, check_signatures, check_stolen for the recorders).
-- **Scenarios** (S21a): a line `# no original: <install>... <reason>` leaves a scenario's `--no-hooks` runs out of
-  plans (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen). render_movie and
-  render_terrain were dropped (their goldens equalled render_movie_present's / render_scene's).
-- How verification works now: docs/notes/standalone-verification.md section 1.
-- EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; none of the samples is
-  game.exe's code (it has none), and profile_report names the image's functions `ours:`.
-- S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
-  (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
-  functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
-- Left: 81 src/ comments about calls through an address "so the verify wrapper sees it" (C13 / C13a1 made most such
-  calls direct; the rest are C13a2's), tests/coverage/reach.txt (the last hook build's reach, kept).
-
-**S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
-`--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
-time first in two client units' flag 0x400 (CWorldClient's "model kept loaded" mark, CollectVisible: which models were
-in view), then the camera in the saves (focus x 109.999 against 111.684) and the particles' draws (CParticleSource::Tick,
-one draw apart after a sound started in one run only), and from there every random draw. All on the client side, in
-view of the camera: the camera had moved. The harness answers GetCursorPos with its own mouse, but the original's
-window under dgVoodoo covers the desktop (client area at 0,0, 3840x2160) and is not cloaked (WB12 cloaks the image's
-only), so the real cursor, wherever it rests, is over the topmost game window: Windows sends that window WM_MOUSEMOVE
-with the cursor's coordinates when the cursor moves and when a starting game's window appears under it (logged: the
-cursor at (0, 1823), the left edge, which scrolls the camera). The input dispatcher (00457970) takes it as the harness's
-own. The game also polls a background DirectInput mouse (0065EAD0 non-exclusive, background; 005E52E0 sums its motion
-for right-button turning), which reads the hardware whatever window is in front. Which run got the stray move
-depended on where the user's cursor was and which window was on top. Why it showed from about 04:18 on is not proven;
-likely the image's windows (the default suite since S21, cloaked since WB12) stopped lying over the original's, so
-the original's own windows now take the stray moves. WB14 (loopback binds; 0 binds in single-player runs) and SV7b6a /
-SV7c2 were not involved: with the mouse left out and all of them in, the goldens repeat.
-- tests/verify/harness_input.cpp / .h (both the original and the image): the game window's subclass
-  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client
-  messages (to DefWindowProc); the harness's posted messages never hit-test. DirectInputCreateEx's import slot
-  (0073B044) is routed: the game's CreateDeviceEx for GUID_SysMouse gets its device's GetDeviceState wrapped, the
-  state zeroed after each read (no motion, no buttons; counted when the hardware had any). The report's `MOUSE:` line:
-  reads, real moves left out, hit tests over the window.
-- Runs (`work.py test S21c1 ... --jobs 4`): before the fix, two passes of the six (randtrace) gave 1 and 2 differing
-  goldens. With it: the six scenarios 12 the same (3 runs with the real cursor over the window, left out). `--no-hooks
-  --golden --fresh`, every golden scenario: pass 1, 136 runs ALL PASS, 126 goldens the same, 0 differ (32 runs with
-  hit tests left out, 1 to 11 each; no DirectInput motion: the user's mouse stood still); pass 2 the same (126 the
-  same, 0 differ). The first build routed the DirectInput slot at the harness's start, which in the image came before
-  the host's own routing of it (RouteImageCalls: "not found to route", then E_INVALIDARG and the game's "Can't create
-  direct input object" box in every image run); it is now routed at the game's CreateWindowExA. Final build: `--golden`
-  (the image) 186 runs ALL PASS, 174 goldens the same, 0 differ; `--no-hooks --golden --fresh` twice: 136 runs ALL PASS,
-  126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out). After merging
-  main (S21d): `--golden` 186 runs ALL PASS, 175 the same, 0 differ; `--no-hooks --golden --fresh` 136 runs ALL PASS,
-  126 the same, 0 differ.
+- What runs against it: the original's harness (goldens, vectors, widescreen references, the reference cache);
+  how verification works: docs/notes/standalone-verification.md section 1.
+- **Scenarios**: a line `# no original: <install>... <reason>` leaves a scenario's `--no-hooks` runs out of plans
+  (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen).
+- EI_PROFILE=1 samples the image: EiStandaloneMain calls InstallProfiler before WinMain, and profile_report names the
+  image's functions `ours:`.
+- **The user's real mouse is kept out of both games** (tests/verify/harness_input.cpp / .h): the game window's subclass
+  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client messages;
+  the harness's posted messages never hit-test. DirectInputCreateEx's import slot (0073B044) is routed at the game's
+  CreateWindowExA (routing it at the harness's start came before the image's own routing and broke DirectInput): the
+  game's GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
+  counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
+  covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.

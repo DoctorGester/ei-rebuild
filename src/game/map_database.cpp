@@ -28,6 +28,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -51,7 +52,7 @@ int TextReader::Split(console::CStringArray* words, int flag) {
     return CTextManager::Split(words, flag);
 }
 mfc::BOOL TextReader::Close() { return TextClose(this); }
-TextReader* TheTextReader() { return ei::GameData<TextReader*>(0x007AF788); }
+TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
 
 // Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the
 // maps' (004607E0 / 004607B0) and the exits' (004606A0 / 00460670) instantiations.
@@ -316,3 +317,20 @@ CMapDatabase* CMapDatabase::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);
+
+// The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
+// the exit function it registers (0045E6E0); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
+CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
+
+namespace {
+void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }   // 0045E6E0
+void __cdecl ConstructMapDatabase() {                              // 0045E6C0
+    g_mapDatabase->Construct();
+    GameAtExit(DestroyMapDatabase);
+}
+} // namespace
+
+EI_REPLACE(0x0045E6C0, ConstructMapDatabase);
+EI_REPLACE(0x0045E6E0, DestroyMapDatabase);

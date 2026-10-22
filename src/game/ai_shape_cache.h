@@ -6,6 +6,7 @@
 #include "core_refcount.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -64,4 +65,7 @@ static_assert(sizeof(ShapePair) == 0x14);
 // reference dropped.
 void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
 
-inline UnitShapeCache* UnitShapes() { return ei::GamePointer<UnitShapeCache>(0x007C2F70); }
+// The cache (ai_movement.cpp): built by its static initialiser 005B31C0, destroyed at exit by 005B31E0 (both
+// ai_shape_cache.cpp).
+extern lib::StaticObject<UnitShapeCache> g_unitShapes;
+inline UnitShapeCache* UnitShapes() { return &*g_unitShapes; }

@@ -21,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <type_traits>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -76,12 +77,12 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
     return true;
 }
 
-// The world's object map (007C2CD0, an STLport hash table by object id) in bucket order (addon's
-// iterator 1001B02C / 1001B058).
-using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
+// The server world's object map (an STLport hash table by object id) in bucket order (addon's iterator 1001B02C /
+// 1001B058).
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
-    ei::GamePointer<const ObjectMap>(0x007C2CD0)->ForEach([&](ObjectMap::Node* node) { visit(node->value); });
+    auto& objects = TheServerWorld()->objects_.map;
+    objects.ForEach([&](std::remove_reference_t<decltype(objects)>::Node* node) { visit(node->value); });
 }
 
 } // namespace

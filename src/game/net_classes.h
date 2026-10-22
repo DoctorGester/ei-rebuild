@@ -32,6 +32,7 @@
 #include "lib/crt_iostream.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -119,6 +120,11 @@ public:
 
 // ---- The globals of the session code ------------------------------------------------------------
 
+// The send rates in bytes per second (the console's rate / localrate set them): to a remote address (2500;
+// Rebirth's SetDefaultRate, disabled here, writes Settings\Rate over it) and on the local network (12500).
+extern int g_remoteRate;
+extern int g_localRate;
+
 class SessionBase;
 class ServerSession;
 class ClientSession;
@@ -131,9 +137,11 @@ inline LogStream* g_netLog = /*0079B91C*/ {nullptr};
 inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).
 inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
-// 0079B900: the buffer every update packet is built in; 0079B8E0: the one datagrams are received into.
-inline GameBuffer* SendBuffer() { return ei::GamePointer<GameBuffer>(0x0079B900); }
-inline GameBuffer* ReceiveBuffer() { return ei::GamePointer<GameBuffer>(0x0079B8E0); }
+// The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
+extern lib::StaticObject<GameBuffer> g_sendBuffer;
+extern lib::StaticObject<GameBuffer> g_receiveBuffer;
+inline GameBuffer* SendBuffer() { return &*g_sendBuffer; }
+inline GameBuffer* ReceiveBuffer() { return &*g_receiveBuffer; }
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
 // initialisers and released at exit (net_session.cpp).
 inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};
@@ -437,8 +445,7 @@ public:
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
     // 00436F60. Sends the buffer's contents to `address` through the socket.
     bool Send(const NetAddress* address, GameBuffer* buffer);
-    // 00436F80. The send rate for a peer: 12500 on the local network, else 2500 (read from the
-    // dwords at 00783E38 / 00783E34).
+    // 00436F80. The send rate for a peer: g_localRate on the local network, else g_remoteRate.
     std::uint32_t RateFor(const NetAddress* address);
     // 00436FA0. Sends a leave packet (kind 1, then the connection id) to `address`.
     void SendLeave(const NetAddress* address, std::uint32_t id);

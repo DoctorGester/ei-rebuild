@@ -562,11 +562,11 @@ void SetRate(CStringArray* args, int* rate, const char* usage) {
 } // namespace
 
 // 005E0990: rate <bytes per second>.
-void __fastcall Rate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E34), "Rate has one parameter - connection rate in bytes per second"); }
+void __fastcall Rate(CStringArray* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
 EI_REWRITTEN(0x005E0990, Rate);
 
 // 005E0A10: localrate <bytes per second>.
-void __fastcall LocalRate(CStringArray* args) { SetRate(args, ei::GamePointer<int>(0x00783E38), "LocalRate has one parameter - connection rate in bytes per second"); }
+void __fastcall LocalRate(CStringArray* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
 EI_REWRITTEN(0x005E0A10, LocalRate);
 
 } // namespace console::commands

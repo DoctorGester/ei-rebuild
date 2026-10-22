@@ -38,6 +38,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
+#include "figure_manager.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -260,7 +261,6 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 // --- Esc menu (0062AB20) ------------------------------------------------------------------------
 
 // The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
-constexpr std::uintptr_t kEscMenuRects = std::uintptr_t(0x007C80A8);
 
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
@@ -274,7 +274,7 @@ void CEscMenu::Build() {
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
-    const RECT* rects = ei::GamePointer<const RECT>(kEscMenuRects);
+    const RECT* rects = g_menuRects + kMainMenuRects;
     for (const RECT* source = rects; source < rects + 5; ++source) {
         CUiRegion* region = window.AddRegion();
         RECT rect;

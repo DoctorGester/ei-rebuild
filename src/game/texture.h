@@ -201,6 +201,12 @@ static_assert(offsetof(CTextureDevice, lastLoadResult_) == 0x08);
 static_assert(offsetof(CTextureDevice, primitiveCount_) == 0x170 && offsetof(CTextureDevice, drawCount_) == 0x174);
 static_assert(offsetof(CTextureDevice, textureChanges_) == 0x178);
 static_assert(sizeof(CTextureDevice) == 0x17C);
+
+// The handles of the four state blocks of texture stage 0 that the device object records at its creation and deletes
+// with it (device_object.cpp): the scene's (texture x diffuse, alpha diffuse), texture x diffuse with the texture's
+// alpha, the alpha passes' (texture x diffuse for colour and alpha) and the terrain's (texture x current, alpha texture).
+enum StageBlock { kSceneBlock, kTextureAlphaBlock, kAlphaPassBlock, kTerrainBlock, kStageBlockCount };
+extern DWORD g_stageBlocks[kStageBlockCount];
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, distanceFog_) == 0x158);
 static_assert(offsetof(CTextureDevice, deviceGuid_) == 0x7C && offsetof(CTextureDevice, depthFormat_) == 0x8C);
@@ -326,7 +332,8 @@ public:
     virtual void BlurShadow(void* pixels, int width, int height);
     virtual void BlurShadow2(void* pixels, int width, int height);
 };
-inline CPixelConverter* PixelConverter() { return ei::GameData<CPixelConverter*>(0x007AF06C); }
+// The scene renderer's graphics processor (2DintMMX.dll's; world_singletons.cpp).
+CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // A byte buffer aligned to 32 bytes (the engine's aligned array; its out-of-line SetSize is 00694300).

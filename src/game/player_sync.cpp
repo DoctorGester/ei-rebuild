@@ -3,6 +3,7 @@
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "console.h"
 #include "game_strings.h"
 #include "lib/static_object.h"
 #include "lib/crt_iostream.h"
@@ -53,8 +54,6 @@ constexpr std::uint8_t kMessageJoin = 0;    // the two types handled before the 
 constexpr std::uint8_t kMessageJoin8 = 8;
 constexpr int kStateLeaving = 3;
 
-// The stream the received packets are decompressed into (007C83D0).
-CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
 const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
 const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID=%x"; }
@@ -67,7 +66,7 @@ constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessed
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
-libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 // The empty string the original sends in place of a non-unit's name.

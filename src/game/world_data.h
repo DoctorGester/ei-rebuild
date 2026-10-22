@@ -9,6 +9,7 @@
 
 #include "engine_object.h"
 #include "lib/stlp.h"
+#include "lib/vecmath.h"
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -18,8 +19,6 @@ class CLight;   // spell.h
 struct QuestBriefingRecord;   // quest_records.h
 
 namespace worlddata {
-
-inline float ExeFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 // ---- CreateUnits (0058EF20) --------------------------------------------------------------------
 
@@ -119,17 +118,19 @@ inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\
 inline int VolumeSettingA() { return options::TheOptions()->audioSfx_; }
 inline int VolumeSettingB() { return options::TheOptions()->audioSpeech_; }
 inline int MovieVolumeSetting() { return options::TheOptions()->audioStreaming_; }
-// 007AFC9C: 2 while the party fights (sound_music.cpp).
-inline int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
+// The party's fight state the client world keeps (2: fighting; sound_music.cpp, world_client.cpp).
+int FightState();
 // The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
 // period (0078FF34) per tick and restarts at 0079BD24.
 inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
-inline int WorldUpdatePeriod() { return ei::GameData<const int>(0x0078FF34); }
+// The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
+inline int g_updatePeriod = /*0078FF34*/ 55;
+inline int WorldUpdatePeriod() { return g_updatePeriod; }
 inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFreq_; }
-// The scene's sun light (007AF07C; figure_part_draw.cpp) and the point 007AFDB0 the grey levels
-// start from (its distance to the sun; meaning unknown).
-inline CLight* SceneSun() { return ei::GameData<CLight* const>(0x007AF07C); }
-inline const void* LightReferencePoint() { return ei::GamePointer<const void>(0x007AFDB0); }
+// The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
+// from (its distance to the sun), the origin; the picking returns it without a view matrix.
+CLight* SceneSun();
+inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};
 inline float ColourScale() { return 255.0f /*0073C370*/; }   // 255
 
 // ---- The world server's quests (world_quests.cpp) -----------------------------------------------
@@ -202,7 +203,6 @@ inline float LayoutX() { return 0.00125f /*00740164*/; }   // 2 / 1600
 inline float LayoutY() { return 0.0025f /*0074015C*/; }   // 1 / 400
 inline float ThreeQuarters() { return 0.75f /*0073C524*/; }   // 0.75
 inline float InterfaceView() { return 0.48157462f /*00740158*/; }   // 0.48157 (the interface camera's half view)
-inline float DampScale() { return ExeFloat(std::uintptr_t(0x007C2F8C)); }   // the occluders' damping scale (ai_refresh.cpp)
 // By reference, where the original copies the bits or passes the address on.
 inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f /*0073BB20*/>; }   // seconds between announcements to the master
 inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090*/>; }   // squared distance a blocking ally may be away

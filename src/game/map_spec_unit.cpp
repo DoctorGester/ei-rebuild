@@ -29,6 +29,7 @@
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world.h"
 
 namespace mapspec {
 
@@ -403,7 +404,7 @@ void UnitSpec::UnitSpecApply() {
     }
     CUnit* unit = object.Unit();
     SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
-    ei::GamePointer<CAIMap>(0x007B00D0)->TurnObject(unit, &b.rotation);
+    TheServerWorld()->AIMap()->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->localRotation_, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &object.scale.x);
     std::memcpy(&unit->baseScale, &object.scale, 12);

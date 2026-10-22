@@ -289,8 +289,8 @@ to which template:
 
 ## Open items
 
-- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are reached through forwarders;
-  the standalone build replaces them (`cleanup-plan.md`, phase 2).
+- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) are ported (src/lib, src/game's game_* files);
+  C14a-d replace them with standard types.
 - Static initialisers run before the hooks install (004632A0 the lever table constructor, 0045E820): a port of one is
   compared at WinMain's entry instead (start-up checks; 00444740, 00458870 and others, app.md "A-E2"). `WinMain`
   (00456440) itself can be hooked and is ported (app.md).
@@ -306,7 +306,6 @@ to which template:
   Checks: `Next` and `FindListedName` side by side by content; `Start` against the original `Next` on a rewound
   copy (its own original would enter `Next`'s wrapper); `RemoveCarriageReturns` ours only. The credits screen
   (0062B7D0) is the only user of the first three and the scene registry of the fourth; no scenario reaches them.
-  ui_layouts.cpp and scene_registry.cpp keep their forwarders, which reach the hooked code.
 - `ObjectIdMap::ReleaseAll` (0047B670, object_id_map.cpp): every object released up to the first empty entry,
   the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with

@@ -21,6 +21,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "camera.h"
 
 #include <cstdint>
 #include <cstring>
@@ -357,10 +358,15 @@ EI_REWRITTEN(0x00643DC0, CHudMap::BuildMarkers);
 
 namespace {
 
-// The camera (global 007AF7C8; its rotation at +0x34) and the ground point it looks at.
-const CTransformObject* Camera() { return ei::GameData<CTransformObject* const>(0x007AF7C8); }
-std::uint32_t CameraTargetXBits() { return ei::GameData<const std::uint32_t>(0x0079B388); }
-std::uint32_t CameraTargetYBits() { return ei::GameData<const std::uint32_t>(0x0079B38C); }
+// The client world's view camera (its rotation at +0x34) and the ground point the camera looks at, as float bits.
+const CTransformObject* Camera() { return TheClientWorld()->camera_; }
+std::uint32_t Bits(const float& f) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &f, sizeof(bits));
+    return bits;
+}
+std::uint32_t CameraTargetXBits() { return Bits(TheCamera()->focus_.x); }
+std::uint32_t CameraTargetYBits() { return Bits(TheCamera()->focus_.y); }
 
 void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
 

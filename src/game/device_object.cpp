@@ -29,23 +29,24 @@
 #include <cstdint>
 #include <cstring>
 
+DWORD g_stageBlocks[4] = /*007AEDD0*/ {};
+static_assert(kStageBlockCount == 4);
+
 namespace {
 
 
 // The four state blocks of texture stage 0's colour and alpha operations, in the order they are
-// recorded: their handles (007AEDDC texture x current with the texture's alpha, the terrain's;
-// 007AEDD8 texture x diffuse for colour and alpha; 007AEDD4 texture x diffuse with the texture's
-// alpha; 007AEDD0 texture x diffuse with the diffuse alpha, the scene's) and what differs between
-// them. Every block has colour argument 1 the texture and the colour operation modulate.
-struct StageBlock {
-    DWORD* handle;
+// recorded (the terrain's first, the scene's last): their handle and what differs between them. Every
+// block has colour argument 1 the texture and the colour operation modulate.
+struct StageBlockSetup {
+    StageBlock block;
     DWORD colourArg2, alphaArg1, alphaOp, alphaArg2;
 };
-const StageBlock kStageBlocks[4] = {
-    {ei::GamePointer<DWORD>(0x007AEDDC), D3DTA_CURRENT, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {ei::GamePointer<DWORD>(0x007AEDD8), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE},
-    {ei::GamePointer<DWORD>(0x007AEDD4), D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {ei::GamePointer<DWORD>(0x007AEDD0), D3DTA_DIFFUSE, D3DTA_DIFFUSE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+const StageBlockSetup kStageBlocks[kStageBlockCount] = {
+    {kTerrainBlock, D3DTA_CURRENT, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+    {kAlphaPassBlock, D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE},
+    {kTextureAlphaBlock, D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
+    {kSceneBlock, D3DTA_DIFFUSE, D3DTA_DIFFUSE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
 };
 
 constexpr std::uint32_t kDxtCode = MAKEFOURCC('D', 'X', 'T', 0);   // a DXT format's code without its digit
@@ -64,7 +65,7 @@ HRESULT CALLBACK PixelFormatCallback(DDPIXELFORMAT* format, void* context) {
 
 // The four state blocks of texture stage 0 (kStageBlocks) recorded on the device.
 void RecordStageBlocks(CTextureDevice* device) {
-    for (const StageBlock& block : kStageBlocks) {
+    for (const StageBlockSetup& block : kStageBlocks) {
         IDirect3DDevice7* d3d = device::D3D(device);
         device->lastLoadResult_ = device::BeginStateBlock(d3d);
         if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't begin state block.\n"))   // "Can't begin state block.\n"
@@ -75,7 +76,7 @@ void RecordStageBlocks(CTextureDevice* device) {
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG1, block.alphaArg1);
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAOP, block.alphaOp);
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG2, block.alphaArg2);
-        device->lastLoadResult_ = device::EndStateBlock(d3d, block.handle);
+        device->lastLoadResult_ = device::EndStateBlock(d3d, &g_stageBlocks[block.block]);
         if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't end state block.\n"))   // "Can't end state block.\n"
             ThrowGameError("Can't end state block.\n");
     }
@@ -171,8 +172,8 @@ EI_REWRITTEN(0x004E6EE0, CTextureDevice::BuildFormatTable);
 
 void CTextureDevice::Destruct() {
     ei::SetVtable(this, DeviceObjectClass::Vtable());
-    for (const StageBlock& block : kStageBlocks) {
-        const DWORD handle = *block.handle;
+    for (const StageBlockSetup& block : kStageBlocks) {
+        const DWORD handle = g_stageBlocks[block.block];
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
         if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, "Can't delete state block %d.\n", handle);   // "Can't delete state block %d.\n"
     }

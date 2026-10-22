@@ -5,6 +5,7 @@
 // original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
+#include "console.h"
 #include "player_client.h"
 #include "world_glue.h"
 #include "sound.h"
@@ -43,13 +44,12 @@ namespace app {
 namespace {
 
 
-HWND MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
 
-// The console's ostream (007C55A8).
-libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8); }
+// The console's ostream.
+libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
@@ -73,13 +73,13 @@ LRESULT OnActivate(WPARAM wParam) {
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
         if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
-        gameapi::ShowWindow(MainWindow(), SW_MINIMIZE);
+        gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
         return 1;
     }
     if (state > 2) return 1;
     g_active = 1;
     g_activationChanged = 1;
-    gameapi::ShowWindow(MainWindow(), SW_RESTORE);
+    gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
     if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(1);
     CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
@@ -217,9 +217,9 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         Console()->PutUnsigned(static_cast<unsigned>(w))->PutChar(':')->PutLong(static_cast<long>(lParam))->PutChar('\n')
             ->Apply(libcrt::FlushManipulator);
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
-            HWND window = MainWindow();
+            HWND window = g_mainWindow;
             BOOL iconic = gameapi::IsIconic(window);
-            WindowProc(MainWindow(), WM_ACTIVATE, static_cast<WPARAM>(iconic) << 16, 0);
+            WindowProc(g_mainWindow, WM_ACTIVATE, static_cast<WPARAM>(iconic) << 16, 0);
             return Handled();
         }
         input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
@@ -252,14 +252,14 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnWheel(0, w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     }
-    return WindowProc(MainWindow(), message, wParam, lParam);
+    return WindowProc(g_mainWindow, message, wParam, lParam);
 }
 EI_REWRITTEN(0x00457970, DispatchInput);
 
 void __cdecl PumpMessages() {
     MSG msg;
     while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
-        WindowProc(MainWindow(), msg.message, msg.wParam, msg.lParam);
+        WindowProc(g_mainWindow, msg.message, msg.wParam, msg.lParam);
 }
 EI_REWRITTEN(0x00458220, PumpMessages);
 
@@ -315,7 +315,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }
     // EI_UTF8: the image's MessageBoxA takes UTF-8 (system_text.h).
-    int answer = gameapi::MessageBoxA(MainWindow(), text, g_windowTitle, static_cast<UINT>(flags));
+    int answer = gameapi::MessageBoxA(g_mainWindow, text, g_windowTitle, static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);
     return answer;
 }

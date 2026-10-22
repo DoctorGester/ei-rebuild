@@ -20,6 +20,7 @@
 #include "originals_ui.h"       // SpritePlaceOriginal
 #include "originals_world.h"
 #include "game_data.h"
+#include "world_data.h"
 
 #include <cmath>
 #include <cstdint>
@@ -37,7 +38,7 @@ float SectorRadius() { return 80.0f /*00741F1C*/; }      // 80
 float TexelBottom() { return 254.0f /*0073D03C*/; }       // 254
 float TexelLeft() { return 2.0f /*0073CDB8*/; }         // 2
 float LayoutBottom() { return 600.0f /*00742B0C*/; }      // 600
-int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
+int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;

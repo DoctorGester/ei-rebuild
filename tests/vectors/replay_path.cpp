@@ -12,6 +12,7 @@
 #include "../../src/game/ai_grids.h"
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
+#include "../../src/game/game_singletons.h"
 #include "../../src/game/sector_map.h"
 #include "../../src/game/unit.h"
 #include "../../src/lib/crt.h"
@@ -90,6 +91,12 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
 // back changes nothing the search reads (IsPassableWithoutSelf, linked with ai_map.cpp, calls these).
 bool CSectorMap::Add(CMapObject*) { return true; }
 bool CSectorMap::Remove(CMapObject*) { return true; }
+
+// world_singletons.cpp is not linked: the search reads the world tick the record gave (g_worldTick).
+namespace {
+int g_worldTick = 0;
+} // namespace
+int CurrentWorldTick() { return g_worldTick; }
 
 namespace {
 
@@ -521,7 +528,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
         BuildMap(empty);
     }
     CUnit* u = MakeUnit(unit);
-    ei::GameData<std::int32_t>(0x007AFFC4) = tick;
+    g_worldTick = tick;
     bool actual = false;
     auto call = [&] { actual = g_map->FindPath(u, &target, &path, range, minDistance); };
     if (!Guarded(call, d, n, "FindPath")) return false;

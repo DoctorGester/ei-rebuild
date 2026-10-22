@@ -70,7 +70,6 @@ const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
 QuestBriefingTable::Index& BriefingRecords() { return worlddata::QuestBriefings(); }
-CItemManager* ItemManager() { return ei::GameData<CItemManager* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
@@ -217,7 +216,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    CItem* item = ItemManagerCreateItemOriginal(ItemManager(), nullptr, *it);
+                    CItem* item = ItemManagerCreateItemOriginal(TheClientWorld()->itemManager_, nullptr, *it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);

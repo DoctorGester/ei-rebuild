@@ -14,6 +14,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -118,6 +119,24 @@ void CCamera::Destruct() {
     DestructBase();
 }
 EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);
+
+// The camera, zero at the start: built by the static initialiser 0040C880 in the list's order and destroyed by the
+// exit function it registers (0040C8A0); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
+static_assert(sizeof(CCamera) == 0x308);
+CCamera* TheCamera() { return &*g_camera; }
+
+namespace {
+void __cdecl DestroyCamera() { g_camera->Destruct(); }   // 0040C8A0
+void __cdecl ConstructCamera() {                          // 0040C880
+    g_camera->Construct();
+    GameAtExit(DestroyCamera);
+}
+} // namespace
+
+EI_REPLACE(0x0040C880, ConstructCamera);
+EI_REPLACE(0x0040C8A0, DestroyCamera);
 
 // 0040CE10 (slot 0): the deleting destructor.
 CCamera* CCamera::DeletingDestruct(unsigned flags) {
@@ -241,7 +260,7 @@ int CCamera::OpenFile(const char* name) {
         path.Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path);
     }
-    camera::GlobalFlags() |= 0x10;
+    TheClientWorld()->flags_ |= 0x10;
     bool failed;
     {
         mfc::CString folder(kRecordFolder);

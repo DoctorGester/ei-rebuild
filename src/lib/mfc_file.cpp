@@ -64,7 +64,8 @@ FindSlots* Virtuals(CFileFind* find) { return reinterpret_cast<FindSlots*>(find)
 const char* AllFiles() { return "*.*"; }
 const char* FileUrlPrefix() { return "file://"; }
 // afxChNil: the empty text ReadString starts a line from.
-const char* ChNil() { return ei::GamePointer<const char>(0x007C8BA8); }
+const char g_chNil[1] = /*007C8BA8*/ {""};
+const char* ChNil() { return g_chNil; }
 
 // ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
 //

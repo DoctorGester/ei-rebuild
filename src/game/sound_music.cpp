@@ -20,6 +20,7 @@
 #include "record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 #include <new>
 
@@ -27,8 +28,6 @@
 
 namespace {
 
-// The party's fight state, set by the world (2: fighting).
-int FightState() { return ei::GameData<const volatile int>(0x007AFC9C); }
 // The themes' registry file and the music files' extension.
 constexpr const char* kMusicReg = /*00744090*/ "music.reg";
 constexpr const char* kMp3 = /*00744094*/ ".mp3";
@@ -256,7 +255,7 @@ int CMusicSystem::UpdateMusic() {
         inCombat = 0;
         calmDue = CalmDelay();
     }
-    int fighting = FightState() == 2 ? 1 : 0;
+    int fighting = worlddata::FightState() == 2 ? 1 : 0;
     if (inCombat != 0) {
         if (fighting == 0) {
             snd->StopStream(2);

@@ -603,8 +603,8 @@ class CSpell;
 namespace console {
 class GameOStream;
 }
-// 007C53C4: the stream the AI's perception messages go to.
-inline console::GameOStream* AiLog() { return ei::GameData<console::GameOStream*>(0x007C53C4); }
+// The stream the AI's perception messages go to (the AI stream; unit_ai.cpp).
+console::GameOStream* AiLog();
 
 // 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.
@@ -860,6 +860,9 @@ class CStream;       // core_streams.h
 // The world's AI events (CWorldServer + 0x2838; its viewer part makes the noises): a time wheel of
 // 1024 ticks x 16 sides and a grid of 8 x 8 cells (rows of width cells). Its tick is the viewer's
 // `tick` (Advance sets it).
+// The free event records, chained through AIEvent::next (ai_grids.cpp; the pool is ai_events.cpp's).
+extern AIEvent* g_freeEvents;
+
 struct AIEventTable : AIViewer {
     // 005C9530 (RET 4; world_tick.cpp's Tick). The wheel moves to `tick`: every event of that
     // tick's 16 slots leaves its cell list and goes to the free list; the slots empty. A first

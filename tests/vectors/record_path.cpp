@@ -13,6 +13,7 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
 #include "../../src/game/sector_map.h"
+#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
@@ -60,7 +61,7 @@ void OfferTables() {
     const Range ranges[kPlainTableRanges] = {
         {AddressOf(&ei::OriginalGameData<const int[9]>(0x00791108)), 36},
         {AddressOf(&ei::OriginalGameData<const int[9]>(0x0079112C)), 36},
-        {ei::DataId(0x00791978), 36},
+        {AddressOf(&ei::OriginalGameData<const int[9]>(0x00791978)), 36},
         {AddressOf(&ei::OriginalGameData<const float[8]>(0x0079169C)), 32},
         {ei::DataId(0x0073F0A8), 8},
         {ei::DataId(0x0073B86C), 4},
@@ -260,7 +261,7 @@ bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* 
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(CurrentWorldTick());
+    head.Put<std::int32_t>(ei::OriginalGameData<CWorldServer>(0x007AFF60).tick_);   // game.exe's world
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);

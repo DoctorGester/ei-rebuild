@@ -109,10 +109,6 @@ private:
     NamedFloatTable table_;
 };
 
-// The rest (not rewritten).
-struct SoundMixer {
-    void ResetMusic() { reinterpret_cast<CMusicSystem*>(this)->Stop(); }   // 006B4F70 (the object at *007AF760)
-};
 // The scene renderer (007AF060, what 00500960 returns).
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
 
@@ -213,7 +209,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
 
 void CGlobalMap::Create() {
     autosave_ = false;
-    if (ei::GameData<const int>(0x007AFE1C) != 0)
+    if (GameSaveStream()->size_ != 0)
         GameSaveStream()->Resize(0);
     else if (TheClientWorld()->LocalView()->player_->lastScreen_ != 5)
         autosave_ = true;   // not back from the camp
@@ -496,7 +492,7 @@ void CGlobalMap::Create() {
     SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
-    (ei::GameData<SoundMixer*>(0x007AF760))->ResetMusic();
+    TheMusicSystem()->Stop();   // 006B4F70
     {
         auto* weather = gamecrt::operator_new_as<CCloudNoise>();
         if (weather) {

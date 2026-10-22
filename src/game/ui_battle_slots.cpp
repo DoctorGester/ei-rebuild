@@ -21,13 +21,14 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 #include <cstring>
 
 namespace {
 
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
-int& WorldUpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
+int& WorldUpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
 bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }

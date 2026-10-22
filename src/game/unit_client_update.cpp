@@ -20,6 +20,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "logic_settings.h"
 
 #include <cmath>
 
@@ -134,9 +135,6 @@ EI_REWRITTEN(0x005341A0, CUnitClientSpecific::UpdateClient);
 // --- Fade-in, level and wounds slots ----------------------------------------------------------
 
 namespace {
-// 007C5488 / 007C548C: the experience of level 0 and the factor between levels.
-float LevelBase() { return ei::GameData<const float>(0x007C5488); }
-float LevelFactor() { return ei::GameData<const float>(0x007C548C); }
 
 // The drawn parts take `alpha`.
 void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
@@ -159,7 +157,7 @@ EI_REWRITTEN(0x005344A0, CUnitClientSpecific::RestartFadeIn);
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
-    double ratio = x87::flog(experience / LevelBase()) / x87::flog(static_cast<double>(LevelFactor()));
+    double ratio = x87::flog(experience / GameLogicSettings().considerModifier) / x87::flog(static_cast<double>(GameLogicSettings().considerLogBase));
     float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
     // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.

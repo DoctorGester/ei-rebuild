@@ -2,23 +2,14 @@
 
 How the engine-base classes are declared after the cleanup (headers: `engine_object.h`, `base_manager.h`, `resource_manager.h`,
 `core_streams.h`, `chunk_stream.h`, `chunk_archive.h`, `core_refcount.h`, `core_transform.h`, `camera.h`) and what is still left. The
-classes themselves (layouts, slots, behaviour) are in `core.md`. Behaviour was unchanged by every step: each rewritten address kept its
-hook and verify wrapper.
+classes themselves (layouts, slots, behaviour) are in `core.md`. The rules for new code are the rewrite guide's (classes are normal C++;
+the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot shims still here are C28's to convert).
 
-## Conventions used (follow them for the next families)
+## Conventions used
 
-- Classes whose objects the game builds (or that are used by value as locals) are `__declspec(novtable)` with empty inline destructors: C++
-  never stores a vtable of its own in them, the game's constructor bodies set the real vtables, `kVtableAddress` names the address
-  (`ei::SetVtable` stores it; one shared helper replaces the file-local copies), and the not-rewritten virtuals are declared only so a
-  devirtualised call would not link. Checked in the objects: no `??_7CStream` / `??_7CMemoryStream` / `??_7Chunk` symbol is emitted and
-  every stream / manager call goes through the original slot (manager Create +8, Destroy +0xC, Release +0x10, Load +0x24, Save +0x28, NewObject
-  +0x38, CreateObject +0x5C, ReleaseObject +0x60; stream Read +4, Write +8, Seek +0xC, Size +0x10, Position +0x14, Clear +0x18; Serialize +4).
-  `tools/check_thunks.py` and `progress.py` read `class __declspec(x) Name`.
-- Virtual slots are declared in vtable order and registered through `...Hook` shims (rule 4); the verify wrappers of virtual slots call the
-  qualified member (`self->CBaseManager::Init(...)`, `self->Chunk::File()`, `self->CMemoryStream::Clear()`, `self->Record::Serialize(ar)`) so
-  they never dispatch back into themselves. Non-virtual members are registered with `EI_REPLACE_METHOD`.
-- Calls that went through forwarders to rewritten functions are direct calls; the release build runs the same code, the verify build no longer
-  runs those wrappers for those callers (a deliberate trade, noted per ticket).
+- The stream / manager slots (manager Create +8, Destroy +0xC, Release +0x10, Load +0x24, Save +0x28, NewObject +0x38, CreateObject +0x5C,
+  ReleaseObject +0x60; stream Read +4, Write +8, Seek +0xC, Size +0x10, Position +0x14, Clear +0x18; Serialize +4) are the original's
+  numbering. `tools/check_thunks.py` and `progress.py` read `class __declspec(x) Name`.
 - `stlp::hash_map` grew `ClearWith(deleteNode)`, `Functors` / `BucketVector` / `CountProxy` (the pieces the manager's inlined code constructs
   by hand), `Pair`, `Iterator`, `First` / `After` (STLport's begin() and iterator ++); the game's own STLport / MFC instantiations are still
   called, only the raw offsets went.
@@ -52,7 +43,7 @@ hook and verify wrapper.
   streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `CMemoryStream` at 007AFDF8;
   `verify_magic_trap`'s `ReadRecorder` is `unitverify::ReadRecorder`; the 101 per-file string helpers (`Text`, `GameText`, `GameString`,
   `TextAt`, `Letter`, and `console::GameText` / `device::Text` / script_parse's / spell_effect_internal's) are `game::Text` (`game_strings.h`).
-- Left: `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`), `hash_tables_400` / `atexit_400` raw views of the registry,
+- Left: `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`), `hash_tables_400`'s raw view of the registry,
   the two `LocalFileStream` RAII wrappers (`ui_connect_screen.cpp`, `ui_saveload.cpp`; different interfaces over `netlink::FileStream`), the
   per-file accessors of the save stream 007AFDF8 (`SaveGameStream` in `ui_battle_slots.cpp` / `ui_briefing.cpp`, `SaveStream` in
   `ui_briefing_create.cpp`, the same in tests/verify) and the identical `SaveRecorder` / `RecordingStream` test classes.

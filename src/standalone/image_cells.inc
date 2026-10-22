@@ -434,13 +434,6 @@
 {DataId(0x0079B138), DataId(0x007472B0)},
 {DataId(0x0079B150), DataId(0x007472B0)},
 {DataId(0x0079B178), DataId(0x007472B0)},
-// the CRT's locale categories (00797888): their names ("LC_ALL", ...)
-{DataId(0x00797888), DataId(0x0074731C)},
-{DataId(0x00797894), DataId(0x00747310)},
-{DataId(0x007978A0), DataId(0x00747304)},
-{DataId(0x007978AC), DataId(0x007472F8)},
-{DataId(0x007978B8), DataId(0x007472EC)},
-{DataId(0x007978C4), DataId(0x007472E4)},
 // the CRT's __lc_time_c: day and month names, AM / PM, the date and time formats
 {DataId(0x00797A60), DataId(0x007474B4)},
 {DataId(0x00797A64), DataId(0x007474B0)},
@@ -577,6 +570,13 @@
 {DataId(0x00798BD0), DataId(0x00747A20)},
 {DataId(0x00798BD8), DataId(0x00747A1C)},
 {DataId(0x00798BE0), DataId(0x00747A18)},
+// the CRT's locale categories __lc_category: their names "LC_ALL" .. "LC_TIME" (unread: setlocale is the host CRT's, C26)
+{DataId(0x00797888), DataId(0x0074731C)},
+{DataId(0x00797894), DataId(0x00747310)},
+{DataId(0x007978A0), DataId(0x00747304)},
+{DataId(0x007978AC), DataId(0x007472F8)},
+{DataId(0x007978B8), DataId(0x007472EC)},
+{DataId(0x007978C4), DataId(0x007472E4)},
 // the CRT's locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc's GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names
 {DataId(0x0079847C), DataId(0x00747908)},
 {DataId(0x00798484), DataId(0x00747900)},
@@ -790,7 +790,7 @@
 // MFC CString's shared empty string (afxEmptyString's data) and _afxDataNil
 {DataId(0x00796E48), DataId(0x00796E5C)},
 {DataId(0x00796E4C), DataId(0x00796E50)},
-// the CRT's locale categories (00797888): their locale names
+// the CRT's locale categories __lc_category (6 x {name, locale, init}): the names' strings and the static "C" 00797778 (unread: setlocale is the host CRT's, C26)
 {DataId(0x00797898), DataId(0x00797778)},
 {DataId(0x007978A4), DataId(0x00797778)},
 {DataId(0x007978B0), DataId(0x00797778)},

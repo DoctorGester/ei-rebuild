@@ -31,8 +31,9 @@ inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, 
 inline constexpr GUID kIidDirect3D7 = /*00745A80*/ {0xF5049E77, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 
 // The game's device lock (007AEE78), held around Direct3D draws and surface locks.
-// The surface holders alive (007AEE94; 004EFA60 and the other constructors count them).
-inline int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
+// The surface holders alive (004EFA60 and the other constructors count them).
+inline int g_holderCount = /*007AEE94*/ {};
+inline int& HolderCount() { return g_holderCount; }
 // The texture manager (007AF744).
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return device->d3dDevice_; }

@@ -7,6 +7,7 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 #include "game/game_data.h"
+#include "harness_objects.h"
 
 #include <windows.h>
 
@@ -151,7 +152,7 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
 }
 
 CUnit* FindUnit() {
-    CWorldClient* c = TheClientWorld();
+    CWorldClient* c = HarnessClientWorld();
     if (!c || !c->objects_.head) return nullptr;
     for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
         if (n->data && static_cast<unsigned>(n->data->id_) == g_id && n->data->GetClassId() == world::kClassUnit)

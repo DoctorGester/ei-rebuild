@@ -1,9 +1,7 @@
-// The two worlds' compiler-generated constructors (S3b): CWorldServer 00589ED0 (the global at
-// 007AFF60) and CWorldClient 005612F0 (007AF5B8). Only their static initialisers call them, before
-// the hooks are installed, so the hook build checks them at start-up against what the originals
-// built (verify_global_constructors.cpp until S21d); the standalone image runs them. Each is the
-// base constructor, then the members' constructors in the original's order (the inlined ones written
-// out, the out-of-line ones the game's own registered rewrites), the vtable, and the fields set
+// The two worlds (g_serverWorld 007AFF60, g_clientWorld 007AF5B8) and their compiler-generated constructors (S3b):
+// CWorldServer 00589ED0 and CWorldClient 005612F0. Only their static initialisers (00589BE0, 00560620, ported here on
+// the names) call them. Each is the base constructor, then the members' constructors in the original's order (the
+// inlined ones written out, the out-of-line ones the game's own registered rewrites), the vtable, and the fields set
 // after it.
 #include "world.h"
 
@@ -14,6 +12,7 @@
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "originals_world.h"
+#include "originals_library.h"   // GameAtExit
 #include "registry.h"
 #include "world_class.h"
 #include "world_class_slots.h"
@@ -23,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc_slots.h"
+#include "lib/static_object.h"
 #include "game/game_slots.h"
 
 #include <initializer_list>
@@ -192,3 +192,31 @@ CWorldClient* CWorldClient::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x005612F0, CWorldClient::Construct);
+
+// ---- The two worlds -------------------------------------------------------------------------------
+
+// Zero at the start: built by their static initialisers (00589BE0, 00560620) in the list's order and destroyed by the
+// exit functions those register (00589C00, 00560640); all ported on the names and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CWorldServer> g_serverWorld = /*007AFF60*/ {};
+constinit lib::StaticObject<CWorldClient> g_clientWorld = /*007AF5B8*/ {};
+CWorldServer* TheServerWorld() { return &*g_serverWorld; }
+CWorldClient* TheClientWorld() { return &*g_clientWorld; }
+
+namespace {
+void __cdecl DestroyServerWorld() { g_serverWorld->Destruct(); }   // 00589C00
+void __cdecl ConstructServerWorld() {                              // 00589BE0
+    g_serverWorld->Construct();
+    GameAtExit(DestroyServerWorld);
+}
+void __cdecl DestroyClientWorld() { g_clientWorld->Destruct(); }   // 00560640
+void __cdecl ConstructClientWorld() {                              // 00560620
+    g_clientWorld->Construct();
+    GameAtExit(DestroyClientWorld);
+}
+} // namespace
+
+EI_REPLACE(0x00589BE0, ConstructServerWorld);
+EI_REPLACE(0x00589C00, DestroyServerWorld);
+EI_REPLACE(0x00560620, ConstructClientWorld);
+EI_REPLACE(0x00560640, DestroyClientWorld);

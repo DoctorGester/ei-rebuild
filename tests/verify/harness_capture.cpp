@@ -9,8 +9,8 @@
 // software cursor (the hardware cursor is never in a surface), and no scene is open, so it may be
 // locked.
 //
-// How: the render target (device object 007AF080 +0x18, its IDirectDrawSurface7 at +0x10) is
-// locked read-only under the device lock 007AEE78 (the cursor thread blits under it too) and its
+// How: the render target (the scene renderer's device object +0x18, its IDirectDrawSurface7 at +0x10) is
+// locked read-only under the device lock (the cursor thread blits under it too) and its
 // pixels are converted from the surface's own format (any RGB masks: 5:6:5, 5:5:5, X8R8G8B8, ...)
 // to 8-bit BGR. If the lock fails, GetDC + BitBlt into a DIB section is tried. A screen or window
 // capture through GDI is not used: with dgVoodoo the window shows a DXGI swap chain, which GDI
@@ -24,6 +24,8 @@
 #include "ei/main_loop.h"
 #include "../../src/render/render.h"
 #include "game/game_data.h"
+#include "../../src/game/model.h"   // CSceneRenderer
+#include "harness_objects.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -42,7 +44,6 @@ namespace {
 
 constexpr std::uintptr_t kCursorLockCall = 0x004580D7;   // CALL 005E65F0 in 00458010
 constexpr std::uintptr_t kCursorLock = 0x005E65F0;       // CCursor::Lock (__fastcall, ECX = 007C7BD8)
-constexpr std::uintptr_t kDeviceObject = 0x007AF080;     // the renderer's (007AF060) +0x20
 
 
 volatile unsigned g_frames = 0;
@@ -237,7 +238,7 @@ void Capture() {
         g_state = State::Done;
         return;
     }
-    char* device = ei::GameData<char*>(kDeviceObject);
+    char* device = reinterpret_cast<char*>(HarnessSceneRenderer()->device_.device);
     char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
     auto* surface = target ? *reinterpret_cast<IDirectDrawSurface7**>(target + 0x10) : nullptr;
     if (!surface) {
@@ -247,9 +248,9 @@ void Capture() {
     }
     Image image;
     std::string how, why;
-    EnterCriticalSection(TheDeviceLock());
+    EnterCriticalSection(HarnessDeviceLock());
     bool ok = ReadLocked(surface, image, how, why) || ReadThroughDc(surface, image, how, why);
-    LeaveCriticalSection(TheDeviceLock());
+    LeaveCriticalSection(HarnessDeviceLock());
     if (!ok) {
         g_state = State::Failed;
         g_detail = why;

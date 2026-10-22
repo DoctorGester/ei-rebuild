@@ -562,9 +562,11 @@ UNREAD_NEAR = 0x100   # an object referenced right below may be the enclosing on
 # lists them), so the stores cannot be one of its fields. address of the group -> (the object below, why).
 REVIEWED_NEAR = {
     0x0079B1A8: ('0079B1A0', '"sqrt", the CRT math function name (8 bytes)'),
+    0x0079B2A0: ('0079B298', 'the empty string "" (its 178 readers take its address: a char)'),
     0x0079B5E0: ('0079B5DC', 'counted pointer to the server (4 bytes: its constructor 0041FF50 stores one dword)'),
     0x0079B610: ('0079B60C', 'the player serial counter (dword read and written directly)'),
     0x0079B680: ('0079B66C', 'the clip work buffer: CWordArray 0079B668, 0x14 bytes, its data pointer'),
+    0x007C7E80: ('007C7E78', 'the window surfaces\' byte total (a lone dword, ui.h\'s g_uiSurfaceBytes)'),
     0x0079B690: ('0079B68C', 'the clip buffer count (dword)'),
     0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
@@ -575,6 +577,7 @@ REVIEWED_NEAR = {
     0x007A9750: ('007A9748', 'the sort scratch guard byte (the scratch array is below it)'),
     0x007A9788: ('007A9784', 'the select timeout 007A9778 (8 bytes) and the snapshot flags 007A9780 / 007A9784 (dwords)'),
     0x007A9BA8: ('007A9BA4', 'a dword read directly'),
+    0x007A9C2C: ('007A9BFC', "the bag's ball sizes (12 floats, particle_emitters.cpp's g_bagSizes) end at 007A9C2C"),
     0x007A9C64: ('007A9C5C', "the particles' draw order 007A9C50 (CArray<ParticleDepth>, 0x14 bytes: its constructor 00498E60) ends at 007A9C64; 007A9C5C is its maxSize"),
     0x007AA5E8: ('007AA5D8', 'the party manager 007AA5A0 (PartyManager, 0x44 bytes); 007AA5D8 is its class template vector'),
     0x007AA624: ('007AA620', 'the saving script pointer (dword; the CString 007AA61C below it is 4 bytes)'),
@@ -623,6 +626,14 @@ REVIEWED_READ = {
     0x007C53E0: '00683868 is the middle of a call displacement (coincidence); 005C8AE2.. are the initialiser own stores',
     0x007C7E80: '0070B443 is the middle of a CMP [reg + 0x7C], 0 (coincidence); 00600AF2.. are the initialiser own stores',
     0x007C8430: 'CEffectMoshka::Update (ported, 0067CEF0): pi / 2 is its kHalfPi literal',
+}
+
+
+# Where one initialiser's contiguous stores are two objects (C18): the run is split before the address, so the cells
+# from it on are a group of their own (the cells below stay a group, read or not). address -> (the object below, why).
+REVIEWED_SPLIT = {
+    0x007AF288: ('007AF284', 'the hit log pointer (dword; 005229C0 stores the console stream 007C5708 in it) is read alone; '
+                 'ln 1.61 / ln 1.1 above it are copies of the logic settings defaults nothing reads'),
 }
 
 
@@ -805,7 +816,7 @@ def unread_objects(img, decoded, exits):
         stored.update(c for c, _ in cells)
         run = []
         for c, call in sorted(cells) + [(None, False)]:
-            if run and c == run[-1][0] + 4:
+            if run and c == run[-1][0] + 4 and c not in REVIEWED_SPLIT:
                 run.append((c, call))
                 continue
             if run:
@@ -853,7 +864,9 @@ def unread_csv(img, decoded, unread):
     values = stored_values(img, decoded)
     rows = [UNREAD_HEADER]
     for lo, size, a in sorted(unread):
-        rows.append(f'{lo:08X},{size},{a:08X},' + ' '.join(f'{values[c]:08X}' for c in range(lo, lo + size, 4)))
+        # A fold of ln (or of another unknown value) is not computed: '????????'.
+        rows.append(f'{lo:08X},{size},{a:08X},' + ' '.join('?' * 8 if values[c] is None else f'{values[c]:08X}'
+                                                          for c in range(lo, lo + size, 4)))
     return '\n'.join(rows) + '\n'
 
 
@@ -909,7 +922,7 @@ def generate(img):
 # {@n} is the address of the pattern's n-th instruction (a branch inside the function), {@E} of its
 # last. The C++ is the body of ExitFunction's case over static_init.h's operations (a guard is d.Once,
 # as in the initialisers). A function that matches none stops the script: add a pattern or port it
-# by hand (src/game/atexit_400.cpp).
+# by hand, next to the object it destroys (camera_object.cpp's DestroyCamera, ...).
 GUARD_TEST = ['test byte ptr [{F}], {BIT}', 'jne {@E}', 'or byte ptr [{F}], {BIT}']
 GUARD_MOV = ['mov cl, byte ptr [{F}]', 'mov al, {BIT}', 'test al, cl', 'jne {@E}', 'or cl, al', 'mov byte ptr [{F}], cl']
 FREE = ['mov eax, dword ptr [eax - 4]', 'push eax', 'call {D}', 'pop ecx', 'ret']
@@ -984,6 +997,13 @@ def match_exit(img, address, md):
 # The call sites of runtime_atexits' registrations (render_exits says "atexit at" for them).
 RUNTIME_SITES = set()
 
+# Functions whose port registers none of the original's function-local statics' exit functions (C18): their
+# runtime atexit sites never run, like dead code's. begin -> (end, why).
+RETIRED_STATICS = {
+    0x006BFF40: (0x006C1390, "terrain::SectorData::DrawPage (terrain_draw.cpp) hands the page to src/render: the "
+                             "original's tile arrays and triangle lists 007C8848..007C88C8 are never built"),
+}
+
 
 def runtime_atexits(img, md):
     """{exit function: [call sites]} of the atexit registrations outside the initialisers (a function's
@@ -1020,8 +1040,16 @@ def decode_exits(img, decoded):
             if kind == 'exit' and fn not in registered and a not in by.setdefault(fn, []):
                 by[fn].append(a)
     RUNTIME_SITES.clear()
+    dead_ranges = dead_code()
+    dead_starts = [b for b, _ in dead_ranges]
+
+    def dead(at):   # a registration inside code nothing runs (config/dead_code.csv, RETIRED_STATICS) never runs
+        i = bisect.bisect_right(dead_starts, at) - 1
+        return (i >= 0 and at < dead_ranges[i][1]) or any(b <= at < e for b, (e, _) in RETIRED_STATICS.items())
+
     for fn, sites in runtime_atexits(img, md).items():
-        if fn not in registered and fn not in by:
+        sites = [s for s in sites if not dead(s)]
+        if sites and fn not in registered and fn not in by:
             by[fn] = sites
             RUNTIME_SITES.update(sites)
     out, bad = [], []
@@ -1147,8 +1175,8 @@ EXIT_HEADER = '''\
 // Generated by tools/gen_static_init.py from game.exe's code. Do not edit.
 //
 // The @COUNT@ exit functions game.exe registers with atexit that no rewrite ports, the static
-// initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand:
-// src/game/atexit_400.cpp) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
+// initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
+// their objects) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
 // Each is decoded from its instructions as a whole-function pattern; ExitFunction states its body over
 // static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
 // A library type's destructor is called at its address in the image (a library

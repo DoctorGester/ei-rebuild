@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_hashes.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <new>
@@ -80,3 +81,14 @@ void UnitShapeCache::Destruct() {
     shapes.Destroy();
 }
 EI_REPLACE_METHOD(0x005B31F0, UnitShapeCache::Destruct);
+
+namespace {
+void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }   // 005B31E0
+void __cdecl ConstructUnitShapes() {   // 005B31C0
+    g_unitShapes->Construct();
+    GameAtExit(DestroyUnitShapes);
+}
+} // namespace
+
+EI_REPLACE(0x005B31C0, ConstructUnitShapes);
+EI_REPLACE(0x005B31E0, DestroyUnitShapes);

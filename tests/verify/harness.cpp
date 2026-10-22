@@ -424,7 +424,6 @@
 #include "harness_savetrace.h"
 #include "harness_script_order.h"
 #include "harness_watch.h"
-#include "harness_image_trace.h"
 #include "harness_hooks.h"
 #include "harness_settings.h"
 #include "harness_starter.h"
@@ -446,6 +445,7 @@
 #include "../../src/lib/mfc.h"
 #include "../../src/game/asset_text.h"   // text::kUtf8 (the "utf8" step prefix)
 #include "../../src/game/device.h"   // IDirectDraw7
+#include "../../src/game/world_data.h"   // worlddata::g_updatePeriod
 #include "../../src/game/console.h"   // console::g_consoleLineObserver
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
@@ -499,9 +499,16 @@ __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005D
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
-void RequestScreen(int id) { GameSendLeave04(id); }
+// In a --no-hooks run through the original address, as the one below: the functions read the worlds and the
+// interface, which that run has only in game.exe's own code and data.
+__declspec(naked) void __stdcall OriginalSendLeave04(int /*id*/) EI_ORIGINAL(0x00578B00)
+void RequestScreen(int id) { ei::Standalone() ? GameSendLeave04(id) : OriginalSendLeave04(id); }
 // 00578560 (GameSetConstructionVariable): sets player 0's "constr_current" (the constructor the camp opens with).
-void SetCurrentConstructor(float constructor) { GameSetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
+__declspec(naked) void __stdcall OriginalSetConstructionVariable(std::uint32_t /*value*/) EI_ORIGINAL(0x00578560)
+void SetCurrentConstructor(float constructor) {
+    auto value = std::bit_cast<std::uint32_t>(constructor);
+    ei::Standalone() ? GameSetConstructionVariable(value) : OriginalSetConstructionVariable(value);
+}
 // 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
 __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
@@ -514,20 +521,15 @@ __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGI
 // Redeploy (00590700) puts the party at the centre of that exit's deploy rectangle, or at (0, 0)
 // when the zone has no such exit.
 
-constexpr std::uintptr_t kServerWorld = 0x007AFF60;
-// The server world's +0x5C, which the flow passes to the client world's SetPlayer (00566CE0). It is
-// not the server's player number: the first X9 run found no player with it (logged by the steps).
-constexpr std::uintptr_t kWorld5C = 0x007AFFBC;
 // The single-player hero's player number in the server world: world players' +0x24 is 0 for the
 // local player, and the world script commands that act on "the player" (GSSetVar(0, ...),
 // LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(Ftol(f[0])) and its +0x20)
 // use 0.
 constexpr int kLocalPlayer = 0;
-constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
-void* LocalWorldPlayer() { return ei::GamePointer<CWorldServer>(kServerWorld)->GetPlayer(kLocalPlayer); }
+void* LocalWorldPlayer() { return HarnessServerWorld()->GetPlayer(kLocalPlayer); }
 // Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
@@ -540,13 +542,16 @@ std::string DescribeLocalPlayer() {
     void* player = LocalWorldPlayer();
     void* connection = LocalConnection();
     char text[200];
-    std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %d)", kLocalPlayer, player,
-                  connection, connection ? ConnectionState(connection) : -1, ei::GameData<int>(kWorld5C));
+    // The server world's +0x5C (shared5C_), which the flow passes to the client world's SetPlayer (00566CE0). It is
+    // not the server's player number: the first X9 run found no player with it (logged by the steps).
+    std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %p)", kLocalPlayer, player,
+                  connection, connection ? ConnectionState(connection) : -1,
+                  static_cast<void*>(HarnessServerWorld()->shared5C_.Get()));
     return text;
 }
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
 const char* ServerZoneName() {
-    const char* name = ei::GameData<const char* const>(kServerWorld + 0x120);
+    const char* name = HarnessServerWorld()->zoneName_;
     return name ? name : "";
 }
 
@@ -1217,7 +1222,10 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
 // after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
 // client ticks (minutes). Real-time runs mostly got away with it by timing; on the virtual clock
 // ui_camp_deals, ui_trade_hold, effects_bow, ... hung every time. 0 = leave it to the game.
-unsigned& g_tickLength = ei::GameData<unsigned>(0x0078FF34);
+// The update period: ours in the image, game.exe's in its own runs.
+unsigned& TickLength() {
+    return ei::Standalone() ? reinterpret_cast<unsigned&>(worlddata::g_updatePeriod) : ei::OriginalGameData<unsigned>(0x0078FF34);
+}
 unsigned g_heldTickLength = 0;
 
 // The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
@@ -1233,7 +1241,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
         timing::Scope scope(timing::Server);
         result = ei::Code<WorldUpdate>(kServerUpdate)(server, nullptr);
     }
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     {
         timing::Scope scope(timing::Digest);
         digest::AfterWorldUpdate(server);   // a state record when its period says so
@@ -1248,7 +1256,7 @@ int __fastcall HeldClientSegment(void* client, void*) {
         timing::Scope scope(timing::Client);
         result = ei::Code<WorldUpdate>(kClientSegment)(client, nullptr);
     }
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
 }
 
@@ -1489,9 +1497,9 @@ void JumpTo(std::uintptr_t from, const void* to) {
 // The clock the harness's waits and timeouts use.
 DWORD Now() { return clock::Now(); }
 
-// Input for the interface screens: window messages to the game window (0079BC28; its window
-// procedure 00457970 handles the mouse and key messages).
-HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
+// Input for the interface screens: window messages to the game window (its window procedure 00457970 handles the
+// mouse and key messages).
+HWND GameWindow() { return HarnessMainWindow(); }
 
 // Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
 // steps). The game reads them from the key messages (CInterface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
@@ -1866,18 +1874,27 @@ void PostRegionMouse(const std::string& verb, int index) {
 // step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
 // unit, so a click there selects or orders that unit and no other in front of it.
 // 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
-constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
 constexpr int kClientPickList = 0xF0;
 constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
 
 // Where a click finds the unit with script name `name` in this frame (client coordinates) and the
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
+// CWorldClient::PickAt2 (005659D0) and UnitAt (00565E40), thiscall RET 4, in a --no-hooks run through the original
+// addresses: they read the camera and the scene renderer, game.exe's own there.
+__declspec(naked) void* __fastcall OriginalPickAt2(CWorldClient*, void*, const POINT*) EI_ORIGINAL(0x005659D0)
+__declspec(naked) void* __fastcall OriginalUnitAt(CWorldClient*, void*, const POINT*) EI_ORIGINAL(0x00565E40)
+void* HarnessPickAt2(CWorldClient* world, const POINT* p) {
+    return ei::Standalone() ? static_cast<void*>(world->PickAt2(p)) : OriginalPickAt2(world, nullptr, p);
+}
+void* HarnessUnitAt(CWorldClient* world, const POINT* p) {
+    return ei::Standalone() ? static_cast<void*>(world->UnitAt(p)) : OriginalUnitAt(world, nullptr, p);
+}
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
     int id = byId ? std::atoi(name + 1) : TextKeyFromName(name);
-    auto* world = ei::GamePointer<std::uint8_t>(kClientWorld);
+    auto* world = reinterpret_cast<std::uint8_t*>(HarnessClientWorld());
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
     // The unit's rectangle in this frame's list (the last entry for the id).
@@ -1906,7 +1923,8 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
         }
     }
     for (const POINT& p : candidates) {
-        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(&p)) : reinterpret_cast<CWorldClient*>(world)->UnitAt(&p);
+        auto* client = reinterpret_cast<CWorldClient*>(world);
+        void* hit = byId ? HarnessPickAt2(client, &p) : HarnessUnitAt(client, &p);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
@@ -1974,7 +1992,7 @@ __declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/
 
 std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
-    auto* world = ei::GamePointer<CWorldClient>(kClientWorld);
+    auto* world = HarnessClientWorld();
     if (argument == "faces") HarnessLoadUnitFaces(world);
     MapObjectList::Node* head = world->objects_.head;
     if (!head) return "blink: no client world";
@@ -2004,7 +2022,7 @@ std::string PostGroundMouse(const std::string& argument) {
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
-        HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, lx * cw / 800, ly * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), nullptr, out, lx * cw / 800, ly * ch / 600);
         const double dx = double(out[0]) - wx, dy = double(out[1]) - wy;
         return dx * dx + dy * dy;
     };
@@ -2038,7 +2056,7 @@ void LogGroundView() {
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
         float out[3] = {};
-        HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, at.first * cw / 800, at.second * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), nullptr, out, at.first * cw / 800, at.second * ch / 600);
         const std::size_t used = std::strlen(text);
         std::snprintf(text + used, sizeof(text) - used, " (%d,%d) %.1f %.1f;", at.first, at.second, out[0], out[1]);
     }
@@ -2061,7 +2079,7 @@ std::string LookAt(const std::string& argument) {
     const RECT client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
-    HarnessPickSurface(ei::GamePointer<void>(kClientWorld), nullptr, out, 400 * cw / 800, 300 * ch / 600);
+    HarnessPickSurface(HarnessClientWorld(), nullptr, out, 400 * cw / 800, 300 * ch / 600);
     const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
     if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
         Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
@@ -2677,7 +2695,7 @@ void RunSteps() {
     // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
     // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
     HarnessOptions()->showTutorial_ = 0;
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
         if (g_console.size() > g_checkFrom) {
@@ -3219,7 +3237,7 @@ void RunSteps() {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
-            const auto* record = reinterpret_cast<const std::uint8_t*>(ei::GamePointer<CMapDatabase>(kMapDatabase)->FindMap(name));
+            const auto* record = reinterpret_cast<const std::uint8_t*>(HarnessMapDatabase()->FindMap(name));
             void* connection = LocalConnection();
             Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {
@@ -3269,7 +3287,7 @@ void RunSteps() {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
-            if (g_heldTickLength) g_tickLength = g_heldTickLength;
+            if (g_heldTickLength) TickLength() = g_heldTickLength;
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -4062,9 +4080,9 @@ void RestoreAfterMinimise() {
         g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
         Log("harness: the game window was minimised (a focus off step, or the user): shown again");
     }
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = HarnessSceneRenderer()->device_.device;
     if (device && device->ddraw_) {
-        auto* lock = TheDeviceLock();   // the render device's lock
+        auto* lock = HarnessDeviceLock();   // the render device's lock
         EnterCriticalSection(lock);
         // game.exe's own DirectDraw object; the image's device object holds a token (nothing to restore).
         HRESULT result = ei::Standalone() ? DD_OK : device->ddraw_->RestoreAllSurfaces();
@@ -4105,7 +4123,7 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
 // activation a foreground start would have given (tickets R9a2, SV1c).
 void ActivateWithoutForeground(HWND window) {
     static bool sent = false;
-    if (sent || !ei::GameData<void*>(0x007AF080)) return;
+    if (sent || !HarnessSceneRenderer()->device_.device) return;
     sent = true;
     if (HarnessActive()) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
@@ -4385,7 +4403,6 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
-        if (image_trace::Enabled()) image_trace::Install();   // EI_IMAGE_TRACE: its traps go before CrashLogger
         ei::SetMissingCodeHandler(&EndRunOnMissingCode);
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));
@@ -4458,7 +4475,7 @@ struct Harness {
         if (std::string names = utf8files::Check(g_savesDir); !names.empty()) g_failures.push_back(names);
         addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
-            clock::InstallVirtual(&g_tickLength);
+            clock::InstallVirtual(&TickLength());
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap) script_order::Install();   // script groups by object id (harness_script_order.h)
             if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)

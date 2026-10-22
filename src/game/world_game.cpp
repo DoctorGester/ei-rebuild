@@ -85,13 +85,13 @@ constexpr std::uint32_t kStreamLimit = 2000000000;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
-int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
+int GameMode() { return TheServerWorld()->gameResult_; }        // 1: single player
 int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
-libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
+libcrt::Ostream* const kConsole = &console::g_consoleOut;
 
 // The map database's zone records (MapRecord, object_tables.h).
 MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
@@ -196,8 +196,22 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
 
 } // namespace
 
-// The game's save stream (declared in core_streams.h).
-CMemoryStream* GameSaveStream() { return ei::GamePointer<CMemoryStream>(0x007AFDF8); }
+// The game's save stream (declared in core_streams.h), zero at the start: built by the static initialiser 00578530 in
+// the list's order and destroyed by the exit function it registers (00578550); both ported on the name and registered
+// at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
+CMemoryStream* GameSaveStream() { return &*g_saveStream; }
+
+namespace {
+void __cdecl DestroySaveStream() { g_saveStream->Destruct(); }   // 00578550
+void __cdecl ConstructSaveStream() {                             // 00578530
+    g_saveStream->Construct();
+    GameAtExit(DestroySaveStream);
+}
+} // namespace
+
+EI_REPLACE(0x00578530, ConstructSaveStream);
+EI_REPLACE(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
     LocalFileStream file;
@@ -1075,7 +1089,7 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     FlowBeforeServer(this, nullptr);
-    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     {
         auto* memory = net::NewRefObjectAs<net::ServerSession>();
         net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
@@ -1110,7 +1124,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     auto* memory = net::NewRefObjectAs<net::ClientSession>();
     net::ClientSession* client = memory ? memory->Construct() : nullptr;
@@ -1134,7 +1148,7 @@ EI_REWRITTEN(0x0057E970, GameFlow::JoinServer);
 
 namespace {
 
-libcrt::Ostream* const kNetLog = ei::GamePointer<libcrt::Ostream>(0x007C56B0);   // the network log's ostream
+libcrt::Ostream* const kNetLog = &console::g_netLogOut;
 
 // 0066C180. The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
 
@@ -1269,7 +1283,7 @@ int __stdcall LoadMission(CStream* file) {
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
         mission.s.ReadSized(GameSaveStream());
-        ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
+        GameSaveStream()->version_ = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
 }
@@ -1450,12 +1464,16 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
 
-mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
+// UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard), destroyed at exit
+// by 0057E6A0.
+constinit lib::StaticObject<mfc::CString> g_lastResources = /*007AFDEC*/ {};
+mfc::CString& LastResources() { return *g_lastResources; }
+void __cdecl DestroyLastResources() { g_lastResources.Destroy(); }   // 0057E6A0
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
-std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
+std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
 const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
@@ -1482,8 +1500,8 @@ EI_REWRITTEN(0x0057CB50, SwitchResourceDatabases);
 void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
-        new (&LastResources()) mfc::CString(kResourcesSingle);
-        GameAtExit(ei::static_init::Exit0057E6A0);
+        g_lastResources.Construct(kResourcesSingle);
+        GameAtExit(DestroyLastResources);
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
     if (gamecrt::mbscmp(wanted.GetString(),
@@ -1596,7 +1614,6 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
 void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
-int& LoadedScriptsVersion() { return ei::GameData<int>(0x007AFE00); }
 
 } // namespace
 
@@ -1653,7 +1670,7 @@ int GameFlow::LoadGame(const char* slot) {
         TheInterface()->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, GameSaveStream());
         version = static_cast<int>(scenario.version_);
-        LoadedScriptsVersion() = version;
+        GameSaveStream()->version_ = static_cast<std::uint32_t>(version);
     }
     if (version >= kScenarioGlobalsVersion) TheCamera()->LoadState(&scenario);
     file.Close();
@@ -1887,7 +1904,7 @@ void GameFlow::UpdateFromServer() {
         // FCOMP 1.0 with the value, C0 selecting it: the larger (a NaN kept).
         std::uint32_t bits;
         std::memcpy(&bits, &value, 4);
-        bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0 ? true : 1.0f < value;
+        bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0 ? true : 1.0f < value;
         VariableSet(variables, *name, keep ? value : 1.0f);
     }
 
@@ -2152,3 +2169,5 @@ EI_REPLACE_METHOD(0x0057ABA0, GameFlow::LoadGame);
 EI_REPLACE_METHOD(0x0057EB10, GameFlow::AfterServerStart);
 EI_REPLACE_METHOD(0x005800C0, GameFlow::UpdateFromServer);
 EI_REPLACE_METHOD(0x00662FB0, SavedParties::Reload);
+
+EI_REPLACE(0x0057E6A0, DestroyLastResources);

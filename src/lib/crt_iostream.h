@@ -135,7 +135,7 @@ static_assert(sizeof(Ios) == 0x50);
 using Manipulator = Ostream*(__cdecl*)(Ostream*);
 
 struct Ostream {
-    // ostream(streambuf*) (006FC42F, RET 8): with `mostDerived`, the virtual base table (00748284) and the
+    // ostream(streambuf*) (006FC42F, RET 8): with `mostDerived`, the virtual base table {0, 8} and the
     // ios constructed first; then ostream's vtable on the ios, ios::init(buffer), floatUsed 0. Returns this.
     Ostream* Construct(Streambuf* buffer, int mostDerived);
     Ostream* Apply(Ostream*(__cdecl* manipulator)(Ostream*));   // 00434FE0 operator<<(manipulator) (RET 4)

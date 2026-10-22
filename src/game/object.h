@@ -15,9 +15,6 @@
 #include <cstdint>
 #include <cstring>
 
-// 007AFFA0: the manager that owns the world's objects (units, buildings, ...).
-inline CBaseManager* WorldObjectManager() { return ei::GameData<CBaseManager*>(0x007AFFA0); }
-
 
 // Virtual getters shared by CUnit (vtable 0073EA8C) and CFakeUnit (0073BFE8). Written as __fastcall
 // shims (this in ECX, no stack arguments) because the classes' virtual interfaces are not declared.

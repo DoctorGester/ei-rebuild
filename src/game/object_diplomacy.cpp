@@ -6,6 +6,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "world.h"
 
 namespace {
 

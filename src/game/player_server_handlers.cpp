@@ -3,6 +3,7 @@
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
+#include "console.h"
 #include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
@@ -53,8 +54,6 @@ constexpr int kOrderUse = 6;                          // AIOrder::kind
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The stream the received packets are decompressed into (007C83D0; ReceiveMessages fills it).
-CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
 // NPC record's floor (007C5494). Set at startup.
 float MoneyPenalty() { return GameLogicSettings().lostMoney; }
@@ -77,6 +76,30 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 }
 
 } // namespace
+
+// The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
+// initialiser 0066C4D0 in the list's order and destroyed once (bit 0 of 007C83C8) by the exit function it registers
+// (0066C520); both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// initialisers' objects").
+constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
+CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
+
+namespace {
+std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
+void __cdecl DestroyReceivedMessages() {   // 0066C520
+    std::uint8_t flags = g_receivedMessagesDestroyed;
+    if (flags & 1) return;
+    g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
+    g_receivedMessages->Destruct();
+}
+void __cdecl ConstructReceivedMessages() {   // 0066C4D0
+    g_receivedMessages->ConstructQueueStream();
+    GameAtExit(DestroyReceivedMessages);
+}
+} // namespace
+
+EI_REPLACE(0x0066C4D0, ConstructReceivedMessages);
+EI_REPLACE(0x0066C520, DestroyReceivedMessages);
 
 // --- 0066F4C0: the leader died ----------------------------------------------------------------------
 
@@ -296,9 +319,9 @@ namespace {
 
 // The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
-int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
-// The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
-int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
+int GameMode() { return TheServerWorld()->gameResult_; }
+// The next object id for a new party's record (the party manager 007AA5A0 stores the party).
+int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
@@ -512,7 +535,7 @@ int CPlayerServer::OnNewParty() {
     if (party->members_.size != 1) return 0;
     int* key = &Owner()->partyId_;
     PartyNextId(key);
-    int& next = NextRecordObjectId();
+    int& next = g_nextRecordObjectId;
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
@@ -662,7 +685,7 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";   // 00794F34
-libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {

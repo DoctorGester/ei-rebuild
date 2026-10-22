@@ -24,7 +24,7 @@ namespace {
 
 // The fog manager (*007AF75C); VisFogManagerAdd (004E28D0) makes a fog object, already counted once
 // by the manager's list.
-ClientArrayManager* FogManager() { return ei::GameData<ClientArrayManager*>(0x007AF75C); }
+ClientArrayManager* FogManager() { return TheClientWorld()->arrayManager_; }
 
 // A memory stream on the stack, as the original builds and destroys it inline.
 struct TempStream {

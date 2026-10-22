@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
+#include "game_singletons.h"
 #include "options.h"
 
 #include <cstddef>
@@ -288,14 +289,12 @@ inline double D(float f) { return f; }
 
 inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-inline Terrain* TheTerrain() { return ei::GameData<Terrain* const>(0x007AF738); }   // width / height
 inline float CellSize() { return options::TheOptions()->cameraTerrainArea_; }
 // What static initialisers leave (0040C840, 0040C7E0, 0040C800): pi * 0.5 (the shake's wave runs at this rate), the
 // zero vector and the identity rotation the camera copies.
 inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
-inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF5C0); }   // bit 0x10: camera file made
 
 // Constants (addresses in the exe in the comments).
 #define CAM_PI 3.141592653589793 /*0073B9A0*/

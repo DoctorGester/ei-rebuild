@@ -47,7 +47,6 @@ constexpr float kCircleScale = 3.0f;                       // 0073BAA4
 constexpr float kMinComponent = 0.01f;                     // 0073C548
 
 // The world clock: whole ticks (FILD) and the fraction of the current one.
-float GameTickFraction() { return ei::GameData<const float>(0x007AFCA8); }
 // The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size (007441D0).
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 float CellSize() { return 1.0f /*007441D0*/; }
@@ -68,7 +67,7 @@ inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fis
 // The circling waves' sine per column (and per row: the same values) at the world time. The original
 // reads the time and looks both up per vertex; the same expressions once per call (R16c3).
 void CircleSines(const Terrain* owner, float* sines) {
-    float time = static_cast<float>((CurrentClientTick() + GameTickFraction()) * kTimeScale);
+    float time = static_cast<float>((CurrentClientTick() + ClientTickFraction()) * kTimeScale);
     for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
 }
 

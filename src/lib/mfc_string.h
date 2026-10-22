@@ -63,14 +63,17 @@ struct CStringData {
 };
 static_assert(sizeof(CStringData) == 12);
 
-// _afxDataNil and _afxPchNil: the shared empty string's header and its characters (game data).
+// _afxDataNil and _afxPchNil: the shared empty string's header and its characters.
 #ifdef EI_VECTORS_REPLAY
 // ei_vectors has no game data: the empty string of its own CString (tests/vectors/replay_mfc.cpp).
 CStringData* DataNil();
 char* PchNil();
 #else
-inline CStringData* DataNil() { return ei::GameData<CStringData*>(0x00796E4C); }
-inline char* PchNil() { return ei::GameData<char*>(0x00796E48); }
+// Ours (mfc_string.cpp); game.exe's own when this code runs in game.exe (the harness and the vector recorders handle
+// game.exe's strings there: tests/verify/harness_startup.cpp sets it at static initialisation).
+extern CStringData* g_dataNil;
+inline CStringData* DataNil() { return g_dataNil; }
+inline char* PchNil() { return g_dataNil->data(); }
 #endif
 
 class CString {

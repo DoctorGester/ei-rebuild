@@ -666,9 +666,10 @@ extern lib::StaticObject<SmoothPool> g_smoothPool;
 extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
 inline SmoothPool& SmoothNodePool() { return *g_smoothPool; }
 inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
-// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx], the
-// middle of the nine words at 00791978.
-inline const int* DirectionSteps() { return ei::GameData<const int[9]>(0x00791978) + 4; }
+// The direction (1..8 counter-clockwise from (0, -1), 0 for none) of the step (dx, dy) in -1..1:
+// DirectionSteps()[dy * 3 + dx], from the middle of the table.
+inline constexpr int kDirectionSteps[9] = /*00791978*/ {2, 1, 8, 3, 0, 7, 4, 5, 6};
+inline const int* DirectionSteps() { return kDirectionSteps + 4; }
 // What 005C42B0 does, on any 81 constructed tables: for every pair of directions the states of the
 // previous step (moved back by that step) against those of the next.
 void BuildSmoothTablesAt(SmoothTable* tables);

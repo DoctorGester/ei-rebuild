@@ -109,11 +109,9 @@ them renamed to unused_ and the verify build run with `-k 0`; each compile error
 The batches (2026-10-14/15) moved `__fastcall Fn(T* self, void*, ...)` shims into members and replaced file-local address
 constants by typed homes; all spelling only (git log has the batch commits). What a worker needs:
 
-- **Registering a member.** `EI_REPLACE_METHOD(addr, Class::Member)` registers a non-virtual member (progress counts such
-  shims with tools/progress.py). A pointer to a virtual member is a vtable thunk (rule 4), so the body of a virtual slot lives
-  in a distinct non-virtual member: `<Slot>Impl` (declared next to the virtual, "body of the slot above"), the virtual stays
-  declared and is never defined, qualified base calls (`CItem::Load(stream)`) and verify wrappers call `...Impl`, and
-  check_thunks passes because the registered names are not virtual. Deleting destructors are `DeleteScalar` (slot 0, RET 4,
+- **Members.** A shim's body moved into a member. The `<Slot>Impl` members (the body of a virtual slot as a distinct
+  non-virtual member, the virtual declared and never defined) exist because a virtual could not be registered (rewrite
+  guide rule 4); C28 folds them into real virtuals. Deleting destructors are `DeleteScalar` (slot 0, RET 4,
   `flags` bit 0 frees; the precedent is `CMapObject::DeleteMapObject`); empty slots have distinct names (`IgnoreArgument`,
   `ReturnZero`, `NothingMore`, ...). Overloaded names cannot be registered (CScript::Load / Save became LoadState /
   SaveState). Slots that return a string build it in the caller's result: a member returning it by value is the same
@@ -141,12 +139,8 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   (mfc_slots.h) is the one shared deleting-destructor shim. Left as shims: the serialiser templates (SerializeCArray / CList
   / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (ShapePair, FiguredGroups),
   free-function `void*` selfs, and the Rebirth-patched input handlers.
-- **Constants with homes.** Vtables are `static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x...)` on the
-  class (check_cleanup does not count that spelling); shared ones: `CRefCounted::kVtableAddress` (0073BB68),
-  `CRefObject::kVtableAddress` (0073BB58), `GameBuffer::kGrowingVtableAddress` (0073D624) / `kViewBaseVtableAddress`
-  (0073CA48), `CMemoryStream::kQueueVtableAddress` (0073C960), `RootChunk::kMapObjectFileVtableAddress` (0073FAD4). Script
-  vtables are `scriptvtable::k...` (script.h), array classes `mfc::impl::*Class::Vtable()` (mfc_slots.h). `ei::SetVtable(void*,
-  const void*)` (vcall.h) and `CArray::Construct(const void*)` take a vtable pointer. Texts are accessors in `game_strings.h`
+- **Constants with homes.** Vtables are the classes' `Vtable()` accessors (C19; C28 replaces them with real virtual
+  classes). Texts are accessors in `game_strings.h`
   (`game::mapwords`, `questwords`, `savewords`, `briefingwords`, `zonetexts`, `equipmenttexts`, `menutexts`, `nettexts`,
   `menukeytexts`, `consoletexts`, `weathertexts`; they return `Text(address)` so ei_vectors reads the stand-in data); floats
   are `worlddata::One()` / `Zero()` / `Half()` and the `const float&` (`ExeFloatRef`) effect constants in world_data.h;

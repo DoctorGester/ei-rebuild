@@ -31,7 +31,7 @@ namespace mapspec {
 void __stdcall EffectNotify(mfc::CString kind, mfc::CString family);
 namespace {
 
-CBaseManager* Effects() { return ei::GameData<CBaseManager*>(0x007AFFA8); }
+CBaseManager* Effects() { return TheServerWorld()->manager48_; }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -113,7 +113,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = (ei::GameData<Terrain*>(0x007AF738))->HeightAt(p.x, p.y, 0);
+    double ground = TheTerrain()->HeightAt(p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
     base.Record()->ApplyObject();
 }

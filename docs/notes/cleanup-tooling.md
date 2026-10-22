@@ -5,23 +5,21 @@ Tools (all in `tools/`; each file's docstring says how to run it) and the state 
 
 ## Checks
 
-`build.cmd` runs `check_thunks`, `check_returns`, `check_forwarders` and `check_cleanup` (a failure stops the build). The others are run
-by hand before handing work back.
+`build.cmd` runs `check_thunks`, `check_registrations`, `check_forwarders`, `check_cleanup` and the data checks (a failure stops the
+build; the list and why each runs are in build.cmd). The others are run by hand before handing work back.
 
 | Tool | What it catches |
 |---|---|
-| `check_stolen.py` | the stolen-byte count of every `EI_VERIFY` ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs) |
+| `check_stolen.py` | the stolen-byte count of every `EI_RECORD` (vector recorders, which run inside game.exe) ends inside an instruction, is under 5, or copies IP-relative instructions (a wrong count crashes only when the function first runs) |
 | `check_x87.py` (after `release`) | unsigned 32-bit to float done the modern way (`FILD` + `FADD 2^32` rounds at the precision control): use `x87::FromUnsigned` |
-| `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a hooked, forwarded or wrapped declaration whose stack arguments differ from the original's `RET n` (argument order is not checked) |
-| `check_thunks.py` | an `EI_REPLACE_METHOD` naming a method that is virtual, or overrides one, in its class or a base (it would hook a vcall thunk: rewrite-guide rule 4) |
-| `check_returns.py` | a replacement or forwarder declared `void` whose original leaves a value in EAX that callers use |
+| `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a registered, forwarded or recorded declaration whose stack arguments differ from the original's `RET n` (argument order is not checked) |
+| `check_thunks.py` | an `EI_REPLACE_METHOD` naming a method that is virtual, or overrides one, in its class or a base (it would register a vcall thunk: rewrite-guide rule 4) |
+| `check_registrations.py` | two registrations of one address, or an `EI_REWRITTEN` address also registered (reads the built DLL) |
 | `check_forwarders.py` | a function newly forwarded from more than one file (baseline `config/forwarder_duplicates.txt`, `--update` drops fixed ones) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | rewritten / verified numbers plus the cleanup artefact counts (below) |
 | `gen_originals.py` | `docs/originals-report.md` (generated; do not read it whole: grep the address). `--check` exits 1 when it is stale |
 | `find_dead_code.py` | rewrites `config/dead_code.csv` from scratch (drops hand-added rows; refuses arguments) |
-
-How `check_returns.py` follows EAX, what it cannot see (vtable and other indirect calls) and its allow list are in its docstring.
 
 ## `progress.py` cleanup artefacts
 
@@ -80,12 +78,11 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 
 One declaration per forwarded address in `src/game/originals_<area>.h` (`core`, `engine`, `script`, `render`, `units`, `world`, `ai`, `ui`,
 `gameplay`, `effects` by address range; `library` for STLport / MFC / CRT code), each `__declspec(naked) inline ... EI_ORIGINAL(addr)` with a
-comment giving RET n and what EAX / ST0 holds, and forward declarations of the types it names. The signature is decided from the game.exe
-disassembly (RET n, the code before each RET, callers' use of EAX / ST0 / AL through the `check_returns` logic over all call sites, including
-those inside replaced functions). Other sites keep their local name and signature as a one-line inline wrapper over the shared forwarder.
-Rewritten targets stay forwarders (called through the original address) so the hook and its verify wrapper still see the call.
+comment giving RET n and what EAX / ST0 holds, and forward declarations of the types it names. Other sites keep their local name and
+signature as a one-line inline wrapper over the shared forwarder. No new forwarders are written (rewrite guide rule 5); C29 turns these
+into direct calls.
 
-Conventions (keep following them):
+What the declarations follow:
 
 - A plain `RET` function declared `(T*, void*)` dropped its dummy EDX: declare `__fastcall` with only the real arguments; a function that
   never reads ECX takes no `this` (`GameFlowOriginal()`, `SetServerFlagOriginal(int)`: the old `this` arguments
@@ -101,11 +98,6 @@ Conventions (keep following them):
 - Where a class member forwarded the same address (`World::GetPlayer`, `Ostream` members, `CStringArray` members, ...) it is a one-line
   wrapper over the shared forwarder; a rewrite that is also declared in a header (e.g. `FatalError` in app.cpp) gets a different shared name
   (`FatalErrorOriginal`).
-
-State: `docs/originals-report.md` groups every address forwarded from more than one file into already rewritten (to be called
-directly), library code and not yet ported, and lists the "differ" group (declarations that disagree), including the pending `ui_*` sites
-(grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
-ones directly.
 
 ## Retiring container forwarders (C13b1-C13b3x)
 
@@ -132,8 +124,8 @@ storage is typed; then the call is the container's member or its ABI type's stat
   (`CMapObject::DestructBody()`, `CObject3D::Construct()`, `SessionBase::TickImpl(dt)`). Hooks are retired, so "through its address
   so the verify wrapper runs" no longer holds a forwarder; tests/verify's do stay (a vanilla run must call the game's own code).
 
-Left on purpose: Rebirth-patched callees, the skip list, the vector recorders and replay stand-ins, harness-replaced entries,
-WordsSetAtGrow and ViewStackDestroyRange.
+Left for C29: Rebirth-patched callees, the skip list, harness-replaced entries, WordsSetAtGrow and ViewStackDestroyRange;
+the vector recorders and replay stand-ins stay.
 
 C13b3x took check_cleanup's count from 364 to 294 (direct_calls.py: 301 in scope, 299 left, 2 convertible but kept). What made the
 rest convertible:

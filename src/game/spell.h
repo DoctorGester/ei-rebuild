@@ -12,6 +12,7 @@
 #include "maths.h"
 #include "game_data.h"
 #include "lib/static_object.h"
+#include "game_singletons.h"
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -584,7 +585,6 @@ static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, 
 // 0068D950 / 0068D960 (slots 11 / 12): "CLightManager", class id 0x29.
 const char* __fastcall LightManagerClassName(CLightFactory*);
 int __fastcall LightManagerClassId(CLightFactory*);
-inline CLightFactory* TheLightFactory() { return ei::GameData<CLightFactory* const>(0x007AF748); }
 
 // 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); null if none.
 char* __stdcall SpellCodeByName(const char* name);

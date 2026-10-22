@@ -9,6 +9,9 @@
 
 struct CDXSurface;
 
+// Set while a .mob file loads: the loading screen's movie stays as it is (bink_video.cpp).
+extern std::uint8_t g_loadingMovieOff;
+
 // 005DA400. The loading screen's movie at progress step `progress` (bink_video.cpp).
 void __fastcall ShowLoadingMovie(int progress);
 // 005DB3F0: plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space

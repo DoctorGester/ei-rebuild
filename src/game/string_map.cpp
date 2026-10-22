@@ -98,6 +98,23 @@ CDebugPanel* CDebugPanel::Construct() {
 }
 EI_REPLACE_METHOD(0x00444740, CDebugPanel::Construct);
 
+// The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
+// function it registers (00444680); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
+static_assert(sizeof(CDebugPanel) == 0x44);
+
+namespace {
+void __cdecl DestroyDebugPanel() { g_debugPanel->Destruct(); }   // 00444680
+void __cdecl ConstructDebugPanel() {                             // 00444660
+    g_debugPanel->Construct();
+    GameAtExit(DestroyDebugPanel);
+}
+} // namespace
+
+EI_REPLACE(0x00444660, ConstructDebugPanel);
+EI_REPLACE(0x00444680, DestroyDebugPanel);
+
 // ---- The panel ---------------------------------------------------------------------------------
 
 namespace {
@@ -243,3 +260,5 @@ void CDebugPanel::Show(std::uint8_t show) {
 EI_REWRITTEN(0x00444F50, CDebugPanel::Show);
 
 } // namespace strmap
+
+strmap::CDebugPanel* DebugInfoPanel() { return &*strmap::g_debugPanel; }

@@ -1,7 +1,7 @@
 #pragma once
 
-// The global objects C18k5 named (the cursor, the interface manager, the game flow, the options), as the harness reads
-// them. In the image they are our named globals; in --no-hooks runs the harness runs inside game.exe's own code, which
+// The global objects C18k5 and C18t named (the cursor, the interface manager, the game flow, the options, the worlds,
+// the scene renderer and its lock, the map database), as the harness reads them. In the image they are our named globals; in --no-hooks runs the harness runs inside game.exe's own code, which
 // never touches ours, so it reads game.exe's copy at the original's address (ei::OriginalGameData; docs/notes/
 // standalone.md, "Named data (C18)"). Include the objects' headers (ui_cursor.h, ui.h, world.h, options.h) first.
 
@@ -15,6 +15,9 @@
 // The application's globals (app.h).
 inline const char* HarnessWindowTitle() {
     return ei::Standalone() ? app::g_windowTitle : &ei::OriginalGameData<const char>(0x0079BB24);
+}
+inline HWND HarnessMainWindow() {
+    return ei::Standalone() ? app::g_mainWindow : ei::OriginalGameData<HWND>(0x0079BC28);
 }
 inline std::uint8_t& HarnessInterfaceHasScreen() {
     return ei::Standalone() ? app::g_interfaceHasScreen : ei::OriginalGameData<std::uint8_t>(0x00784750);
@@ -42,8 +45,25 @@ inline CInterface3D* HarnessInterface() {
     return ei::Standalone() ? TheInterface() : &ei::OriginalGameData<CInterface3D>(0x007C7D50);
 }
 
-// The campaign mode: the server world's session kind (007C2CC4), which GameFlow::StartZone sets. The server world
-// is not named, so its game data address serves both runs.
+// The singletons C18t named (game_singletons.h): the two worlds, the scene renderer and its device lock, the map
+// database.
+inline CWorldServer* HarnessServerWorld() {
+    return ei::Standalone() ? TheServerWorld() : &ei::OriginalGameData<CWorldServer>(0x007AFF60);
+}
+inline CWorldClient* HarnessClientWorld() {
+    return ei::Standalone() ? TheClientWorld() : &ei::OriginalGameData<CWorldClient>(0x007AF5B8);
+}
+inline CSceneRenderer* HarnessSceneRenderer() {
+    return ei::Standalone() ? TheSceneRenderer() : &ei::OriginalGameData<CSceneRenderer>(0x007AF060);
+}
+inline _RTL_CRITICAL_SECTION* HarnessDeviceLock() {
+    return ei::Standalone() ? TheDeviceLock() : &ei::OriginalGameData<_RTL_CRITICAL_SECTION>(0x007AEE78);
+}
+inline CMapDatabase* HarnessMapDatabase() {
+    return ei::Standalone() ? TheMapDatabase() : &ei::OriginalGameData<CMapDatabase>(0x0079BF00);
+}
+
+// The campaign mode: the server world's session kind (007C2CC4), which GameFlow::StartZone sets.
 inline int HarnessCampaignMode() {
-    return TheServerWorld()->sessionKind_;
+    return HarnessServerWorld()->sessionKind_;
 }

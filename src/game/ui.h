@@ -85,6 +85,10 @@ struct CScreenFade {
 };
 static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
+// The key of the multiplayer message 12's text (CInterface3D::MessageText), "reserved_02": EI_Plugin's Pause
+// writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
+extern char g_pauseMessageKey[12];
+
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
 // code, so its size is not asserted.
@@ -606,9 +610,11 @@ inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
-// contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
-inline std::uint32_t& UiSurfaceKeptBytes() { return ei::GameData<std::uint32_t>(0x007C7E74); }
-inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x007C7E78); }
+// contents kept in memory while swapped out and the surfaces' height * pitch.
+inline std::uint32_t g_uiSurfaceKeptBytes = /*007C7E74*/ {};
+inline std::uint32_t g_uiSurfaceBytes = /*007C7E78*/ {};
+inline std::uint32_t& UiSurfaceKeptBytes() { return g_uiSurfaceKeptBytes; }
+inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
@@ -1092,11 +1098,9 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
+strmap::CDebugPanel* DebugInfoPanel();   // strmap::g_debugPanel 0079B930 (string_map.cpp)
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
-// The model manager (007AF5F4) the windows take their sprites and item models from.
-inline CFigureManager* UiModelManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
 // The in-game key bindings (object_tables.h g_keyActions), for reading and for writing.
 inline const signed char* KeyActions() { return g_keyActions; }

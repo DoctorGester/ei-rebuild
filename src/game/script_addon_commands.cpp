@@ -3,6 +3,7 @@
 // functions they call are the rewritten members, or their original addresses where not rewritten.
 #include "script_addon_handlers.h"
 #include "options.h"
+#include "bink_video.h"   // g_loadingMovieOff
 #include "world_glue.h"
 
 #include "combat.h"
@@ -44,8 +45,6 @@ namespace {
 
 // 0079BE6C: the "draw all units" flag (the console's spectator mode).
 int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
-// 007C554C: the loading screen's movie is off (LoadingMovie::off, bink_video.cpp).
-std::uint8_t& LoadingMovieOff() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
 CPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
@@ -355,9 +354,9 @@ bool AddMobEx(Call* call) {
     mfc::CString file;
     file = Text(call, 0);
     bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
-    LoadingMovieOff() = 1;
+    g_loadingMovieOff = 1;
     int loaded = TheServerWorld()->LoadMapObjects(file, keepIds ? 1 : 0);
-    LoadingMovieOff() = 0;
+    g_loadingMovieOff = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.GetString());
     return true;
 }

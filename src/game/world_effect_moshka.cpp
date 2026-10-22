@@ -274,7 +274,7 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);
     }
-    CParticleSource* source = ParticleManagerObject()->CreateSource(kBirdParticles);
+    CParticleSource* source = TheParticleManager()->CreateSource(kBirdParticles);
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;

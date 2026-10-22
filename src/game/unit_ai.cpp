@@ -1,5 +1,6 @@
 // The unit AI brain (005D0000-005DC000): the per-tick mode selection and the actions.
 #include "unit_ai.h"
+#include "console.h"
 
 #include "ai_alarm.h"
 #include "combat.h"
@@ -28,6 +29,10 @@
 
 #pragma warning(disable : 4740) // naked forwarders
 
+// The AI's perception log: the AI stream (its static initialiser 005C8B50 stores the address).
+constexpr console::GameOStream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
+console::GameOStream* AiLog() { return kAiLog; }
+
 namespace {
 constexpr float kDecayScale = 30.0f;                                    // 0073BAF0
 constexpr float kOne = 1.0f;                                            // 0073B84C
@@ -50,7 +55,9 @@ struct GameOstream : libcrt::Ostream {
         return this;
     }
 };
-GameOstream*& ConsoleStream() { return ei::GameData<GameOstream*>(0x007C54E8); }   // the console's ostream*
+// The modes' log: the AI stream (its static initialiser 005CE790 stores the address).
+constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
+GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
 
 
 // 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
@@ -185,8 +192,8 @@ void AIBrain::Think() {
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
             text.Format(MotivationFormat(), owner->unit->id_, name.GetString(),
                         bestPriority);
-            GameOstream* console = ConsoleStream();
-            console->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);
+            GameOstream* log = ModeLog();
+            log->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;
@@ -534,7 +541,7 @@ void AIBrain::Follow(CMapObject* object) {
 EI_REWRITTEN(0x005D7E40, AIBrain::Follow);
 
 namespace {
-const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
+const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 } // namespace
 
 void AIBrain::SetSeen(CMapObject* object) {

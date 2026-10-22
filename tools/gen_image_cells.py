@@ -1,7 +1,7 @@
 """game.exe's .rdata and .data for the standalone image (S18b, S18d, S18h; docs/notes/standalone.md, "Own data"): the
 pointer cells of game.exe's data that point into the range the image moves (src/standalone/image_cells.inc,
 committed and reviewed; image_data.cpp fixes them up when it moves the range), and the range's initial bytes
-(written into the build folder by the build, not committed: --bytes).
+(written into the build folder by the build from the committed cells alone, no game.exe: --bytes).
 
 The moved range is 0073B000-007CD000: .rdata (its import address table first, whose slots ei_hook.dll fills itself:
 S18f) and .data with its zero-filled tail. game.exe has no relocations, so the cells are found by a scan: every
@@ -17,7 +17,8 @@ string literal, another named range, a function of ours with a registration).
 
 Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
 exception tables, RTTI) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
-group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out. Each group says what
+group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out, and so are the cells
+of tables nothing reads (UNREAD: dead code's tables, header constant copies; C25a). Each group says what
 the cells are and how many there are: a new cell (another exe, a scan change) or a changed count fails until someone
 has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's and Rebirth's differ in one code byte).
 
@@ -33,18 +34,16 @@ the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
 whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
 
-The zero-filled trial (C25; build.cmd's `trial`, CMake's EI_IMAGE_ZERO_TRIAL): --bytes --zero writes every byte of the
-moved range zero except the cells (their values from the committed image_cells.inc / image_code_cells.inc, so
-image_data.cpp and image_code.cpp move them as usual) and the ranges of config/image_kept.csv, which are game.exe's
-bytes: what the image is still found to read of game.exe's data that no named global of ours holds yet (each row's
-owner, kind and reader). An empty list reads no game.exe. The suite on the trial is what proves the list.
+The initial bytes (C25c: the build reads no game.exe): every byte of the moved range is zero except the cells, their
+values from the committed image_cells.inc / image_code_cells.inc (image_data.cpp and image_code.cpp move them as
+usual); the import table and the named ranges are zero. Everything else the image reads of the range is a named
+global of ours (C18).
 
-usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT [--zero]]
-  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc
-  --check      exit 1 when the files differ from what the scan writes, or a cell has no review (build.cmd)
-  --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table and the ranges
-               our named globals hold zero: config/named_data.csv, C18) to OUT as a C++ initialiser (the build)
-  --zero       with --bytes: the trial's bytes (zero but the cells and config/image_kept.csv's ranges)
+usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
+  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc (reads game.exe)
+  --check      exit 1 when the files differ from what the scan writes, or a cell has no review (reads game.exe;
+               tools/check_against_exe.cmd)
+  --bytes OUT  write the moved range's initial bytes to OUT as a C++ initialiser (the build; no game.exe)
 """
 import argparse, csv, os, re, struct, sys
 
@@ -59,7 +58,6 @@ FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
 LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
-KEPT = os.path.join(ROOT, 'config', 'image_kept.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -89,7 +87,8 @@ REVIEWED_DATA = [
                                  'descriptors (".PAV...")'),
     # .data
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
-    (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),
+    (0x00797888, 0x007978C8, 5, 'the CRT\'s locale categories __lc_category (6 x {name, locale, init}): the names\' '
+                                 'strings and the static "C" 00797778 (unread: setlocale is the host CRT\'s, C26)'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
     (0x00797DD8, 0x00797DDC, 2, 'the CRT\'s _pctype / _pwctype: the C locale\'s _ctype + 1 (unread: the classes are the '
                                 'host CRT\'s, C26)'),
@@ -103,6 +102,16 @@ REVIEWED_DATA = [
     (0x0079AE20, 0x0079AE24, 2, '__lconv_c (0079AE20): decimal_point ".", thousands_sep __lconv_static_null ("")'),
     (0x0079AE28, 0x0079AE44, 8, '__lconv_c\'s other strings: __lconv_static_null'),
     (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
+]
+
+# Cells of tables nothing reads (C25a), as REVIEWED_DATA's groups but left out of the pointer cells: only game.exe's dead
+# code or no code at all read them, and no port names them. Their bytes are zero in the image.
+UNREAD = [
+    (0x0073B000, 0x00783000, 72, '".SEC": per-file copies of a header\'s const char* const that nothing reads (the two '
+                                 'read ones are named: terrain_sector.cpp 00744164, ai_map_load.cpp 0073FD20)', 0x00783CDC),
+    (0x0078F7EC, 0x0078F824, 15, 'the units\' model folders by kind ("heroes\\human\\male", ...), read by the dead '
+                                 '00532650 only'),
+    (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands", read by the dead 00602190 only'),
 ]
 
 # Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc), as C20a did for
@@ -135,11 +144,12 @@ REVIEWED_RDATA = [
                                  "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
     (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s (retired: '
                                  'nothing calls a descriptor\'s virtual; named_data.RETIRED_POINTED)', 0x007472B0),
-    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
     (0x00798928, 0x00798BE0, 88, 'getqloc\'s country and language name tables (__rg_country 00798928, __rg_language '
                                  '007989E0): their names (unread: setlocale is the host CRT\'s, C26)'),
+    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories __lc_category: their names "LC_ALL" .. "LC_TIME" '
+                                '(unread: setlocale is the host CRT\'s, C26)'),
     (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
                                  'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
@@ -180,8 +190,7 @@ CODE_REVIEWED = [
     (0x007975A0, 0x007975C8, 4, "the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and "
                                    "__pInconsistency"),
     (0x00797640, 0x0079768C, 16, "the CRT's math error handling: fmod's dispatch table (into its code)"),
-    (0x0079788C, 0x007978E0, 7, "the CRT's locale categories (00797888): each one's init function, and the "
-                                   "next hook"),
+    (0x007978E0, 0x007978E0, 1, "the CRT's next hook after the locale categories (00797888)"),
     (0x00797B10, 0x00797B24, 6, 'the CRT\'s table of six handlers (006F9696, read by 006E72E4)'),
     (0x00797B60, 0x00797B74, 2, "the CRT's exception action table's default handlers"),
 ]
@@ -214,6 +223,9 @@ NOT_CODE = [
     (0x0078FC44, 0x0078FC44, 1, '"her": text (leather)'),
     (0x00792EF8, 0x00792EF8, 1, '" %s": text'),
     (0x00792F84, 0x00792F84, 1, '" %s": text'),
+    (0x00797890, 0x007978CC, 6, "__lc_category's table builders (__init_dummy, __init_collate, __init_ctype, "
+                                   "__init_monetary, __init_numeric, __init_time): unread, setlocale is the host "
+                                   "CRT's (C26)"),
     (0x00797724, 0x00797724, 1, "__rgcode_page_info's ulInfo of code page 950 (_setmbcp's table; the host CRT's, C26)"),
 ]
 
@@ -520,6 +532,9 @@ def group_of(cell, value, kinds):
     for i, (first, last, _) in enumerate(TEXT):
         if first <= cell <= last:
             return ('text', i)
+    for i, g in enumerate(UNREAD):
+        if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
+            return ('unread', i)
     section = section_of(value)
     if cell in kinds:
         return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
@@ -531,8 +546,8 @@ def group_of(cell, value, kinds):
 
 
 def left_out(group):
-    """Whether a group is no pointer cells: text, or a structure of LEFT_STRUCTURES."""
-    return group[0] == 'text' or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
+    """Whether a group is no pointer cells: text, an UNREAD table, or a structure of LEFT_STRUCTURES."""
+    return group[0] in ('text', 'unread') or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
 
 
 def describe(group):
@@ -541,6 +556,8 @@ def describe(group):
         return TEXT[i][2]
     if kind == 'structure':
         return STRUCTURES[i][2]
+    if kind == 'unread':
+        return UNREAD[i][3]
     return (REVIEWED_RDATA if kind == 'rdata' else REVIEWED_DATA)[i][3]
 
 
@@ -671,53 +688,16 @@ def committed_cells():
     return cells
 
 
-def kept_ranges():
-    """config/image_kept.csv's rows (address, size, owner, kind, what): the trial's ranges of game.exe's bytes."""
-    if not os.path.exists(KEPT):
-        return []
-    with open(KEPT, newline='') as f:
-        return [(int(r['address'], 16), int(r['size']), r['owner'], r['kind'], r['what']) for r in csv.DictReader(f)]
-
-
-def check_kept(kept, named):
-    """Problems of config/image_kept.csv: a range outside the file's bytes past the import table, or overlapping a
-    named range or another kept one."""
-    problems = []
-    spans = sorted((a, a + n) for a, n, _, _, _ in kept)
-    for a, e in spans:
-        if a < IMPORTS[1] or e > SCANNED[-1][2] or e <= a:
-            problems.append(f"config/image_kept.csv: {a:08X}+{e - a} is not inside .rdata / .data's file bytes")
-        for b, n in named:
-            if a < b + n and b < e:
-                problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps the named range {b:08X}+{n}')
-    for (a, e), (b, _) in zip(spans, spans[1:]):
-        if b < e:
-            problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps {b:08X}')
-    return problems
-
-
-def write_bytes(img, path, zero=False):
-    """The moved range's initial bytes to `path`; `img` is None for a trial without kept ranges (no game.exe)."""
+def write_bytes(path):
+    """The moved range's initial bytes to `path`, from the committed files only (no game.exe): zero but the cells."""
     lo = MOVED[0]
     end = SCANNED[-1][2]   # the file's bytes; the rest of the range is zero
     named = named_ranges()
-    if zero:   # the trial: the cells and the kept ranges only
-        data = bytearray(end - lo)
-        cells = committed_cells()
-        for cell, value in cells.items():
-            struct.pack_into('<I', data, cell - lo, value)
-        kept = kept_ranges()
-        problems = check_kept(kept, named)
-        if problems:
-            sys.exit('\n'.join(problems))
-        for a, n, _, _, _ in kept:
-            data[a - lo:a - lo + n] = img[a - BASE:a - BASE + n]
-        what = (f'the trial (--zero): zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc '
-                f'and the {len(kept)} ranges of config/image_kept.csv')
-    else:
-        data = bytearray(img[lo - BASE:end - BASE])
-        what = (f"game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table and the "
-                f'{len(named)} ranges of config/named_data.csv and config/retired_vtables.csv zero)')
+    data = bytearray(end - lo)
+    cells = committed_cells()
+    for cell, value in cells.items():
+        struct.pack_into('<I', data, cell - lo, value)
+    what = f'zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc'
     data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
         b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
@@ -744,20 +724,15 @@ def main():
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--bytes', metavar='OUT')
-    ap.add_argument('--zero', action='store_true')
     a = ap.parse_args()
-    if a.zero and a.bytes and not kept_ranges():   # the trial with nothing kept reads no game.exe
-        n = write_bytes(None, a.bytes, zero=True)
-        print(f'gen_image_cells: {n} dwords of the trial written to {a.bytes} (no game.exe read)')
-        return 0
-    img = image(exe_path.resolve(a.exe))
     if a.bytes:
-        n = write_bytes(img, a.bytes, zero=a.zero)
+        n = write_bytes(a.bytes)
         print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
         return 0
+    img = image(exe_path.resolve(a.exe))
     kinds = structures(img)
     cells = scan(img)
-    problems = check_kept(kept_ranges(), named_ranges())   # the trial's list (C25) against the named ranges
+    problems = []
     counts = {}
     moved = 0
     for c, v in cells:
@@ -776,7 +751,7 @@ def main():
     expected = [(('text', i), None, g[2]) for i, g in enumerate(TEXT)]
     for i, (_, n, what) in enumerate(STRUCTURES):
         expected.append((('structure', i), n, what))
-    for name, groups in (('rdata', REVIEWED_RDATA), ('data', REVIEWED_DATA)):
+    for name, groups in (('unread', UNREAD), ('rdata', REVIEWED_RDATA), ('data', REVIEWED_DATA)):
         for i, g in enumerate(groups):
             expected.append(((name, i), g[2], f'{g[0]:08X}-{g[1]:08X} ({g[3]})'))
     for g, n, what in expected:
@@ -789,7 +764,7 @@ def main():
     left = sum(n for g, n in code_counts.items() if g[0] in ('not', 'text'))
     outputs = [(OUT, render(cells, img)), (CODE_OUT, code_render(code))]
     summary = (f'{moved} cell(s) into .rdata and .data, {len(code)} code cell(s) ({left} dword(s) in the code '
-               'section\'s range left: text, SEH tables, data)')
+               f'section\'s range left: text, SEH tables, data)')
     if a.check:
         for path, text in outputs:
             current = open(path, encoding='utf-8').read() if os.path.exists(path) else ''

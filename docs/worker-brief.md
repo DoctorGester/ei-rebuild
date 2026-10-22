@@ -2,8 +2,9 @@
 
 You are working on a C++ rebuild of Evil Islands' game.exe (1.06, MSVC6) in the repo at your
 current working directory (a git worktree of E:\workspace\ei). The product is the standalone image:
-ei_standalone.exe lays out game.exe's data without its code, and ei_hook.dll writes a jump to each
-rewritten function at its original address. Your task is ONE ticket, given in your prompt;
+ei_standalone.exe runs our code (ei_hook.dll) with no game.exe code, on the part of game.exe's data not
+yet named in our source; game.exe runs only as the original, for the harness's references. Classes are
+normal C++ (rewrite guide, "Where code goes"). Your task is ONE ticket, given in your prompt;
 do it, commit, report, and stop. Don't start other work.
 
 First commands: merge main into your worktree, then `python tools/work.py start <ID>` (registers you
@@ -38,15 +39,15 @@ Rules:
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
   reaches it, or which function vectors replay it.
-- Forwarders: use the shared declarations in src/game/originals_<area>.h (rewrite guide rule 5);
-  build.cmd's check_forwarders fails on new duplicates.
-- Write clean code (rewrite guide, "Clean code"): members not offsets, virtual calls not VCall,
-  named globals; build.cmd's check_cleanup fails when a file's counts go up.
+- No new `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
+- Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
+  hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
 - Build `build.cmd verify` (the harness build: the image plus the harness and the vector recorders,
   what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
   or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
-  (vector recorders) and the checks build.cmd runs at 0 problems.
+  (vector recorders), `tools\check_against_exe.cmd release` (the checks against game.exe, which the build no
+  longer runs) and the checks build.cmd runs at 0 problems.
 - Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
   no log (the commit history keeps that; docs/notes/README.md).
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is
