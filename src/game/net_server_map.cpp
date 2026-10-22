@@ -65,7 +65,7 @@ void ServerSession::SetMap(const stlp::string* name) {
         holder->Destroy();
         holder->Share(mapMessage);
     }
-    auto* current = static_cast<MapMessage*>(holder->ptr);
+    MapMessage* current = map_.Get();
     if (name != &current->text_) current->text_.AssignFrom(*name);
     if (name != &mapName_) mapName_.AssignFrom(*name);
 
@@ -148,9 +148,9 @@ void ServerSession::QueueMapList() {
 // (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
 bool ServerSession::FinishMap(const stlp::string* name) {
     auto* holder = &map_;
-    CRefObject* map = holder->ptr;
-    if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
-    const stlp::string* held = &static_cast<MapMessage*>(map)->text_;
+    MapMessage* map = holder->Get();
+    if (!IsLive(map)) return false;
+    const stlp::string* held = &map->text_;
     if (!(*held == *name)) return false;
 
     if (CRefObject* object = holder->ptr) {

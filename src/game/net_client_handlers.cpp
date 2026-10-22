@@ -48,10 +48,6 @@ inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 
-bool Live(const void* object) {
-    return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
-}
-
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
 void RemoveValue(List& list, const void* value) {
@@ -190,8 +186,8 @@ EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 // live: kept at +0x260C, from the binding's player.
 void ClientSession::StartParty(CRefObject* partner) {
     BindingMessage* binding = binding_;
-    if (!Live(binding)) return;
-    if (!Live(binding->PlayerRef().ptr)) return;
+    if (!IsLive(binding)) return;
+    if (!IsLive(binding->PlayerRef().ptr)) return;
     auto* party = NewMessageMemory<PartyMessage>();
     if (party) {
         RefValueConstructBase(party);

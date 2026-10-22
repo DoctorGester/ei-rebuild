@@ -30,8 +30,6 @@ namespace {
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
-bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
-
 // RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.
 void DestroyInline(RefPtr* p) {
     if (CRefObject* object = p->ptr) {
@@ -100,11 +98,11 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
         if (node == sentinel) return;
         auto* binding = bindings_.At(node);
         auto* player = binding->Player();
-        if (Live(player) && player->host_) break;
+        if (IsLive(player) && player->host_) break;
         node = node->next;
     }
     CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
-    if (!Live(connection)) return;
+    if (!IsLive(connection)) return;
 
     const CStringVector& items = entry->lists[0];   // the items given
     auto count = [&items] { return static_cast<std::uint32_t>(items.end() - items.begin()); };
@@ -129,7 +127,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // (00418530).
 void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
-    if (Live(holder->ptr)) {
+    if (IsLive(holder->ptr)) {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
@@ -182,7 +180,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 // null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;
-    if (Live(holder->ptr)) {
+    if (IsLive(holder->ptr)) {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
@@ -191,7 +189,7 @@ void ServerSession::LeaveZone() {
 
         QuestBriefingRecord* entry;
         {
-            stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
+            stlp::string key = stlp::Plus(holder->Get()->text_, game::ZoneSuffix1Text());
             stlp::string lookup(key.data());
             entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), lookup);
         }

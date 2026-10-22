@@ -2,6 +2,7 @@
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
 // net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "net_connection.h"
 #include "options.h"
 #include "game_data.h"
 #include "game_strings.h"
@@ -23,10 +24,6 @@ namespace {
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
 const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }   // the master server's host name
-
-bool Live(const void* object) {
-    return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
-}
 
 // Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero are
 // erased. The end is read again after every entry, as the original does.
@@ -69,14 +66,14 @@ EI_REWRITTEN(0x004182E0, ServerSession::TickImpl);
 
 // 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.
-bool ServerSession::PlayerStateIs3(void* connection) {
-    if (!Live(connection)) return false;
+bool ServerSession::PlayerStateIs3(const Connection* connection) {
+    if (!IsLive(connection)) return false;
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
         auto* binding = bindings_.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
-        if (!Live(binding)) return false;
+        if (!IsLive(binding)) return false;
         auto* player = binding->Player();
-        if (!Live(player)) return false;
+        if (!IsLive(player)) return false;
         return player->state_ == 3;
     }
     return false;

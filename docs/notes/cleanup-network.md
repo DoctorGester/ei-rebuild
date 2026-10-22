@@ -112,3 +112,13 @@ functions are the game's `stlp::vector<Query>` instantiation, forwarded with it 
   through `InsertOverflow<stlp::PlainElement<NetAddress>>`).
 - The world's helpers are `RefPtrTo<CWorldHandle> shared5C_`, `RefPtrTo<netlink::DriverSession> netSession_` and
   `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `TheServerWorld()->shared5C_`.
+
+## C21 batch 23: typed server records (2026-10-22)
+
+- `IsLive(const CRefCounted*)` (core_refcount.h) is the one live test; the per-file `Live` / `Usable` / `IsLive` copies are gone.
+- ServerSession's connection functions take and return `Connection*` (FindGuestConnection, FindConnectionBySerial, Kick, Ban,
+  ReportDeparture, IsHostConnection, PlayerStateIs3); FindPlayer returns the `PlayerMessage*` (the pause announcement read it as a
+  LoginMessage, whose name_ sits at the same offset), FindTrade a `TradeMessage*` of two `PartyMessage*`s. A binding's connection is
+  still a `RefPtr` (`ConnectionOf` casts once, net_server_players.cpp).
+- The join handler takes the appended player record and binding with `players_.Back()` / `bindings_.Back()`; the held map message
+  is `map_.Get()`.

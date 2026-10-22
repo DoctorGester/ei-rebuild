@@ -161,9 +161,7 @@ void __fastcall ResetCursors(bool /*modeTwo*/, int /*context*/, int /*smallCurso
 __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, void*, const char* /*key*/)
     EI_ORIGINAL(0x004DF030)
 
-// C3n batch 4. 005F7590 (rewritten as CInterface3D::GetActiveWindow; plain RET): the interface's top window, null with none.
 // 005F7DA0 (CInterface3D::ScaleRectFromScreen; RET 4): the pixel rectangle back to 800x600 layout coordinates (returns the
-// new bottom). Rebirth patches both: through their addresses.
-__declspec(naked) inline CUiWindow* __fastcall InterfaceActiveWindowOriginal(CInterface3D* /*interface*/) EI_ORIGINAL(0x005F7590)
+// new bottom). Rebirth patches it: through its address.
 __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(const CInterface3D* /*interface*/, void*,
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)

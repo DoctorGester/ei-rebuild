@@ -588,13 +588,13 @@ int CWorldClient::DrawPass() {
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTextureImpl(0, nullptr);
-        CEngineObject* manager = manager40_;
+        CMapObjectManager* manager = manager40_;
         using Node = stlp::list<int>::Node;
         Node* head = selected.head;
         for (Node* node = head->next; node != head;) {
             Node* next = node->next;
             int id = node->data;
-            auto* object = static_cast<CMapObject*>(ManagerFindObject(manager, nullptr, id));
+            auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;

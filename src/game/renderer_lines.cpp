@@ -39,7 +39,7 @@ constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 // 0049BB10 inlined: `count` vertices from the game's heap, 32-byte aligned, the block's own
 // address in the dword before them (freed through it).
 LineVertex* NewVertices(int count) {
-    return static_cast<LineVertex*>(lib::AllocAligned32(static_cast<std::size_t>(count * 0x18)));
+    return lib::AlignedArray<LineVertex>::Allocate(count);
 }
 void DeleteVertices(LineVertex* data) { lib::FreeAligned32(data); }
 

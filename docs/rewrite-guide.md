@@ -182,7 +182,10 @@ does not need a second pass:
   (`mfc::CTypedPtrList<netlink::NetLink>`); an inlined free of a 12-byte node is
   `stlp::PushSmallNode(node)`; a map whose element policy is not the default is subscripted with a
   named one (`headers_.Subscript<lib_trees::LinkHeaderElement>(name)`); a window's handled flag is
-  its `inputHandled_` member.
+  its `inputHandled_` member. A counted object is tested with `IsLive(object)` (core_refcount.h: set and
+  not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
+  and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
+  written by a transform slot is an `mfc::CFileVirtuals*`.
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

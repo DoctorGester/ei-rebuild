@@ -1239,7 +1239,7 @@ public:
     // 0063CEE0 (RET 8; ui_hud_tips.cpp). The tooltip text of quick item `index` into `text` (a
     // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
     // numbers after labels_.
-    void ItemTip(unsigned index, void* text);
+    void ItemTip(unsigned index, mfc::CString* text);
     // 0063DD70 (RET 4; ui_hud_pick.cpp). Picks the unit's quick item `slot` (a click on it or its
     // key): without a unit nothing; without an item there the pending action is dropped (no
     // sound); otherwise the click sound, then a click on the highlighted slot drops the pending

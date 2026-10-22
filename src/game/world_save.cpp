@@ -803,7 +803,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     int player = -1;
     net::ServerSession* session = net::GameServer();
     if (session && !(session->flags7_ & CRefCounted::kDetached))
-        if (auto* record = static_cast<net::PlayerMessage*>(session->FindPlayer(id))) player = record->serial_;   // 0041A2E0
+        if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;   // 0041A2E0
 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).

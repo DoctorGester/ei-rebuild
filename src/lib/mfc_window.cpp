@@ -142,7 +142,7 @@ CWnd* CWnd::DeletingDestructor(unsigned deleteFlags) {
 }
 
 void* __stdcall CreateCWnd() {
-    auto* wnd = static_cast<CWnd*>(gamecrt::operator_new(sizeof(CWnd)));
+    auto* wnd = gamecrt::operator_new_as<CWnd>();
     return wnd ? wnd->Construct(nullptr) : nullptr;
 }
 
@@ -155,7 +155,7 @@ void* __stdcall CreateCTempWnd() {
 }
 
 void* __stdcall CreateCMenu() {
-    auto* menu = static_cast<CMenu*>(gamecrt::operator_new(sizeof(CMenu)));
+    auto* menu = gamecrt::operator_new_as<CMenu>();
     if (!menu) return nullptr;
     menu->vtable = CMenu::Vtable();
     menu->menu = nullptr;

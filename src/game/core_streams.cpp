@@ -239,7 +239,7 @@ EI_REWRITTEN(0x00468C20, CMemoryStream::Reset);
 // --- Aligned pointer arrays --------------------------------------------------------------------
 
 void** __fastcall AlignedPointerArrayAlloc(int count) {
-    return static_cast<void**>(lib::AllocAligned32(static_cast<std::size_t>(count) * 4));
+    return lib::AlignedArray<void*>::Allocate(count);
 }
 EI_REWRITTEN(0x0047B940, AlignedPointerArrayAlloc);
 EI_REWRITTEN(0x004D9ED0, AlignedPointerArrayAlloc);

@@ -395,10 +395,10 @@ EI_REWRITTEN(0x00622DB0, CHeroStatsPanel::Build);
 
 // --- 006270A0: the trade grid's Build ----------------------------------------------------------------
 
-void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
-    bought_ = static_cast<UiItemList*>(bought);
+void CTradeGrid::Build(UiItemList* bought, UiItemList* sold, char spells, char flag) {
+    bought_ = bought;
     rect_ = RECT{200, 100, 600, 500};
-    sold_ = static_cast<UiItemList*>(sold);
+    sold_ = sold;
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     flag_ = flag;
@@ -450,10 +450,10 @@ EI_REWRITTEN(0x00628060, CRepairGrid::ItemAt);
 
 // --- 006279E0: the repair grid's Build ---------------------------------------------------------------
 
-void CRepairGrid::Build(void* items) {
+void CRepairGrid::Build(UiItemList* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
-    items_ = static_cast<UiItemList*>(items);
+    items_ = items;
     LoadTexture("repair1", 3, 0);   // repair1
     LoadTexture("repair2", 3, 0);   // repair2
     LoadTexture("repair3", 3, 0);   // repair3

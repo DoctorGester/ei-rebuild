@@ -71,7 +71,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 // no window of the interface is active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
-    if (!InterfaceActiveWindowOriginal(TheInterface())) {
+    if (!TheInterface()->GetActiveWindow()) {
         gameapi::Sleep(50);
         return;
     }

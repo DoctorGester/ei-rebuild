@@ -32,6 +32,9 @@ public:
 };
 static_assert(sizeof(CRefCounted) == 8);
 
+// The test the network code inlines before using a counted object: set and not detached.
+inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
+
 // The renderer's, the figures' and the mouse's counted root (game.exe's 0073C368: one slot, no fields): the compiled
 // table their destructors leave (C19, core_streams.cpp). Slot 0, the deleting destructor (00457950), leaves it again
 // and frees the object when bit 0 of the flags is set.

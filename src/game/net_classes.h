@@ -589,20 +589,20 @@ public:
     // 0041A490. Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
     // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
-    void* FindTrade(void* offer, void* other);
+    TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
     int LeaderId();                                       // 0041A020: the first host's id, -1
     void SetPassword(const char* text);                   // 0041A140
-    void* FindGuestConnection(const stlp::string* name);     // 0041A170
-    void* FindConnectionBySerial(int serial);             // 0041A270
+    Connection* FindGuestConnection(const stlp::string* name);   // 0041A170
+    Connection* FindConnectionBySerial(int serial);       // 0041A270
     PlayerMessage* FindPlayer(int id);                    // 0041A2E0
     void AnnounceToGuests(int kind, const char* text);    // 0041A500
-    void Kick(void* connection);                          // 0041A550
-    void Ban(void* connection);                           // 0041A620
-    void ReportDeparture(void* connection, int text);     // slots 11 (text 4) and 12 (text 1)
-    bool IsHostConnection(void* connection);              // 00419F90 (net_server_commands.cpp)
+    void Kick(Connection* connection);                    // 0041A550
+    void Ban(Connection* connection);                     // 0041A620
+    void ReportDeparture(Connection* connection, int text);   // slots 11 (text 4) and 12 (text 1)
+    bool IsHostConnection(const Connection* connection);  // 00419F90 (net_server_commands.cpp)
     // 00417E40 (net_server_tick.cpp). Whether the player bound to `connection` is in state 3.
-    bool PlayerStateIs3(void* connection);
+    bool PlayerStateIs3(const Connection* connection);
 
     float announceTimer_;               // +0x2570 seconds to the next announcement to the master server
     std::uint8_t public_;               // +0x2574 announced to the master server

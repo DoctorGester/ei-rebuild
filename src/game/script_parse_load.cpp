@@ -128,7 +128,7 @@ void InlineSetSize(mfc::CArray<T>& a, int n) {
         a.maxSize = 0;
         a.size = 0;
     } else if (!a.data) {
-        a.data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(n) * 4));
+        a.data = gamecrt::operator_new_array<T>(static_cast<unsigned>(n));
         construct(a.data, n);
         a.maxSize = n;
         a.size = n;
@@ -145,7 +145,7 @@ void InlineSetSize(mfc::CArray<T>& a, int n) {
         }
         int newMax = a.maxSize + grow;
         if (n >= newMax) newMax = n;
-        T* data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(newMax) * 4));
+        T* data = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
         std::memcpy(data, a.data, static_cast<unsigned>(a.size) * 4);
         construct(data + a.size, n - a.size);
         gamecrt::operator_delete(a.data);

@@ -92,7 +92,7 @@ void CUnit::DropBrokenEquipment() {
     ItemList broken{};
     broken.vtable = mfc::impl::ItemListClass::Vtable();
     broken.blockSize = kPtrListBlockSize;
-    void* messages = PlayerMessages(owner);
+    CPlayerServer* messages = PlayerMessages(owner);
 
     for (CItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
@@ -112,7 +112,7 @@ void CUnit::DropBrokenEquipment() {
     for (int i = 3; i >= 0; --i) {
         CItem*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        static_cast<CPlayerServer*>(messages)->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
+        messages->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
         ++slot->refCount_;
         broken.AddTail(slot);
         CEngineObject* weapon = slot;

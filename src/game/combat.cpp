@@ -96,7 +96,7 @@ float DifficultyAttackFactor() {
 }
 
 // The unit's server object (CUnit + 0x170): its mana.
-float ServerMana(const CUnit* unit) { return static_cast<const CMapObjectServer*>(unit->companion)->vitals.mana; }
+float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 

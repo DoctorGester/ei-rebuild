@@ -519,7 +519,7 @@ public:
     // 00596140 (RET 0xC; world_game.cpp). Reads the zone's AI graph into the memory stream `out`:
     // the 0x31415926 chunk of the .mob file when there is one, else the whole <map>.grp file.
     // 1 when found.
-    int ReadAIGraph(const char* map, const char* mob, void* out);
+    int ReadAIGraph(const char* map, const char* mob, CStream* out);
     // 00596350 (RET 4; world_game.cpp). The zone's scripts from the .mob file's 0xA000 chunk (its
     // 0xACCEECCB text packed and XORed, decoded by 004D8E10, or the plain 0xACCEECCA text) become
     // the only line of the first command queue.
@@ -1674,7 +1674,7 @@ static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) 
 struct DepthLess {
     float* view;                          // +0 the view matrix (row-major 4x4): row 2 (+0x20) the depth
                                           //    axis, its translation (+0x2C) the offset
-    void* manager;                        // +4 CBaseManager holding the objects
+    CBaseManager* manager;                // +4 the manager holding the objects
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then

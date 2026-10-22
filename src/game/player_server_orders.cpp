@@ -119,7 +119,7 @@ int CPlayerServer::OnPause() {
         else if (own != leader)
             return 1;
         net::PlayerMessage* record = server->FindPlayer(leader);
-        if (record && !(record->flags7_ & CRefCounted::kDetached) && mode != 3)
+        if (IsLive(record) && mode != 3)
             server->AnnounceText(kTextPause, record->name_.data(), nullptr);
     }
     Owner()->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);

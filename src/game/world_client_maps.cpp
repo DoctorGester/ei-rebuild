@@ -591,7 +591,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     // inlined in the original (the same steps as the out-of-line loop).
     MatrixDevice* device = TheMatrixDevice();
     const float* plane = device->viewStack + (device->viewDepth - 1) * 16;
-    void* objects = client->MapObjectManager();
+    CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
     ScreenEntry* last = hits.end();
     if (first != last) {
@@ -1147,7 +1147,7 @@ EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
-    auto* block = static_cast<int*>(gamecrt::operator_new(static_cast<std::size_t>(count) * sizeof(SectorList) + 4));
+    auto* block = gamecrt::operator_new_bytes_as<int>(static_cast<std::size_t>(count) * sizeof(SectorList) + 4);
     SectorList* cells = nullptr;
     if (block) {
         *block = count;

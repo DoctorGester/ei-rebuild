@@ -117,6 +117,13 @@ void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
     SaveListedObjects(reinterpret_cast<mfc::CList<CEngineObject*>*>(list), stream);
 }
 
+// SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed
+// objects (CEffect). The next element as that class; the loops read the data pointer once.
+template <typename T>
+T* NextAs(CEngineObject**& next) {
+    return static_cast<T*>(*next++);
+}
+
 } // namespace
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
@@ -162,7 +169,7 @@ int CPlayerServer::Flush() {
 int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
     CEngineObject** next = objects->data;
     for (int i = 0; i < objects->size; ++i) {
-        auto* object = static_cast<CMapObject*>(*next++);
+        auto* object = NextAs<CMapObject>(next);
         bool isUnit = object->GetClassId() == world::kClassUnit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id_), static_cast<std::uint32_t>(object->type_),
                                    object->prototypeId_, object->flags_};
@@ -199,7 +206,7 @@ int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
     CEngineObject** next = objects->data;
     int stamp = WorldUpdateCount(Owner());
     for (int i = 0; i < objects->size; ++i) {
-        auto* object = static_cast<CMapObject*>(*next++);
+        auto* object = NextAs<CMapObject>(next);
         if (object->changeStamp != stamp) continue;
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out_, kMessageObjectChanged);
@@ -225,7 +232,7 @@ int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
 int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
     CEngineObject** next = objects->data;
     for (int i = 0; i < objects->size; ++i) {
-        auto* effect = static_cast<CEffect*>(*next++);
+        auto* effect = NextAs<CEffect>(next);
         if (effect->flags_ & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
         header[1] = static_cast<std::uint32_t>(effect->GetClassId());
@@ -243,7 +250,7 @@ int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
     CEngineObject** next = objects->data;
     int stamp = WorldUpdateCount(Owner());
     for (int i = 0; i < objects->size; ++i) {
-        auto* effect = static_cast<CEffect*>(*next++);
+        auto* effect = NextAs<CEffect>(next);
         if (effect->changeStamp_ != stamp) continue;
         if (effect->flags_ & kFlagDeltaPending) effect->SendDelta();
         WriteByte(&out_, kMessageTimedChanged);

@@ -24,10 +24,6 @@ namespace {
 
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
-bool Live(const void* object) {
-    return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
-}
-
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(CRefObject* object) {
     if (!object) return;
@@ -83,12 +79,12 @@ namespace net {
 EI_REWRITTEN(0x00609D40, RefPtr::AssignCounted);
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
-void* ServerSession::FindTrade(void* offer, void* other) {
+TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
     for (RefNode* node = trades_.First(); node != trades_.End(); node = node->next) {
-        auto* trade = trades_.At(node);
-        void* first = trade->offer_.ptr;
+        TradeMessage* trade = trades_.At(node);
+        const CRefObject* first = trade->offer_.ptr;
         if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
-            return node->data.ptr;
+            return trade;
     }
     return nullptr;
 }
@@ -146,12 +142,12 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
     ++message->version_;
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
-    auto* trade = static_cast<TradeMessage*>(self->FindTrade(message, other));
-    if (!Live(trade)) return;
+    TradeMessage* trade = self->FindTrade(message, other);
+    if (!IsLive(trade)) return;
     auto* first = trade->offer_.Get();
-    if (!Live(first)) return;
+    if (!IsLive(first)) return;
     auto* second = trade->partnerOffer_.Get();
-    if (!Live(second)) return;
+    if (!IsLive(second)) return;
     if (!first->accepted_ || first->acceptedRevision_ != second->revision_) return;
     if (!second->accepted_ || second->acceptedRevision_ != first->revision_) return;
     trade->done_ = 1;
@@ -172,9 +168,9 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
         node = next;
     }
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
-    auto* trade = static_cast<TradeMessage*>(self->FindTrade(message, other));
+    TradeMessage* trade = self->FindTrade(message, other);
     if (!message->trading_) TellPartner(self, message, 11);
-    if (!Live(trade)) return;
+    if (!IsLive(trade)) return;
     if (trade->done_) {
         RefPtr held;
         held.ptr = trade;

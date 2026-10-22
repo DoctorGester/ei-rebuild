@@ -35,8 +35,6 @@ using QueueElement = recordlist::QueueStreamElement;
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The game's memmove (006E79A0).
 
-bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
-
 // The counted pointer release the classes inline: the count dropped, the object deleted at zero.
 void ReleaseCounted(CRefObject* object) {
     if (!object) return;

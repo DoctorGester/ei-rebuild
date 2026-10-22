@@ -20,25 +20,21 @@ namespace {
 
 constexpr std::size_t kPasswordSize = 0x14;
 
-bool Live(const void* object) {
-    return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
-}
 void* Value(RefNode* node) { return node->data.ptr; }
 PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
-void* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().ptr; }
+Connection* ConnectionOf(BindingMessage* binding) { return static_cast<Connection*>(binding->ConnectionRef().ptr); }
 
 // The connection of the first binding whose player is live and the host, or null.
-void* HostConnection(const stlp::SharedRefListOf<BindingMessage>& bindings) {
+Connection* HostConnection(const stlp::SharedRefListOf<BindingMessage>& bindings) {
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
         PlayerMessage* player = PlayerOf(bindings.At(node));
-        if (Live(player) && player->host_) return ConnectionOf(bindings.At(node));
+        if (IsLive(player) && player->host_) return ConnectionOf(bindings.At(node));
     }
     return nullptr;
 }
 
 // The common tail of kicking and banning: the client is told to leave and removed (slot 2).
-void DropClient(ServerSession* self, void* peer) {
-    auto* connection = static_cast<Connection*>(peer);
+void DropClient(ServerSession* self, Connection* connection) {
     self->SendLeave(&connection->address_, connection->id_);
     ClientNode* node;
     self->FindClient(&node, &connection->address_);
@@ -92,7 +88,7 @@ EI_REWRITTEN(0x0041A140, ServerSession::SetPassword);
 
 // 0041A170: the connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
-void* ServerSession::FindGuestConnection(const stlp::string* name) {
+Connection* ServerSession::FindGuestConnection(const stlp::string* name) {
     const std::size_t length = name->size();
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
         PlayerMessage* player = players_.At(node);
@@ -101,7 +97,7 @@ void* ServerSession::FindGuestConnection(const stlp::string* name) {
         RefNode* first = bindings.First();
         for (RefNode* binding = first; binding != bindings.End(); binding = binding->next) {
             if (PlayerOf(bindings.At(binding)) != Value(node)) continue;
-            void* connection = ConnectionOf(bindings.At(binding));
+            Connection* connection = ConnectionOf(bindings.At(binding));
             bool hostsToo = false;
             for (RefNode* other = first; other != bindings.End(); other = other->next) {
                 if (ConnectionOf(bindings.At(other)) != connection) continue;
@@ -120,7 +116,7 @@ void* ServerSession::FindGuestConnection(const stlp::string* name) {
 EI_REWRITTEN(0x0041A170, ServerSession::FindGuestConnection);
 
 // 0041A270: the connection of the player with serial `serial`, or null.
-void* ServerSession::FindConnectionBySerial(int serial) {
+Connection* ServerSession::FindConnectionBySerial(int serial) {
     const auto& bindings = bindings_;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next)
         if (PlayerOf(bindings.At(node))->serial_ == serial) return ConnectionOf(bindings.At(node));
@@ -148,17 +144,17 @@ EI_REWRITTEN(0x0041A500, ServerSession::AnnounceToGuests);
 
 // 0041A550: kicks the client on `connection` (unless it is the host's): its player is announced
 // (text 2), then the client is told to leave and removed.
-void ServerSession::Kick(void* connection) {
-    if (!Live(connection)) return;
+void ServerSession::Kick(Connection* connection) {
+    if (!IsLive(connection)) return;
     const auto& bindings = bindings_;
-    void* host = HostConnection(bindings);
+    Connection* host = HostConnection(bindings);
     if (connection == host) return;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
         if (ConnectionOf(bindings.At(node)) != connection) continue;
         BindingMessage* binding = bindings.At(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (Live(player)) AnnounceText(2, player->name_.data(), nullptr);
+            if (IsLive(player)) AnnounceText(2, player->name_.data(), nullptr);
         }
         break;
     }
@@ -168,21 +164,21 @@ EI_REWRITTEN(0x0041A550, ServerSession::Kick);
 
 // 0041A620: bans the client on `connection` (unless it is the host's): its player is announced
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
-void ServerSession::Ban(void* connection) {
-    if (!Live(connection)) return;
+void ServerSession::Ban(Connection* connection) {
+    if (!IsLive(connection)) return;
     const auto& bindings = bindings_;
-    void* host = HostConnection(bindings);
+    Connection* host = HostConnection(bindings);
     if (connection == host) return;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
         if (ConnectionOf(bindings.At(node)) != connection) continue;
         BindingMessage* binding = bindings.At(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
-            if (Live(player)) AnnounceText(3, player->name_.data(), nullptr);
+            if (IsLive(player)) AnnounceText(3, player->name_.data(), nullptr);
         }
         break;
     }
-    const NetAddress* address = &static_cast<Connection*>(connection)->address_;
+    const NetAddress* address = &connection->address_;
     banned_.Insert(banned_.End(), *address);
     DropClient(this, connection);
 }
@@ -190,15 +186,15 @@ EI_REWRITTEN(0x0041A620, ServerSession::Ban);
 
 // 0041A700 (slot 11, a client lost) and 0041A770 (slot 12, a client left): the client's player is
 // announced (text 4 / text 1).
-void ServerSession::ReportDeparture(void* connection, int text) {
-    if (!Live(connection)) return;
+void ServerSession::ReportDeparture(Connection* connection, int text) {
+    if (!IsLive(connection)) return;
     const auto& bindings = bindings_;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
         if (ConnectionOf(bindings.At(node)) != connection) continue;
         BindingMessage* binding = bindings.At(node);
-        if (!Live(binding)) return;
+        if (!IsLive(binding)) return;
         PlayerMessage* player = PlayerOf(binding);
-        if (!Live(player)) return;
+        if (!IsLive(player)) return;
         AnnounceText(text, player->name_.data(), nullptr);
         return;
     }

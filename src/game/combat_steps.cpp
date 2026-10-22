@@ -426,12 +426,12 @@ double RandomHeight(double to, float from, float low, float high) {
 } // namespace
 
 bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CMapObject* target) {
-    if (target->GetClassId() != kClassUnit) {
+    CUnit* victim = UnitOrNull(target);   // the target is set
+    if (!victim) {
         plan->hitLocation = 1;
         BuildOrderSteps(steps, duration, kOrderAttack, kKeyNoTarget);
         return true;
     }
-    CUnit* victim = static_cast<CUnit*>(target);
 
     // An attack order on the target, as ActionDistance sees it (the target is referenced).
     UnitAction order{};

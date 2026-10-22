@@ -94,7 +94,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         tamerPlayer->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
-        auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
+        auto* mode = gamecrt::operator_new_bytes_as<AIMode>(0x24);
         mode->refs = 0;   // written before the test, as the original does (one dword)
         mode->refsHigh = 0;
         if (mode) {

@@ -12,6 +12,14 @@
 // (engine_object_class.h's TransformBaseClass, C19) in place of game.exe's 0073BA38.
 // Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
 // Slots 13-17 are defined (core_transform.cpp), for a derived class whose vtable is the compiler's (C19).
+namespace mfc {
+class CFileVirtuals;   // lib/mfc.h
+}
+
+namespace mfc {
+class CFileVirtuals;   // lib/mfc.h
+}
+
 class CTransformObject : public CEngineObject {
 public:
     CTransformObject* DeleteScalar(unsigned flags);
@@ -29,11 +37,11 @@ public:
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
     void UpdateWorldImpl(const Quaternion& parentRotation, const Vector3& parentPosition);   // body of the slot above (registered by member pointer)
     // 16: 00401510. Writes the local transform to an MFC CFile (slot 14, Write).
-    virtual void SaveTransform(void* file);
-    void SaveTransformImpl(void* file);   // body of the slot above (registered by member pointer)
+    virtual void SaveTransform(mfc::CFileVirtuals* file);
+    void SaveTransformImpl(mfc::CFileVirtuals* file);   // body of the slot above (registered by member pointer)
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
-    virtual void LoadTransform(void* file);
-    void LoadTransformImpl(void* file);   // body of the slot above (registered by member pointer)
+    virtual void LoadTransform(mfc::CFileVirtuals* file);
+    void LoadTransformImpl(mfc::CFileVirtuals* file);   // body of the slot above (registered by member pointer)
 
     // 00453400. Constructor body: base fields, identity rotations (positions left as they are),
     // the base table (BaseVtable); returns this.

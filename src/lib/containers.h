@@ -18,7 +18,7 @@ namespace lib {
 // (00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00476EF0, 00477250, 00600A80,
 // 004F65B0, ...); they differ only in the multiplication.
 inline void* AllocAligned32(std::size_t bytes) {
-    auto* block = static_cast<char*>(gamecrt::operator_new(bytes + 0x24));
+    auto* block = gamecrt::operator_new_bytes_as<char>(bytes + 0x24);
     auto* data = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
     reinterpret_cast<void**>(data)[-1] = block;
     return data;

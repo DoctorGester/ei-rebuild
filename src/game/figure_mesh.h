@@ -101,7 +101,7 @@ public:
     int GetClassId() override;             // 12: 00453460 (0x44)
     // 15: 0059F510 SetPose. 16: 0059F710 SaveToFile (the mesh written to an MFC CFile).
     void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override;
-    void SaveTransform(void* file) override;
+    void SaveTransform(mfc::CFileVirtuals* file) override;
     virtual void CopyFigure(const CFigureMesh* other);   // 18: 0059F0F0 CopyFigureImpl
     // 19: 005A2480 LoadNothing (the meshes' is LoadFromMemoryImpl).
     virtual void LoadFromMemory(char** cursor, float s, float t, float u);
@@ -307,7 +307,7 @@ public:
 
     // The vtable: CFigureMesh's but for 0, 3, 17 and 19-23 (slot 2, 005A6C70, jumps to CreateMesh).
     void Destroy() override;                                                // 3: 005A6C80 ClearMesh
-    void LoadTransform(void* file) override;                                // 17: 0059F8F0 LoadFromFile
+    void LoadTransform(mfc::CFileVirtuals* file) override;                                // 17: 0059F8F0 LoadFromFile
     void LoadFromMemory(char** cursor, float s, float t, float u) override; // 19: 005A2490 LoadFromMemoryImpl
     void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A2500 LoadFigImpl
     void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A3800 LoadOldImpl

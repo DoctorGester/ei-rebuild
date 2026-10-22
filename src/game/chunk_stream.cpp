@@ -312,8 +312,7 @@ EI_REWRITTEN(0x0042C820, Chunk::WriteString);
 
 // The array is emptied (SetSize(0, -1)), then `count` string chunks are read through a child chunk
 // (its constructor inlined) and appended. The count is unsigned.
-void Chunk::ReadStringArray(void* strings) {
-    auto* array = static_cast<console::CStringArray*>(strings);
+void Chunk::ReadStringArray(mfc::CStringArray* array) {
     std::uint32_t count;
     ReadCounted(this, &count, 4);
     Chunk child(this);
@@ -328,8 +327,7 @@ EI_REWRITTEN(0x0042CA20, Chunk::ReadStringArray);
 
 // The size covers the count and every element's chunk. Each element's buffer is taken with
 // GetBuffer(0) after the file is asked for (it may make a shared string unique).
-void Chunk::WriteStringArray(std::uint32_t id, void* strings) {
-    auto* array = static_cast<console::CStringArray*>(strings);
+void Chunk::WriteStringArray(std::uint32_t id, mfc::CStringArray* array) {
     int count = array->GetSize();
     int characters = 0;
     for (int i = 0; i < count; ++i) characters += (*array)[i].GetLength();

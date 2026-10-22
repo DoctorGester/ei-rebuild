@@ -21,9 +21,6 @@
 namespace net {
 
 namespace {
-// The record just appended to a list of counted pointers.
-template <typename List>
-CRefObject* LastObject(const List& list) { return list.End()->prev->data.ptr; }
 // The serial the next player record gets.
 std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
@@ -51,7 +48,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     self->players_.Insert(self->players_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* record = static_cast<PlayerMessage*>(LastObject(self->players_));
+    PlayerMessage* record = self->players_.Back();
 
     auto* binding = NewMessageMemory<BindingMessage>();
     if (binding) {
@@ -64,7 +61,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     self->bindings_.Insert(self->bindings_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* bound = static_cast<BindingMessage*>(LastObject(self->bindings_));
+    BindingMessage* bound = self->bindings_.Back();
 
     stlp::string* name = &record->name_;
     if (&msg->name_ != name) name->AssignFrom(msg->name_);
@@ -112,7 +109,6 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
 
 namespace {
-bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 // Every node of `list` holding `value` erased (the next node taken first).
 void EraseValue(stlp::SharedRefList& list, const void* value) {
     RefNode* sentinel = list.End();
@@ -144,9 +140,9 @@ EI_REPLACE(0x0041AD80, ServerOnPlayerChanged);
 // goes up); then the binding is removed from the bindings list.
 void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* binding = message->binding_.Get();
-    if (!Live(binding)) return;
+    if (!IsLive(binding)) return;
     auto* player = binding->Player();
-    if (Live(player)) {
+    if (IsLive(player)) {
         std::uint8_t wasHost = player->host_;
         EraseValue(self->players_, player);
         if (wasHost) {

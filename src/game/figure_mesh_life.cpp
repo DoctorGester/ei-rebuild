@@ -219,7 +219,7 @@ int CFigureMesh::GetClassId() { return 0x44; }
 void CFigureMesh::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
     SetPose(parentRotation, parentPosition);
 }
-void CFigureMesh::SaveTransform(void* file) { SaveToFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) { SaveToFile(file); }
 void CFigureMesh::CopyFigure(const CFigureMesh* other) { CopyFigureImpl(other); }
 void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadNothing(cursor, s, t, u); }
 
@@ -236,7 +236,7 @@ public:
     void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override {   // 15: 0059F510
         Figure()->CFigureMesh::UpdateWorld(parentRotation, parentPosition);
     }
-    void SaveTransform(void* file) override { Figure()->CFigureMesh::SaveTransform(file); }   // 16: 0059F710
+    void SaveTransform(mfc::CFileVirtuals* file) override { Figure()->CFigureMesh::SaveTransform(file); }   // 16: 0059F710
     virtual void CopyFigure(const CFigureMesh* other) { Figure()->CFigureMesh::CopyFigure(other); }   // 18: 0059F0F0
     virtual void LoadFromMemory(char** cursor, float s, float t, float u) {                          // 19: 005A2480
         Figure()->CFigureMesh::LoadFromMemory(cursor, s, t, u);
@@ -255,7 +255,7 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) { Load
 void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldShared(cursor, s, t, u); }
 
 void CPlainFigureMesh::Destroy() { ClearMesh(); }
-void CPlainFigureMesh::LoadTransform(void* file) { LoadFromFile(static_cast<mfc::CFileVirtuals*>(file)); }
+void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) { LoadFromFile(file); }
 void CPlainFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
 void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigImpl(cursor, s, t, u); }
 void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldImpl(cursor, s, t, u); }

@@ -37,7 +37,7 @@ struct ByDepth {
 };
 using ScreenSort = stlp::Sort<ScreenEntry, ByDepth>;
 
-ByDepth DepthOrder(const float* plane, void* manager) { return ByDepth{{const_cast<float*>(plane), manager}}; }
+ByDepth DepthOrder(const float* plane, CBaseManager* manager) { return ByDepth{{const_cast<float*>(plane), manager}}; }
 
 struct IntLess {
     bool operator()(int a, int b) const { return a < b; }
@@ -114,14 +114,14 @@ void __fastcall ReplicatedFinalSort(net::Replicated* first, net::Replicated* las
     ReplicatedSort::FinalInsertionSort(first, last, ByObjectAddress());
 }
 
-void __fastcall ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void*, int depth, const float* plane, void* manager) {
+void __fastcall ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void*, int depth, const float* plane, CBaseManager* manager) {
     ScreenSort::IntroLoop(first, last, depth, DepthOrder(plane, manager));
 }
-void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, void* manager) {
+void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CBaseManager* manager) {
     ScreenSort::InsertionSort(first, last, DepthOrder(plane, manager));
 }
 void __fastcall ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void*, const float* plane,
-                                             void* manager) {
+                                             CBaseManager* manager) {
     ScreenSort::UnguardedInsertionSort(first, last, DepthOrder(plane, manager));
 }
 

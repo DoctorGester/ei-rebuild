@@ -859,7 +859,7 @@ public:
     // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
     // (0/1 for the spell constructor, 4/5 for the item one).
-    void Build(void* bought, void* sold, char spells, char flag);
+    void Build(UiItemList* bought, UiItemList* sold, char spells, char flag);
     // 00627920 (slot 25, RET 0xC; ui_hero_panels.cpp). The item under (x, y) with its help topic:
     // regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12); null elsewhere, past a
@@ -884,7 +884,7 @@ public:
     static void** Vtable();
     static void** InputVtable();
     // 006279E0. Builds the grid for the item list `items`.
-    void Build(void* items);
+    void Build(UiItemList* items);
     // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
     // and to 1 over the grid; each item's model in its cell (depth 2^(3 - row) * 6), its
     // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the

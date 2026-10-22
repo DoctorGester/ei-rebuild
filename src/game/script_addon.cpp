@@ -192,7 +192,7 @@ void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
         int grow = a.growBy != 0 ? a.growBy : 4;
         int newMax = a.size + grow;
         if (newMax < n) newMax = n;
-        T* data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(newMax) * 4));
+        T* data = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
         std::memcpy(data, a.data, static_cast<unsigned>(a.size) * 4);
         gamecrt::operator_delete(a.data);
         a.data = data;

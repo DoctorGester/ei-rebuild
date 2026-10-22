@@ -51,3 +51,11 @@ A gap became a name when src reads or writes it through the class, else `unused_
   006B6040 stay forwarders (Rebirth patches them).
 - The client's visible list is a `stlp::list<CEngineObject*>`; BuildUnitSkins takes the typed figured and dressed record vectors.
 - Unit skins: `SkinRequest::layers` is a `lib::AlignedArray<std::uint8_t>` (sizeof 0x28 kept).
+
+## C21 batch 23 (2026-10-22)
+
+- SyncPlayer's four static arrays are resized with `AlignedArray::SetSize` (the inlined copy matched it step for step); the player
+  state's Send* functions take each element as the pass's class through `NextAs<CMapObject>` / `NextAs<CEffect>` (player_sync.cpp:
+  the same arrays carry map objects, then timed objects).
+- `CWorldServer::ReadAIGraph` writes a `CStream*`; the picking sort's `DepthLess::manager` is a `CBaseManager*`; the selection
+  markers look their objects up with `manager40_->FindObjectAs<CMapObject>` (the 00403F40 forwarder is gone).
