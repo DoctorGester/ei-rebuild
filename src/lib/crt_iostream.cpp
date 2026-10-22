@@ -7,6 +7,7 @@
 // compared each inserter with the original, verify_crt_streams.cpp the rest (until S21d).
 #include "crt_iostream.h"
 
+#include "compiled_vtable.h"
 #include "crt.h"
 #include "ei/hook.h"
 #include "gameapi.h"
@@ -14,17 +15,39 @@
 
 #include <cstring>
 
+extern "C" int __cdecl _purecall();
+
 namespace libcrt {
 
 namespace {
 
 constexpr int kEof = -1;
 
-// The exe's vtables the constructors and destructors write: streambuf's, ios's, and ostream's for its ios;
-// ostream's virtual base table (the ios 8 bytes in).
-const void* StreambufVtable() { return ei::GamePointer<const void>(0x007482AC); }
-const void* IosVtable() { return ei::GamePointer<const void>(0x007482E8); }
-const void* OstreamIosVtable() { return ei::GamePointer<const void>(0x00748280); }
+// The compiled tables (C19) the constructors and destructors write in place of game.exe's: streambuf's (007482AC: 0
+// the deleting destructor, 1-6 and 9-10 the base class's bodies, 7 overflow and 8 underflow the compiler CRT's
+// `_purecall`), ios's (007482E8) and ostream's for its ios (00748280), one slot each (the deleting destructor); and
+// game.exe's ostream virtual base table (the ios 8 bytes in), which is data.
+struct StreambufTable final : ei::CompiledDeleter<StreambufTable, &Streambuf::DeletingDestruct> {
+    virtual int Sync() { return This()->DefaultSync(); }                                                   // 1
+    virtual Streambuf* Setbuf(char* buffer, int length) { return This()->DefaultSetbuf(buffer, length); }  // 2
+    virtual long Seekoff(long offset, int direction, int mode) { return This()->DefaultSeekoff(offset, direction, mode); }   // 3
+    virtual long Seekpos(long position, int mode) { return This()->DefaultSeekpos(position, mode); }       // 4
+    virtual int Xsputn(const char* text, int count) { return This()->DefaultXsputn(text, count); }         // 5
+    virtual int Xsgetn(char* text, int count) { return This()->DefaultXsgetn(text, count); }               // 6
+    virtual int Overflow(int) { return _purecall(); }                                                      // 7
+    virtual int Underflow() { return _purecall(); }                                                        // 8
+    virtual int Pbackfail(int c) { return This()->DefaultPbackfail(c); }                                   // 9
+    virtual int Doallocate() { return This()->DefaultDoallocate(); }                                       // 10
+
+private:
+    Streambuf* This() { return reinterpret_cast<Streambuf*>(this); }
+};
+struct IosTable final : ei::CompiledDeleter<IosTable, &Ios::DeletingDestruct> {};
+struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::DeleteOstream> {};
+
+const void* StreambufVtable() { return StreambufTable::Vtable(); }
+const void* IosVtable() { return IosTable::Vtable(); }
+const void* OstreamIosVtable() { return OstreamIosTable::Vtable(); }
 const int* OstreamVirtualBases() { return ei::GamePointer<const int>(0x00748284); }
 
 // The lock all streams share (x_lockc) and how many ios are alive (initialised with the first, deleted

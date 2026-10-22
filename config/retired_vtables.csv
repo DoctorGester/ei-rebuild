@@ -516,3 +516,6 @@ vtable,slots,class,file,note
 007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
 00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
+00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
+007482AC,11,StreambufTable,src/lib/crt_iostream.cpp,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)
+007482E8,1,IosTable,src/lib/crt_iostream.cpp,ios
