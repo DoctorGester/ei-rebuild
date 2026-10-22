@@ -310,7 +310,7 @@ constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {
-        auto* start = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        auto* start = stlp::allocate_as<stlp::string>(static_cast<std::size_t>(count));
         pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
             const char* text = ((*names)[i]).GetString();

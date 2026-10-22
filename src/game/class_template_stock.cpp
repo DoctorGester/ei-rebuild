@@ -22,7 +22,7 @@ struct ClassTemplateClass final : ei::CompiledDeleter<ClassTemplateClass, &Class
 
 // list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
-    auto* head = static_cast<StockListNode*>(stlp::allocate(sizeof(StockListNode)));
+    auto* head = stlp::allocate_as<StockListNode>();
     list->head = head;
     head->next = head;
     head->prev = head;

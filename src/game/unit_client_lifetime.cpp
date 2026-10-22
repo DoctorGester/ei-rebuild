@@ -105,7 +105,7 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     list58.head = nullptr;
     list58.blocks = nullptr;
     list58.blockSize = kList58BlockSize;
-    auto* header = static_cast<ClientSpeechNode*>(stlp::allocate(sizeof(ClientSpeechNode)));
+    auto* header = stlp::allocate_as<ClientSpeechNode>();
     speech = header;
     header->next = header;
     header->prev = header;

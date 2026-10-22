@@ -65,7 +65,7 @@ public:
     void InitializeMap(std::size_t n) {
         const std::size_t nodes = n / kPerNode + 1;
         mapSize_ = nodes + 2 > 8 ? nodes + 2 : 8;
-        map_ = static_cast<T**>(allocate(mapSize_ * sizeof(T*)));
+        map_ = allocate_as<T*>(mapSize_);
         T** nstart = map_ + (mapSize_ - nodes) / 2;
         T** nfinish = nstart + nodes;
         CreateNodes(nstart, nfinish);
@@ -146,7 +146,7 @@ public:
             std::memmove(newStart, start_.node, oldNodes * sizeof(T*));
         } else {
             const std::size_t newSize = mapSize_ + (mapSize_ < add ? add : mapSize_) + 2;
-            T** newMap = static_cast<T**>(allocate(newSize * sizeof(T*)));
+            T** newMap = allocate_as<T*>(newSize);
             newStart = newMap + (newSize - newNodes) / 2 + (atFront ? add : 0);
             std::memcpy(newStart, start_.node, oldNodes * sizeof(T*));
             if (map_) deallocate(map_, mapSize_ * sizeof(T*));

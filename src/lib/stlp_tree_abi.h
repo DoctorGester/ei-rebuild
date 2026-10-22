@@ -53,7 +53,7 @@ struct TreeAbi : Map {
     // map() (e.g. 00437D70): a header from the pool, no elements, empty. The compare byte is the
     // original's uninitialised less<> temporary; ours writes 0.
     static Map* __fastcall Construct(Map* self) {
-        self->Header() = static_cast<Node*>(allocate(sizeof(Node)));
+        self->Header() = allocate_as<Node>();
         self->Count() = 0;
         self->Compare() = 0;
         self->EmptyInitialize();
@@ -61,7 +61,7 @@ struct TreeAbi : Map {
     }
     // _Rb_tree(const Compare&, const allocator&) (e.g. 004393C0; RET 8).
     Map* ConstructWith(const std::uint8_t* compare, const void* /*alloc*/) {
-        this->Header() = static_cast<Node*>(allocate(sizeof(Node)));
+        this->Header() = allocate_as<Node>();
         this->Count() = 0;
         this->Compare() = *compare;
         Map::EmptyInitialize();
@@ -69,7 +69,7 @@ struct TreeAbi : Map {
     }
     // _Rb_tree_base(const allocator&) (e.g. 0043A590; RET 4): the header only.
     Map* ConstructBase(const void* /*alloc*/) {
-        this->Header() = static_cast<Node*>(allocate(sizeof(Node)));
+        this->Header() = allocate_as<Node>();
         return this;
     }
     // The copy constructor (e.g. 00437AA0; RET 4).
@@ -93,7 +93,7 @@ struct TreeAbi : Map {
     }
     // _STLP_alloc_proxy<Node>::allocate(n, hint) (e.g. 00619770; RET 8): n nodes' bytes from the
     // pool (operator new above 128), null for none.
-    Node* AllocateNodes(std::size_t n, const void* /*hint*/) { return static_cast<Node*>(allocate(n * sizeof(Node))); }
+    Node* AllocateNodes(std::size_t n, const void* /*hint*/) { return allocate_as<Node>(n); }
     // The same as a static member, p in ECX and n in EDX (e.g. 0043B280).
     static void __fastcall DeallocateNodesFast(Node* p, std::size_t n) {
         if (p) deallocate(p, n * sizeof(Node));

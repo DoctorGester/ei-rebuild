@@ -37,7 +37,7 @@ void ResizeCounts(UnitModelRecord* model, std::size_t count, std::uint32_t value
         return;
     }
     std::size_t length = size + (size > added ? size : added);
-    auto* fresh = static_cast<std::uint32_t*>(stlp::allocate(length * sizeof(std::uint32_t)));
+    auto* fresh = stlp::allocate_as<std::uint32_t>(length);
     if (size) std::memcpy(fresh, begin, size * sizeof(std::uint32_t));
     for (std::size_t i = 0; i < added; ++i) fresh[size + i] = value;
     if (begin) stlp::deallocate(begin, static_cast<std::size_t>(endOfStorage - begin) * sizeof(std::uint32_t));

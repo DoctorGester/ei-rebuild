@@ -94,7 +94,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
     // list::push_front of the mover (node pool 0x30; its padding bytes are left as allocated).
-    auto* node = static_cast<BriefingMover*>(stlp::allocate(sizeof(BriefingMover)));
+    auto* node = stlp::allocate_as<BriefingMover>();
     node->target.x = target.x;
     node->target.y = target.y;
     node->target.z = target.z;
@@ -206,7 +206,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     item->localRotation_ = turn;
 
     // list::push_front of {name, item, back, frame} (node pool 0x18).
-    auto* node = static_cast<BriefingShownItem*>(stlp::allocate(sizeof(BriefingShownItem)));
+    auto* node = stlp::allocate_as<BriefingShownItem>();
     new (&node->name) mfc::CString(name);
     node->item = item;
     node->back = back;

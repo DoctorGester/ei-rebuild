@@ -36,14 +36,14 @@ string* StringAbi::ConstructFromText(const char* text, const void*) {
 }
 
 string* __fastcall StringAbi::ConstructDefault(string* self) {
-    self->start_ = self->finish_ = static_cast<char*>(allocate(8));
+    self->start_ = self->finish_ = allocate_as<char>(8);
     self->eos_ = self->start_ + 8;
     *self->finish_ = 0;
     return self;
 }
 
 string* StringAbi::ConstructWithCapacity(const void*, std::size_t n) {
-    start_ = finish_ = n ? static_cast<char*>(allocate(n)) : nullptr;
+    start_ = finish_ = n ? allocate_as<char>(n) : nullptr;
     eos_ = start_ + n;
     return this;
 }
@@ -100,7 +100,7 @@ string* StringAbi::Substr(string* out, std::size_t pos, std::size_t n) const {
 void StringAbi::Reserve(std::size_t n) {
     std::size_t length = size();
     std::size_t capacity = std::max(length, n) + 1;
-    char* fresh = static_cast<char*>(allocate(capacity));
+    char* fresh = allocate_as<char>(capacity);
     std::memcpy(fresh, start_, length);
     fresh[length] = 0;
     Release();
@@ -142,7 +142,7 @@ using stlp::StringAbi;
 namespace stlp {
 
 void StringAbi::AllocateBlock(std::size_t n) {
-    start_ = finish_ = static_cast<char*>(allocate(n));
+    start_ = finish_ = allocate_as<char>(n);
     eos_ = start_ + n;
 }
 

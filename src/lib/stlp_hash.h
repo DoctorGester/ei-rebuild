@@ -483,7 +483,7 @@ public:
 
     // _M_new_node(obj) (e.g. 00407420): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Value& obj) {
-        Node* n = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* n = allocate_as<Node>();
         n->next = nullptr;
         Traits::Construct(&n->value, obj);
         return n;

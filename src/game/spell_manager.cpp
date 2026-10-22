@@ -159,7 +159,7 @@ CSpellContainer* CSpellContainer::Construct() {
     ClearFields();
     modifiers_.Construct();
     // The code string: empty, with room for 8 bytes (00424E40).
-    codes_ = codesEnd_ = static_cast<char*>(stlp::allocate(8));
+    codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
     Spell()->Construct();

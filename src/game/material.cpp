@@ -106,7 +106,7 @@ CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table
     std::size_t bucket = key % table.BucketCount();
     for (Node* n = table.Bucket(bucket); n; n = n->next)
         if (n->key == key) return n;
-    auto* node = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    auto* node = stlp::allocate_as<Node>();
     node->next = nullptr;
     node->key = key;
     std::uint32_t words[sizeof(MaterialColors) / 4];

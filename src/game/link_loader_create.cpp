@@ -71,7 +71,7 @@ void* CLinkFigureLoader::BaseVtable() { return LinkFigureLoaderBaseClass::Vtable
 CLinkFigureLoader* CLinkFigureLoader::Construct(CTextureDevice* renderer, const stlp::string* folder) {
     refCount_ = 0;
     ei::SetVtable(this, BaseVtable());
-    archives_ = static_cast<LinkArchiveNode*>(stlp::allocate(sizeof(LinkArchiveNode)));
+    archives_ = stlp::allocate_as<LinkArchiveNode>();
     archives_->next = archives_;
     archives_->prev = archives_;
     figureSets_.InitBuckets(kFigureSetBuckets);

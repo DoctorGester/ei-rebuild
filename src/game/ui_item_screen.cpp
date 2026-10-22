@@ -44,7 +44,7 @@ std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }
 } // namespace
 
 void ItemObjectCache::Construct(std::uint8_t compare) {
-    map.Header() = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    map.Header() = stlp::allocate_as<Node>();
     map.Count() = 0;
     map.Compare() = compare;
     map.EmptyInitialize();
