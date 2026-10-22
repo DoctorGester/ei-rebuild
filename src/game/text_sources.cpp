@@ -100,7 +100,7 @@ BOOL TextSources::Add(const char* path, BOOL writable) {
         if (SameName(node, path)) return 1;
     }
     CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
-    CMappedResource* resource = memory ? memory->Construct() : nullptr;
+    CMappedResource* resource = memory ? new (memory) CMappedResource() : nullptr;
     {
         TextSource value{stlp::string(path), resource};
         Node* inserted;

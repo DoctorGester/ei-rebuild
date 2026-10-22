@@ -298,7 +298,7 @@ EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 // 005F6D50. Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
 // the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.
 CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
-    archive_->Construct();
+    new (archive_.Get()) CMappedResource();
     lines_.Construct();   // the header from the node pool, linked to itself
     name_ = name;
     player_.Construct();

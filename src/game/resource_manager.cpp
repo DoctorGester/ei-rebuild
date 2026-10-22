@@ -53,9 +53,9 @@ void CResourceManager::Destroy() {
 // --- Archives -----------------------------------------------------------------------------------
 
 namespace {
-// CMappedResource::Construct (00671280) and CMMIOResource::Construct (006721D0) on the archive's memory.
-CMappedResource* __fastcall ConstructMappedResource(void* memory) { return static_cast<CMappedResource*>(memory)->Construct(); }
-CMappedResource* __fastcall ConstructMmioResource(void* memory) { return static_cast<CMMIOResource*>(memory)->Construct(); }
+// CMappedResource's constructor (00671280) and CMMIOResource's (006721D0) on the archive's memory.
+CMappedResource* __fastcall ConstructMappedResource(void* memory) { return new (memory) CMappedResource(); }
+CMappedResource* __fastcall ConstructMmioResource(void* memory) { return new (memory) CMMIOResource(); }
 } // namespace
 
 BOOL CResourceManager::AddArchive(const char* path) {

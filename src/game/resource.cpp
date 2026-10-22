@@ -43,8 +43,6 @@ CMappedResource::CMappedResource() {
     writable_ = 0;
 }
 
-CMappedResource* CMappedResource::Construct() { return new (this) CMappedResource(); }
-
 CMappedResource::~CMappedResource() {
     // Rebirth's ResOverride (006714A2): addon forgets the archive first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
@@ -67,12 +65,6 @@ CMappedResource::~CMappedResource() {
 }
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
-
-CMappedResource* CMappedResource::DeletingDestroy(unsigned flags) {
-    this->CMappedResource::~CMappedResource();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
 
 // The slots whose bodies are registered by member pointer (the Impl members), and slot 4.
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
@@ -252,9 +244,9 @@ void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource:
 } // namespace
 
 EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
-EI_REWRITTEN(0x00671280, CMappedResource::Construct);
+EI_REWRITTEN_SPECIAL(0x00671280, CMappedResource::CMappedResource);
 EI_REWRITTEN(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
-EI_REWRITTEN(0x006713A0, CMappedResource::DeletingDestroy);
+EI_REWRITTEN_SPECIAL(0x006713A0, CMappedResource::~CMappedResource);   // deleting
 EI_REWRITTEN(0x00671730, CMappedResource::OpenResourceImpl);   // patched by Rebirth: installs in the vanilla launch only
 EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemoryImpl);
 EI_REWRITTEN(0x00671AC0, CloseResourceHook);

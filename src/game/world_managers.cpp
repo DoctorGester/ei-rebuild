@@ -74,11 +74,6 @@ constexpr const char* kItemsFolderName = "items";
 constexpr int kPlayerManagerId = 0x2E;
 constexpr int kEffectManagerId = 0x32;
 constexpr int kItemManagerId = 0x2F;
-
-template <typename T> T* DeleteIf(T* self, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
 } // namespace
 
 CPlayerManager::CPlayerManager() {}
@@ -86,15 +81,10 @@ CPlayerManager::~CPlayerManager() {}
 const char* CPlayerManager::GetClassName() { return kPlayerManagerName; }
 int CPlayerManager::GetClassId() { return kPlayerManagerId; }
 
-void __fastcall PlayerManagerDestruct(CPlayerManager* self) { self->CPlayerManager::~CPlayerManager(); }   // 0055F350
-CPlayerManager* CPlayerManager::DeleteScalar(unsigned flags) {   // 0055F330
-    this->CPlayerManager::~CPlayerManager();
-    return DeleteIf(this, flags);
-}
 EI_REWRITTEN(0x0055F310, CPlayerManager::GetClassName);
 EI_REWRITTEN(0x0055F320, CPlayerManager::GetClassId);
-EI_REWRITTEN(0x0055F350, PlayerManagerDestruct);
-EI_REWRITTEN(0x0055F330, CPlayerManager::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x0055F350, CPlayerManager::~CPlayerManager);
+EI_REWRITTEN_SPECIAL(0x0055F330, CPlayerManager::~CPlayerManager);   // deleting
 
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
@@ -102,15 +92,10 @@ int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::GetClassName() { return kEffectManagerName; }
 int CEffectManager::GetClassId() { return kEffectManagerId; }
 
-void __fastcall EffectManagerDestruct(CEffectManager* self) { self->CEffectManager::~CEffectManager(); }   // 0055F3A0
-CBaseManager* CEffectManager::DeleteScalar(unsigned flags) {   // 0055F380
-    this->CEffectManager::~CEffectManager();
-    return DeleteIf(this, flags);
-}
 EI_REWRITTEN(0x0055F360, CEffectManager::GetClassName);
 EI_REWRITTEN(0x0055F370, CEffectManager::GetClassId);
-EI_REWRITTEN(0x0055F3A0, EffectManagerDestruct);
-EI_REWRITTEN(0x0055F380, CEffectManager::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x0055F3A0, CEffectManager::~CEffectManager);
+EI_REWRITTEN_SPECIAL(0x0055F380, CEffectManager::~CEffectManager);   // deleting
 // 0067E150 (slot 2; A-H24).
 EI_REWRITTEN(0x0067E150, CEffectManager::Create);
 
@@ -120,12 +105,7 @@ const char* CItemManager::GetClassName() { return kItemManagerName; }
 int CItemManager::GetClassId() { return kItemManagerId; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }
 
-void __fastcall ItemManagerDestruct(CItemManager* self) { self->CItemManager::~CItemManager(); }   // 0055F400
-CItemManager* CItemManager::DeleteScalar(unsigned flags) {   // 0055F3E0
-    this->CItemManager::~CItemManager();
-    return DeleteIf(this, flags);
-}
 EI_REWRITTEN(0x0055F3C0, CItemManager::GetClassName);
 EI_REWRITTEN(0x0055F3D0, CItemManager::GetClassId);
-EI_REWRITTEN(0x0055F400, ItemManagerDestruct);
-EI_REWRITTEN(0x0055F3E0, CItemManager::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x0055F400, CItemManager::~CItemManager);
+EI_REWRITTEN_SPECIAL(0x0055F3E0, CItemManager::~CItemManager);   // deleting

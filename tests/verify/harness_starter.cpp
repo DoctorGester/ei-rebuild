@@ -155,14 +155,14 @@ void Install(const char* savesDir) {
             music, g_addonPath[0] ? g_addonPath : "(snapshot)");
     }
 }
-// CMappedResource's Construct (00671280), OpenResourceImpl (00671730) and Destroy (006714A0): ours, or in a
+// CMappedResource's constructor (00671280), OpenResourceImpl (00671730) and Destroy (006714A0): ours, or in a
 // --no-hooks run the game's own code.
 __declspec(naked) CMappedResource* __fastcall OriginalMappedResourceConstruct(void* /*memory*/) EI_ORIGINAL(0x00671280)
 __declspec(naked) int __fastcall OriginalMappedResourceOpen(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
 __declspec(naked) void __fastcall OriginalMappedResourceDestroy(CMappedResource*) EI_ORIGINAL(0x006714A0)
 CMappedResource* HarnessMappedResourceConstruct(void* memory) {
-    return ei::Standalone() ? static_cast<CMappedResource*>(memory)->Construct() : OriginalMappedResourceConstruct(memory);
+    return ei::Standalone() ? new (memory) CMappedResource() : OriginalMappedResourceConstruct(memory);
 }
 std::string ModFileStep(const std::string& argument) {
     char archive[MAX_PATH] = {}, name[MAX_PATH] = {};

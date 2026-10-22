@@ -205,7 +205,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
 
     lib::InPlace<CMappedResource> storage;
     CMappedResource* archive = storage.Get();
-    archive->Construct();
+    new (archive) CMappedResource();
     bool failed;
     {
         mfc::CString folder(TheTextFolder());

@@ -21,7 +21,7 @@ namespace dbfile {
 // The archive file, built in place: its constructor (00671280) directly, its open and its
 // destructor body through their addresses (00671730 / 006714A0, which Rebirth patches).
 struct LocalResource {
-    LocalResource() { Get()->Construct(); }
+    LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }
     CMappedResource* Get() { return storage.Get(); }
     int Open(const char* path) { return Get()->CMappedResource::OpenResourceImpl(path, 0); }

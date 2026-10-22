@@ -83,12 +83,6 @@ public:
     // The deleting destructors free into the game's heap (resource_stream.cpp).
     static void operator delete(void* block);
 
-    // The registrations (C20 retires them): 00674790 the constructor in place (returns this),
-    // 00674810 the destructor, 006747C0 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CResourceBase* Construct();
-    void Destruct();
-    CResourceBase* DeletingDestruct(unsigned flags);
     void FreeAccelTable();                          // 00674A90
 
     // 00674850 (resource.cpp). Index of the entry named `name` (case-insensitive), or -1.
@@ -128,12 +122,9 @@ public:
     bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     virtual void FreeAllFiles();                                      // 7: 00672040
 
-    // The registrations of the constructor and destructors (C20 retires them): 00671280 the
-    // constructor in place (returns this), 006714A0 the destructor, 006713A0 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    CMappedResource* Construct();
+    // 006714A0, the destructor's body, called qualified where the original reaches it by address (Rebirth patches
+    // it): the in-place archives of the loaders and screens.
     void Destroy();
-    CMappedResource* DeletingDestroy(unsigned flags);
 
     // 00674AC0 (resource_stream.cpp). Fills an MFC CStringArray with the names of the entries that
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
@@ -159,12 +150,6 @@ public:
     // 006722F0. The mapping closed (CloseResource inlined, then the CMappedFile destructor's),
     // then CMappedResource's.
     ~CMMIOResource() override;
-    // The registrations (C20 retires them): 006721D0 the constructor in place (returns this),
-    // 006722F0 the destructor, 006722D0 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CMMIOResource* Construct();
-    void Destroy();
-    CMMIOResource* DeletingDestroy(unsigned flags);
 
     BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
     BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)

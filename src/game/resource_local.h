@@ -13,7 +13,7 @@
 // The archive, built in place: its constructor (00671280) directly, its destructor body through
 // its address (006714A0, which Rebirth patches).
 struct LocalResource {
-    LocalResource() { Get()->Construct(); }
+    LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }
     LocalResource(const LocalResource&) = delete;
     LocalResource& operator=(const LocalResource&) = delete;

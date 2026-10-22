@@ -189,9 +189,7 @@ public:
     CEffectManager();
     // 0055F3A0. CBaseManager's destructor.
     ~CEffectManager() override;
-    // 0055F380 (slot 0's registration): the destructor, then operator delete when bit 0 of
-    // `flags` is set. Returns this.
-    CBaseManager* DeleteScalar(unsigned flags);
+    // 0055F380: the deleting destructor (slot 0).
     // 2: 0067E150. CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's Destroy).
     int Create() override;
     const char* GetClassName() override;     // 11: 0055F360 "CEffectManager"

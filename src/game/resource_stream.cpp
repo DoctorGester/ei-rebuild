@@ -54,16 +54,6 @@ CResourceBase::~CResourceBase() {
 
 void CResourceBase::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-CResourceBase* CResourceBase::Construct() { return new (this) CResourceBase(); }
-
-void CResourceBase::Destruct() { this->CResourceBase::~CResourceBase(); }
-
-CResourceBase* CResourceBase::DeletingDestruct(unsigned flags) {
-    this->CResourceBase::~CResourceBase();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
 void CResourceBase::FreeAccelTable() {
     if (accelTable_ != nullptr) {
         gamecrt::operator_delete(accelTable_);
@@ -82,16 +72,6 @@ CResourceStream::CResourceStream() {
 }
 
 CResourceStream::~CResourceStream() { Close(); }
-
-CResourceStream* CResourceStream::Construct() { return new (this) CResourceStream(); }
-
-void CResourceStream::Destruct() { this->CResourceStream::~CResourceStream(); }
-
-CResourceStream* CResourceStream::DeletingDestruct(unsigned flags) {
-    this->CResourceStream::~CResourceStream();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
 
 void CResourceStream::Close() {
     if (offset_ != 0) {
@@ -235,8 +215,6 @@ void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char*
 // The mapped file is constructed as a member (CMappedFile's constructor, 006756B0).
 CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
 
-CMMIOResource* CMMIOResource::Construct() { return new (this) CMMIOResource(); }
-
 CMMIOResource::~CMMIOResource() {
     // CloseResource, inlined (00675720 is CMappedFile::Close's copy).
     file_.Close();
@@ -248,24 +226,16 @@ CMMIOResource::~CMMIOResource() {
     file_.Close();
 }
 
-void CMMIOResource::Destroy() { this->CMMIOResource::~CMMIOResource(); }
-
-CMMIOResource* CMMIOResource::DeletingDestroy(unsigned flags) {
-    this->CMMIOResource::~CMMIOResource();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
 // --- Hooks ---------------------------------------------------------------------------------------
 
-EI_REWRITTEN(0x00674790, CResourceBase::Construct);
-EI_REWRITTEN(0x00674810, CResourceBase::Destruct);
-EI_REWRITTEN(0x006747C0, CResourceBase::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00674790, CResourceBase::CResourceBase);
+EI_REWRITTEN_SPECIAL(0x00674810, CResourceBase::~CResourceBase);
+EI_REWRITTEN_SPECIAL(0x006747C0, CResourceBase::~CResourceBase);   // deleting
 EI_REWRITTEN(0x00674A90, CResourceBase::FreeAccelTable);
 
-EI_REWRITTEN(0x00674280, CResourceStream::Construct);
-EI_REWRITTEN(0x006742C0, CResourceStream::Destruct);
-EI_REWRITTEN(0x006742A0, CResourceStream::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00674280, CResourceStream::CResourceStream);
+EI_REWRITTEN_SPECIAL(0x006742C0, CResourceStream::~CResourceStream);
+EI_REWRITTEN_SPECIAL(0x006742A0, CResourceStream::~CResourceStream);   // deleting
 EI_REWRITTEN(0x00674430, CResourceStream::Close);
 EI_REWRITTEN(0x006744C0, CResourceStream::OpenFile);
 EI_REWRITTEN(0x006746B0, CResourceStream::Read);
@@ -274,6 +244,6 @@ EI_REWRITTEN(0x006746F0, CResourceStream::Seek);
 EI_REWRITTEN(0x00674CE0, WildcardMatch);
 EI_REWRITTEN(0x00674AC0, CMappedResource::ListFiles);
 
-EI_REWRITTEN(0x006721D0, CMMIOResource::Construct);
-EI_REWRITTEN(0x006722F0, CMMIOResource::Destroy);
-EI_REWRITTEN(0x006722D0, CMMIOResource::DeletingDestroy);
+EI_REWRITTEN_SPECIAL(0x006721D0, CMMIOResource::CMMIOResource);
+EI_REWRITTEN_SPECIAL(0x006722F0, CMMIOResource::~CMMIOResource);
+EI_REWRITTEN_SPECIAL(0x006722D0, CMMIOResource::~CMMIOResource);   // deleting

@@ -482,9 +482,7 @@ struct CItemManager : CResourceManager {
     const char* GetClassName() override;     // 11: 0055F3C0 "CItemManager"
     int GetClassId() override;               // 12: 0055F3D0 (0x2F)
     const char* GetFolderName() override;    // 25: 0055F3B0 "items"
-    // 0055F3E0 (slot 0's registration): the destructor, then operator delete when bit 0 of
-    // `flags` is set. Returns this.
-    CItemManager* DeleteScalar(unsigned flags);
+    // 0055F3E0: the deleting destructor (slot 0).
 
     // 006AC780 (slot 2; item_lifetime.cpp, A-H25). CBaseManager::Create's result as 0 / 1 (the
     // original also copies the text folder's name into a temporary it does not use).

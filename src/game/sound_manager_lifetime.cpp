@@ -65,7 +65,7 @@ EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 int CSoundManager::AddWaveSource(const char* path) {
     if (enabled == 0) return 1;
     CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
-    CMappedResource* source = memory != nullptr ? memory->Construct() : nullptr;
+    CMappedResource* source = memory != nullptr ? new (memory) CMappedResource() : nullptr;
     if (source->OpenResource(path, 0) == 0) {
         delete source;
         return 0;

@@ -119,7 +119,7 @@ struct MapDescription {
 // A resource archive as a local: constructed in place (00671280), destroyed through the destructor
 // body's address.
 struct Archive {
-    Archive() { Get()->Construct(); }
+    Archive() { new (Get()) CMappedResource(); }
     ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }

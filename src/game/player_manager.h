@@ -19,9 +19,7 @@ public:
     CPlayerManager();
     // 0055F350. CBaseManager's destructor.
     ~CPlayerManager() override;
-    // 0055F330 (slot 0's registration): the destructor, then operator delete when bit 0 of
-    // `flags` is set. Returns this.
-    CPlayerManager* DeleteScalar(unsigned flags);
+    // 0055F330: the deleting destructor (slot 0).
     int Create() override;                         // 2: CreatePlayers
     const char* GetClassName() override;           // 11: 0055F310 "CPlayerManager"
     int GetClassId() override;                     // 12: 0055F320 (0x2E)

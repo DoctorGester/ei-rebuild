@@ -255,7 +255,7 @@ void LoadModArchives() {
         for (const std::string& path : paths) {
             void* memory = ::operator new(sizeof(CMappedResource));
             std::memset(memory, 0, sizeof(CMappedResource));
-            CMappedResource* res = static_cast<CMappedResource*>(memory)->Construct();
+            CMappedResource* res = new (memory) CMappedResource();
             tables.modArchives[key].push_back(res);
             res->CMappedResource::OpenResourceImpl(path.c_str(), 0);
         }

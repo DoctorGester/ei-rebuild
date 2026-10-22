@@ -21,11 +21,6 @@ struct CResourceStream : CResourceBase {
     std::int32_t size_;         // +0x2C size of the open entry (only the unused 006745C0 sets it)
     void* file_;                // +0x30 HMMIO of a loose file
 
-    // The registrations (C20 retires them): the constructor in place (returns this), the
-    // destructor, the destructor then operator delete when bit 0 of `flags` is set (returns this).
-    CResourceStream* Construct();
-    void Destruct();
-    CResourceStream* DeletingDestruct(unsigned flags);
     void Close();                                   // 00674430: closes the file and the archive
     // 006744C0. Opens `name`: a loose file when one is readable, else the archive entry. Stores
     // the size when `size` is not null. Returns 1 on success.

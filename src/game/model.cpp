@@ -182,7 +182,7 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     if (&node->name != path && path->size() != 0) node->name.Append(path->data(), path->data() + path->size());
 
     CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
-    CMappedResource* resource = memory ? memory->Construct() : nullptr;
+    CMappedResource* resource = memory ? new (memory) CMMIOResource() : nullptr;
     node->resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 

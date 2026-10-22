@@ -127,7 +127,6 @@ EI_REWRITTEN(0x00458DA0, OptionsResetDefaults);
 
 // 00458730: the options object's destructor (at exit, registered by the static initialiser
 // 00458700): its eighteen CStrings, the last first (the members' destruction order).
-void __fastcall OptionsDestruct(GameOptions* self) { self->~GameOptions(); }
-EI_REWRITTEN(0x00458730, OptionsDestruct);
+EI_REWRITTEN_SPECIAL(0x00458730, GameOptions::~GameOptions);
 
 } // namespace options
