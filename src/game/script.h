@@ -24,6 +24,7 @@
 using BOOL = int;
 
 class CUnit;   // unit.h
+class CUnitServer;   // combat.h
 class CEffectPointLight;   // world_effect.h
 class CEffectParticle;     // world_effect.h
 class CEffectSound;        // world_effect.h
@@ -64,8 +65,9 @@ struct ScriptObjectRef {
     CEngineObject* Construct(const ScriptObjectRef& other);
     // 004B2530. The object if it is a unit (class id 0x50), otherwise null.
     CUnit* AsUnit() const;
-    // 004B2550. The unit's perception data (+0x240; lists what the unit sees), null for non-units.
-    void* GetUnitPerception() const;
+    // 004B2550. The unit's server controller (+0x240, the script code's perception object: lists
+    // what the unit sees), null for non-units.
+    CUnitServer* GetUnitPerception() const;
     // 004B2570. Drops the reference if the object was deleted from the world.
     void ReleaseIfDeleted();
     // 004B2590. Reads an object id (-1 = none) and looks the object up in the world.

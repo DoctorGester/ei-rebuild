@@ -2,6 +2,7 @@
 #include "script.h"
 #include "game_arrays.h"
 #include "unit.h"
+#include "combat.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -93,9 +94,9 @@ CUnit* ScriptObjectRef::AsUnit() const {
 }
 EI_REWRITTEN(0x004B2530, ScriptObjectRef::AsUnit);
 
-void* ScriptObjectRef::GetUnitPerception() const {
+CUnitServer* ScriptObjectRef::GetUnitPerception() const {
     CUnit* unit = UnitOrNull(object);
-    return unit ? unit->controller : nullptr;
+    return unit ? unit->ServerController() : nullptr;
 }
 EI_REWRITTEN(0x004B2550, ScriptObjectRef::GetUnitPerception);
 
