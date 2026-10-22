@@ -379,7 +379,7 @@ and, transitively, the target of every pointer cell inside a root's object or a 
 import table, in .data's zero-filled tail (from 0079C000: zero fill is exact), in a named range or in a kept range;
 otherwise its object, from the root to the next start (another root, a cell's target, a named or kept range, an
 absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
-may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 0
+may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 86 after C18s, 0
 failing. The first run (before C18q) failed 14 that no suite reaches: out_of_range's throw information (its catchable
 types, the array, the type descriptors' names: our frame handler reads them for stlp_string.cpp's throw; four kept
 rows now), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
