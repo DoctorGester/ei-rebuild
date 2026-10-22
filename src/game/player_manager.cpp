@@ -18,17 +18,11 @@ namespace {
 constexpr int kPlayerType = 0x300A;      // a CPlayer
 constexpr int kConnectionType = 0x49;    // the side's player connection (CPlayerServer / CPlayerClient)
 
-// The player's connection: the server side of it (only the server's manager sends to all).
-CPlayerServer* Server(CEngineObject* player) {
-    return static_cast<CPlayer*>(player)->Server();
-}
-
 // Walks every player of `manager`, as the original's inlined iterator does (the manager counted
 // while it walks).
 template <typename F> void ForEachPlayer(CBaseManager* manager, F f) {
-    ObjectListIterator it{nullptr, nullptr};
-    for (CEngineObject* player = it.First(manager); player; player = it.Next()) f(player);
-    if (it.manager) --it.manager->refCount_;
+    PlayerIterator it;
+    for (CPlayer* player = it.First(manager); player; player = it.Next()) f(player);
 }
 
 } // namespace
@@ -54,9 +48,9 @@ int NextPlayerNumber(CPlayer* self, int id) {
     CBaseManager* players = TheServerWorld()->PlayerList();
     if (!players) return id;
     int highest = -1;
-    ForEachPlayer(players, [&](CEngineObject* other) {
+    ForEachPlayer(players, [&](CPlayer* other) {
         if (other == self) return;
-        const int number = static_cast<CPlayer*>(other)->playerId_;
+        const int number = other->playerId_;
         if (number > highest) highest = number;
     });
     return highest >= 0 ? highest + 1 : id;
@@ -86,12 +80,12 @@ void CPlayerManager::ChangeId(CEngineObject* object, int id) {
 }
 
 void CPlayerManager::SendValueToAll(int unused, int value) {
-    ForEachPlayer(this, [&](CEngineObject* player) { Server(player)->SendValue12(unused, value); });
+    ForEachPlayer(this, [&](CPlayer* player) { player->Server()->SendValue12(unused, value); });
 }
 
 void CPlayerManager::SendTextToAll(int unused, const char* text) {
-    ForEachPlayer(this, [&](CEngineObject* player) {
-        Server(player)->SendText13(static_cast<std::uint32_t>(unused), text);
+    ForEachPlayer(this, [&](CPlayer* player) {
+        player->Server()->SendText13(static_cast<std::uint32_t>(unused), text);
     });
 }
 
