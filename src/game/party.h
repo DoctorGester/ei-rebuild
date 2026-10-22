@@ -23,7 +23,7 @@ using BOOL = int;
 
 class CItem;
 class CItemConstructor;
-class CItemManager;   // item.h
+struct CItemManager;   // item.h
 class CParty;
 class CResourceManager;
 class CSpellConstructor;

@@ -51,7 +51,7 @@ void DropClient(ServerSession* self, void* peer) {
 int ServerSession::LeaderId() {
     const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
-        if (players_.At(node)->host_) return players_.At(node)->id_;
+        if (players.At(node)->host_) return players.At(node)->id_;
     return -1;
 }
 EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
@@ -133,7 +133,7 @@ EI_REWRITTEN(0x0041A270, ServerSession::FindConnectionBySerial);
 void* ServerSession::FindPlayer(int id) {
     const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
-        if (players_.At(node)->id_ == id) return Value(node);
+        if (players.At(node)->id_ == id) return Value(node);
     return nullptr;
 }
 EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);
