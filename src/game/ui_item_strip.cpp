@@ -162,7 +162,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
         cell.depth = scale_ * 1.5f /*0073C51C*/;   // 1.5
-        reinterpret_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // the owner screen's item cell draw
+        static_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // the owner screen's item cell draw
     }
 
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
