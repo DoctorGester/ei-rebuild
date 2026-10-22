@@ -77,16 +77,7 @@ constexpr SpiralCache kEmptySightCache{0, -1.0f};
 
 // --- CUnitServer --------------------------------------------------------------------------------
 
-CUnitServer* CUnitServer::Construct() {
-    // CEngineObject's constructor (inlined).
-    refCount_ = 0;
-    id_ = -1;
-    prototypeId_ = 0;
-    type_ = 0;
-    flags_ = 0;
-    owner_ = nullptr;
-    ei::SetVtable(this, CUnitController::Vtable());
-    unit = nullptr;
+CUnitServer::CUnitServer() {
     InitSteps(queue);
     motion.Construct();
     InitSteps(currentPlan.animation);
@@ -109,11 +100,9 @@ CUnitServer* CUnitServer::Construct() {
     idleAnimation.extra = -1;
     brain.Construct();
     std::memset(&voice, 0, sizeof(voice));   // 005AEA50
-    ei::SetVtable(this, Vtable());
     ResetController();
-    return this;
 }
-EI_REWRITTEN(0x00545580, CUnitServer::Construct);
+EI_REWRITTEN_SPECIAL(0x00545580, CUnitServer::CUnitServer);
 
 // --- AIPath -------------------------------------------------------------------------------------
 

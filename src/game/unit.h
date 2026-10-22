@@ -128,94 +128,100 @@ class CUnit;
 class CUnitServer;   // combat.h
 class CUnitClientSpecific;   // unit_client_models.h
 
-// The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
-// vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
-// unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
-// Slots declared `void Name()` keep their place in the order only (their real arguments are not
-// declared; give them their signature when calling them; docs/notes/map_objects.md ("Virtual slot
-// names")). The
-// controller classes do not derive from this declaration (their rewritten slots are registered by
-// address); CUnit::Controller() reaches it. unit_ai.h's CUnitServer names fields of the same
-// objects.
+// The unit's controller (CUnit + 0x240): CUnitServer (class id 0x3E, vtable 0073EF38, combat.h) on the
+// server, CUnitClientSpecific (0x3D, 0073ECD8, unit_client_models.h) for party units on the client; this
+// abstract base had game.exe's 0073EDBC (unit_controller_slots.cpp). Names and evidence of the slots:
+// docs/notes/map_objects.md ("Virtual slot names"). Slots whose original is a plain RET leave EAX as the
+// caller had it; CUnit passes the EAX of 23, 44, 49 and 53 on, which nothing reads, so they are void.
 class CUnitController : public CEngineObject {
 public:
-    bool ReturnFalse(int);
-    int ReturnZeroThree(int, int, int);
-    int ReturnZeroOne(int);
+    // The base constructor both controllers inline: the engine object's fields, no unit.
+    CUnitController() {
+        ClearFields();
+        unit = nullptr;
+    }
+    // 00533DB0 (deleting: 00533D90): no unit.
+    ~CUnitController() override;
+    int Create() override;    // 2: 00533DD0, no unit; 1
+    void Destroy() override;  // 3: 00533DE0, no unit
+
+    // The shared empty bodies the controllers' tables pointed at (unit_controller_slots.cpp; registered at
+    // their addresses).
     void IgnoreThreeArguments(int, int, int);
     void IgnoreTwoArguments(int, int);
     void IgnoreArgument(int);
-    CUnitController* DeletingDestruct(unsigned flags);
-    // The abstract controller's compiled table (ControllerBaseClass, unit_controller_slots.cpp; game.exe's 0073EDBC):
-    // CUnitServer's and CUnitClientSpecific's constructors store it first, their destructor bodies last.
-    static void* Vtable();
-    virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
-    virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
-    virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)
-    virtual PathOrder* Path();              // 16: server +0x3C (00546090), client +0x38 (00533DF0)
-    virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
-    virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
-    // 19: server 005533B0 (1), client 00533BD0 (0); both read the low byte. CUnit's slot 33
-    // (ScaleEffectChanged, 0052EB30) passes its whole dword argument on.
-    virtual int RefreshVitals(int withHitPoints);
-    virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
-    // 21: server 005543B0 (1): heals by a float amount, which callers push as raw bits.
-    virtual int Heal(std::uint32_t amountBits);
-    virtual void RepackStats();             // 22: server 00553500
-    virtual std::uintptr_t UpdateSizeClasses();   // 23: server 00552FB0 (CUnit 00530A50 passes EAX on)
-    virtual int Level();                    // 24: server 00556760, client 00539160
-    virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
-    virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
-    virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
-    virtual void ClearOuterArmourLayers();  // 28: server 005535E0
+
+    virtual int FiguresLoaded();                 // 13: 00533B90 (1); client 005344E0
+    // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`); base empty
+    virtual void RestartAnimation(float) {}
+    virtual void Unused15() {}                   // 15: empty everywhere (base 00533BB0, client 00535580)
+    virtual PathOrder* Path() = 0;               // 16: server +0x3C (00546090), client +0x38 (00533DF0)
+    virtual void Unused17() = 0;                 // 17: empty (server 005460B0, client 00534130)
+    virtual void PlayerChanged(void*) {}         // 18: client 00534140, base empty (00533BC0)
+    // 19: server 005533B0 (1), base 00533BD0 (0). CUnit's slot 33 (ScaleEffectChanged, 0052EB30)
+    // passes its whole dword argument on; the bodies read the low byte.
+    virtual int RefreshVitals(char withHitPoints);
+    // 20: server 00553F40 (CUnitServer::TakeHit), base 00533BE0 (0); either unit may be null.
+    virtual int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
+    virtual int Heal(float amount);              // 21: server 005543B0 (1), base 00533BF0 (0)
+    virtual void RepackStats() {}                // 22: server 00553500
+    virtual void UpdateSizeClasses() {}          // 23: server 00552FB0
+    virtual int Level() = 0;                     // 24: server 00556760, client 00539160
+    virtual int ShowWeapon(std::uint32_t slot) = 0;   // 25: the weapon the figure holds (-1 none)
+    virtual bool ArmourPutOn(std::uint32_t itemId) = 0;     // 26: client 005381B0, server 00553560
+    virtual bool ArmourTakenOff(std::uint32_t slot) = 0;    // 27: client 005385A0, server 005535C0
+    virtual int ClearOuterArmourLayers() { return 0; }      // 28: server 005535E0
     // 29: server 005535F0; client 00536100 (RefreshSkins): for a hero (type 0x32), the two textures
     // of its figure (+0x94's +0x20 / +0x24) are reloaded when 00536670 names other ones (after its
-    // items changed); returns 1.
-    virtual int RefreshEquipment();
-    virtual void RefreshModel();            // 30: after a weapon change
-    virtual int RefreshWounds();            // 31: client 00537360 (1), base 0 (00533C50); CUnit's slot 58 (00446810) tail-jumps here
-    virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
-    // 33: client 00538860 (RET 8; count capped at 4); CUnit's SendEquipment (00531110) passes EAX on.
-    virtual std::uintptr_t SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);
-    virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
-    virtual void RemoveWeaponModel();       // 35: (id) client 00538920
-    virtual bool HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models); AL
-    virtual bool HasMainArmour();           // 37: server 005567E0, client 005391E0; AL
-    virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
-    virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
-    virtual void AdvanceTime(float time);   // 40: client 00535B30
+    // items changed); returns 1. Base 0.
+    virtual int RefreshEquipment() { return 0; }
+    virtual int RefreshModel() { return 0; }     // 30: after a weapon change (client 00536220)
+    virtual int RefreshWounds() { return 0; }    // 31: client 00537360 (1), base 0 (00533C50); CUnit's slot 58 (00446810) tail-jumps here
+    // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
+    virtual void SetArmourModels(const std::uint32_t*, int) {}
+    // 33: client 00538860 (RET 8; count capped at 4), base empty (00533C70)
+    virtual void SetWeaponModels(const std::uint32_t*, int) {}
+    virtual bool WeaponAdded(std::uint32_t itemId);         // 34: client 005388C0 (AddWeaponModel), base 00533C80 (false)
+    virtual bool RemoveWeaponModel(std::uint32_t itemId);   // 35: client 00538920, base 00533C90 (false)
+    virtual int HasOtherArmour() = 0;            // 36: server 005567A0 (client 005391B0: weapon models)
+    virtual int HasMainArmour() = 0;             // 37: server 005567E0, client 005391E0
+    virtual void HostileMaskChanged() {}         // 38: server 00552CD0 (the brain), base empty (00533CA0)
+    virtual int TamingStage() { return 0; }      // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
+    virtual void AdvanceTime(float) {}           // 40: client 00535B30
     // 41: the unit's path was replaced; client 00535B20 places the unit on it at its +0x34 time
     // (00535850 with (+0x34, 0)), base empty (00533CD0).
-    virtual void MotionChanged();
+    virtual void MotionChanged() {}
     // 42: server 00552670 (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
     // brain and +0x1DC forget it); base and client empty (00533CE0, RET 4).
-    virtual void ObjectDeleted(CEngineObject* object);
+    virtual void ObjectDeleted(CEngineObject*) {}
     // 43: client 005344A0 (unit_client_models.h): the fade-in starts again (+0x78 and every part's
     // alpha 0); base empty (00533CF0). The client world's AddObject calls it for units joining a session.
-    virtual void RestartFadeIn();
-    virtual std::uintptr_t Resettle();      // 44: server 00553260 (combat.h; CUnit 00532A80 passes EAX on)
-    virtual void UpdateMoveFactors();       // 45: server 005536B0 (combat.h)
+    virtual int RestartFadeIn() { return 0; }
+    virtual void Resettle() {}                   // 44: server 00553260 (combat.h)
+    virtual void UpdateMoveFactors() {}          // 45: server 005536B0 (combat.h)
     // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
     // (0..5); `flags` is the unit's Params()->flags byte (bit 3 skips it). Client 00537500 (RET 0xC,
     // text and a particle effect), base empty (00533D20).
-    virtual void StatChanged(std::uint32_t stat, float change, std::uint8_t flags);
-    virtual void Wound(float lost);         // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client 00537C00 (RET 4, the argument is not read), base empty (00533D30)
-    virtual void Died();                    // 48: client 005373D0 (death: the light goes out, blood), base empty (00533D40)
-    // 49: server 00553220 (UpdateSpellBlockFlag, combat.h), base empty (00533D50); CUnit's slot 28
+    virtual void StatChanged(int, float, std::uint32_t) {}
+    // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client 00537C00
+    // (RET 4, the argument is not read), base empty (00533D30)
+    virtual void Wound(float) {}
+    virtual void Died() {}                       // 48: client 005373D0 (death: the light goes out, blood), base empty (00533D40)
+    // 49: server 00553220 (UpdateSpellBlockFlag), base empty (00533D50); CUnit's slot 28
     // (EffectsChanged, 00532AB0) tail-jumps here.
-    virtual std::uintptr_t EffectsChanged();
-    virtual void GetAttackParams(struct AttackParams* out);   // 50: server 00555A00, client 00538960 (base: _purecall)
+    virtual void EffectsChanged() {}
+    virtual void GetAttackParams(struct AttackParams* out) = 0;   // 50: server 00555A00, client 00538960
     // 51: client 00537D80 (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
     // base empty (00533D60).
-    virtual void Say(const SpeechRecord* speech, int kind);
-    virtual void StopSpeech();              // 52: client 00538040, base empty (00533D70)
-    // 53 (0xD4): server 00552F30 (CUnitServer::UpdateMoveFactorsSlot53, combat.h), base empty
-    // (00533D80). CUnit's slot 57 (00446870) tail-jumps here, so EAX passes on as it is.
-    virtual std::uintptr_t MoveFactorsChanged();
+    virtual void Say(const SpeechRecord*, int) {}
+    virtual void StopSpeech() {}                 // 52: client 00538040, base empty (00533D70)
+    // 53 (0xD4): server 00552F30 (slot 45), base empty (00533D80). CUnit's slot 57 (00446870)
+    // tail-jumps here.
+    virtual void MoveFactorsChanged() {}
 
-    CUnit* unit_;   // +0x1C the unit it controls (CUnit::AttachCompanion sets and clears it)
+    CUnit* unit;   // +0x1C the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
-static_assert(offsetof(CUnitController, unit_) == 0x1C);
+static_assert(offsetof(CUnitController, unit) == 0x1C);
 
 // CUnit derives from the map object (map_object.h; CObject3D holds the first 0x170 bytes, CMapObject
 // the rest up to +0x238): the prototype name is CObject3D::name (+0xA4), the figure's build its

@@ -42,13 +42,6 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
 }
 EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
 
-CUnitClientSpecific* CUnitClientSpecific::DeletingDestruct(std::uint32_t flags) {
-    DestructClientBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00533E80, CUnitClientSpecific::DeletingDestruct);
-
 int CMapObjectServer::CreateServer() {
     owner = nullptr;
     vitals.Reset();
@@ -70,16 +63,16 @@ EI_REWRITTEN(0x0050E460, CMapObject::CompanionQuery);
 
 // 005391B0 reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds (+0xBC): the name is provisional. Found when zone bz1g's units mismatched.
-int CUnitClientSpecific::HasWeaponModels() {
+int CUnitClientSpecific::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005391B0, CUnitClientSpecific::HasWeaponModels);
+EI_REWRITTEN(0x005391B0, CUnitClientSpecific::HasOtherArmour);
 
-int CUnitClientSpecific::HasArmourModels() {
+int CUnitClientSpecific::HasMainArmour() {
     for (int slot = 0; slot < kDressedArmourSlots; ++slot)
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005391E0, CUnitClientSpecific::HasArmourModels);
+EI_REWRITTEN(0x005391E0, CUnitClientSpecific::HasMainArmour);

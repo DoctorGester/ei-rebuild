@@ -66,7 +66,7 @@ void ClearReferenceList(mfc::CTypedPtrList<CUnit>& list) {
 
 BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
-    int level = ServerSlots(this)->TameStage();   // slot 39
+    int level = TamingStage();   // slot 39
     float limit = static_cast<float>(level * 10) + bonus;
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.

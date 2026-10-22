@@ -169,7 +169,7 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
 }
 EI_REWRITTEN(0x005585F0, LoadArmourSpells);
 
-void CUnitServer::LoadServer(CStream* stream) {
+void CUnitServer::Load(CStream* stream) {
     aiPresence = nullptr;
     stream->Read(&frozen, 1);
     stream->Read(&animationHeld, 1);
@@ -232,9 +232,9 @@ void CUnitServer::LoadServer(CStream* stream) {
     if (stream->version_ < kVersion93C) return;
     WriteCopy(stream, waitFrame);    // sic: written, not read
 }
-EI_REWRITTEN(0x00555D10, CUnitServer::LoadServer);
+EI_REWRITTEN(0x00555D10, CUnitServer::Load);
 
-void CUnitServer::SaveServer(CStream* stream) {
+void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, frozen);
     WriteCopy(stream, animationHeld);
     SaveStepList(&queue, stream);
@@ -286,4 +286,4 @@ void CUnitServer::SaveServer(CStream* stream) {
     stream->Write(&pendingHit, 0x3C);
     WriteCopy(stream, waitFrame);
 }
-EI_REWRITTEN(0x005561C0, CUnitServer::SaveServer);
+EI_REWRITTEN(0x005561C0, CUnitServer::Save);

@@ -36,11 +36,9 @@ bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bo
     return gamecrt::mbscmp(name.GetString(),
                            texture->GetName()) != 0;
 }
-
-CUnitController* AsController(CUnitClientSpecific* self) { return reinterpret_cast<CUnitController*>(self); }
 } // namespace
 
-int CUnitClientSpecific::RefreshSkins() {
+int CUnitClientSpecific::RefreshEquipment() {
     mfc::CString name;
     // EI_Plugin's Fixes (00536132): the test for a hero is gone, every unit is refreshed.
     if (unit->type_ != kUnitTypeHero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
@@ -51,9 +49,9 @@ int CUnitClientSpecific::RefreshSkins() {
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }
-EI_REWRITTEN(0x00536100, CUnitClientSpecific::RefreshSkins);
+EI_REWRITTEN(0x00536100, CUnitClientSpecific::RefreshEquipment);
 
-int CUnitClientSpecific::RefreshSimpleSkin() {
+int CUnitClientSpecific::RefreshModel() {
     if (unit->type_ != kUnitTypeHero) return 1;
     mfc::CString name;
     auto* half = unit->Object3D()->ClientSpecific();
@@ -61,24 +59,24 @@ int CUnitClientSpecific::RefreshSimpleSkin() {
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }
-EI_REWRITTEN(0x00536220, CUnitClientSpecific::RefreshSimpleSkin);
+EI_REWRITTEN(0x00536220, CUnitClientSpecific::RefreshModel);
 
 void CUnitClientSpecific::SetArmourModels(const std::uint32_t* ids, int count) {
-    for (int slot = 0; slot < kArmourSlots; ++slot) AsController(this)->ArmourTakenOff(static_cast<std::uint32_t>(slot));
+    for (int slot = 0; slot < kArmourSlots; ++slot) ArmourTakenOff(static_cast<std::uint32_t>(slot));
     for (std::uint32_t& id : armourIds) id = kNone;
     int n = static_cast<std::uint32_t>(count) < kArmourSlots ? count : kArmourSlots;
-    for (int i = 0; i < n; ++i) AsController(this)->ArmourPutOn(ids[i]);
+    for (int i = 0; i < n; ++i) ArmourPutOn(ids[i]);
 }
 EI_REWRITTEN(0x00538140, CUnitClientSpecific::SetArmourModels);
 
 void CUnitClientSpecific::SetWeaponModels(const std::uint32_t* ids, int count) {
     for (std::uint32_t& id : weaponIds) id = kNone;
     int n = static_cast<std::uint32_t>(count) < kWeaponSlots ? count : kWeaponSlots;
-    for (int i = 0; i < n; ++i) AsController(this)->WeaponAdded(ids[i]);
+    for (int i = 0; i < n; ++i) WeaponAdded(ids[i]);
 }
 EI_REWRITTEN(0x00538860, CUnitClientSpecific::SetWeaponModels);
 
-bool CUnitClientSpecific::AddWeaponModel(std::uint32_t id) {
+bool CUnitClientSpecific::WeaponAdded(std::uint32_t id) {
     if (id == kNone) return false;
     int slot = 0;
     while (slot < kWeaponSlots && weaponIds[slot] != kNone) ++slot;
@@ -87,7 +85,7 @@ bool CUnitClientSpecific::AddWeaponModel(std::uint32_t id) {
     weaponIds[slot] = id;
     return true;
 }
-EI_REWRITTEN(0x005388C0, CUnitClientSpecific::AddWeaponModel);
+EI_REWRITTEN(0x005388C0, CUnitClientSpecific::WeaponAdded);
 
 bool CUnitClientSpecific::RemoveWeaponModel(std::uint32_t id) {
     for (std::uint32_t& slot : weaponIds) {

@@ -60,7 +60,7 @@ EI_REWRITTEN(0x004468D0, FakeUnitGetClassName);
 
 // 004467F0, slot 31 (RET 0xC): the hit passed to the controller's slot 20 (the server's TakeHit).
 int CUnit::TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) {
-    return ServerSlots(controller)->TakeHitSlot(hit, attacker, source);
+    return Controller()->TakeHit(hit, static_cast<CUnit*>(attacker), static_cast<CUnit*>(source));
 }
 EI_REWRITTEN(0x004467F0, CUnit::TakeHitImpl);
 
@@ -94,7 +94,10 @@ EI_REWRITTEN(0x00446810, UnitRefreshWounds);
 
 // 00446870, slot 57: a tail jump to the controller's slot 53 (the server's recomputes the move
 // factors); what that leaves in EAX is passed on.
-std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit) { return unit->Controller()->MoveFactorsChanged(); }
+std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit) {
+    unit->Controller()->MoveFactorsChanged();
+    return 0;
+}
 EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 
 // 004467C0, slot 47 (RET 4) of the unit, the fake unit and nine other map object classes (eleven

@@ -148,7 +148,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
   ResendParty (log line, 00590C70, SendParty, 00591070 = `CWorldServer::ClearPlayerItems`), SendPathMessage 0066D490 (0x0E; path
   through a stack DeltaField, 005C7DB0 forwarded), LeaveToZone 0066F310 (RET 8; the `zone` harness step: state 3, party zone /
   entrance), FormationOffsets 0066FD70 (`__fastcall`).
-- OnLeaderDied 0066F4C0 (slot 20, from CUnitServer::UpdateServer when the dead unit IsLeader): single player 0x09 + 0x0B (hero id,
+- OnLeaderDied 0066F4C0 (slot 20, from CUnitServer::RunTick when the dead unit IsLeader): single player 0x09 + 0x0B (hero id,
   0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54
   `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into
   the new one's; flag70_ 1, lastPosition_.z -1313 (hero_death)).

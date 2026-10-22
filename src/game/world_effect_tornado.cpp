@@ -119,7 +119,7 @@ int CEffectTornado::RunTick() {
         for (auto* node = units.head; node != nullptr;) {
             auto* unit = node->data;
             node = node->next;
-            if (unit->player != nullptr) ServerSlots(unit->controller)->TakeHitSlot(&hit, nullptr, nullptr);
+            if (unit->player != nullptr) unit->Controller()->TakeHit(&hit, nullptr, nullptr);
         }
         units.RemoveAll();
     }

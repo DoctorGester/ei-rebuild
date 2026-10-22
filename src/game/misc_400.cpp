@@ -53,7 +53,7 @@ CEngineObject* CClientSpecificManager::NewObject(int type) {
     case 'E': return misc400::New(0x3C, ConstructOn<FigureMeshDrawer, &FigureMeshDrawer::Construct>);
     case 'F': return misc400::New(0xFC, ConstructOn<CObject3DClientSpecific, &CObject3DClientSpecific::Construct>);
     case 'G': return misc400::New(0x58, ConstructOn<CMapObjectClientSpecific, &CMapObjectClientSpecific::Construct>);
-    case 'H': return misc400::New(0xDC, ConstructOn<CUnitClientSpecific, &CUnitClientSpecific::ConstructClient>);
+    case 'H': return new CUnitClientSpecific();
     case 'I': return misc400::New(0x50F8, ConstructOn<CPlayerClient, &CPlayerClient::Construct>);
     case 'K': return misc400::New(0x64, ConstructOn<CTorchObjectClientSpec, &CTorchObjectClientSpec::Construct>);
     default: return nullptr;

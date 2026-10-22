@@ -143,8 +143,8 @@ naked stub in verify_combat.cpp.
 combat_*, magic_trap, unit_skins, unit_lever, unit_client_path, unit_points, unit_client_models, unit_motion_tick and
 net_state have no offsets / VCalls left (the __asm / float_control blocks, magic_trap's vtable constants and unit_skins'
 Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
-userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitServerVirtuals slots 21-50 (TakeUpWeapon
-25, TameStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
+userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitController slots 21-50 (ShowWeapon
+25, TamingStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
 caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick_,
 AIMap()->refreshUnits, Sectors(), AIEvents(); unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
 figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
@@ -155,14 +155,14 @@ Every rewritten function carries its address in its source comment (grep the add
 here is gone. What it covered, by file:
 - `combat.cpp` queries and the hit (AttackRange, WeaponType, CanCast, ActionDistance, CanReachTarget, GetDamageByType,
   GetSpellDamage, GetMovePoint, GetAttackParams (slot 50), FindSightTarget, AttackRoll, ResolveHit, BuildAttackHit,
-  PrepareAttack, TakeHit (slot 20)); stat slots (UpdateSpellBlockFlag 49, UpdateSizeClasses 23, UpdateMoveFactors 45, RefreshVitals
-  19, RepackStats 22, armour layers 26-28, CopyStats, RefreshEquipment 29, ForgetClaims 38, ClaimHostility, TakeUpWeapon 25,
-  OnObjectDeleted 42, Resettle 44, CreateServer 2, ResetSlot 5, TameStage 39); `SpellHasLineOfSight` 0054BBC0 (ECX world, EDX spell,
+  PrepareAttack, TakeHit (slot 20)); stat slots (EffectsChanged 49, UpdateSizeClasses 23, UpdateMoveFactors 45, RefreshVitals
+  19, RepackStats 22, armour layers 26-28, CopyStats, RefreshEquipment 29, HostileMaskChanged 38, ClaimHostility, TakeUpWeapon 25,
+  OnObjectDeleted 42, Resettle 44, Create 2, ClearState 5, TamingStage 39); `SpellHasLineOfSight` 0054BBC0 (ECX world, EDX spell,
   prototype +0x40 needsSight; from 0058E850's multi-target loop); IsFighting 0054B580 is Rebirth-patched
   (FixPlaingBattleMusicFromAntimagic behind the flag).
 - Actions, orders and steps: FinishAction, DeliverAttack, TriggerWeaponSpell / TriggerItemSpells, UseItemCharge, Heal, OnDamaged,
   WitnessMurder, PropagateHostility, UseSkill, SetDead, FinishCast; the per-tick order machine (UnitAction Reset / Assign,
-  TakeQueuedOrder, StartQueuedOrder, UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, UpdateServer slot 6 which returns 1; a
+  TakeQueuedOrder, StartQueuedOrder, UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, RunTick slot 6 which returns 1; a
   living unit ends with hitDirection -1); state and animation (UpdateState, AdvanceAnimation, PlaySteps, SetState, StandStill,
   PlayHitReaction, EndOrder, TickAction, TickItemSpells, RefreshItemSpells, PopFinishedSteps; `combat_motion.cpp`: PlayAnimationOrder
   state 3, PlayEmoteOrder 4, IdleAnimation, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath,

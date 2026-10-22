@@ -68,7 +68,7 @@ CEffectTornado (0x65, vtable 007438F8, 0x15C): +0x14C particle source 0x200A (cl
 weather 0058CCD0's helper 0058CEA9) aims at a random speed 0.096..0.216 per tick, ticks = lrint(distance / speed). Tick
 moves it (source and sound follow), stops the source for the last 110 ticks, and on the server every 8th tick above 20
 hands each player-owned unit within 5 (CSectorMap::FindUnitsInRadius) a hit of 5 (weight 1 on type 6) through its
-controller's slot 20 (CUnitServerVirtuals::TakeHitSlot, map_object.h). Start catches a new source up by at most 29
+controller's slot 20 (CUnitController::TakeHit, unit.h). Start catches a new source up by at most 29
 ticks. Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (counted-pointer
 release, unwind only). No scenario starts weather with a tornado yet.
 

@@ -129,7 +129,5 @@ void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(th
 EI_REWRITTEN(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
 // 00535B20 (A-U12; unit_client_models.h).
-void __fastcall ClientMotionChanged(CUnitClientSpecific* self) {
-    self->PlaceOnPath(self->lastTime, 0.0f);
-}
-EI_REWRITTEN(0x00535B20, ClientMotionChanged);
+void CUnitClientSpecific::MotionChanged() { PlaceOnPath(lastTime, 0.0f); }
+EI_REWRITTEN(0x00535B20, CUnitClientSpecific::MotionChanged);

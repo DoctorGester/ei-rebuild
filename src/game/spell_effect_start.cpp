@@ -272,10 +272,9 @@ Next StartVisionFog(CSpellEffect* e) {
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
-    // Controller slot 21, Heal: the original pushes the amount's bits (MOV/PUSH), which a float
-    // argument would load and store through the FPU, so the slot takes the bits.
+    // Controller slot 21, Heal (the original pushes the amount's bits, MOV/PUSH).
     CUnit* unit = TargetUnit(e);
-    unit->Controller()->Heal(Bits(e->Spell()->damage_));
+    unit->Controller()->Heal(e->Spell()->damage_);
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints;

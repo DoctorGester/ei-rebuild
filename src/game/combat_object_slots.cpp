@@ -94,7 +94,7 @@ void CUnitServer::Resettle() {
         } else {
             DamageInfo hit;
             ResetDamageInfo(&hit);
-            ServerSlots(this)->TakeHitSlot(&hit, nullptr, nullptr);
+            TakeHit(&hit, nullptr, nullptr);
             TheServerWorld()->AIMap()->SectorMap()->Add(unit);
             return;
         }
@@ -103,18 +103,18 @@ void CUnitServer::Resettle() {
 }
 EI_REWRITTEN(0x00553260, CUnitServer::Resettle);
 
-int CUnitServer::CreateServer() {
+int CUnitServer::Create() {
     ResetController();
     BrainOf(this)->SetOwner(this);
     return 1;
 }
-EI_REWRITTEN(0x00546450, CUnitServer::CreateServer);
+EI_REWRITTEN(0x00546450, CUnitServer::Create);
 
-void CUnitServer::ResetSlot() { ResetController(); }
-EI_REWRITTEN(0x00546080, CUnitServer::ResetSlot);
+void CUnitServer::ClearState() { ResetController(); }
+EI_REWRITTEN(0x00546080, CUnitServer::ClearState);
 
-void CUnitServer::DestroyServer() { ResetController(); }
-EI_REWRITTEN(0x00546470, CUnitServer::DestroyServer);
+void CUnitServer::Destroy() { ResetController(); }
+EI_REWRITTEN(0x00546470, CUnitServer::Destroy);
 
-int CUnitServer::TameStage() { return tameStage; }
-EI_REWRITTEN(0x005460A0, CUnitServer::TameStage);
+int CUnitServer::TamingStage() { return tameStage; }
+EI_REWRITTEN(0x005460A0, CUnitServer::TamingStage);

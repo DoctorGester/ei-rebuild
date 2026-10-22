@@ -66,13 +66,13 @@ void CUnitServer::RepackStats() {
 }
 EI_REWRITTEN(0x00553500, CUnitServer::RepackStats);
 
-bool CUnitServer::AddArmourLayerOf(std::uint32_t key) {
+bool CUnitServer::ArmourPutOn(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
     auto* record = itemdb::ArmorAt(key >> 16);
     stats.AddArmourLayer(unit->armor[record->type]);
     return false;
 }
-EI_REWRITTEN(0x00553560, CUnitServer::AddArmourLayerOf);
+EI_REWRITTEN(0x00553560, CUnitServer::ArmourPutOn);
 
 bool CUnitServer::RebuildArmourLayers(int) {
     stats.RebuildArmourLayers(unit);
@@ -90,11 +90,11 @@ BOOL CUnitServer::RefreshEquipment() {
 }
 EI_REWRITTEN(0x005535F0, CUnitServer::RefreshEquipment);
 
-void CUnitServer::ForgetClaims() {
+void CUnitServer::HostileMaskChanged() {
     claimedHostile = 0;
     BrainOf(this)->memory.calls.RemoveClaims();
 }
-EI_REWRITTEN(0x00552CD0, CUnitServer::ForgetClaims);
+EI_REWRITTEN(0x00552CD0, CUnitServer::HostileMaskChanged);
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
 EI_REWRITTEN(0x00553360, CUnitServer::CopyStats);

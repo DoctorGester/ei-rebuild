@@ -24,7 +24,7 @@ void ReleaseFace(CUnitClientSpecific* self) {
 }
 } // namespace
 
-int CUnitClientSpecific::CreateClient() {
+int CUnitClientSpecific::Create() {
     sources[0] = nullptr;
     sources[1] = nullptr;
     sources[2] = nullptr;
@@ -53,9 +53,9 @@ int CUnitClientSpecific::CreateClient() {
     blinks = 0;
     return 1;
 }
-EI_REWRITTEN(0x00533FE0, CUnitClientSpecific::CreateClient);
+EI_REWRITTEN(0x00533FE0, CUnitClientSpecific::Create);
 
-void CUnitClientSpecific::DestroyClient() {
+void CUnitClientSpecific::Destroy() {
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
@@ -65,10 +65,9 @@ void CUnitClientSpecific::DestroyClient() {
     ReleaseFace(this);
     blinks = 0;
 }
-EI_REWRITTEN(0x005340C0, CUnitClientSpecific::DestroyClient);
+EI_REWRITTEN(0x005340C0, CUnitClientSpecific::Destroy);
 
-void CUnitClientSpecific::DestructClientBody() {
-    ei::SetVtable(this, Vtable());
+CUnitClientSpecific::~CUnitClientSpecific() {
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
@@ -88,16 +87,11 @@ void CUnitClientSpecific::DestructClientBody() {
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
     motion.steps.vtable = mfc::impl::CellListClass::Vtable();
     motion.steps.RemoveAll();
-    ei::SetVtable(this, CUnitController::Vtable());
-    unit = nullptr;
-    DestructBase();
 }
-EI_REWRITTEN(0x00533EA0, CUnitClientSpecific::DestructClientBody);
+EI_REWRITTEN_SPECIAL(0x00533EA0, CUnitClientSpecific::~CUnitClientSpecific);
+EI_REWRITTEN_SPECIAL(0x00533E80, CUnitClientSpecific::~CUnitClientSpecific);
 
-CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
-    ClearFields();
-    ei::SetVtable(this, CUnitController::Vtable());
-    unit = nullptr;
+CUnitClientSpecific::CUnitClientSpecific() {
     motion.steps.vtable = mfc::impl::CellListClass::Vtable();
     motion.steps.count = 0;
     motion.steps.free = nullptr;
@@ -110,8 +104,6 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     header->next = header;
     header->prev = header;
     faceTexture = nullptr;
-    ei::SetVtable(this, Vtable());
     fadeIn = 1.0f;
-    return this;
 }
-EI_REWRITTEN(0x00533AD0, CUnitClientSpecific::ConstructClient);
+EI_REWRITTEN_SPECIAL(0x00533AD0, CUnitClientSpecific::CUnitClientSpecific);

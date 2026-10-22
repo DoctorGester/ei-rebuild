@@ -58,7 +58,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
         if (auto* p = gamecrt::operator_new_zeroed_as<CMapObjectServer>()) return p->Construct();
         return nullptr;
     case kUnitServer:
-        if (auto* p = gamecrt::operator_new_zeroed_as<CUnitServer>()) return p->Construct();
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CUnitServer))) return new (p) CUnitServer();
         return nullptr;
     case kPlayerServer:
         if (auto* p = gamecrt::operator_new_zeroed_as<CPlayerServer>()) return p->Construct();   // 0066C540

@@ -253,12 +253,12 @@ vtable,slots,class,file,note
 0073EBA8,3,MotionPointArrayClass,src/lib/mfc_slots.h,CArray (a unit motion's points)
 0073EBB4,3,MotionWaypointBaseClass,src/lib/mfc_slots.h,CArray (a unit motion's waypoints)
 0073EBD4,3,IdArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> of quest item ids (world_party))
-0073ECD8,54,CUnitClientSpecificClass,src/game/unit_controller_slots.cpp,the client's unit controller (CUnitClientSpecific)
+0073ECD8,54,CUnitClientSpecific,src/game/unit_client_models.h,the client's unit controller
 0073EDB0,3,CellListClass,src/lib/mfc_slots.h,CList (the units' path cell lists)
-0073EDBC,54,ControllerBaseClass,src/game/unit_controller_slots.cpp,the unit controllers' abstract base (CUnitController)
+0073EDBC,54,CUnitController,src/game/unit.h,the unit controllers' abstract base
 0073EEA0,3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
 0073EF2C,3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
-0073EF38,54,CUnitServerClass,src/game/unit_controller_slots.cpp,the server's unit controller (CUnitServer)
+0073EF38,54,CUnitServer,src/game/combat.h,the server's unit controller
 0073F010,3,ArmourSpellListClass,src/game/game_slots.h,CList (the armour spells)
 0073F01C,3,AnimationStepsCopyClass,src/lib/mfc_slots.h,CArray (the animation steps a motion copies; derived from AnimationStepsClass)
 0073F028,3,OwnedRefListClass,src/game/game_slots.h,CList (a map object controller's counted pointers)

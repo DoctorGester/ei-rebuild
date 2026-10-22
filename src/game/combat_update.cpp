@@ -101,7 +101,7 @@ void DropEffectObject(CUnitServer* self) {
 // The weapon slot the unit wants (+0x270) taken up when it differs from the active one.
 void SwitchWeaponIfWanted(CUnit* unit) {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
-        ServerSlots(unit->controller)->TakeUpWeapon(unit->pendingWeapon);
+        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));
 }
 
 // The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
@@ -180,7 +180,7 @@ int TotalDuration(const AnimationSteps& steps) {
 
 // --- The update ---------------------------------------------------------------------------------
 
-int CUnitServer::UpdateServer() {
+int CUnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != 0 ? 1 : 0)) {
@@ -260,7 +260,7 @@ int CUnitServer::UpdateServer() {
     AdvanceAnimation();
     return 1;
 }
-EI_REWRITTEN(0x00552300, CUnitServer::UpdateServer);
+EI_REWRITTEN(0x00552300, CUnitServer::RunTick);
 
 // --- The state of the unit's animation --------------------------------------------------------
 

@@ -143,7 +143,8 @@ std::uintptr_t CUnit::SendEquipment() {
     std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
     GetEquipmentIds(ids);
     Controller()->SetArmourModels(&ids[4], 7);
-    return Controller()->SetWeaponModels(&ids[0], 4);
+    Controller()->SetWeaponModels(&ids[0], 4);
+    return 0;
 }
 EI_REWRITTEN(0x00531110, CUnit::SendEquipment);
 

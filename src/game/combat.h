@@ -270,8 +270,31 @@ bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* from
 
 void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream);
 
-class CUnitServer : public CEngineObject {
+class CUnitServer : public CUnitController {
 public:
+    // combat_lifetime.cpp. 00545580: the members (empty lists, orders of kind 9, the AI brain 00545990,
+    // the voice), then ResetController. The factory allocates it zeroed (CServerSpecificManager).
+    CUnitServer();
+    // map_object_lifetime.cpp. 00546230 (deleting: 005460E0): ResetController, the orders and the AI
+    // brain's members destroyed, the referenced objects released, the arrays freed.
+    ~CUnitServer() override;
+
+    // The controller's slots (unit.h's CUnitController) the server's table changes; the bodies are
+    // declared with their own comments below.
+    int Create() override;                 // 2: 00546450 (combat_object_slots.cpp)
+    void Destroy() override;               // 3: 00546470
+    void ClearState() override;            // 5: 00546080
+    int RunTick() override;                // 6: 00552300 (combat_update.cpp)
+    void Load(CStream* stream) override;   // 9: 00555D10 (combat_save.cpp)
+    void Save(CStream* stream) override;   // 10: 005561C0
+    const char* GetClassName() override;   // 11: 005460C0 "CUnitServer" (combat_server_slots.cpp)
+    int GetClassId() override;             // 12: 005460D0 (0x3E)
+    PathOrder* Path() override { return &motion; }   // 16: 00546090 (MotionSlot)
+    void Unused17() override {}            // 17: 005460B0 (EmptySlot17)
+    int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }   // 25: 00553610
+    bool ArmourTakenOff(std::uint32_t unused) override { return RebuildArmourLayers(static_cast<int>(unused)); }   // 27: 005535C0
+    void ObjectDeleted(CEngineObject* object) override { OnObjectDeleted(object); }   // 42: 00552670
+
     CombatStats& Combat() { return *reinterpret_cast<CombatStats*>(&stats); }
 
     // 0054B620. Attack range: the active weapon's +0x58, else the natural reach.
@@ -324,12 +347,12 @@ public:
     // `flag4` or for units other than heroes), 4 0x8000, else 0.
     std::uint32_t MoveModeMask(const MoveModeState* mode);
     // 00556760. Virtual slot 24: the level, log(stats +0x04 / g7C5488) / log(g7C548C), rounded.
-    int Level();
-    // 00553220. Virtual slot 49: sets the unit's flags_ bit 0x10000000 when it has an effect of
-    // type 0x20 and a natural weapon other than 0x10, else clears it.
-    void UpdateSpellBlockFlag();
+    int Level() override;
+    // 00553220. Virtual slot 49 (EffectsChanged): sets the unit's flags_ bit 0x10000000 when it has an
+    // effect of type 0x20 and a natural weapon other than 0x10, else clears it.
+    void EffectsChanged() override;
     // 00555A00. Virtual slot 50: what the unit attacks with.
-    void GetAttackParams(AttackParams* out);
+    void GetAttackParams(AttackParams* out) override;
     // 00555BD0. The attack roll of `attacker` against this unit: random spread + attack, minus a
     // distance penalty, plus a speed ratio unless `backstab`; at least 0. Draws from the global
     // ISAAC generator when the attacker's spread is positive.
@@ -351,21 +374,13 @@ public:
     // and unless the unit's player protects it, applies the damage when the hit beats the defence.
     // Returns 1 when damage was applied; on a miss the victim turns hostile and remembers the
     // attacker.
-    BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
-    // map_object_lifetime.cpp. 00546230. The destructor body: the orders and the AI brain's
-    // members destroyed, the referenced objects released, the arrays freed, then the base
-    // controller (vtable 0073EDBC) and the engine object base.
-    void DestructBody();
-    // combat_server_slots.cpp (A-U6). 005460E0 (slot 0, RET 4): DestructBody, then operator delete
-    // when `flags` bit 0 is set; returns this. 00546090 (slot 16): the motion. 005460B0 (slot 17):
-    // nothing. 00552F30 (slot 53): slot 45 (UpdateMoveFactors; CUnitServer is the only class with
-    // this vtable).
-    CUnitServer* DeletingDestruct(int flags);
-    // The compiled table (CUnitServerClass, unit_controller_slots.cpp; game.exe's 0073EF38).
-    static void* Vtable();
+    BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
+    // combat_server_slots.cpp (A-U6). 00546090 (slot 16): the motion. 005460B0 (slot 17): nothing
+    // (both registered at their addresses). 00552F30 (slot 53): slot 45 (UpdateMoveFactors;
+    // CUnitServer is the only class with this vtable).
     AIPath* MotionSlot();
     void EmptySlot17();
-    void UpdateMoveFactorsSlot53();
+    void MoveFactorsChanged() override;
     AIPath* MotionPath() { return &motion; }
     // unit_create.cpp. 00552F40. Takes `stats` (0x704 bytes) as the unit's statistics: marks
     // the unit's part 4 changed, refills the body slots between two calls of slot 19 and sets
@@ -376,11 +391,11 @@ public:
     void Shout(std::uint32_t code);
     // 00552FB0. Virtual slot 23: the three size classes (CombatStats +0x68/+0x6C/+0x6E) from the
     // unit's load (005304A0) and size (00530560 times the model's +0x120; heroes capped at 1.89).
-    void UpdateSizeClasses();
+    void UpdateSizeClasses() override;
     // 005536B0. Virtual slot 45: the movement factors (+0x8F8..+0x904) from the movement mode,
     // the world's +0x84/+0x88 factors and the spell being cast, and the speed class (+0x914: 0, 1,
     // 3, 7 or 15 by the unit's speed when idle, else 15).
-    void UpdateMoveFactors();
+    void UpdateMoveFactors() override;
 
     // combat_actions.cpp: the end of an action, missiles, item spells, death, healing, skills.
     // 00549EC0. Called when the animation of the current order reaches its moment: an attack
@@ -403,7 +418,7 @@ public:
     void UseItemCharge(CItem* item, float cost);
     // 005543B0. Virtual slot 21: heals `amount` (UnitStats 00525900), recomputes and logs
     // "Unit 12 was healed". Returns 1.
-    BOOL Heal(float amount);
+    BOOL Heal(float amount) override;
     // 00553AC0. Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility
     // claims and the hit direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to
     // death", the death animation, the AI notification and the party's reaction. Units of types
@@ -492,15 +507,15 @@ public:
     // 005567A0 / 005567E0. Virtual slots 36 / 37 (CUnit::AcceptsTarget asks for the animation bits
     // 0x10 / 0x20 by them): does the unit wear an armour piece in slots 3..6 / in the first three
     // (body, trousers, helmet; CUnit +0x48C..+0x498 / +0x480..+0x488)? 0/1.
-    BOOL HasOtherArmour();
-    BOOL HasMainArmour();
+    BOOL HasOtherArmour() override;
+    BOOL HasMainArmour() override;
 
     // combat_stat_slots.cpp (A-U5): the statistics slots.
     // 005533B0. Virtual slot 19: the vitals recomputed (with `withHitPoints` their hit points
     // first, UnitStats::RecomputeHitPoints) in the server companion's block; a pending attack
     // time is rescaled by the old / new attack rate (CombatStats +0x30), rounded; the unit's part 0
     // changed. Returns 1.
-    BOOL RefreshVitals(char withHitPoints);
+    BOOL RefreshVitals(char withHitPoints) override;
     // 00553450. protection[1..7] from the body (PackBodyProtection) and protection[0], the defence:
     // a party unit with a weapon its weapon skill bonus (00526C70), others their defence; times 1
     // for a party unit, else the difficulty's factor (007C54B8); truncated.
@@ -508,20 +523,20 @@ public:
     // 00553500. Virtual slot 22: the statistics repacked from the parameters (+0x330), the hit
     // flags (stats +0x6F8) cleared, the protection updated, part 4 changed; motionChanged set when
     // the movement speeds (CUnit +0x340) changed.
-    void RepackStats();
+    void RepackStats() override;
     // 00553560. Virtual slot 26 (RET 4): the armour piece the unit wears in the slot of armour
     // prototype `key >> 16` (its type) added to the layers. Returns false (AL).
-    bool AddArmourLayerOf(std::uint32_t key);
+    bool ArmourPutOn(std::uint32_t key) override;
     // 005535C0 / 005535E0. Virtual slots 27 (RET 4, the argument unread; returns true) / 28: the
     // armour layers rebuilt / the outer layers cleared (returns UnitStats::ClearOuterLayers's 0).
     bool RebuildArmourLayers(int unused);
-    int ClearOuterArmourLayers();
+    int ClearOuterArmourLayers() override;
     // 005535F0. Virtual slot 29: the armour spells and the AI's attack options (005CEED0) rebuilt.
     // Returns 1.
-    BOOL RefreshEquipment();
-    // 00552CD0. Virtual slot 38: the claims dropped (claimedHostile) and the calls heard with a
-    // hostility mask (brain +0x178, 005CCBF0).
-    void ForgetClaims();
+    BOOL RefreshEquipment() override;
+    // 00552CD0. Virtual slot 38 (HostileMaskChanged): the claims dropped (claimedHostile) and the
+    // calls heard with a hostility mask (brain +0x178, 005CCBF0).
+    void HostileMaskChanged() override;
     // 00553360 (RET 4). Copies the statistics (0x704 bytes) to `out`.
     void CopyStats(UnitStats* out);
     // 00553380 (RET 4). Experience gained (UnitStats::GainExperience), then RefreshVitals(0)
@@ -532,12 +547,10 @@ public:
     void DropQueuedOrder();
 
     // combat_save.cpp.
-    // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
-    // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
-    // effect object and the attackers list), version dependent from 0x44 on.
-    void LoadServer(CStream* stream);
-    // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
-    void SaveServer(CStream* stream);
+    // 00555D10 (Load): the controller's state (animation lists, the motion and plan objects, both
+    // orders, the stats copy, movement factors, the brain, the voice, the effect object and the
+    // attackers list), version dependent from 0x44 on. 005561C0 (Save): the same in the same
+    // order, at the current version. Declared above.
 
     // combat_sight.cpp: can an order be carried out from here, and when.
     // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
@@ -613,8 +626,7 @@ public:
     // events where it is, ticks its item spells, party units their memory and boredom, then the
     // alarm, the brain and hostility; the orders (when not frozen, reacting to a hit or acting),
     // the state and the animation follow. A dead one sinks to the ground and, once its death
-    // animation is over, reports its death and drops its orders. Returns 1.
-    int UpdateServer();
+    // animation is over, reports its death and drops its orders. Returns 1. RunTick, declared above.
     // 005499F0. The state machine of +0x164 (0 idle / 1 moving: the movement tick; 2 / 4: a hit
     // reaction; 3: the rest of an action's animation, then 6; 5: TickAction), after ending an
     // acting order whose target went out of reach and restoring the queue a hit reaction saved.
@@ -759,23 +771,18 @@ public:
     // map, its figure (005179E0), size classes and size class; when it cannot leave its cell it
     // moves to a free cell near it (005BA9D0), or with none it takes a default hit (TakeHit; a
     // unit that cannot stand dies); then back on the sector map.
-    void Resettle();
-    // 00546450. Virtual slot 2 (Create): ResetController, then the brain takes this controller as
-    // its owner (005D5080). Returns 1.
-    int CreateServer();
-    // 00546080. Virtual slot 5: ResetController (a tail jump).
-    void ResetSlot();
-    // 00546470. Virtual slot 3 (Destroy): ResetController (a tail jump; CBaseManager::ReleaseObject).
-    void DestroyServer();
+    void Resettle() override;
+    // 00546450 (Create): ResetController, then the brain takes this controller as its owner
+    // (005D5080). Returns 1. 00546080 (ClearState) and 00546470 (Destroy; CBaseManager::
+    // ReleaseObject): ResetController (a tail jump). Declared above.
     // 005460A0. Virtual slot 39: the taming stage.
-    int TameStage();
+    int TamingStage() override;
 
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
     // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
     // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
     void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
 
-    CUnit* unit;                    // +0x01C
     std::uint8_t frozen;            // +0x020 the unit is frozen: the animation and the orders wait (UpdateState)
     std::uint8_t animationHeld;     // +0x021 a hit reaction plays (or no size classes): the times shift
     std::uint8_t unused_022[2];
@@ -818,7 +825,7 @@ public:
     int ownSide;                    // +0x90C the unit's own side while tamed (TryTame)
     int tamerSide;                  // +0x910 the tamer's side (TryTame)
     int speedClass;                 // +0x914
-    AIEventPresence* aiPresence;    // +0x918 005C9770's (StepNoise's) result, always 0 (UpdateServer);
+    AIEventPresence* aiPresence;    // +0x918 005C9770's (StepNoise's) result, always 0 (RunTick);
                                     //        cleared by the reset and Load
     ArmourSpellList armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
     int boredTicks;                 // +0x938 a party unit's updates since its last order (a bored remark past a
@@ -839,10 +846,6 @@ public:
 
     AIBrain* Brain() { return &brain; }
 
-    // combat_lifetime.cpp. 00545580. The constructor: the base controller (vtable 0073EDBC) and
-    // the members (empty lists, orders of kind 9, the AI brain 00545990, the voice), then this
-    // class's vtable and ResetController. Returns this.
-    CUnitServer* Construct();
 
     // +0x174 (moveMode2.flag4) is also read by the hit code: while it is set the unit cannot be
     // backstabbed (0054F580 on the target's controller, 00553DF0 on the defender).
@@ -904,6 +907,3 @@ static_assert(offsetof(CUnitServer, actionDone) == 0x978);
 static_assert(offsetof(CUnitServer, voice) == 0xB10);
 static_assert(sizeof(CUnitServer) == 0xB20);
 
-// 005460C0 / 005460D0 (slots 11 / 12; combat_server_slots.cpp): "CUnitServer" (0078FCC4) and 0x3E.
-const char* __fastcall UnitServerClassName(CUnitServer* self);
-int __fastcall UnitServerClassId(CUnitServer* self);

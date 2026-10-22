@@ -67,7 +67,7 @@ CMaterial* CObject3DClientSpecific::NextMaterial() {
 }
 EI_REWRITTEN(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
-int CUnitClientSpecific::UpdateClient() {
+int CUnitClientSpecific::RunTick() {
     if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
@@ -127,7 +127,7 @@ int CUnitClientSpecific::UpdateClient() {
         StartIdleAnimation(0);
     return 1;
 }
-EI_REWRITTEN(0x005341A0, CUnitClientSpecific::UpdateClient);
+EI_REWRITTEN(0x005341A0, CUnitClientSpecific::RunTick);
 
 // --- Fade-in, level and wounds slots ----------------------------------------------------------
 

@@ -8,6 +8,7 @@
 #include "ai_map.h"   // PathOrder
 #include "console.h"
 #include "engine_object.h"
+#include "unit.h"   // CUnitController, CUnit
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -106,8 +107,32 @@ static_assert(offsetof(SkinRequest, flags) == 0x24 && sizeof(SkinRequest) == 0x2
 
 struct AttackParams;   // combat.h
 
-class CUnitClientSpecific : public CEngineObject {
+class CUnitClientSpecific : public CUnitController {
 public:
+    // unit_client_lifetime.cpp (A-U4). 00533AD0: the list +0x58 (vtable 0073EDB0, block size 0x80), an
+    // empty speech queue (its header node allocated), no face texture, fully faded in.
+    CUnitClientSpecific();
+    // 00533EA0 (deleting: 00533E80): the three particle sources stop and are released, the face
+    // texture released (no blink), the speech queue's nodes and header freed, the MFC list +0x58
+    // emptied.
+    ~CUnitClientSpecific() override;
+
+    // unit_client_lifetime.cpp (A-U2).
+    // 00533FE0. Virtual slot 2 (Create): no sources, times, animation or motion order (PathOrder::Reset
+    // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
+    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
+    // released. Returns 1.
+    int Create() override;
+    // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
+    // and are released, the face texture released; no blink.
+    void Destroy() override;
+    // unit_controller_slots.cpp. 00533E00 / 00533E10 (slots 11 / 12): "CUnitClientSpecific", 0x3D.
+    const char* GetClassName() override;
+    int GetClassId() override;
+    // 16: the order part of the unit's path (00533DF0, ClientControllerPath, registered at its address).
+    PathOrder* Path() override { return &motion; }
+    void Unused17() override {}   // 17: 00534130 (empty)
+
     // 00535850 (unit_client_path.cpp; RET 8). Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
     // 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
@@ -119,34 +144,31 @@ public:
     // weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
     // effects (005285D0, max first), the attack spread is the parameters' byte, and 0052E0D0 scales
     // attack and defence by the difficulty for units without a text key.
-    void GetAttackParams(AttackParams* out);
-    // The compiled table (CUnitClientSpecificClass, unit_controller_slots.cpp; game.exe's 0073ECD8). The
-    // destructor body ends with the controller base's (CUnitController::Vtable()).
-    static void* Vtable();
+    void GetAttackParams(AttackParams* out) override;
 
-    // 005381B0. Virtual slot 26: the unit puts on armour piece `itemId` (packed: prototype index
+    // 005381B0. Virtual slot 26 (ArmourPutOn): the unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not
     // already worn, each part of its group is replaced by "<part>.armor<number>" when the unit's
     // figure has it, or kept / restored to the plain part (the hair keeps "hr.<hair>"). False
     // (AL) for an invalid id, an armour slot beyond 6 or an unknown figure; true otherwise.
-    bool WearArmourModel(std::uint32_t itemId);
+    bool ArmourPutOn(std::uint32_t itemId) override;
 
-    // 005385A0. Virtual slot 27: the unit takes off the armour in armour slot `slot`. The slot is
+    // 005385A0. Virtual slot 27 (ArmourTakenOff): the unit takes off the armour in armour slot `slot`. The slot is
     // emptied; for a body armour, trousers or helmet each part of its group is put back plain
     // (the hair as "hr.<hair>", skipped without hair): the figure's parts of that name are
     // removed and the plain part added, unless it is the only one and already plain. False (AL)
     // for a slot beyond 6, an empty or invalid id, or an unknown figure (the slot is emptied
     // then too); true otherwise.
-    bool RemoveArmourModel(std::uint32_t slot);
+    bool ArmourTakenOff(std::uint32_t slot) override;
 
-    // 00535590. Virtual slot 25: the unit takes the weapon of weapon slot `slot` in hand. The
+    // 00535590. Virtual slot 25 (ShowWeapon): the unit takes the weapon of weapon slot `slot` in hand. The
     // figure parts of the weapon in hand (weaponIds[unit->activeWeapon], 006A0FF0) are removed by
     // name (005168F0), the unit's active weapon becomes `slot` and the byte +0x74 is cleared; the
     // new weapon's parts (none for an empty slot or a slot beyond 3) are added from the unit's
     // model (00517240, each animated with the figure through 00518820), and for a bow (type 5) the
     // part "rh3.arrow00" gets flag 0x80, which +0x75 records (+0x75 is left alone without a new
     // weapon). Then slot 30. Returns 1.
-    int ChangeWeaponModel(std::uint32_t slot);
+    int ShowWeapon(std::uint32_t slot) override;
 
     // 00536300. The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour
     // slots; else two layers, armour slot 0 and the weapon in hand.
@@ -175,7 +197,7 @@ public:
     // the blink (+0xD0: every 2..9 ticks 00538ED0 or 00539010); the bow's arrow (00538C20);
     // the step sounds (00534B60); the speech queue (+0x9C); for +0x255 == -2 with animation
     // state +0x50 below 3, 00535480(0). Returns 1.
-    int UpdateClient();
+    int RunTick() override;
     // unit_client_blink.cpp (A-U3). 00538ED0 / 00539010 (RET 4): the blink. With a face texture
     // (+0xCC) and a skin texture (the client half's material), unless the eyes already are so
     // (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
@@ -191,16 +213,16 @@ public:
     bool LoadFaceTexture();
     // 005344E0. Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
     // Returns 1.
-    int FiguresLoaded();
+    int FiguresLoaded() override;
     // 005344A0. Virtual slot 43: the fade-in starts again from 0 (the drawn parts take it). Returns
     // what the original leaves in EAX (0, the walk's end).
-    int RestartFadeIn();
+    int RestartFadeIn() override;
     // 00539160. Virtual slot 24: the level from the packed experience (UnitParams +0x04, CUnit +0x334):
     // ln(experience / 007C5488) / ln(007C548C) stored as a float and rounded to nearest.
-    int Level();
+    int Level() override;
     // 00537360. Virtual slot 31 (statistics changed): when the wounds texture is needed (005370F0)
     // the client half shows "mo<unit id>w" (0051C3D0), else none (0051C920). Returns 1.
-    int RefreshWounds();
+    int RefreshWounds() override;
     // 00537CB0. Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80;
     // its part names from 006A0FF0, the parts found by FindPart) unless +0x74 already says so;
     // +0x74 and +0x75 take the new state.
@@ -218,13 +240,13 @@ public:
     // pulses, places the unit on its path (00535850) unless +0x260 (then the animation speed is
     // 1), and advances the animation by the step (times the animation speed when +0x25C is 2;
     // not when +0x25C is 1).
-    void AdvanceTime(float time);
+    void AdvanceTime(float time) override;
     // 005352B0. Virtual slot 14: unless the unit is frozen (flags_ 0x10000000) the animation queue
     // is emptied and the unit's animations start again: the special idle (StartIdleAnimation(1))
     // for +0x255 == -2, else the entries +0x254 (played) and +0x255 (queued behind it, or played
     // alone); then the animation is advanced to `time` + 1 - +0x258 when that is above 0 (+0x2C /
     // +0x30 take the state), the last time becoming +0x258 plus it, else +0x258.
-    void RestartAnimation(float time);
+    void RestartAnimation(float time) override;
     // 00535480. Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind)
     // for the weapon in hand (bit of its prototype's type; no bit for an unknown id) or the natural
     // weapon (+0x34F, when below 7), with 0x10000 for non-heroes and 0x80580000 for +0x255 == -2;
@@ -232,7 +254,7 @@ public:
     void StartIdleAnimation(std::uint8_t play);
 
     // unit_client_effects.cpp (A-U2).
-    // 00537500. Virtual slot 46, a hit on body location `location` (0 head .. 5 right leg) of
+    // 00537500. Virtual slot 46 (StatChanged), a hit on body location `location` (0 head .. 5 right leg) of
     // strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
     // "weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
     // kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
@@ -241,17 +263,20 @@ public:
     // "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
     // 0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
     // rand() offsets within the unit's size, a rand() variant; 0056CE90).
-    void HitEffect(int location, float amount, std::uint32_t flags);
-    // 00537C00. Virtual slot 47 (the argument is not read): sparks (particles 0x2043, 10 alpha)
+    void StatChanged(int location, float amount, std::uint32_t flags) override;
+    // 00537C00. Virtual slot 47 (Wound; the argument is not read): sparks (particles 0x2043, 10 alpha)
     // attach to the unit, sized by its radius; the parts flash (0051C9F0 with 1) unless they are
     // already, and the flash lasts at least 4 more ticks.
-    void SparkEffect(int unused);
+    void Wound(float unused) override;
     // 005373D0. Virtual slot 48 (death): the companion's light goes out (005119B0); blood kinds
     // 1..4 leave a decal under the body part "bd" (or the unit, sized 0.75 x its smaller extent).
-    void DeathEffect();
-    // 00534140. Virtual slot 18 (the unit's player changed): with a player the companion shows the
+    void Died() override;
+    // 00534140. Virtual slot 18 (PlayerChanged): with a player the companion shows the
     // party light (colour 0079BEA0, alpha 1, radius 0079BEAC; 00511830).
-    void OwnerPlayerChanged(void* player);
+    void PlayerChanged(void* player) override;
+    // unit_client_path.cpp (A-U12). 00535B20, virtual slot 41: the unit placed on its new path at the
+    // time it was last advanced to, without turning.
+    void MotionChanged() override;
 
     // unit_client_speech.cpp (A-U2).
     // 00537D80. Virtual slot 51: the unit says `speech` (nothing for null), a speech of `kind`.
@@ -261,62 +286,40 @@ public:
     // into an empty queue it plays at once (delay 0; a talking one sets the server unit's flag
     // 0x800000; kinds 2 / 0x1C only when the last waiting speech sound has ended, and their
     // sound becomes +0x90).
-    void Say(const SpeechRecord* speech, int kind);
+    void Say(const SpeechRecord* speech, int kind) override;
     // 00538040. Virtual slot 52: every queued speech's sound stops (talking ones clear the server
     // unit's flag 0x800000) and the queue is emptied.
-    void StopSpeech();
+    void StopSpeech() override;
     // 005380D0. Plays `speech`'s sound (2D, priority 1, volume 100, as speech) into its +0x0C and
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
-    // unit_client_lifetime.cpp (A-U2).
-    // 00533FE0. Virtual slot 2 (Create): no sources, times, animation or motion order (PathOrder::Reset
-    // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
-    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
-    // released. Returns 1.
-    int CreateClient();
-    // 00533E80. Virtual slot 0, the deleting destructor: the destructor body (00533EA0), then the
-    // memory freed for bit 0 of `flags`. Returns this.
-    CUnitClientSpecific* DeletingDestruct(std::uint32_t flags);
-    // 00533EA0 (unit_client_lifetime.cpp, A-U4). The destructor body: the three particle sources
-    // stop and are released, the face texture released (no blink), the speech queue's nodes and
-    // header freed, the MFC list +0x58 emptied, then the base (CUnitController::Vtable(), no unit) and
-    // CEngineObject's destructor body.
-    void DestructClientBody();
-    // 00533AD0 (unit_client_lifetime.cpp, A-U4). The constructor: the engine object's fields, no
-    // unit, the list +0x58 (vtable 0073EDB0, block size 0x80), an empty speech queue (its header
-    // node allocated), no face texture, fully faded in, the vtable (Vtable()). Returns this.
-    CUnitClientSpecific* ConstructClient();
-    // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
-    // and are released, the face texture released; no blink.
-    void DestroyClient();
-
-    // object_small_slots.cpp (A-U2). 005391B0, virtual slot 36: 1 when a weapon model is held
-    // (any weapon id not -1). 005391E0, slot 37: 1 when one of the first three armour slots (body,
-    // trousers, helmet) holds a model.
-    int HasWeaponModels();
-    int HasArmourModels();
+    // object_small_slots.cpp (A-U2). 005391B0, virtual slot 36 (HasOtherArmour): 1 when a weapon model
+    // is held (any weapon id not -1). 005391E0, slot 37 (HasMainArmour): 1 when one of the first three
+    // armour slots (body, trousers, helmet) holds a model.
+    int HasOtherArmour() override;
+    int HasMainArmour() override;
 
     // unit_client_equipment.cpp (A-U).
-    // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
+    // 00536100. Virtual slot 29 (RefreshEquipment): for heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
     // unchecked) and the simple one (ComposeSkin(0)) into the second's (+0x24, skipped when
     // missing). A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's
     // LoadTexture) when ComposeSkin returned non-zero or the name differs. Returns 1.
-    int RefreshSkins();
-    // 00536220. Virtual slot 30 (weapon changed): the simple skin only. Returns 1.
-    int RefreshSimpleSkin();
+    int RefreshEquipment() override;
+    // 00536220. Virtual slot 30 (RefreshModel, after a weapon change): the simple skin only. Returns 1.
+    int RefreshModel() override;
     // 00538140. Virtual slot 32: every armour slot taken off (slot 27), the ids cleared, then the
     // first min(count, 7) of `ids` put on (slot 26).
-    void SetArmourModels(const std::uint32_t* ids, int count);
+    void SetArmourModels(const std::uint32_t* ids, int count) override;
     // 00538860. Virtual slot 33: the weapon ids cleared, then the first min(count, 4) of `ids`
     // added (slot 34).
-    void SetWeaponModels(const std::uint32_t* ids, int count);
-    // 005388C0. Virtual slot 34: `id` (packed; neither half 0xFFFF) goes to the first free weapon
+    void SetWeaponModels(const std::uint32_t* ids, int count) override;
+    // 005388C0. Virtual slot 34 (WeaponAdded): `id` (packed; neither half 0xFFFF) goes to the first free weapon
     // slot. False (AL) for an invalid id or no free slot.
-    bool AddWeaponModel(std::uint32_t id);
+    bool WeaponAdded(std::uint32_t id) override;
     // 00538920. Virtual slot 35: the weapon slot holding `id` is emptied. False (AL) when none does.
-    bool RemoveWeaponModel(std::uint32_t id);
+    bool RemoveWeaponModel(std::uint32_t id) override;
 
     // unit_client_sounds.cpp (A-U).
     // 00534B60. The sounds of the animation playing (state +0x40) between the last update's frame
@@ -369,7 +372,6 @@ public:
 
     PathOrder* MotionPath() { return &motion; }
 
-    CUnit* unit;                    // +0x1C
     CParticleSource* sources[3];    // +0x20 particle sources the controller keeps (counted)
     float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
@@ -412,10 +414,6 @@ static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
 static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
-// 00535B20 (slot 41 MotionChanged; unit_client_path.cpp): the unit placed on its new path at the time it was
-// last advanced to, without turning.
-void __fastcall ClientMotionChanged(CUnitClientSpecific* self);
-
 // 00535CB0 (__fastcall). The figure part names a unit of prototype `prototype` shows with the
 // armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as
 // "hr.<hair>.armor<number>" unless the prototype has no hair, -1), the parts of the
@@ -425,7 +423,5 @@ void __fastcall ClientMotionChanged(CUnitClientSpecific* self);
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames);
-
-#include "unit.h"   // CUnit
 
 inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }

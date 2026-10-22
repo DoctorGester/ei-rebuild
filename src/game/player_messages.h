@@ -76,7 +76,7 @@ public:
     virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
     virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
     virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
-    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::UpdateServer calls it when
+    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
     // the dying unit is the player's leader); client empty.
     virtual void LeaderDied();
     virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty

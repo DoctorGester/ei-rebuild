@@ -435,8 +435,7 @@ EI_REWRITTEN(0x00510560, CMapObjectClientSpecific::DestructBody);
 
 // --- The server unit controller ---------------------------------------------------------------
 
-void CUnitServer::DestructBody() {
-    SetVtable(this, CUnitServer::Vtable());
+CUnitServer::~CUnitServer() {
     ResetController();
     AIBrain* b = Brain();
     b->Init();
@@ -466,8 +465,6 @@ void CUnitServer::DestructBody() {
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
-    SetVtable(this, CUnitController::Vtable());
-    unit = nullptr;
-    CEngineObject::DestructBase();
 }
-EI_REWRITTEN(0x00546230, CUnitServer::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00546230, CUnitServer::~CUnitServer);
+EI_REWRITTEN_SPECIAL(0x005460E0, CUnitServer::~CUnitServer);

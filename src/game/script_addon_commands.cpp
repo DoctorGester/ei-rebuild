@@ -254,8 +254,8 @@ bool GiveUnitWeapon(Call* call) {
         for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);
         unit->MarkChanged(0);
     }
-    ServerSlots(unit->ServerController())->RefreshModel();
-    ServerSlots(unit->ServerController())->RefreshEquipment();
+    unit->Controller()->RefreshModel();
+    unit->Controller()->RefreshEquipment();
     return true;
 }
 
@@ -308,7 +308,7 @@ bool GiveUnitArmor(Call* call) {
         }
         unit->MarkChanged(0);
     }
-    ServerSlots(unit->ServerController())->RefreshEquipment();
+    unit->Controller()->RefreshEquipment();
     return true;
 }
 

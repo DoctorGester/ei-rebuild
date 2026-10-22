@@ -102,10 +102,10 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
-// The map objects' virtual slots (map_object.h) and the server controller's (CUnitServerVirtuals).
+// The map objects' virtual slots (map_object.h) and the server controller's.
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
-void AttackParamsOf(CUnitServer* controller, AttackParams* out) { ServerSlots(controller)->GetAttackParams(out); }
+void AttackParamsOf(CUnitServer* controller, AttackParams* out) { static_cast<CUnitController*>(controller)->GetAttackParams(out); }
 
 // The original's branch-free max(0, v): FLD 0; FCOMP v; C0 picks v (0 < v, or v is NaN), else +0.
 float MaxZero(float v) { return v <= kZero ? kZero : v; }
@@ -422,11 +422,11 @@ int CUnitServer::Level() {
 }
 EI_REWRITTEN(0x00556760, CUnitServer::Level);
 
-void CUnitServer::UpdateSpellBlockFlag() {
+void CUnitServer::EffectsChanged() {
     if (unit->HasEffect(0x20) && Combat().naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
     else unit->flags_ &= ~kFlagSpellBlocked;
 }
-EI_REWRITTEN(0x00553220, CUnitServer::UpdateSpellBlockFlag);
+EI_REWRITTEN(0x00553220, CUnitServer::EffectsChanged);
 
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;

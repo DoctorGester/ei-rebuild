@@ -22,7 +22,7 @@
 #include "options.h"
 
 namespace {
-constexpr std::uint32_t kFlagNoEffect = 8;            // HitEffect's flags
+constexpr std::uint32_t kFlagNoEffect = 8;            // StatChanged's flags
 constexpr float kMinAmount = 0.0001f;                 // 0073CD44
 constexpr int kNoArmourSlot = 7;
 constexpr std::uint32_t kNoMaterial = 0xFFFF;
@@ -131,7 +131,7 @@ std::uint8_t HitSoundKind(CUnit* unit) {
 }
 } // namespace
 
-void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t flags) {
+void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t flags) {
     if (flags & kFlagNoEffect) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
@@ -188,9 +188,9 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     std::uint32_t variant = DecalVariant();
     TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
-EI_REWRITTEN(0x00537500, CUnitClientSpecific::HitEffect);
+EI_REWRITTEN(0x00537500, CUnitClientSpecific::StatChanged);
 
-void CUnitClientSpecific::SparkEffect(int) {
+void CUnitClientSpecific::Wound(float) {
     auto* source = TheParticleManager()->CreateSource(kSparks);
     source->localPosition_ = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->radius);
@@ -201,9 +201,9 @@ void CUnitClientSpecific::SparkEffect(int) {
     if (flashCountdown == 0) half->SetMaterialsLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
-EI_REWRITTEN(0x00537C00, CUnitClientSpecific::SparkEffect);
+EI_REWRITTEN(0x00537C00, CUnitClientSpecific::Wound);
 
-void CUnitClientSpecific::DeathEffect() {
+void CUnitClientSpecific::Died() {
     unit->MapObject()->ClientCompanion()->HideLight();
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
@@ -223,12 +223,12 @@ void CUnitClientSpecific::DeathEffect() {
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
-EI_REWRITTEN(0x005373D0, CUnitClientSpecific::DeathEffect);
+EI_REWRITTEN(0x005373D0, CUnitClientSpecific::Died);
 
-void CUnitClientSpecific::OwnerPlayerChanged(void* player) {
+void CUnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
     unit->MapObject()->ClientCompanion()->CreateLight(colour, PartyLightRadius(), false);
 }
-EI_REWRITTEN(0x00534140, CUnitClientSpecific::OwnerPlayerChanged);
+EI_REWRITTEN(0x00534140, CUnitClientSpecific::PlayerChanged);

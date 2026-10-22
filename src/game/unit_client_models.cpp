@@ -70,7 +70,7 @@ std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDet
 
 // --- Armour figure parts ----------------------------------------------------------------------
 
-bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
+bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     if (itemId == kNone) return false;
     std::uint32_t type = itemId >> 16;
     if (type == 0xFFFF || (itemId & 0xFFFF) == 0xFFFF) return false;
@@ -120,7 +120,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     }
     return true;
 }
-EI_REWRITTEN(0x005381B0, CUnitClientSpecific::WearArmourModel);
+EI_REWRITTEN(0x005381B0, CUnitClientSpecific::ArmourPutOn);
 
 namespace {
 // The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
@@ -132,7 +132,7 @@ int CompareNames(const char* a, const char* b) {
 }
 } // namespace
 
-bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
+bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     if (slot >= 7) return false;
     std::uint32_t itemId = armourIds[slot];
     if (itemId == kNone) return false;
@@ -173,7 +173,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     }
     return true;
 }
-EI_REWRITTEN(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
+EI_REWRITTEN(0x005385A0, CUnitClientSpecific::ArmourTakenOff);
 
 namespace {
 
@@ -186,7 +186,7 @@ std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
 }
 } // namespace
 
-int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
+int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
     console::CStringArray names;
@@ -220,7 +220,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     unit->Controller()->RefreshModel();
     return 1;
 }
-EI_REWRITTEN(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
+EI_REWRITTEN(0x00535590, CUnitClientSpecific::ShowWeapon);
 
 // --- The weapon in hand and the bow's arrow during animations (A-U) ------------------------------
 

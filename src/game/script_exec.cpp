@@ -760,7 +760,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             damage.multiplier = 1.0f;
             damage.location = 1;
             // TakeHit(hit, attacker, source): three arguments (the original pushes the first 0 early).
-            ServerSlots(state)->TakeHitSlot(&damage, nullptr, nullptr);
+            static_cast<CUnitController*>(state)->TakeHit(&damage, nullptr, nullptr);
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
@@ -804,7 +804,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!spell) break;
             unit->AddSpell(spell);
             CUnitServer* state = UnitState(unit);
-            ServerSlots(state)->RefreshEquipment();
+            static_cast<CUnitController*>(state)->RefreshEquipment();
             break;
         }
         case 0xCD:   // GiveSkill(unit, skill, value)

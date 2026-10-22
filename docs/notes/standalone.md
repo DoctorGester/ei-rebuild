@@ -1176,12 +1176,12 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (effects_bow's unit height moved). The height slots return double (ST0); the server's slot 27 and the client's
     call the float bodies GridHeight / ClampedGroundHeight, and slot 6 calls Update / Segment, which keep their names
     for the main loop and the harness (by address).
-  - **Unit controllers** (unit_controller_slots.cpp): `ControllerClass<Self, T>` declares CUnitController's slots
-    13-53 with the base's bodies; ControllerBaseClass (0073EDBC: every controller's constructor stores
-    `CUnitController::Vtable()` first, its destructor body last), CUnitClientSpecificClass (0073ECD8) and
-    CUnitServerClass (0073EF38). Slots whose original is a plain RET are void (CUnit passes EAX of 23 / 44 / 49 / 53
-    on; nothing was seen to use it). The deleting destructors are `DeletingDestruct` (EngineObjectClass's slot 0
-    needs the name).
+  - **Unit controllers** (real classes since C28h): CUnitController (unit.h, 0073EDBC) declares slots 13-53 with
+    the base's bodies (16, 17, 24-27, 36, 37 and 50 pure); CUnitServer (combat.h, 0073EF38) and CUnitClientSpecific
+    (unit_client_models.h, 0073ECD8) derive from it. Slots whose original is a plain RET are void (CUnit passes EAX
+    of 23 / 44 / 49 / 53 on; nothing was seen to use it, so CUnit's wrappers return 0). The bodies registered at
+    their addresses (the server's MotionSlot / EmptySlot17, the client's ClientControllerPath and the shared empty
+    ones) stay beside the overrides.
   - **Map object companions** (map_object_companion_slots.cpp): `CompanionClass<Self, T>` (slots 13-19);
     CompanionBaseClass (0073DC54, `CMapObjectCompanion::BaseVtable()`), CMapObjectClientSpecificClass (0073DBEC) and
     CMapObjectServerClass (0073DD6C, slot 20 TakeHit). Slot 13 takes a bool (the client's OnEffectsChanged reads

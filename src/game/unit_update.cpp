@@ -39,12 +39,16 @@ EI_REWRITTEN(0x0052F7D0, CUnit::Tick);
 
 std::uintptr_t CUnit::RecomputeScale() {
     CMapObject::RecomputeScale();
-    return Controller()->Resettle();
+    Controller()->Resettle();
+    return 0;
 }
 std::uintptr_t __fastcall UnitRecomputeScaleHook(CUnit* self) { return self->CUnit::RecomputeScale(); }
 EI_REWRITTEN(0x00532A80, UnitRecomputeScaleHook);
 
-std::uintptr_t CUnit::EffectsChanged() { return Controller()->EffectsChanged(); }
+std::uintptr_t CUnit::EffectsChanged() {
+    Controller()->EffectsChanged();
+    return 0;
+}
 std::uintptr_t __fastcall UnitEffectsChangedHook(CUnit* self) { return self->CUnit::EffectsChanged(); }
 EI_REWRITTEN(0x00532AB0, UnitEffectsChangedHook);
 
@@ -64,11 +68,11 @@ EI_REWRITTEN(0x0052E910, UnitLoadFiguresHook);
 std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
     if (!object || object->type_ != kControllerType) return CMapObject::AttachObjectImpl(object);
     if (controller) {
-        Controller()->unit_ = nullptr;
+        Controller()->unit = nullptr;
         controller->Release();
     }
     controller = object;
-    static_cast<CUnitController*>(object)->unit_ = this;
+    static_cast<CUnitController*>(object)->unit = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
 EI_REWRITTEN(0x0052E870, CUnit::AttachObjectImpl);
@@ -83,7 +87,7 @@ EI_REWRITTEN(0x0052EB50, UnitStatsChangedHook);
 
 std::uintptr_t CUnit::ScaleEffectChangedImpl(int value) {
     if (!controller) return 0;
-    return static_cast<std::uintptr_t>(Controller()->RefreshVitals(value));
+    return static_cast<std::uintptr_t>(Controller()->RefreshVitals(static_cast<char>(value)));
 }
 EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 
@@ -94,7 +98,10 @@ std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
 }
 EI_REWRITTEN(0x00530A20, CUnit::SetStatsImpl);
 
-std::uintptr_t CUnit::UpdateSizeClasses() { return Controller()->UpdateSizeClasses(); }
+std::uintptr_t CUnit::UpdateSizeClasses() {
+    Controller()->UpdateSizeClasses();
+    return 0;
+}
 std::uintptr_t __fastcall UnitUpdateSizeClassesHook(CUnit* self) { return self->CUnit::UpdateSizeClasses(); }
 EI_REWRITTEN(0x00530A50, UnitUpdateSizeClassesHook);
 
