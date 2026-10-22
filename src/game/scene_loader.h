@@ -19,6 +19,7 @@
 #include "../lib/containers.h"
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
+#include "../lib/mfc_coll.h"
 #include "../lib/vecmath.h"
 #include "../lib/mfc_slots.h"
 #include "game_data.h"
@@ -130,8 +131,8 @@ struct FaceGroup {
     // then both destroyed.
     void Destruct();
 
-    mfc::CString name;        // +00
-    mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
+    mfc::CString name;                 // +00
+    mfc::impl::CDWordArray faces;      // +04 face indices
 };
 static_assert(sizeof(FaceGroup) == 0x18);
 // CArray<FaceGroup>'s elements: constructed by 00454DB0, destroyed by FaceGroup::Destruct.

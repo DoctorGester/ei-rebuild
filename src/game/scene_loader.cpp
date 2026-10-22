@@ -581,10 +581,6 @@ EI_REWRITTEN(0x00474C50, FaceGroup::Assign);
 
 namespace {
 
-mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
-    return reinterpret_cast<mfc::impl::CDWordArray*>(faces);
-}
-
 template <typename A>
 void FreeArray(A& array, void* vtable) {
     array.vtable = vtable;
@@ -602,15 +598,15 @@ void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
     std::memset(static_cast<void*>(groups), 0, static_cast<std::size_t>(count) * sizeof(FaceGroup));
     for (; count > 0; --count, ++groups) {
         new (&groups->name) mfc::CString();
-        Dwords(&groups->faces)->Construct();
+        groups->faces.Construct();
     }
 }
 EI_REWRITTEN(0x00454DB0, FaceGroup::ConstructElements);
 
 void FaceGroup::Destruct() {
-    Dwords(&faces)->SetSize(0, -1);
+    faces.SetSize(0, -1);
     name.Empty();
-    Dwords(&faces)->Destruct();
+    faces.Destruct();
     name.~CString();
 }
 
