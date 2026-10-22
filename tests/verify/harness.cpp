@@ -322,6 +322,11 @@
 //                             objects' shadows (others, R22: render::SetShadowFacing; the default) or no
 //                             shadow at all (all: as before R22), from the next frame. Ignored in a run of
 //                             the original code
+//   shadowview on|off         with the shadow map, the receivers show only the sun the map hides (white lit,
+//                             black fully shadowed; render::SetShadowView, R25), from the next frame
+//   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
+//                             as many along (render::SetShadowShift, R25; 0 the default): the same shadow,
+//                             other range cells. Both ignored in a run of the original code
 //   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
 //                             the default) or built and uploaded every frame (off), from the next
 //                             frame; check requires that no check of a kept page against a fresh build
@@ -3563,6 +3568,14 @@ void RunSteps() {
             if (s.argument == "others") render::SetShadowFacing(render::ShadowFacing::Others);
             else if (s.argument == "all") render::SetShadowFacing(render::ShadowFacing::All);
             else g_failures.push_back("shadowfacing needs others or all");
+        } else if (s.verb == "shadowview" || s.verb == "shadowshift") {
+            if (!render::Active()) {
+                Log("harness: %s %s: not the new renderer (the original code): ignored", s.verb.c_str(), s.argument.c_str());
+                continue;
+            }
+            if (s.verb == "shadowshift") render::SetShadowShift(std::atoi(s.argument.c_str()));
+            else if (s.argument == "on" || s.argument == "off") render::SetShadowView(s.argument == "on");
+            else g_failures.push_back("shadowview needs on or off");
         } else if (s.verb == "shadowbuild") {
             if (!render::Active()) {
                 Log("harness: shadowbuild %s: not the new renderer (the original code): ignored", s.argument.c_str());
