@@ -107,11 +107,13 @@ struct AIOrder {
     // an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
-    int kind;                       // +0x00
-    int what;                       // +0x04 6 for an attack, the spell for a cast
-    AIRefTo<CMapObject> object;     // +0x08 counted
-    Vector3 point;                  // +0x0C left uninitialised by the AI's orders
-    std::uint8_t flag;              // +0x18
+    int kind;                       // +0x00 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
+    std::uint32_t source;           // +0x04 6 for an attack, the spell for a cast; in a UnitAction
+                                    //       (combat.h) the spell slot, or quick item slot | 0x80000000;
+                                    //       0x18A95 for a skill used on a target (kind 6)
+    AIRefTo<CMapObject> target;     // +0x08 counted
+    Vector3 point;                  // +0x0C target point; left uninitialised by the AI's orders
+    std::uint8_t flag18;            // +0x18
     std::uint8_t unused_19[3];
 };
 static_assert(sizeof(AIOrder) == 0x1C);
@@ -1032,7 +1034,7 @@ struct AIBrain {
     enum {
         kActionNone = 0,
         kActionWalk = 1,
-        kActionMove = 2,        // move to `actionPoint`, then the queued looks
+        kActionMove = 2,        // move to `move.point`, then the queued looks
         kActionAttack = 3,
         kActionCast = 4,
         kActionUse = 5,
@@ -1091,8 +1093,6 @@ struct AIBrain {
     // destructor). Init, the memory destroyed (as 00545CB0), then the attention arrays, alarm
     // records, the mode in charge, the mode list, target / seen and the looks.
     void Destruct();
-    // The action point and its looks as one move order (00545B20 clears them).
-    AIMoveOrder* MoveOrder() { return reinterpret_cast<AIMoveOrder*>(&actionPoint); }
     // 005D8310 / 005D8860 (RET 4; unit_ai_brain.cpp). The brain from / to a save: the action, its
     // point, looks and time, target and seen object, the scalars, the modes (count, the index of
     // the one in charge, then each mode's type and its own data), the perception memory, the alarm
@@ -1184,8 +1184,7 @@ struct AIBrain {
 
     CUnitServer* owner;             // +0x000
     int action;                     // +0x004
-    Vector3 actionPoint;            // +0x008
-    AILookArray looks;              // +0x014 what to look at after arriving
+    AIMoveOrder move;               // +0x008 the action point, and what to look at after arriving (+0x014)
     int actionTime;                 // +0x028 game time the current look ends (or kNoTime / kLookStarted)
     AIRefTo<CMapObject> target;     // +0x02C
     AIRefTo<CMapObject> seen;       // +0x030
@@ -1209,7 +1208,7 @@ struct AIBrain {
     AIAttention attention;          // +0x0A4
     AIMemory memory;                // +0x0D0 perception memory
 };
-static_assert(offsetof(AIBrain, looks) == 0x14);
+static_assert(offsetof(AIBrain, move) == 0x08);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
 static_assert(offsetof(AIBrain, alertMode) == 0x3C);
 static_assert(offsetof(AIBrain, decay) == 0x4C);

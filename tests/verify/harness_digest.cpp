@@ -300,8 +300,8 @@ void ReadEffects(CMapObject* m, Builder& b) {
 
 void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.action", brain.action);
-    b.Vector("ai.point.x", "ai.point.y", "ai.point.z", brain.actionPoint);
-    b.Int("ai.looks", brain.looks.GetSize());
+    b.Vector("ai.point.x", "ai.point.y", "ai.point.z", brain.move.point);
+    b.Int("ai.looks", brain.move.looks.GetSize());
     b.Int("ai.actionTime", brain.actionTime);
     b.Int("ai.target", IdOf(brain.target));
     b.Int("ai.seen", IdOf(brain.seen));

@@ -72,7 +72,7 @@ bool PartTooFar(const CFigureMesh* part) {
 // The end of a draw: the iterator's reference to the light list and the light list itself.
 void Finish(ObjectListIterator& lights, LightList& list) {
     if (lights.manager) {
-        --reinterpret_cast<CEngineObject*>(lights.manager)->refCount_;
+        --lights.manager->refCount_;
         lights.manager = nullptr;
     }
     if (list.data) lib::FreeAligned32(list.data);

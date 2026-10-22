@@ -16,16 +16,12 @@
 
 constexpr int kClassUnitServer = 0x3E;
 
-// An order of the unit (0x24 bytes; CUnitServer + 0x190 and + 0x1B4). 0054B230 resets one (kind 9,
-// releasing the target).
-struct UnitAction {
-    int kind;                   // +0x00 3 attack, 4/5 cast (spell or quick item), 6 use/skill, 9 none
-    std::uint32_t source;       // +0x04 spell slot, or quick item slot | 0x80000000; 0x18A95 for a
-                                //       skill used on a target (kind 6)
-    CMapObject* target;         // +0x08 (referenced)
-    Vector3 point;              // +0x0C target point
-    std::uint8_t flag18;        // +0x18
-    std::uint8_t unused_19[3];
+// An order of the unit (0x24 bytes; CUnitServer + 0x190 and + 0x1B4): an AIOrder (unit_ai.h; kind,
+// source, the referenced target, the point and flag18; 00545F40 clears it) and two more fields.
+// 0054B230 resets one (kind 9, releasing the target). The AI's and the players' order checks
+// (CanReachAndPlan / From and the planning under them) take the AIOrder part only: the AI builds
+// just that on the stack.
+struct UnitAction : AIOrder {
     int param;                  // +0x1C by kind: a skill's spot (6), a wait's time, an emote's animation,
                                 //       the studied item's id
     std::uint8_t modifier;      // +0x20 run (move orders) or a called shot (attacks)
@@ -38,9 +34,6 @@ struct UnitAction {
     UnitAction* Assign(const UnitAction* from);
     // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
     void Reset();
-    // 00545F40: the first 0x1C bytes are an AIOrder (unit_ai.h), cleared by its Clear (kind 9, the target
-    // released, flag18 clear).
-    void ClearOrder() { reinterpret_cast<AIOrder*>(this)->Clear(); }
     // The inlined counted-reference assignment of the target (the order setters): the old one
     // released, the new one referenced; nothing when it is the same.
     void Retarget(CMapObject* object) {
@@ -52,10 +45,6 @@ struct UnitAction {
     }
 };
 static_assert(sizeof(UnitAction) == 0x24);
-
-// The AI's and the players' order checks (CanReachAndPlan / From) build only an AIOrder (unit_ai.h, the
-// first 0x1C bytes of a UnitAction) on the stack and pass it as the order, as the original does.
-inline const UnitAction* AsUnitAction(const AIOrder* order) { return reinterpret_cast<const UnitAction*>(order); }
 
 // One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620): the
 // library's element (lib/mfc_array.h, mfc::impl::AnimationStep12). animation +0x00 is the index of
@@ -320,15 +309,15 @@ public:
     bool IsFighting();
     // 0054BF80. Can the spell of `action` be cast now: a carrier with enough charge (category 5),
     // or a spell the party unit has the mana for? Callers test AL.
-    bool CanCast(const UnitAction* order);
+    bool CanCast(const AIOrder* order);
     // 0054B520. The target point of the first order of kind 1 (+0x190, then +0x1B4). 0/1.
     BOOL GetMovePoint(float* out);
     // 0054C070. The distance from which `action` can be carried out.
-    float ActionDistance(const UnitAction* order);
+    float ActionDistance(const AIOrder* order);
     // 0054C800. False only for a melee order (kind 3 without a ranged weapon, or 6) on a living
     // unit standing on its own (+0x324 == 0) whose prototype +0x24 plus its height is 1.5 or more.
     // Callers test AL.
-    bool CanReachTarget(const UnitAction* order);
+    bool CanReachTarget(const AIOrder* order);
     // 00550050. 1 << the weapon type (natural weapon types 7 and above: 0).
     std::uint32_t WeaponTypeMask();
     // 005500A0. Animation bits of a movement mode: 0 0x30000, 1 0x20000, 2 0x10000 (only with
@@ -554,25 +543,25 @@ public:
     // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
     // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
     // that is not a unit. Callers test AL.
-    bool FindSightTarget(const UnitAction* order, struct SightTarget* out);
+    bool FindSightTarget(const AIOrder* order, struct SightTarget* out);
     // 0054C2F0. Can the unit carry out `order` at `time` with its target at `point`: in range for
     // AI units, no living unit in the way of a melee or skill order, and a line of sight when the
     // order needs one. Callers test AL.
-    bool CanActFrom(const UnitAction* order, const float* point, int time);
+    bool CanActFrom(const AIOrder* order, const float* point, int time);
     // 0054CA40. Plans `order`: builds its animation (0054F970 / 00550100 / 00550620, which draw
     // random numbers), then looks for the first moment at which the target is in reach, the unit
     // can turn to it in time, and CanActFrom holds; fills `plan` and returns true then.
-    bool PlanAction(const UnitAction* order, struct OrderPlan* plan);
+    bool PlanAction(const AIOrder* order, struct OrderPlan* plan);
     // 0054C6B0. PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
     // meanwhile. Callers test AL.
-    bool CanPlanAction(const UnitAction* order);
+    bool CanPlanAction(const AIOrder* order);
     // 0054C8B0 (RET 4; combat_tick.cpp; the AI's and the players' order checks). False for an
     // attack without a ranged weapon, or a skill, on a living unit of size class 0 that is too
     // high to reach (its prototype's height plus its z at 1.5 or above); else CanPlanAction.
     // Callers test AL.
-    bool CanReachAndPlan(const UnitAction* order);
+    bool CanReachAndPlan(const AIOrder* order);
     // 0054C960 (RET 8). The same, planning with the unit placed at `point` meanwhile.
-    bool CanReachAndPlanFrom(const UnitAction* order, const Vector3* point);
+    bool CanReachAndPlanFrom(const AIOrder* order, const Vector3* point);
 
     // combat_steps.cpp: the animation steps of an order. The unit's animation
     // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
@@ -741,7 +730,7 @@ public:
     // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
     // until the order's target is in reach (and seen, when the order needs a line of sight); the
     // time it takes (ST0), 0 for other kinds.
-    double TimeUntilAction(const UnitAction* order, AIPath* motionOrder);
+    double TimeUntilAction(const AIOrder* order, AIPath* motionOrder);
     // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
     // sector map) and whether the unit can act from its end, with the player's path message;
     // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only

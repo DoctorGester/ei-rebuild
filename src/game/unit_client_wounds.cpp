@@ -197,13 +197,13 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!manager->LoadTexture(woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
-            AsCountedRef(woundsMaterial).Assign(nullptr);
+            woundsMaterial.Assign(nullptr);
             extra.FreeData();
             return 0;
         }
     }
     if (!woundsMaterial) {
-        AsCountedRef(woundsMaterial).Assign(NewWoundsMaterial());
+        woundsMaterial.Assign(NewWoundsMaterial());
         CRenderHelper* helper = TheSceneRenderer()->helper_;
         AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));

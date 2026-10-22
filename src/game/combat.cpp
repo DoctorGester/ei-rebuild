@@ -299,7 +299,7 @@ bool CUnitServer::IsFighting() {
 }
 EI_REPLACE_METHOD(0x0054B580, CUnitServer::IsFighting);
 
-bool CUnitServer::CanCast(const UnitAction* order) {
+bool CUnitServer::CanCast(const AIOrder* order) {
     std::uint32_t source = order->source;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
@@ -336,7 +336,7 @@ BOOL CUnitServer::GetMovePoint(float* out) {
 }
 EI_REPLACE_METHOD(0x0054B520, CUnitServer::GetMovePoint);
 
-float CUnitServer::ActionDistance(const UnitAction* order) {
+float CUnitServer::ActionDistance(const AIOrder* order) {
     if (order->flag18) return kPointTwo;
     int kind = order->kind;
     CMapObject* target = order->target;
@@ -381,7 +381,7 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
 }
 EI_REWRITTEN(0x0054C070, CUnitServer::ActionDistance);
 
-bool CUnitServer::CanReachTarget(const UnitAction* order) {
+bool CUnitServer::CanReachTarget(const AIOrder* order) {
     if (order->kind != 3 && order->kind != 6) return true;
     CUnit* other = UnitOrNull(order->target);
     if (!other) return true;

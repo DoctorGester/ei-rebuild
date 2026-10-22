@@ -87,31 +87,31 @@ EI_REWRITTEN(0x005CFE20, AIDistance2);
 
 void AIOrder::Clear() {
     kind = 9;
-    if (object) object->Release();
-    object = nullptr;
-    flag = 0;
+    if (target) target->Release();
+    target = nullptr;
+    flag18 = 0;
 }
 EI_REWRITTEN(0x00545F40, AIOrder::Clear);
 
-void AIOrder::MakeAttack(CMapObject* target) {
+void AIOrder::MakeAttack(CMapObject* object) {
     Clear();
     kind = 3;
-    what = 6;
-    if (target) {
-        ++target->refCount_;
-        object = target;
+    source = 6;
+    if (object) {
+        ++object->refCount_;
+        target = object;
     }
 }
 EI_REWRITTEN(0x005CF720, AIOrder::MakeAttack);
 
-void AIOrder::MakeCast(int spell, CMapObject* target) {
+void AIOrder::MakeCast(int spell, CMapObject* object) {
     Clear();
     kind = 5;
-    if (target) {
-        ++target->refCount_;
-        object = target;
+    if (object) {
+        ++object->refCount_;
+        target = object;
     }
-    what = spell;
+    source = static_cast<std::uint32_t>(spell);
 }
 EI_REWRITTEN(0x005CF780, AIOrder::MakeCast);
 
@@ -156,15 +156,15 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     }
 
     AIOrder order;
-    order.object = nullptr;
+    order.target = nullptr;
     order.Clear();
     if (part < 0) {
         order.MakeAttack(target);
     } else {
         order.MakeCast(part, target);
     }
-    bool allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), &point);
-    order.object.Reset();
+    bool allowed = brain->owner->CanReachAndPlanFrom(&order, &point);
+    order.target.Reset();
     return allowed;
 }
 EI_REWRITTEN(0x005CF3C0, AIAttention::CanReach);
@@ -373,8 +373,8 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
                 } else {
                     order.MakeCast(choice->part, object);
                 }
-                allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), PositionOf(self));
-                order.object.Reset();
+                allowed = brain->owner->CanReachAndPlanFrom(&order, PositionOf(self));
+                order.target.Reset();
             }
             if (allowed && CanReach(brain, choice, reachArg)) return;
         }

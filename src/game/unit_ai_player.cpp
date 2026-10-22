@@ -62,19 +62,19 @@ int AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     int flags = kAttackFlags;
     if (!brain->owner->unit->player) return flags;
     AIOrder order;
-    order.object = nullptr;
+    order.target = nullptr;
     order.Clear();
     if (clearTwice) {
         // 005D4170's second attack builds the order by hand after a second Clear.
         order.Clear();
         order.kind = 3;
-        order.what = kAttackHow;
-        order.object.Assign(object);
+        order.source = kAttackHow;
+        order.target.Assign(object);
     } else {
         order.MakeAttack(object);
     }
-    if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-    order.object.Reset();
+    if (brain->owner->CanReachAndPlan(&order)) flags = -1;
+    order.target.Reset();
     return flags;
 }
 

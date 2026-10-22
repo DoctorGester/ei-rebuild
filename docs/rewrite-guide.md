@@ -180,7 +180,12 @@ does not need a second pass:
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
-  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor.
+  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
+  pointer the game's helpers take by address is a field of the holder type (`CountedRef<T>`,
+  `HeldTexture`, `HeldDevice`, `AIRefTo<T>`: reads see the object, a plain store counts nothing),
+  not a `T*` field and a `Holder::Of(&field)` cast; a record that starts with another struct's
+  fields derives from it (UnitAction : AIOrder, SectorBox : ClipBounds) and the functions that
+  read only the prefix take the base.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

@@ -342,7 +342,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         animation->CollectBoneNames(static_cast<mfc::CStringArray*>(partList));
         stlp::string key(model, model + std::strlen(model));
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
-        FigureRef().Assign(made);
+        figure.Assign(made);
     } else {
         stlp::vector<stlp::string> pieces;
         FillPieceNames(pieces, names);

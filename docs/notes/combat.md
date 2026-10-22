@@ -146,7 +146,7 @@ Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h sl
 userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitServerVirtuals slots 21-50 (TakeUpWeapon
 25, TameStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
 caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick_,
-AIMap()->refreshUnits, Sectors(), timeWheel_; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
+AIMap()->refreshUnits, Sectors(), AIEvents(); unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
 figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
 
 ## Rewritten

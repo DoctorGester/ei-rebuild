@@ -26,7 +26,6 @@ constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
 constexpr int kBlockSize = 10;
 
-static_assert(offsetof(AIBrain, looks) == offsetof(AIBrain, actionPoint) + offsetof(AIMoveOrder, looks));
 
 // A step list's constructor (00556850 / 00546060, and 00557B60 with the derived vtable written
 // after it): no steps; `extra` is left as it was.
@@ -44,7 +43,7 @@ void InitAction(UnitAction& action) {
     action.target = nullptr;
     action.kind = 9;
     action.flag18 = 0;
-    action.ClearOrder();
+    action.Clear();
     action.param = 0;
     action.modifier = 0;
 }
@@ -155,9 +154,9 @@ EI_REWRITTEN(0x00545110, OrderPlan::TakeSteps);
 // --- AIBrain ------------------------------------------------------------------------------------
 
 AIBrain* AIBrain::Construct() {
-    LooksInit(&looks);
-    looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-    MoveOrder()->Clear();
+    LooksInit(&move.looks);
+    move.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
+    move.Clear();   // 00545B20
     target = nullptr;
     seen = nullptr;
     modes = {};
@@ -225,7 +224,7 @@ void AIBrain::Destruct() {
     seen = nullptr;
     if (target) target->Release();
     target = nullptr;
-    looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
-    if (looks.data) gamecrt::operator_delete(looks.data);
+    move.looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
+    if (move.looks.data) gamecrt::operator_delete(move.looks.data);
 }
 EI_REWRITTEN(0x005457E0, AIBrain::Destruct);

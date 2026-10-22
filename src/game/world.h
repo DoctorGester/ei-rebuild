@@ -24,6 +24,7 @@
 #include "player_source.h"
 #include "registry.h"
 #include "script.h"
+#include "unit_ai.h"       // AIEventTable (the server world's AI events)
 #include "unit_create.h"
 #include "unit_looks.h"
 #include "water_tweens.h"
@@ -49,7 +50,6 @@ class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
 class CPlayerClient;   // player_client.h
 class CScript;   // script.h
-struct AIEventTable;   // unit_ai.h
 namespace netlink {
 class NetLink;   // net_link.h
 }
@@ -769,8 +769,8 @@ public:
     lib::InPlace<CAIMap> aiMap_;
     CAIMap* AIMap() { return aiMap_.Get(); }
     CSectorMap* Sectors() { return &aiMap_->sectorMap; }
-    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
-    AIEventTable* AIEvents() { return reinterpret_cast<AIEventTable*>(timeWheel_); }
+    AIEventTable aiEvents_;         // +0x2838 the AI events (unit_ai.h: time wheel, grid)
+    AIEventTable* AIEvents() { return &aiEvents_; }
     // +0x12874 the zone's CScript (script.h; constructed by 004BF000): its globals_ hold the
     // "Heroes" group.
     lib::InPlace<CScript> commandsA_;
@@ -820,7 +820,7 @@ static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xEC);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
-static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
+static_assert(offsetof(CWorldServer, aiEvents_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
 static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);
 static_assert(offsetof(CWorldServer, projectiles_) == 0x12E28);

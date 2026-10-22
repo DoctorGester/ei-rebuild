@@ -16,22 +16,24 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include "originals_library.h"
 #include "game_data.h"
 
-// {data, size, capacity, growBy}; the elements are compared as unsigned words (the objects'
-// addresses).
-using ObjectSet = lib::AlignedArray<std::uint32_t>;
+// {data, size, capacity, growBy} of world objects; the game compares and sorts them by address.
+using ObjectSet = lib::AlignedArray<CEngineObject*>;
 static_assert(sizeof(ObjectSet) == 0x10);
 
 namespace {
 
-// The objects behind the words (world objects: CEngineObject).
-CEngineObject* ObjectOf(std::uint32_t word) { return reinterpret_cast<CEngineObject*>(word); }
+// An object's address as the unsigned word the radix sort takes apart.
+std::uint32_t AddressWord(const CEngineObject* object) {
+    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(object));
+}
 
 // The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
 // by 0047B1D0).
-constinit lib::AlignedArray<std::uint32_t> g_scratch = /*007A9738*/ {};
+constinit lib::AlignedArray<CEngineObject*> g_scratch = /*007A9738*/ {};
 ObjectSet& Scratch() { return g_scratch; }
 void __cdecl FreeScratch() { g_scratch.FreeData(); }   // 0047B1D0
 std::uint8_t g_scratchGuard = /*007A9748*/ {};
@@ -40,16 +42,16 @@ std::uint8_t& ScratchGuard() { return g_scratchGuard; }
 // One counting pass by the byte at `shift`: `src` scattered into `dst` (stable).
 void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
     int counts[256] = {};
-    for (int i = 0; i < src.size; ++i) ++counts[(src.data[i] >> shift) & 0xFF];
-    std::uint32_t* next[256];
-    std::uint32_t* at = dst.data;
+    for (int i = 0; i < src.size; ++i) ++counts[(AddressWord(src.data[i]) >> shift) & 0xFF];
+    CEngineObject** next[256];
+    CEngineObject** at = dst.data;
     for (int b = 0; b < 256; ++b) {
         next[b] = at;
         at += counts[b];
     }
     for (int i = 0; i < src.size; ++i) {
-        std::uint32_t value = src.data[i];
-        *next[(value >> shift) & 0xFF]++ = value;
+        CEngineObject* value = src.data[i];
+        *next[(AddressWord(value) >> shift) & 0xFF]++ = value;
     }
 }
 
@@ -60,13 +62,13 @@ bool g_byId = false;   // address_order::UseIds
 void address_order::UseIds() { g_byId = true; }
 bool address_order::ById() { return g_byId || ei::Standalone(); }
 
-bool address_order::ObjectBefore(std::uint32_t a, std::uint32_t b) {
+bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
     if (ById()) {
-        int ia = ObjectOf(a)->id_;
-        int ib = ObjectOf(b)->id_;
+        int ia = a->id_;
+        int ib = b->id_;
         if (ia != ib) return ia < ib;
     }
-    return a < b;
+    return std::less<const CEngineObject*>()(a, b);   // the address (the original's unsigned compare)
 }
 
 EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
@@ -98,10 +100,10 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
         ObjectSetRadixPass(24, &scratch, self);
     }
     // Each element compared with the one before it in place, as the original does.
-    std::uint32_t* end = self->data + self->size;
-    std::uint32_t* out = self->data + 1;
-    for (std::uint32_t* p = self->data + 1; p < end; ++p) {
-        std::uint32_t value = *p;
+    CEngineObject** end = self->data + self->size;
+    CEngineObject** out = self->data + 1;
+    for (CEngineObject** p = self->data + 1; p < end; ++p) {
+        CEngineObject* value = *p;
         if (value != p[-1]) *out++ = value;
     }
     self->SetSizeDiscardStep(static_cast<int>(out - self->data), -1);
@@ -119,15 +121,15 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
     gone->SetSize(most);
     same->SetSize(most);
 
-    const std::uint32_t* s = sent->data;
-    const std::uint32_t* c = current->data;
+    CEngineObject* const* s = sent->data;
+    CEngineObject* const* c = current->data;
     int sentLeft = sent->size;
     int currentLeft = current->size;
     int addedCount = 0, goneCount = 0, sameCount = 0;
     bool changed = false;
     while (sentLeft != 0 && currentLeft != 0) {
-        std::uint32_t old = *s;
-        std::uint32_t now = *c;
+        CEngineObject* old = *s;
+        CEngineObject* now = *c;
         if (old == now) {
             same->data[sameCount++] = now;
             ++s;
@@ -140,23 +142,23 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
         if (address_order::ObjectBefore(old, now)) {
             gone->data[goneCount++] = old;
             ++s;
-            ObjectOf(old)->Release();
+            old->Release();
             --sentLeft;
         } else {
             added->data[addedCount++] = now;
             ++c;
-            ++ObjectOf(now)->refCount_;
+            ++now->refCount_;
             --currentLeft;
         }
     }
     if (changed || sentLeft != 0 || currentLeft != 0) {
         for (; sentLeft != 0; --sentLeft) {
             gone->data[goneCount++] = *s++;
-            ObjectOf(s[-1])->Release();
+            s[-1]->Release();
         }
         for (; currentLeft != 0; --currentLeft) {
             added->data[addedCount++] = *c++;
-            ++ObjectOf(c[-1])->refCount_;
+            ++c[-1]->refCount_;
         }
         sent->SetSize(current->size, -1);
         if (current->size != 0) std::memcpy(sent->data, current->data, static_cast<std::size_t>(current->size) * 4);

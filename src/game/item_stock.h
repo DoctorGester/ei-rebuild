@@ -55,17 +55,9 @@ constexpr int kSpellRecipeSize = 0x34;
 // STLport vector<string>.
 using StockStringVector = stlp::vector<stlp::string>;
 
-// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector).
-struct SpellRecipe {
-    stlp::string spell;             // +0x00 the spell's name
-    StockStringVector required;     // +0x0C modifier names
-    StockStringVector optional;     // +0x18 modifier names
-    stlp::string repeated;          // +0x24 the modifier repeated while it fits
-    std::uint32_t classMask;        // +0x30 bit per ItemStock::classIndex
-};
-static_assert(offsetof(SpellRecipe, required) == 0x0C);
-static_assert(offsetof(SpellRecipe, repeated) == 0x24);
-static_assert(offsetof(SpellRecipe, classMask) == 0x30);
+// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector): the spell database's
+// list record (item_db.h).
+using SpellRecipe = itemdb::SpellListRecord;
 static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
 
 // A vector of spell recipes (007C8568 for weapons, 007C855C for armors, 007C8550 for scrolls).
@@ -97,15 +89,9 @@ inline StockSpellVector& TakenSpells() { return g_takenSpells; }
 inline StockModifierVector& TakenModifiers() { return g_takenModifiers; }
 // The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
 // (The spell database's three lists of recipes: scrolls, armours and weapons.)
-inline const SpellRecipeVector* WeaponSpellRecipes() {
-    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[2]);
-}
-inline const SpellRecipeVector* ArmorSpellRecipes() {
-    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[1]);
-}
-inline const SpellRecipeVector* ScrollSpellRecipes() {
-    return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[0]);
-}
+inline const SpellRecipeVector* WeaponSpellRecipes() { return &itemdb::TheSpellDatabase().lists[2]; }
+inline const SpellRecipeVector* ArmorSpellRecipes() { return &itemdb::TheSpellDatabase().lists[1]; }
+inline const SpellRecipeVector* ScrollSpellRecipes() { return &itemdb::TheSpellDatabase().lists[0]; }
 // The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
 inline itemdb::SpellTable::CodeIndex& SpellsByName() { return itemdb::TheSpellDatabase().spells.byCode; }
 inline itemdb::SpellModifierTable::CodeIndex& ModifiersByName() { return itemdb::TheSpellDatabase().modifiers.byCode; }

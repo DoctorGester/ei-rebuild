@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "model.h"     // ClipBounds
 #include "terrain.h"
 
 #include "lib/vecmath.h"
@@ -94,18 +95,13 @@ struct AnimatedTile {
 };
 static_assert(sizeof(AnimatedTile) == 0x18);
 
-// A bounding box: flags (bit 1 valid), centre, then the low and high corner offsets.
-struct SectorBox {
-    std::uint32_t flags;
-    Vector3 centre;
-    float radius;           // +0x10 ClipBounds::radius (BoundsOf); nothing here writes it
-    Vector3 low;
-    Vector3 high;
+// A bounding box: a ClipBounds (model.h; flags bit 1 valid, the centre, the corner offsets) and three
+// unused dwords.
+struct SectorBox : ClipBounds {
     std::uint32_t unused_2C[3];
 };
 static_assert(sizeof(SectorBox) == 0x38);
-// A box is a ClipBounds (model.h) followed by three unused dwords (asserted in terrain_sector.cpp).
-inline const ClipBounds* BoundsOf(const SectorBox& box) { return reinterpret_cast<const ClipBounds*>(&box); }
+inline const ClipBounds* BoundsOf(const SectorBox& box) { return &box; }
 
 // CTransformPipeline::ClipTest's verdicts as the sector keeps them (+0x60, quarterMode): 0 inside
 // the view, 1 crossing its edge, 2 outside (-1 is stored as 2).

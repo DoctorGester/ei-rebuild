@@ -186,10 +186,10 @@ void SpellModifierRecord::Destruct() {
 EI_REWRITTEN(0x00685B70, SpellModifierRecord::Destruct);
 
 void SpellListRecord::Destruct() {
-    text24.~string();
-    records::DestroyVector(list18);
-    records::DestroyVector(list0C);
-    name.~string();
+    repeated.~string();
+    records::DestroyVector(optional);
+    records::DestroyVector(required);
+    spell.~string();
 }
 EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
@@ -249,26 +249,26 @@ void SpellModifierRecord::ConstructDefault() {
 }
 
 void SpellListRecord::CopyConstruct(const SpellListRecord* source) {
-    new (&name) stlp::string(source->name);
-    list0C.CopyConstruct<stlp::StringElement>(source->list0C);
-    list18.CopyConstruct<stlp::StringElement>(source->list18);
-    new (&text24) stlp::string(source->text24);
-    value30 = source->value30;
+    new (&spell) stlp::string(source->spell);
+    required.CopyConstruct<stlp::StringElement>(source->required);
+    optional.CopyConstruct<stlp::StringElement>(source->optional);
+    new (&repeated) stlp::string(source->repeated);
+    classMask = source->classMask;
 }
 
 void SpellListRecord::AssignList(const SpellListRecord* source) {
-    name.AssignFrom(source->name);
-    list0C.AssignVector<stlp::StringElement>(source->list0C);
-    list18.AssignVector<stlp::StringElement>(source->list18);
-    text24.AssignFrom(source->text24);
-    value30 = source->value30;
+    spell.AssignFrom(source->spell);
+    required.AssignVector<stlp::StringElement>(source->required);
+    optional.AssignVector<stlp::StringElement>(source->optional);
+    repeated.AssignFrom(source->repeated);
+    classMask = source->classMask;
 }
 
 void SpellListRecord::ConstructDefault() {
-    stlp::StringElement::Default(&name);
-    list0C.ConstructEmpty();
-    list18.ConstructEmpty();
-    stlp::StringElement::Default(&text24);
+    stlp::StringElement::Default(&spell);
+    required.ConstructEmpty();
+    optional.ConstructEmpty();
+    stlp::StringElement::Default(&repeated);
 }
 
 // 0056E400 / 0056E440: the material and weapon tables' At, as the unit skins and the client's

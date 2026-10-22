@@ -106,9 +106,9 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     }
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
-    std::memcpy(&brain->actionPoint, &order->point, sizeof(Vector3));
-    brain->looks.Copy(order->looks);
-    brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
+    std::memcpy(&brain->move.point, &order->point, sizeof(Vector3));
+    brain->move.looks.Copy(order->looks);
+    brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
 }
 
 // The brain's remembered positions after choosing a new place to be.
@@ -403,7 +403,7 @@ EI_REWRITTEN(0x005D1E90, SuspectionMode::Evaluate);
 void SuspectionMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) {
         Vector3 going;
-        std::memcpy(&going, &brain->actionPoint, sizeof(Vector3));
+        std::memcpy(&going, &brain->move.point, sizeof(Vector3));
         double dy = point.y - going.y;      // kept on the FPU stack
         double dx = point.x - going.x;
         // TEST AH,0x41: jump to a new move only when the distance is greater.
@@ -437,9 +437,9 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->target.Assign(nullptr);
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
-    std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
-    brain->looks.Copy(order.looks);
-    brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
+    std::memcpy(&brain->move.point, &order.point, sizeof(Vector3));
+    brain->move.looks.Copy(order.looks);
+    brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
     level = brain->memory.noticedLevel;
     DestroyLooks(&order);
 }

@@ -40,8 +40,9 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 - `CountedRef<T>` has `Assign` defined in object3d_lifetime.cpp for the three types the game's copies hold: 00519580
   `CountedRef<CLinkMesh>` (the figure), 0051E570 `CountedRef<WoundsMaterial>`, 0051E4F0 `CountedRef<CRenderPreset>` (0051C3D0 ShowWounds
   calls 0051E570 for the wounds material and 0051E4F0 for its preset; 0051AF70 DestroyClient calls 0051E570). `CountOf` / `DeleteCounted`
-  overloads are inline there (without `inline` the release build calls them); `AsCountedRef(T*&)` (map_object_figures.h) views a slot as
-  the reference. The client half's other drops are inlined in the original: HideWounds (0051C920), the constructor (0051AB00) and
+  overloads are inline there (without `inline` the release build calls them). `CountedRef<T>` is in core_refcount.h (reads see the object, a
+  plain store counts nothing); `CObject3D::figure` and `CObject3DClientSpecific::woundsMaterial` are CountedRefs, and `AsCountedRef(T*&)`
+  (map_object_figures.h) is left for `CDeviceMaterial::preset`, a shared header's field. The client half's other drops are inlined in the original: HideWounds (0051C920), the constructor (0051AB00) and
   CreateClient (0051AEC0) inline the assign of null, DestructBody (0051AD90) the reference's destructor (no slot write); they use
   `CObject3DClientSpecific::ClearWoundsMaterial()` (map_object_shadow.h, through `CDeviceMaterial::Release`).
 

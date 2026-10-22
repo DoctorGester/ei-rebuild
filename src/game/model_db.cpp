@@ -51,13 +51,15 @@ void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
 }
 
 // Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
-void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
+void TripleChunk(ChunkArchive* ar, int id, void* first, void* second, void* third) {
     if (!ar->EnterChunk(id)) return;
-    ar->Field(1, &values[0], 4);
-    ar->Field(2, &values[1], 4);
-    ar->Field(3, &values[2], 4);
+    ar->Field(1, first, 4);
+    ar->Field(2, second, 4);
+    ar->Field(3, third, 4);
     ar->LeaveChunk();
 }
+void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) { TripleChunk(ar, id, &values[0], &values[1], &values[2]); }
+void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id, &look->alpha, &look->life, &look->lifetime); }
 
 } // namespace
 
@@ -86,14 +88,14 @@ EI_REWRITTEN(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 void PrintRecord::SerializeImpl(ChunkArchive* ar) {
     ar->StringField(1, &name);
-    TripleChunk(ar, 2, values2);
-    TripleChunk(ar, 3, values3);
+    TripleChunk(ar, 2, &look2);
+    TripleChunk(ar, 3, &look3);
 }
 
 void PrintRecord2::SerializeImpl(ChunkArchive* ar) {
     ar->StringField(1, &name);
-    TripleChunk(ar, 2, values2);
-    TripleChunk(ar, 3, values3);
+    TripleChunk(ar, 2, &look2);
+    TripleChunk(ar, 3, &look3);
     TripleChunk(ar, 10, values10);
 }
 

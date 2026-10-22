@@ -26,7 +26,7 @@ CPlayerManager* ServerPlayers() { return ei::GameData<CPlayerManager*>(0x007AFF9
 // count and its gold.
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 int GlobalRecordCount() { return GlobalParty()->members_.size; }
-std::uint32_t& GlobalGold() { return GlobalParty()->money_; }
+int& GlobalGold() { return GlobalParty()->money_; }
 
 constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's
 
@@ -62,7 +62,7 @@ void __stdcall GuardPlayerData(char plain) {
     GuardPlayers(ClientPlayers(), 0, g_guardKey);
     GuardPlayers(ServerPlayers(), 1, g_guardKey);
     std::uint32_t key = g_guardKey;
-    GlobalGold() ^= key;
+    GlobalGold() ^= static_cast<int>(key);
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_.data[i].stats, key);
     g_guardPlain = plain;
 }

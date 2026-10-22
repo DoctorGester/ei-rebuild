@@ -22,8 +22,11 @@ bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return ObjectSlots(object)->AcceptsAnimation(animation);
 }
 
+// The candidate list: an aligned array of the database's entries (AlignedPtrArray's code).
+using AnimationList = lib::AlignedArray<FigureAnimation*>;
+
 // The local list's storage (32-byte aligned; the block from operator new kept before it).
-void FreeCandidates(AlignedPtrArray& list) {
+void FreeCandidates(AnimationList& list) {
     if (list.data) gamecrt::operator_delete(list.data[-1]);
 }
 
@@ -34,7 +37,7 @@ int RandomIndex(int count) { return (gamecrt::rand() * count / kRandMax) % count
 FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
-    AlignedPtrArray candidates{};
+    AnimationList candidates{};
     std::uint32_t wanted = key & kKeyLowBits;
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
@@ -43,7 +46,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
         if (Accepts(this, entry)) candidates.SetAtGrow(candidates.size, entry);
     }
-    auto** list = reinterpret_cast<FigureAnimation**>(candidates.data);
+    FigureAnimation** list = candidates.data;
     int count = candidates.size;
     if (count < 2) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
@@ -68,7 +71,7 @@ EI_REWRITTEN(0x005190C0, CObject3D::RandomAnimation);
 FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
-    AlignedPtrArray candidates{};
+    AnimationList candidates{};
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
@@ -81,7 +84,7 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
         FreeCandidates(candidates);
         return nullptr;
     }
-    auto* picked = static_cast<FigureAnimation*>(candidates.data[RandomIndex(candidates.size)]);
+    FigureAnimation* picked = candidates.data[RandomIndex(candidates.size)];
     FreeCandidates(candidates);
     return picked;
 }

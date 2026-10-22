@@ -121,7 +121,7 @@ CSky* CSky::Construct() {
     material = nullptr;
     texture = nullptr;
     turns = 1;
-    HeldTexture::Of(&texture)->Load(kSkyTextureKind, kSkyTextureName);
+    texture.Load(kSkyTextureKind, kSkyTextureName);
     return this;
 }
 EI_REWRITTEN(0x004D9680, CSky::Construct);

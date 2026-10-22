@@ -31,7 +31,7 @@ bool ById();
 
 // Whether the object set element `a` sorts before `b` (two object pointers as the sets keep them):
 // the address, or with ById the object's id (signed), then the address.
-bool ObjectBefore(std::uint32_t a, std::uint32_t b);
+bool ObjectBefore(const CEngineObject* a, const CEngineObject* b);
 
 // The draw lists' order with ById (UnitOrderLess::Less): the first part set's texture (null first,
 // then by name), then the figure (null first, then by name and morph weights), then the view depth

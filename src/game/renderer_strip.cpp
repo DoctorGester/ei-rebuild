@@ -60,19 +60,19 @@ float& BottomV() { return ei::GameData<float>(0x007AF054); }
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
-void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintptr_t onExit) {
+void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
     if (Guards() & bit) return;
     array = lib::AlignedArray<T>{};
     Guards() |= bit;
-    GameAtExit(reinterpret_cast<void(__cdecl*)()>(onExit));
+    GameAtExit(onExit);
 }
 
 void EnsureStatics() {
-    EnsureStatic(1, Clipped(), 0x00502C80);
-    EnsureStatic(2, Indices(), 0x00502C60);
-    EnsureStatic(4, Projected(), 0x00502C40);
-    EnsureStatic(8, Ribbon(), 0x00502C20);
-    EnsureStatic(0x10, Strip(), 0x00502C00);
+    EnsureStatic(1, Clipped(), FreeClipped);     // 00502C80
+    EnsureStatic(2, Indices(), FreeIndices);     // 00502C60
+    EnsureStatic(4, Projected(), FreeProjected); // 00502C40
+    EnsureStatic(8, Ribbon(), FreeRibbon);       // 00502C20
+    EnsureStatic(0x10, Strip(), FreeStrip);      // 00502C00
 }
 
 // --- Device calls --------------------------------------------------------------------------------
@@ -274,7 +274,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
         transform->ToScreenClipped(Strip().data, Strip().size);
         bool started = false;
         for (int i = 1; i < Strip().size; ++i) {
-            const auto* flags = reinterpret_cast<const std::uint8_t*>(Clipped().data);
+            const std::uint8_t* flags = Clipped().data;
             if (flags[i - 1] && flags[i]) {
                 CurrentU() = CurrentU() + step;
                 started = false;
@@ -303,8 +303,8 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    int result = device_->DrawTlTriangles(reinterpret_cast<TLVertex*>(Ribbon().data), Ribbon().size,
-                                 reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
+    int result = device_->DrawTlTriangles(Ribbon().data, Ribbon().size,
+                                 Indices().data, Indices().size);
     device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));

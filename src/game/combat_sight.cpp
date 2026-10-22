@@ -107,7 +107,7 @@ namespace {
 
 // --- What must be seen -----------------------------------------------------------------------
 
-bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
+bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
     if (order->flag18) return false;
     CWorldServer* world = ServerWorld();
     CMapObject* target = order->target;
@@ -166,7 +166,7 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // A melee or skill order fails when a living unit other than the target stands between the unit
 // and `point` at `time`: within 0.1..0.9 along the way (in units of the squared distance, sic)
 // and less than 0.3 to the side.
-bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* point, int time) {
+bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point, int time) {
     CUnit* unit = self->unit;
     float dx = point[0] - unit->localPosition_.x;
     float dy = point[1] - unit->localPosition_.y;
@@ -202,7 +202,7 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
 }
 
 // Does the order need the way to its target clear of units (melee or skill)?
-bool NeedsClearWay(CUnitServer* self, const UnitAction* order) {
+bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     if (order->kind == kOrderSkill) return true;
     if (order->kind != kOrderAttack) return false;
     CItemWeapon* weapon = ActiveWeapon(self->unit);
@@ -214,7 +214,7 @@ bool NeedsClearWay(CUnitServer* self, const UnitAction* order) {
 }
 } // namespace
 
-bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int time) {
+bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
     if (order->target == unit) return true;
     if (order->flag18) return true;
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
@@ -287,7 +287,7 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
 }
 } // namespace
 
-bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
+bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     AnimationSteps steps;
     InitSteps(&steps);
     Vector3 origin;
@@ -466,7 +466,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 }
 EI_REWRITTEN(0x0054CA40, CUnitServer::PlanAction);
 
-bool CUnitServer::CanPlanAction(const UnitAction* order) {
+bool CUnitServer::CanPlanAction(const AIOrder* order) {
     OrderPlan plan;
     std::memset(&plan, 0, sizeof(plan));
     plan.animation.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
