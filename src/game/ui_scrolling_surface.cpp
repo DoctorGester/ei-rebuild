@@ -49,7 +49,7 @@ DWORD CALLBACK ReadRtf(DWORD_PTR cookie, LPBYTE buffer, LONG wanted, LONG* read)
     return 0;
 }
 
-int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) {
+int HeightInTwips(const CUiScrollingSurface* surface, const mfc::impl::CDC* dc) {
     return gameapi::MulDiv(surface->rect_.bottom - surface->rect_.top, kTwipsPerInch,
                            gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSY));
 }
@@ -100,7 +100,7 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 EI_REWRITTEN(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(this);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(this);
     static_cast<CUiSurface*>(this)->Clear();
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
     int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSX));
@@ -142,7 +142,7 @@ EI_REWRITTEN(0x0065F170, CUiScrollingSurface::Blit);
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;
     if (fromBelow) {
-        ui_gdi::GameDC* dc = UiSurfaceGetDC(this);
+        mfc::impl::CDC* dc = UiSurfaceGetDC(this);
         offset_ = -HeightInTwips(this, dc);
         UiSurfaceReleaseDC(this);
     } else {

@@ -40,7 +40,7 @@ class CFigureManager;   // figure_manager.h
 class CItem;
 class CParty;
 class CUnit;
-namespace ui_gdi { struct GameFont; struct GameDC; }
+namespace mfc::impl { class CFont; class CDC; }   // lib/mfc_gdi.h
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {
@@ -342,7 +342,7 @@ public:
     int mouseY_;                     // +0x6C
     // +0x70..+0x78 the three interface fonts (Create 005F4990: "Times New Roman", sized with the
     // screen width); text drawing selects font n from here.
-    ui_gdi::GameFont* fonts_[3];
+    mfc::impl::CFont* fonts_[3];
     // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
     // (005F7BE0) from the virtual keys and when the windows change.
     bool ctrlDown_;                  // +0x7C
@@ -529,7 +529,7 @@ public:
     int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
     // 005FDC00 / 005FDC60 (UiSurfaceGetDC / UiSurfaceReleaseDC below): the surface's DC held and
     // released.
-    ui_gdi::GameDC* GetDC();
+    mfc::impl::CDC* GetDC();
     void ReleaseDC();
     // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
     int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
@@ -589,9 +589,9 @@ static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 // 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
-ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
+mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
-inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
+inline mfc::impl::CDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the

@@ -48,7 +48,7 @@ vtable,slots,class,file,note
 0073BF5C,15,SessionBase,src/game/net_classes.h,the session base (SessionBase)
 0073BFA4,2,CDebugPanel,src/game/debug_panel.h,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (the image's CDebugPanel has the one table)
-0073BFB4,3,FontTable,src/lib/mfc_gdi.cpp,the game's CFont (the debug panel's, the interface's and the console's fonts)
+0073BFB4,3,CFont,src/lib/mfc_gdi.h,the game's CFont (the debug panel's, the interface's and the console's fonts)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
 0073C0F0,3,FakeUnitBoneArraysClass,src/lib/mfc_slots.h,CArray (a fake unit's 20-byte CObject elements)
@@ -564,15 +564,15 @@ vtable,slots,class,file,note
 00745EE8,19,FileFindTable,src/lib/mfc_file.cpp,CFileFind
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
-007461B0,29,PlainDCTable,src/lib/mfc_gdi.cpp,CDC
+007461B0,29,CDC,src/lib/mfc_gdi.h,CDC
 0074624C,29,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
 007462C4,29,CWindowDC,-,"stored only by game.exe's constructor / destructor 00709E81 / 00709EF3, which no code of ours calls"
 0074633C,29,CPaintDC,-,"stored only by game.exe's constructor / destructor 00709F35 / 00709FA7, which no code of ours calls"
-007463B4,3,PenTable,src/lib/mfc_gdi.cpp,CPen
-007463C4,3,BrushTable,src/lib/mfc_gdi.cpp,CBrush (the interface's brushes)
-007463D4,3,PlainGdiObjectTable,src/lib/mfc_gdi.cpp,CGdiObject
-007463E4,29,TempDCTable,src/lib/mfc_gdi.cpp,CTempDC (the interface's surface DCs)
-0074645C,3,TempGdiObjectTable,src/lib/mfc_gdi.cpp,CTempGdiObject
+007463B4,3,CPen,src/lib/mfc_gdi.h,CPen
+007463C4,3,CBrush,src/lib/mfc_gdi.h,CBrush (the interface's brushes)
+007463D4,3,CGdiObject,src/lib/mfc_gdi.h,CGdiObject
+007463E4,29,CTempDC,src/lib/mfc_gdi.cpp,CTempDC (the interface's surface DCs)
+0074645C,3,CTempGdiObject,src/lib/mfc_gdi.cpp,CTempGdiObject
 0074646C,5,CResourceException,src/lib/mfc_exception.h,CResourceException (_simpleResourceException)
 00746484,5,CUserException,src/lib/mfc_exception.h,CUserException (_simpleUserException)
 0074649C,3,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"

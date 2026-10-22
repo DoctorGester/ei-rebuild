@@ -17,7 +17,7 @@
 #include "lib/stlp_tree_abi.h"
 #include "library_trees.h"
 #include "ui.h"        // CInterface3D, CUiSurface
-#include "ui_gdi.h"    // GameDC, GameFont
+#include "ui_gdi.h"    // CDC, CFont
 
 #include <cstdint>
 #include <cstring>
@@ -108,7 +108,7 @@ namespace {
 // The panel's font face (007842C8).
 const char* FontFace() { return "Courier New"; }
 
-void DrawString(ui_gdi::GameDC* dc, const stlp::string& s, RECT* rect) {
+void DrawString(mfc::impl::CDC* dc, const stlp::string& s, RECT* rect) {
     dc->DrawText(s.data(), static_cast<int>(s.size()), rect, 0x800u);
 }
 
@@ -119,14 +119,10 @@ void CDebugPanel::Init(CInterface3D* ui) {
     ui_ = ui;
     surface_ = nullptr;
     visible_ = 0;
-    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
-    if (font) {
-        font->handle = nullptr;
-        font->vtable = mfc::impl::CFont::Vtable();
-    }
+    auto* font = new mfc::impl::CFont();   // null without memory
     font_ = font;
     if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {
-        if (ui_gdi::GameFont* f = font_) f->Delete();
+        delete font_;
         font_ = nullptr;
     }
     RECT rect = {10, 10, 0x122, 0x122};
@@ -140,7 +136,7 @@ void CDebugPanel::Release() {
         delete surface;
     }
     surface_ = nullptr;
-    if (ui_gdi::GameFont* font = font_) font->Delete();
+    delete font_;
     font_ = nullptr;
 }
 EI_REWRITTEN(0x00444BD0, CDebugPanel::Release);
@@ -188,11 +184,11 @@ EI_REWRITTEN(0x00444CD0, CDebugPanel::Tick);
 void CDebugPanel::Redraw() {
     CUiSurface* surface = surface_;
     if (!surface) return;
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     RECT& asked = asked_;
     dc->FillSolidArea(0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
     dc->SetBkMode(1);
-    void* oldFont = dc->SelectFont(font_);
+    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
     StringMap& map = entries_;

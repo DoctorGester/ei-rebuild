@@ -29,7 +29,7 @@ int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t c
 
 int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
     if (!holder_) return 0;
-    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
+    auto* dc = mfc::impl::CDC::FromHandle(dc_);
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -40,7 +40,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
-    void* oldFont = dc->SelectFont(interface_->fonts_[font]);
+    mfc::impl::CGdiObject* oldFont = dc->SelectFont(interface_->fonts_[font]);
     dc->SetBkMode(TRANSPARENT);
     // Where the text lands: DrawText clips to its rectangle (and draws nothing for DT_CALCRECT).
     RECT inked = frame;
@@ -68,8 +68,8 @@ EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
 SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
-    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow)));
-    void* oldFont = dc->SelectFont(fonts_[font]);
+    auto* dc = mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow));
+    mfc::impl::CGdiObject* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
     gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)

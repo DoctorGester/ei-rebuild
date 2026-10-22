@@ -236,14 +236,13 @@ void CChatOverlay::DrawTyped() {
     if (caret_ > typed_.GetLength()) caret_ = typed_.GetLength();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, typed_.Left(caret_), kTypedFont);
     if (width < kMaxTypedWidth) {
-        ui_gdi::GamePen pen;
-        pen.Construct(PS_SOLID, 1, kTypedColour);
+        mfc::impl::CPen pen(PS_SOLID, 1, kTypedColour);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
@@ -253,7 +252,6 @@ void CChatOverlay::DrawTyped() {
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
         dc->SelectObject(oldPen);
-        pen.Destruct();
     }
     UiSurfaceReleaseDC(surface);
 }

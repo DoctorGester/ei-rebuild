@@ -14,9 +14,7 @@
 
 class CInterface3D;
 class CUiSurface;
-namespace ui_gdi {
-struct GameFont;
-}
+namespace mfc::impl { class CFont; }   // lib/mfc_gdi.h
 
 namespace strmap {
 
@@ -51,7 +49,7 @@ public:
     StringMap entries_;          // +0x04 key -> value
     CInterface3D* ui_;           // +0x10
     CUiSurface* surface_;        // +0x14 the panel surface (0x38 bytes), while shown
-    ui_gdi::GameFont* font_;     // +0x18 (MFC CFont)
+    mfc::impl::CFont* font_;     // +0x18 (MFC CFont)
     RECT shown_;                 // +0x1C the rectangle on screen
     RECT asked_;                 // +0x2C the rectangle asked for
     std::uint8_t visible_;       // +0x3C

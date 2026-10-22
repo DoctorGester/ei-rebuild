@@ -29,15 +29,11 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     shown_ = false;
     ctrl_ = false;
     shift_ = false;
-    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
-    if (font) {
-        font->handle = nullptr;
-        font->vtable = mfc::impl::CFont::Vtable();   // an empty CFont: no handle yet
-    }
+    auto* font = new mfc::impl::CFont();   // null without memory
     font_ = font;
     // As the original: a failed allocation still calls CreatePointFont on null.
     if (!font->CreatePointFont(kFontSize, kFontFace, nullptr)) {
-        if (font_) font_->Delete();
+        delete font_;
         font_ = nullptr;
     }
     RECT rect = kInitialRect;

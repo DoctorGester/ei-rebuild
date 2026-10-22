@@ -110,7 +110,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     mfc::CString text;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     sprite(kSpriteSelection)->visible_ = 0;
     // The two buttons' texts.
@@ -139,8 +139,7 @@ void CMpConnectScreen::DrawListVanilla() {
         arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
-    ui_gdi::GamePen pen;
-    pen.Construct(PS_SOLID, 1, TextColour());
+    mfc::impl::CPen pen(PS_SOLID, 1, TextColour());
     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
@@ -257,6 +256,5 @@ void CMpConnectScreen::DrawListVanilla() {
     }
     dc->SelectObject(oldPen);
     UiSurfaceReleaseDC(surface);
-    pen.Destruct();
-}
+}   // ~CPen
 EI_REWRITTEN(0x0061D780, CMpConnectScreen::DrawListVanilla);

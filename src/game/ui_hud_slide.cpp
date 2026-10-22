@@ -497,7 +497,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // The surface: one white pixel at the map's centre.
     CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
     AddSurface(dot);
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(dot);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(dot);
     gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);
     UiSurfaceReleaseDC(dot);
 

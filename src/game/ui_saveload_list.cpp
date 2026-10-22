@@ -62,7 +62,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     if (cursor_ > name.GetLength()) cursor_ = name.GetLength();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     CUiMesh* marker = SceneMesh(kMarkerSprite);
     marker->visible_ = 0;
@@ -82,8 +82,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                 !SameFolder(entry.folder_, kAutoFolderB)) {
                 const int width = TextWidth(interface_, name.Left(cursor_), kFont);
                 if (width < titleRect.right - titleRect.left) {
-                    ui_gdi::GamePen pen;
-                    pen.Construct(PS_SOLID, 1, kCaretColour);
+                    mfc::impl::CPen pen(PS_SOLID, 1, kCaretColour);
                     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
@@ -93,7 +92,6 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     dc->MoveTo(top.x, top.y);
                     dc->LineTo(bottom.x, bottom.y);
                     dc->SelectObject(oldPen);
-                    pen.Destruct();
                 }
             }
             marker = SceneMesh(kMarkerSprite);

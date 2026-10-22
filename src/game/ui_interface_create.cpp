@@ -37,15 +37,9 @@ constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 
 // A new CFont without a handle (null when the memory cannot be had).
-ui_gdi::GameFont* NewFont() {
-    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
-    if (!font) return nullptr;
-    font->handle = nullptr;
-    font->vtable = mfc::impl::CFont::Vtable();
-    return font;
-}
+mfc::impl::CFont* NewFont() { return new mfc::impl::CFont(); }
 
-bool CreateFont(ui_gdi::GameFont* font, int size) {
+bool CreateFont(mfc::impl::CFont* font, int size) {
     if (font->CreatePointFont(size, FontFace(), nullptr)) return true;
     game::FatalError("CInterface3D::Create.\n Cannot create font.\n");   // "CInterface3D::Create.\n Cannot create font.\n"
     return false;
@@ -109,7 +103,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     gameapi::GetObjectA(fonts_[0]->handle, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
     const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
-    if (fonts_[0]) fonts_[0]->Delete();
+    delete fonts_[0];
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();
         float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f /*00740164*/;   // 1 / 800

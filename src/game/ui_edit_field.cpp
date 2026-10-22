@@ -195,7 +195,7 @@ void CUiEditField::DrawContentsVanilla() {
     if (caret_ > text.GetLength()) caret_ = text.GetLength();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
+    mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     if (!dc) return;
     surface->Clear();
     const int width = area_.right - area_.left;
@@ -207,8 +207,7 @@ void CUiEditField::DrawContentsVanilla() {
     int caretX = TextWidth(interface_, text.Left(caret_), font_);
     if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
     if (caretX >= 0 && caretX < width) {
-        ui_gdi::GamePen pen;
-        pen.Construct(PS_SOLID, 1, caretColour_);
+        mfc::impl::CPen pen(PS_SOLID, 1, caretColour_);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
@@ -218,7 +217,6 @@ void CUiEditField::DrawContentsVanilla() {
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
         dc->SelectObject(oldPen);
-        pen.Destruct();
     }
     UiSurfaceReleaseDC(surface);
 }

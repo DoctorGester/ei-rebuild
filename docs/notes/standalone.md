@@ -1355,7 +1355,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     Port only what the image reaches (or what a ported body calls: CDC::Detach's slot 5); the rest stays unported.
   - **mfc_gdi**: GdiObjectTable (CGdiObject, CBrush, CPen, CTempGdiObject: 0 the class's record, 1 the deleting
     destructor, CTempGdiObject's back to its fixed allocator) and DCTable (CDC, CTempDC: 29 slots; 3-6, 10, 12, 26, the
-    destructor, Detach ported, the rest unported). ui_gdi.h's GameBrush stores `CBrush::Vtable()`. CClientDC,
+    destructor, Detach ported, the rest unported). Since C28n real classes over CObject (mfc_gdi.h; CTempGdiObject and
+    CTempDC in mfc_gdi.cpp), the interface's pens, brushes and fonts plain locals or `new`. CClientDC,
     CWindowDC, CPaintDC and CRgn are retired with no class of ours.
   - **CHandleMap** (mfc_handle_map.cpp): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
     CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
@@ -2027,7 +2028,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **Wide text calls** (system_text.h): with EI_UTF8 the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
   `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else ANSI-code-page
   bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face name to
-  `CreateFontIndirectW`). Every interface text draw (MFC's `CDC::DrawText` behind `GameDC::DrawText`, slot 26: the
+  `CreateFontIndirectW`). Every interface text draw (MFC's virtual `CDC::DrawText`, slot 26: the
   surfaces' `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
   (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through
   `InterfaceTextExtentOriginal`) and the console's `PromptWidth` go through them; no call site changed. The

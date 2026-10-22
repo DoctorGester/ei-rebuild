@@ -20,8 +20,7 @@ namespace console {
 
 namespace {
 
-using ui_gdi::GameDC;
-using ui_gdi::GamePen;
+using mfc::impl::CDC;
 
 // Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
 // the scroll marks).
@@ -43,7 +42,7 @@ int Clamp(int value, int high) {
 }
 
 // Width in pixels of the prompt and the first `count` characters of the input.
-int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
+int PromptWidth(CDC* dc, const mfc::CString& input, int count) {
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
     gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
@@ -328,9 +327,9 @@ void ConsoleWindow::DrawLines() {
     if (scroll_ < 0) scroll_ = 0;
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
-    GameDC* dc = surface->GetDC();
+    CDC* dc = surface->GetDC();
     dc->FillSolidArea(0, 0, width_, height_ - kInputHeight, kBackground);
-    void* oldFont = dc->SelectFont(font_);
+    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     dc->SetTextColor(kLineText);
     dc->SetBkMode(TRANSPARENT);
     int line = lines_.GetSize() - scroll_ - 1;
@@ -362,8 +361,8 @@ void ConsoleWindow::DrawInput() {
     anchor_ = Clamp(anchor_, input_.GetLength());
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
-    GameDC* dc = surface->GetDC();
-    void* oldFont = dc->SelectFont(font_);
+    CDC* dc = surface->GetDC();
+    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
     int caretX = PromptWidth(dc, input_, caret_);
     if (anchor_ != caret_) {
@@ -379,13 +378,11 @@ void ConsoleWindow::DrawInput() {
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + input_;
     dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
-        GamePen pen;
-        pen.Construct(PS_SOLID, 2, kInputText);
+        mfc::impl::CPen pen(PS_SOLID, 2, kInputText);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         dc->MoveTo(caretX + 8, height_ - 0x17);
         dc->LineTo(caretX + 8, height_ - 8);
         dc->SelectObject(oldPen);
-        pen.Destruct();
     }
     dc->SelectFont(oldFont);
     surface->ReleaseDC();

@@ -83,8 +83,8 @@ void CInterface3D::Shutdown() {
         console_ = nullptr;
     }
     keybind::SaveKeyBindings();
-    for (ui_gdi::GameFont*& font : fonts_) {
-        if (font) font->Delete();
+    for (mfc::impl::CFont*& font : fonts_) {
+        delete font;
         font = nullptr;
     }
     // The fade's destructor body (005E69A0) is empty; the pointer is not cleared.
@@ -107,7 +107,7 @@ EI_REWRITTEN(0x005F4790, CInterface3D::DestroyBody);
 void console::ConsoleWindow::DestroyBody() {
     DeleteSurface(surface_);
     surface_ = nullptr;
-    if (font_) font_->Delete();
+    delete font_;
     font_ = nullptr;
     // The members in reverse order: the lines, the input text, the command history.
     this->~ConsoleWindow();
