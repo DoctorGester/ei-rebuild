@@ -22,7 +22,7 @@ constexpr std::size_t kPasswordSize = 0x14;
 
 void* Value(RefNode* node) { return node->data.ptr; }
 PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
-Connection* ConnectionOf(BindingMessage* binding) { return static_cast<Connection*>(binding->ConnectionRef().ptr); }
+Connection* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().Get(); }
 
 // The connection of the first binding whose player is live and the host, or null.
 Connection* HostConnection(const stlp::SharedRefListOf<BindingMessage>& bindings) {

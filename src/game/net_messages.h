@@ -133,7 +133,7 @@ static_assert(sizeof(CommandMessage) == 0x1C);
 class __declspec(novtable) PairMessage : public Message {
 public:
     RefPtr first_;               // +0x0C
-    RefPtr second_;              // +0x10 (not sent)
+    RefPtrTo<Connection> second_;   // +0x10 the connection on the server (not sent)
 
 protected:
     static Message* CreateAs(const void* vtable);
@@ -165,7 +165,7 @@ public:
     void Destruct();                            // 00414270
 
     RefPtr& FileRef() { return first_; }
-    RefPtr& ConnectionRef() { return second_; }
+    RefPtrTo<Connection>& ConnectionRef() { return second_; }
 };
 static_assert(sizeof(FileRequestMessage) == 0x14);
 
@@ -311,7 +311,7 @@ public:
     void Destruct();                            // 004154D0
 
     RefPtr& PlayerRef() { return first_; }
-    RefPtr& ConnectionRef() { return second_; }
+    RefPtrTo<Connection>& ConnectionRef() { return second_; }
     // The bound player record.
     PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
 };
