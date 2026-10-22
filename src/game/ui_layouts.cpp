@@ -267,11 +267,11 @@ void CEscMenu::Build() {
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
-    const std::uintptr_t rects = ei::GameAddress(kEscMenuRects);
-    for (std::uintptr_t source = rects; source < rects + 5 * sizeof(RECT); source += sizeof(RECT)) {
+    const RECT* rects = ei::GamePointer<const RECT>(kEscMenuRects);
+    for (const RECT* source = rects; source < rects + 5; ++source) {
         CUiRegion* region = window.AddRegion();
         RECT rect;
-        gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
+        gameapi::CopyRect(&rect, source);
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     window.models_.data[0]->Play(1);
