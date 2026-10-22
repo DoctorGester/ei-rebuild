@@ -33,11 +33,6 @@ SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
     return size;
 }
 
-// 005FDE20 (Rebirth-patched; through its address): draws one line into the layout rectangle.
-int DrawLine(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
-}
-
 // The character at `p` as the original compares it: a lead byte shifted left by 8 (sign-extended)
 // plus the next byte (sign-extended), otherwise the byte itself.
 int CharAt(const char* p) {
@@ -97,7 +92,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     RECT at = *rect;
     int height = rect->bottom - rect->top;
     for (int i = 0; i < maxLines && i < lines.GetSize(); ++i) {
-        DrawLine(this, lines[i], &at, font, colour, format, flag);
+        DrawLine(lines[i], &at, font, colour, format, flag);   // 005FDE20 through its address
         gameapi::OffsetRect(&at, 0, height);
     }
     return lines.GetSize();

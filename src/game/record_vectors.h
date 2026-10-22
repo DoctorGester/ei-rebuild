@@ -46,7 +46,7 @@ namespace recordvec {
 // untyped: the record tables' serialisers take it as a function of (vector, count).
 template <typename Abi>
 void ResizeUntyped(void* vector, unsigned count) {
-    static_cast<Abi*>(static_cast<typename Abi::Vector*>(vector))->ResizeDefault(count);
+    static_cast<typename Abi::Vector*>(vector)->template ResizeDefault<typename Abi::Element>(count);
 }
 
 // The item records' destructors (item_db_records.cpp): the head's members, plus the quick item's

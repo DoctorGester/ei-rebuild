@@ -43,13 +43,6 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
 
 
-struct SurfaceDraw : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
-    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
 int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecords()); }
@@ -60,19 +53,14 @@ int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecord
 TradeRow BlankRow() { return TradeRow{}; }
 
 TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
-    if (rows->end != rows->capacity) {
-        if (rows->end) rows->end->CopyConstruct(&value);
-        ++rows->end;
-    } else {
-        static_cast<recordvec::TradeRowVector*>(reinterpret_cast<stlp::vector<TradeRow>*>(rows))->InsertOverflow(rows->end, value, 1);
-    }
-    return rows->end - 1;
+    rows->PushBack<recordvec::TradeRowElement>(value);
+    return rows->end() - 1;
 }
 
 // erase(begin, end): the copy over the empty tail does nothing; the rows are destroyed.
 void Clear(TradeRows* rows) {
-    for (TradeRow* row = rows->begin; row != rows->end; ++row) row->DeleteThis(0);
-    rows->end = rows->begin;
+    for (TradeRow* row = rows->begin(); row != rows->end(); ++row) row->DeleteThis(0);
+    rows->Finish() = rows->Start();
 }
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
@@ -247,16 +235,16 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 }
 
 // A school row: name, level 40 pixels in from the right, and below level 100 the next level's price.
-void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* school, mfc::CString* value) {
-    draw->Text(school->name, row, 0, kBright, 0, 1);
+void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
+    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
     value->Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
     RECT levelRect = shifted;
-    draw->Text(*value, &levelRect, 0, kBright, 2, 1);
+    draw->DrawLine(*value, &levelRect, 0, kBright, 2, 1);
     if (school->level < 100) {
         panel->FormatPrice(school->price, value);
-        draw->Text(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
+        draw->DrawLine(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -264,18 +252,18 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
 } // namespace
 
 void CTradePanel::DrawLists() {
-    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
-    draw->Begin();
+    CUiSurface* draw = surfaces_.data[0];
+    draw->GetDC();
     draw->Clear();
     mfc::CString value;
     while (sceneObjects_.size > 4) RemoveSceneObjectAt(sceneObjects_.size - 1);
 
     RECT title = {0, 10, 200, 25};
-    draw->Text(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
     title = {0, 205, 200, 220};
-    draw->Text(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
     title = {200, 10, 400, 25};
-    draw->Text(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
 
     // The schools; the third one's row stays empty (science is drawn there).
     RECT row = {15, 35, 180, 50};
@@ -285,23 +273,23 @@ void CTradePanel::DrawLists() {
             Down(&row);
             continue;
         }
-        DrawSchool(this, draw, &row, &schools_.begin[i], &value);
+        DrawSchool(this, draw, &row, &schools_[i], &value);
         Down(&row);
     }
     row = {15, 65, 180, 80};
-    DrawSchool(this, draw, &row, science_.begin, &value);
+    DrawSchool(this, draw, &row, science_.begin(), &value);
 
     // The perks held, ten rows from perkTop_; the price only where there is a next level.
     row = {15, 230, 180, 245};
     unsigned index = static_cast<unsigned>(perkTop_);
     for (int shown = 0; shown < 10; ++shown, ++index) {
-        if (index >= static_cast<unsigned>(perks_.Count())) break;
-        TradeRow* perk = &perks_.begin[index];
-        draw->Text(perk->name, &row, 0, kBright, 0, 1);
+        if (index >= static_cast<unsigned>(static_cast<int>(perks_.size()))) break;
+        TradeRow* perk = &perks_[index];
+        draw->DrawLine(perk->name, &row, 0, kBright, 0, 1);
         if (perk->nextKey.GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
             FormatPrice(perk->price, &value);
-            draw->Text(value, &row, 0, colour, 2, 1);
+            draw->DrawLine(value, &row, 0, colour, 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -311,21 +299,21 @@ void CTradePanel::DrawLists() {
     row = {215, 35, 380, 50};
     index = static_cast<unsigned>(learnableTop_);
     for (int shown = 0; shown < 23; ++shown, ++index) {
-        if (index >= static_cast<unsigned>(learnable_.Count())) break;
-        TradeRow* perk = &learnable_.begin[index];
+        if (index >= static_cast<unsigned>(static_cast<int>(learnable_.size()))) break;
+        TradeRow* perk = &learnable_[index];
         std::uint32_t textColour = kGrey;
         std::uint32_t priceColour = kGrey;
         if (perk->learnable) {
             textColour = kBright;
             priceColour = PriceColour(perk->price, experience_);
         }
-        draw->Text(perk->name, &row, 0, textColour, 0, 1);
+        draw->DrawLine(perk->name, &row, 0, textColour, 0, 1);
         FormatPrice(perk->price, &value);
-        draw->Text(value, &row, 0, priceColour, 2, 1);
+        draw->DrawLine(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }
-    draw->End();
+    draw->ReleaseDC();
 }
 namespace {
 void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
@@ -418,16 +406,10 @@ EI_REPLACE(0x00624F10, TradeBuild);
 void CTradePanel::ResetRecords() {
     // The vector emptied first (the records hold no resources). The original pushes uninitialised
     // stack bytes; 00626F10 writes all but +0x2B and +0x39..+0x3B. Ours pushes zeros.
-    records_.end = records_.begin;
+    records_.Finish() = records_.Start();
     const TradeRecord blank{};
     for (int i = 0; i < PartyRecordCount(); ++i) {
-        if (records_.end != records_.capacity) {
-            if (records_.end) *records_.end = blank;
-            ++records_.end;
-        } else {
-            static_cast<recordvec::TradeRecordVector*>(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_))
-                ->InsertOverflow(records_.end, blank, 1);
-        }
+        records_.PushBack<recordvec::TradeRecordVector::Element>(blank);
         recordIndex_ = i;
         TradeSnapshotRecord(this);
     }
@@ -449,7 +431,7 @@ UnitStats* PartyMemberStats(int index) {
 
 void CTradePanel::SnapshotRecord() {
     if (recordIndex_ < 0) return;
-    TradeRecord& record = records_.begin[recordIndex_];
+    TradeRecord& record = records_[recordIndex_];
     const UnitStats* stats = PartyMemberStats(recordIndex_);
     for (int i = 0; i < 6; ++i) record.schools[i] = stats->skills[i];
     record.science = stats->attributes[0];
@@ -469,7 +451,7 @@ EI_REWRITTEN(0x00626F10, TradeSnapshotRecord);
 
 void CTradePanel::RestoreRecord() {
     if (recordIndex_ < 0) return;
-    TradeRecord& record = records_.begin[recordIndex_];
+    TradeRecord& record = records_[recordIndex_];
     UnitStats* stats = PartyMemberStats(recordIndex_);
     // The hit point maximum and the hit points the slots allow, before (both stored as float).
     const float oldMaximum = static_cast<float>(stats->HitPointCurve());
@@ -501,8 +483,8 @@ void CTradePanel::Settle(int keep, int all) {
     bool keepIt = static_cast<std::uint8_t>(keep) != 0;
     if (static_cast<std::uint8_t>(all)) {
         int saved = recordIndex_;
-        for (unsigned i = 0; i < static_cast<unsigned>(records_.end - records_.begin); ++i) {
-            if (!records_.begin[i].bought) continue;
+        for (unsigned i = 0; i < static_cast<unsigned>(records_.size()); ++i) {
+            if (!records_[i].bought) continue;
             recordIndex_ = static_cast<int>(i);
             if (keepIt)
                 TradeSnapshotRecord(this);
@@ -512,7 +494,7 @@ void CTradePanel::Settle(int keep, int all) {
         recordIndex_ = saved;
         return;
     }
-    if (!records_.begin[recordIndex_].bought) return;
+    if (!records_[recordIndex_].bought) return;
     if (keepIt)
         TradeSnapshotRecord(this);
     else

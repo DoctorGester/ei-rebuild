@@ -113,7 +113,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
                               stlp::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);
-    static_cast<recordvec::FiguredUnitVector*>(figured)->ResizeDefault(count);
+    figured->ResizeDefault<recordvec::FiguredUnitVector::Element>(count);
     for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);
@@ -130,7 +130,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
             stream->ReadInto(&record->names[i]);
     }
     Get(stream, &count, 4);
-    static_cast<recordvec::DressedUnitVector*>(dressed)->ResizeDefault(count);
+    dressed->ResizeDefault<recordvec::DressedUnitVector::Element>(count);
     for (DressedUnitRecord* record = dressed->begin(); record != dressed->end(); ++record) {
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);

@@ -408,11 +408,11 @@ CHeroStatsPanel* CHeroStatsPanel::StatsPanelDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x0060E340, CHeroStatsPanel::StatsPanelDelete);
 
 // 0060E3C0: the trade panel (007417A8).
-CUiWindow* CUiWindow::TradePanelDelete(unsigned flags) {
-    TradePanelDestroy(this);
+CTradePanel* CTradePanel::TradePanelDelete(unsigned flags) {
+    DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0060E3C0, CUiWindow::TradePanelDelete);
+EI_REPLACE_METHOD(0x0060E3C0, CTradePanel::TradePanelDelete);
 
 // 0060E5E0: the spell maker (00741670).
 CSpellMakerPage* CSpellMakerPage::SpellMakerDelete(unsigned flags) {
@@ -534,7 +534,7 @@ EI_REPLACE_METHOD(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::Objectiv
 EI_REPLACE_METHOD(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
 EI_REWRITTEN(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
 EI_REPLACE_METHOD(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
-EI_REPLACE_METHOD(0x00613DB0, UiInput::DeleteWindow<&CUiWindow::TradePanelDelete>);
+EI_REPLACE_METHOD(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
 EI_REPLACE_METHOD(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
 EI_REPLACE_METHOD(0x0061B220, UiInput::DeleteWindow<&CMpConnectScreen::ConnectScreenDelete>);
 EI_REPLACE_METHOD(0x00620300, UiInput::DeleteWindow<&CMasterRequestBox::MasterRequestBoxDelete>);

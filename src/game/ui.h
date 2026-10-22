@@ -47,6 +47,7 @@ class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
 class CTextureDevice;   // texture.h
+class CPixelConverter;  // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
 
@@ -497,6 +498,12 @@ public:
     // The DC must be held. Returns DrawText's height scaled back to the layout (005F7E30), or 0
     // without a surface.
     int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
+    // 005FDC00 / 005FDC60 (UiSurfaceGetDC / UiSurfaceReleaseDC below): the surface's DC held and
+    // released.
+    ui_gdi::GameDC* GetDC();
+    void ReleaseDC();
+    // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
+    int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
@@ -580,6 +587,8 @@ struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
+inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
@@ -742,9 +751,6 @@ public:
     // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
-    // 0060E3C0 (slot 0 of the trade panel; ui_window_delete.cpp). TradePanelDestroy, then the memory
-    // freed when bit 0 of `flags` is set; returns this.
-    CUiWindow* TradePanelDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
@@ -1131,7 +1137,7 @@ struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x4C - 0x0C];
-    void* decoder_;                  // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    CPixelConverter* decoder_;       // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
     std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];

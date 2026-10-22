@@ -229,6 +229,16 @@ public:
         if (n < size()) EraseRange<E>(start_ + n, finish_);
         else FillInsert<E>(finish_, n - size(), x);
     }
+    // resize(n) (e.g. 0051F5B0): resize(n, T()) with a temporary the policy makes first and
+    // destroys last.
+    template <typename E>
+    void ResizeDefault(std::size_t n) {
+        alignas(T) unsigned char storage[sizeof(T)];
+        T* x = reinterpret_cast<T*>(storage);
+        E::Default(x);
+        Resize<E>(n, *x);
+        E::Destroy(x);
+    }
 
     // reserve(n) (e.g. 0040AF00): a block of exactly n elements when the capacity is smaller.
     template <typename E>
@@ -402,13 +412,7 @@ struct VectorAbi : vector<T> {
     void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
     // resize(n) (e.g. 0051F5B0; RET 4): resize(n, T()) with a temporary the policy makes first and
     // destroys last.
-    void ResizeDefault(std::size_t n) {
-        alignas(T) unsigned char storage[sizeof(T)];
-        T* x = reinterpret_cast<T*>(storage);
-        E::Default(x);
-        Vector::template Resize<E>(n, *x);
-        E::Destroy(x);
-    }
+    void ResizeDefault(std::size_t n) { Vector::template ResizeDefault<E>(n); }
     // ~vector() (e.g. 0053F020): the elements destroyed in order, then the storage freed.
     static void __fastcall Destruct(Vector* self) {
         self->template EraseRange<E>(self->begin(), self->end());

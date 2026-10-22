@@ -77,15 +77,15 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
         const TradeRow* row;
         if (region < 0x22) {
             unsigned i = static_cast<unsigned>(learnableTop_) + region - 11;
-            if (i >= static_cast<unsigned>(learnable_.Count())) return;
+            if (i >= static_cast<unsigned>(static_cast<int>(learnable_.size()))) return;
             info->kind = kPerk;
             info->index = 0;
-            row = &learnable_.begin[i];
+            row = &learnable_[i];
         } else {
             unsigned i = static_cast<unsigned>(perkTop_) + region - 0x22;
-            if (i >= static_cast<unsigned>(perks_.Count())) return;
+            if (i >= static_cast<unsigned>(static_cast<int>(perks_.size()))) return;
             info->kind = kPerk;
-            row = &perks_.begin[i];
+            row = &perks_[i];
             info->index = row->level;
         }
         info->text = row->key;

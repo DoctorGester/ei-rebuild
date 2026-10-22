@@ -66,7 +66,7 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
             }
         }
         if (oldest != cache->map.end()) {
-            static_cast<CEngineObject*>(oldest->second.object)->Release();
+            oldest->second.object->Release();
             cache->map.Erase(oldest);
         }
     }

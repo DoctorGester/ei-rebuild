@@ -613,9 +613,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
 
 } // namespace
 
-void CWorldServer::StoreParty(void* recordsArg, CParty* party, void* placementsArg) {
-    auto* list = static_cast<RecordPtrArray*>(recordsArg);
-    auto* placements = static_cast<PlacementArray*>(placementsArg);
+void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArray* placements) {
     if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
@@ -645,7 +643,7 @@ void CWorldServer::StoreParty(void* recordsArg, CParty* party, void* placementsA
     }
 }
 
-void CWorldServer::CollectParty(CPlayer* player, void* placements) {
+void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
     if (!player) return;
     if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
     if (sessionKind_ != kKindNetwork) {

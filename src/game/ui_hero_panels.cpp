@@ -38,13 +38,6 @@ T Read(const std::uint8_t* p, int offset) {
 
 // Unit statistics (UnitStats) values left in ST0 (not rewritten here).
 
-struct SurfaceDraw : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
-    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 
@@ -121,11 +114,11 @@ EI_REWRITTEN(0x006233C0, CHeroStatsPanel::ShowStats);
 // --- 00623880 ----------------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawStats() {
-    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
-    draw->Begin();
+    CUiSurface* draw = surfaces_.data[0];
+    draw->GetDC();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
-    draw->Text(title_, &title, 1, 0xFFFFFF, 1, 1);
+    draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
 
     using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     using UnitFn = std::uint8_t*(__thiscall*)(CUiWindow*, int);
@@ -165,12 +158,12 @@ void CHeroStatsPanel::DrawStats() {
             double value = static_cast<double>(values[i]);
             storedStats[i] = static_cast<float>(value);
             std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
-            draw->Text("-", &rect, 0, colour, 1, 1);
+            draw->DrawLine("-", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->Text("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
+        draw->DrawLine("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF)));
@@ -180,17 +173,17 @@ void CHeroStatsPanel::DrawStats() {
             EI_NAN_AUDIT(storedStats[i]);
             bool below = D(storedStats[i]) < maximum;
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
-            draw->Text("+", &rect, 0, colour, 1, 1);
+            draw->DrawLine("+", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
         Down(&rect);
         Down(&rect);
-        draw->Text("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
+        draw->DrawLine("+", &rect, 0, points_ >= 100 ? kGrey : kBright, 1, 1);
     } else if (page_ == 0) {
         // Equipment: armour by body part, the weapon, the encumbrance.
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
         texts->GetString("infoitem_25", &text);
-        draw->Text(text, &rect, 0, kBright, 0, 1);
+        draw->DrawLine(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
         DrawPart(&rect, "skull", 0);   // skull
         Down(&rect);
@@ -204,7 +197,7 @@ void CHeroStatsPanel::DrawStats() {
         if (static_cast<int>(hero()->weaponIndex) == -1) {
             for (int i = 0; i < 5; ++i) Down(&rect);
         } else {
-            draw->Text(texts_[3], &rect, 0, kBright, 0, 1);
+            draw->DrawLine(texts_[3], &rect, 0, kBright, 0, 1);
             Down(&rect);
             // The weapon's figures (the unit's slot 50 of +0x240 fills them).
             struct WeaponInfo {
@@ -222,25 +215,25 @@ void CHeroStatsPanel::DrawStats() {
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
             ei::ObjectSlot<InfoFn>(inner, 50)(inner, &info);
             line.Format("     %s", texts_[0].GetString());
-            draw->Text(line, &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line.Format("%d", info.value18);
-            draw->Text(line, &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             line.Format("     %s", texts_[1].GetString());
-            draw->Text(line, &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line.Format("%d", info.value1C);
-            draw->Text(line, &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (info.damageKind < 7) {
                 line.Format("damage_%d", info.damageKind);
                 texts->GetString(line, &text);
             }
             line.Format("     %s %s", texts_[2].GetString(), text.GetString());
-            draw->Text(line, &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
             line.Format("%d-%d", low, high);
-            draw->Text(line, &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
         }
@@ -248,9 +241,9 @@ void CHeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
-        if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);
+        if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
-        draw->Text(texts_[7], &rect, 0, kBright, 0, 1);
+        draw->DrawLine(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
         DrawRow(&rect, "Strength", static_cast<int>(gamecrt::Ftol(D(stats->stat10))), -1);   // Strength
@@ -280,10 +273,10 @@ void CHeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
-        if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);
+        if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
     }
-    draw->End();
+    draw->ReleaseDC();
 }
 EI_REWRITTEN(0x00623880, CHeroStatsPanel::DrawStats);
 
@@ -534,7 +527,7 @@ void AddMakerPictures(CConstructorPage* page) {
 }
 } // namespace
 
-void CConstructorPage::BuildSpellMaker(CParty* slots) {
+void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
@@ -553,7 +546,7 @@ void CConstructorPage::BuildSpellMaker(CParty* slots) {
     pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
     CTextManager* texts = TheTextManager();
-    mfc::CStringArray* array = &static_cast<CSpellMakerPage*>(this)->texts_;
+    mfc::CStringArray* array = &texts_;
     mfc::CString text;
     for (int key : {0x23, 0x24}) {
         text.Format("infoitem_%d", key);
@@ -561,7 +554,7 @@ void CConstructorPage::BuildSpellMaker(CParty* slots) {
         array->SetAtGrow(array->GetSize(), text);
     }
 }
-EI_REWRITTEN(0x006280C0, CConstructorPage::BuildSpellMaker);
+EI_REWRITTEN(0x006280C0, CSpellMakerPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};

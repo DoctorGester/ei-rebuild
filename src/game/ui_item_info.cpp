@@ -93,17 +93,6 @@ float ArmourValue(const void* value, const void* factor, float scale) {
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
-// The surface's drawing (thiscall on the surface).
-struct SurfaceDraw : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
-    int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
-    int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag) {   // 005FDFA0
-        return DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
-    }
-    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The text manager (007AF788; thiscall).
 struct Texts : CTextManager {
@@ -185,23 +174,23 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(static_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
+        : panel_(panel), draw_(panel->surfaces_.data[0]), rect_{15, 10, 185, 25} {}
 
-    SurfaceDraw* Draw() { return draw_; }
+    CUiSurface* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
     const mfc::CString& T(int index) const { return panel_->itemTexts_[index]; }
     const mfc::CString& Skill(int index) const { return panel_->skillTexts_[index]; }
 
     void Down() { gameapi::OffsetRect(&rect_, 0, 15); }
-    void Text(const char* text) { draw_->Text(text, &rect_, 0, kText, 0, 1); }
+    void Text(const char* text) { draw_->DrawLine(text, &rect_, 0, kText, 0, 1); }
     // A value right-aligned 10 pixels in from the line's right edge (format 2).
     void Value(const char* text) {
         RECT shifted = rect_;
         gameapi::OffsetRect(&shifted, -10, 0);
-        draw_->Text(text, &shifted, 0, kText, 2, 1);
+        draw_->DrawLine(text, &shifted, 0, kText, 2, 1);
     }
-    void Title(const char* text) { draw_->Wrapped(text, &rect_, 2, 0, kWhite, 0x11, 1); }
-    void Wrapped(const char* text, int maxLines) { draw_->Wrapped(text, &rect_, maxLines, 0, kText, 0x11, 1); }
+    void Title(const char* text) { draw_->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
+    void Wrapped(const char* text, int maxLines) { draw_->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1); }
 
     // The common head of an item description: the title, a gap, the item's kind.
     void Head(const char* name, const char* kind) {
@@ -247,7 +236,7 @@ public:
 
 private:
     CItemInfoPanel* panel_;
-    SurfaceDraw* draw_;
+    CUiSurface* draw_;
     RECT rect_;
 };
 
@@ -303,10 +292,10 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
-    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
-    draw->Begin();
+    CUiSurface* draw = surfaces_.data[0];
+    draw->GetDC();
     draw->Clear();
-    draw->End();
+    draw->ReleaseDC();
     if (!item) return;
 
     int kind = KindOf(item);
@@ -349,7 +338,7 @@ void CItemInfoPanel::DescribeItem() {
     texts->ItemTexts(item, &name, &description, &kindText);
 
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     mfc::CString text;
     w.Head(name, kindText);
 
@@ -455,7 +444,7 @@ tail:
             w.Text(w.T(6));
         }
     }
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
@@ -469,7 +458,7 @@ void CItemInfoPanel::DescribeMaterial() {
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
     mfc::CString text = material->soundName;
@@ -496,7 +485,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.DamageLines(values, 4);
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
@@ -520,7 +509,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
     // (The weapon and armour views are read only for their own sort.)
@@ -573,7 +562,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     }
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 
@@ -586,7 +575,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
@@ -619,7 +608,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(13, static_cast<int>(record->targetCount));
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
 
@@ -632,13 +621,13 @@ void CItemInfoPanel::DescribeModifierRecord() {
     texts->ItemTexts(item, &name, &description, &kindText);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.Down();
     w.Wrapped(description, 8);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
 
@@ -650,7 +639,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     w.Head(name, kindText);
     if (CSpell* spell = SpellOf(item)) {
         bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
@@ -659,7 +648,7 @@ void CItemInfoPanel::DescribeQuickItem() {
         w.Down();
     }
     w.Wrapped(description, 8);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
 
@@ -669,7 +658,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     CSpell* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        static_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
+        surfaces_.data[0]->ReleaseDC();   // without a Begin, as the original
         return;
     }
     Texts* texts = TextManager();
@@ -684,7 +673,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     }
     texts->GetString("item_spell", &kindText);
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     mfc::CString text;
     w.Head(title, kindText);
     w.Number(7, FtolOf(spell->manaCost_));
@@ -744,9 +733,9 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         }
         w.line.TrimRight(",");
         w.line += ".";
-        w.Draw()->Wrapped(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
+        w.Draw()->DrawWrappedText(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
     }
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 
@@ -797,7 +786,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         key += level->name;
         if (texts->Open(key)) texts->ReadLine(&title, 1);
         w.Text(title);
-        if (info->index > i) w.Draw()->Text(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
+        if (info->index > i) w.Draw()->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
         // The level's effect by the perk group.
         int value = static_cast<int>(level->values[7]);
@@ -893,7 +882,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     if (info->kind < 0) return;
     Texts* texts = TextManager();
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     mfc::CString text, title, description;
     if (info->kind <= 3) {
         mfc::CString key("perk ");
@@ -1008,7 +997,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     default:
         break;
     }
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
@@ -1019,7 +1008,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     DescribeItem();
     Texts* texts = TextManager();
     Writer w(this);
-    w.Draw()->Begin();
+    w.Draw()->GetDC();
     mfc::CString title, description, key;
     key.Format("camphelp %d", topic);
     if (texts->Open(key)) {
@@ -1030,7 +1019,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Down();
     w.Down();
     w.Wrapped(description, 16);
-    w.Draw()->End();
+    w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 
