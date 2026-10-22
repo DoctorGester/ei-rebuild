@@ -148,7 +148,7 @@ const char* NameEnd() { return "|"; }
 // The model's turn about x: pi / 2 times 1.2.
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 // The interface's text colour (the list draw changes it per row).
-std::uint32_t TextColour() { return ei::GameData<const volatile std::uint32_t>(0x00793AD8); }
+std::uint32_t TextColour() { return g_connectTextColour; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands at 0061B5CE, 0061BB51, 0061BC09).
 constexpr float kExtendedSelectionRight = 381.5f;

@@ -38,7 +38,7 @@ std::uint32_t Bits(float f) {
 } // namespace
 
 void CCameraInput::OnKeyDown(int, int, int flags) {
-    int character = static_cast<signed char>(ei::GamePointer<const std::uint8_t>(0x0079BF70)[flags & 0x1FF]);
+    int character = KeyActions()[flags & 0x1FF];
     switch (character) {
     case 5: x_ = 1.0f; handled_ = true; break;
     case 6: x_ = -1.0f; handled_ = true; break;

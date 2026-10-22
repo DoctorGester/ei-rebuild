@@ -113,7 +113,7 @@ constexpr std::uintptr_t kCommandTable = ei::DataId(0x007857B0);
 constexpr std::uintptr_t kCommandTableEnd = kCommandTable + 88 * 0x48;
 
 void* __fastcall FindCommandByKey(int key) {
-    const auto* keys = ei::GamePointer<const signed char>(0x0079BF70);
+    const signed char* keys = g_keyActions;
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;
         for (std::uintptr_t entry = kCommandTable; entry < kCommandTableEnd; entry += 0x48)

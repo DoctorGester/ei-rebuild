@@ -15,6 +15,7 @@
 #include "figure_mesh.h"
 #include "game_data.h"
 #include "item_db.h"
+#include "object_tables.h"   // g_keyActions
 #include "unit.h"   // LockKey
 
 #include "lib/compiled_vtable.h"
@@ -1091,11 +1092,9 @@ inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CD
 // The model manager (007AF5F4) the windows take their sprites and item models from.
 inline CFigureManager* UiModelManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
-// The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
-// (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
-inline const signed char* KeyActions() { return ei::GamePointer<const signed char>(0x0079BF70); }
-// The same table for writing (the options window's OK stores its copy there).
-inline signed char* KeyActionTable() { return ei::GamePointer<signed char>(0x0079BF70); }
+// The in-game key bindings (object_tables.h g_keyActions), for reading and for writing.
+inline const signed char* KeyActions() { return g_keyActions; }
+inline signed char* KeyActionTable() { return g_keyActions; }
 constexpr int kKeyActionCount = 0x200;
 
 // 005F2EA0 / 005F2EE0: the bounds-checked records of the spell and spell-modifier databases, as the

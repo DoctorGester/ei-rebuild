@@ -182,7 +182,11 @@ static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTa
 // its "gvar." entries, set again in the order addon's own container gives them.
 void ClearVariablesKeepingGlobals(NamedFloatTable* table);
 
-// 00462F70. The command bound to `key`: the first command slot i (0..0x1FF) whose key in the table
-// at 0079BF70 equals `key` and that has an entry in the command table at 007857B0 (0x48-byte
+// The in-game key bindings (config\keyboard.ini, read by 00462C10; key_bindings.cpp): the action of each scan code
+// (0x200 entries, the WM_KEYDOWN flags & 0x1FF; the options window's OK stores its copy there).
+inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
+
+// 00462F70. The command bound to `key`: the first command slot i (0..0x1FF) whose key in g_keyActions
+// equals `key` and that has an entry in the command table at 007857B0 (0x48-byte
 // entries, slot number first). Returns the entry + 8, or null. __fastcall (key in ECX).
 void* __fastcall FindCommandByKey(int key);

@@ -1,7 +1,7 @@
 // The key bindings file (the base path 007AF460 + the name at 00787C04): loaded at start
 // (00462C10) and saved (00462DF0) on the interface's shutdown. Each line is "<key> <action>". The
 // tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
-// use: the action of each scan code (0x200 signed bytes at 0079BF70), the keys (0x48-byte entries at
+// use: the action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at
 // 007857B0: scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
 // 00787070: id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md
 // section 8.
@@ -36,7 +36,7 @@ constexpr std::uintptr_t kKeysAddress = ei::DataId(0x007857B0);      // the key 
 Key* Keys() { return ei::GamePointer<Key>(kKeysAddress); }
 constexpr int kKeyCount = 88;
 constexpr int kActionCount = 60;
-signed char* ActionOfScan() { return ei::GamePointer<signed char>(0x0079BF70); }
+signed char* ActionOfScan() { return g_keyActions; }
 
 
 // 00700C05: operator+(CString, LPCTSTR).
