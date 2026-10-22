@@ -112,7 +112,6 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
 
 namespace {
-bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 // Every node of `list` holding `value` erased (the next node taken first).
 void EraseValue(stlp::SharedRefList& list, const void* value) {
     RefNode* sentinel = list.End();
@@ -144,9 +143,9 @@ EI_REPLACE(0x0041AD80, ServerOnPlayerChanged);
 // goes up); then the binding is removed from the bindings list.
 void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
     auto* binding = message->binding_.Get();
-    if (!Live(binding)) return;
+    if (!IsLive(binding)) return;
     auto* player = binding->Player();
-    if (Live(player)) {
+    if (IsLive(player)) {
         std::uint8_t wasHost = player->host_;
         EraseValue(self->players_, player);
         if (wasHost) {

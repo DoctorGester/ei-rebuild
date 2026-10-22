@@ -2,6 +2,7 @@
 // hands in (0041B690), with the host check they use (00419F90). See net_messages.h and
 // docs/notes/network.md.
 #include "net_messages.h"
+#include "net_connection.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -30,7 +31,7 @@ enum CommandKind : std::uint32_t {
     kBanBySerial = 5,
 };
 
-void* CurrentConnectionObject() { return g_currentConnection; }
+Connection* CurrentConnectionObject() { return g_currentConnection; }
 std::size_t StringNpos() { return 0xFFFFFFFFu /*0073BDE8*/; }
 
 bool Is(const stlp::string& s, const char* t) {
@@ -41,7 +42,7 @@ bool Is(const stlp::string& s, const char* t) {
 } // namespace
 
 // 00419F90: whether `connection` is the host's (a binding of it with a live host player).
-bool ServerSession::IsHostConnection(void* connection) {
+bool ServerSession::IsHostConnection(const Connection* connection) {
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
         auto* binding = bindings_.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
@@ -54,7 +55,7 @@ bool ServerSession::IsHostConnection(void* connection) {
 // 0041B690 (file requests): the request keeps its sender's connection and is listed on +0x259C
 // (0041B720 drops it).
 void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
-    auto* connection = static_cast<CRefObject*>(CurrentConnectionObject());
+    CRefObject* connection = CurrentConnectionObject();
     CRefObject* previous = message->ConnectionRef().ptr;
     message->ConnectionRef().ptr = connection;
     if (connection) ++connection->refs_;
@@ -99,14 +100,14 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
     case kKickByName:
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
         for (;;) {
-            auto* connection = static_cast<CRefObject*>(self->FindGuestConnection(text));
+            Connection* connection = self->FindGuestConnection(text);
             if (!connection || (connection->flags7_ & CRefObject::kDetached)) return;
             self->Kick(connection);
         }
     case kBanByName:
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
         for (;;) {
-            auto* connection = static_cast<CRefObject*>(self->FindGuestConnection(text));
+            Connection* connection = self->FindGuestConnection(text);
             if (!connection || (connection->flags7_ & CRefObject::kDetached)) return;
             self->Ban(connection);
         }

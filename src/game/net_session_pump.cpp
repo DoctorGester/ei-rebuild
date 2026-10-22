@@ -23,8 +23,6 @@ namespace netlink {
 
 namespace {
 
-bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
-
 // list<RefPtr>::insert of the drivers (0047A450, shared) and the holders (0047A480, counted), the
 // drivers' erase (0047A380); the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
 // pool's free (00404D70).

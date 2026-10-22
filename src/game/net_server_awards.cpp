@@ -29,8 +29,6 @@ namespace {
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
-bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
-
 // RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.
 void DestroyInline(RefPtr* p) {
     if (CRefObject* object = p->ptr) {
@@ -99,11 +97,11 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
         if (node == sentinel) return;
         auto* binding = bindings_.At(node);
         auto* player = binding->Player();
-        if (Live(player) && player->host_) break;
+        if (IsLive(player) && player->host_) break;
         node = node->next;
     }
     CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
-    if (!Live(connection)) return;
+    if (!IsLive(connection)) return;
 
     char** const* items = reinterpret_cast<char** const*>(entry + 0x14);   // start, finish
     auto count = [items] { return static_cast<std::uint32_t>((items[1] - items[0])); };
@@ -128,7 +126,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
 // (00418530).
 void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
-    if (Live(holder->ptr)) {
+    if (IsLive(holder->ptr)) {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
@@ -181,7 +179,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 // null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;
-    if (Live(holder->ptr)) {
+    if (IsLive(holder->ptr)) {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
