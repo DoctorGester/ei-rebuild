@@ -36,7 +36,7 @@ constexpr int kTorchClassId = 0x41;
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 
-// The sources are engine objects (CParticleSource::Vtable()): slot 4 releases a reference.
+// The sources are engine objects: slot 4 releases a reference.
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
@@ -136,7 +136,7 @@ EI_REPLACE_METHOD(0x0052D610, CTorchObjectClientSpec::HideEffects);
 
 void CTorchObjectClientSpec::WarmUpParticles() {
     if (!particles_) return;
-    for (int i = 0; i < kWarmUpTicks; ++i) particles_->Tick();
+    for (int i = 0; i < kWarmUpTicks; ++i) particles_->RunTick();
 }
 EI_REPLACE_METHOD(0x0052D3F0, CTorchObjectClientSpec::WarmUpParticles);
 

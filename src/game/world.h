@@ -1584,8 +1584,8 @@ public:
     int constant6E8_;                     // +0x6E8 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
-    // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
-    // world keeps its bytes and RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
+    // +0x6F4 the rain / snow layer, built and destroyed in place with the world (world_construct.cpp,
+    // world_destructors.cpp); RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
     // 2 snow) picks the ground prints' wet look and an environment flag.
     alignas(4) std::uint8_t rainSnow_[0xC8];
     CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }

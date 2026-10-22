@@ -224,7 +224,7 @@ void CWorldClient::Destruct() {
     windowClass_.~CString();
     appName_.~CString();
     list7BC_.Destroy();
-    RainSnow()->DestructBody();
+    RainSnow()->~CRainSnow();
     texturePath_.~CString();
     platforms_.DestructBody();
     handle_.Destroy();

@@ -2,7 +2,7 @@
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
 //
-// - CParticleSource (CParticleSource::Vtable() in place of game.exe's 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
+// - CParticleSource (game.exe's table 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
 //   00496EB0, particle_tick.cpp) runs the per-type callbacks the constructor (slot 2, 00485540) stores
 //   at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update one
 //   element of the source's own array at +0x154). The callbacks are __thiscall on the source.
@@ -368,25 +368,36 @@ static_assert(sizeof(SourceFrame) == 16);
 // A particle source: a transform object (CTransformObject, whose vtable the factory stores on the
 // way): localPosition_ (+0x1C) is where it emits relative to what it is attached to, localRotation_
 // (+0x34) the identity after Reset.
-class CParticleSource : public CTransformObject {
+class CParticleSource final : public CTransformObject {
 public:
+    // 004981B0's construction (particle_create.cpp; NewParticleSource, the class factory's creator):
+    // the engine object and transform bases (identity rotations), no elements, no bounds, an empty
+    // particle list (blocks of 10), no frames or texture; then Reset and `type`.
+    explicit CParticleSource(int type);
+    // 00498310 (deleting: 004982F0): Clear, the texture released, the frames, the particle list and
+    // the elements freed.
+    ~CParticleSource() override;
+    // Sources start zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98)
+    // and the first Tick takes the motion from it. The harness zeroes the original's alike.
+    static void* operator new(std::size_t size) noexcept;
+
+    int Create() override;                          // 2: 00485540: per-type parameters
+    void Destroy() override { Clear(); }            // 3: 00484710
+    int RunTick() override;                         // 6: 00496EB0: 1 while the source stays alive
+    const char* GetClassName() override;            // 11: 004982D0 "CParticle" (the exe's 0078B020)
+    int GetClassId() override;                      // 12: 004982E0 (12)
+
     // The particle manager that owns the source (owner_), the pool its particles come from.
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
-    // The compiled table (C19, particle_create.cpp's ParticleSourceClass; game.exe's 0073CFD0).
-    static void* Vtable();
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
     // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
     int Draw(void* renderer);                       // 004976B0
 
     // --- set-up (particle_create.cpp) ---
-    int CreateForType();                            // 00485540 (vtable slot 2): per-type parameters
     void Reset();                                   // 004847E0: defaults, texture and elements dropped
-    void Clear();                                   // 00484710 (vtable slot 3): particles back to the pool, detach, Reset
-    void Destruct();                                // 00498310: destructor body (Clear, free, base)
-    CParticleSource* DeletingDestruct(int flags);   // 004982F0 (slot 0): Destruct, delete on bit 0
+    void Clear();                                   // 00484710 (slot 3): particles back to the pool, detach, Reset
 
-    // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
-    int Tick();                                     // 00496EB0: 1 while the source stays alive
+    // --- per-frame tick (RunTick, slot 6; particle_tick.cpp) ---
     void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
 
     // The callbacks Create stores (+0x1E0 emit, +0x1E4 update, +0x1E8 element): __thiscall members
@@ -599,24 +610,10 @@ public:
     ElementCallback elementFn;      // +0x1E8
     HeldTexture texture;            // +0x1EC texture holder (bound by 00497CE0)
 };
-static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
-static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
-static_assert(offsetof(CParticleSource, size) == 0x10C);
-static_assert(offsetof(CParticleSource, extent) == 0x130);
-static_assert(offsetof(CParticleSource, elements) == 0x154);
-static_assert(offsetof(CParticleSource, distance) == 0xC8);
-static_assert(offsetof(CParticleSource, clip) == 0x17C);
-static_assert(offsetof(CParticleSource, particles) == 0x1B4);
-static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
-static_assert(sizeof(CParticleSource::EmitCallback) == 4);   // single inheritance: a plain code address
-static_assert(sizeof(CParticleSource) == 0x1F0);
 
 // 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
 // `type` (the register arguments are unused), or null.
 CParticleSource* __stdcall NewParticleSource(int type);
-// 004982D0 / 004982E0 (CParticleSource slots 11 / 12, particle_create.cpp): "CParticle", 12.
-const char* __fastcall ParticleSourceClassName(CParticleSource* source);
-int __fastcall ParticleSourceClassId(CParticleSource* source);
 
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.
@@ -646,18 +643,21 @@ ParticleElement* __fastcall AllocateElements(int count);
 
 // The world's rain/snow layer (CWorldClient + 0x6F4, CWorldClient::RainSnow(); an engine object
 // whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
-class CRainSnow : public CEngineObject {
+class CRainSnow final : public CEngineObject {
 public:
+    // The client world's constructor builds it inline (world_construct.cpp): the engine object's
+    // fields, no texture, empty work arrays, no world or sound, then Clear.
+    CRainSnow();
+    // 005616C0 (deleting: 005617E0): Clear, the work arrays freed (last member first), the texture
+    // released.
+    ~CRainSnow() override;
+    int Create() override { return 0; }             // 2: 005617A0
+    void Destroy() override { Clear(); }            // 3: 005617B0 (a thunk to 004E3B80)
+    const char* GetClassName() override;            // 11: 005617C0 "CWeather" (nothing asks)
+    int GetClassId() override;                      // 12: 005617D0 (0x1D)
+
     // Body of the slot at 004E5680 (registered by member pointer).
     int DrawImpl(CSceneRenderer* renderer);
-    // The compiled table (C19, effects_weather.cpp's RainSnowClass; game.exe's 0073F4C8 with its tail 0073F4E8).
-    static void* Vtable();
-
-    // 005616C0. The destructor's body: Clear, the work arrays freed (last member first), the texture
-    // released, then the engine object's body.
-    void DestructBody();
-    // 005617E0 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
-    CRainSnow* DeletingDestruct(unsigned flags);
     void UpdateFade(float now);                     // 004E40B0
     void FinishFade();                              // 004E4050
     void SetWind(const Vector3& direction, float strength);    // 004E41F0
@@ -706,11 +706,6 @@ public:
     float fadeStart;                // +0x0C0 world time
     float fadeDuration;             // +0x0C4 0: no fade running
 };
-static_assert(offsetof(CRainSnow, texture) == 0x1C);
-static_assert(offsetof(CRainSnow, particleCount) == 0xA4 && offsetof(CRainSnow, projected) == 0x28);
-static_assert(offsetof(CRainSnow, vertices) == 0x70 && offsetof(CRainSnow, offsets) == 0x94);
-static_assert(offsetof(CRainSnow, wind) == 0xA8);
-static_assert(sizeof(CRainSnow) == 0xC8);
 
 // A fog cell (the hash_map value; the key is (y << 16) + x of the map square).
 struct FogCell {
@@ -753,24 +748,28 @@ struct FogGrid {
 };
 static_assert(sizeof(FogGrid) == 0x18);
 
-// The engine object's slots are a compiled table (C19, effects_weather.cpp: Vtable(), in place of game.exe's 0073D6B4;
-// stored by the manager's NewObject and the destructor body; never constructed here).
-class CVisibilityFog : public CEngineObject {
+// The fog object (game.exe's table 0073D6B4; made by the fog manager's NewObject, vis_fog_manager.cpp).
+class CVisibilityFog final : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
 
+    // 004E2290's construction (vis_fog_manager.cpp): the engine object's fields, everything up to the
+    // cell map zero, an empty cell map (100 buckets asked).
+    CVisibilityFog();
+    // 004E24E0 (deleting: 004E24C0): ClearCells, the table freed.
+    ~CVisibilityFog() override;
+    int Create() override;                          // 2: 004E23D0: ClearCells, 1
+    void Destroy() override { ClearCells(); }       // 3: 004E2440
+    int RunTick() override { return UpdateCells(); }   // 6: 004E1AB0
+    const char* GetClassName() override;            // 11: 004E24A0 "CVisibilityFog" (0078DE80)
+    int GetClassId() override;                      // 12: 004E24B0 (0x5F)
+
     void ComputeBounds();                           // 004E1770
-    int UpdateCells();                              // 004E1AB0 (vtable slot 6; no C++ virtuals here)
+    int UpdateCells();                              // 004E1AB0 (slot 6)
     void Reveal(const FogGrid* grid);               // 004E1C60
     // A-S10 (effects_weather.cpp). Every cell freed (nodes back to the pool), the bounds invalid:
     // the body of slots 2 (004E23D0, returns 1) and 3 (004E2440).
     void ClearCells();
-    // 004E24E0. The destructor body: the vtable, ClearCells, the table freed, the engine object's
-    // base destructor. 004E24C0 (slot 0, RET 4): it, then operator delete on bit 0; returns this.
-    void Destruct();
-    CVisibilityFog* DeletingDestruct(int flags);
-    // The compiled table (slots 0 DeletingDestruct, 2 / 3 ClearCells, 6 UpdateCells, 11 / 12 the class name and id).
-    static void* Vtable();
     // 004E1EB0 (RET 4; effects_weather_draw.cpp). The cells as sprites through the scene renderer
     // (its result); 1 without cells or when the bounds are out of view.
     int Draw(class CSceneRenderer* renderer);
@@ -784,15 +783,6 @@ public:
     std::uint8_t boundsValid;       // +0x68
     std::uint8_t unused_69[3];
 };
-static_assert(offsetof(CVisibilityFog, bounds) == 0x1C);
-static_assert(offsetof(CVisibilityFog, cells) == 0x54);
-// The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
-// (004E24A0 "CVisibilityFog", 004E24B0 0x5F); effects_weather.cpp.
-int __fastcall FogCreate(CVisibilityFog* self);
-void __fastcall FogDestroy(CVisibilityFog* self);
-const char* __fastcall FogClassName(CVisibilityFog* self);
-int __fastcall FogClassId(CVisibilityFog* self);
-static_assert(sizeof(CVisibilityFog) == 0x6C);
 
 // The size of an orbiting sphere's particle by the ticks it has left (the fire, electricity and air spheres'
 // 16 entries; the antimagic sphere's 6): effects.cpp, particle_callbacks.cpp.

@@ -256,7 +256,7 @@ struct TickSteps {
 
 // 00496EB0 (slot 6). Returns 1 while the source is still needed: a free source while it keeps
 // alive (flag 4) or has particles, an attached one while it emits or has particles.
-int CParticleSource::Tick() {
+int CParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
     const CWorldClient* world = TheClientWorld();
     std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
@@ -284,4 +284,4 @@ int CParticleSource::Tick() {
     if (flags_ & 1) return 1;
     return particles.count != 0;
 }
-EI_REWRITTEN(0x00496EB0, CParticleSource::Tick);
+EI_REWRITTEN(0x00496EB0, CParticleSource::RunTick);

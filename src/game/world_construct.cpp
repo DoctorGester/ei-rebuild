@@ -146,19 +146,7 @@ CWorldClient* CWorldClient::Construct() {
     ConstructList(platforms_.list, mfc::impl::PlatformListClass::Vtable());
     new (&texturePath_) mfc::CString();
 
-    CRainSnow* rain = RainSnow();
-    ConstructEngineObject(rain, CRainSnow::Vtable());
-    rain->texture = nullptr;
-    rain->projected.Construct();
-    rain->positions.Construct();
-    rain->outcodes.Construct();
-    rain->frames.Construct();
-    rain->vertices.Construct();
-    rain->indices.Construct();
-    rain->offsets.Construct();
-    rain->world = nullptr;
-    rain->sound = 0;
-    rain->Clear();
+    new (RainSnow()) CRainSnow();
 
     list7BC_.Construct();
     for (mfc::CString* name : {&appName_, &windowClass_, &windowTitle_, &pausedTitle_}) new (name) mfc::CString();

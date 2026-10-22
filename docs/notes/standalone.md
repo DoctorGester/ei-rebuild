@@ -1219,10 +1219,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
     windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
   - **Engine objects** (engine_object_class.h): LightningClass (0073C550) in class_slots.cpp (CHoover, 0073C434,
-    is a real class since C28e), PlayerClass (00743104), SysInfoClass (0073D644), CameraClass (0073B9E0, transform),
-    ParticleSourceClass (0073CFD0, transform) and RainSnowClass (0073F4C8 with its tail 0073F4E8; its slots 11 / 12,
-    "CWeather" and 0x1D, are dead code's). The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's
-    slot 0 names it).
+    is a real class since C28e), PlayerClass (00743104), SysInfoClass (0073D644) and CameraClass (0073B9E0, transform).
+    The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's slot 0 names it). CParticleSource
+    (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
+    code's) are real classes since C28f.
   - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
     PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world_class.h) with the base's
     bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
@@ -1394,8 +1394,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     strips 00741BF4 / 00741C60 (20 DrawFigures, 25 FigureItemAt, 26 CountFigures, input 2 OnFigureClick). Accessors
     `CUiItemStrip::PlainVtable()` / `ForwardingVtable()` / `FigureVtable()` and their `...InputVtable()`;
     harness_windows.cpp maps the three window tables.
-  - **CVisibilityFog** (effects_weather.cpp's VisibilityFogClass over EngineObjectClass, 0073D6B4): 2 / 3 the cells
-    cleared, 6 UpdateCells, 11 / 12; the fog manager's NewObject and the destructor body store `CVisibilityFog::Vtable()`.
+  - **CVisibilityFog** (effects.h, 0073D6B4; a real class since C28f): 2 / 3 the cells cleared, 6 UpdateCells, 11 / 12.
   - **Retired with no class of ours**: 0073B984 is stlp's length_error (stored only by game.exe's string growth
     0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it). The ~140 functions that name the
     address compare a hash table's prime pointer with the end of __stl_prime_list (0073B914 + 28 dwords), which is
