@@ -66,13 +66,13 @@ void Lever::SetState(int wanted, float duration) {
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
-        SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
+        SectorMapRemove(sectors, nullptr, node->data);
         node = next;
     }
     CAIMap* map = world->AIMap();
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
     map->BeginRefresh();
-    SectorMapRemove(sectors, nullptr, AsEngineObject(this));
+    SectorMapRemove(sectors, nullptr, this);
 
     states = stateCount;
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
@@ -91,7 +91,7 @@ void Lever::SetState(int wanted, float duration) {
     scale.y = travel;   // the shown position
     SetUpAnimatedFigure(name);
     MarkChanged(5);
-    SectorMapAdd(sectors, nullptr, AsEngineObject(this));
+    SectorMapAdd(sectors, nullptr, this);
     map->EndRefresh();
     map->refreshUnits = true;
 

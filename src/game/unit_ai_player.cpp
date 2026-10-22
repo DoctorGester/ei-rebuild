@@ -32,7 +32,6 @@ constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
-CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 
 // A list on the stack as the original builds it (CPtrList, blocks of 10).
 void InitList(AIObjectList& list) {
@@ -91,7 +90,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (unit->fightAtWill != kStandby) return;
 
     // The commanded target first, when it can be reached from here.
-    if (target && MapObject(target)->IsDead() == 0) {
+    if (target && ObjectSlots(target)->IsDead() == 0) {
         AITargetChoice choice{-1, static_cast<CUnit*>(target.object)};   // taken as a unit, as the original does
         if (brain->attention.CanReach(brain, &choice, 1)) {
             Attack(brain, target, false);

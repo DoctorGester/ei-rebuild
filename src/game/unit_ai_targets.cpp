@@ -44,7 +44,6 @@ constexpr int kRejectedReport = 0x14;
 const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
 const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
 
-CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
@@ -139,8 +138,8 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         double dx = static_cast<double>(self->localPosition_.x) - target->localPosition_.x;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = static_cast<float>(self->ScaledValue(distance));
-        float targetRadius = static_cast<float>(MapObject(target)->Radius());
-        float minDistance = static_cast<float>(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
+        float targetRadius = static_cast<float>(target->Radius());
+        float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
         CWorldServer* server = TheServerWorld();
         // The target is lifted off the sector map so it does not block its own cell.
         SectorMapRemove(server->Sectors(), nullptr, target);
@@ -333,7 +332,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
         allies.AddTail(self);
         for (auto* node = brain->memory.nearby.head; node; node = node->next) {
             auto* other = node->data;
-            if (MapObject(other)->IsDead() == 0 && !brain->memory.reports.Contains(other) && Allied(self->side, other->side))
+            if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && Allied(self->side, other->side))
                 allies.AddTail(other);
         }
         for (auto* node = allies.head; node; node = node->next) {

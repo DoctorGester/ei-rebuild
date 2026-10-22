@@ -107,9 +107,8 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(classId, id);
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    static_cast<CMapObject*>(object)->SetAnimationState(
-        figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
     CMapObjectVirtuals* slots = ObjectSlots(object);
+    slots->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
     slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
     slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
     if (int half = ThirdHalfOf(classId))

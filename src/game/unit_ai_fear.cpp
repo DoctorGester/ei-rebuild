@@ -64,9 +64,7 @@ bool IsZero(double v) {
 
 bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x) == kUnsetBits; }
 
-const Vector3* PositionOf(CEngineObject* object) {
-    return &static_cast<CMapObject*>(object)->localPosition_;
-}
+const Vector3* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
 CAIMap* Map() { return TheServerWorld()->AIMap(); }
 

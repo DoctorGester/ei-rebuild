@@ -81,7 +81,7 @@ bool CanTalk(CEngineObject* person) {
 }
 
 
-bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVirtuals*>(object)->IsDead() == 0; }
+bool IsPerson(CEngineObject* object) { return object && ObjectSlots(object)->IsDead() == 0; }
 
 } // namespace
 

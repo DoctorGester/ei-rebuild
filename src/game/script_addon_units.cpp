@@ -43,7 +43,7 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetP
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
 
 // CMapObject::IsDead (slot 55) of any object: 0 alive, 1 dead (addon's 10013192).
-int DeathState(CEngineObject* unit) { return static_cast<CMapObject*>(unit)->IsDead(); }
+int DeathState(CEngineObject* unit) { return ObjectSlots(unit)->IsDead(); }
 
 // The filter of NearestUnit and UnitsNearPoint (10011421, 10013076): units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.
@@ -158,7 +158,8 @@ bool NearestUnit(Call* call) {
     CEngineObject* best = nullptr;
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
-        float distance = Distance(static_cast<CMapObject*>(object)->localPosition_.x, static_cast<CMapObject*>(object)->localPosition_.y, x, y);
+        const Vector3& at = ObjectSlots(object)->localPosition_;
+        float distance = Distance(at.x, at.y, x, y);
         if (distance < radius) {   // TEST AH,0x41 on FCOMP radius, distance: ordered greater
             best = object;
             radius = distance;

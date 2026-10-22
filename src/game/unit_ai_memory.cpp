@@ -26,7 +26,7 @@ namespace {
 constexpr float kZero = 0.0f;                   // 0073B858
 const float kFar = 1e30f;                       // 7149F2CA
 
-bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
+bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 // (a - b) squared in 3D, summed as the original: z, then x, then y.

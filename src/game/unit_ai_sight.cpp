@@ -44,7 +44,7 @@ constexpr int kLostKind = -2;
 constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every unit once
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
-bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
+bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 // FCOMP 0; TEST AH,0x40: zero.

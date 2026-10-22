@@ -34,7 +34,7 @@ constexpr int kFakeUnitClassId = 0x50;
 
 // The figure records and the helpers are engine objects (vtable and count first; the classes
 // declare no virtuals): slot 0, the deleting destructor, with 0.
-void DestroyRecord(void* record) { static_cast<CEngineObject*>(record)->~CEngineObject(); }
+void DestroyRecord(CEngineObject* record) { record->~CEngineObject(); }
 
 // The array's vtable back, each element destroyed (`destroy`; the destructor's loops are the
 // instantiations' inlined DestructElements: each element's destructor through its vtable), the
