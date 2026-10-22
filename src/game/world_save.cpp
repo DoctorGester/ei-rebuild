@@ -647,10 +647,10 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     std::uint32_t e8;
     std::memcpy(&e8, &weatherStrength_, 4);
     WriteCopy(stream, e8);
-    // Stored by the callee with FSTP; copied on as dwords.
-    std::uint32_t time;
-    std::uint32_t speed;
-    GetTime(reinterpret_cast<float*>(&time), reinterpret_cast<float*>(&speed));
+    // Stored by the callee with FSTP; written on as their bytes (WriteCopy takes a reference).
+    float time;
+    float speed;
+    GetTime(&time, &speed);
     WriteCopy(stream, time);
     WriteCopy(stream, speed);
     WriteCopy(stream, lastRainBoltTick_);

@@ -10,6 +10,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -56,9 +57,9 @@ void UnitSet::Write(CStream* stream) {
         for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) {
             FiguredUnitRecord& record = unit->value.mapped;
             record.Write(stream);
-            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphS));
-            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphT));
-            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphU));
+            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphS));
+            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphT));
+            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphU));
             auto names = [&record](std::uint32_t i) -> const char* { return record.names[i]; };
             auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
             PutWord(stream, nameCount());

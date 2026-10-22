@@ -68,8 +68,8 @@ ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result,
 }
 ObjectList* DeferredUnits() { return FrameDeferredUnits(); }
 
-const std::uint32_t& g_multiplayerView = reinterpret_cast<const std::uint32_t&>(options::TheOptions()->drawVisibleOnly_);
-const std::uint32_t& g_modelTouchDelay = reinterpret_cast<const std::uint32_t&>(options::TheOptions()->shadowLightingFreq_);
+const int& g_multiplayerView = options::TheOptions()->drawVisibleOnly_;
+const int& g_modelTouchDelay = options::TheOptions()->shadowLightingFreq_;
 // 007AFDB0: the point PickGround / PickSurface return without a view matrix.
 const float* NoPickPoint() { return ei::GamePointer<const float>(0x007AFDB0); }
 
@@ -168,7 +168,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                         PushBack(g_shadowOther, entry);
                         break;
                     }
-                    if ((object->flags_ & kFlagTouchModel) && now - ModelOf(object)->touchTime > g_modelTouchDelay) {
+                    if ((object->flags_ & kFlagTouchModel) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(g_modelTouchDelay)) {
                         PushBack(g_touchedModels, entry);
                         ++touched;
                     }
