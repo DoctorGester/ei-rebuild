@@ -47,8 +47,6 @@ bool g_failed = false;   // device or pipelines could not be created, or sokol p
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 // The smooth option (R12a, off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
 bool g_smooth = false;
-// The classic shadows (R16j, off by default): EI_RENDER's "classicshadows", render::SetClassicShadows.
-bool g_classicShadows = false;
 // The smooth camera (R18, off by default): EI_RENDER's "smoothcamera", render::SetSmoothCamera.
 bool g_smoothCamera = false;
 #if defined(EI_RENDER_VALIDATION)
@@ -58,14 +56,12 @@ bool g_checkAll = false;    // "checkall" (harness build only): every read-back 
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
 // and the scenarios) change nothing: the image always draws with the new renderer. "smooth" turns
-// the smooth option on (render::SetSmooth), "classicshadows" the game's shadow decals instead of the
-// shadow map (render::SetClassicShadows, R16j), "smoothcamera" the smooth camera (render::SetSmoothCamera,
+// the smooth option on (render::SetSmooth), "smoothcamera" the smooth camera (render::SetSmoothCamera,
 // R18); "uiboth" / "uinative" the interface canvases (render_ui.h).
 void ParseSpec(const char* spec) {
     g_smooth = false;
     g_smoothCamera = false;
     ui::ResetOptions();
-    bool classicShadows = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
     g_checkAll = false;
@@ -79,7 +75,6 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         if (word == "new" || word == "present" || word == "cpuwindows") {}
         else if (word == "smooth") g_smooth = true;
-        else if (word == "classicshadows") classicShadows = true;
         else if (word == "smoothcamera") g_smoothCamera = true;
         else if (ui::ParseOption(word)) {}
 #if defined(EI_RENDER_VALIDATION)
@@ -90,8 +85,6 @@ void ParseSpec(const char* spec) {
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    if (classicShadows != g_classicShadows) ei::Log("render: shadows: %s", classicShadows ? "classic" : "the sun's shadow map");
-    g_classicShadows = classicShadows;
     g_configured = true;
 }
 
@@ -787,10 +780,9 @@ void EndDecalTime(int vertices) {
 void BeginFlatDrawTime(int vertices) {
 #if defined(EI_RENDER_VALIDATION)
     if (g_flatDrawTimer.running) return;
-    bool shadow = detail::ClassicDecalPending();
-    ++(shadow ? detail::Stats().flatShadowDraws : detail::Stats().flatOtherDraws);
+    ++detail::Stats().flatDraws;
     detail::Stats().flatDrawVertices += static_cast<std::uint64_t>(vertices);
-    g_flatDrawTimer.Begin(shadow ? &FrameStats::flatShadowMs : &FrameStats::flatOtherMs);
+    g_flatDrawTimer.Begin(&FrameStats::flatMs);
 #else
     (void)vertices;
 #endif
@@ -810,14 +802,6 @@ void BeginShadowBuildTime() {
 void EndShadowBuildTime() {
 #if defined(EI_RENDER_VALIDATION)
     g_shadowBuildTimer.End();
-#endif
-}
-void CountShadowTexture(bool stale) {
-#if defined(EI_RENDER_VALIDATION)
-    ++detail::Stats().shadowTextures;
-    if (stale) ++detail::Stats().staleShadowTextures;
-#else
-    (void)stale;
 #endif
 }
 bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
@@ -858,17 +842,6 @@ void SetSmooth(bool on) {
 bool Smooth() {
     EnsureConfigured();
     return g_smooth;
-}
-
-void SetClassicShadows(bool on) {
-    EnsureConfigured();
-    if (on != g_classicShadows) ei::Log("render: shadows: %s", on ? "classic (the game's decals)" : "the sun's shadow map");
-    g_classicShadows = on;
-}
-
-bool ClassicShadows() {
-    EnsureConfigured();
-    return g_classicShadows;
 }
 
 void SetSmoothCamera(bool on) {
@@ -960,9 +933,8 @@ void AddFrameStats() {
                        &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
                        &FrameStats::textureChanges, &FrameStats::comparedBytes, &FrameStats::morphMeshes,
                        &FrameStats::morphCorners, &FrameStats::decalShadows, &FrameStats::decalPrints,
-                       &FrameStats::decalVertices, &FrameStats::flatShadowDraws, &FrameStats::flatOtherDraws,
-                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds, &FrameStats::shadowTextures,
-                       &FrameStats::staleShadowTextures})
+                       &FrameStats::decalVertices, &FrameStats::flatDraws,
+                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
         s.*field += f.*field;
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];
@@ -981,8 +953,8 @@ void AddFrameStats() {
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
     s.deviceMeshMs += f.deviceMeshMs;
-    for (auto field : {&FrameStats::decalShadowMs, &FrameStats::decalPrintMs, &FrameStats::flatShadowMs,
-                       &FrameStats::flatOtherMs, &FrameStats::shadowBuildMs})
+    for (auto field : {&FrameStats::decalShadowMs, &FrameStats::decalPrintMs, &FrameStats::flatMs,
+                       &FrameStats::shadowBuildMs})
         s.*field += f.*field;
     s.shadowDraws += f.shadowDraws;
     s.shadowMs += f.shadowMs;

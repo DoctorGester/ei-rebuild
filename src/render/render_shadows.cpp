@@ -6,8 +6,8 @@
 // every receiving batch the matrix from its model space to the map; DrawShadowMap draws the casters'
 // meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's
 // alpha), then the map's depth range per cell (shaders/shadow_reduce.hlsl, shadow_dilate.hlsl). The terrain
-// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli, R16j2). With the classic option
-// (render::SetClassicShadows) none of this runs and the game's decals draw as before.
+// and mesh shaders sample it with soft, contact-hardening edges (shaders/shadow_receiver.hlsli, R16j2). The
+// game's decals are neither made nor drawn (R16i).
 // R20: objects the game does not draw (outside the view) whose shadow can reach the visible ground
 // cast too: the world's draw hands their parts over after its own draws (ShadowCasterMesh, in a stream
 // of their own), tested against the map's fit made right then (ShadowCasterArea / ShadowCasterReaches).
@@ -154,7 +154,6 @@ bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 const void* g_caster = nullptr;     // BeginCaster .. EndCaster
-bool g_classicDecal = false;        // ClassicShadowDecal .. EndMesh
 ShadowInfo g_info, g_lastInfo;
 
 // --- R20: casters outside the view --------------------------------------------------------------------
@@ -572,7 +571,7 @@ const Fit& FitMap(Frame& f) {
     g_fit.frame = FrameNumber();
     g_fit.pieces = f.terrainPieces.size();
     ShadowFrame& sh = f.shadow;
-    if (ClassicShadows() || !sh.haveSun || f.worldRanges.empty()) return g_fit;
+    if (!sh.haveSun || f.worldRanges.empty()) return g_fit;
 
     // The world's first ground batch gives the camera's matrix (landscape space to clip).
     std::size_t firstGround = SIZE_MAX;
@@ -668,10 +667,8 @@ void CastsShadow(const void* object, float strength) {
     CurrentFrame().shadow.casters.emplace_back(object, strength);
 }
 
-void ClassicShadowDecal() { g_classicDecal = true; }
-
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    if (!Active() || !g_outsideOn || ClassicShadows() || !area) return false;
+    if (!Active() || !g_outsideOn || !area) return false;
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::shadowMs);
     const Fit& fit = FitMap(CurrentFrame());
@@ -809,36 +806,9 @@ void SetShadowShift(int texels) {
 #endif
 }
 
-namespace {
-bool g_shadowBuildFull = false;          // the harness's "shadowbuild full" (R16e1)
-unsigned g_shadowTextureGeneration = 0;  // RebuildShadowTextures
-} // namespace
+bool ClassicShadowSkipped() { return Active(); }
 
-bool ClassicShadowSkipped() { return Active() && !ClassicShadows() && !g_shadowBuildFull; }
-
-void SetShadowBuildFull(bool full) {
-#if defined(EI_RENDER_VALIDATION)
-    if (full != g_shadowBuildFull)
-        ei::Log("render: object shadows: %s", full ? "the classic texture and decal made with the shadow map too"
-                                                     : "the classic texture and decal made only when drawn");
-    g_shadowBuildFull = full;
-#else
-    (void)full;
-#endif
-}
-
-unsigned ShadowTextureGeneration() { return g_shadowTextureGeneration; }
-
-void RebuildShadowTextures() {
-    ++g_shadowTextureGeneration;
-    ei::Log("render: object shadows: every classic texture made again at its next draw");
-}
-
-ShadowInfo ShadowState() {
-    ShadowInfo info = g_lastInfo;
-    info.classic = ClassicShadows();
-    return info;
-}
+ShadowInfo ShadowState() { return g_lastInfo; }
 
 namespace detail {
 
@@ -847,11 +817,6 @@ const void* CurrentCaster() { return g_caster; }
 void NoteCasterPart(const void* part) {
     if (part && !g_walkedOnly) g_drawnParts.insert(part);
 }
-
-bool DropClassicDecal() { return g_classicDecal && !ClassicShadows(); }
-bool ClassicDecalPending() { return g_classicDecal; }
-
-void EndClassicDecal() { g_classicDecal = false; }
 
 void ShadowFrameDone() {
     g_lastInfo = g_info;
@@ -869,7 +834,7 @@ void PrepareShadows(Frame& f) {
     sh.on = false;
     sh.lights.clear();
     g_info = ShadowInfo{};
-    if (ClassicShadows() || !sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty())) return;
+    if (!sh.haveSun || f.worldRanges.empty() || (sh.casters.empty() && g_outside.empty())) return;
     StatsTimer timer(&FrameStats::shadowMs);
     if (!FitMap(f).ok) return;
     // Along the light from the nearest caster that reaches the map (the ground's near side without one).

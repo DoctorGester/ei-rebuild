@@ -54,13 +54,9 @@ capture view_shift
 shadowshift 0
 shadowview off
 capture still2
-shadows classic
-capture classic
-shadows map
 unfreeze
 samecapture still still2
 samecapture view view_shift 64 0.0003
-diffcapture still classic 0.02 0.5
 frametime 8
 capture f0
 capture f1

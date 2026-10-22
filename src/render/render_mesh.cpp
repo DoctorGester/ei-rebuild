@@ -470,8 +470,6 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     NoteMeshDraw(mesh);
     if (!device || !mesh.matrix || !Active() || !Started()) return;
-    // An object's shadow decal (0051CE60) is not drawn when the shadow map gives the shadows (R16j).
-    if (!mesh.corners && DropClassicDecal()) return;
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = CurrentFrame();
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
@@ -557,10 +555,7 @@ bool MeshPass(void* device) {
     return false;   // taken: the old path draws nothing
 }
 
-void EndMesh() {
-    g_pending = Pending{};
-    EndClassicDecal();
-}
+void EndMesh() { g_pending = Pending{}; }
 
 bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive) {

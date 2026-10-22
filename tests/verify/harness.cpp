@@ -301,17 +301,6 @@
 //                             requires the last frame drawn so: the option on, multisampled, and copies
 //                             into the multisampled target (none for game; split also two depth copies
 //                             back). Ignored in a run of the original code
-//   shadows classic|map|rebuild
-//                             the image's object shadows (render::SetClassicShadows, R16j): the game's
-//                             decals, or the sun's shadow map (the default), from the next frame;
-//                             "render new,present,classicshadows" starts with the classic ones. rebuild
-//                             (R16e1, render::RebuildShadowTextures): every object shadow's classic
-//                             texture made again at its next draw (while the textures are made). Ignored
-//                             in a run of the original code
-//   shadowbuild skip|full     with the shadow map, the image's object shadows leave their classic texture
-//                             and decal's draw out (render::ClassicShadowSkipped, R16e1; the default) or
-//                             make them as before R16e1 (full), from the next shadow draw. Ignored in a
-//                             run of the original code
 //   shadowcheck <casters>     require the last frame's shadow map made with at least <casters> objects
 //                             casting into it, the ground and some meshes sampling it, and every object
 //                             whose shadow the game draws and that was drawn casting into it (render::
@@ -3528,14 +3517,6 @@ void RunSteps() {
             else if (order == render::SmoothOrder::Before) ok = ok && info.multisampledPasses >= 1 && info.copiesInto >= 1;
             else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
             if (!ok) g_failures.push_back(text);
-        } else if (s.verb == "shadows") {
-            if (!render::Active()) {
-                Log("harness: shadows %s: not the new renderer (the original code): ignored", s.argument.c_str());
-                continue;
-            }
-            if (s.argument == "classic" || s.argument == "map") render::SetClassicShadows(s.argument == "classic");
-            else if (s.argument == "rebuild") render::RebuildShadowTextures();
-            else g_failures.push_back("shadows needs classic, map or rebuild");
         } else if (s.verb == "shadowcasters") {
             if (!render::Active()) {
                 Log("harness: shadowcasters %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3561,13 +3542,6 @@ void RunSteps() {
             if (s.verb == "shadowshift") render::SetShadowShift(std::atoi(s.argument.c_str()));
             else if (s.argument == "on" || s.argument == "off") render::SetShadowView(s.argument == "on");
             else g_failures.push_back("shadowview needs on or off");
-        } else if (s.verb == "shadowbuild") {
-            if (!render::Active()) {
-                Log("harness: shadowbuild %s: not the new renderer (the original code): ignored", s.argument.c_str());
-                continue;
-            }
-            if (s.argument == "skip" || s.argument == "full") render::SetShadowBuildFull(s.argument == "full");
-            else g_failures.push_back("shadowbuild needs skip or full");
         } else if (s.verb == "terraincache") {
             if (!render::Active()) {
                 Log("harness: terraincache %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3637,16 +3611,16 @@ void RunSteps() {
             render::ShadowInfo info = render::ShadowState();
             char text[420];
             std::snprintf(text, sizeof(text),
-                          "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
+                          "shadowcheck: map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
                           "ground batches sampling it (at least %d casters); shadowed objects not drawn %d, drawn but "
                           "not cast %d; outside the view %d casters in %d draws (%d corners)",
-                          info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
+                          info.made ? "made" : "not made", info.size,
                           static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
                           info.receivingTerrain, least, info.offScreen, info.lost, info.outsideCasters,
                           info.outsideDraws, info.outsideCorners);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
-            if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
+            if (!info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
                 info.lost > 0 || info.outsideCasters < leastOutside)
                 g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
@@ -3703,8 +3677,8 @@ void RunSteps() {
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
                 "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f), device mesh draws %.3f; "
-                "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f shadows %.3f ms, "
-                "%.1f others %.3f ms (%.0f vertices); shadow builds %.1f (textures %.1f, %.1f only for the texture), %.3f ms; "
+                "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
+                "(%.0f vertices); shadow builds %.1f, %.3f ms; "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
                 "(%.0f corners); main thread ms CPU %.2f / wall %.2f; code lookups %.1f (forwarders %.1f)",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
@@ -3723,9 +3697,7 @@ void RunSteps() {
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
                 t.terrainMs / n, t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
                 per(t.decalShadows), t.decalShadowMs / n, per(t.decalPrints), t.decalPrintMs / n, per(t.decalVertices),
-                per(t.flatShadowDraws), t.flatShadowMs / n, per(t.flatOtherDraws), t.flatOtherMs / n,
-                per(t.flatDrawVertices), per(t.shadowBuilds), per(t.shadowTextures), per(t.staleShadowTextures),
-                t.shadowBuildMs / n,
+                per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
                 frameWallMs / n, codeLookups / n, forwarderLookups / n);

@@ -465,7 +465,7 @@ void DropMeshCache();
 const void* MeshSourceOwner();
 
 // Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
-// frame before its first pass on the world: unless the classic option is on, fits the shadow map
+// frame before its first pass on the world: fits the shadow map
 // around the visible ground seen from the sun and gives every receiving batch its light matrix;
 // DrawShadowMap then draws the casters into the map (a pass of its own) and its depth range per cell
 // (two small passes: the receivers' early end and blocker search). The receivers' shaders
@@ -482,17 +482,12 @@ void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
 // its caster ids (R16UI, Load; R22) at the view slot after that.
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
 void DestroyShadows();
-// The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over, whether
-// the flat mesh being handed over is a classic shadow decal to drop (until EndClassicDecal, at
-// EndMesh). ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time);
-// ShadowFrameDone: the frame is presented (ShadowState reports it).
+// The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over.
+// ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time); ShadowFrameDone: the
+// frame is presented (ShadowState reports it).
 const void* CurrentCaster();
 // A caster's mesh drawn this frame was the figure mesh `part` (render::CasterPartDrawn, R20).
 void NoteCasterPart(const void* part);
-bool DropClassicDecal();
-// Whether ClassicShadowDecal announced the flat mesh being drawn (either shadow look).
-bool ClassicDecalPending();
-void EndClassicDecal();
 void ShadowFrameEnd();
 void ShadowFrameDone();
 

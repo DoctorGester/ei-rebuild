@@ -13,8 +13,7 @@
 // captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, carries the smooth option ("smooth", SetSmooth), the classic shadows ("classicshadows",
-// SetClassicShadows), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
+// list, carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
 // "uiboth" / "uinative" (render_ui.h) and the harness build's "removable"; "new", "present" and
 // "cpuwindows" are accepted and change nothing.
 
@@ -72,14 +71,10 @@ SmoothInfo SmoothState();
 enum class SmoothOrder : std::uint8_t { Game, Before, Split };
 void SetSmoothOrder(SmoothOrder order);
 
-// Object shadows (R16j, docs/notes/renderer.md section 13). By default the world's figures and map
-// objects cast shadows from the sun through a shadow map made every frame, sampled with filtering
-// (PCF) where the terrain, the objects and the figures draw; the game's shadow decals (0051CE60's
-// 64 x 64 textures laid on the ground) are not drawn. The classic option draws the decals as the
-// game makes them and no shadow map: EI_RENDER's word "classicshadows" or SetClassicShadows (from
-// the next frame; ST2's options screen).
-void SetClassicShadows(bool on);
-bool ClassicShadows();
+// Object shadows (R16j, docs/notes/renderer.md section 13): the world's figures and map objects cast
+// shadows from the sun through a shadow map made every frame, sampled with filtering where the
+// terrain, the objects and the figures draw; the game's shadow decals (0051CE60's 64 x 64 textures
+// laid on the ground) are neither made nor drawn (R16i: the only shadows).
 
 // The smooth camera (R18; docs/notes/renderer.md section 14; off by default): the battle camera moves
 // once a frame by the frame's time plus the client time that passed (no extra update at each world
@@ -101,12 +96,10 @@ void ShadowSun(const float direction[3]);
 // The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
 // draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
 // its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
-// than `strength` 0.5 not at all (a unit fading in). ClassicShadowDecal: the next flat mesh (until
-// EndMesh) is that object's shadow decal, dropped unless the classic option is on.
+// than `strength` 0.5 not at all (a unit fading in).
 void BeginCaster(const void* object);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
-void ClassicShadowDecal();
 // R20: casters outside the view. The meshes the game draws cast (above); an object it does not draw
 // this frame (outside the view), or a part of a drawn one it left out (its own view test), whose
 // shadow can reach the visible ground casts through ShadowCasterMesh: the world's draw
@@ -167,26 +160,19 @@ void SetShadowFacing(ShadowFacing mode);
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
 // R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
-// raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
-// BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection
-// (its sphere: ShadowInView 0051E300). ClassicShadowSkipped: true when Active() and not
-// ClassicShadows(), unless the harness asked for the full classic build (its "shadowbuild full", the
-// harness build only: A/B frames and timings). ShadowTextureGeneration: moved by
-// RebuildShadowTextures (the harness's "shadows rebuild"); the shadow draw makes again, at its next
-// draw, each texture made in an earlier generation or not made (skipped), once the textures are needed.
+// raster, its blur and the copy into the shadow texture) or its decal's flat draw; the game reads only
+// the parts' points, the bounds, the quad and the decal's projection (its sphere: ShadowInView
+// 0051E300). ClassicShadowSkipped: true when Active() (R16i: the texture and the decal's draw are
+// left out whenever the new renderer draws).
 bool ClassicShadowSkipped();
-void SetShadowBuildFull(bool full);
-unsigned ShadowTextureGeneration();
-void RebuildShadowTextures();
-// The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
-// caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
+// The last presented frame's shadow map: made or not (no sun or terrain, no caster), its size, the
+// world extent it covers (the larger side), the casters' objects and draws,
 // the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
 // (CastsShadow, strong enough): `offScreen` cast nothing and handed over no mesh (the game did not
 // draw them, and none came through ShadowCasterMesh), `lost` handed over meshes of which none went
 // into the map (none should). R20: `outsideCasters` objects cast through ShadowCasterMesh in
 // `outsideDraws` draws of `outsideCorners` corners.
 struct ShadowInfo {
-    bool classic = false;
     bool made = false;
     int size = 0;
     float extent = 0.0f;
@@ -241,16 +227,12 @@ struct FrameStats {
     double deviceMeshMs = 0.0;
     // R16e: the ground decals' projection onto the ground and platforms (ProjectDecal 0056C750) for the
     // object shadows and for the ground prints, with its calls and the vertices it made; the device's
-    // flat draws (004EA4A0: projection, clipping, passes; the hand-over in them left out) of the object
-    // shadows' decals and of the rest (prints, selection markers), with their vertices; and the
-    // object shadow's build around its projection (RenderShadow in 0051CE60: the parts' points, the
-    // 64 x 64 raster, its blur and the texture's copy).
-    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatShadowMs = 0.0, flatOtherMs = 0.0, shadowBuildMs = 0.0;
+    // flat draws (004EA4A0: projection, clipping, passes; the hand-over in them left out: prints,
+    // selection markers), with their vertices; and the object shadow's build around its projection
+    // (RenderShadow in 0051CE60: the parts' points and the decal's projection).
+    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
     std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
-    std::uint64_t flatShadowDraws = 0, flatOtherDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-    // R16e1: of the shadow builds, those that made the classic texture, and of them those built only
-    // because the texture was missing (CountShadowTexture).
-    std::uint64_t shadowTextures = 0, staleShadowTextures = 0;
+    std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
     // gpuFrames) of the shadow pass and of the whole frame's passes.
@@ -280,17 +262,14 @@ void SetMeshCornersFull(bool full);
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
 // Harness build: times one decal projection (0056C750; `shadow`: an object shadow's, else a ground
-// print's), one flat draw (004EA4A0; an object shadow's decal when ClassicShadowDecal announced it) and
-// one object shadow build (RenderShadow) into FrameStats, counting them with the vertices made / drawn.
+// print's), one flat draw (004EA4A0) and one object shadow build (RenderShadow) into FrameStats,
+// counting them with the vertices made / drawn.
 void BeginDecalTime(bool shadow);
 void EndDecalTime(int vertices);
 void BeginFlatDrawTime(int vertices);
 void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
-// Harness build: counts a shadow build that made the classic texture (R16e1), `stale` when it ran only
-// because the texture was not made or is of an earlier generation (ShadowTextureGeneration).
-void CountShadowTexture(bool stale);
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
 // movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns

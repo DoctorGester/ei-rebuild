@@ -34,7 +34,6 @@
 
 #include <bit>
 #include <cstring>
-#include <unordered_map>
 #include <vector>
 #include "originals_render.h"
 #include "game_data.h"
@@ -486,21 +485,6 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     if (lights.manager) --lights.manager->refCount_;
     return true;
 }
-
-// R16e1: the shadows whose classic texture is made, with the generation it was made in
-// (render::ShadowTextureGeneration); a shadow built without it is left out. Keyed by the shadow: a
-// new one at a freed one's address starts without a texture and is built at its first draw anyway.
-std::unordered_map<const CObject3DClientSpecific*, unsigned> g_madeTextures;
-
-bool TextureCurrent(const CObject3DClientSpecific* self) {
-    auto it = g_madeTextures.find(self);
-    return it != g_madeTextures.end() && it->second == render::ShadowTextureGeneration();
-}
-
-void MarkTexture(const CObject3DClientSpecific* self, bool made) {
-    if (made) g_madeTextures[self] = render::ShadowTextureGeneration();
-    else g_madeTextures.erase(self);
-}
 } // namespace
 
 bool ShadowCastStrength(CObject3D* object, float* strength) {
@@ -528,22 +512,18 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         *texture->Name() = name;
         flags_ |= kFlagRefresh;
     }
-    // R16e1: with the shadow map the texture and the decal's draw are left out (nothing reads them).
-    // When they are needed again (the classic option turned on), a shadow whose texture was not made,
-    // or made before the harness's "shadows rebuild", is built again though the game would not
-    // rebuild it (flags 0x600: built once).
+    // R16e1, R16i: with the new renderer the texture and the decal's draw are left out (the shadow map
+    // draws the shadow; nothing else reads them). The build still projects the decal: its sphere decides
+    // the object's shadow visibility (ShadowInView 0051E300).
     const bool makeTexture = !render::ClassicShadowSkipped();
-    const bool stale = makeTexture && !TextureCurrent(this);
     std::uint32_t objectFlags = object->flags_;
     const bool gameBuilds = (objectFlags & 0x600) == 0x200 || !(objectFlags & 0x200) || (flags_ & kFlagRefresh);
-    if (gameBuilds || stale) {
+    if (gameBuilds) {
         int failure;
         render::BeginShadowBuildTime();
         bool built = RenderShadow(this, context, &failure, makeTexture);
         render::EndShadowBuildTime();
         if (!built) return failure;
-        MarkTexture(this, makeTexture);
-        if (makeTexture) render::CountShadowTexture(!gameBuilds);
     }
 
     if (vertices.size == 0) return 1;
@@ -556,7 +536,6 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     TheSceneRenderer()->SetTextureImpl(0, texture);
     std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
-    render::ClassicShadowDecal();   // drawn only with the classic shadows (the shadow map draws it)
     TheRenderDevice()
         ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
                          indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,

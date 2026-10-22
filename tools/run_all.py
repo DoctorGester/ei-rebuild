@@ -189,9 +189,9 @@ def sets_display_mode(scenario):
 # Our renderer's switch-over (docs/notes/renderer.md section 9): no DirectDraw or Direct3D 7 device, the frame
 # presented through its own swap chain, full screen without a display mode change.
 OUR_RENDERER = 'new,present'
-# --widescreen compares with addon's frames, which have the game's shadow decals: the image draws them too
-# (the classic shadows, R16j) instead of its shadow map.
-WIDESCREEN_RENDERER = OUR_RENDERER + ',classicshadows'
+# --widescreen compares with addon's frames (the game's lighting and shadow decals); the image has only its own
+# (R16i: GPU lighting and the shadow map), so the world view behind the interface differs from addon's.
+WIDESCREEN_RENDERER = OUR_RENDERER
 renderer = OUR_RENDERER   # what run_once gives the image's runs (main sets the widescreen one)
 
 
