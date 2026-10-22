@@ -45,19 +45,6 @@ namespace {
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-template <typename T>
-T Get(const void* p, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
-    return v;
-}
-template <typename T>
-void Set(void* p, int offset, T v) {
-    std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, sizeof(T));
-}
-void CopyDword(void* p, int offset, std::uintptr_t source) {
-    std::memcpy(static_cast<std::uint8_t*>(p) + offset, reinterpret_cast<const void*>(source), 4);
-}
 
 // The game's _ftol of a float times the float at `scale`, the product unrounded.
 int ScaledFtol(float value, float scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * scale)); }
@@ -70,8 +57,7 @@ std::uint32_t PackColour(const float* rgb) {
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
-// A sprite of the interface (CUiMesh); the draw pass is the scene renderer.
-CUiMesh* AsSprite(void* p) { return static_cast<CUiMesh*>(p); }
+// The draw pass is the scene renderer.
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
@@ -186,21 +172,26 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     return r;
 }
 
-void SetOrientation(std::uint8_t* model, const Quaternion& q) { std::memcpy(model + 0x34, &q, sizeof(q)); }
+void SetOrientation(CUiMesh* model, const Quaternion& q) { model->localRotation_ = q; }
 
-// Spell records, scrolls and spell containers lie flat (turned about z); kinds by +0x10, +0x4C, +0x50.
-bool LiesFlat(CItem* item) {
-    const std::uint8_t* p = reinterpret_cast<const std::uint8_t*>(item);
-    int kind = Get<int>(p, 0x10);
-    if (kind == 0x3008) return true;
-    if (kind == 0x3007 && Get<int>(p, 0x4C) == 2 && Get<int>(p, 0x50) == 3) return true;
-    return kind == 0x3007 && Get<int>(p, 0x4C) == 2 && Get<int>(p, 0x50) == 4;
+// A loot item that stands for a database record (kind 2) of `recordType` (0 weapon .. 4 spell
+// modifier).
+bool IsRecordLoot(const CItem* item, std::uint32_t recordType) {
+    if (item->type_ != kItemLoot) return false;
+    const auto* loot = static_cast<const CItemLoot*>(item);
+    return loot->kind_ == 2 && loot->recordType_ == recordType;
 }
 
-void SetShade(std::uint8_t* sprite, std::uint32_t grey) {
-    Set(sprite, 0x224, grey);
-    Set(sprite, 0x228, grey);
-    Set(sprite, 0x22C, grey);
+// Spell records, scrolls and spell containers lie flat (turned about z).
+bool LiesFlat(CItem* item) {
+    if (item->type_ == kItemSpell) return true;
+    return IsRecordLoot(item, 3) || IsRecordLoot(item, 4);
+}
+
+void SetShade(CUiMesh* sprite, float grey) {
+    sprite->tint_[0] = grey;
+    sprite->tint_[1] = grey;
+    sprite->tint_[2] = grey;
 }
 
 // The renderer's Direct3D device (007AF080 +0x54): SetRenderState (slot 20).
@@ -214,27 +205,26 @@ void SetSpecular(int on) {
 
 void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
-    std::uint8_t* model;
+    CUiMesh* model;
     {
         mfc::CString name;
         ItemName(item, 20, &name);
-        model = static_cast<std::uint8_t*>(CachedObject(&models_, name, false));
+        model = static_cast<CUiMesh*>(CachedObject(&models_, name, false));
     }
-    void* texture;
+    CEngineObject* texture;
     {
         mfc::CString name;
         ItemName(item, 19, &name);
-        texture = CachedObject(&textures_, name, true);
+        texture = static_cast<CEngineObject*>(CachedObject(&textures_, name, true));
     }
     if (!model || !texture) return;
 
-    Set(model, 0x280, texture);
-    AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) * D(0.0009375f /*00740408*/)));
-    Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
+    model->texture_ = texture;
+    model->Place(cell->x, cell->y, cell->depth);
+    model->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) * D(0.0009375f /*00740408*/)));
+    model->material_ = blackMaterial_;
 
-    std::uint8_t* itemBytes = reinterpret_cast<std::uint8_t*>(item);
-    if (Get<void*>(itemBytes, 0x1C) == nullptr) {
+    if (ItemTurnOf(item) == nullptr) {
         // A new turning state with a random glow phase. The original writes the count before
         // checking the allocation.
         auto* turn = gamecrt::operator_new_as<ItemTurn>();
@@ -245,38 +235,34 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->flag = false;
         std::uint32_t word = RandomNext(&IsaacRandom::Global());
         turn->glow = RandomPhase(word);
-        RefPtrAssign(itemBytes + 0x1C, nullptr, turn);   // the item's RefPtr slot
+        RefPtrAssign(&item->link_, nullptr, turn);   // the item's RefPtr slot
     }
 
     if (cell->mode == 9) {
         // Greyed: half bright, lying still, scaled to fit the cell by the model's larger extent.
-        SetShade(model, 0x3F000000);
+        SetShade(model, 0.5f);
         SetOrientation(model, LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f));
-        // The larger of +0x1A8 and +0x1AC: FCOMP of +0x1A8 with +0x1AC; C0 (below) picks +0x1AC (a
+        // The larger of the box's x and y extents: FCOMP of x with y; C0 (below) picks y (a
         // branch-free select of the dwords).
-        float a = Get<float>(model, 0x1AC);
-        float b = Get<float>(model, 0x1A8);
-        EI_NAN_AUDIT(a, b);
-        std::uint32_t bits = b < a ? Get<std::uint32_t>(model, 0x1AC)
-                                                                        : Get<std::uint32_t>(model, 0x1A8);
-        float extent;
-        std::memcpy(&extent, &bits, sizeof(extent));
+        const Vector3& extents = model->bounds_.boxMax;
+        EI_NAN_AUDIT(extents.y, extents.x);
+        float extent = extents.x < extents.y ? extents.y : extents.x;
         double half = D(0.5f /*0073B86C*/);
-        float y = static_cast<float>(D(Get<float>(model, 0x190)) * D(cell->size) * half + D(cell->y));
-        float x = static_cast<float>(D(cell->x) - D(Get<float>(model, 0x18C)) * D(cell->size) * half);
-        AsSprite(model)->Place(x, y, cell->depth);
-        AsSprite(model)->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) *
+        float y = static_cast<float>(D(model->bounds_.center.y) * D(cell->size) * half + D(cell->y));
+        float x = static_cast<float>(D(cell->x) - D(model->bounds_.center.x) * D(cell->size) * half);
+        model->Place(x, y, cell->depth);
+        model->SetScale(static_cast<float>(D(0.48157462f /*007402C4*/) * D(cell->size) * D(cell->depth) *
                                         D(0.00125f /*00740164*/) / D(extent)));
     } else {
-        SetShade(model, 0x3F800000);
+        SetShade(model, 1.0f);
         float dt = static_cast<float>(FrameTime());
-        auto* turn = Get<ItemTurn*>(itemBytes, 0x1C);
-        int kind = Get<int>(itemBytes, 0x10);
-        void* spell = Get<void*>(itemBytes, 0x44);
-        if (spell && (kind == 0x3004 || kind == 0x3005)) {
-            int school = reinterpret_cast<CSpell*>(spell)->GetPrototype()->school;
+        ItemTurn* turn = ItemTurnOf(item);
+        int kind = item->type_;
+        CSpell* spell = item->spell_;
+        if (spell && (kind == kItemWeapon || kind == kItemArmor)) {
+            int school = spell->GetPrototype()->school;
             if (school < 8)
-                Set(model, 0xD8, Glow(dt, turn, kSchoolGlow[school]));
+                model->flatSpecular_ = Glow(dt, turn, kSchoolGlow[school]);
             else
                 turn->glow = 0.0f;
         }
@@ -284,15 +270,14 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 
         if (LiesFlat(item)) {
             SetOrientation(model, HalfTurn(0.0f, 0.0f, 1.0f));
-        } else if (kind == 0x3004) {
+        } else if (kind == kItemWeapon) {
             // Weapons turn about (1, 1, 0) after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
-        } else if (Get<int>(itemBytes, 0x10) == 0x3007 && Get<int>(itemBytes, 0x4C) == 2 &&
-                   (Get<int>(itemBytes, 0x50) == 0 || Get<int>(itemBytes, 0x50) == 1 || Get<int>(itemBytes, 0x50) == 2)) {
+        } else if (IsRecordLoot(item, 0) || IsRecordLoot(item, 1) || IsRecordLoot(item, 2)) {
             SetOrientation(model, HalfTurn(1.0f, 0.0f, 0.0f));   // blueprints lie still
         } else {
             // Others turn about y after a half turn about x.
@@ -307,37 +292,37 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
         CUiMesh* frame = AddSprite(0);
         double half = D(35.0f /*007403E0*/);
-        AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
-                                      static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-        Set(frame, 0x280, objects_.data[2]);
-        AsSprite(frame)->Draw(PassRenderer(pass));
+        frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                            static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+        frame->texture_ = objects_.data[2];
+        frame->Draw(PassRenderer(pass));
         RemoveSceneObject(frame);
     }
 
-    Set(model, 0xD4, PackColour(reinterpret_cast<const float*>(model + 0x224)));
-    Set(model, 0x08, Get<std::uint32_t>(model, 0x08) | 0x100);
-    if (Get<void*>(itemBytes, 0x44)) SetSpecular(1);
-    AsSprite(model)->Draw(PassRenderer(pass));
-    if (Get<void*>(itemBytes, 0x44)) SetSpecular(0);
+    model->flatColour_ = PackColour(model->tint_);
+    model->flags_ |= 0x100;
+    if (item->spell_) SetSpecular(1);
+    model->Draw(PassRenderer(pass));
+    if (item->spell_) SetSpecular(0);
 
     // A spell container's modifiers: a mark per modifier around the model (eight places).
-    void* spell = Get<void*>(itemBytes, 0x44);
-    if (Get<int>(itemBytes, 0x10) == 0x3008 && spell && reinterpret_cast<CSpell*>(spell)->GetModifierCount() > 0) {
+    CSpell* spell = item->spell_;
+    if (item->type_ == kItemSpell && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
-        AsSprite(model)->GetPlacement(&px, &py, &pz);
-        float scale = AsSprite(model)->GetScaleX();
+        model->GetPlacement(&px, &py, &pz);
+        float scale = model->GetScaleX();
         CUiMesh* mark = AddSprite(0);
-        AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
-                                     0x20, 0x20);
-        Set(mark, 0x280, objects_.data[1]);
-        AsSprite(mark)->SetScale(scale);
-        SetShade(reinterpret_cast<std::uint8_t*>(mark), cell->mode == 9 ? 0x3F000000 : 0x3F800000);
+        mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
+                           0x20, 0x20);
+        mark->texture_ = objects_.data[1];
+        mark->SetScale(scale);
+        SetShade(mark, cell->mode == 9 ? 0.5f : 1.0f);
         float step = static_cast<float>(D(scale) * D(550.0f /*007403DC*/));
-        for (int i = 0; i < reinterpret_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
-            int code = static_cast<signed char>(Get<std::uint8_t>(spell, 0x54 + i)) - 1;
+        for (int i = 0; i < spell->GetModifierCount(); ++i) {
+            int code = spell->modifiers_[i] - 1;   // the modifier's index (+0x54: index + 1 each)
             double cellSize = D(0.125f /*0073C520*/);
-            Set(mark, 0xCC, static_cast<float>(static_cast<double>(code & 7) * cellSize));
-            Set(mark, 0xD0, static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize));
+            mark->textureOffsetU_ = static_cast<float>(static_cast<double>(code & 7) * cellSize);
+            mark->textureOffsetV_ = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);
             double d = D(step) / D(pz);
             float dx;
             if (i == 0 || i == 4)
@@ -354,8 +339,8 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             else
                 dy = d;
             float depth = static_cast<float>(D(pz) * D(0.9f /*0073CD70*/));
-            AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
-            AsSprite(mark)->Draw(PassRenderer(pass));
+            mark->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
+            mark->Draw(PassRenderer(pass));
         }
         RemoveSceneObject(mark);
     }
@@ -367,12 +352,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
         CUiMesh* shade = AddSprite(0);
         double half = D(35.0f /*007403E0*/);
-        AsSprite(shade)->SetRectangle(depth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
-                                      static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0, 0, 0x100, 0x100);
-        Set<std::uint32_t>(shade, 0x280, 0);
-        Set(shade, 0x08, Get<std::uint32_t>(shade, 0x08) | 0x100);
-        Set<std::uint32_t>(shade, 0xD4, 0x82804040);
-        AsSprite(shade)->Draw(PassRenderer(pass));
+        shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                            static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0, 0, 0x100, 0x100);
+        shade->texture_ = nullptr;
+        shade->flags_ |= 0x100;
+        shade->flatColour_ = 0x82804040;
+        shade->Draw(PassRenderer(pass));
         RemoveSceneObject(shade);
     }
 }
@@ -437,17 +422,15 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     mfc::CString modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    auto* model = static_cast<std::uint8_t*>(CachedObject(&models_, modelName, false));
-    void* texture = CachedObject(&textures_, textureName, true);
+    auto* model = static_cast<CUiMesh*>(CachedObject(&models_, modelName, false));
+    auto* texture = static_cast<CEngineObject*>(CachedObject(&textures_, textureName, true));
     if (!model || !texture) return;
 
-    Set(model, 0x280, texture);
-    AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(0.48157462f /*007402C4*/) * D(0.0009375f /*00740408*/)));
-    Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
-    Set(model, 0x224, 1.0f);
-    Set(model, 0x228, 1.0f);
-    Set(model, 0x22C, 1.0f);
+    model->texture_ = texture;
+    model->Place(cell->x, cell->y, cell->depth);
+    model->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(0.48157462f /*007402C4*/) * D(0.0009375f /*00740408*/)));
+    model->material_ = blackMaterial_;
+    SetShade(model, 1.0f);
     // A half turn about x, then tilted about -x by (y - 300) / 1000.
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
@@ -460,12 +443,12 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
     CUiMesh* frame = AddSprite(0);
     double half = D(35.0f /*007403E0*/);
-    AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
-                                  static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-    Set(frame, 0x280, objects_.data[2]);
-    AsSprite(frame)->Draw(PassRenderer(pass));
+    frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                        static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+    frame->texture_ = objects_.data[2];
+    frame->Draw(PassRenderer(pass));
     RemoveSceneObject(frame);
-    AsSprite(model)->Draw(PassRenderer(pass));
+    model->Draw(PassRenderer(pass));
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
@@ -499,23 +482,23 @@ long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
 
 void* __fastcall ItemFigureTexture(const char* name) {
     CTextureManager* manager = TheTextureManager();
-    auto* texture = reinterpret_cast<std::uint8_t*>(manager->NewTexture(0x100, 0x100, 0x20));
+    CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
-    Set(texture, 4, Get<int>(texture, 4) + 1);
-    auto* holder = Get<CDXSurface*>(texture, 0x5C);
-    std::uint8_t* image;
+    ++texture->refCount_;
+    CDXSurface* holder = texture->surface_;
+    const MmpHeader* image;
     {
         mfc::CString base(name);
         mfc::CString file = base + ".mmp";
-        image = static_cast<unsigned char*>(manager->GetFileData(file));
+        image = static_cast<const MmpHeader*>(manager->GetFileData(file));
     }
     int width, height;
     if (!image) {
         height = 0x100;
         width = 0x100;
     } else {
-        width = Get<int>(image, 4);
-        height = Get<int>(image, 8);
+        width = static_cast<int>(image->width);
+        height = static_cast<int>(image->height);
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
@@ -524,7 +507,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         pixels = static_cast<std::uint32_t*>(gamecrt::operator_new(count * 4));
         std::memset(pixels, 0, count * 4);
         void* decoder = PixelDecoder();
-        VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
+        VirtualCall(decoder, 5, pixels, static_cast<const void*>(image + 1), count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
@@ -532,7 +515,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
-        VirtualCall(texture, 4);
+        texture->Release();
         return nullptr;
     }
     // Rows of 0x200 bytes, the image at the bottom.
@@ -565,22 +548,21 @@ EI_REWRITTEN(0x005EC020, ItemFigureTexture);
 
 int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
-    auto* holder = Get<CDXSurface*>(texture, 0x5C);
-    std::uint8_t* image;
+    CDXSurface* holder = static_cast<CTexture*>(texture)->surface_;
+    const MmpHeader* image;
     {
         mfc::CString base(name);
         mfc::CString file = base + ".mmp";
-        image = static_cast<unsigned char*>(TheTextureManager()->GetFileData(file));
+        image = static_cast<const MmpHeader*>(TheTextureManager()->GetFileData(file));
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
         pixels = static_cast<std::uint32_t*>(gamecrt::operator_new(count * 4));
         std::memset(pixels, 0, count * 4);
-        // The device's decoder (interface +8 -> +0x4C), slot 5: out, image data, count, PNT3.
-        std::uint8_t* device = Get<std::uint8_t*>(interface_, 8);
-        void* decoder = Get<void*>(device, 0x4C);
-        VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
+        // The device's decoder, slot 5: out, image data, count, PNT3.
+        void* decoder = interface_->renderer_->decoder_;
+        VirtualCall(decoder, 5, pixels, static_cast<const void*>(image + 1), count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
