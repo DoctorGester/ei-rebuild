@@ -19,11 +19,7 @@
 //   0073CA10 is another FramedLink whose constructors (0047CAA0, 0047CFA0) are dead code; its own
 //             slots are listed in config/dead_code.csv.
 //
-// Like the other reference-counted classes the links are __declspec(novtable) and never built by
-// C++: our rewrites of the constructor bodies store a table, through which the virtual calls
-// dispatch: the compiled tags' at the end (C19, `X::Vtable()`) in place of game.exe's. The slot
-// bodies stay registered through `...Hook` shims (docs/rewrite-guide.md rule 4) until C20. The
-// slots that are not rewritten are declared only.
+// The links are real C++ classes (C28k), created with net::NewCounted.
 
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -31,7 +27,6 @@
 #include "player_source.h"
 
 #include "ei/vcall.h"
-#include "lib/compiled_vtable.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/stlp_list.h"
@@ -94,34 +89,23 @@ public:
 using StreamQueue = stlp::list<CMemoryStream>;
 using QueueNode = StreamQueue::Node;
 
-// The link base (vtable 0073C8A4, 0x28 bytes).
-class __declspec(novtable) NetLink : public CRefObject {
+// The link base (game.exe's vtable 0073C8A4, 0x28 bytes).
+class NetLink : public CRefObject {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C8A4)
+    // 00478050 (deleting: 00478030): the record stream destroyed.
+    ~NetLink() override;
 
-    // 0: 00478030 deleting destructor (DeletingDestruct); 1: Serialize (00412580, empty); 2 / 3 pure.
+    // 1: Serialize (00412580, empty); 2 / 3 pure.
     virtual bool Connected() = 0;               // 4
     virtual bool Alive() = 0;                   // 5: something to read, or connected
     virtual bool HasIncoming() = 0;             // 6
     virtual int IncomingCount();                // 7: 00478000 (1 when HasIncoming)
     virtual bool Send(CStream* stream);         // 8: 00478100 (dropped: true)
-    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     virtual bool Receive(CMemoryStream* stream);      // 9: 00478110 (records the stream: true)
-    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
-    virtual void Pump();                        // 10: 00478010 (empty)
+    virtual void Pump() {}                      // 10: 00478010 (empty)
     virtual void Disconnect() = 0;              // 11
-    virtual int Unknown12();                    // 12: 00478020 (0)
+    virtual int Unknown12() { return 0; }       // 12: 00478020
 
-    // 00477E60 (also inlined). The base: 0073BB58, the record stream, 0073C8A4, not recording (the
-    // reference count is left as it is). Returns this.
-    NetLink* Construct();
-    // The base of a copy as the clones inline it: 0073BB58, `source`'s recording flags, a fresh
-    // record stream (CopyConstruct: the file is not shared), 0073C8A4.
-    void ConstructCopyOf(const NetLink* source);
-    // 00478050. The record stream destroyed, the root vtable left (0073C8A4 is not stored first).
-    void Destruct();
-    // 00478030 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    NetLink* DeletingDestruct(unsigned flags);
     // 004780B0. Starts recording into a new file `path`; the first message is dropped.
     void OpenRecording(const char* path);
     // 004780E0. Closes the file and stops recording.
@@ -134,133 +118,122 @@ public:
     std::uint8_t skipNext_;      // +0x09 the next recorded message is dropped (set by OpenRecording)
     std::uint8_t unused_0A[2];
     FileStream record_;          // +0x0C
+
+protected:
+    // 00477E60 (also inlined): the record stream, not recording (the count and +9 are the creator's).
+    NetLink();
+    // The base of a copy as the clones inline it: `source`'s recording flags, a fresh record stream (the
+    // file is not shared).
+    NetLink(const NetLink& source);
 };
-static_assert(offsetof(NetLink, recording_) == 0x08);
-static_assert(offsetof(NetLink, record_) == 0x0C);
-static_assert(sizeof(NetLink) == 0x28);
 
-// The loopback link (vtable 0073C8F8, 0x30 bytes).
-class __declspec(novtable) LoopbackLink : public NetLink {
+// The loopback link (game.exe's vtable 0073C8F8, 0x30 bytes).
+class LoopbackLink final : public NetLink {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C8F8)
+    // As 004782E0 inlines it: the base, an empty queue, no peer.
+    LoopbackLink();
+    // Clone's copy: the recording flags, a closed file of its own, a copy of every queued stream and the same
+    // peer (counted).
+    LoopbackLink(const LoopbackLink& other);
+    // 004787A0 (deleting: 00478780): the peer released, the queue destroyed, then the base.
+    ~LoopbackLink() override;
 
-    // 0: 00478780 deleting destructor (DeletingDestruct); 10, 12: NetLink's.
-    int OnShutdown() override;                  // 2: 00478610 (destroyed and built again in place)
+    // 10, 12: NetLink's.
+    int OnShutdown() override;                  // 2: 00478610 (torn down and built again in place)
     LoopbackLink* Clone() override;             // 3: 004784D0
     bool Connected() override;                  // 4: 00478710 (the peer is there, not detached)
     bool Alive() override;                      // 5: 00478730
     bool HasIncoming() override;                // 6: 00478750
     int IncomingCount() override;               // 7: 00478760
     bool Send(CStream* stream) override;        // 8: 00478220 (a copy on the peer's queue)
-    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     bool Receive(CMemoryStream* stream) override;     // 9: 00478270 (the front of the queue)
-    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478140
 
     // 004782E0 (thiscall with an unused this, RET 4). Two links joined to each other; the first goes
     // to the player's link (+8), the second is returned.
     static LoopbackLink* __stdcall CreatePair(CWorldHandle* player);
-    // 004787A0. The peer released, the queue destroyed, then the record stream; the root vtable left.
-    void Destruct();
-    // 00478780 (slot 0).
-    LoopbackLink* DeletingDestruct(unsigned flags);
 
     StreamQueue queue_;          // +0x28
     LoopbackLink* peer_;         // +0x2C counted
 
 private:
-    static LoopbackLink* New();
     void DestroyQueue();
 };
-static_assert(offsetof(LoopbackLink, queue_) == 0x28);
-static_assert(offsetof(LoopbackLink, peer_) == 0x2C);
-static_assert(sizeof(LoopbackLink) == 0x30);
 
-// The replay link (vtable 0073C92C, 0x44 bytes).
-class __declspec(novtable) ReplayLink : public NetLink {
+// The replay link (game.exe's vtable 0073C92C, 0x44 bytes).
+class ReplayLink final : public NetLink {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C92C)
+    // As 00478960 / 00478B10 inline it: the base (not recording), then the second file stream.
+    ReplayLink();
+    // Clone's copy: the recording flags and two closed files of its own.
+    ReplayLink(const ReplayLink& other);
+    // 00478CC0 (deleting: 00478CA0): both file streams destroyed (the replay's first).
+    ~ReplayLink() override;
 
-    // 0: 00478CA0 deleting destructor (DeletingDestruct); 7, 8, 10, 12: NetLink's.
+    // 7, 8, 10, 12: NetLink's.
     int OnShutdown() override;                  // 2: 00478B10 (destroyed and built again in place)
     ReplayLink* Clone() override;               // 3: 00478A50
-    bool Connected() override;                  // 4: 00478C20 (false)
+    bool Connected() override { return false; } // 4: 00478C20
     bool Alive() override;                      // 5: 00478C30 (the recording has more to read)
     bool HasIncoming() override;                // 6: 00478C50 (the same code)
     bool Receive(CMemoryStream* stream) override;     // 9: 00478C70
-    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478C90 (closes the recording)
 
     // 00478960 (thiscall with an unused this, RET 4). A replay link reading the recording `path`.
     static ReplayLink* __stdcall Create(const char* path);
-    // 00478CC0. Both file streams destroyed (the replay's first), the root vtable left.
-    void Destruct();
-    // 00478CA0 (slot 0).
-    ReplayLink* DeletingDestruct(unsigned flags);
 
     FileStream replay_;          // +0x28 the recording played back (reading)
-
-private:
-    void ConstructInPlace();
 };
-static_assert(offsetof(ReplayLink, replay_) == 0x28);
-static_assert(sizeof(ReplayLink) == 0x44);
 
-// The framed link (vtable 0073C9C8, abstract, 0x50 bytes).
-class __declspec(novtable) FramedLink : public NetLink {
+// The framed link (game.exe's vtable 0073C9C8, abstract, 0x50 bytes).
+class FramedLink : public NetLink {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C9C8)
+    // 00479B90 (also inlined; deleting: 00479B70): the inbox's buffer freed, then the base.
+    ~FramedLink() override;
 
-    // 0: 00479B70 deleting destructor (DeletingDestruct); 2-5, 11 pure; 10, 12 NetLink's.
+    // 2-5, 11 pure; 10, 12 NetLink's.
     bool HasIncoming() override;                // 6: 0047B9F0 (a whole message in the inbox)
     int IncomingCount() override;               // 7: 0047BA40
     bool Send(CStream* stream) override;        // 8: 0047BAD0 (framed, then SendBytes)
-    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     bool Receive(CMemoryStream* stream) override;     // 9: 0047BB70 (a memory stream)
-    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     virtual bool SendBytes(const void* data, std::uint32_t size) = 0;   // 13
 
-    // 00479B90 (also inlined). The inbox's buffer freed, then the record stream; the root vtable
-    // left (its own vtable is not stored first).
-    void Destruct();
-    // 00479B70 (slot 0).
-    FramedLink* DeletingDestruct(unsigned flags);
     // 0047B980. `size` bytes appended at the end of the inbox.
     void Append(const void* data, std::uint32_t size);
     // 0047B9B0. `out` emptied, then given everything in the inbox, which is emptied.
     void TakeAll(CStream* out);
 
     CMemoryStream inbox_;        // +0x28 received bytes: {uint32 length, bytes} per message
+
+protected:
+    // The base and an empty inbox.
+    FramedLink();
+    // A copy's (as 00479A30 inlines it): the base's copy, an inbox of the source's size.
+    FramedLink(const FramedLink& other);
 };
-static_assert(offsetof(FramedLink, inbox_) == 0x28);
-static_assert(sizeof(FramedLink) == 0x50);
 
-// The per-player driver (vtable 0073C990, 0x54 bytes): a framed link over a network connection's
-// reliable streams.
-class __declspec(novtable) DriverLink : public FramedLink {
+// The per-player driver (game.exe's vtable 0073C990, 0x54 bytes): a framed link over a network
+// connection's reliable streams.
+class DriverLink final : public FramedLink {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C990)
+    // 0047A030: the base, an empty inbox, no player.
+    DriverLink();
+    // Clone's copy: the framed link's, then the same player (counted).
+    DriverLink(const DriverLink& other);
+    // 00479D40 (deleting: 00479D20): disconnected (called directly), then the framed link's destructor.
+    ~DriverLink() override;
 
-    // 0: 00479D20 deleting destructor (DeletingDestruct); 6-9 FramedLink's; 12 NetLink's.
+    // 6-9 FramedLink's; 12 NetLink's.
     int OnShutdown() override;                  // 2: 00479C10 (destroyed and built again in place)
     DriverLink* Clone() override;               // 3: 00479A30
     bool Connected() override;                  // 4: 00479780 (the player is there, not detached)
-    bool Alive() override;                      // 5: 00479D10 (true)
+    bool Alive() override { return true; }      // 5: 00479D10
     void Pump() override;                       // 10: 004797A0 (the incoming reliable bytes to the inbox)
     void Disconnect() override;                 // 11: 00479810 (the unread bytes given back)
     bool SendBytes(const void* data, std::uint32_t size) override;   // 13: 004796B0
 
-    // 0047A030. The base, an empty inbox, no player. Returns this.
-    DriverLink* Construct();
-    // 00479D40. Disconnected (called directly), then the framed link's destructor body inlined.
-    void Destruct();
-    // 00479D20 (slot 0).
-    DriverLink* DeletingDestruct(unsigned flags);
-
     RefPtrTo<net::Connection> player_;   // +0x50 counted
 };
-static_assert(offsetof(DriverLink, player_) == 0x50);
-static_assert(sizeof(DriverLink) == 0x54);
 
 // A node of the session's driver lists (STLport list<RefPtr>, 12 bytes from the node pool).
 struct DriverNode {
@@ -295,101 +268,5 @@ public:
     // 0047A080 (RET 4). Both lists emptied, then one driver for `player`, started and drained.
     DriverLink* Start(net::Connection* player);
 };
-
-// ---- The compiled tables --------------------------------------------------------------------------
-
-// The links' and the driver session's compiled tables (C19, lib/compiled_vtable.h) in place of
-// game.exe's: a tag per class whose slots call the bodies game.exe's table reached (the class's members called
-// qualified, the `...Impl` bodies; the short ones written out, the pure ones the compiler CRT's `_purecall` as
-// game.exe's 006E73EB), a derived link's tag deriving from its base's.
-extern "C" int __cdecl _purecall();
-
-class NetLinkClass : public ei::CompiledTag<NetLinkClass> {
-public:
-    virtual void* DeleteScalar(unsigned flags) { return As<NetLink>()->DeletingDestruct(flags); }   // 0: 00478030
-    virtual void Serialize(ChunkArchive*) {}                                                        // 1: 00412580
-    virtual int OnShutdown() { return _purecall(); }                                                // 2: pure
-    virtual CRefObject* Clone() {                                                                   // 3: pure
-        _purecall();
-        return nullptr;
-    }
-    virtual bool Connected() { return _purecall() != 0; }     // 4: pure
-    virtual bool Alive() { return _purecall() != 0; }         // 5: pure
-    virtual bool HasIncoming() { return _purecall() != 0; }   // 6: pure
-    virtual int IncomingCount() { return As<NetLink>()->NetLink::IncomingCount(); }   // 7: 00478000
-    virtual bool Send(CStream* stream) { return As<NetLink>()->SendImpl(stream); }     // 8: 00478100
-    virtual bool Receive(CMemoryStream* stream) { return As<NetLink>()->ReceiveImpl(stream); }   // 9: 00478110
-    virtual void Pump() {}                      // 10: 00478010 (empty)
-    virtual void Disconnect() { _purecall(); }  // 11: pure
-    virtual int Unknown12() { return 0; }       // 12: 00478020
-
-protected:
-    template <typename T>
-    T* As() { return ObjectAs<T>(); }
-};
-
-class LoopbackLinkClass final : public NetLinkClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<LoopbackLinkClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<LoopbackLink>()->DeletingDestruct(flags); }   // 0: 00478780
-    int OnShutdown() override { return As<LoopbackLink>()->LoopbackLink::OnShutdown(); }   // 2: 00478610
-    CRefObject* Clone() override { return As<LoopbackLink>()->LoopbackLink::Clone(); }     // 3: 004784D0
-    bool Connected() override { return As<LoopbackLink>()->LoopbackLink::Connected(); }    // 4: 00478710
-    bool Alive() override { return As<LoopbackLink>()->LoopbackLink::Alive(); }            // 5: 00478730
-    bool HasIncoming() override { return As<LoopbackLink>()->LoopbackLink::HasIncoming(); }   // 6: 00478750
-    int IncomingCount() override { return As<LoopbackLink>()->LoopbackLink::IncomingCount(); }   // 7: 00478760
-    bool Send(CStream* stream) override { return As<LoopbackLink>()->SendImpl(stream); }         // 8: 00478220
-    bool Receive(CMemoryStream* stream) override { return As<LoopbackLink>()->ReceiveImpl(stream); }   // 9: 00478270
-    void Disconnect() override { As<LoopbackLink>()->LoopbackLink::Disconnect(); }               // 11: 00478140
-};
-
-class ReplayLinkClass final : public NetLinkClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<ReplayLinkClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<ReplayLink>()->DeletingDestruct(flags); }   // 0: 00478CA0
-    int OnShutdown() override { return As<ReplayLink>()->ReplayLink::OnShutdown(); }   // 2: 00478B10
-    CRefObject* Clone() override { return As<ReplayLink>()->ReplayLink::Clone(); }     // 3: 00478A50
-    bool Connected() override { return false; }                                        // 4: 00478C20
-    bool Alive() override { return As<ReplayLink>()->ReplayLink::Alive(); }            // 5: 00478C30
-    bool HasIncoming() override { return As<ReplayLink>()->ReplayLink::HasIncoming(); }   // 6: 00478C50
-    bool Receive(CMemoryStream* stream) override { return As<ReplayLink>()->ReceiveImpl(stream); }   // 9: 00478C70
-    void Disconnect() override { As<ReplayLink>()->ReplayLink::Disconnect(); }                 // 11: 00478C90
-};
-
-class FramedLinkClass : public NetLinkClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<FramedLinkClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<FramedLink>()->DeletingDestruct(flags); }   // 0: 00479B70
-    bool HasIncoming() override { return As<FramedLink>()->FramedLink::HasIncoming(); }        // 6: 0047B9F0
-    int IncomingCount() override { return As<FramedLink>()->FramedLink::IncomingCount(); }     // 7: 0047BA40
-    bool Send(CStream* stream) override { return As<FramedLink>()->SendImpl(stream); }         // 8: 0047BAD0
-    bool Receive(CMemoryStream* stream) override { return As<FramedLink>()->ReceiveImpl(stream); }   // 9: 0047BB70
-    virtual bool SendBytes(const void*, std::uint32_t) { return _purecall() != 0; }            // 13: pure
-};
-
-class DriverLinkClass final : public FramedLinkClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<DriverLinkClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<DriverLink>()->DeletingDestruct(flags); }   // 0: 00479D20
-    int OnShutdown() override { return As<DriverLink>()->DriverLink::OnShutdown(); }   // 2: 00479C10
-    CRefObject* Clone() override { return As<DriverLink>()->DriverLink::Clone(); }     // 3: 00479A30
-    bool Connected() override { return As<DriverLink>()->DriverLink::Connected(); }    // 4: 00479780
-    bool Alive() override { return true; }                                             // 5: 00479D10
-    void Pump() override { As<DriverLink>()->DriverLink::Pump(); }                     // 10: 004797A0
-    void Disconnect() override { As<DriverLink>()->DriverLink::Disconnect(); }         // 11: 00479810
-    bool SendBytes(const void* data, std::uint32_t size) override {                    // 13: 004796B0
-        return As<DriverLink>()->DriverLink::SendBytes(data, size);
-    }
-};
-
-inline void* NetLink::Vtable() { return NetLinkClass::Vtable(); }
-inline void* LoopbackLink::Vtable() { return LoopbackLinkClass::Vtable(); }
-inline void* ReplayLink::Vtable() { return ReplayLinkClass::Vtable(); }
-inline void* FramedLink::Vtable() { return FramedLinkClass::Vtable(); }
-inline void* DriverLink::Vtable() { return DriverLinkClass::Vtable(); }
 
 } // namespace netlink

@@ -43,8 +43,8 @@ vtable,slots,class,file,note
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
-0073BF38,4,ConnectionClass,src/game/net_connection.h,a connection (Connection)
-0073BF4C,4,ReplicaEntryClass,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
+0073BF38,4,Connection,src/game/net_connection.h,a connection (Connection)
+0073BF4C,4,ReplicaEntry,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
 0073BF5C,15,SessionBase,src/game/net_classes.h,the session base (SessionBase)
 0073BFA4,2,DebugPanelClass,src/game/string_map.cpp,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
@@ -115,13 +115,13 @@ vtable,slots,class,file,note
 0073C854,3,FileUvArrayClass,src/lib/mfc_slots.h,CArray (a model file's texture coordinates)
 0073C860,3,FilePointArrayClass,src/lib/mfc_slots.h,CArray (a model file's points)
 0073C86C,3,NormalArrayClass,src/lib/mfc_slots.h,CArray (a model file's normals)
-0073C8A4,13,NetLinkClass,src/game/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
+0073C8A4,13,NetLink,src/game/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
 0073C8D8,8,FileStream,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
-0073C8F8,13,LoopbackLinkClass,src/game/net_link.h,the loopback link (LoopbackLink)
-0073C92C,13,ReplayLinkClass,src/game/net_link.h,the replay link (ReplayLink)
+0073C8F8,13,LoopbackLink,src/game/net_link.h,the loopback link (LoopbackLink)
+0073C92C,13,ReplayLink,src/game/net_link.h,the replay link (ReplayLink)
 0073C960,8,CMemoryStream,src/game/core_streams.h,"the network queue's memory streams (0066C4F0's copy of CMemoryStream's table; one class here)"
-0073C990,14,DriverLinkClass,src/game/net_link.h,the driver link (DriverLink)
-0073C9C8,14,FramedLinkClass,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
+0073C990,14,DriverLink,src/game/net_link.h,the driver link (DriverLink)
+0073C9C8,14,FramedLink,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
 0073CA08,1,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70

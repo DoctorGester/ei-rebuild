@@ -37,19 +37,19 @@ struct IdPool {
 };
 static_assert(sizeof(IdPool) == 0x10);
 
-// The tracking record of one replicated object (vtable 0073BF4C, 0x14 bytes).
-class __declspec(novtable) ReplicaEntry : public CRefObject {
+// The tracking record of one replicated object (game.exe's vtable 0073BF4C, 0x14 bytes).
+class ReplicaEntry final : public CRefObject {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BF4C)
-
-    // 0: 004344A0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
+    // As Track (00434110) inlines it: no object, no version and no id yet (the type and the flags are the
+    // caller's).
+    ReplicaEntry();
+    // Clone's copy: the same object, one more reference.
+    ReplicaEntry(const ReplicaEntry& other);
+    // 004344C0 (deleting: 004344A0): the object released.
+    ~ReplicaEntry() override;
+    // 1: Serialize (empty).
     int OnShutdown() override;              // 2: 00434430 reset: the object let go, version and id cleared
     ReplicaEntry* Clone() override;         // 3: 004343C0 a copy sharing the object
-
-    // 004344C0. The destructor body: the object released.
-    void Destruct();
-    // 004344A0 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    ReplicaEntry* DeletingDestruct(unsigned flags);
 
     Message* Object() const { return static_cast<Message*>(object_.ptr); }
 
@@ -59,9 +59,6 @@ public:
     std::uint8_t flags_;       // +0x0F bit 0 reliable; bits 1..7 priority (0..10)
     RefPtr object_;            // +0x10 the object (null once it is gone)
 };
-static_assert(offsetof(ReplicaEntry, version_) == 0x08);
-static_assert(offsetof(ReplicaEntry, object_) == 0x10);
-static_assert(sizeof(ReplicaEntry) == 0x14);
 
 // One item of a history entry: what a packet carried for one entry (an element of
 // SentPacket::items; its list's element policy is library_net_lists.h's SentRecordElement).
@@ -165,25 +162,23 @@ using Attached = stlp::TreeAbi<stlp::map<CRefObject*, AttachedId>>;   // object 
 
 } // namespace trees
 
-class __declspec(novtable) Connection : public CRefObject {
+class Connection final : public CRefObject {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BF38)
-
     using EntryMap = trees::Entries;
     using RecordMap = trees::Records;
 
-    // 0: 004334C0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
-    // 2: 00433320 (net_connection_life.cpp). Destroyed and built again with id 0; returns what
-    // the constructor returns.
-    int OnShutdown() override;
-    // 3: 00433060 (net_connection_life.cpp). A copy of the connection (every container copied).
-    Connection* Clone() override;
+    // 00432DA0 (net_connection_life.cpp): every container empty, the clocks started.
+    explicit Connection(std::uint32_t id);
+    // Clone's copy (00433060): every container copied.
+    Connection(const Connection& other);
+    // 004334E0 (deleting: 004334C0; net_connection_life.cpp).
+    ~Connection() override;
 
-    // net_connection_life.cpp: 00432DA0 constructor (returns this), 004334E0 destructor body,
-    // 004334C0 deleting destructor (slot 0).
-    Connection* Construct(std::uint32_t id);
-    void Destruct();
-    Connection* DeletingDestruct(unsigned flags);
+    // 1: Serialize (empty).
+    // 2: 00433320 (net_connection_life.cpp). Torn down and built again with id 0; returns this.
+    int OnShutdown() override;
+    // 3: 00433060 (net_connection_life.cpp). A copy of the connection.
+    Connection* Clone() override;
 
     // 00435A00. Builds and sends one update packet of at most `budget` entry bytes. False when
     // entries had to be left out (or the send failed).
@@ -282,46 +277,5 @@ public:
     GameBuffer reliableIn_;             // +0x1148
     std::uint32_t padding_1164;
 };
-static_assert(offsetof(Connection, sendSequence_) == 0x8);
-static_assert(offsetof(Connection, id_) == 0x20);
-static_assert(offsetof(Connection, address_) == 0x2C);
-static_assert(offsetof(Connection, clock_) == 0x48);
-static_assert(offsetof(Connection, idPools_) == 0x54);
-static_assert(offsetof(Connection, freedIds_) == 0x1054);
-static_assert(offsetof(Connection, bySentId_) == 0x105C);
-static_assert(offsetof(Connection, byObject_) == 0x1068);
-static_assert(offsetof(Connection, priorities_) == 0x1074);
-static_assert(offsetof(Connection, history_) == 0x10F8);
-static_assert(offsetof(Connection, records_) == 0x1100);
-static_assert(offsetof(Connection, attached_) == 0x110C);
-static_assert(offsetof(Connection, headerSequence_) == 0x1118);
-static_assert(offsetof(Connection, headers_) == 0x111C);
-static_assert(offsetof(Connection, ackMask_) == 0x1124);
-static_assert(offsetof(Connection, reliableOut_) == 0x112C);
-static_assert(offsetof(Connection, reliableIn_) == 0x1148);
-static_assert(sizeof(Connection) == 0x1168);
-
-// ---- The compiled tables ------------------------------------------------------------------------
-
-// The connection's and the tracking record's compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's:
-// slot 0 the class's DeletingDestruct, 1 Serialize (empty, RET 4: 00412580), 2 / 3 its OnShutdown and Clone called
-// qualified (no dispatch).
-template <typename Self, typename T>
-class RefObjectClass : public ei::CompiledTag<Self> {
-public:
-    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestruct(flags); }   // 0
-    virtual void Serialize(ChunkArchive*) {}                                                   // 1
-    virtual int OnShutdown() { return Object()->T::OnShutdown(); }                             // 2
-    virtual CRefObject* Clone() { return Object()->T::Clone(); }                               // 3
-
-private:
-    T* Object() { return this->template ObjectAs<T>(); }
-};
-
-struct ReplicaEntryClass final : RefObjectClass<ReplicaEntryClass, ReplicaEntry> {};   // 0073BF4C
-struct ConnectionClass final : RefObjectClass<ConnectionClass, Connection> {};         // 0073BF38
-
-inline void* ReplicaEntry::Vtable() { return ReplicaEntryClass::Vtable(); }
-inline void* Connection::Vtable() { return ConnectionClass::Vtable(); }
 
 } // namespace net

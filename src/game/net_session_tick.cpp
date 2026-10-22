@@ -334,8 +334,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         LogAddress(game::nettexts::AddClient(), text);
     }
     RemoveClient(ClientAt(address));
-    auto* memory = NewMessageMemory<Connection>();
-    Connection* connection = memory ? memory->Construct(id) : nullptr;
+    Connection* connection = NewCounted<Connection>(id);
     Connection* ref;
     netlists::InitClientRef(&ref, connection);
     stlp::list<RefPtr>::Insert<stlp::SharedRef>(stlp::AsRefNode(clients_), reinterpret_cast<const RefPtr&>(ref));

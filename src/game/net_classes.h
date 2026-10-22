@@ -80,16 +80,6 @@ void Rebuild(T* self) {
     new (self) T();
 }
 
-// The memory of a reference-counted object as the game's code allocates it inline: operator new, then the
-// reference count dword cleared before the null check (the sessions, the links and the connections).
-template <typename T>
-T* NewMessageMemory() {
-    auto* p = gamecrt::operator_new_array<std::uint8_t>(sizeof(T));
-    const std::uint32_t zero = 0;
-    std::memcpy(p + 4, &zero, 4);
-    return reinterpret_cast<T*>(p);
-}
-
 // A sockaddr_in: family 2, then the port and the IPv4 address in network order, 8 zero bytes.
 struct NetAddress {
     std::uint16_t family;
@@ -202,11 +192,6 @@ using MessageFactory = Message* (__fastcall*)();
 
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
 void* __fastcall NewRefObject(std::size_t size);
-// NewRefObject for a T: its memory (not constructed; the count cleared), or null.
-template <typename T>
-T* NewRefObjectAs() {
-    return static_cast<T*>(NewRefObject(sizeof(T)));
-}
 // The message classes are declared in net_messages.h.
 
 // ---- The server entries of the lobby ------------------------------------------------------------

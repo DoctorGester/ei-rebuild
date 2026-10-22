@@ -30,10 +30,9 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
-// A new driver for `player` (allocated with 00413250 or operator new, as each caller does), put at
-// the end of the owning list.
-DriverLink* NewDriver(DriverSession* self, CRefObject* player, DriverLink* raw) {
-    auto* driver = raw ? raw->Construct() : nullptr;
+// A new driver for `player`, put at the end of the owning list.
+DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
+    auto* driver = net::NewCounted<DriverLink>();
     driver->player_.Assign(player);
     RefPtr held{driver};   // taken without a reference; the list's copy adds one
     RefList::Insert<stlp::SharedRef>(stlp::AsRefNode(self->drivers_), held);
@@ -64,7 +63,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         if (!IsLive(server)) continue;
         if (!server->PlayerStateIs3(node->connection)) continue;
         player = node->connection;
-        DriverLink* driver = NewDriver(this, player, net::NewRefObjectAs<DriverLink>());
+        DriverLink* driver = NewDriver(this, player);
         // The original then destroys the emptied temporary holder (00413270 on null: nothing).
         RefPtr held{driver};
         RefList::Insert<stlp::CountedRef>(stlp::AsRefNode(holders_), held);
@@ -99,8 +98,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
     }
     holders_->next = holders_;
     holders_->prev = holders_;
-    DriverLink* raw = net::NewMessageMemory<DriverLink>();
-    DriverLink* driver = NewDriver(this, player, raw);
+    DriverLink* driver = NewDriver(this, player);
     driver->Pump();
     while (driver->HasIncoming()) {
         CMemoryStream stream;

@@ -69,8 +69,7 @@ void DestroyForReset(Connection* c) {
 // 00432DA0: the constructor (id). Builds every container, then: the send sequence starts at the
 // tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
-Connection* Connection::Construct(std::uint32_t id) {
-    ei::SetVtable(this, CRefObject::Vtable());
+Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     received_.ConstructEmpty();   // vector<int>() (00438CE0)
     address_ = NetAddress{};
@@ -99,7 +98,6 @@ Connection* Connection::Construct(std::uint32_t id) {
     sentinel->prev = sentinel;
     reliableOut_.ConstructGrowing();
     reliableIn_.ConstructGrowing();
-    ei::SetVtable(this, Vtable());
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;
     SessionBase* session = g_currentSession;
@@ -127,26 +125,19 @@ Connection* Connection::Construct(std::uint32_t id) {
     Put32(&clock_, 4, 0);
     ackMask_ = 0;
     ackBase_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x00432DA0, Connection::Construct);
+EI_REWRITTEN_SPECIAL(0x00432DA0, Connection::Connection);
 
 // 00433320 (slot 2): tears every container down (in the order the destructor's unwinding would)
-// and constructs the connection again with id 0.
+// and constructs the connection again with id 0 (the count and the flags kept).
 int Connection::OnShutdown() {
-    ei::SetVtable(this, Vtable());
     DestroyForReset(this);
-    ei::SetVtable(this, CRefCounted::RootVtable());
-    return static_cast<int>(reinterpret_cast<std::uintptr_t>(Construct(0)));
+    return static_cast<int>(reinterpret_cast<std::uintptr_t>(new (this) Connection(0)));
 }
-namespace {
-int __fastcall ResetHook(Connection* self) { return self->Connection::OnShutdown(); }
-} // namespace
-EI_REWRITTEN(0x00433320, ResetHook);
+EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 
-// 004334E0: the destructor body.
-void Connection::Destruct() {
-    ei::SetVtable(this, Vtable());
+// 004334E0 (deleting: 004334C0).
+Connection::~Connection() {
     static_cast<GameBuffer*>(&reliableIn_)->DestructGrowing();
     static_cast<GameBuffer*>(&reliableOut_)->DestructGrowing();
     incoming_.Clear<ChunkElement>();   // 0043D420
@@ -170,62 +161,49 @@ void Connection::Destruct() {
     stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));   // 0043B180
     libcrt::DestroyElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(this);
-    ei::SetVtable(this, CRefCounted::RootVtable());
 }
-EI_REWRITTEN(0x004334E0, Connection::Destruct);
-
-// 004334C0 (slot 0): the deleting destructor.
-Connection* Connection::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004334C0, Connection::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004334E0, Connection::~Connection);
+EI_REWRITTEN_SPECIAL(0x004334C0, Connection::~Connection);
 
 } // namespace net
 
 namespace net {
 
-// 00433060 (slot 3).
-Connection* Connection::Clone() {
-    auto* copy = NewMessageMemory<Connection>();
-    if (!copy) return nullptr;
-    ei::SetVtable(copy, CRefObject::Vtable());
-    copy->sendSequence_ = sendSequence_;
-    copy->lastReceived_ = lastReceived_;
-    copy->sequenceHigh_ = sequenceHigh_;
+// 00433060 (slot 3): the copy below as a new connection.
+Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
+EI_REWRITTEN(0x00433060, Connection::Clone);
+
+// The copy as 00433060 builds it, field by field.
+Connection::Connection(const Connection& other) : CRefObject() {
+    sendSequence_ = other.sendSequence_;
+    lastReceived_ = other.lastReceived_;
+    sequenceHigh_ = other.sequenceHigh_;
     // vector(const vector&): room for exactly size() sequences (00438D00), copied (0043B360).
-    copy->received_.ConstructWithCapacity(received_.size());
-    copy->received_.Finish() = stlp::CopyTrivial(received_.begin(), received_.end(), copy->received_.begin());
+    received_.ConstructWithCapacity(other.received_.size());
+    received_.Finish() = stlp::CopyTrivial(other.received_.begin(), other.received_.end(), received_.begin());
     // id, round trips; timers, clock, budget: copied as dwords.
-    std::memcpy(&copy->id_, &id_, offsetof(Connection, address_) - offsetof(Connection, id_));
-    copy->address_ = address_;
-    std::memcpy(&copy->sendInterval_, &sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
-    for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
-    copy->freedIds_.CopyConstruct<FreedIdsElement>(freedIds_);   // 00437930
-    copy->freedTimer_ = freedTimer_;
-    copy->bySentId_.CopyConstruct(&bySentId_);   // 00437AA0
-    copy->byObject_.CopyConstruct(&byObject_);
-    for (int i = 0; i < 11; ++i) copy->priorities_[i].CopyConstruct(&priorities_[i]);
-    copy->history_.CopyConstruct<PacketRecordElement>(history_);   // 00437F60
-    copy->acknowledged_.CopyConstruct<PacketRecordElement>(acknowledged_);
-    copy->records_.CopyConstruct(&records_);
-    copy->attached_.CopyConstruct(&attached_);
-    copy->headerSequence_ = headerSequence_;
-    copy->incomingSequence_ = incomingSequence_;
-    copy->headers_.CopyConstruct<ChunkElement>(headers_);   // 00438690
-    copy->incoming_.CopyConstruct<ChunkElement>(incoming_);
-    copy->ackMask_ = ackMask_;
-    copy->ackBase_ = ackBase_;
-    copy->reliableOut_.ConstructCopy(&reliableOut_);
-    copy->reliableIn_.ConstructCopy(&reliableIn_);
-    ei::SetVtable(copy, Vtable());
-    return copy;
+    std::memcpy(&id_, &other.id_, offsetof(Connection, address_) - offsetof(Connection, id_));
+    address_ = other.address_;
+    std::memcpy(&sendInterval_, &other.sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
+    for (int i = 0; i < kMessageTypes; ++i) idPools_[i].CopyFrom(other.idPools_[i]);
+    freedIds_.CopyConstruct<FreedIdsElement>(other.freedIds_);   // 00437930
+    freedTimer_ = other.freedTimer_;
+    bySentId_.CopyConstruct(&other.bySentId_);   // 00437AA0
+    byObject_.CopyConstruct(&other.byObject_);
+    for (int i = 0; i < 11; ++i) priorities_[i].CopyConstruct(&other.priorities_[i]);
+    history_.CopyConstruct<PacketRecordElement>(other.history_);   // 00437F60
+    acknowledged_.CopyConstruct<PacketRecordElement>(other.acknowledged_);
+    records_.CopyConstruct(&other.records_);
+    attached_.CopyConstruct(&other.attached_);
+    headerSequence_ = other.headerSequence_;
+    incomingSequence_ = other.incomingSequence_;
+    headers_.CopyConstruct<ChunkElement>(other.headers_);   // 00438690
+    incoming_.CopyConstruct<ChunkElement>(other.incoming_);
+    ackMask_ = other.ackMask_;
+    ackBase_ = other.ackBase_;
+    reliableOut_.ConstructCopy(&other.reliableOut_);
+    reliableIn_.ConstructCopy(&other.reliableIn_);
 }
-namespace {
-Connection* __fastcall CloneHook(Connection* self) { return self->Connection::Clone(); }
-} // namespace
-EI_REWRITTEN(0x00433060, CloneHook);
 
 } // namespace net
 
@@ -256,56 +234,39 @@ void ReleaseEntryObject(ReplicaEntry* e) {
 }
 } // namespace
 
-// 004343C0 (entry slot 3): a copy of the entry sharing the object (one more reference).
-ReplicaEntry* ReplicaEntry::Clone() {
-    auto* copy = NewMessageMemory<ReplicaEntry>();
-    if (!copy) return nullptr;
-    ei::SetVtable(copy, CRefObject::Vtable());
-    copy->version_ = version_;
-    copy->id_ = id_;
-    copy->type_ = type_;
-    copy->flags_ = flags_;   // the original merges bit 0 and then the other bits: all of them
-    copy->object_.ptr = object_.ptr;
-    if (copy->object_.ptr) ++copy->object_.ptr->refs_;
-    ei::SetVtable(copy, Vtable());
-    return copy;
+ReplicaEntry::ReplicaEntry() {
+    object_.FromRawCounted(nullptr);
+    version_ = 0;
+    id_ = 0;
 }
 
-// 00434430 (entry slot 2): releases the object, then constructs again in place (object, version
-// and id cleared; type and flags kept). Returns what EAX held (nothing in particular).
+ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
+    : CRefObject(), version_(other.version_), id_(other.id_), type_(other.type_),
+      flags_(other.flags_) {   // the original merges bit 0 and then the other bits: all of them
+    object_.ptr = other.object_.ptr;
+    if (object_.ptr) ++object_.ptr->refs_;
+}
+
+// 004343C0 (entry slot 3): a copy of the entry sharing the object.
+ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
+EI_REWRITTEN(0x004343C0, ReplicaEntry::Clone);
+
+// 00434430 (entry slot 2): releases the object, then built again in place as the constructor
+// would (object, version and id cleared; type and flags kept). Returns what EAX held (nothing in
+// particular).
 int ReplicaEntry::OnShutdown() {
-    ei::SetVtable(this, Vtable());
     ReleaseEntryObject(this);
-    ei::SetVtable(this, CRefCounted::RootVtable());
     object_.ptr = nullptr;
-    ei::SetVtable(this, Vtable());
     version_ = 0;
     id_ = 0;
     return 0;
 }
+EI_REWRITTEN(0x00434430, ReplicaEntry::OnShutdown);
 
-namespace {
-ReplicaEntry* __fastcall ReplicaEntryCloneHook(ReplicaEntry* self) { return self->ReplicaEntry::Clone(); }
-int __fastcall ReplicaEntryResetHook(ReplicaEntry* self) { return self->ReplicaEntry::OnShutdown(); }
-} // namespace
-EI_REWRITTEN(0x004343C0, ReplicaEntryCloneHook);
-EI_REWRITTEN(0x00434430, ReplicaEntryResetHook);
-
-// 004344C0: the destructor body.
-void ReplicaEntry::Destruct() {
-    ei::SetVtable(this, Vtable());
-    ReleaseEntryObject(this);
-    ei::SetVtable(this, CRefCounted::RootVtable());
-}
-EI_REWRITTEN(0x004344C0, ReplicaEntry::Destruct);
-
-// 004344A0 (entry slot 0): the deleting destructor.
-ReplicaEntry* ReplicaEntry::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004344A0, ReplicaEntry::DeletingDestruct);
+// 004344C0 (deleting: 004344A0).
+ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
+EI_REWRITTEN_SPECIAL(0x004344C0, ReplicaEntry::~ReplicaEntry);
+EI_REWRITTEN_SPECIAL(0x004344A0, ReplicaEntry::~ReplicaEntry);
 
 // 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the
 // vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.

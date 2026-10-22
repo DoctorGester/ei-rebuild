@@ -426,14 +426,7 @@ void Connection::Track(Replicated* item) {
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
-    auto* entry = NewMessageMemory<ReplicaEntry>();
-    if (entry) {
-        ei::SetVtable(entry, CRefObject::Vtable());
-        entry->object_.FromRawCounted(nullptr);
-        ei::SetVtable(entry, ReplicaEntry::Vtable());
-        entry->version_ = 0;
-        entry->id_ = 0;
-    }
+    auto* entry = NewCounted<ReplicaEntry>();
 
     CRefObject* key = item->object;
     ObjectMap::Node* lb;

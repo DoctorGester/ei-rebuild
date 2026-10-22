@@ -1131,9 +1131,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     C28k (a constructor, Clone's copy constructor, OnShutdown destroying and rebuilding in place, a destructor). The
     message registry keys on the object's class (TypeRegistry::KeyOf: its vtable).
   - **Sessions** (net_classes.h): SessionBase (15 slots), ServerBase / ClientBase (17) and the final ServerSession /
-    ClientSession, real C++ classes since C28k. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
-    **Links** (net_link.h): NetLinkClass and its Loopback / Replay / Framed / Driver tags (FileStream is a real class),
-    (DriverSession is a real class since C28g). net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
+    ClientSession, real C++ classes since C28k. **Connection, replica entry** (net_connection.h) and the **links**
+    (net_link.h: NetLink and its Loopback / Replay / Framed / Driver links): real C++ classes since C28k (FileStream
+    since earlier, DriverSession since C28g).
   - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
     base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
     (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
