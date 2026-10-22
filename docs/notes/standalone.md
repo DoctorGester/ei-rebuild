@@ -337,7 +337,7 @@ What the image still takes of game.exe's .rdata / .data bytes, measured two ways
   to each such dword is a line of the run folder's image_trace.txt, then the instruction is single-stepped with the
   page open. `python tools/image_trace.py [--check] [--csv OUT]` names the readers (the map) and groups the reads; a
   read of a cell (image_cells.inc, image_code_cells.inc) does not count, the cells come from the committed tables.
-  On the suite (144 runs, 2026-10-22): 2549 dwords read, 1383 of them cells, 1166 from game.exe's bytes. Pages that
+  On the suite (144 runs, 2026-10-22, after C18o): 2238 dwords read, 1281 of them cells, 957 from game.exe's bytes. Pages that
   trap more than 100,000 times are left open (the script keyword table 0078B000-0078DFFF, MFC's 00796000, the
   CRT's 00797000, 0079B000's hot globals): the trace cannot see the rest of them, the trial covers that.
 - **The trial** (`build.cmd verify trial`, CMake `EI_IMAGE_ZERO_TRIAL`, `gen_image_cells.py --bytes OUT --zero`):

@@ -2850,6 +2850,20 @@ group = "cleanup"
 model = "opus"
 note = "After C18o (2026-10-22). The script keyword / built-in function table 0078BCA0 (442 pointer cells; script.h, script_addon.cpp: Rebirth's addon installs its own 300-entry table and ClassifyToken reads whichever is in use) as a named table, keeping the live table in hooked runs; then the CRT's string tables (setlocale names, __lc_time_c, run-time error messages, locale categories, _iob, lconv) where our ported CRT reads them, after checking which a static initialiser or the CRT's start-up fills. Use named_data.py --emit / --rewrite."
 
+[[ticket]]
+id = "C25a"
+title = "Build without game.exe: the rest of the kept list, then the zero bytes as the product"
+group = "cleanup"
+model = "opus"
+note = "After C25 and C18q (2026-10-22). config/image_kept.csv lists what the image still reads of game.exe's .rdata/.data (C25: trace + zero-filled trial, ALL PASS, goldens the same). C18q takes the script keyword table and the CRT string tables (rows 0078B820-0078D724, 00787B5C/98/B4, 007472E4, 00747924, 00797778, 00798928; delete them from the list when named). The rest: the addon-site floats 007428AC / 00742B08, commctrl_DragListMsg 00746D8C, ostream's vbtable 00748284, the send rates 00783E34, the tick 0078FF34, the direction table 00791978, OnNewParty's 00794E3C, MFC's _afxInitData 00796E50, the C ctype table 00797DE0: as named data or literals (addon sites stay writable). When the list is empty: --zero becomes the bytes' only mode (gen_image_cells --bytes without game.exe), CMake's EI_GAME_EXE lookup optional, build.cmd's checks already skip without one. Check: image_trace.py --check on an EI_IMAGE_TRACE=1 suite, the trial suite with goldens the same."
+
+[[ticket]]
+id = "C25b"
+title = "Rebirth pause / resume text: SetPauseTextDigit writes a copy nothing reads"
+group = "cleanup"
+model = "opus"
+note = "Found by C25 (2026-10-22). player_server_orders.cpp SetPauseTextDigit writes '2' / '3' into game.exe's string 007930EC (\"reserved_02\", EI_Plugin's Pause patch), but CInterface3D::MessageText (ui_interface_save.cpp) takes message 12's key from its own literal kMessageKeys[12] = \"reserved_02\": the resume announcement shows the pause text in the image (and in hooked runs, if MessageText is ours). Make the key one named, writable char array that both use (or the digit an argument), and a scenario for the pause / resume messages if the lobby allows one."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
