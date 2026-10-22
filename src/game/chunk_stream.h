@@ -28,7 +28,7 @@ public:
     // zone's object records, map_spec.h) read the chunk's value by its id.
     virtual void OnChunk();
     // 1: 0042BF40. The file (an MFC CFile): the parent's, or null without a parent.
-    virtual void* File();
+    virtual mfc::CFileVirtuals* File();
 
     // 0042BEC0 for the records that begin with a chunk (map_spec.h): the constructor in place.
     // Returns this.
@@ -95,7 +95,7 @@ public:
     // 0042D1C0. No parent, the file closed.
     RootChunk() : Chunk(nullptr) {}
 
-    void* File() override;   // 1: 0042D260 (&file_)
+    mfc::CFileVirtuals* File() override;   // 1: 0042D260 (&file_)
 
     // 0042D160. Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
     int Open(mfc::CString path, unsigned flags);

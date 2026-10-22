@@ -23,7 +23,7 @@ template <typename Self, typename T, auto Delete>
 class SpecClass : public ei::CompiledTag<Self> {
 public:
     virtual void OnChunk() {}                                                                 // 0: 00469E20 (empty)
-    virtual void* File() { return this->template ObjectAs<::Chunk>()->::Chunk::File(); }       // 1: 0042BF40
+    virtual mfc::CFileVirtuals* File() { return this->template ObjectAs<::Chunk>()->::Chunk::File(); }       // 1: 0042BF40
     virtual void* WorldObject() { return Base()->SpecWorldObject(); }                         // 2: 00469F20
     virtual void Nothing(int) {}                                                              // 3: 00469DA0 (RET 4)
     virtual mfc::CString* TypeName(mfc::CString* out) { return Base()->SpecTypeName(out); }   // 4: 00469DB0

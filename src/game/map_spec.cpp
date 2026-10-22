@@ -47,9 +47,8 @@ void ReadInto(Chunk& c, mfc::CString& field) {
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
 // The chunk's file (an MFC CFile) through its vtable.
-mfc::CFileVirtuals* FileOf(Chunk& c) { return static_cast<mfc::CFileVirtuals*>(c.File()); }
-void FileWrite(Chunk& c, const void* data, unsigned size) { FileOf(c)->Write(data, size); }
-void FileRead(Chunk& c, void* data, unsigned size) { FileOf(c)->Read(data, size); }
+void FileWrite(Chunk& c, const void* data, unsigned size) { c.File()->Write(data, size); }
+void FileRead(Chunk& c, void* data, unsigned size) { c.File()->Read(data, size); }
 
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 

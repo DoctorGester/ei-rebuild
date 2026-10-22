@@ -68,7 +68,7 @@ namespace {
 template <typename Self, typename Reader>
 struct ChunkReaderClass : ei::CompiledTag<Self> {
     virtual void OnChunk() { this->template ObjectAs<Reader>()->OnChunk(); }                   // 0
-    virtual void* File() { return this->template ObjectAs<::Chunk>()->::Chunk::File(); }       // 1: 0042BF40
+    virtual mfc::CFileVirtuals* File() { return this->template ObjectAs<::Chunk>()->::Chunk::File(); }       // 1: 0042BF40
 };
 struct WaypointChunkClass final : ChunkReaderClass<WaypointChunkClass, WaypointChunk> {};     // 0073C710
 struct PatrolChunkClass final : ChunkReaderClass<PatrolChunkClass, PatrolChunk> {};           // 0073C718

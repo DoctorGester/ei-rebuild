@@ -21,14 +21,13 @@ constexpr std::uint32_t kSeekCurrent = 1;
 constexpr int kHeader = 8;
 
 // The file's MFC CFile slots, through its vtable (mfc::CFile itself declares no virtuals).
-mfc::CFileVirtuals* AsFile(void* file) { return static_cast<mfc::CFileVirtuals*>(file); }
-std::uint32_t FileRead(void* file, void* data, std::uint32_t size) { return AsFile(file)->Read(data, size); }
-void FileWrite(void* file, const void* data, std::uint32_t size) { AsFile(file)->Write(data, size); }
-std::uint32_t FilePosition(void* file) { return AsFile(file)->GetPosition(); }
-void FileSeek(void* file, std::int32_t offset, std::uint32_t from) { AsFile(file)->Seek(offset, from); }
+std::uint32_t FileRead(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { return file->Read(data, size); }
+void FileWrite(mfc::CFileVirtuals* file, const void* data, std::uint32_t size) { file->Write(data, size); }
+std::uint32_t FilePosition(mfc::CFileVirtuals* file) { return file->GetPosition(); }
+void FileSeek(mfc::CFileVirtuals* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
 
 // The hook of slot 1 (a virtual: registered through this shim).
-void* __fastcall ChunkFileHook(Chunk* self) { return self->Chunk::File(); }
+mfc::CFileVirtuals* __fastcall ChunkFileHook(Chunk* self) { return self->Chunk::File(); }
 
 // A chunk holding one value: header, then the value (counted with the header).
 void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
@@ -74,7 +73,7 @@ EI_REWRITTEN(0x0042BF00, Chunk::Advance);
 
 void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
 
-void* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
+mfc::CFileVirtuals* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
 EI_REWRITTEN(0x0042BF40, ChunkFileHook);
 
 // --- Writing -----------------------------------------------------------------------------------
@@ -305,7 +304,7 @@ void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
     if (parent_) parent_->Advance(size);
     consumed_ += size;
     int length = text.GetLength();
-    void* file = File();
+    mfc::CFileVirtuals* file = File();
     FileWrite(file, text.GetBuffer(0), static_cast<std::uint32_t>(length));
 }
 EI_REWRITTEN(0x0042C820, Chunk::WriteString);
@@ -344,7 +343,7 @@ void Chunk::WriteStringArray(std::uint32_t id, mfc::CStringArray* array) {
         FileWrite(File(), &id, 4);
         FileWrite(File(), &elementSize, 4);
         int length = (*array)[i].GetLength();
-        void* file = File();
+        mfc::CFileVirtuals* file = File();
         FileWrite(file, (*array)[i].GetBuffer(0), static_cast<std::uint32_t>(length));
     }
 }
@@ -357,7 +356,7 @@ int RootChunk::Open(mfc::CString path, unsigned flags) {
 }
 EI_REWRITTEN(0x0042D160, RootChunk::Open);
 
-void* RootChunk::File() { return &file_; }   // 0042D260 (short_functions.cpp)
+mfc::CFileVirtuals* RootChunk::File() { return file_.Virtuals(); }   // 0042D260 (short_functions.cpp)
 
 void RootChunk::Destruct() { file_.~CFile(); }
 EI_REWRITTEN(0x00596130, RootChunk::Destruct);
