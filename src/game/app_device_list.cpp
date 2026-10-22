@@ -107,7 +107,7 @@ void ChunkArchive::SerializeLevers(int id, stlp::vector<LeverRecord>* list, int 
         for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestruct(r);
         list->Finish() = kept;
         n = ar->CountChunks(1);
-        static_cast<recordvec::LeverVector*>(list)->ResizeDefault(static_cast<unsigned>(n));
+        list->ResizeDefault<recordvec::LeverVector::Element>(static_cast<unsigned>(n));
     } else {
         n = static_cast<int>(list->size());
     }

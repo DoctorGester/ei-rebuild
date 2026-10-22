@@ -751,7 +751,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
         if (loading) {
             list.EraseRange<recordvec::QueryElement>(list.begin(), list.end());
             n = archive->CountChunks(1);
-            static_cast<recordvec::QueryVector*>(&list)->ResizeDefault(static_cast<unsigned>(n));
+            list.ResizeDefault<recordvec::QueryVector::Element>(static_cast<unsigned>(n));
         } else {
             n = static_cast<int>(list.size());
         }
