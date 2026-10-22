@@ -14,6 +14,7 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "lib/stlp_string.h"
+#include "lib/static_object.h"
 #include "lib/stlp_tree_abi.h"
 #include "library_trees.h"
 #include "ui.h"        // CInterface3D, CUiSurface
@@ -34,11 +35,9 @@ using Node = StringMap::Node;   // 0x28 bytes
 static_assert(sizeof(Node) == 0x28);
 
 // STLport (library): the map<string, string> instantiation's pair constructor (00445170), insert
-// with a hint (004450B0), pair destructor (00445040) and its scalar deleting destructor (004457F0).
-using Pairs = lib_trees::StringPairs;
-
-// The node allocator's free list of 0x28-byte nodes (0079B234), which the destructor pushes to inline.
-void*& NodeFreeList() { return ei::GameData<void*>(0x0079B234); }
+// with a hint (004450B0), pair destructor (00445040) and its scalar deleting destructor (004457F0),
+// as the map's element policy runs them (lib_trees::StringPairs registers them).
+using Pair = StringMap::Element;
 
 } // namespace
 
@@ -47,18 +46,14 @@ void*& NodeFreeList() { return ei::GameData<void*>(0x0079B234); }
 void CDebugPanel::Set(const char* key, const char* value) {
     stlp::string k(key);
     StringMap& map = entries_;
-    Node* it;
-    static_cast<lib_trees::StringPairs*>(&map)->LowerBound(&it, k);
+    Node* it = map.lower_bound(k);
     if (it == map.end() || stlp::StringAbi::Less(&k, &it->first)) {
         stlp::string empty;
         stlp::StringElement::Default(&empty);
-        alignas(4) std::uint8_t storage[sizeof(stlp::string) * 2];
-        auto* pair = reinterpret_cast<Pairs::Value*>(storage);
-        static_cast<Pairs::ValueAbi*>(pair)->MakeValue(k, empty);
-        Node* inserted;
-        static_cast<Pairs*>(&map)->InsertHint(&inserted, it, *pair);
-        it = inserted;
-        static_cast<Pairs::ValueAbi*>(pair)->DestroyValue();
+        lib::InPlace<StringMap::Value> pair;
+        Pair::Make(pair.Get(), k, empty);
+        it = map.InsertUnique<Pair>(it, *pair.Get());
+        Pair::Destroy(pair.Get());
     }
     it->second.Assign(value);   // inlined by the original: overwrite, then cut or append
 }
@@ -70,31 +65,17 @@ void CDebugPanel::Remove(const char* key) {
     Node* it;
     {
         stlp::string k(key);
-        static_cast<lib_trees::StringPairs*>(&map)->Find(&it, k);
+        it = map.find(k);
     }
-    if (it != map.end()) map.Erase<stlp::TreeElement<StringMap::Value>>(it);
+    if (it != map.end()) map.Erase<Pair>(it);
 }
 EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
-// 00444690: the table's destructor (at exit): every node destroyed and freed, then the header.
-void CDebugPanel::Destruct() {
-    StringMap& map = entries_;
-    if (map.size()) {
-        Node* node = map.end()->parent;
-        while (node) {
-            static_cast<lib_trees::StringPairs*>(&map)->EraseSubtree(node->right);
-            Node* left = node->left;
-            static_cast<Pairs::ValueAbi*>(reinterpret_cast<Pairs::Value*>(&node->first))->DeletingDestroyValue(0);
-            stlp::deallocate(node, 40);   // 004452D0
-            node = left;
-        }
-        map.ResetToEmpty();
-    }
-    if (Node* header = map.end()) {
-        *reinterpret_cast<void**>(header) = NodeFreeList();
-        NodeFreeList() = header;
-    }
-}
+// 00444690: the table's destructor (at exit): every node destroyed and freed (the original
+// inlines _M_erase's loop: the right subtree, the pair's deleting destructor with 0, the node back
+// to the pool 004452D0), then the header pushed on the 0x28-byte nodes' free list (0079B234) as
+// the pool's deallocate does.
+void CDebugPanel::Destruct() { entries_.Destroy<Pair>(); }
 EI_REPLACE_METHOD(0x00444690, CDebugPanel::Destruct);
 
 // 00444740 (A-E2; thiscall, returns the panel): the constructor. The static initialiser 00444660
