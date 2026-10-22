@@ -36,12 +36,12 @@ is still left. The units themselves are in `units.md`; the conventions are those
 
 - `CUnit::player` is still `char*` (CPlayer, about 145 uses, with `PartyRecords` at +0x70 reached by arithmetic).
 - `UnitStream` duplicates `CStream` (about 110 uses); unit_save converts with `AsStream`.
-- `UnitParams` could be embedded at +0x330 (it is exactly 0x108 bytes up to +0x438); CUnit's `attackRate`,
-  `movementKind`, `modeSpeeds`, `baseSpeed` repeat it and `bodyParts` is a view of its slots shifted by 0x14 (the
-  maximum is unsigned there, signed in the slot), so the merge needs care.
+- `UnitParams params` is CUnit's member at +0x330 and `UnitMotion motion` at +0x27C (unit_motion.h, which unit.h
+  includes; ai_motion.h keeps OrderOf). The unit panel's "body parts" (+0x374) are the params' slots' kind / current /
+  maximum (the maximum is unsigned: the panel, the wounds and the network fraction read it so).
 - `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists could be `mfc::CArray`.
-- `UnequipArmour` / `ReleaseAllItems` call controller slot 27 by hand: the original reads the vtable before evaluating
-  the argument, which a virtual call would reorder.
+- `UnequipArmour` / `ReleaseAllItems` call controller slot 27 as `ArmourTakenOff`: the original reads the vtable before
+  the item's GetType, the virtual call after it; GetType reads the item only, so nothing can tell.
 - Item fields used as floats through the item family's names: condition `CItem::condition_` / `conditionMax_` are floats
   (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count_`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
   a height (compared with 1.5 for size class 0). They belong to their families' tickets.
