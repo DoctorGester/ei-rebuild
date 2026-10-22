@@ -48,7 +48,8 @@ struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::Delete
 const void* StreambufVtable() { return StreambufTable::Vtable(); }
 const void* IosVtable() { return IosTable::Vtable(); }
 const void* OstreamIosVtable() { return OstreamIosTable::Vtable(); }
-const int* OstreamVirtualBases() { return ei::GamePointer<const int>(0x00748284); }
+// ostream's virtual base table: its own offset in the object, then the ios's.
+constexpr int kOstreamVirtualBases[2] = /*00748284*/ {0, 8};
 
 // The lock all streams share (x_lockc) and how many ios are alive (initialised with the first, deleted
 // with the last).
@@ -385,7 +386,7 @@ EI_REPLACE_METHOD(0x006FC404, libcrt::Ios::DeleteOstream);
 
 Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     if (mostDerived) {
-        vbtable = OstreamVirtualBases();
+        vbtable = kOstreamVirtualBases;
         Base().Construct();
     }
     Base().vtable = OstreamIosVtable();

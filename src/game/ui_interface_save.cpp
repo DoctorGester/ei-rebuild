@@ -56,6 +56,8 @@ void CInterface3D::LoadState(CStream* stream) {
 
 // --- 005F8C90: the multiplayer messages' texts -------------------------------------------------
 
+char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
+
 namespace {
 // The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
 
@@ -72,7 +74,7 @@ const char* const kMessageKeys[13] = {
     "lmp_zone_disabled",
     "lmp_trade_requested",
     "lmp_trade_canceled",
-    "reserved_02",
+    g_pauseMessageKey,
 };
 } // namespace
 

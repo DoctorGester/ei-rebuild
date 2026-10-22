@@ -12,7 +12,8 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
 --check (build.cmd):
   * every tagged initialiser is game.exe's bytes at the tag: its numbers are packed by the declared element type
     (TYPES; a struct type its fields' formats, nested braces flattened) and compared with the file's bytes
-    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site, no two ranges overlapping);
+    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site but NAMED_ADDON_SITES, the ones
+    the image writes itself, no two ranges overlapping);
   * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it, and
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
@@ -442,6 +443,13 @@ def addon_sites():
 # The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
 # generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
+# The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
+# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write.
+# address -> why. One in .rdata is written all the same (not const).
+NAMED_ADDON_SITES = {
+    0x00742B08: "WideScreen's layout width: widescreen::g_layoutWidth, written by ui_widescreen.cpp's Startup",
+    0x007428AC: "WideScreen's panels' right column: widescreen::g_panelRight, written by ui_widescreen.cpp's Startup",
+}
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 
 # Retired vtables game.exe's pointer cells may still point at: type_info's 007472B0 (C19 batch 23), the vtable field
@@ -638,7 +646,8 @@ def check(img, update, img_path):
         if not (RDATA[0] <= lo and hi <= RDATA[1] or DATA[0] <= lo and hi <= DATA[1]):
             problems.append(f'{d.where()}: {d.name} {lo:08X}+{d.size} is not in .rdata past the import table or .data')
             continue
-        if hi <= RDATA[1] and not d.const:
+        own_site = any(lo <= a < hi for a in NAMED_ADDON_SITES)
+        if hi <= RDATA[1] and not d.const and not own_site:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
         late = sorted(a for a in unknown if lo <= a < hi)
@@ -650,7 +659,7 @@ def check(img, update, img_path):
             problems.append(f'{d.where()}: {d.name} is not the bytes of game.exe: first difference at {lo + at:08X} '
                             f'(+{at}): ours {d.packed[at:at + 4].hex()}, game.exe {want[at:at + 4].hex()}')
         for a, b in addon_sites():
-            if a < hi and lo < b:
+            if a < hi and lo < b and a not in NAMED_ADDON_SITES:
                 problems.append(f'{d.where()}: {d.name} overlaps the addon.dll site {a:08X}: that cell is written')
     good = sorted((d for d in defs if d.size), key=lambda d: d.address)
     for x, y in zip(good, good[1:]):
@@ -717,7 +726,7 @@ def check(img, update, img_path):
             d = inside(a)
             # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
-            if d and not original_read and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
+            if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

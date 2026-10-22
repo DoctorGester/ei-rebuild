@@ -24,6 +24,13 @@ bool IsStaticWindow(const CWnd* wnd) {
 CFixedAlloc& TempWndAlloc() { return ei::GameData<CFixedAlloc>(0x007CA940); }
 CFixedAlloc& TempMenuAlloc() { return ei::GameData<CFixedAlloc>(0x007CAAA8); }
 
+// The DragList message's id (wincore.cpp's nMsgDragList): CWnd's message map entry for it (ON_REGISTERED_MESSAGE,
+// 00746C80) points at it.
+UINT& DragListMessage() { return ei::GameData<UINT>(0x007CAA64); }
+
+// 007043FA, a static initialiser (cdecl; the list holds a jump to its body 007043FF).
+void __cdecl RegisterDragListMessage() { DragListMessage() = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
+
 // CWnd's 46 slots (C19; MFC 4.2's CWnd virtuals in declaration order): CCmdTarget's 20, then the window's, all
 // unported but the destructor (config/standalone_unreachable.csv: the image makes MFC's four static windows only).
 template <typename Self, const CRuntimeClass* kClass>
@@ -176,6 +183,7 @@ EI_REPLACE(0x0070D363, CreateCTempWnd);
 EI_REPLACE(0x0070DC80, CreateCMenu);
 EI_REPLACE(0x0070DCA0, CreateCTempMenu);
 EI_REWRITTEN(0x00703EC8, CCmdTarget::Destruct);
+EI_REPLACE(0x007043FA, RegisterDragListMessage);
 EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
 EI_REPLACE_METHOD(0x00704FE3, CWnd::Destruct);
 EI_REWRITTEN(0x0070452A, CWnd::DeletingDestructor);

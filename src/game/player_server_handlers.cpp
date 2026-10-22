@@ -297,8 +297,8 @@ namespace {
 // The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
 int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
-// The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
-int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
+// The next object id for a new party's record (OnNewParty), counting up from 1000000013.
+int g_nextRecordObjectId = /*00794E3C*/ 0x3B9ACA0D;
 
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
@@ -512,7 +512,7 @@ int CPlayerServer::OnNewParty() {
     if (party->members_.size != 1) return 0;
     int* key = &Owner()->partyId_;
     PartyNextId(key);
-    int& next = NextRecordObjectId();
+    int& next = g_nextRecordObjectId;
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
     party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;

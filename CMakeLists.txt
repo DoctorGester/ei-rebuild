@@ -107,11 +107,16 @@ add_library(ei_hook SHARED
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
-# game.exe's .data bytes for the image's own copy of the section (src/standalone/image_data.cpp, S18d), written
-# from game.exe at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes).
+# The initial bytes of the image's own copy of game.exe's .rdata and .data (src/standalone/image_data.cpp, S18d), written
+# at build time into image/ in the build folder (not committed; tools/gen_image_cells.py --bytes).
+# EI_IMAGE_BYTES_FROM_EXE ON: game.exe's bytes (the ranges our named globals hold zero); EI_IMAGE_ZERO_TRIAL (C25's
+# trial, build.cmd's `trial`) makes them zero but the cells and config/image_kept.csv's ranges, to find what the image
+# still reads of game.exe's data. OFF: always that zero form, the product once config/image_kept.csv is empty (C25a);
+# game.exe is then read only for the list's rows, and with no rows the build needs no game.exe (no lookup).
+set(EI_IMAGE_BYTES_FROM_EXE ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(EI_GAME_EXE "" CACHE FILEPATH "game.exe 1.06, the source of the image's data (empty: tools/exe_path.py finds it, like every tool that reads game.exe)")
-if(NOT EI_GAME_EXE)
+if(NOT EI_GAME_EXE AND EI_IMAGE_BYTES_FROM_EXE)
     execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/exe_path.py
                     OUTPUT_VARIABLE EI_GAME_EXE_FOUND ERROR_VARIABLE EI_GAME_EXE_ERROR RESULT_VARIABLE EI_GAME_EXE_RESULT
                     OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
@@ -121,21 +126,23 @@ if(NOT EI_GAME_EXE)
     file(TO_CMAKE_PATH "${EI_GAME_EXE_FOUND}" EI_GAME_EXE)
 endif()
 set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
-# The zero-filled trial (C25, build.cmd's `trial`): the bytes are zero but the cells and config/image_kept.csv's
-# ranges, to find what the image still reads of game.exe's data. Never the product.
 option(EI_IMAGE_ZERO_TRIAL "the image's data bytes zero but the cells and config/image_kept.csv (C25's trial)" OFF)
 set(EI_IMAGE_BYTES_MODE)
-if(EI_IMAGE_ZERO_TRIAL)
+if(EI_IMAGE_ZERO_TRIAL OR NOT EI_IMAGE_BYTES_FROM_EXE)
     set(EI_IMAGE_BYTES_MODE --zero)
 endif()
+set(EI_IMAGE_EXE_ARGS)
+if(EI_GAME_EXE)
+    set(EI_IMAGE_EXE_ARGS --exe ${EI_GAME_EXE})
+endif()
 add_custom_command(OUTPUT ${EI_IMAGE_DATA}
-    COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}
+    COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${EI_IMAGE_EXE_ARGS} --bytes ${EI_IMAGE_DATA}
             ${EI_IMAGE_BYTES_MODE}
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv
             ${CMAKE_SOURCE_DIR}/config/retired_vtables.csv ${CMAKE_SOURCE_DIR}/config/image_kept.csv
             ${CMAKE_SOURCE_DIR}/src/standalone/image_cells.inc ${CMAKE_SOURCE_DIR}/src/standalone/image_code_cells.inc
             ${EI_GAME_EXE}
-    COMMENT "Writing game.exe's .data bytes"
+    COMMENT "Writing the image's .rdata and .data bytes"
     VERBATIM)
 target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
 set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image

@@ -351,10 +351,35 @@ named range (C18) or another, `image_trace.py --check` a traced read outside the
 C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
 and the build needs nothing of game.exe (the resources are the host's own since C23).
 
+C25a took six rows (left: the script's and the CRT's rows, C18q, and the tick, the send rates and the step
+directions, C18):
+- **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
+  `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
+  the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
+  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
+- **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
+  mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
+  function_sizes.inc); static_init.cpp calls it.
+- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+  `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
+  message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
+- **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
+  PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
+  game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
+  the other releases must be the same). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+- **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
+  header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
+  (counted, left out of the cells like LEFT_STRUCTURES): game.exe's bytes unshifted, zero in the trial.
+
+**The switch** (C25a, ready): CMake's `EI_IMAGE_BYTES_FROM_EXE` (one `set` in CMakeLists.txt, ON). OFF makes the trial's
+form the product's: `--bytes --zero` always, no game.exe lookup (`--exe` passed only when EI_GAME_EXE is set), and
+gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty; then drop the
+non-zero path of write_bytes and EI_IMAGE_ZERO_TRIAL / build.cmd's `trial`.
+
 Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
 build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
 check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes.
+bytes until the switch.
 
 ### Named data (C18)
 
@@ -445,11 +470,11 @@ kinds given.
   element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
   field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
   gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
-  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
-  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
-  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
-  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
-  (crt_x87.cpp) likewise, its readers have no registration. Left: the script keyword table 0078BCA0 (Rebirth swaps
+  dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
+  copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
+  file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
+  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
+  readers have no registration. Left: the script keyword table 0078BCA0 (Rebirth swaps
   it), the CRT / MFC tables a static initialiser or the CRT's start-up fills.
 - **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
   rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,

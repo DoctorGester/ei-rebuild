@@ -12,6 +12,7 @@
 #include "originals_world.h"
 #include "party.h"
 #include "unit.h"
+#include "ui.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -36,16 +37,9 @@ constexpr int kStateSendingCamera = 2;
 // The stream the received packets are decompressed into (007C83D0).
 CMemoryStream& Received() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 
-// The last digit of "reserved_02" (007930EC), the key of the pause announcement's text
-// (CInterface3D::MessageText, message 12). EI_Plugin's Pause writes it in .rdata: '2' for a pause,
-// '3' ("reserved_03") for a resume.
-void SetPauseTextDigit(std::uint8_t pause) {
-    auto* digit = ei::GamePointer<char>(0x007930F6);
-    DWORD old;
-    VirtualProtect(digit, 1, PAGE_READWRITE, &old);
-    *digit = static_cast<char>('3' - pause);
-    VirtualProtect(digit, 1, old, &old);
-}
+// The last digit of "reserved_02", the key of the pause announcement's text (CInterface3D::MessageText,
+// message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
+void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
 // A unit of the player's world (the server's).
 CUnit* FindUnit(CPlayer* player, int id) {

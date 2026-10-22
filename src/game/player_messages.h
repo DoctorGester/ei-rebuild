@@ -213,7 +213,7 @@ public:
     int OnLeaveToZone();       // 00670E00, 0x06: zone text, entrance -> LeaveToZone
     int OnBriefingDone();      // 00670EB0, 0x07: briefing name -> CompleteBriefing(player id)
     // 00670F50, 0x08: a party (LoadParty with variables); one of a single record gets a fresh party
-    // id (PartyNextId into the player's +0xFC), its record the next free object id from 00794E3C,
+    // id (PartyNextId into the player's +0xFC), its record the next free object id (from 1000000013),
     // and is stored in the party manager's map. 0 for any other record count.
     int OnNewParty();
     int OnResume();            // 00671060, 0x09: state 4 -> 1; Redeploy (no placements) unless deployed

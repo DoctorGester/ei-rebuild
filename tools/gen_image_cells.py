@@ -17,7 +17,8 @@ string literal, another named range, a function of ours with a registration).
 
 Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
 exception tables, RTTI) or in a REVIEWED_RDATA group; a cell into .data is in a REVIEWED_DATA
-group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out. Each group says what
+group; a candidate that is text after all (a short word the filters keep) is in TEXT and left out, and so are the cells
+of tables nothing reads (UNREAD: dead code's tables, header constant copies; C25a). Each group says what
 the cells are and how many there are: a new cell (another exe, a scan change) or a changed count fails until someone
 has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's and Rebirth's differ in one code byte).
 
@@ -44,7 +45,8 @@ usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT [
   --check      exit 1 when the files differ from what the scan writes, or a cell has no review (build.cmd)
   --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table and the ranges
                our named globals hold zero: config/named_data.csv, C18) to OUT as a C++ initialiser (the build)
-  --zero       with --bytes: the trial's bytes (zero but the cells and config/image_kept.csv's ranges)
+  --zero       with --bytes: the trial's bytes (zero but the cells and config/image_kept.csv's ranges); with an empty
+               list no game.exe is read (CMake's EI_IMAGE_BYTES_FROM_EXE OFF makes this the product's form)
 """
 import argparse, csv, os, re, struct, sys
 
@@ -104,6 +106,17 @@ REVIEWED_DATA = [
     (0x0079AE20, 0x0079AE24, 2, '__lconv_c (0079AE20): decimal_point ".", thousands_sep __lconv_static_null ("")'),
     (0x0079AE28, 0x0079AE44, 8, '__lconv_c\'s other strings: __lconv_static_null'),
     (0x0079AE50, 0x0079AE50, 1, 'the CRT\'s __lconv: __lconv_c'),
+]
+
+# Cells of tables nothing reads (C25a), as REVIEWED_DATA's groups but left out of the pointer cells: only game.exe's dead
+# code or no code at all read them, and no port names them (the trace, EI_IMAGE_TRACE=1, sees no read). Their bytes
+# stay game.exe's, unshifted (zero in the trial).
+UNREAD = [
+    (0x0073B000, 0x00783000, 72, '".SEC": per-file copies of a header\'s const char* const that nothing reads (the two '
+                                 'read ones are named: terrain_sector.cpp 00744164, ai_map_load.cpp 0073FD20)', 0x00783CDC),
+    (0x0078F7EC, 0x0078F824, 15, 'the units\' model folders by kind ("heroes\\human\\male", ...), read by the dead '
+                                 '00532650 only'),
+    (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands", read by the dead 00602190 only'),
 ]
 
 # Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc), as C20a did for
@@ -517,6 +530,9 @@ def group_of(cell, value, kinds):
     for i, (first, last, _) in enumerate(TEXT):
         if first <= cell <= last:
             return ('text', i)
+    for i, g in enumerate(UNREAD):
+        if g[0] <= cell <= g[1] and (len(g) < 5 or g[4] == value):
+            return ('unread', i)
     section = section_of(value)
     if cell in kinds:
         return ('structure', [k for k, _, _ in STRUCTURES].index(kinds[cell]))
@@ -528,8 +544,8 @@ def group_of(cell, value, kinds):
 
 
 def left_out(group):
-    """Whether a group is no pointer cells: text, or a structure of LEFT_STRUCTURES."""
-    return group[0] == 'text' or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
+    """Whether a group is no pointer cells: text, an UNREAD table, or a structure of LEFT_STRUCTURES."""
+    return group[0] in ('text', 'unread') or group[0] == 'structure' and STRUCTURES[group[1]][0] in LEFT_STRUCTURES
 
 
 def describe(group):
@@ -538,6 +554,8 @@ def describe(group):
         return TEXT[i][2]
     if kind == 'structure':
         return STRUCTURES[i][2]
+    if kind == 'unread':
+        return UNREAD[i][3]
     return (REVIEWED_RDATA if kind == 'rdata' else REVIEWED_DATA)[i][3]
 
 
@@ -773,7 +791,7 @@ def main():
     expected = [(('text', i), None, g[2]) for i, g in enumerate(TEXT)]
     for i, (_, n, what) in enumerate(STRUCTURES):
         expected.append((('structure', i), n, what))
-    for name, groups in (('rdata', REVIEWED_RDATA), ('data', REVIEWED_DATA)):
+    for name, groups in (('unread', UNREAD), ('rdata', REVIEWED_RDATA), ('data', REVIEWED_DATA)):
         for i, g in enumerate(groups):
             expected.append(((name, i), g[2], f'{g[0]:08X}-{g[1]:08X} ({g[3]})'))
     for g, n, what in expected:
