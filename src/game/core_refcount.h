@@ -103,6 +103,27 @@ struct RefPtrTo : RefPtr {
 };
 static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
 
+// A counted reference: the pointer slot is the `this` of 00519580 (the 3D object's figure, a
+// CLinkMesh) and of its byte-identical copies 0051E570 (the client half's wounds material) and
+// 0051E4F0 (that material's helper preset), both called by 0051C3D0. T's count is at +0x04 and its
+// slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types. Reads see the
+// object (the conversion and ->); a plain store (`ref = p`) neither takes nor drops a reference.
+template <typename T>
+struct CountedRef {
+    // object = `value`: the new one gains a reference, the old one loses one and is deleted (its
+    // slot 0 with 1) when that was the last.
+    void Assign(T* value);
+
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    CountedRef& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
+};
+
 // refptr_copies.cpp (ECX the holder, EDX the object). 00427D50 and its 15 identical copies: `self`
 // holds `object` without a reference; returns self. 00421360 and its identical copies: clears it.
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);

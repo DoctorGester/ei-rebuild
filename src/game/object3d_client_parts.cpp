@@ -173,7 +173,7 @@ EI_REWRITTEN(0x0051AEC0, CObject3DClientSpecific::CreateClient);
 void CObject3DClientSpecific::DestroyClient() {
     AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    AsCountedRef(woundsMaterial).Assign(nullptr);   // the call to 0051E570
+    woundsMaterial.Assign(nullptr);   // the call to 0051E570
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set) continue;

@@ -105,8 +105,8 @@ bool UnitOrderLess::LessByAddress(CEngineObject* a, CEngineObject* b) {
     const auto rb = reinterpret_cast<std::uint32_t>(RankTexture(groupB));
     if (ra < rb) return true;   // the original's `rankB && ra < rb`: rb is 0 without a rank
     if (ra != rb) return false;
-    auto sa = reinterpret_cast<std::uint32_t>(Object3D(a)->figure);
-    auto sb = reinterpret_cast<std::uint32_t>(Object3D(b)->figure);
+    auto sa = reinterpret_cast<std::uint32_t>(Object3D(a)->figure.object);
+    auto sb = reinterpret_cast<std::uint32_t>(Object3D(b)->figure.object);
     if (sa < sb) return true;
     if (sa != sb) return false;
     return DepthBefore(a, b);

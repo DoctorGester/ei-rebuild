@@ -156,7 +156,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     if (CLinkMesh* current = figure) {
         CLinkFigureLoader* loader = WorldContext()->FigureLoader();
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
-        FigureRef().Assign(rebuilt);   // 00519580
+        figure.Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
             auto* part = parts.data[i];
             const char* pieceName = part->GetName();
