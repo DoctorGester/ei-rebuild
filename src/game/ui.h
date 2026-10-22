@@ -916,6 +916,8 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*, int);
         ei::VirtualSlot<Fn>(vtable_, 21)(this, pass);
     }
+    // Slot 18 (+0x48): a panel's Build (its sprites, regions and surfaces).
+    void VirtualBuild() { CallVirtual(18); }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -1778,6 +1780,7 @@ static_assert(offsetof(CHudMap, view_) == 0x1AC);
 static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
+static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
@@ -1872,6 +1875,7 @@ static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
+static_assert(sizeof(CHudUnitPanel) == 0x1C4);   // CBattleScreen's operator new
 
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1912,6 +1916,7 @@ public:
 };
 static_assert(offsetof(CHudClock, blink_) == 0x14C);
 static_assert(offsetof(CHudClock, highlight_) == 0x158);
+static_assert(sizeof(CHudClock) == 0x15C);   // CBattleScreen's operator new
 
 // Movement panel (set up by 00649190, vtables 00742530 / 007424FC; 0..80 x 520..600). Region 0
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
@@ -1950,6 +1955,7 @@ public:
     int flag_;                       // +0x150 common +0x438 of the selected units (-1, -2: none, mixed)
 };
 static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
+static_assert(sizeof(CHudMovePanel) == 0x154);   // CBattleScreen's operator new
 
 // Top panel (set up by 00649AF0, vtables 00742498 / ui_battle_setup.cpp's TopPanelInputClass (game.exe's 00742464);
 // 180..620 x 0..100). Regions: 0
@@ -2007,6 +2013,7 @@ public:
 static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
+static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 

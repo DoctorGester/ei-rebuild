@@ -79,45 +79,18 @@ struct MapInputClass final : PanelInputClass<MapInputClass, &CHudMap::HudMapDele
     int Wheel(int f, int d, int x, int y) override { return AsPanel()->OnWheel(f, d, x, y); }   // 12: 00645640
 };
 
-// --- Not rewritten -------------------------------------------------------------------------------
-
-// The Rebirth-patched panel constructors and builders, called on the panel (all thiscall; kept as
-// forwarders so Rebirth's patches run in a Rebirth launch).
-struct RawPanel {
-    // Constructors (owner = the battle screen); each returns the panel.
-    CHudWeaponBar* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0
-    CHudQuickItems* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800
-    CHudSpellColumn* ConstructSpellColumn(CInterface3D* ui, CUiWindow* owner);    // 0063E2A0
-    CHudActionColumn* ConstructActionColumn(CInterface3D* ui, CUiWindow* owner);   // 0063F300
-    // Builders of the inline-constructed panels.
-    void BuildUnitPanel(int page, std::uint8_t shown);   // 006456E0
-    void BuildMap(float zoom, std::uint8_t view);        // 00641F20
-    void BuildClock(int fast);                           // 00648520
-};
-__declspec(naked) CHudWeaponBar* RawPanel::ConstructWeaponBar(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063BAB0)
-__declspec(naked) CHudQuickItems* RawPanel::ConstructQuickItems(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063C800)
-__declspec(naked) CHudSpellColumn* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
-__declspec(naked) CHudActionColumn* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
-__declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0x006456E0)
-__declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
-__declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
-
-RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
-// The window base constructed in fresh memory (005FE700).
-CUiWindow* NewWindowBase(void* memory, CInterface3D* ui) { return static_cast<CUiWindow*>(memory)->Construct(ui); }
-
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
 int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 
-// A panel constructed inline by Create: the window base, the owner (the battle screen, declared
-// apart as CBattleScreen), the panel's two tables.
+// A panel constructed inline by Create: the window base (005FE700), the owner (the battle screen,
+// declared apart as CBattleScreen), the panel's two tables.
 template <typename Panel>
-Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner) {
-    void* memory = gamecrt::operator_new(size);
-    if (!memory) return nullptr;
-    auto* panel = static_cast<Panel*>(NewWindowBase(memory, ui));
+Panel* NewPlainPanel(CInterface3D* ui, CBattleScreen* owner) {
+    auto* panel = gamecrt::operator_new_as<Panel>();
+    if (!panel) return nullptr;
+    panel->Construct(ui);
     panel->owner_ = owner;
     panel->vtable_ = Panel::Vtable();
     panel->inputVtable_ = Panel::InputVtable();
@@ -197,24 +170,24 @@ void CBattleScreen::Create() {
     CreateTexture(0x100, 0x100, 0x20);
     LoadTexture("battle00", 3, 0);
 
-    // Panels built by their own constructors.
-    void* memory = gamecrt::operator_new(0x16C);
-    weaponBar_ = memory ? Raw(memory)->ConstructWeaponBar(interface_, this) : nullptr;
+    // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
+    CHudWeaponBar* weaponBar = gamecrt::operator_new_as<CHudWeaponBar>();
+    weaponBar_ = weaponBar ? weaponBar->Construct(interface_, this) : nullptr;
     AddChild(weaponBar_);
     weaponBar_->AddObject(objects_.data[0]);
 
-    memory = gamecrt::operator_new(0x1A0);
-    quickItems_ = memory ? Raw(memory)->ConstructQuickItems(interface_, this) : nullptr;
+    CHudQuickItems* quickItems = gamecrt::operator_new_as<CHudQuickItems>();
+    quickItems_ = quickItems ? quickItems->Construct(interface_, this) : nullptr;
     AddChild(quickItems_);
     quickItems_->AddObject(objects_.data[0]);
 
-    memory = gamecrt::operator_new(0x16C);
-    spellColumn_ = memory ? Raw(memory)->ConstructSpellColumn(interface_, this) : nullptr;
+    CHudSpellColumn* spellColumn = gamecrt::operator_new_as<CHudSpellColumn>();
+    spellColumn_ = spellColumn ? spellColumn->Construct(interface_, this) : nullptr;
     AddChild(spellColumn_);
     spellColumn_->AddObject(objects_.data[1]);
 
-    memory = gamecrt::operator_new(0x180);
-    actionColumn_ = memory ? Raw(memory)->ConstructActionColumn(interface_, this) : nullptr;
+    CHudActionColumn* actionColumn = gamecrt::operator_new_as<CHudActionColumn>();
+    actionColumn_ = actionColumn ? actionColumn->Construct(interface_, this) : nullptr;
     AddChild(actionColumn_);
     actionColumn_->AddObject(objects_.data[1]);
 
@@ -225,9 +198,9 @@ void CBattleScreen::Create() {
 
     // The unit panel (two CStrings and two CStringArrays of its own).
     {
-        CHudUnitPanel* panel = nullptr;
-        if (void* p = gamecrt::operator_new(0x1C4)) {
-            panel = static_cast<CHudUnitPanel*>(NewWindowBase(p, interface_));
+        CHudUnitPanel* panel = gamecrt::operator_new_as<CHudUnitPanel>();
+        if (panel) {
+            panel->Construct(interface_);
             panel->owner_ = this;
             ::new (&panel->strings_[0]) mfc::CString;
             ::new (&panel->strings_[1]) mfc::CString;
@@ -241,13 +214,13 @@ void CBattleScreen::Create() {
     AddChild(unitPanel_);
     unitPanel_->AddObject(objects_.data[2]);
     unitPanel_->AddObject(objects_.data[1]);
-    Raw(unitPanel_)->BuildUnitPanel(interface_->hudBodyPart_, interface_->hudPanelsIn_[0]);
+    unitPanel_->SetupVanilla(interface_->hudBodyPart_, interface_->hudPanelsIn_[0]);
 
     // The map (its point arrays start empty).
     {
-        CHudMap* panel = nullptr;
-        if (void* p = gamecrt::operator_new(0x1B4)) {
-            panel = static_cast<CHudMap*>(NewWindowBase(p, interface_));
+        CHudMap* panel = gamecrt::operator_new_as<CHudMap>();
+        if (panel) {
+            panel->Construct(interface_);
             panel->owner_ = this;
             for (UiPointArray* points : {&panel->viewPolygon_, &panel->visibleArea_}) {
                 points->data = nullptr;
@@ -262,18 +235,17 @@ void CBattleScreen::Create() {
     }
     AddChild(map_);
     map_->AddObject(objects_.data[2]);
-    Raw(map_)->BuildMap(mapZoom, interface_->hudPanelsIn_[2]);
+    map_->SetupVanilla(mapZoom, interface_->hudPanelsIn_[2]);
 
-    clock_ = NewPlainPanel<CHudClock>(interface_, 0x15C, this);
+    clock_ = NewPlainPanel<CHudClock>(interface_, this);
     AddChild(clock_);
     clock_->AddObject(objects_.data[2]);
-    Raw(clock_)->BuildClock(interface_->fastGame_);
+    clock_->SetupVanilla(interface_->fastGame_);
 
-    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, 0x154, this);
+    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, this);
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
-    using CreateFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<CreateFn>(movePanel_->vtable_, 18)(movePanel_);   // slot 18 (+0x48)
+    movePanel_->VirtualBuild();
 
     CUiScrollText* messageLog = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
     messageLog_ = messageLog ? messageLog->Construct(interface_, game::EmptyText(), RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
@@ -282,9 +254,9 @@ void CBattleScreen::Create() {
     messageLog_->align_ = 1;
 
     {
-        CHudTopPanel* panel = nullptr;
-        if (void* p = gamecrt::operator_new(0x16C)) {
-            panel = static_cast<CHudTopPanel*>(NewWindowBase(p, interface_));
+        CHudTopPanel* panel = gamecrt::operator_new_as<CHudTopPanel>();
+        if (panel) {
+            panel->Construct(interface_);
             panel->owner_ = this;
             ::new (&panel->pageTexts_[0]) mfc::CString;
             ::new (&panel->pageTexts_[1]) mfc::CString;
@@ -328,8 +300,7 @@ void CBattleScreen::Create() {
     LoadPersonTexts(&personTexts_);
     spare_ = 0;
     if (IsMultiplayerClient()) {
-        using SlotFn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<SlotFn>(vtable_, 36)(this, 1);   // +0x90
+        VirtualPlayersChanged(1);
     }
     clientParty_.camera = -1;
 }
