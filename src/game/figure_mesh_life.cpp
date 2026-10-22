@@ -263,7 +263,7 @@ CEngineObject* CFigureManager::NewObject(int type) {
 CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
-    CBaseManager* drawers = static_cast<CManagerContext*>(context_)->SpecificManager();
+    CBaseManager* drawers = context_->SpecificManager();
     auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(kDrawerClass, -1);
     static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;

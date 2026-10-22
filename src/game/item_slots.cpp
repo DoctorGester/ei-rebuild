@@ -77,7 +77,7 @@ BOOL CItemLoot::IsSameAsImpl(CItem* item) {
 
 void CItemWeapon::InitFromRecordImpl(const ItemRecordHead* record) {
     CItem::InitFromRecordImpl(record);
-    auto* r = static_cast<const WeaponRecord*>(record);
+    auto* r = RecordAs<WeaponRecord>(record);
     std::memcpy(&reach_, &r->reach, 4);
     std::memcpy(&damage_, &r->damage, 4);
     std::memcpy(&damageSpread_, &r->damageSpread, 4);
@@ -85,14 +85,14 @@ void CItemWeapon::InitFromRecordImpl(const ItemRecordHead* record) {
 
 void CItemArmor::InitFromRecordImpl(const ItemRecordHead* record) {
     CItem::InitFromRecordImpl(record);
-    auto* r = static_cast<const ArmorRecord*>(record);
+    auto* r = RecordAs<ArmorRecord>(record);
     std::memcpy(absorb_[0], r->absorbFirst, sizeof(absorb_[0]));
     std::memcpy(absorb_[1], r->absorbOthers, sizeof(absorb_[1]));
 }
 
 void CItemQuick::InitFromRecordImpl(const ItemRecordHead* record) {
     CItem::InitFromRecordImpl(record);
-    actionValue_ = static_cast<const QuickItemRecord*>(record)->value70;
+    actionValue_ = RecordAs<QuickItemRecord>(record)->value70;
 }
 
 void CItemQuest::InitFromRecordImpl(const ItemRecordHead* record) {
@@ -102,7 +102,7 @@ void CItemQuest::InitFromRecordImpl(const ItemRecordHead* record) {
 
 void CItemLoot::InitFromRecordImpl(const ItemRecordHead* record) {
     CItem::InitFromRecordImpl(record);
-    auto* r = static_cast<const LootItemRecord*>(record);
+    auto* r = RecordAs<LootItemRecord>(record);
     kind_ = r->category;
     recordType_ = r->recordType;
     index_ = r->index;

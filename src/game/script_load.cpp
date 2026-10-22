@@ -45,18 +45,15 @@ namespace {
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-CEngineObject* RegistryObject(int id) { return static_cast<CBaseManager*>(ei::GameData<void*>(0x007AFFA8))->FindObject(id); }
+CBaseManager* Registry() { return ei::GameData<CBaseManager*>(0x007AFFA8); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
 // ScriptVars constructor / destructor body.
 
-// ConstructElements / DestructElements instantiations (__stdcall (first, count)) and element
-// destructors (__thiscall (flags); 0 = destroy in place).
-void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-void __stdcall DestructRefs(void* a0, int a1) { gamearrays::ObjectRefs::DestructElements(static_cast<ScriptObjectRef*>(a0), a1); }
-void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructElements(static_cast<ScriptGroup*>(a0), a1); }
+// ConstructElements / DestructElements instantiations (__stdcall (first, count); ConstructAs /
+// DestructAs of the instantiation) and element destructors (__thiscall (flags); 0 = destroy in
+// place).
 
 // SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
@@ -68,20 +65,14 @@ void __stdcall DestructGroups(void* a0, int a1) { gamearrays::Groups::DestructEl
 namespace scriptarray {
 
 namespace {
-template <typename T, auto Destroy, int kSize>
-void DestroyEach(char* first, int count) {
-    for (int i = 0; i < count; ++i, first += kSize) (reinterpret_cast<T*>(first)->*Destroy)(0);
-}
-template <RangeFn Destruct>
-void DestroyRange(char* first, int count) { Destruct(first, count); }
 
 } // namespace
 
 const ElementKind kFloats{4, ConstructAs<mfc::impl::Plain4>, nullptr, nullptr};
-const ElementKind kStrings{4, ConstructStrings, DestroyRange<DestructStrings>, DestroyRange<DestructStrings>};
-const ElementKind kRefs{4, ConstructAs<mfc::impl::Plain4>, DestroyEach<ScriptObjectRef, &ScriptObjectRef::DestroyElement, 4>, DestroyRange<DestructRefs>};
-const ElementKind kGroups{0x14, ConstructAs<mfc::impl::ScriptGroups>, DestroyEach<ScriptGroup, &ScriptGroup::DestroyElement, 0x14>, DestroyRange<DestructGroups>};
-const ElementKind kCmds{0x94, ConstructAs<recordarrays::Cmds>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement, 0x94>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement, 0x94>};
+const ElementKind kStrings{4, ConstructAs<mfc::impl::Strings>, DestructAs<mfc::impl::Strings>, DestructAs<mfc::impl::Strings>};
+const ElementKind kRefs{4, ConstructAs<mfc::impl::Plain4>, DestroyEach<ScriptObjectRef, &ScriptObjectRef::DestroyElement>, DestructAs<gamearrays::ObjectRefs>};
+const ElementKind kGroups{0x14, ConstructAs<mfc::impl::ScriptGroups>, DestroyEach<ScriptGroup, &ScriptGroup::DestroyElement>, DestructAs<gamearrays::Groups>};
+const ElementKind kCmds{0x94, ConstructAs<recordarrays::Cmds>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement>};
 const ElementKind kIfThen{8, ConstructAs<mfc::impl::Plain8>, nullptr, nullptr};
 const ElementKind kPointers{4, ConstructAs<mfc::impl::Plain4>, nullptr, nullptr};
 
@@ -99,7 +90,7 @@ void InlineSetSize(RawArray* a, int n, const ElementKind& kind) {
         return;
     }
     if (!a->data) {
-        a->data = static_cast<char*>(gamecrt::operator_new(static_cast<unsigned>(n) * elem));
+        a->data = gamecrt::operator_new_array<char>(static_cast<unsigned>(n) * elem);
         kind.construct(a->data, n);
         a->maxSize = n;
         a->size = n;
@@ -122,7 +113,7 @@ void InlineSetSize(RawArray* a, int n, const ElementKind& kind) {
     }
     int newMax = a->maxSize + grow;
     if (n >= newMax) newMax = n;
-    char* fresh = static_cast<char*>(gamecrt::operator_new(static_cast<unsigned>(newMax) * elem));
+    char* fresh = gamecrt::operator_new_array<char>(static_cast<unsigned>(newMax) * elem);
     std::memcpy(fresh, a->data, static_cast<unsigned>(a->size) * elem);
     kind.construct(fresh + a->size * elem, n - a->size);
     gamecrt::operator_delete(a->data);
@@ -158,7 +149,7 @@ int ReadInt(ScriptStream* stream) {
 }
 
 // The stream's format version (+8); areas are saved from 0x57 on.
-int StreamVersion(const ScriptStream* stream) { return reinterpret_cast<const int*>(stream)[2]; }
+int StreamVersion(const ScriptStream* stream) { return static_cast<int>(stream->version_); }
 
 // The script being loaded (as in Save; the run loader finds a run's instance through it).
 CScript*& LoadingScript() { return ei::GameData<CScript*>(0x007AA620); }
@@ -168,7 +159,7 @@ CScript*& LoadingScript() { return ei::GameData<CScript*>(0x007AA620); }
 template <class T>
 T* AcquireById(int id) {
     if (id == -1) return nullptr;
-    auto* object = static_cast<T*>(RegistryObject(id));
+    auto* object = Registry()->FindObjectAs<T>(id);
     if (object) ++object->refCount_;
     return object;
 }
@@ -309,7 +300,7 @@ EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     mfc::CString temporary(mfc::CString::kUnset);
-    *out = *reinterpret_cast<CStream*>(stream)->ReadString(&temporary);
+    *out = *stream->ReadString(&temporary);
 }
 EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 

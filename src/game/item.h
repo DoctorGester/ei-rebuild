@@ -6,6 +6,7 @@
 // prototypeId_ of CEngineObject is the item's packed id: prototype index << 16 | material index.
 
 #include "engine_object.h"
+#include "manager_context.h"
 #include "item_db.h"
 #include "resource_manager.h"
 #include "../lib/mfc.h"
@@ -528,24 +529,8 @@ public:
 };
 static_assert(sizeof(CItemConstructor) == 0x34);
 
-// The context a manager belongs to (CBaseManager::context_): the world or a party, whose slots
-// 13-24 are the same getters (CWorld, CParty). Declared up to the slot used here.
-class CManagerContext : public CEngineObject {
-public:
-    virtual CWorld* ThisWorld();                     // 13: the world (0055EB40 returns this), null for a party (0065F4B0)
-    virtual void TimedObjectManager();             // 14
-    virtual void FigureManager();                  // 15
-    virtual CItemConstructor* ItemConstructor();   // 16
-    virtual CSpellConstructor* SpellConstructor(); // 17
-    virtual void ItemFactory();                    // 18
-    virtual void MapObjectManager();               // 19
-    virtual void PlayerList();                     // 20
-    virtual CBaseManager* SpecificManager();       // 21: makes the figures' drawers (class 0x45; null for a party)
-    virtual CSpellManager* SpellManager();         // 22
-};
-
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
-inline CItem* FindItem(const CBaseManager* items, unsigned id) { return static_cast<CItem*>(items->FindObject(id)); }
+inline CItem* FindItem(const CBaseManager* items, unsigned id) { return items->FindObjectAs<CItem>(id); }
 
 // An item known to be a weapon as the CItemWeapon it is: a weapon slot's item (CUnit::weapons,
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a

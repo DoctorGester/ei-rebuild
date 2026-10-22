@@ -67,10 +67,6 @@ VtablePair RepairGridVtables() { return {Vtable(0x00741538), Vtable(0x00741504)}
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strips' CArray<char*>
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
-// The objects' sizes where the class declares less than the original allocates.
-constexpr std::size_t kTradePanelSize = 0x1B8;
-constexpr std::size_t kSpellMakerSize = 0x16C;
-
 constexpr int kSurfaceFormat = 5;
 constexpr int kSlotBuild = 18;          // the statistics and trade panels' Build
 constexpr int kSlotNextHero = 48;
@@ -101,21 +97,9 @@ void SetVtables(CUiWindow* window, VtablePair vtables) {
     window->inputVtable_ = vtables.input;
 }
 
-// A panel of `size` bytes built on the window base, owned by `owner`, with the vtable pair; null
-// when the allocation fails.
-CUiItemPanel* NewPanel(std::size_t size, CInterface3D* ui, CUiWindow* owner, VtablePair vtables) {
-    void* memory = gamecrt::operator_new(size);
-    if (!memory) return nullptr;
-    auto* panel = static_cast<CUiItemPanel*>(memory);
-    panel->Construct(ui);
-    panel->owner_ = owner;
-    SetVtables(panel, vtables);
-    return panel;
-}
-
 // A description panel (its item list and text arrays constructed in place).
 CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
-    auto* panel = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), ui, owner, ItemPanelVtables()));
+    auto* panel = NewItemPanel<CItemInfoPanel>(ui, owner, ItemPanelVtables());
     if (!panel) return nullptr;
     panel->ItemParty()->Construct();
     panel->itemTexts_.Construct();
@@ -244,7 +228,7 @@ void CCampPages::BuildPages() {
     sprite->tint_[1] = 0.5f;
     sprite->tint_[2] = 0.5f;
 
-    reinterpret_cast<CItemScreen*>(this)->CreateBase();
+    CreateBase();
     AddSurface(NewSurface(interface_, 0, 400, 200, 500));
     AddSurface(NewSurface(interface_, 600, 400, 800, 430));
 
@@ -266,7 +250,7 @@ void CCampPages::BuildPages() {
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = reinterpret_cast<CHeroStatsPanel*>(NewPanel(sizeof(CHeroStatsPanel), interface_, this, ItemPanelVtables()));
+    auto* stats = NewItemPanel<CHeroStatsPanel>(interface_, this, ItemPanelVtables());
     if (stats) {
         new (&stats->title_) mfc::CString;
         stats->texts_.Construct();
@@ -292,20 +276,20 @@ void CCampPages::BuildPages() {
     itemStrip_->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    auto* equipment = static_cast<CHeroEquipPanel*>(NewPanel(sizeof(CHeroEquipPanel), interface_, this, EquipPanelVtables()));
+    auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
     equipment_ = equipment;
     AsContainer(this)->AddChild(equipment);
     equipment_->AddObject(objects_.data[2]);
-    static_cast<CHeroEquipPanel*>(equipment_)->Build(true);
+    equipment_->Build(true);
 
-    auto* quick = static_cast<CHeroQuickStrip*>(NewPanel(sizeof(CHeroQuickStrip), interface_, this, QuickStripVtables()));
+    auto* quick = NewItemPanel<CHeroQuickStrip>(interface_, this, QuickStripVtables());
     equipment2_ = quick;
     AsContainer(this)->AddChild(quick);
     equipment2_->AddObject(objects_.data[2]);
-    static_cast<CHeroQuickStrip*>(equipment2_)->Build(true);
+    equipment2_->Build(true);
 
     // The skills for experience.
-    auto* trade = reinterpret_cast<CTradePanel*>(NewPanel(kTradePanelSize, interface_, this, ItemPanelVtables()));
+    auto* trade = NewItemPanel<CTradePanel>(interface_, this, ItemPanelVtables());
     if (trade) {
         trade->learnable_ = {};
         trade->perks_ = {};
@@ -329,20 +313,20 @@ void CCampPages::BuildPages() {
         spellStrip_->SetFilter(kFilterSpells);
         spellStrip_->SetSlots(0);
 
-        auto* grid = static_cast<CTradeGrid*>(NewPanel(sizeof(CTradeGrid), interface_, this, TradeGridVtables()));
+        auto* grid = NewItemPanel<CTradeGrid>(interface_, this, TradeGridVtables());
         spellConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
-        static_cast<CTradeGrid*>(spellConstructor1_)->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
-        static_cast<CTradeGrid*>(spellConstructor1_)->mode_ = kModeSpellTrade;
+        spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
+        spellConstructor1_->mode_ = kModeSpellTrade;
 
-        auto* maker = static_cast<CSpellMakerPage*>(NewPanel(kSpellMakerSize, interface_, this, ItemPanelVtables()));
+        auto* maker = NewItemPanel<CSpellMakerPage>(interface_, this, ItemPanelVtables());
         if (maker) {
             maker->texts_.Construct();
             SetVtables(maker, SpellMakerVtables());
         }
         spellConstructor2_ = maker;
         AsContainer(this)->AddChild(maker);
-        static_cast<CSpellMakerPage*>(spellConstructor2_)->BuildSpellMaker(spellResults_);
+        spellConstructor2_->BuildSpellMaker(spellResults_);
     }
 
     if (itemConstructor_) {
@@ -354,21 +338,21 @@ void CCampPages::BuildPages() {
         partStrip_->SetFilter(kFilterArmour);
         partStrip_->SetSlots(4);
 
-        auto* grid = static_cast<CTradeGrid*>(NewPanel(sizeof(CTradeGrid), interface_, this, TradeGridVtables()));
+        auto* grid = NewItemPanel<CTradeGrid>(interface_, this, TradeGridVtables());
         itemConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
-        static_cast<CTradeGrid*>(itemConstructor1_)->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
-        static_cast<CTradeGrid*>(itemConstructor1_)->mode_ = kModeItemTrade;
+        itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
+        itemConstructor1_->mode_ = kModeItemTrade;
 
-        auto* maker = static_cast<CConstructorPage*>(NewPanel(sizeof(CConstructorPage), interface_, this, ItemMakerVtables()));
+        auto* maker = NewItemPanel<CConstructorPage>(interface_, this, ItemMakerVtables());
         itemConstructor2_ = maker;
         AsContainer(this)->AddChild(maker);
-        static_cast<CConstructorPage*>(itemConstructor2_)->BuildItemMaker(itemResults_);
+        itemConstructor2_->BuildItemMaker(itemResults_);
 
-        auto* repairs = static_cast<CRepairGrid*>(NewPanel(sizeof(CRepairGrid), interface_, this, RepairGridVtables()));
+        auto* repairs = NewItemPanel<CRepairGrid>(interface_, this, RepairGridVtables());
         itemConstructor3_ = repairs;
         AsContainer(this)->AddChild(repairs);
-        static_cast<CRepairGrid*>(itemConstructor3_)->Build(&itemExtra_->items_);
+        itemConstructor3_->Build(&itemExtra_->items_);
     }
 
     // The party's heroes become units of the client world: every record's id is raised while the

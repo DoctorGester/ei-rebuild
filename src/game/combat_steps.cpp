@@ -75,13 +75,6 @@ constexpr int kLocationCount = 6;
 const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!\n";
 
 
-template <typename T>
-T Get(const void* object, int offset) {
-    T value;
-    std::memcpy(&value, static_cast<const char*>(object) + offset, sizeof(T));
-    return value;
-}
-
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // The original's branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
@@ -551,7 +544,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         CMapObject* other = order.target;
         float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(Get<float>(this, 0x244)) + kOne) * myRadius;
+            double scale = (static_cast<double>(std::bit_cast<float>(stats.modelField8)) + kOne) * myRadius;
             span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;

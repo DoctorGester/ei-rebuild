@@ -281,7 +281,7 @@ CSpellContainer* CSpellManager::NewContainer() {
 EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers) {
-    CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
+    CSpellConstructor* constructor = context_->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
     if (!constructor->CallBeginConstruct(prototype))

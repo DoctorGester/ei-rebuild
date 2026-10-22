@@ -110,7 +110,7 @@ T* ReadObject(ScriptStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    auto* object = static_cast<T*>(EffectManager()->FindObject(id));
+    auto* object = EffectManager()->FindObjectAs<T>(id);
     if (object) ++object->refCount_;
     return object;
 }

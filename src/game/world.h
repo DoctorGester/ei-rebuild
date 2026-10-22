@@ -15,6 +15,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "manager_context.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
@@ -158,32 +159,16 @@ struct LightColour {
 static_assert(sizeof(LightColour) == 0x10);
 
 // Members both world classes share (base class, 0055E000-0055FFFF).
-class CWorld : public CEngineObject {
+class CWorld : public CManagerContext {
 public:
     // Virtual slots after CEngineObject's 13 (the compiled tags of world_class.h; game.exe's server
-    // vtable 0073F928, client 0073F41C). Slots
-    // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
+    // vtable 0073F928, client 0073F41C). Slots 13-24 are the manager context's getters
+    // (CManagerContext, manager_context.h; CParty has the same slots). Slots declared
     // `void Name()` keep their place in the order only (their return types are not declared; give
     // them their signature when calling them); rewritten slots stay plain members, rewrite guide
     // rule 4. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). Some names avoid
-    // free helpers of
-    // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
-    virtual void ThisWorld();             // 13: 0055EB40 returns this
-    virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48, manager48_; the client's Segment ticks its objects)
-    virtual CBaseManager* FigureManager();  // 15: the figure manager (+0x3C)
-    virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
-    virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
-    virtual CItemManager* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
-    virtual CBaseManager* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
-    virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
-    // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
-    // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
-    virtual CBaseManager* SpecificManager();
-    virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
-    virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
-    // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
-    // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
-    virtual CItem* DuplicateItem(CItem* item);
+    // free helpers of the same name (World, ItemManager, LightManager, ...) that the members'
+    // bodies call.
     virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.

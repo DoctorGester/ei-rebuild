@@ -5,7 +5,9 @@
 // static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
 // keep its operand order, constants are read from the exe's memory.
 #include "ui.h"
+#include "map_object_shadow.h"
 #include "model.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
@@ -24,24 +26,6 @@ namespace {
 
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-template <typename T>
-T Get(const void* p, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
-    return v;
-}
-template <typename T>
-void Set(void* p, int offset, T v) {
-    std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, sizeof(T));
-}
-
-// A game object's virtual function (thiscall: the object in ECX).
-template <typename R = void, typename... Args>
-R VirtualCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
-
 // The wide preview's six rectangles cleared to the far plane (800 x 600 layout), one table per edge.
 constexpr LONG kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};
 constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
@@ -100,7 +84,7 @@ void ClearDepth(UiRenderer* renderer, unsigned long count, RECT* rects, float z)
 } // namespace
 
 void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide) {
-    auto* model = reinterpret_cast<std::uint8_t*>(hero);
+    CObject3D* model = hero;
     if (!model) return;
     auto deviceOf = [this] { return interface_->renderer_; };
 
@@ -133,18 +117,19 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     }
 
     // Kept to put back afterwards: the position, the orientation and the pass's colour.
-    std::uint8_t savedPosition[12], savedOrientation[16];
-    std::memcpy(savedPosition, model + 0x1C, 12);
-    std::memcpy(savedOrientation, model + 0x34, 16);
+    Vector3 savedPosition;
+    Quaternion savedOrientation;
+    std::memcpy(&savedPosition, &model->localPosition_, 12);
+    std::memcpy(&savedOrientation, &model->localRotation_, 16);
     CSceneRenderer* renderer = pass;
     std::uint32_t savedColour = renderer->colour_;
     // White: three FISTPs of 255.0 packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
-    Set(model, 8, Get<std::uint32_t>(model, 8) | 0x800);
+    model->flags_ |= 0x800;
     {
         std::uint32_t now = gameapi::timeGetTime();
         float time = static_cast<float>(x87::FromUnsigned(now) * D(0.0009765625f /*0073BB24*/) * D(15.0f /*0073C518*/));
-        VirtualCall(model, 25, time);
+        model->AdvanceTime(time);   // slot 25
     }
 
     // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
@@ -165,9 +150,9 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     float px = static_cast<float>(D(rotated.x) + dx);
     float py = static_cast<float>(D(rotated.y) + dy);
     float pz = static_cast<float>(D(rotated.z) + D(6.0f /*0073BA98*/));
-    Set(model, 0x1C, px);
-    Set(model, 0x20, py);
-    Set(model, 0x24, pz);
+    model->localPosition_.x = px;
+    model->localPosition_.y = py;
+    model->localPosition_.z = pz;
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
@@ -180,28 +165,28 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
                                                     static_cast<float>(D(GameFloat(0x007C7D24)) * D(0.15f /*0073CD18*/))),
                     true);
     }
-    std::memcpy(model + 0x34, &q, 16);
+    std::memcpy(&model->localRotation_, &q, 16);
 
     // Drawn brighter (1.2) with texture stage 0's state 0x12 set to 1, then everything put back.
-    std::uint8_t* light = Get<std::uint8_t*>(model, 0x94);
-    Set(light, 0xF0, 1.2f);
-    Set(light, 0xF4, 1.2f);
-    Set(light, 0xF8, 1.2f);
+    CObject3DClientSpecific* drawn = model->ClientSpecific();
+    drawn->figureScale.x = 1.2f;
+    drawn->figureScale.y = 1.2f;
+    drawn->figureScale.z = 1.2f;
     UiRenderer* device = deviceOf();
     std::uint32_t savedStage = 0;
     device->result_ = device->device_->GetTextureStageState(0, kStageState, &savedStage);
     device->result_ = device->device_->SetTextureStageState(0, kStageState, 1);
     render::state::Stage(0, kStageState, 1);
-    VirtualCall(model, 22, pass);
+    model->DrawFigure(pass);   // slot 22
     device->result_ = device->device_->SetTextureStageState(0, kStageState, savedStage);
     render::state::Stage(0, kStageState, savedStage);
-    light = Get<std::uint8_t*>(model, 0x94);
-    Set(light, 0xF0, 1.0f);
-    Set(light, 0xF4, 1.0f);
-    Set(light, 0xF8, 1.0f);
-    std::memcpy(model + 0x1C, savedPosition, 12);
-    std::memcpy(model + 0x34, savedOrientation, 16);
-    Set(model, 8, Get<std::uint32_t>(model, 8) & ~0x800u);
+    drawn = model->ClientSpecific();
+    drawn->figureScale.x = 1.0f;
+    drawn->figureScale.y = 1.0f;
+    drawn->figureScale.z = 1.0f;
+    std::memcpy(&model->localPosition_, &savedPosition, 12);
+    std::memcpy(&model->localRotation_, &savedOrientation, 16);
+    model->flags_ &= ~0x800u;
     renderer->SetColour(savedColour);
 }
 EI_REWRITTEN(0x005EC300, CUiWindow::DrawHeroPreview);

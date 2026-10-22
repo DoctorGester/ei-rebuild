@@ -35,10 +35,10 @@ CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 // splash, an end sound and a rising light appear at the target's height. The two spells compute
 // the light's rise differently (the arrow rounds the quotient before scaling it).
 void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
-    CEngineObject* missile = e->visual;
+    auto* missile = e->Visual<CEffectMissile>();
     if (!missile) return;
-    std::memcpy(&e->position, &static_cast<CEffectMissile*>(missile)->localPosition_, 12);
-    if (static_cast<CEffectMissile*>(missile)->arrived_ == 0) return;
+    std::memcpy(&e->position, &missile->localPosition_, 12);
+    if (missile->arrived_ == 0) return;
 
     DamageInfo hit;
     e->GetDamage(&hit);
@@ -47,7 +47,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseSound();
     e->ReleaseLight();
 
-    auto* target = static_cast<CUnit*>(e->target);   // no null check
+    CUnit* target = TargetUnit(e);   // no null check
     std::memcpy(&e->targetPoint, &target->localPosition_, 12);
     Vector3 at;
     std::memcpy(&at, &target->localPosition_, 12);
@@ -92,17 +92,17 @@ void FireballFlight(CSpellEffect* e) {
         float curve;
         AreaCurve(&e->Spell()->radius_, &Prototype(e)->area, &curve);
         float size = curve >= power ? curve : power;
-        CEngineObject* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
+        CEffectParticle* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
         float radius = e->Spell()->radius_;
         float alpha = Power(e);
-        static_cast<CEffectParticle*>(blast)->SetColors(alpha, radius);
+        blast->SetColors(alpha, radius);
         e->CreateSound(0, "magic\\fireball\\end.wav", &at, &kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
         e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
         if (IsUnit(e->caster)) {
-            reinterpret_cast<AIViewer*>(e->world->timeWheel_)->Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), &e->targetPoint);
+            e->world->AIEvents()->Noise(ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())), &e->targetPoint);
         }
         e->timer = 0x23;
         e->state = 2;
@@ -129,7 +129,7 @@ void Linger(CSpellEffect* e) {
 
 void RiseLight(CSpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    static_cast<CEffect*>(e->light)->SetVelocity(&rise);   // no null check
+    e->light->SetVelocity(&rise);   // no null check
 }
 
 // 1 / 0x29: the lightning's bolt and sound go when the timer reaches 0, the light rises away.
@@ -148,8 +148,8 @@ void LightStrikeEcho(CSpellEffect* e) {
     if (e->timer == 5) {
         Vector3 top = e->position;
         top.z = top.z + ConstAt(worlddata::StrikeHeight());
-        CEngineObject* bolt = CreateObject(e, kClassLightning);
-        static_cast<CEffectLightning*>(bolt)->SetEnds(&top, &e->position, kStrikeWidthImmediate);
+        auto* bolt = CreateObject<CEffectLightning>(e, kClassLightning);
+        bolt->SetEnds(&top, &e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
     }
     CountDown(e);
@@ -166,7 +166,7 @@ void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            e->HitUnitsAlong(&static_cast<CEffectWall*>(e->visual)->direction_);
+            e->HitUnitsAlong(&e->Visual<CEffectWall>()->direction_);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -174,7 +174,7 @@ void FireWall(CSpellEffect* e) {
     }
     if (ticks == -1) {
         Vector3 at = e->position;
-        if (e->sound) std::memcpy(&at, &static_cast<CEffect*>(e->sound)->localPosition_, 12);
+        if (e->sound) std::memcpy(&at, &e->sound->localPosition_, 12);
         e->UpdateFootprint(6, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
@@ -189,7 +189,7 @@ void LightWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            CEffectLightning* bolt = static_cast<CEffectLightning*>(e->visual);
+            auto* bolt = e->Visual<CEffectLightning>();
             Vector3 along;
             along.x = bolt->to_.x - bolt->from_.x;
             along.y = bolt->to_.y - bolt->from_.y;
@@ -300,7 +300,7 @@ void Possession(CSpellEffect* e) {
     auto* player = e->caster->player;
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CMapObject* target = e->target;
-        CUnitServer* server = ControllerOf(target);
+        CUnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         group->Insert(target);
         group->InsertAll(&server->Brain()->memory.visible);   // 004B31D0
@@ -357,8 +357,7 @@ void Teleport(CSpellEffect* e) {
     int arrival = static_cast<int>(e->Spell()->duration_);
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
-    CEngineObject* caster = e->caster;
-    std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
+    std::memcpy(&e->targetPoint.z, &e->caster->localPosition_.z, 4);
     if (!e->world->AIMap()->IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
@@ -451,11 +450,11 @@ void CSpellEffect::UpdateLasting(int type) {
 }
 EI_REWRITTEN(0x00682650, CSpellEffect::UpdateLasting);
 
-void CSpellEffect::ReleaseVisual() { Assign(this, &visual, nullptr); }
+void CSpellEffect::ReleaseVisual() { Assign<CEffect>(this, &visual, nullptr); }
 EI_REWRITTEN(0x0067EE00, CSpellEffect::ReleaseVisual);
 
-void CSpellEffect::ReleaseSound() { Assign(this, &sound, nullptr); }
+void CSpellEffect::ReleaseSound() { Assign<CEffect>(this, &sound, nullptr); }
 EI_REWRITTEN(0x0067EE40, CSpellEffect::ReleaseSound);
 
-void CSpellEffect::ReleaseLight() { Assign(this, &light, nullptr); }
+void CSpellEffect::ReleaseLight() { Assign<CEffectPointLight>(this, &light, nullptr); }
 EI_REWRITTEN(0x0067EE80, CSpellEffect::ReleaseLight);
