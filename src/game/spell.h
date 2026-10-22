@@ -105,18 +105,6 @@ static_assert(offsetof(CSpell, prototypeIndex_) == 0x1C);
 static_assert(offsetof(CSpell, targetFlags_) == 0x3C);
 static_assert(sizeof(CSpell) == 0x5C);
 
-// The units CSpell::CanAffect inspects (class id 0x50). Only the fields read here.
-struct SpellTargetUnit {
-    std::uint8_t unitHead[0xA4];    // CUnit's fields before +0xA4
-    const char* prototypeName;      // +0xA4 e.g. "unhuma"
-    std::uint8_t unitMiddle[0x244 - 0xA8];  // CUnit's fields +0xA8..+0x243
-    std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
-    std::uint32_t relationsB;       // +0x248 / bit s set (provisional reading)
-    std::uint32_t player;           // +0x24C CUnit::player
-    std::uint32_t side;             // +0x250
-};
-static_assert(offsetof(SpellTargetUnit, side) == 0x250);
-
 // The damage a hit deals, filled by the spell effects and the weapon code. 0x3C bytes.
 struct DamageInfo {
     float typeWeights[7];       // +0x00 one weight per damage type
