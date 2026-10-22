@@ -2956,7 +2956,7 @@ id = "C18u"
 title = "Named data: name the function-local statics' guard 007CAEE4 in gen_static_init, then the 11 static-init-only objects"
 group = "cleanup"
 model = "opus"
-note = "Done: gen_static_init.py's GENERATED_NAMES writes names for addresses only generated code reaches (d.Once(name, bit), d.Thiscall(fn, &name), d.Store(name, call)); lib::g_emptyStaticGuard 007CAEE4 (175 d.Once + sys_info) and 11 MFC globals in lib/mfc_static_objects.{h,cpp} (exit guards 007C8BB8/007C9138/007CAA24/007CAAA0, StaticObject<CSimpleException> 007C8BC0, thread/process locals 007C90BC/C0, 007CAA84/88/8C, _afxDBCS 007CAA98). Game data addresses 53 -> 41. Stale 007472B0 row and ostream vbtable sentence dropped. Image suite 144 ALL PASS, goldens 121 same / 23 without; original 126 ALL PASS; check_against_exe 0."
+note = "Done: gen_static_init.py's GENERATED_NAMES writes names for addresses only generated code reaches (d.Once(name, bit), d.Thiscall(fn, &name), d.Store(name, call)); lib::g_emptyStaticGuard 007CAEE4 (175 d.Once + sys_info) and 11 MFC globals in lib/mfc_static_objects.{h,cpp} (exit guards 007C8BB8/007C9138/007CAA24/007CAAA0, StaticObject<CSimpleException> 007C8BC0, thread/process locals 007C90BC/C0, 007CAA84/88/8C, _afxDBCS 007CAA98). Game data addresses 53 -> 41 before merging C26, 39 after. Stale 007472B0 row and ostream vbtable sentence dropped. After the last merge: image suite 144 ALL PASS, goldens 121 same / 23 without; original 126 ALL PASS; check_against_exe 0."
 
 [[ticket]]
 id = "C25d"
