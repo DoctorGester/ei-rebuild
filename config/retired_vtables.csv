@@ -319,6 +319,7 @@ vtable,slots,class,file,note
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
+00740208,13,CameraInputClass,src/game/ui_camera_input.cpp,the battle camera's input side (CCameraInput)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
@@ -328,6 +329,7 @@ vtable,slots,class,file,note
 00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00740FD4,5,ContainerInputClass,src/game/ui_container.cpp,a container's input side (UiContainerInput)
 00740FE8,8,ContainerInputClass,src/game/ui_container.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
+00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
 007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)

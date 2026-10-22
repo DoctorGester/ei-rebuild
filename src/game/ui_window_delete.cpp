@@ -302,8 +302,8 @@ UiInputSide* UiInputSide::InputSideDelete(unsigned flags) {
     InputSideDestroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005EACD0, UiInputSide::InputSideDelete);
-EI_REPLACE_METHOD(0x00602B80, UiInputSide::InputSideDelete);
+EI_REWRITTEN(0x005EACD0, UiInputSide::InputSideDelete);
+EI_REWRITTEN(0x00602B80, UiInputSide::InputSideDelete);
 
 // 005E28C0: the chat overlay (007400DC).
 CChatOverlay* CChatOverlay::ChatOverlayDelete(unsigned flags) {

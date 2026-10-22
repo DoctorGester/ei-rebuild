@@ -151,10 +151,10 @@ void CBattleScreen::Create() {
         }
     }
 
-    // The screen's own input handler (vtable 00741154, 0x0C bytes).
+    // The screen's own input handler (InertInputVtable(), 0x0C bytes).
     auto* input = gamecrt::operator_new_as<UiInputSide>();
     if (input) {
-        input->vtable_ = ei::GamePointer<void*>(0x00741154);
+        input->vtable_ = InertInputVtable();
         input->owner_ = interface_;
     }
     AddInput(input);   // 00600CC0

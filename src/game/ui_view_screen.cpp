@@ -3,6 +3,8 @@
 #include "ui_camera_keys.h"
 #include "ui_view_screen.h"
 
+#include "ui_input_class.h"
+
 #include "camera.h"
 #include "maths.h"
 #include "player_client.h"
@@ -24,8 +26,6 @@
 
 namespace {
 
-// An extra input side whose slots do nothing (vtable 00741154).
-void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 // The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
 void* OrderUnitsVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }
 // CDWordArray's vtable (0073C3D0).
