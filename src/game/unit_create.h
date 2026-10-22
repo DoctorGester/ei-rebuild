@@ -18,6 +18,7 @@
 class CEngineObject;
 struct FigureAnimation;   // map_object_figures.h
 class CUnit;
+class CMapObject;   // map_object.h
 struct UnitStats;
 struct UnitVitals;
 struct UnitPrototypeRecord;   // unit_db.h
@@ -116,7 +117,7 @@ struct CMapObjectManager : CResourceManager {
     // 00513630 (RET 4). The defaults of an object without a prototype (SetDefaults): a unit
     // (class 0x50) gets the statistics (its slot 35), any other object the vitals (slot 36); then
     // slot 33 with 0 and no prototype index (+0x18). Returns 1.
-    int GiveDefaults(CEngineObject* object);
+    int GiveDefaults(CMapObject* object);
     // 005143E0 (RET 0x14). The starting equipment's names of prototype `name`: the armour pieces,
     // the two weapons and the spells. 1, or FatalError's result without the prototype.
     int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
@@ -137,7 +138,7 @@ struct CMapObjectManager : CResourceManager {
     // statistics (BuildFromPrototype, slots 36 and 35), their height offset, scale (00517700, the
     // base scale and slot 30) and second prototype; every object its prototype index (+0x18).
     // Without a prototype: defaults, slot 33 (0), index 0 and a debug message. Returns 1.
-    int ApplyPrototype(CEngineObject* object, const char* name);
+    int ApplyPrototype(CMapObject* object, const char* name);
 };
 static_assert(sizeof(CMapObjectManager) == 0xBC);
 

@@ -586,22 +586,21 @@ EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 
 // --- Applying a prototype ---------------------------------------------------------------------
 
-int CMapObjectManager::ApplyPrototype(CEngineObject* object, const char* name) {
+int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     UnitVitals vitals{};   // zeroed (the original's start as the stack held them; SV7b3)
     UnitStats stats{};
-    auto* mapObject = static_cast<CMapObject*>(object);
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
         vitals.Reset();
         if (object->GetClassId() != kClassUnit) {
             SetDefaults(&vitals, nullptr);
-            mapObject->SetServerData(&vitals);
+            object->SetServerData(&vitals);
         } else {
             stats.Reset();
             SetDefaults(&vitals, &stats);
-            mapObject->SetStats(&stats);
+            object->SetStats(&stats);
         }
-        mapObject->ScaleEffectChanged(0);
+        object->ScaleEffectChanged(0);
         object->prototypeId_ = 0;
         game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
         return 1;
@@ -611,11 +610,11 @@ int CMapObjectManager::ApplyPrototype(CEngineObject* object, const char* name) {
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
-        static_cast<CMapObject*>(object)->SetServerDataImpl(&vitals);
-        mapObject->SetStats(&stats);
+        object->SetServerDataImpl(&vitals);
+        object->SetStats(&stats);
         // The figure stands lower by the model's height.
         float lift = static_cast<float>(-static_cast<double>(model->height));
-        CObject3D* figure = static_cast<CObject3D*>(object);
+        CObject3D* figure = object;
         SetBits(figure->defaultScale.x, 0);
         figure->defaultScale.y = lift;
         SetBits(figure->defaultScale.z, 0);
@@ -623,8 +622,8 @@ int CMapObjectManager::ApplyPrototype(CEngineObject* object, const char* name) {
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         std::memcpy(&scale, &prototype->scale, sizeof(scale));
         ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
-        std::memcpy(&mapObject->baseScale, &scale, sizeof(scale));
-        mapObject->ApplyBaseScale();
+        std::memcpy(&object->baseScale, &scale, sizeof(scale));
+        object->ApplyBaseScale();
         static_cast<CUnit*>(object)->SetPrototype23C(prototype);
     }
     UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
