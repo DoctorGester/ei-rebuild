@@ -2904,7 +2904,7 @@ id = "C28"
 title = "Real virtual classes: replace the hand-built vtables (166 static Vtable(), SetVtable, slot calls) and drop layout asserts nothing needs"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22: the code should look like normal game code, not fake vtable finagling. C19 compiled game.exe's tables but kept a raw table pointer at offset 0 (helper *Class templates, engine_object_class.h, mfc_slots.h), so 166 'static void* Vtable()' in 49 files and 511 SetVtable / VirtualSlot uses. Convert family by family (engine objects, managers, MFC collections, UI windows, network messages, ...) to ordinary C++ classes with virtual functions; drop offsetof/sizeof asserts unless bytes leave the process (saves, packets) or come from the data image. Each family: both suites keep their goldens (goldens are layout-independent). Split into child tickets per family."
+note = "User 2026-10-22: the code should look like normal game code, not fake vtable finagling. C19 compiled game.exe's tables but kept a raw table pointer at offset 0 (helper *Class templates, engine_object_class.h, mfc_slots.h), so 166 'static void* Vtable()' in 49 files and 511 SetVtable / VirtualSlot uses. Convert family by family (engine objects, managers, MFC collections, UI windows, network messages, ...) to ordinary C++ classes with virtual functions; drop offsetof/sizeof asserts unless bytes leave the process (saves, packets) or come from the data image. Each family: both suites keep their goldens (goldens are layout-independent). Split into child tickets per family. Order (survey 2026-10-22, 16 children): C28a items, C28b spells and lights, C28c party and manager context, C28d manager bases, C28e counted root / streams / links, C28f world effects, C28g worlds, C28h units / AI / map object bases, C28i data records, C28j renderer, C28k network (after C28e), C28l interface bases and the harness window ids, C28m screens and panels, C28n MFC library classes (with C14d), C28o MFC collections (with C14b), C28p retire the helpers and the asserts sweep. Method per family: C++ constructors and a virtual destructor in place of Construct / DestructBody (Construct stays as placement new where a caller builds in place), the slot bodies become the virtuals, CEngineObject's operator new / delete into the game heap."
 
 [[ticket]]
 id = "C29"
@@ -2943,6 +2943,136 @@ group = "cleanup"
 model = "opus"
 depends = ["C14c"]
 note = "Child of C14 (user 2026-10-22: scripted mechanical rewrite, checked by both suites; hand work only where goldens differ). Write the rewrite as a script under tools/ (one rule per call shape), run it, build, run both suites; fix by hand only the sites that differ. Classes are normal C++ (rewrite-guide.md). After C27. Saves and network messages keep their byte encoding; add a check that writes a save and compares its bytes with the original's."
+
+[[ticket]]
+id = "C28a"
+title = "C28 items: CItem, its six classes and the item constructor as real virtual classes"
+group = "cleanup"
+model = "opus"
+files = ["src/game/item.h", "src/game/item_class.h", "src/game/item_lifetime.cpp", "src/game/engine_object.h"]
+note = "item_class.h's tags go: C++ constructors and a virtual destructor in place of Construct / DestructBody, the slot bodies are the virtuals (the ...Impl split folded), CItemSpell derives from CItemQuick (its table has the quick item's 9/10/13/14). CEngineObject gets the game heap's operator new / delete (noexcept new, so a null block is not constructed, as the original tests). Layout asserts dropped (items are saved through CStream field by field)."
+
+[[ticket]]
+id = "C28b"
+title = "C28 spells and lights: spell_class.h's tags to real virtual classes"
+group = "cleanup"
+model = "opus"
+files = ["src/game/spell.h", "src/game/spell_class.h", "src/game/spell_lifetime.cpp", "src/game/light.cpp", "src/game/core_transform.h"]
+note = "CSpell, CSpellContainer, CSpellConstructor, the spell manager's leftovers and CLight over CTransformObject (TransformObjectClass, CTransformObject::BaseVtable). Same method as C28a."
+
+[[ticket]]
+id = "C28c"
+title = "C28 party and manager context: CParty, CManagerContext's defaults, the party record"
+group = "cleanup"
+model = "opus"
+files = ["src/game/party.h", "src/game/party_lifetime.cpp", "src/game/party_storage.h", "src/game/manager_context.h", "src/game/app_lifetime.cpp"]
+note = "PartyClass / PartyBaseClass go: CManagerContext defines its slots (the party base table's null getters, Create 1, DuplicateItem MakeCopyOf), CParty gets a constructor / destructor; PartyStorage becomes a lib::InPlace<CParty>; PartyRecord (app_lifetime.cpp CompiledDeleter). The members' CArray stays a tagged header until C28o."
+
+[[ticket]]
+id = "C28d"
+title = "C28 managers: CBaseManager / CResourceManager bases without BaseVtable"
+group = "cleanup"
+model = "opus"
+files = ["src/game/base_manager.h", "src/game/base_manager.cpp", "src/game/resource_manager.h", "src/game/engine_object_class.h"]
+note = "engine_object_class.h's ManagerClass and the bases' BaseVtable (base_manager.h, resource_manager.h): the derived managers are real classes already (C19 batch 4); the registered ConstructBase / DestructBody bodies become the protected constructors' callers or go (C20). Also the bridge manager (world_construct.cpp) and the other manager tags."
+
+[[ticket]]
+id = "C28e"
+title = "C28 counted root, streams and links: CRefCounted, the stream classes, item link, unit shape"
+group = "cleanup"
+model = "opus"
+files = ["src/game/core_streams.cpp", "src/game/core_refcount.h", "src/game/item_link.cpp", "src/game/ai_unit_shape.cpp", "src/game/object.h"]
+note = "core_streams.cpp's CountedRootClass and stream tags, core_refcount.h's Vtable, item_link.cpp, ai_unit_shape.cpp, object.h: classes whose vtable is a void* field become real virtual classes (the root's 16-bit count stays a member). Many network classes derive from the root: do this before C28k."
+
+[[ticket]]
+id = "C28f"
+title = "C28 world effects, particles, lightning, clouds, camera"
+group = "cleanup"
+model = "opus"
+files = ["src/game/world_effect.h", "src/game/world_effect_class.h", "src/game/world_effect_lifetime.cpp", "src/game/effects.h", "src/game/lightning.h", "src/game/global_map_clouds.cpp", "src/game/camera.h"]
+note = "world_effect_class.h (EffectClass, ParticleClass, MissileClass, 17 tags), effects.h's particle source / rain-snow / fog cells, lightning.h, global_map_clouds, camera.h: real virtual classes over CTransformObject (after C28b)."
+
+[[ticket]]
+id = "C28g"
+title = "C28 worlds, terrain, text manager, the sessions' player sources"
+group = "cleanup"
+model = "opus"
+files = ["src/game/world.h", "src/game/world_class.h", "src/game/world_client_class.h", "src/game/world_sessions.cpp", "src/game/world_game.cpp", "src/game/terrain.h"]
+note = "world_class.h (CWorld base / client / server tags, 42-43 slots), world_client_class.h (terrain, text manager), world_sessions.cpp's player sources and counted helper, world_construct.cpp; world_game.cpp's and world_sessions.cpp's SetVtable stores. After C28c (CManagerContext)."
+
+[[ticket]]
+id = "C28h"
+title = "C28 units, AI and map object bases: controllers, companions, 3D halves, AI modes, layers"
+group = "cleanup"
+model = "opus"
+files = ["src/game/unit_controller_slots.cpp", "src/game/map_object_companion_slots.cpp", "src/game/object3d_specific_slots.cpp", "src/game/ai_mode_class.h", "src/game/map_object_lifetime.cpp", "tests/verify/harness_digest.cpp"]
+note = "unit_controller_slots.cpp, map_object_companion_slots.cpp, object3d_specific_slots.cpp, ai_mode_class.h (the harness digest's ModeKinds pairs game.exe's tables with the tags: give it another id first), ai_map.h / ai_unit_layer layers, sector_map, map_object.h / figure_mesh.h / map_object_figures.h base tables, unit_client_models, map_object_lifetime.cpp's 33 stores."
+
+[[ticket]]
+id = "C28i"
+title = "C28 data records: map specs, item database records, print records, CDib, class templates"
+group = "cleanup"
+model = "opus"
+files = ["src/game/map_spec.h", "src/game/map_spec_class.h", "src/game/map_spec_unit.cpp", "src/game/item_db.h", "src/game/item_constructor.cpp", "src/game/model.h"]
+note = "map_spec_class.h and map_spec_unit.cpp's chunk readers, item_db.h's ItemRecordTag / ItemRecordBaseClass, model.h's PrintRecord / PrintRecord2, dib.cpp, class_template_stock.cpp, sys_info. Keep the byte layout (and its asserts, one line why) where records are read from or written to files; the vtable stays out of the file bytes."
+
+[[ticket]]
+id = "C28j"
+title = "C28 renderer and device classes"
+group = "cleanup"
+model = "opus"
+files = ["src/game/texture.h", "src/game/dx_errors.h", "src/game/render_helper.cpp", "src/game/directdraw_holder.cpp"]
+note = "texture.h's RendererBaseClass / DirectDrawClass / DeviceObjectClass / DXSurfaceClass, model.h's TransformPipelineClass, dx_errors.h's GameErrorClass, render_helper.cpp, device_helpers.cpp, directdraw_holder.cpp, dx_surface.cpp, device_object.cpp."
+
+[[ticket]]
+id = "C28k"
+title = "C28 network: messages, sessions, links, connections, player messages, GameBuffer"
+group = "cleanup"
+model = "opus"
+files = ["src/game/net_messages.h", "src/game/net_messages.cpp", "src/game/net_classes.h", "src/game/net_link.h", "src/game/net_link.cpp", "src/game/net_connection.h", "src/game/net_coder.h"]
+note = "net_messages.h's ReplicatedClass (the message registry keys on the stored table: key it on a class id or the compiled vtable of a real class), net_classes.h's sessions, net_link.h, net_connection.h, player_messages / player_client / player_source / player_connection_class.h, net_coder.h's GameBufferClass (tests/vectors/record_coder.cpp recognises game.exe's buffers). Packets keep their bytes: Write / Read stay field by field. After C28e."
+
+[[ticket]]
+id = "C28l"
+title = "C28 interface bases: CUiWindow / input / container classes and the harness's window ids"
+group = "cleanup"
+model = "opus"
+files = ["src/game/ui.h", "src/game/ui_window_class.h", "src/game/ui_input_class.h", "src/game/ui_container_class.h", "tests/verify/harness_windows.cpp", "tests/verify/ui_census.cpp"]
+note = "ui_window_class.h, ui_input_class.h, ui_container_class.h, ui.h's VirtualSlot calls (26), the two-table windows (vtable_ / inputVtable_: a window and its input side as real bases). First give tests/verify/harness_windows.cpp (kKnownWindows, WindowReady) and ui_census.cpp a window id that is not the table address (the census's W<vtable>#n labels must stay the same)."
+
+[[ticket]]
+id = "C28m"
+title = "C28 interface screens and panels: the screen, item panel, HUD and battle setup tables"
+group = "cleanup"
+model = "opus"
+depends = ["C28l"]
+files = ["src/game/ui_screen_tables.cpp", "src/game/ui_item_panel_tables.cpp", "src/game/ui_battle_setup.cpp", "src/game/ui_hud_build.cpp"]
+note = "ui_screen_tables.cpp (42 tags), ui_item_panel_tables.cpp (30), ui_battle_setup.cpp, ui_hud_build.cpp, ui_camp*, ui_create_screen.cpp, ui_exchange.cpp, ui_hero_screen*, ui_layouts.cpp, ui_scroll_text.cpp, console, cursor, chat, item info: each screen a class over C28l's bases with its overrides. After C28l."
+
+[[ticket]]
+id = "C28n"
+title = "C28 MFC library classes: exceptions, files, GDI, windows, threads, handle maps"
+group = "cleanup"
+model = "opus"
+files = ["src/lib/mfc_exception.h", "src/lib/mfc_file.h", "src/lib/mfc_gdi.h", "src/lib/mfc_window.h", "src/lib/mfc_thread.h", "src/lib/mfc_handle_map.h", "src/lib/mfc_coll.h"]
+note = "src/lib's mfc_exception, mfc_file, mfc_gdi, mfc_window, mfc_thread, mfc_handle_map, mfc_coll (CWordArray ...), stlp_string.cpp's tags: real virtual classes, or gone where C14d / C26 replace the class. Coordinate with C14d (CFile / CArchive)."
+
+[[ticket]]
+id = "C28o"
+title = "C28 MFC collections: the CArray / CList / CMap tags go with C14b"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+files = ["src/lib/mfc_slots.h", "src/lib/mfc_array.h", "src/lib/mfc_list.h", "src/game/game_slots.h", "src/game/game_arrays.h", "src/game/record_arrays.h"]
+note = "mfc_slots.h's CompiledCollection and ~150 tags (mfc_slots.h, game_slots.h, game_arrays.h, record_arrays.h, the party's and AI modes' arrays), ConstructHeader / ArrayHeader and the vtable field of mfc::CArray / CList. C14b replaces these containers with std::vector / std::list, which removes the tags: do it there (or, as C14b's first step, a polymorphic CObject base for the templates) rather than twice. Archive Serialize keeps its bytes."
+
+[[ticket]]
+id = "C28p"
+title = "C28 retire the helpers: engine_object_class.h, compiled_vtable.h, SetVtable, VirtualSlot; the asserts sweep"
+group = "cleanup"
+model = "opus"
+files = ["src/game/engine_object_class.h", "src/lib/compiled_vtable.h", "include/ei/vcall.h", "src/game/game_data.h", "tools/check_cleanup.py"]
+note = "When C28a-o are done: delete engine_object_class.h, compiled_vtable.h, ei::SetVtable / VirtualSlot (include/ei/vcall.h, game_data.h), drop the offsetof / sizeof asserts left that guard nothing leaving the process or coming from the data image, add the patterns to check_cleanup's counts, update docs (rewrite-guide, standalone-cleanup, notes/standalone.md 'Compiler-made vtables')."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
