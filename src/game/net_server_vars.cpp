@@ -18,14 +18,12 @@ namespace net {
 namespace {
 
 
-VariableMessage* VariableAt(RefNode* node) { return static_cast<VariableMessage*>(node->data.ptr); }
-
 // The search the original inlines in each function: the first node whose variable's name has the
 // same bytes as `name`, else the sentinel.
-RefNode* FindNode(const stlp::SharedRefList& list, const stlp::string* name) {
+RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const stlp::string* name) {
     RefNode* node = list.First();
     for (; node != list.End(); node = node->next)
-        if (VariableAt(node)->name_ == *name) break;
+        if (list.At(node)->name_ == *name) break;
     return node;
 }
 
@@ -59,7 +57,7 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     RefNode* first = variables_.First();
 
     // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
-    stlp::string* to = &VariableAt(first)->name_;
+    stlp::string* to = &variables_.At(first)->name_;
     if (name != to) to->AssignFrom(*name);
     *out = first;
     return out;
@@ -72,7 +70,7 @@ void ServerSession::SetVariable(const stlp::string* name, float value) {
     if (value != 0.0f /*0073B858*/) {
         RefNode* found;
         FindOrAddVariable(&found, name);
-        VariableMessage* variable = VariableAt(found);
+        VariableMessage* variable = variables_.At(found);
         std::memcpy(&variable->value_, &value, 4);
         variable->serial_ = g_variableSerial;
         ++g_variableSerial;
@@ -89,7 +87,7 @@ void ServerSession::SetVariable(const stlp::string* name, float value) {
 void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     RefNode* found;
     FindOrAddVariable(&found, name);
-    VariableMessage* variable = VariableAt(found);
+    VariableMessage* variable = variables_.At(found);
     float current = variable->value_;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
@@ -98,12 +96,12 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
     float selected;
     std::memcpy(&selected, &bits, 4);
     volatile double loaded = selected;   // FLD / FSTP
-    VariableAt(found)->value_ = static_cast<float>(loaded);
-    VariableAt(found)->serial_ = g_variableSerial;
+    variables_.At(found)->value_ = static_cast<float>(loaded);
+    variables_.At(found)->serial_ = g_variableSerial;
     ++g_variableSerial;
-    ++VariableAt(found)->version_;
-    EI_NAN_AUDIT(VariableAt(found)->value_);
-    if (VariableAt(found)->value_ == 0.0f /*0073B858*/) {
+    ++variables_.At(found)->version_;
+    EI_NAN_AUDIT(variables_.At(found)->value_);
+    if (variables_.At(found)->value_ == 0.0f /*0073B858*/) {
         RefNode* node = FindNode(variables_, name);
         if (node != variables_.End()) variables_.Erase(node);
     }
@@ -118,7 +116,7 @@ void ServerSession::RemoveVariable(const stlp::string* name) {
 // 00419940: the variable's value, 0 when missing (returned unrounded in ST0).
 double ServerSession::GetVariable(const stlp::string* name) {
     RefNode* node = FindNode(variables_, name);
-    if (node != variables_.End()) return VariableAt(node)->value_;
+    if (node != variables_.End()) return variables_.At(node)->value_;
     return 0.0f /*0073B858*/;
 }
 

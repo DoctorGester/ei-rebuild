@@ -43,7 +43,7 @@ bool Is(const stlp::string& s, const char* t) {
 // 00419F90: whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(void* connection) {
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+        auto* binding = bindings_.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = binding->Player();
         if (player && !(player->flags7_ & CRefObject::kDetached) && player->host_) return true;
@@ -84,7 +84,7 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
         RefNode* node = self->queuedMaps_.First();
         for (; node != self->queuedMaps_.End(); node = node->next) {
-            auto* entry = static_cast<ZoneMessage*>(node->data.ptr);
+            auto* entry = self->queuedMaps_.At(node);
             if (entry->text_ == *text) break;
         }
         if (node == self->queuedMaps_.End()) return;

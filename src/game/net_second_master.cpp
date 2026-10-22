@@ -90,9 +90,9 @@ void StartLookUp() {
 std::string Names(std::uint8_t* count) {
     std::string names;
     *count = 0;
-    const stlp::SharedRefList& bindings = GameServer()->bindings_;
+    const auto& bindings = GameServer()->bindings_;
     for (auto* node = bindings.First(); node != bindings.End(); node = node->next) {
-        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+        auto* binding = bindings.At(node);
         auto* player = binding->Player();
         const char* name = player->name_.data();
         std::size_t length = std::strlen(name);

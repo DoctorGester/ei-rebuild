@@ -36,11 +36,11 @@ void ReleaseInline(CRefObject* object) {
 }
 
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
-PartyMessage* FindPartnerOffer(const stlp::CountedRefList& list, PartyMessage* offer) {
+PartyMessage* FindPartnerOffer(const stlp::CountedRefListOf<PartyMessage>& list, PartyMessage* offer) {
     for (RefNode* node = list.First(); node != list.End(); node = node->next) {
-        auto* other = static_cast<PartyMessage*>(node->data.ptr);
+        auto* other = list.At(node);
         if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr)
-            return static_cast<PartyMessage*>(node->data.ptr);
+            return list.At(node);
     }
     return nullptr;
 }
@@ -85,7 +85,7 @@ EI_REWRITTEN(0x00609D40, RefPtr::AssignCounted);
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
     for (RefNode* node = trades_.First(); node != trades_.End(); node = node->next) {
-        auto* trade = static_cast<TradeMessage*>(node->data.ptr);
+        auto* trade = trades_.At(node);
         void* first = trade->offer_.ptr;
         if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
             return node->data.ptr;

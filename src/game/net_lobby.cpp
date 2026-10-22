@@ -35,7 +35,7 @@ namespace {
 using ServerNode = stlp::SharedRefList::Node;
 using AddressNode = stlp::list<NetAddress>::Node;
 using JoinNode = stlp::list<PendingJoin>::Node;
-ServerEntry* EntryOf(ServerNode* node) { return static_cast<ServerEntry*>(node->data.ptr); }
+ServerEntry* EntryOf(ServerNode* node) { return stlp::SharedRefListOf<ServerEntry>::At(node); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f

@@ -293,7 +293,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         // The session's player records: id_ (+0x2C) the player's unit, serial_ (+0x30) its id.
         net::RefNode* end = net::GameClient()->players_.End();
         for (net::RefNode* node = end->next; node != end; node = node->next) {
-            auto* player = static_cast<net::PlayerMessage*>(node->data.ptr);
+            auto* player = net::GameClient()->players_.At(node);
             if (player->id_ == unitId) {
                 playerId = player->serial_;
                 break;

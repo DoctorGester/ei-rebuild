@@ -72,7 +72,7 @@ EI_REWRITTEN(0x004182E0, ServerSession::TickImpl);
 bool ServerSession::PlayerStateIs3(void* connection) {
     if (!Live(connection)) return false;
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+        auto* binding = bindings_.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!Live(binding)) return false;
         auto* player = binding->Player();

@@ -77,7 +77,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     for (;;) {
         bool used = false;
         for (RefNode* it = self->players_.First(); it != self->players_.End(); it = it->next) {
-            if (static_cast<PlayerMessage*>(it->data.ptr)->number_ == number) {
+            if (self->players_.At(it)->number_ == number) {
                 used = true;
                 break;
             }
@@ -153,7 +153,7 @@ void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
             int count = 0;
             stlp::SharedRefList::Distance(self->players_.First(), self->players_.End(), count);
             if (count != 0) {
-                auto* first = static_cast<PlayerMessage*>(self->players_.First()->data.ptr);
+                auto* first = self->players_.Front();
                 first->host_ = 1;
                 ++first->version_;
             }

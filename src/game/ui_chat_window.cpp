@@ -254,9 +254,9 @@ void CChatWindow::Update() {
         offer.Empty();
         auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_.data[kWeOffer];
-        const stlp::CountedRefList& offers = client->offers_;
+        const auto& offers = client->offers_;
         for (auto* node = offers.First(); node != offers.End(); node = node->next) {
-            if (static_cast<net::PartyMessage*>(node->data.ptr)->player_.ptr == *p) {
+            if (offers.At(node)->player_.ptr == *p) {
                 offer = texts_.data[kTheyOffer];
                 break;
             }

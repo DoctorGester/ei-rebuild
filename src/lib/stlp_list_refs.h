@@ -100,6 +100,21 @@ using SharedEntryList = PolicyList<RefEntry, SharedEntry>;
 using CountedEntryList = PolicyList<RefEntry, CountedEntry>;
 static_assert(sizeof(SharedRefList) == 4);
 
+// A reference list whose elements all point at a T (one network message class): the list's layout,
+// policy and operations (it still passes as a SharedRefList / CountedRefList), the elements read
+// typed.
+template <typename T, typename E>
+struct RefListOf : PolicyList<RefPtr, E> {
+    using Node = typename PolicyList<RefPtr, E>::Node;
+    // The object `node` (an element of this list) points at.
+    static T* At(const Node* node) { return static_cast<T*>(node->data.ptr); }
+    T* Front() const { return At(this->head->next); }
+    T* Back() const { return At(this->head->prev); }
+};
+template <typename T> using SharedRefListOf = RefListOf<T, SharedRef>;
+template <typename T> using CountedRefListOf = RefListOf<T, CountedRef>;
+static_assert(sizeof(SharedRefListOf<CRefObject>) == 4);
+
 // The network sessions' DriverNode and ClientNode as list<RefPtr>'s nodes (AsNode), for the
 // statics with an element policy (Insert / Erase / InsertRange<SharedRef or CountedRef>).
 template <typename Node>

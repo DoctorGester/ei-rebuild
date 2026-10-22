@@ -24,16 +24,14 @@ bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
 void* Value(RefNode* node) { return node->data.ptr; }
-PlayerMessage* PlayerAt(RefNode* node) { return static_cast<PlayerMessage*>(node->data.ptr); }
-BindingMessage* BindingAt(RefNode* node) { return static_cast<BindingMessage*>(node->data.ptr); }
 PlayerMessage* PlayerOf(BindingMessage* binding) { return binding->Player(); }
 void* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().ptr; }
 
 // The connection of the first binding whose player is live and the host, or null.
-void* HostConnection(const stlp::SharedRefList& bindings) {
+void* HostConnection(const stlp::SharedRefListOf<BindingMessage>& bindings) {
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
-        PlayerMessage* player = PlayerOf(BindingAt(node));
-        if (Live(player) && player->host_) return ConnectionOf(BindingAt(node));
+        PlayerMessage* player = PlayerOf(bindings.At(node));
+        if (Live(player) && player->host_) return ConnectionOf(bindings.At(node));
     }
     return nullptr;
 }
@@ -51,9 +49,9 @@ void DropClient(ServerSession* self, void* peer) {
 
 // 0041A020: the id of the first host player, -1 without one.
 int ServerSession::LeaderId() {
-    const stlp::SharedRefList& players = players_;
+    const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
-        if (PlayerAt(node)->host_) return PlayerAt(node)->id_;
+        if (players_.At(node)->host_) return players_.At(node)->id_;
     return -1;
 }
 EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
@@ -98,23 +96,23 @@ EI_REWRITTEN(0x0041A140, ServerSession::SetPassword);
 void* ServerSession::FindGuestConnection(const stlp::string* name) {
     const std::size_t length = name->size();
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
-        PlayerMessage* player = PlayerAt(node);
+        PlayerMessage* player = players_.At(node);
         if (gamecrt::strnicmp(player->name_.data(), name->data(), length) != 0) continue;
-        const stlp::SharedRefList& bindings = bindings_;
+        const auto& bindings = bindings_;
         RefNode* first = bindings.First();
         for (RefNode* binding = first; binding != bindings.End(); binding = binding->next) {
-            if (PlayerOf(BindingAt(binding)) != Value(node)) continue;
-            void* connection = ConnectionOf(BindingAt(binding));
+            if (PlayerOf(bindings.At(binding)) != Value(node)) continue;
+            void* connection = ConnectionOf(bindings.At(binding));
             bool hostsToo = false;
             for (RefNode* other = first; other != bindings.End(); other = other->next) {
-                if (ConnectionOf(BindingAt(other)) != connection) continue;
-                PlayerMessage* owner = PlayerOf(BindingAt(other));
+                if (ConnectionOf(bindings.At(other)) != connection) continue;
+                PlayerMessage* owner = PlayerOf(bindings.At(other));
                 if (owner && !(owner->flags7_ & CRefObject::kDetached) && owner->host_) {
                     hostsToo = true;
                     break;
                 }
             }
-            if (!hostsToo) return ConnectionOf(BindingAt(binding));
+            if (!hostsToo) return ConnectionOf(bindings.At(binding));
             break;
         }
     }
@@ -124,18 +122,18 @@ EI_REWRITTEN(0x0041A170, ServerSession::FindGuestConnection);
 
 // 0041A270: the connection of the player with serial `serial`, or null.
 void* ServerSession::FindConnectionBySerial(int serial) {
-    const stlp::SharedRefList& bindings = bindings_;
+    const auto& bindings = bindings_;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next)
-        if (PlayerOf(BindingAt(node))->serial_ == serial) return ConnectionOf(BindingAt(node));
+        if (PlayerOf(bindings.At(node))->serial_ == serial) return ConnectionOf(bindings.At(node));
     return nullptr;
 }
 EI_REWRITTEN(0x0041A270, ServerSession::FindConnectionBySerial);
 
 // 0041A2E0: the player with id `id`, or null.
 void* ServerSession::FindPlayer(int id) {
-    const stlp::SharedRefList& players = players_;
+    const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
-        if (PlayerAt(node)->id_ == id) return Value(node);
+        if (players_.At(node)->id_ == id) return Value(node);
     return nullptr;
 }
 EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);
@@ -143,7 +141,7 @@ EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);
 // 0041A500: a line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
-        PlayerMessage* player = PlayerAt(node);
+        PlayerMessage* player = players_.At(node);
         if (!player->host_) AnnounceText(kind, text, player);
     }
 }
@@ -153,12 +151,12 @@ EI_REWRITTEN(0x0041A500, ServerSession::AnnounceToGuests);
 // (text 2), then the client is told to leave and removed.
 void ServerSession::Kick(void* connection) {
     if (!Live(connection)) return;
-    const stlp::SharedRefList& bindings = bindings_;
+    const auto& bindings = bindings_;
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
-        if (ConnectionOf(BindingAt(node)) != connection) continue;
-        BindingMessage* binding = BindingAt(node);
+        if (ConnectionOf(bindings.At(node)) != connection) continue;
+        BindingMessage* binding = bindings.At(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
             if (Live(player)) AnnounceText(2, player->name_.data(), nullptr);
@@ -173,12 +171,12 @@ EI_REWRITTEN(0x0041A550, ServerSession::Kick);
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
 void ServerSession::Ban(void* connection) {
     if (!Live(connection)) return;
-    const stlp::SharedRefList& bindings = bindings_;
+    const auto& bindings = bindings_;
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
-        if (ConnectionOf(BindingAt(node)) != connection) continue;
-        BindingMessage* binding = BindingAt(node);
+        if (ConnectionOf(bindings.At(node)) != connection) continue;
+        BindingMessage* binding = bindings.At(node);
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
             if (Live(player)) AnnounceText(3, player->name_.data(), nullptr);
@@ -195,10 +193,10 @@ EI_REWRITTEN(0x0041A620, ServerSession::Ban);
 // announced (text 4 / text 1).
 void ServerSession::ReportDeparture(void* connection, int text) {
     if (!Live(connection)) return;
-    const stlp::SharedRefList& bindings = bindings_;
+    const auto& bindings = bindings_;
     for (RefNode* node = bindings.First(); node != bindings.End(); node = node->next) {
-        if (ConnectionOf(BindingAt(node)) != connection) continue;
-        BindingMessage* binding = BindingAt(node);
+        if (ConnectionOf(bindings.At(node)) != connection) continue;
+        BindingMessage* binding = bindings.At(node);
         if (!Live(binding)) return;
         PlayerMessage* player = PlayerOf(binding);
         if (!Live(player)) return;

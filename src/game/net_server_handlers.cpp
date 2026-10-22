@@ -39,10 +39,6 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 // The record's strings as the STLport strings they are.
 
 
-// The bindings (+0x25A4): an STLport list of counted pointers to BindingMessage.
-const stlp::list<RefPtr>& Bindings(ServerSession* server) {
-    return *reinterpret_cast<const stlp::list<RefPtr>*>(&server->bindings_);
-}
 } // namespace
 
 // 0041AA10. The record is built on the stack (two strings with room for 8 bytes first, as their
@@ -105,9 +101,9 @@ EI_REWRITTEN(0x0041ACA0, ServerSession::OnMasterImpl);
 void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
     Connection* connection = g_currentConnection;
     if (!connection || (connection->flags7_ & CRefCounted::kDetached)) return;
-    const stlp::list<RefPtr>& bindings = Bindings(server);
+    const auto& bindings = server->bindings_;
     for (auto* node = bindings.First(); node != bindings.End(); node = node->next) {
-        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+        auto* binding = bindings.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
         // (The original also tests the binding for null here, after having read it.)
         if (binding->flags7_ & CRefCounted::kDetached) return;

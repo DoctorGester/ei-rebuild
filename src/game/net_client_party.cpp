@@ -140,7 +140,7 @@ void* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
     if (!ours) return nullptr;
     for (OfferNode* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
-        auto* other = static_cast<PartyMessage*>(node->data.ptr);
+        auto* other = self->offers_.At(node);
         if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
     }

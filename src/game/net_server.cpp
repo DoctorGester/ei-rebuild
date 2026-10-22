@@ -80,10 +80,7 @@ EI_REWRITTEN(0x00412D80, ServerSession::Construct);
 
 namespace {
 
-// A list node's message: lists of counted messages (RefNode), and the timed lists (TimedNode:
-// {seconds, object}).
-template <typename T = Message>
-T* ValueOf(const RefNode* node) { return static_cast<T*>(node->data.ptr); }
+// A timed list node's message (TimedNode: {seconds, object}).
 template <typename T>
 T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.ptr); }
 
@@ -99,11 +96,11 @@ T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.p
 void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
-    for (RefNode* n = players_.First(); n != players_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
-    for (RefNode* n = variables_.First(); n != variables_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
+    for (RefNode* n = players_.First(); n != players_.End(); n = n->next) PushReplicated(*out, players_.At(n), 2);
+    for (RefNode* n = variables_.First(); n != variables_.End(); n = n->next) PushReplicated(*out, variables_.At(n), 2);
     if (!bindings_.Empty()) {
         for (RefNode* n = bindings_.First(); n != bindings_.End(); n = n->next) {
-            auto* binding = ValueOf<BindingMessage>(n);
+            auto* binding = bindings_.At(n);
             if (binding->ConnectionRef().ptr != g_currentConnection) continue;
             record = binding->Player();
             if (record->host_) hosting = true;
@@ -111,7 +108,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
         if (record && !(record->flags7_ & CRefObject::kDetached)) {
             for (RefNode* n = lines_.First(); n != lines_.End(); n = n->next) {
-                auto* line = ValueOf<LineMessage>(n);
+                auto* line = lines_.At(n);
                 CRefObject* target = line->connection_.ptr;
                 if ((!target || target == g_currentConnection) &&
                     static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
@@ -120,18 +117,18 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
     }
     for (RefNode* n = files_.First(); n != files_.End(); n = n->next) {
-        PushReplicated(*out, ValueOf(n), 2);
+        PushReplicated(*out, files_.At(n), 2);
         RefNode* requests = fileRequests_.End();
         for (RefNode* m = requests->next; m != requests; m = m->next) {
-            auto* request = ValueOf<FileRequestMessage>(m);
-            if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != g_currentConnection) continue;
-            const RefVector& chunks = ValueOf<FileMessage>(n)->chunks_;
+            auto* request = fileRequests_.At(m);
+            if (request->FileRef().ptr != files_.At(n) || request->ConnectionRef().ptr != g_currentConnection) continue;
+            const RefVector& chunks = files_.At(n)->chunks_;
             for (RefPtr* p = chunks.begin(); p != chunks.end(); ++p) PushReplicated(*out, p->ptr, 1);
             break;
         }
     }
     if (hosting)
-        for (RefNode* n = queuedMaps_.First(); n != queuedMaps_.End(); n = n->next) PushReplicated(*out, ValueOf(n), 2);
+        for (RefNode* n = queuedMaps_.First(); n != queuedMaps_.End(); n = n->next) PushReplicated(*out, queuedMaps_.At(n), 2);
     if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
     for (TimedNode* n = awards_.First(); n != awards_.End(); n = n->next) {
@@ -139,7 +136,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         if (award->connection_.ptr == g_currentConnection) PushReplicated(*out, award, 2);
     }
     for (RefNode* n = offers_.First(); n != offers_.End(); n = n->next) {
-        auto* offer = ValueOf<PartyMessage>(n);
+        auto* offer = offers_.At(n);
         if (offer->partner_.ptr != record) continue;
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
@@ -148,12 +145,12 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const RefVector& members = ValueOf<PartyMessage>(n)->members_;
+        const RefVector& members = offers_.At(n)->members_;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, ValueOf<PartyMessage>(n)->members_.begin()[i].ptr, 2);
+            PushReplicated(*out, offers_.At(n)->members_.begin()[i].ptr, 2);
     }
     for (RefNode* n = trades_.First(); n != trades_.End(); n = n->next) {
-        auto* trade = ValueOf<TradeMessage>(n);
+        auto* trade = trades_.At(n);
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
     for (TimedNode* n = finishedTrades_.First(); n != finishedTrades_.End(); n = n->next) {

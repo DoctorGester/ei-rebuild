@@ -65,7 +65,7 @@ void ClientSession::ApplyAwards() {
     CPlayer* player = LocalPlayer();
     if (!player) return;
     for (RefNode* node = self->awards_.First(); node != self->awards_.End(); node = node->next) {
-        auto* award = static_cast<AwardMessage*>(node->data.ptr);
+        auto* award = self->awards_.At(node);
         const char* name = award->text_.data();
         switch (award->kind_) {
         case 0: {

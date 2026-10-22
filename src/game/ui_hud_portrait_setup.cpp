@@ -236,7 +236,7 @@ void CHudPortraits::Rebuild(int wide) {
 
     if (!IsMultiplayerClient()) return;
     for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
-        auto* player = static_cast<net::PlayerMessage*>(node->data.ptr);
+        auto* player = net::GameClient()->players_.At(node);
         CEngineObject* unit = nullptr;
         if (player->id_ >= 0) unit = WorldFindUnit(TheClientWorld(), nullptr, player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;

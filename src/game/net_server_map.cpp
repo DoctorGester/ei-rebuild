@@ -88,7 +88,7 @@ void ServerSession::SetMap(const stlp::string* name) {
         stlp::string resourceName(*it);
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
-        auto* record = static_cast<VariableMessage*>(added->data.ptr);
+        auto* record = variables_.At(added);
         const std::uint32_t one = 0x3F800000;   // 1.0f
         std::memcpy(&record->value_, &one, 4);
         record->serial_ = g_variableSerial;

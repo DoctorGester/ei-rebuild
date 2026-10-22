@@ -133,7 +133,7 @@ void DropRequestsFor(ClientSession* self, const Message* file) {
     RefNode* sentinel = self->fileRequests_.End();
     for (RefNode* node = sentinel->next; node != sentinel;) {
         RefNode* next = node->next;
-        if (static_cast<FileRequestMessage*>(node->data.ptr)->FileRef().ptr == file) self->fileRequests_.Erase(node);
+        if (self->fileRequests_.At(node)->FileRef().ptr == file) self->fileRequests_.Erase(node);
         node = next;
     }
 }
@@ -326,7 +326,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     stlp::vector<FileChunkMessage*> chunks;
     int count = 0;
     for (RefNode* node = self->chunks_.First(); node != self->chunks_.End(); node = node->next) {
-        auto* chunk = static_cast<FileChunkMessage*>(node->data.ptr);
+        auto* chunk = self->chunks_.At(node);
         if (chunk->file_.ptr != file) continue;
         ++count;
         chunks.push_back(chunk);

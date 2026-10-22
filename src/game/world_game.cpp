@@ -1841,7 +1841,7 @@ using VariableNode = net::RefNode;
 using ZoneNode = net::RefNode;
 // The server's variables (name_, value_ and the stamp serial_).
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
-net::VariableMessage* NodeRecord(VariableNode* node) { return static_cast<net::VariableMessage*>(node->data.ptr); }
+net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
 unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
 // The value's bits, moved as the dword the original pushes (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
@@ -1901,7 +1901,7 @@ void GameFlow::UpdateFromServer() {
 
     // The briefings the server says were seen.
     for (ZoneNode* node = net::GameClient()->zones_.First(); node != net::GameClient()->zones_.End(); node = node->next)
-        MarkBriefing(static_cast<net::ZoneMessage*>(node->data.ptr)->text_.data());
+        MarkBriefing(net::GameClient()->zones_.At(node)->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
         mfc::CString name(NodeRecord(node)->name_.data());

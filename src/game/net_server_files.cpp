@@ -29,7 +29,7 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // whose elements are then filled in turn.
 void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
-        if (static_cast<FileMessage*>(node->data.ptr)->name_ == *name) return;
+        if (files_.At(node)->name_ == *name) return;
 
     auto* file = NewMessageMemory<FileMessage>();
     if (file) {

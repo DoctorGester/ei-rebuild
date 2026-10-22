@@ -51,6 +51,14 @@ class LoginMessage;     // net_messages.h
 class MapMessage;       // net_messages.h
 class PartyMessage;     // net_messages.h
 class TradeMessage;     // net_messages.h
+class AwardMessage;
+class FileChunkMessage;
+class FileMessage;
+class FileRequestMessage;
+class LineMessage;
+class PlayerMessage;
+class VariableMessage;
+class ZoneMessage;
 
 // The memory of a message (or another reference-counted object) as the game's code allocates it
 // inline: operator new, then the reference count dword cleared before the null check.
@@ -603,20 +611,20 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // +0x257C the master server (port 28004)
     std::uint32_t nextLine_;            // +0x258C the number of the next chat line
-    stlp::SharedRefList players_;       // +0x2590 player records (0073BC70)
-    stlp::SharedRefList lines_;         // +0x2594 chat and system lines (0073BC88), at most 50
-    stlp::SharedRefList files_;         // +0x2598 shared files (0073BD18)
-    stlp::CountedRefList fileRequests_; // +0x259C the clients' requests (0073BC58: file, connection)
+    stlp::SharedRefListOf<PlayerMessage> players_; // +0x2590 player records (0073BC70)
+    stlp::SharedRefListOf<LineMessage> lines_; // +0x2594 chat and system lines (0073BC88), at most 50
+    stlp::SharedRefListOf<FileMessage> files_; // +0x2598 shared files (0073BD18)
+    stlp::CountedRefListOf<FileRequestMessage> fileRequests_; // +0x259C the clients' requests (0073BC58: file, connection)
     // +0x25A0 where the game is hosted (a HostMessage, net_messages.h; world_game.cpp's AnnounceHost),
     // replicated to everyone when set
     RefPtrTo<HostMessage> hostInfo_;
-    stlp::SharedRefList bindings_;      // +0x25A4 player <-> connection (0073BCB8)
+    stlp::SharedRefListOf<BindingMessage> bindings_; // +0x25A4 player <-> connection (0073BCB8)
     RefPtr map_;                        // +0x25A8 the map message (0073BD00) while a map is played
-    stlp::SharedRefList queuedMaps_;    // +0x25AC map messages (0073BCD0) the host may pick next
-    stlp::SharedRefList variables_;     // +0x25B0 script variables (0073BCE8)
+    stlp::SharedRefListOf<ZoneMessage> queuedMaps_; // +0x25AC map messages (0073BCD0) the host may pick next
+    stlp::SharedRefListOf<VariableMessage> variables_; // +0x25B0 script variables (0073BCE8)
     SharedTimedList awards_;            // +0x25B4 {delay, award (0073BD48)}
-    stlp::CountedRefList offers_;       // +0x25B8 the players' trade offers (party messages 0073BD78)
-    stlp::CountedRefList trades_;       // +0x25BC trades (0073BD60)
+    stlp::CountedRefListOf<PartyMessage> offers_; // +0x25B8 the players' trade offers (party messages 0073BD78)
+    stlp::CountedRefListOf<TradeMessage> trades_; // +0x25BC trades (0073BD60)
     CountedTimedList finishedTrades_;   // +0x25C0 {delay, trade}: done trades, kept 60 s
     stlp::list<NetAddress> banned_;     // +0x25C4 banned IPv4 addresses
     stlp::string name_;                    // +0x25C8 the game's name
@@ -695,7 +703,7 @@ public:
     std::uint8_t unused_259D[3];
     float retryTimer_;                  // +0x25A0 seconds to the next join request
     float retryInterval_;               // +0x25A4 doubles with every request (0.1 first)
-    stlp::SharedRefList servers_;       // +0x25A8 the servers found (ServerEntry)
+    stlp::SharedRefListOf<ServerEntry> servers_; // +0x25A8 the servers found (ServerEntry)
     ClientQueries queries_;             // +0x25AC servers asked directly
     stlp::list<NetAddress> waiting_;    // +0x25BC addresses waiting to be asked
     NetAddress alwaysAsk_;              // +0x25C0 asked on every refresh (ip 0: none)
@@ -762,21 +770,21 @@ public:
     // 0041D260. A command message (0073BC40 {kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);
 
-    stlp::CountedRefList players_;      // +0x25D8 player records (0073BC70)
-    stlp::CountedRefList lines_;        // +0x25DC chat lines (0073BC88)
-    stlp::CountedRefList files_;        // +0x25E0 shared files (0073BD18)
-    stlp::CountedRefList chunks_;       // +0x25E4 file chunks (0073BD30)
-    stlp::SharedRefList fileRequests_;  // +0x25E8 file requests for the server (0073BC58)
+    stlp::CountedRefListOf<PlayerMessage> players_; // +0x25D8 player records (0073BC70)
+    stlp::CountedRefListOf<LineMessage> lines_; // +0x25DC chat lines (0073BC88)
+    stlp::CountedRefListOf<FileMessage> files_; // +0x25E0 shared files (0073BD18)
+    stlp::CountedRefListOf<FileChunkMessage> chunks_; // +0x25E4 file chunks (0073BD30)
+    stlp::SharedRefListOf<FileRequestMessage> fileRequests_; // +0x25E8 file requests for the server (0073BC58)
     HostMessage* info_;                 // +0x25EC the game's description (0073BCA0), counted
     BindingMessage* binding_;           // +0x25F0 our binding (0073BCB8), counted
     MapMessage* map_;                   // +0x25F4 the map message (0073BD00), counted
-    stlp::CountedRefList zones_;        // +0x25F8 map messages the host may pick (0073BCD0)
-    stlp::CountedRefList variables_;    // +0x25FC script variables (0073BCE8)
+    stlp::CountedRefListOf<ZoneMessage> zones_; // +0x25F8 map messages the host may pick (0073BCD0)
+    stlp::CountedRefListOf<VariableMessage> variables_; // +0x25FC script variables (0073BCE8)
     RefPtrTo<LoginMessage> player_;     // +0x2600 the local player's login record (0073BBF8)
     SharedTimedList timers_;            // +0x2604 {seconds left, object}: objects kept for a while
-    stlp::CountedRefList awards_;       // +0x2608 awards received, applied by ApplyAwards (0073BD48)
+    stlp::CountedRefListOf<AwardMessage> awards_; // +0x2608 awards received, applied by ApplyAwards (0073BD48)
     RefPtrTo<PartyMessage> party_;      // +0x260C our trade offer (party description 0073BD78)
-    stlp::CountedRefList offers_;       // +0x2610 the other players' trade offers (0073BD78)
+    stlp::CountedRefListOf<PartyMessage> offers_; // +0x2610 the other players' trade offers (0073BD78)
     stlp::list<TradeRecord> tradeRecords_;   // +0x2614 the trades done
     TradeMessage* trade_;               // +0x2618 the current trade (0073BD60), counted
     std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable

@@ -38,7 +38,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030
     lines_.Insert(lines_.End(), *value);
 
-    auto* added = static_cast<LineMessage*>(lines_.End()->prev->data.ptr);
+    auto* added = lines_.Back();
     added->text_.Assign(text);
     added->number_ = nextLine_;
     ++nextLine_;
@@ -46,7 +46,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     CRefObject* connection = nullptr;
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
         for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-            auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+            auto* binding = bindings_.At(node);
             if (binding->PlayerRef().ptr == player) {
                 connection = binding->ConnectionRef().ptr;
                 break;

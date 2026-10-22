@@ -97,12 +97,12 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
     RefNode* node = sentinel->next;
     for (;;) {
         if (node == sentinel) return;
-        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
+        auto* binding = bindings_.At(node);
         auto* player = binding->Player();
         if (Live(player) && player->host_) break;
         node = node->next;
     }
-    CRefObject* connection = static_cast<BindingMessage*>(node->data.ptr)->ConnectionRef().ptr;
+    CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
     if (!Live(connection)) return;
 
     char** const* items = reinterpret_cast<char** const*>(entry + 0x14);   // start, finish
