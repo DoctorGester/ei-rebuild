@@ -82,8 +82,6 @@ REVIEWED_DATA = [
     (0x00753F04, 0x0077F7CC, 12, 'C++ EH: catchable types (ThrowInfo) -> the thrown pointer types\' type '
                                  'descriptors (".PAV...")'),
     # .data
-    (0x0078BC8C, 0x0078CAA8, 442, 'the script language: comment tokens (0078BC8C) and the keyword / function table '
-                                  '(0078BCA0): names and argument type strings'),
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
     (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),

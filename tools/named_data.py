@@ -103,9 +103,11 @@ TYPES = {
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
+    'ScriptKeyword': 'PiPP',                 # script.h: name, id, function signature, command signature
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
+    'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges

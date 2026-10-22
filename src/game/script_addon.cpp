@@ -3,7 +3,7 @@
 // docs/notes/rebirth.md. The handlers are in script_addon_*.cpp.
 //
 // How addon installs it (10022290): a std::vector of 300 entries gets the game's keywords (0078BCA0,
-// without the terminator); then each of its 69 command records (100BA738, 0x40 bytes: name,
+// script.h's kScriptKeywords, without the terminator); then each of its 69 command records (100BA738, 0x40 bytes: name,
 // signature, handler, flags) is registered (10021C61): a name already in the table (stricmp) with
 // an id below 300 keeps its id and gets the record's signature as its function signature (the
 // first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
@@ -117,8 +117,6 @@ constexpr int kRecordCount = static_cast<int>(sizeof(kRecords) / sizeof(kRecords
 static_assert(kRecordCount == 69);
 constexpr int kFirstNewId = 300;
 
-const ScriptKeyword* GameTable() { return ei::GamePointer<const ScriptKeyword>(0x0078BCA0); }
-
 // _stricmp in the "C" locale (the names are ASCII).
 int AsciiStricmp(const char* a, const char* b) {
     for (;; ++a, ++b) {
@@ -142,7 +140,7 @@ const Built& Build() {
         Built b;
         std::memset(b.recordById, -1, sizeof(b.recordById));
         b.table.reserve(300);
-        for (const ScriptKeyword* k = GameTable(); k->name; ++k) b.table.push_back(*k);
+        for (const ScriptKeyword* k = kScriptKeywords; k->name; ++k) b.table.push_back(*k);
         for (int r = 0; r < kRecordCount; ++r) {
             const Record& record = kRecords[r];
             bool function = std::strchr("FGOS", record.signature[0]) != nullptr && record.signature[0] != 0;

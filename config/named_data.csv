@@ -190,6 +190,10 @@ address,size,name,file
 0078ACF8,64,kTransAlpha,src/game/particle_callbacks.cpp
 0078B0E8,4,g_nextPartyId,src/game/party_records.cpp
 0078B120,768,kScriptParticleTypes,src/game/script_effects.cpp
+0078BC8C,4,kCommentOpen,src/game/script_parse.h
+0078BC90,4,kCommentClose,src/game/script_parse.h
+0078BC94,4,kLineComment,src/game/script_parse.h
+0078BCA0,3616,kScriptKeywords,src/game/script_parse.cpp
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
