@@ -174,8 +174,10 @@ address,size,name,file
 00797198,24,g_classCByteArray,src/lib/mfc_coll.cpp
 00797680,4,kClassFlags,src/lib/crt_locale.cpp
 00797688,240,kCodePageTable,src/lib/crt_locale.cpp
+00797778,4,g_cLocaleName,src/lib/crt_locale.cpp
 0079777C,132,g_cacheIn,src/lib/crt_locale_data.cpp
 00797800,132,g_cacheOut,src/lib/crt_locale_data.cpp
+00797888,72,g_localeCategories,src/lib/crt_locale.cpp
 00797CC0,216,kMathFunctionNames,src/lib/crt_x87.cpp
 00797DD8,4,g_pctype,src/lib/crt_locale_data.cpp
 00797DDC,4,g_pwctype,src/lib/crt_locale_data.cpp

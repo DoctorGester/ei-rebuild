@@ -27,7 +27,7 @@ address,what,reason
 00746A00-00746C98,data,"CWnd's message map entries: dispatched only by CWnd::OnWndMsg (no MFC window procedure in the image)"
 007472C0 007472E0 00747338 00747344 00747350,data,"SEH scope tables of the exe's CRT functions: read by _except_handler3 only while their own function's frame is live"
 007975A0 007975A4 007975A8,data,"_FPinit, _FPmtinit / _FPmtterm: called by the exe's CRT start-up and thread set-up (_cinit, _mtinit); the host owns both"
-007978A8,data,"__lc_category's LC_CTYPE init (__init_ctype): our setlocale (crt_locale.cpp) calls InitCtype directly, never through the table"
+"006F4589 006F437D 006F3E0E",address,"__init_monetary, __init_numeric, __init_time (crt_locale.cpp's category table, UnportedSlot): setlocale rebuilds them only for their category, and the game sets LC_CTYPE only"
 007978E0,data,"_aexit_rtn (_exit): called by the exe's _amsg_exit only"
 00783BC0,data,"the __xi table's __initmbctable: the image runs none of the C initialiser table; the host calls InitMultibyteTable itself (src/hook/standalone.cpp)"
 007975C8 00797B60 00797B74,data,"the exe CRT's unhandled-exception filter, unexpected and terminate handlers: read only by its own EH code; the image's C++ exceptions are the host's"

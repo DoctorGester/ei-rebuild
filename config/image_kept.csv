@@ -1,3 +1,1 @@
 address,size,owner,kind,what
-007472E4,64,src/lib/crt_locale.cpp,rdata text,"the locale categories' names (""LC_TIME"" .. ""LC_ALL""; __lc_category's cells)"
-00797778,4,src/lib/crt_locale.cpp,data text,"the static locale name ""C"" (StaticC, __lc_category's cells)"

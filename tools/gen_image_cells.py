@@ -96,7 +96,6 @@ REVIEWED_DATA = [
                                  'descriptors (".PAV...")'),
     # .data
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
-    (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
     (0x00797C04, 0x00797C44, 4, 'the CRT\'s lock table (_locktable, _mtinitlocks 006F0741): preallocated critical '
                                 'sections'),
@@ -151,7 +150,6 @@ REVIEWED_RDATA = [
                                  "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
     (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s (retired: '
                                  'nothing calls a descriptor\'s virtual; named_data.RETIRED_POINTED)', 0x007472B0),
-    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
     (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
@@ -194,8 +192,7 @@ CODE_REVIEWED = [
     (0x007975A0, 0x007975C8, 4, "the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and "
                                    "__pInconsistency"),
     (0x00797640, 0x0079768C, 16, "the CRT's math error handling: fmod's dispatch table (into its code)"),
-    (0x0079788C, 0x007978E0, 7, "the CRT's locale categories (00797888): each one's init function, and the "
-                                   "next hook"),
+    (0x007978E0, 0x007978E0, 1, "the CRT's next hook after the locale categories (00797888, named: crt_locale.cpp)"),
     (0x00797B10, 0x00797B24, 6, 'the CRT\'s table of six handlers (006F9696, read by 006E72E4)'),
     (0x00797B60, 0x00797B74, 2, "the CRT's exception action table's default handlers"),
 ]
