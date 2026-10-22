@@ -13,13 +13,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <corecrt_startup.h>
 #include <malloc.h>
 #include <mbctype.h>
 #include <mbstring.h>
 #include <ctype.h>
-#include <mutex>
 #include <new>
-#include <vector>
 
 namespace gamecrt {
 
@@ -608,52 +607,20 @@ EI_REWRITTEN(0x0043B310, libcrt::NodeDeallocateChecked);
 void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
 EI_REWRITTEN(0x00426450, libcrt::NodeDeallocateCheckedStd);
 
-namespace {
-// The onexit list, run last-registered first by exit (functions registered while it runs, too).
-std::mutex& ExitLock() {
-    static std::mutex lock;
-    return lock;
-}
-std::vector<ExitFunction>& ExitFunctions() {
-    static std::vector<ExitFunction> functions;
-    return functions;
-}
-} // namespace
-
+// The onexit list is the host CRT's (C26): _crt_atexit's table, which std::exit runs last-registered first
+// (functions registered while it runs, too) before the host's own terminators. A function registered at its
+// address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 ExitFunction __cdecl OnExit(ExitFunction function) {
-    std::lock_guard<std::mutex> hold(ExitLock());
-    try {
-        ExitFunctions().push_back(function);
-    } catch (const std::bad_alloc&) {
-        return nullptr;
-    }
-    return function;
+    return _crt_atexit(ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))) == 0 ? function : nullptr;
 }
 EI_REWRITTEN(0x006E71FD, libcrt::OnExit);
 
 int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
 EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
 
-// exit: the onexit list, then the host CRT's exit. The exe's own terminators (__xp / __xt, for the
-// game CRT's streams) have nothing to do in the image, where the streams are the host's. A function
-// registered at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
-void __cdecl Exit(int code) {
-    static bool exiting = false;
-    if (!exiting) {
-        exiting = true;
-        for (;;) {
-            ExitFunction function = nullptr;
-            {
-                std::lock_guard<std::mutex> hold(ExitLock());
-                if (ExitFunctions().empty()) break;
-                function = ExitFunctions().back();
-                ExitFunctions().pop_back();
-            }
-            if (function) ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))();
-        }
-    }
-    std::exit(code);
-}
+// exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
+// in the image, where the streams are the host's.
+void __cdecl Exit(int code) { std::exit(code); }
 EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 
 } // namespace libcrt

@@ -211,7 +211,7 @@ each step green on the goldens and removing a measured tie:
   binds once its code is fixed, the registration or the address itself in game.exe, never a redirection or a stub;
   `RedirectCode` unbinds them all; the harness step `codebinding off` too, for an A/B), the static
   initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
-  the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
+  the WndProc and new handlers) and the CRT's takers of function pointers (atexit, at the registration; qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
   image_code_cells.inc (7,928 cells of .rdata and .data holding a function start: vtable slots, ThrowInfo
@@ -1593,7 +1593,9 @@ the `--no-hooks` suite) keeps the registry.
   STLport node allocator 00405950 / 00404D70 with refill 004060E0 and chunk_alloc 00406B70 is ported exactly (the
   pool is the exe's data). Nothing frees across heaps: our code takes game memory only through libcrt; the host CRT
   keeps its own (std containers, FILE buffers).
-- **atexit / exit**: our list, then the host CRT's exit. rand / srand: the seed is a thread_local in the image
+- **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
+  `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
+  table before the host's terminators. rand / srand: the seed is a thread_local in the image
   (`libcrt::RandState()`, which the harness's digest and randtrace read; the image has no _getptd 006F00D1).
 - **Formatting** (crt_format.cpp): sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F are VC6's
   `_output` (the `__lookuptable` state machine copied from 007476D0, `%I64`, `%Z`, "(null)"). Floats are not "17
