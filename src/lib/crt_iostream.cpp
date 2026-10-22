@@ -15,37 +15,18 @@
 
 #include <cstring>
 
-extern "C" int __cdecl _purecall();
-
 namespace libcrt {
 
 namespace {
 
 constexpr int kEof = -1;
 
-// The compiled tables (C19) the constructors and destructors write in place of game.exe's: streambuf's (007482AC: 0
-// the deleting destructor, 1-6 and 9-10 the base class's bodies, 7 overflow and 8 underflow the compiler CRT's
-// `_purecall`), ios's (007482E8) and ostream's for its ios (00748280), one slot each (the deleting destructor); and
-// game.exe's ostream virtual base table (the ios 8 bytes in), which is data.
-struct StreambufTable final : ei::CompiledDeleter<StreambufTable, &Streambuf::DeletingDestruct> {
-    virtual int Sync() { return This()->DefaultSync(); }                                                   // 1
-    virtual Streambuf* Setbuf(char* buffer, int length) { return This()->DefaultSetbuf(buffer, length); }  // 2
-    virtual long Seekoff(long offset, int direction, int mode) { return This()->DefaultSeekoff(offset, direction, mode); }   // 3
-    virtual long Seekpos(long position, int mode) { return This()->DefaultSeekpos(position, mode); }       // 4
-    virtual int Xsputn(const char* text, int count) { return This()->DefaultXsputn(text, count); }         // 5
-    virtual int Xsgetn(char* text, int count) { return This()->DefaultXsgetn(text, count); }               // 6
-    virtual int Overflow(int) { return _purecall(); }                                                      // 7
-    virtual int Underflow() { return _purecall(); }                                                        // 8
-    virtual int Pbackfail(int c) { return This()->DefaultPbackfail(c); }                                   // 9
-    virtual int Doallocate() { return This()->DefaultDoallocate(); }                                       // 10
-
-private:
-    Streambuf* This() { return ObjectAs<Streambuf>(); }
-};
+// The compiled tables (C19) the constructors and destructors write in place of game.exe's: ios's (007482E8) and
+// ostream's for its ios (00748280), one slot each (the deleting destructor); and game.exe's ostream virtual base table
+// (the ios 8 bytes in), which is data.
 struct IosTable final : ei::CompiledDeleter<IosTable, &Ios::DeletingDestruct> {};
 struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::DeleteOstream> {};
 
-const void* StreambufVtable() { return StreambufTable::Vtable(); }
 const void* IosVtable() { return IosTable::Vtable(); }
 const void* OstreamIosVtable() { return OstreamIosTable::Vtable(); }
 // ostream's virtual base table: its own offset in the object, then the ios's.
@@ -174,9 +155,11 @@ void Ios::Unlock() {
 
 // ---- streambuf -----------------------------------------------------------------------------------------
 
-Streambuf* Streambuf::Construct(char* buffer, int length) {
+void* Streambuf::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void Streambuf::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+Streambuf::Streambuf(char* buffer, int length) {
     lastChar = kEof;
-    SetVtable(StreambufVtable());
     allocated = 0;
     unbuffered = 0;
     base = buffer;
@@ -190,24 +173,16 @@ Streambuf* Streambuf::Construct(char* buffer, int length) {
     }
     lockFlag = -1;
     gameapi::InitializeCriticalSection(&lock);
-    return this;
 }
-EI_REWRITTEN(0x006FCAD2, libcrt::Streambuf::Construct);
+EI_REWRITTEN_SPECIAL(0x006FCAD2, libcrt::Streambuf::Streambuf);
 
-void Streambuf::Destruct() {
-    SetVtable(StreambufVtable());
+Streambuf::~Streambuf() {
     gameapi::DeleteCriticalSection(&lock);
-    DefaultSync();
+    Streambuf::Sync();
     if (allocated && base) gamecrt::operator_delete(base);
 }
-EI_REWRITTEN(0x006FCB35, libcrt::Streambuf::Destruct);
-
-Streambuf* Streambuf::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x006FCAB6, libcrt::Streambuf::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x006FCB35, libcrt::Streambuf::~Streambuf);
+EI_REWRITTEN_SPECIAL(0x006FCAB6, libcrt::Streambuf::~Streambuf);   // deleting
 
 // setb: the reserve area replaced (the old one freed when owned).
 void Streambuf::Setb(char* reserve, char* reserveEnd, int owned) {
@@ -228,15 +203,15 @@ int Streambuf::Sputbackc(char c) {
 }
 
 // Nothing to do when neither area holds anything; EOF when one does (the base class cannot flush).
-int Streambuf::DefaultSync() {
+int Streambuf::Sync() {
     if (gptr < egptr || pptr > pbase) return kEof;
     return 0;
 }
-EI_REWRITTEN(0x006FCC86, libcrt::Streambuf::DefaultSync);
+EI_REWRITTEN(0x006FCC86, libcrt::Streambuf::Sync);
 
 // Only while there is no reserve area yet (null otherwise): `buffer` becomes it, or with a null buffer or a
 // zero length the streambuf goes unbuffered.
-Streambuf* Streambuf::DefaultSetbuf(char* buffer, int length) {
+Streambuf* Streambuf::Setbuf(char* buffer, int length) {
     if (base) return nullptr;
     if (buffer && length) {
         base = buffer;
@@ -247,17 +222,17 @@ Streambuf* Streambuf::DefaultSetbuf(char* buffer, int length) {
     }
     return this;
 }
-EI_REWRITTEN(0x006FCB65, libcrt::Streambuf::DefaultSetbuf);
+EI_REWRITTEN(0x006FCB65, libcrt::Streambuf::Setbuf);
 
-long Streambuf::DefaultSeekoff(long, int, int) { return kEof; }
-EI_REWRITTEN(0x006FCD18, libcrt::Streambuf::DefaultSeekoff);
+long Streambuf::Seekoff(long, int, int) { return kEof; }
+EI_REWRITTEN(0x006FCD18, libcrt::Streambuf::Seekoff);
 
-long Streambuf::DefaultSeekpos(long position, int mode) { return Seekoff(position, 0, mode); }
-EI_REWRITTEN(0x006FCD1E, libcrt::Streambuf::DefaultSeekpos);
+long Streambuf::Seekpos(long position, int mode) { return Seekoff(position, 0, mode); }
+EI_REWRITTEN(0x006FCD1E, libcrt::Streambuf::Seekpos);
 
 // Byte by byte: into the put area while it has room (and the streambuf is buffered), else overflow, until
 // overflow fails. The count put.
-int Streambuf::DefaultXsputn(const char* text, int count) {
+int Streambuf::Xsputn(const char* text, int count) {
     int put = 0;
     while (count-- != 0) {
         if (!unbuffered && pptr < epptr) {
@@ -270,11 +245,11 @@ int Streambuf::DefaultXsputn(const char* text, int count) {
     }
     return put;
 }
-EI_REWRITTEN(0x006FCB99, libcrt::Streambuf::DefaultXsputn);
+EI_REWRITTEN(0x006FCB99, libcrt::Streambuf::Xsputn);
 
 // Unbuffered: the look-ahead byte (lastChar, fetched by underflow when it is EOF) and the next one after
 // each. Buffered: underflow, then what the get area holds, until `count` bytes or EOF. The count got.
-int Streambuf::DefaultXsgetn(char* text, int count) {
+int Streambuf::Xsgetn(char* text, int count) {
     int got = 0;
     if (unbuffered) {
         if (lastChar == kEof) lastChar = Underflow();
@@ -298,12 +273,12 @@ int Streambuf::DefaultXsgetn(char* text, int count) {
     }
     return got;
 }
-EI_REWRITTEN(0x006FCBEF, libcrt::Streambuf::DefaultXsgetn);
+EI_REWRITTEN(0x006FCBEF, libcrt::Streambuf::Xsgetn);
 
 // Room before gptr: sputbackc. Otherwise the source is asked to step back one byte (seekoff(-1, cur, in));
 // when it can and the streambuf is buffered with a get area, the get area shifts up one byte (its last byte
 // dropped; VC6's count, egptr - gptr - 1, as it is) and `c` goes in at gptr. `c`, or EOF.
-int Streambuf::DefaultPbackfail(int c) {
+int Streambuf::Pbackfail(int c) {
     if (eback < gptr) return Sputbackc(static_cast<char>(c));
     if (Seekoff(-1, 1, 1) == kEof) return kEof;
     if (!unbuffered && egptr) {
@@ -312,15 +287,15 @@ int Streambuf::DefaultPbackfail(int c) {
     }
     return c;
 }
-EI_REWRITTEN(0x006FCD30, libcrt::Streambuf::DefaultPbackfail);
+EI_REWRITTEN(0x006FCD30, libcrt::Streambuf::Pbackfail);
 
-int Streambuf::DefaultDoallocate() {
+int Streambuf::Doallocate() {
     char* reserve = gamecrt::operator_new_array<char>(kReserveSize);
     if (!reserve) return kEof;
     Setb(reserve, reserve + kReserveSize, 1);
     return 1;
 }
-EI_REWRITTEN(0x006FCCBB, libcrt::Streambuf::DefaultDoallocate);
+EI_REWRITTEN(0x006FCCBB, libcrt::Streambuf::Doallocate);
 
 // ---- ios and ostream ------------------------------------------------------------------------------------
 

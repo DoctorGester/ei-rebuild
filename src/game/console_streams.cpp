@@ -47,13 +47,13 @@ void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exi
 }
 // A streambuf: built for its message filter (005DC200), destroyed by 005DC260.
 void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
-    buffer->Construct(filter);
+    buffer.Construct(filter);
     libcrt::AtExit(exit);
 }
 // An ostream on its streambuf (ostream(streambuf*, 1), 006FC42F); destroyed through its ios, ostream's part
 // (006FC502) and then ios's (006FCEDC).
 void BuildStream(OStreamObject& stream, StreambufObject& buffer, ExitFunction exit) {
-    stream.Construct(buffer->Base(), 1);
+    stream.Construct(&buffer.Get(), 1);
     libcrt::AtExit(exit);
 }
 void DestroyStream(OStreamObject& stream) {
@@ -66,14 +66,14 @@ void __cdecl DestroyPublicCommands() { lib_trees::Commands::Destroy(&console::g_
 void __cdecl ConstructCheatCommands() { BuildCommands(console::g_cheatCommands, DestroyCheatCommands); }     // 005DC050
 void __cdecl ConstructPublicCommands() { BuildCommands(console::g_publicCommands, DestroyPublicCommands); }  // 005DC120
 
-void __cdecl DestroyAiLogBuf() { console::g_aiLogBuf->Destruct(); }                    // 005DC2C0
-void __cdecl DestroyEventLogBuf() { console::g_eventLogBuf->Destruct(); }              // 005DC2F0
-void __cdecl DestroyGraphicsLogBuf() { console::g_graphicsLogBuf->Destruct(); }        // 005DC320
-void __cdecl DestroyRpgLogBuf() { console::g_rpgLogBuf->Destruct(); }                  // 005DC350
-void __cdecl DestroyUnitAcksLogBuf() { console::g_unitAcksLogBuf->Destruct(); }        // 005DC380
-void __cdecl DestroyNetLogBuf() { console::g_netLogBuf->Destruct(); }                  // 005DC3B0
-void __cdecl DestroyAllLogBuf() { console::g_allLogBuf->Destruct(); }                  // 005DC3E0
-void __cdecl DestroyConsoleBuf() { console::g_consoleBuf->Destruct(); }                // 005DC410
+void __cdecl DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }                    // 005DC2C0
+void __cdecl DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }              // 005DC2F0
+void __cdecl DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }        // 005DC320
+void __cdecl DestroyRpgLogBuf() { console::g_rpgLogBuf.Destroy(); }                  // 005DC350
+void __cdecl DestroyUnitAcksLogBuf() { console::g_unitAcksLogBuf.Destroy(); }        // 005DC380
+void __cdecl DestroyNetLogBuf() { console::g_netLogBuf.Destroy(); }                  // 005DC3B0
+void __cdecl DestroyAllLogBuf() { console::g_allLogBuf.Destroy(); }                  // 005DC3E0
+void __cdecl DestroyConsoleBuf() { console::g_consoleBuf.Destroy(); }                // 005DC410
 void __cdecl ConstructAiLogBuf() { BuildStreambuf(console::g_aiLogBuf, 1, DestroyAiLogBuf); }                      // 005DC1E0
 void __cdecl ConstructEventLogBuf() { BuildStreambuf(console::g_eventLogBuf, 2, DestroyEventLogBuf); }             // 005DC2D0
 void __cdecl ConstructGraphicsLogBuf() { BuildStreambuf(console::g_graphicsLogBuf, 4, DestroyGraphicsLogBuf); }    // 005DC300

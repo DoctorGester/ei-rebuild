@@ -3,51 +3,45 @@
 // MSVC 6's old iostream library (<iostream.h>) as the game's streams use it: streambuf, ios and the
 // ostream inserters (S4c), the constructors, destructors and streambuf's default virtuals (S4d;
 // src/lib/crt_iostream.cpp). The game's streams are its own objects (the console's eight ostreams and
-// their streambufs); these are their layouts. The objects carry the exe's vtables (streambuf 007482AC,
-// ios 007482E8, ostream's ios 00748280), which the constructors write.
+// their streambufs); these are their layouts. streambuf is a real class (C28n); ios and ostream's ios carry
+// compiled stand-ins of the exe's tables (007482E8, 00748280), which the constructors write: the console's
+// ostreams are constant-initialised statics that game.exe's data points at, which a class with a virtual
+// base cannot be.
 
+#include <cstddef>
 #include <cstdint>
 #include <windows.h>   // CRITICAL_SECTION
 
 namespace libcrt {
 
-// streambuf (vtable 007482AC). The slots in the exe's order; overflow and underflow are pure. The
-// Default* members are the base class's bodies those slots hold, which a derived streambuf (the console's,
-// vtable 00740034) inherits; they call the other slots through the object's own vtable.
+// streambuf (game.exe's table 007482AC). The slots in the exe's order; overflow and underflow are pure, the rest the
+// base class's bodies, which a derived streambuf (the console's, game.exe's 00740034) inherits.
 class Streambuf {
 public:
-    virtual ~Streambuf() = default;                                    // 0: scalar deleting destructor
-    virtual int Sync() = 0;                                            // 1 (006FCC86)
-    virtual Streambuf* Setbuf(char* buffer, int length) = 0;           // 2 (006FCB65)
-    virtual long Seekoff(long offset, int direction, int mode) = 0;    // 3 (006FCD18)
-    virtual long Seekpos(long position, int mode) = 0;                 // 4 (006FCD1E)
-    virtual int Xsputn(const char* text, int count) = 0;               // 5 (006FCB99)
-    virtual int Xsgetn(char* text, int count) = 0;                     // 6 (006FCBEF)
+    // 006FCB35 (0; deleting 006FCAB6): the lock deleted, the base class's sync (non-virtual), the reserve area freed
+    // when the streambuf allocated it.
+    virtual ~Streambuf();
+    virtual int Sync();                                                // 1: 006FCC86: EOF if anything is pending
+    virtual Streambuf* Setbuf(char* buffer, int length);               // 2: 006FCB65 (RET 8)
+    virtual long Seekoff(long offset, int direction, int mode);        // 3: 006FCD18: EOF (RET 0xC)
+    virtual long Seekpos(long position, int mode);                     // 4: 006FCD1E: seekoff from the start
+    virtual int Xsputn(const char* text, int count);                   // 5: 006FCB99 (RET 8)
+    virtual int Xsgetn(char* text, int count);                         // 6: 006FCBEF (RET 8)
     virtual int Overflow(int c) = 0;                                   // 7
     virtual int Underflow() = 0;                                       // 8
-    virtual int Pbackfail(int c) = 0;                                  // 9 (006FCD30)
-    virtual int Doallocate() = 0;                                      // 10 (006FCCBB)
+    virtual int Pbackfail(int c);                                      // 9: 006FCD30 (RET 4)
+    virtual int Doallocate();                                          // 10: 006FCCBB: 0x200 bytes
 
     // sputc (006FC12C, the header's inline): into the put area, else overflow; the byte, or EOF.
     int Sputc(int c);
     void Lock();     // when lockFlag is negative: the critical section
     void Unlock();
 
-    // streambuf(char*, int) (006FCAD2, RET 8): the reserve area `buffer` of `length` bytes (none, and
-    // unbuffered, when either is zero), every get / put pointer null, locked (lockFlag -1).
-    Streambuf* Construct(char* buffer, int length);
-    // ~streambuf (006FCB35): the vtable back to streambuf's, the lock deleted, the base class's sync
-    // (non-virtual), the reserve area freed when the streambuf allocated it.
-    void Destruct();
-    Streambuf* DeletingDestruct(unsigned flags);                       // 006FCAB6 (slot 0, RET 4)
-    int DefaultSync();                                                 // 006FCC86: EOF if anything is pending
-    Streambuf* DefaultSetbuf(char* buffer, int length);                // 006FCB65 (RET 8)
-    long DefaultSeekoff(long offset, int direction, int mode);         // 006FCD18: EOF (RET 0xC)
-    long DefaultSeekpos(long position, int mode);                      // 006FCD1E: seekoff from the start
-    int DefaultXsputn(const char* text, int count);                    // 006FCB99 (RET 8)
-    int DefaultXsgetn(char* text, int count);                          // 006FCBEF (RET 8)
-    int DefaultPbackfail(int c);                                       // 006FCD30 (RET 4)
-    int DefaultDoallocate();                                           // 006FCCBB: 0x200 bytes
+    // The game's heap (an ios that owns its streambuf deletes it).
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
     int allocated;               // +0x04
     int unbuffered;              // +0x08
@@ -63,8 +57,12 @@ public:
     int lockFlag;                // +0x30
     CRITICAL_SECTION lock;       // +0x34
 
+protected:
+    // streambuf(char*, int) (006FCAD2, RET 8): the reserve area `buffer` of `length` bytes (none, and unbuffered,
+    // when either is zero), every get / put pointer null, locked (lockFlag -1).
+    Streambuf(char* buffer, int length);
+
 private:
-    void SetVtable(const void* table) { *reinterpret_cast<const void**>(this) = table; }
     void Setb(char* reserve, char* reserveEnd, int owned);   // 006FCCE8
     int Sputbackc(char c);                                   // 006FCD8C
 };

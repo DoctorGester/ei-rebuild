@@ -350,7 +350,7 @@ vtable,slots,class,file,note
 0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearMode,src/game/unit_ai.h,the Fear AI mode
-00740034,11,ConsoleStreambufClass,src/game/console.cpp,the console streambuf (ConsoleStreambuf; nine instances, one per message filter)
+00740034,11,ConsoleStreambuf,src/game/console.h,the console streambuf (ConsoleStreambuf; nine instances, one per message filter)
 007400A8,13,CChatOverlay,src/game/ui.h,the chat overlay's input side
 007400DC,25,CChatOverlay,src/game/ui.h,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
@@ -610,5 +610,5 @@ vtable,slots,class,file,note
 007472B0,1,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image (named_data.RETIRED_POINTED)"
 00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
 00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
-007482AC,11,StreambufTable,src/lib/crt_iostream.cpp,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)
+007482AC,11,Streambuf,src/lib/crt_iostream.h,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)
 007482E8,1,IosTable,src/lib/crt_iostream.cpp,ios

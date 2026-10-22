@@ -136,44 +136,25 @@ void EndLine(GameOStream& os);
 // Out() << text, then EndLine.
 void PrintLine(const char* text);
 
-// The console's streambuf (vtable 00740034; nine static instances, one per message filter: 0 the
-// console itself 007C5868, then ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1).
-// Characters collect in the put area (the 0x400-byte buffer at +0x54) and move into the line
-// (+0x50) on overflow; sync hands the line to the console window.
-class ConsoleStreambuf {
+// The console's streambuf (game.exe's table 00740034; eight static instances, one per message filter: 0 the console
+// itself 007C5868, then ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the
+// put area (the 0x400-byte buffer at +0x54) and move into the line (+0x50) on overflow; sync hands the line to the
+// console window.
+class ConsoleStreambuf final : public libcrt::Streambuf {
 public:
-    // The compiled table (C19, console.cpp) in place of game.exe's 00740034.
-    static void* Vtable();
-    ConsoleStreambuf* Construct(unsigned filter);         // 005DC200
-    void Destruct();                                      // 005DC260
-    ConsoleStreambuf* DeletingDestruct(unsigned flags);   // 005DC240 (vtable slot 0)
-    int Sync();                                           // 005DC1B0 (slot 1)
-    int Overflow(int c);                                  // 005DC150 (slot 7)
-    // The old iostream streambuf base part (libcrt::Streambuf: 006FCAD2 streambuf(char*, int) and
-    // 006FCB35 ~streambuf).
-    libcrt::Streambuf* Base() { return reinterpret_cast<libcrt::Streambuf*>(this); }
+    // 005DC200: the base on buffer_, the filter, the empty line.
+    explicit ConsoleStreambuf(unsigned filter);
+    // 005DC260 (deleting 005DC240): the line released (a member), then the base's.
+    ~ConsoleStreambuf() override;
+    int Sync() override;                 // 005DC1B0 (slot 1)
+    int Overflow(int c) override;        // 005DC150 (slot 7)
+    int Underflow() override;            // 005DC230 (slot 8): EOF
 
-    void** vtable_;
-    int allocated_;            // +0x04 streambuf members (old iostream)
-    int unbuffered_;           // +0x08
-    int lastChar_;             // +0x0C
-    char* base_;               // +0x10
-    char* ebuf_;               // +0x14
-    char* pbase_;              // +0x18
-    char* pptr_;               // +0x1C
-    char* epptr_;              // +0x20
-    char* eback_;              // +0x24
-    char* gptr_;               // +0x28
-    char* egptr_;              // +0x2C
-    int lockFlag_;             // +0x30
-    std::uint8_t lock_[0x18];  // +0x34 CRITICAL_SECTION
     unsigned filter_;          // +0x4C message category; 0 = always shown
     mfc::CString line_;        // +0x50
     char buffer_[0x400];       // +0x54
 };
 static_assert(sizeof(ConsoleStreambuf) == 0x454);
-static_assert(offsetof(ConsoleStreambuf, base_) == 0x10 && offsetof(ConsoleStreambuf, filter_) == 0x4C &&
-              offsetof(ConsoleStreambuf, line_) == 0x50 && offsetof(ConsoleStreambuf, buffer_) == 0x54);
 
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the console window
 // gets it. game.exe's run has the harness take game.exe's sync slot instead.

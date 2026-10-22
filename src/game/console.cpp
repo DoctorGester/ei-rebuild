@@ -77,76 +77,38 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 // ---- Console streambuf --------------------------------------------------------------------------
 
-namespace {
-// The console streambuf's compiled table (C19; game.exe's 00740034): 0 the deleting destructor, 1 Sync, 7 Overflow,
-// 8 underflow (005DC230: EOF), the rest old iostream streambuf's defaults (libcrt::Streambuf).
-struct ConsoleStreambufClass final : ei::CompiledDeleter<ConsoleStreambufClass, &ConsoleStreambuf::DeletingDestruct> {
-    virtual int Sync() { return Self()->Sync(); }                                                          // 1: 005DC1B0
-    virtual libcrt::Streambuf* Setbuf(char* buffer, int length) { return Base()->DefaultSetbuf(buffer, length); }   // 2
-    virtual long Seekoff(long offset, int direction, int mode) { return Base()->DefaultSeekoff(offset, direction, mode); }   // 3
-    virtual long Seekpos(long position, int mode) { return Base()->DefaultSeekpos(position, mode); }       // 4
-    virtual int Xsputn(const char* text, int count) { return Base()->DefaultXsputn(text, count); }         // 5
-    virtual int Xsgetn(char* text, int count) { return Base()->DefaultXsgetn(text, count); }               // 6
-    virtual int Overflow(int c) { return Self()->Overflow(c); }                                            // 7: 005DC150
-    virtual int Underflow() { return -1; }                                                                 // 8: 005DC230
-    virtual int Pbackfail(int c) { return Base()->DefaultPbackfail(c); }                                   // 9
-    virtual int Doallocate() { return Base()->DefaultDoallocate(); }                                       // 10
-
-private:
-    ConsoleStreambuf* Self() { return ObjectAs<ConsoleStreambuf>(); }
-    libcrt::Streambuf* Base() { return ObjectAs<libcrt::Streambuf>(); }
-};
-} // namespace
-
-void* ConsoleStreambuf::Vtable() { return ConsoleStreambufClass::Vtable(); }
-
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
 // 005DC200
-ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
-    Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
-    filter_ = filter;
-    ::new (&line_) mfc::CString;   // the shared empty string
-    vtable_ = static_cast<void**>(Vtable());
-    return this;
-}
-EI_REWRITTEN(0x005DC200, ConsoleStreambuf::Construct);
+ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : Streambuf(buffer_, sizeof(buffer_)), filter_(filter) {}
+EI_REWRITTEN_SPECIAL(0x005DC200, ConsoleStreambuf::ConsoleStreambuf);
 
 // 005DC260
-void ConsoleStreambuf::Destruct() {
-    vtable_ = static_cast<void**>(Vtable());
-    line_.~CString();
-    Base()->Destruct();   // 006FCB35
-}
-EI_REWRITTEN(0x005DC260, ConsoleStreambuf::Destruct);
+ConsoleStreambuf::~ConsoleStreambuf() {}
+EI_REWRITTEN_SPECIAL(0x005DC260, ConsoleStreambuf::~ConsoleStreambuf);
+EI_REWRITTEN_SPECIAL(0x005DC240, ConsoleStreambuf::~ConsoleStreambuf);   // deleting
 
-// 005DC240
-ConsoleStreambuf* ConsoleStreambuf::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005DC240, ConsoleStreambuf::DeletingDestruct);
+// 005DC230
+int ConsoleStreambuf::Underflow() { return -1; }
 
 // 005DC150: moves the put area (and `c`, unless EOF) into the line, when this streambuf's
 // category is shown; a hidden category keeps its put area as it is. Always returns 0.
 int ConsoleStreambuf::Overflow(int c) {
     if (filter_ == 0 || (g_filterMask & filter_) != 0) {
-        const char* end = pptr_;
-        for (const char* p = pbase_; p < end; ++p) Ops(line_).AppendChar(*p);
+        const char* end = pptr;
+        for (const char* p = pbase; p < end; ++p) Ops(line_).AppendChar(*p);
         if (c != -1) Ops(line_).AppendChar(static_cast<char>(c));
-        pbase_ = base_;
-        pptr_ = base_;
-        epptr_ = ebuf_;
+        pbase = base;
+        pptr = base;
+        epptr = ebuf;
     }
     return 0;
 }
 EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 
-// 005DC1B0: overflow(EOF) through the vtable, the line to the console window, then empty it.
+// 005DC1B0: overflow(EOF), the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
-    using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
-    ei::VirtualSlot<OverflowFn>(vtable_, 7)(this, -1);
+    Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_);
     TheInterface()->ConsoleAddText(line_);
     line_ = game::EmptyText();   // ""
