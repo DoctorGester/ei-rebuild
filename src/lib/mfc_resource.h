@@ -1,12 +1,9 @@
 #pragma once
 
 // MFC 4.2's resource strings and their formatting (strcore.cpp, winstr.cpp, appui1.cpp) as the
-// game's copy has them (ticket S8b, docs/notes/standalone.md section 2). The strings are game.exe's
-// string table (MFC's 0xF0xx / 0xF1xx prompts): LoadStringA on the module state's resource handle,
-// which is null in both builds (the game never runs AfxWinInit), through the exe's import slot. In
-// game.exe that is the process's own module; in the standalone image too: the host, which has game.exe's
-// resources built in (S18j). Registered at the library addresses
-// (mfc_resource.cpp), checked in game by verify_mfc_resource.cpp until S21d.
+// game's copy has them (ticket S8b, docs/notes/standalone.md section 2). The strings are a table in code
+// (mfc_resource.cpp) holding the texts of MFC's 0xF0xx / 0xF1xx ids our code can reach (C23: the host has no
+// string table). Registered at the library addresses (mfc_resource.cpp).
 
 #include "mfc_string.h"
 
