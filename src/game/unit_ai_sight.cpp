@@ -54,7 +54,8 @@ bool IsZero(double v) {
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    return *reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(&os)->PutInt(value));
+    os.PutInt(value);   // returns the stream itself
+    return os;
 }
 
 // "Unit <self> <text> <other>" (no line end).
