@@ -61,7 +61,7 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     if (!surface) ThrowSurfaceNotMade(device, 0, 0);
     CDXSurface* previous = surface_;
     surface_ = surface;
-    if (surface) ++surface->refCount;
+    if (surface) ++surface->refs_;
     if (previous) previous->Release();
 
     // The byte size is meant to be bits * width * height / 8, but the original takes the bits from

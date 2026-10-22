@@ -1,11 +1,8 @@
-// The renderer's helper object (CRenderHelper, model.h; RenderHelperClass's table: the Direct3D state blocks
-// behind the material presets) and the old renderer's other scalar deleting destructors (A-S11).
-// Rewritten here: the helper (its constructor with the nine built-in presets' state lists, the
-// destructor, the state blocks' recording and release, and the slots that read its tables), its
-// preset's destructor, the Direct3D driver list's lookup by index, the "destructor body, then
-// operator delete" shells of five classes, and the transform pipeline's constructor and destructor
-// with its matrix stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
-// here. See docs/notes/renderer.md (section 12).
+// The renderer's helper object (CRenderHelper, model.h: the Direct3D state blocks behind the material presets;
+// A-S11). Rewritten here: the helper (its constructor with the nine built-in presets' state lists, the destructor,
+// the state blocks' recording and release, and the slots that read its tables), its preset's constructor and
+// destructor, the Direct3D driver list's lookup by index, and the transform pipeline's constructor and destructor
+// with its matrix stacks'. See docs/notes/renderer.md (section 12).
 #include "app.h"
 #include "core_refcount.h"
 #include "device.h"   // the old device's calls
@@ -15,7 +12,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -27,7 +23,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <optional>
 
 namespace {
 
@@ -83,7 +78,7 @@ void Retain(CRenderPreset* preset) {
     if (preset) ++preset->refs_;
 }
 void Release(CRenderPreset* preset) {
-    if (preset && --preset->refs_ == 0) preset->DeleteThis(1);
+    if (preset && --preset->refs_ == 0) delete preset;
 }
 
 // 004FD920 / 004FDFE0: a record's destructor: the preset released, the states' storage freed.
@@ -116,39 +111,13 @@ void AssignStates(StateVector* out, const StateVector& source) {
 }
 
 constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for (0x400 bytes)
-constexpr int kMatrixStacks = 16;
 
-void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
-
-// The compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's: the preset's 0073D880 (0 the deleting
-// destructor, 1 Index) and the helper's 0073D840 (its eight slots, model.h).
-struct RenderPresetClass final : ei::CompiledDeleter<RenderPresetClass, &CRenderPreset::DeleteScalar> {
-    virtual unsigned Index() { return static_cast<unsigned>(ObjectAs<CRenderPreset>()->index_); }   // 1
-};
-struct RenderHelperClass final : ei::CompiledTag<RenderHelperClass> {
-    CRenderHelper* Helper() { return ObjectAs<CRenderHelper>(); }
-    virtual void* DeleteThis(unsigned flags) { return Helper()->DeleteScalar(flags); }   // 0
-    virtual CRenderPreset* Record(const StateVector* states, int index, bool singleStage) {   // 1
-        return Helper()->RecordImpl(states, index, singleStage);
-    }
-    virtual void ReleasePreset(CRenderPreset* preset) { Helper()->ReleasePresetRecord(preset); }   // 2
-    virtual void ReleaseBlock(CRenderPreset* preset) { Helper()->ReleaseBlockImpl(preset); }       // 3
-    virtual void* PresetBlock(CRenderPreset* preset) { return Helper()->PresetBlockOf(preset); }   // 4
-    virtual CRenderPreset* Preset(unsigned index) { return Helper()->PresetAt(index); }            // 5
-    virtual bool PresetStates(CRenderPreset* preset, StateVector* out) { return Helper()->PresetStatesOf(preset, out); }   // 6
-    virtual bool BuiltInStates(unsigned index, StateVector* out) { return Helper()->BuiltInStatesOf(index, out); }        // 7
-};
 
 // The Direct3D driver list (an STLport list; 004EE4A0 fills it).
 stlp::list<DirectDrawDriver>::Node* DriverListEnd() {
     return DirectDrawDrivers().head;
 }
 const char* CantFindDriverText() { return "Can't find driver by index.\n"; }
-
-void* DeleteIf(void* object, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(object);
-    return object;
-}
 
 } // namespace
 
@@ -234,7 +203,7 @@ EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 // a block of its own with its blend factors (an empty block without them). The check of a stage's
 // operations ands the operation's number with the device's capability bits, as the original does;
 // a stage that fails it ends the first block there. Returns the new preset.
-CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, bool singleStage) {
+CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
     int stages;
     if (singleStage) {
@@ -300,12 +269,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
         blocks[i - stages + 1] = block;
     }
 
-    auto* preset = gamecrt::operator_new_as<CRenderPreset>();
-    preset->refs_ = 0;
-    CopyConstruct(&preset->blocks_, blocks);
-    preset->stages_ = stages;
-    preset->index_ = index;
-    ei::SetVtable(preset, RenderPresetClass::Vtable());
+    auto* preset = new CRenderPreset(blocks, stages, index);
 
     if (index < static_cast<int>(kPresetCount)) {   // signed, as the original compares
         if (presets_[index] == nullptr) presets_[index] = preset;
@@ -327,12 +291,12 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
     return preset;
 }
 
-EI_REWRITTEN(0x004FD2A0, CRenderHelper::RecordImpl);
+EI_REWRITTEN(0x004FD2A0, CRenderHelper::Record);
 
 // 004FD9D0 (slot 3, RET 4). The preset's state blocks deleted, its place among the built-in presets
 // cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
 // nodes first, then its head). The record holds the preset, so this usually deletes it.
-void CRenderHelper::ReleaseBlockImpl(CRenderPreset* preset) {
+void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     for (int i = 0; i < static_cast<int>(preset->blocks_.size()); ++i) {
         const std::uint32_t block = preset->blocks_[i];
         const HRESULT result = device::DeleteStateBlock(device_, block);
@@ -357,18 +321,15 @@ void CRenderHelper::ReleaseBlockImpl(CRenderPreset* preset) {
     }
 }
 
-EI_REWRITTEN(0x004FD9D0, CRenderHelper::ReleaseBlockImpl);
+EI_REWRITTEN(0x004FD9D0, CRenderHelper::ReleaseBlock);
 
 // ---- The helper's lifetime ----------------------------------------------------------------------------
 
 // 004FCA60 (RET 8; returns the helper). Takes the device and its capabilities, then records the nine
 // built-in presets (`flag`'s low byte: one texture stage each).
-CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, std::uint32_t flag) {
-    refs_ = 0;
-    device_ = nullptr;
+CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : device_(nullptr) {
     records_.InitBuckets(100);
     presets_.Start() = presets_.Finish() = presets_.EndOfStorage() = nullptr;
-    ei::SetVtable(this, RenderHelperClass::Vtable());
 
     device_ = device;
     if (device) device::AddRef(device);
@@ -384,134 +345,97 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     StateVector states;
     for (unsigned index = 0; index < CRenderHelper::kPresetCount; ++index) {
         if (RenderHelperBuiltInStateList(&states, index)) {
-            RecordImpl(&states, static_cast<int>(index), static_cast<std::uint8_t>(flag) != 0);
+            Record(&states, static_cast<int>(index), static_cast<std::uint8_t>(flag) != 0);
         }
     }
     states.FreeStorage();
-    return this;
 }
-EI_REWRITTEN(0x004FCA60, CRenderHelper::RenderHelperConstruct);
+EI_REWRITTEN_SPECIAL(0x004FCA60, CRenderHelper::CRenderHelper);
 
 // 004FCD50: the destructor body. Every record's preset goes through slot 3, which erases the record
 // the walk stands on: as in the original, the step to the next record then reads the freed node (its
 // link is the node allocator's free list by then), so the walk can stray and leave records behind.
 // Those are destroyed with the table (their presets deleted, but not their state blocks).
-void __fastcall RenderHelperDestruct(CRenderHelper* self) {
-    using Node = decltype(self->records_)::Node;
-    ei::SetVtable(self, RenderHelperClass::Vtable());
-    for (Node* node = self->records_.First(); node; node = self->records_.After(node)) {
-        if (Node* found = self->records_.Find(node->key)) self->ReleaseBlock(found->value.preset);
+CRenderHelper::~CRenderHelper() {
+    using Node = decltype(records_)::Node;
+    for (Node* node = records_.First(); node; node = records_.After(node)) {
+        if (Node* found = records_.Find(node->key)) ReleaseBlock(found->value.preset);
     }
-    self->presets_.FreeStorage();
-    self->records_.ClearWith([](Node* node) {
+    presets_.FreeStorage();
+    records_.ClearWith([](Node* node) {
         DestroyRecord(&node->value);
         stlp::deallocate(node, sizeof(Node));
     });
-    self->records_.Destroy();
-    if (self->device_) device::Release(self->device_);
-    SetRootVtable(self);
+    records_.Destroy();
+    if (device_) device::Release(device_);
 }
-EI_REWRITTEN(0x004FCD50, RenderHelperDestruct);
+EI_REWRITTEN_SPECIAL(0x004FCD50, CRenderHelper::~CRenderHelper);
+EI_REWRITTEN_SPECIAL(0x004FCC20, CRenderHelper::~CRenderHelper);
+
+void* CRenderHelper::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CRenderHelper::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // ---- The helper's table slots -----------------------------------------------------------------------
 
 // 004FDB00 (slot 2, RET 4).
-void CRenderHelper::ReleasePresetRecord(CRenderPreset* preset) {
+void CRenderHelper::ReleasePreset(CRenderPreset* preset) {
     if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
 }
-EI_REWRITTEN(0x004FDB00, CRenderHelper::ReleasePresetRecord);
+EI_REWRITTEN(0x004FDB00, CRenderHelper::ReleasePreset);
 
 // 004FDB50 (slot 4, RET 4).
-void* CRenderHelper::PresetBlockOf(CRenderPreset* preset) {
+void* CRenderHelper::PresetBlock(CRenderPreset* preset) {
     auto* node = records_.Find(preset);
     return node ? node->value.preset : nullptr;
 }
-EI_REWRITTEN(0x004FDB50, CRenderHelper::PresetBlockOf);
+EI_REWRITTEN(0x004FDB50, CRenderHelper::PresetBlock);
 
 // 004FDBA0 (slot 5, RET 4).
-CRenderPreset* CRenderHelper::PresetAt(unsigned index) {
+CRenderPreset* CRenderHelper::Preset(unsigned index) {
     return index < CRenderHelper::kPresetCount ? presets_[index] : nullptr;
 }
-EI_REWRITTEN(0x004FDBA0, CRenderHelper::PresetAt);
+EI_REWRITTEN(0x004FDBA0, CRenderHelper::Preset);
 
 // 004FDBC0 (slot 6, RET 8). Only AL is the result.
-bool CRenderHelper::PresetStatesOf(CRenderPreset* preset, StateVector* out) {
+bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
     auto* node = records_.Find(preset);
     if (!node) return false;
     AssignStates(out, node->value.states);
     return true;
 }
-EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStatesOf);
+EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStates);
 
 // 004FDD80 (slot 7, RET 8). Only AL is the result.
-bool CRenderHelper::BuiltInStatesOf(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
+bool CRenderHelper::BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);
 }
-EI_REWRITTEN(0x004FDD80, CRenderHelper::BuiltInStatesOf);
+EI_REWRITTEN(0x004FDD80, CRenderHelper::BuiltInStates);
 
 // ---- The preset -------------------------------------------------------------------------------------
 
-// 004FD8B0: the preset's destructor body: its vector's storage freed, the root's vtable left.
-void __fastcall RenderPresetDestruct(CRenderPreset* self) {
-    self->blocks_.FreeStorage();
-    SetRootVtable(self);
+CRenderPreset::CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stages, int index)
+    : stages_(stages), index_(index) {
+    CopyConstruct(&blocks_, blocks);
 }
-EI_REWRITTEN(0x004FD8B0, RenderPresetDestruct);
 
-// 004FD880 (slot 0, RET 4).
-void* CRenderPreset::DeleteScalar(unsigned flags) {
-    RenderPresetDestruct(this);
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004FD880, CRenderPreset::DeleteScalar);
+CRenderPreset::~CRenderPreset() { blocks_.FreeStorage(); }
+EI_REWRITTEN_SPECIAL(0x004FD8B0, CRenderPreset::~CRenderPreset);
+EI_REWRITTEN_SPECIAL(0x004FD880, CRenderPreset::~CRenderPreset);
 
-// ---- Deleting destructors (slot 0, RET 4) -------------------------------------------------------------
+void* CRenderPreset::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// 004FCD30 and 004FD900: the helper's and the preset's abstract base classes (vtables 0073D860 /
-// 0073D888): the root's vtable left (004FCC40 / 004FD8A0, inlined). No object keeps those vtables
-// while it can be released, so nothing calls them.
-struct CRenderBase {
-    void* DeleteScalar(unsigned flags);
-};
-void* CRenderBase::DeleteScalar(unsigned flags) {
-    SetRootVtable(this);
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004FCD30, CRenderBase::DeleteScalar);
-EI_REWRITTEN(0x004FD900, CRenderBase::DeleteScalar);
+// (The helper's and the preset's abstract bases, 0073D860 / 0073D888, have no fields: their deleting destructors
+// 004FCD30 / 004FD900, which no object reaches, are not modelled.)
 
-// 004E6880: the device object's (DeviceObjectClass).
-void* CTextureDevice::DeleteDevice(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004E6880, CTextureDevice::DeleteDevice);
+// ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
 
-// 004EE310: the DirectDraw holder's.
-void* CTextureDevice::DeleteDirectDraw(unsigned flags) {
-    DestructDirectDraw();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004EE310, CTextureDevice::DeleteDirectDraw);
+MatrixStack::MatrixStack() : matrices(lib::AlignedArray<Matrix4>::Allocate(kMatrixStackDepth)), count(0) {}
+EI_REWRITTEN_SPECIAL(0x004F0DB0, MatrixStack::MatrixStack);
 
-// 004FCC20: the helper's (the body above, through its address).
-void* CRenderHelper::DeleteScalar(unsigned flags) {
-    RenderHelperDestruct(this);
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004FCC20, CRenderHelper::DeleteScalar);
-
-// ---- The transform pipeline (CTransformPipeline, TransformPipelineClass) -----------------------------------------
-
-// 004F0DB0: a matrix stack's constructor (the pipeline's constructor 004F0B90 has the compiler's
-// array constructor run it for each of the 16): room for 16 matrices, empty.
-MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self) {
-    self->matrices = lib::AlignedArray<Matrix4>::Allocate(kMatrixStackDepth);
-    self->count = 0;
-    return self;
-}
-EI_REWRITTEN(0x004F0DB0, MatrixStackConstruct);
+MatrixStack::~MatrixStack() { lib::FreeAligned32(matrices); }
+EI_REWRITTEN_SPECIAL(0x004F0DE0, MatrixStack::~MatrixStack);
 
 namespace {
 
@@ -525,38 +449,16 @@ const char* AcquiringText() { return "Acquiring geometry processor from transfor
 const char* NoLibraryText() { return "Can't load 3D transform library.\n"; }
 const char* NoFunctionText() { return "Loaded 3D transform library have no function \"GetTLPipeline\".\n"; }
 
-// The constructor's failure: a new error object thrown (a GameError* thrown as a CDXException*).
-// What the original's unwinding does on the way out is done here first: the folder's string and
-// the stacks' blocks (from the last) freed, the counted base's vtable left. (The memory itself is
-// the caller's: the original's `new` frees it.)
-[[noreturn]] void ThrowPipelineError(CTransformPipeline* self, std::optional<stlp::string>& folder, const char* text) {
-    GameError* memory = gamecrt::operator_new_as<GameError>();
-    GameError* error = memory ? GameErrorConstruct(memory, text) : nullptr;
-    folder.reset();
-    for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
-    ei::SetVtable(self, RendererBaseClass::Vtable());
-    throw reinterpret_cast<CDXException*>(error);
-}
-
 } // namespace
 
-// 004F0B90 (RET 4; the renderer base's creation 00500540 news it with the game's work folder): the
-// counted base, the 16 matrix stacks, the processor's CPUID function 1 into the globals (as the
-// renderer does again), then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s transform
-// object taken. No library, or no such function in it (the library is unloaded again): throws.
-CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* folder) {
-    refs_ = 0;
-    std::memset(unused_08, 0, sizeof(unused_08));
-    ei::SetVtable(this, RendererBaseClass::Vtable());
-    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstruct(&stacks_[i]);
-    ei::SetVtable(this, TransformPipelineClass::Vtable());
-
-    std::optional<stlp::string> path;   // freed by hand before a throw
-    path.emplace(folder);
+// 004F0B90. The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
+// folder's string, the stacks (from the last) and the base, and `new` frees the memory, as in the original.
+CTransformPipeline::CTransformPipeline(const char* folder) {
+    stlp::string path(folder);
     ReadProcessorInfo();
-    library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
+    library_ = gameapi::LoadLibraryA(stlp::Plus(path, TransformLibraryName()).data());
     game::DebugLog(LibraryLoadedText());
-    if (!library_) ThrowPipelineError(this, path, NoLibraryText());
+    if (!library_) ThrowGameError(NoLibraryText());
 
     using GetTLPipeline = ITransformPipeline*(__cdecl*)();
     auto getPipeline = reinterpret_cast<GetTLPipeline>(
@@ -564,33 +466,22 @@ CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* f
     if (!getPipeline) {
         gameapi::FreeLibrary(static_cast<HMODULE>(library_));
         library_ = nullptr;
-        ThrowPipelineError(this, path, NoFunctionText());
+        ThrowGameError(NoFunctionText());
     }
     game::DebugLog(AcquiringText());
     transform_ = getPipeline();
-    return this;
 }
-EI_REWRITTEN(0x004F0B90, CTransformPipeline::TransformPipelineConstruct);
+EI_REWRITTEN_SPECIAL(0x004F0B90, CTransformPipeline::CTransformPipeline);
 
-// 004F0E10: the destructor body: the transform object forgotten, 3DfpFPU.dll unloaded, the stacks'
-// blocks freed from the last to the first (004F0DE0 each), the counted base's vtable left.
-void __fastcall TransformPipelineDestruct(CTransformPipeline* self) {
-    ei::SetVtable(self, TransformPipelineClass::Vtable());
-    void* library = self->library_;
-    self->transform_ = nullptr;
+// The stacks' blocks go after the body (members), from the last to the first.
+CTransformPipeline::~CTransformPipeline() {
+    void* library = library_;
+    transform_ = nullptr;
     if (library) gameapi::FreeLibrary(static_cast<HMODULE>(library));
-    self->library_ = nullptr;
-    for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
-    ei::SetVtable(self, RendererBaseClass::Vtable());
+    library_ = nullptr;
 }
-EI_REWRITTEN(0x004F0E10, TransformPipelineDestruct);
-
-// 004F0DF0 (slot 0, RET 4).
-void* CTransformPipeline::DeleteScalar(unsigned flags) {
-    TransformPipelineDestruct(this);
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x004F0DF0, CTransformPipeline::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x004F0E10, CTransformPipeline::~CTransformPipeline);
+EI_REWRITTEN_SPECIAL(0x004F0DF0, CTransformPipeline::~CTransformPipeline);
 
 // ---- The driver list --------------------------------------------------------------------------------
 

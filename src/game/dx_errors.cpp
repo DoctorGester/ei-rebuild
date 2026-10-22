@@ -187,12 +187,8 @@ EI_REWRITTEN(0x00480B80, DirectXErrorText);
 
 // ---- The thrown error object (00480250-004815D0) ---------------------------------------------------
 
-static_assert(sizeof(GameError) == 0xC);
-
 namespace {
 
-void* ErrorVtable() { return GameErrorClass::Vtable(); }
-void* ErrorBaseVtable() { return GameErrorBaseClass::Vtable(); }
 // 00787EE4: "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
@@ -210,76 +206,46 @@ char* CopyMessage(const char* text) {
 
 } // namespace
 
-GameError* GameErrorFormat(GameError* error, const char* format, va_list args) {
-    error->message = nullptr;
-    error->vtable = ErrorVtable();
+void* CGameException::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CGameException::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+CGameException::~CGameException() {
+    if (message) gamecrt::operator_delete(message);
+}
+EI_REWRITTEN_SPECIAL(0x004815D0, CGameException::~CGameException);
+EI_REWRITTEN_SPECIAL(0x00481580, CGameException::~CGameException);
+
+CDXException::CDXException(const char* format, va_list args) {
     char text[kBuffer];
     gameapi::wvsprintfA(text, format, args);
-    error->message = CopyMessage(text);
-    return error;
+    message = CopyMessage(text);
 }
+EI_REWRITTEN_SPECIAL(0x00480250, CDXException::CDXException);
 
-GameError* __cdecl GameErrorConstruct(GameError* error, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    GameErrorFormat(error, format, args);
-    va_end(args);
-    return error;
-}
-EI_REWRITTEN(0x00480250, GameErrorConstruct);
-
-GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args) {
-    error->message = nullptr;
-    error->vtable = ErrorVtable();
+CDXException::CDXException(long resultIn, const char* format, va_list args) {
     char text[kBuffer];
     char full[kBuffer];
     gameapi::wvsprintfA(text, format, args);
-    error->result = result;
-    gamecrt::sprintf(full, ResultFormat(), text, result, DirectXErrorText(result));
-    error->message = CopyMessage(full);
-    return error;
+    result = resultIn;
+    gamecrt::sprintf(full, ResultFormat(), text, resultIn, DirectXErrorText(resultIn));
+    message = CopyMessage(full);
 }
 
-namespace {
-[[noreturn]] void Throw(GameError* error) {
-    throw reinterpret_cast<CDXException*>(error);
-}
-} // namespace
+CDXException::~CDXException() = default;
+EI_REWRITTEN_SPECIAL(0x004815B0, CDXException::~CDXException);
 
 void ThrowGameError(const char* format, ...) {
-    auto* error = gamecrt::operator_new_as<GameError>();
     va_list args;
     va_start(args, format);
-    if (error) GameErrorFormat(error, format, args);
+    CDXException* error = new CDXException(format, args);
     va_end(args);
-    Throw(error);
+    throw error;
 }
 
 void ThrowGameErrorResult(long result, const char* format, ...) {
-    auto* error = gamecrt::operator_new_as<GameError>();
     va_list args;
     va_start(args, format);
-    if (error) GameErrorFormatResult(error, result, format, args);
+    CDXException* error = new CDXException(result, format, args);
     va_end(args);
-    Throw(error);
+    throw error;
 }
-
-void __fastcall GameErrorDestruct(GameError* error) {
-    error->vtable = ErrorBaseVtable();
-    if (error->message) gamecrt::operator_delete(error->message);
-}
-EI_REWRITTEN(0x004815D0, GameErrorDestruct);
-
-GameError* GameError::DeleteScalar(int flags) {
-    GameErrorDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004815B0, GameError::DeleteScalar);
-
-GameError* GameError::DeleteScalarBase(int flags) {
-    GameErrorDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00481580, GameError::DeleteScalarBase);

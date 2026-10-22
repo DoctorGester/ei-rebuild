@@ -21,7 +21,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -34,15 +33,6 @@
 #include "game_singletons.h"
 
 namespace {
-
-// The holder's vtable and its base class's (compiled: texture.h).
-void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, DXSurfaceClass::Vtable()); }
-void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, RendererBaseClass::Vtable()); }
-
-// 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
-// nonzero to go on.
-// The thrown error object: operator new (007005AF), its constructor (GameErrorConstruct, 00480250,
-// cdecl: object, format, width, height) and the throw (dx_errors.h).
 
 // A DDPIXELFORMAT as dwords (PixelFormat): size, flags, FourCC, bits, R, G, B, A masks.
 enum : int { kFormatSize = 0, kFormatFlags = 1, kBits = 3, kRed = 4, kGreen = 5, kBlue = 6, kAlpha = 7 };
@@ -75,9 +65,7 @@ PixelFormat FormatOf(const std::uint32_t* pixelFormat) {
 constexpr long kSurfaceRefused = static_cast<long>(0x80004001);
 
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
-    void* object = gamecrt::operator_new(0xC);
-    if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't create DDSurface %d:%d with default BPP.\n", width, height);   // "Can't create DDSurface %d %d ..."
-    throw static_cast<CDXException*>(object);
+    ThrowGameError("Can't create DDSurface %d:%d with default BPP.\n", width, height);   // "Can't create DDSurface %d %d ..."
 }
 
 // The display mode's pixel format into `format` (IDirectDraw7::GetDisplayMode). False when
@@ -146,21 +134,6 @@ bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads) {
 
 namespace {
 
-// A texture holder as 004EFA60 starts one (vtable, device, no surface yet), on the game's heap.
-CDXSurface* StartTextureHolder(CTextureDevice* device) {
-    auto* holder = gamecrt::operator_new_as<CDXSurface>();
-    if (!holder) return nullptr;
-    holder->refCount = 0;
-    holder->result = 0;
-    holder->device = device;
-    holder->surface = nullptr;
-    holder->width = 0;
-    holder->height = 0;
-    holder->bitsPerPixel = 0;
-    SetHolderVtable(holder);
-    return holder;
-}
-
 // The holder stands for a texture made as requested: described by the request, the creation
 // counted as done (the device's result 0, the holder count one higher).
 void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerPixel) {
@@ -175,7 +148,7 @@ void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerP
 
 CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
     if (!device) return nullptr;
-    CDXSurface* holder = StartTextureHolder(device);
+    auto* holder = new CDXSurface(device);
     if (!holder) return nullptr;
     // (A DDPIXELFORMAT: its bit count, as a surface of that format reports it.)
     FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits]));
@@ -184,13 +157,13 @@ CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int heigh
 
 CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
     if (!device) return nullptr;
-    CDXSurface* holder = StartTextureHolder(device);
+    auto* holder = new CDXSurface(device);
     if (!holder) return nullptr;
     if (!AttachClientMemory(holder, width, height, FormatOf(pixelFormat))) {
         if (g_clientFailures++ < 5)
             ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits)", width, height,
                     pixelFormat[kFormatFlags], pixelFormat[kBits]);
-        gamecrt::operator_delete(holder);
+        CDXSurface::operator delete(holder);   // not counted in yet: no destructor
         return nullptr;
     }
     // The memory is the surface.
@@ -198,18 +171,12 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
     return holder;
 }
 
-// 004EF7B0. Returns the holder; when the surface cannot be made a C++ exception is thrown (as the
-// original: an error object by pointer). The holder gets the new renderer's memory and no
-// DirectDraw surface; without that memory the error ends the game.
-CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int heightIn) {
-    refCount = 0;
-    result = 0;
-    this->device = deviceIn;
-    this->surface = nullptr;
-    width = 0;
-    height = 0;
-    bitsPerPixel = 0;
-    SetHolderVtable(this);
+CDXSurface::CDXSurface(CTextureDevice* deviceIn) : device(deviceIn) {}
+
+// 004EF7B0. When the surface cannot be made a C++ exception is thrown (as the original: an error object
+// by pointer). The holder gets the new renderer's memory and no DirectDraw surface; without that memory
+// the error ends the game.
+CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(deviceIn) {
     PixelFormat format = {};
     ReadScreenFormat(deviceIn, &format);
 
@@ -226,9 +193,8 @@ CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int hei
     height = heightIn;
     bitsPerPixel = static_cast<int>(format.words[kBits]);
     ++device::HolderCount();
-    return this;
 }
-EI_REWRITTEN(0x004EF7B0, CDXSurface::Construct);
+EI_REWRITTEN_SPECIAL(0x004EF7B0, CDXSurface::CDXSurface);
 
 namespace {
 
@@ -341,34 +307,18 @@ EI_REWRITTEN(0x004F0060, CDXSurface::LoadPictureData);
 // images 005E4EB0, windows made from a picture 005FCF80). The new renderer keeps the picture's
 // pixels from the file data (render::PictureFromMmp) instead of reading the surface back. Throws
 // the game's error object when the picture cannot be loaded.
-CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const void* picture,
-                                            int flag) {
-    refCount = 0;
-    result = 0;
-    device = deviceIn;
-    surface = nullptr;
-    width = 0;
-    height = 0;
-    bitsPerPixel = 0;
-    SetHolderVtable(this);
-    if (!LoadPictureData(picture, flag)) {
-        void* object = gamecrt::operator_new(0xC);
-        if (object) object = GameErrorConstruct(static_cast<GameError*>(object), "Can't load picture to surface.\n");   // "Can't load picture to surface"
-        throw static_cast<CDXException*>(object);
-    }
+CDXSurface::CDXSurface(CTextureDevice* deviceIn, const void* picture, int flag) : device(deviceIn) {
+    if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");   // "Can't load picture to surface"
     render::PictureFromMmp(this, picture);
     ++device::HolderCount();
-    return this;
 }
-EI_REWRITTEN(0x004EFC60, CDXSurface::ConstructFromPicture);
+EI_REWRITTEN_SPECIAL(0x004EFC60, CDXSurface::CDXSurface);
 
-// 004EFD20. Releases the new renderer's memory (the original: the surface), clears the device,
-// counts the holder out and leaves the base class's vtable.
-void __fastcall DXSurfaceDestroy(CDXSurface* holder) {
-    SetHolderVtable(holder);
-    render::HolderGone(holder);   // its memory, and a picture kept for it
-    holder->device = nullptr;
+// 004EFD20. Releases the new renderer's memory (the original: the surface).
+CDXSurface::~CDXSurface() {
+    render::HolderGone(this);   // its memory, and a picture kept for it
+    device = nullptr;
     --device::HolderCount();
-    SetBaseVtable(holder);
 }
-EI_REWRITTEN(0x004EFD20, DXSurfaceDestroy);
+EI_REWRITTEN_SPECIAL(0x004EFD20, CDXSurface::~CDXSurface);
+EI_REWRITTEN_SPECIAL(0x004EF790, CDXSurface::~CDXSurface);

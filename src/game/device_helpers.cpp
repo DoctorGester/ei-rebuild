@@ -24,10 +24,8 @@
 
 namespace {
 
-// The vtables the destructors leave: the engine's plain counted root (PlainRootVtable) and the renderer's own
-// counted base (RendererBaseClass: CDXSurface, the device object and the pipeline derive from it).
+// The vtable the figure loader base's destructor leaves: the engine's plain counted root (PlainRootVtable).
 void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
-void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseClass::Vtable()); }
 
 } // namespace
 
@@ -38,24 +36,13 @@ EI_REWRITTEN(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
 
 // ---- Deleting destructors ---------------------------------------------------------------------------
 
-// 004EF790 (RET 4): CDXSurface's (DXSurfaceClass, slot 0): the destructor body 004EFD20, then the
-// block freed when bit 0 of `flags` is set. Returns the object.
-void __fastcall DXSurfaceDestroy(CDXSurface* holder);   // dx_surface.cpp
-CDXSurface* CDXSurface::DeleteScalar(unsigned flags) {
-    DXSurfaceDestroy(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004EF790, CDXSurface::DeleteScalar);
+// The renderer's counted base (texture.h): nothing to destroy. 004E7800 (RET 4), its deleting destructor, is
+// reached by no object.
+CRendererBase::~CRendererBase() = default;
+EI_REWRITTEN_SPECIAL(0x004E7800, CRendererBase::~CRendererBase);
 
-// 004E7800 (RET 4): the renderer's counted base (RendererBaseClass, slot 0): nothing to destroy. No
-// object keeps this vtable while it can be released, so nothing calls it.
-void* CRendererBase::DeleteScalar(unsigned flags) {
-    SetRendererBaseVtable(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004E7800, CRendererBase::DeleteScalar);
+void* CRendererBase::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CRendererBase::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 // 004F6A00 (RET 4): the figure loader's base class (CLinkFigureLoader::BaseVtable(), slot 0; the constructor
 // 004F68C0 stores it before the loader's own): the root's vtable left (004F69F0, inlined here),

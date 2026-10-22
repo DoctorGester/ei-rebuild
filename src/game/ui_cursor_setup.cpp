@@ -23,16 +23,14 @@ constexpr LONG kSmallSize = 0x10;
 void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     CDXSurface* old = slot;
     slot = holder;
-    if (holder) ++holder->refCount;
+    if (holder) ++holder->refs_;
     if (old) old->Release();
 }
 
 // A new off-screen surface of the screen's format (004EF7B0 through its address); null when the
 // allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
-    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
-    if (!memory) return nullptr;
-    return memory->Construct(device, width, height);
+    return new CDXSurface(device, width, height);
 }
 
 } // namespace

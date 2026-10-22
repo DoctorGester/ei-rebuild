@@ -142,7 +142,7 @@ CSceneRenderer::~CSceneRenderer() {
     device_ = nullptr;
     if (device) device->Release();
     // The helper's member destructor: released, the pointer left as it is.
-    if (helper_ && --helper_->refs_ == 0) helper_->DeleteThis(1);
+    if (helper_ && --helper_->refs_ == 0) delete helper_;
 }
 
 void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
@@ -187,7 +187,7 @@ void CSceneRenderer::DestroyRenderer() {
     flags_ &= ~2u;
     CRenderHelper* helper = helper_;
     helper_ = nullptr;
-    if (helper && --helper->refs_ == 0) helper->DeleteThis(1);
+    if (helper && --helper->refs_ == 0) delete helper;
     CTextureDevice* device = device_;
     device_ = nullptr;
     if (device) device->Release();

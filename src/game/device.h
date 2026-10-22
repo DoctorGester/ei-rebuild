@@ -44,7 +44,7 @@ inline IDirect3D7* Direct3D(const CTextureDevice* device) { return device->d3d_;
 inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     CDXSurface* old = slot;
     slot = holder;
-    if (holder) ++holder->refCount;
+    if (holder) ++holder->refs_;
     if (old) old->Release();
 }
 

@@ -1108,10 +1108,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (a one-slot table whose slot 0 calls the class's deleting destructor member). A class that keeps `void* vtable`
     as a field stores `Tag::Vtable()` where it stored game.exe's address; the original's dispatch through the field
     (`Release`, `Delete`, `Blit`, `Kind`) reaches the tag's slot, which calls the same body.
-  - **The rows**: the thrown error object (GameErrorClass / GameErrorBaseClass, 0073CAB4 / 0073CAB0; dx_errors.h);
-    the renderer's (texture.h: RendererBaseClass 0073D768, DirectDrawClass 0073D770, DeviceObjectClass 0073D760,
-    DXSurfaceClass 0073D774; model.h: TransformPipelineClass 0073D778; device_helpers.cpp's CRendererBase is
-    declared in texture.h now); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
+  - **The rows**: the thrown error object (CDXException / CGameException, 0073CAB4 / 0073CAB0; dx_errors.h; real
+    classes since C28j); the renderer's (real classes since C28j: renderer_base.h's CRendererBase 0073D768,
+    texture.h's CDXDirectDraw 0073D770, CTextureDevice 0073D760 over it and CDXSurface 0073D774, model.h's
+    CTransformPipeline 0073D778, whose MatrixStack members construct and free themselves); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
     UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
     CUiSurface's UiSurfaceClass 00740F28 (slot 0 Blit, UiSurfaceBlit) and the scrolling text's tokens (TextTokenClass
     00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
@@ -1226,7 +1226,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     Serialize) in place of 0073BB68, which every counted class's destructor leaves (net messages, sessions, links,
     AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
     of 0073C368, the renderer's, the figures' and the mouse's root.
-  - **Small tags**: render_helper.cpp's RenderHelperClass (0073D840) and RenderPresetClass (0073D880); the cloud
+  - **Small tags**: the renderer's helper CRenderHelper (0073D840) and its preset CRenderPreset (0073D880), real
+    classes since C28j (their fieldless abstract bases 0073D860 / 0073D888 are not modelled); the cloud
     noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
     turn's ItemTurnClass (007403F8); link_loader_create.cpp's LinkFigureLoaderClass (0073D808) and its abstract base
     LinkFigureLoaderBaseClass (0073D824).

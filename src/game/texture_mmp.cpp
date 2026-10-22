@@ -125,7 +125,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     CDXSurface* decoded = DecodedHolder(device, this, data, mip, levels);
     CDXSurface* previous = surface_;
     surface_ = decoded;
-    ++decoded->refCount;
+    ++decoded->refs_;
     if (previous) previous->Release();   // 004E6BA0
     uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
     MarkLoaded(this, header);

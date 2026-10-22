@@ -1,10 +1,9 @@
-// The device object's DirectDraw base class (CTextureDevice, texture.h; vtable 0073D770, the
+// The device object's DirectDraw base class (CDXDirectDraw, texture.h; vtable 0073D770, the
 // members up to +0x50). A-S13: IDirectDraw7 is called as the original calls it, through device.h
 // (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md (sections 9, 12).
 //
-// A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
-// unwound on the way (the original's handlers free what the constructor had built), and every such
-// throw ends the game in WinMain.
+// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
+// the game in WinMain.
 //
 // The image builds the base without DirectDraw (004EDD70; R11a removed the fallback). The driver
 // list (004EE4A0 / 004ED610 / 004EE5D0), the DirectDraw object (004EEA90), the display mode change
@@ -20,7 +19,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -55,16 +53,11 @@ HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
 // The switch-over's holder of the screen (the primary or the render target; device.h): no surface,
 // the screen's size and colour depth, counted like a holder of a surface.
 CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
-    auto* holder = gamecrt::operator_new_as<CDXSurface>();
+    auto* holder = new CDXSurface(device);
     if (!holder) return nullptr;
-    holder->refCount = 0;
-    holder->result = 0;
-    holder->device = device;
-    holder->surface = nullptr;
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ei::SetVtable(holder, DXSurfaceClass::Vtable());
     ++device::HolderCount();
     return holder;
 }
@@ -92,29 +85,30 @@ bool VsyncSetting() {
 
 // ---- The DirectDraw base ------------------------------------------------------------------------
 
-void CTextureDevice::RestoreDisplayMode() {
+void CDXDirectDraw::RestoreDisplayMode() {
     if (!(flags_ & DDSCL_FULLSCREEN)) return;
-    lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
+    lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
 }
-EI_REWRITTEN(0x004EEC60, CTextureDevice::RestoreDisplayMode);
+EI_REWRITTEN(0x004EEC60, CDXDirectDraw::RestoreDisplayMode);
 
-void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
+void CDXDirectDraw::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
     if (!window_) ThrowGameError("CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n");
     flags_ = fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL;
-    lastLoadResult_ = device::SetCooperativeLevel(device::DDraw(this), window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
+    lastLoadResult_ = device::SetCooperativeLevel(ddraw_, window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
     // "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n"
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n");
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
 }
-EI_REWRITTEN(0x004EECF0, CTextureDevice::SetCooperativeLevel);
+EI_REWRITTEN(0x004EECF0, CDXDirectDraw::SetCooperativeLevel);
 
-void CTextureDevice::DestructDirectDraw() {
-    ei::SetVtable(this, DirectDrawClass::Vtable());
+// (The display mode's restore cannot fail in the switch-over, device_null.cpp; its throw would end the game here
+// through std::terminate, the destructor being noexcept, where the original's handler in WinMain ends it.)
+CDXDirectDraw::~CDXDirectDraw() {
     if (flags_ & DDSCL_FULLSCREEN) {
-        lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
+        lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
         if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
     }
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
@@ -123,27 +117,17 @@ void CTextureDevice::DestructDirectDraw() {
     if (clipper_) static_cast<IDirectDrawClipper*>(clipper_)->Release();
     device::AssignHolder(renderTarget_, nullptr);
     device::AssignHolder(primary_, nullptr);
-    if (ddraw_) device::Release(device::DDraw(this));
+    if (ddraw_) device::Release(ddraw_);
     modes_.Destroy();
-    ei::SetVtable(this, RendererBaseClass::Vtable());
 }
-EI_REWRITTEN(0x004EE330, CTextureDevice::DestructDirectDraw);
+EI_REWRITTEN_SPECIAL(0x004EE330, CDXDirectDraw::~CDXDirectDraw);
+EI_REWRITTEN_SPECIAL(0x004EE310, CDXDirectDraw::~CDXDirectDraw);
 
 // Not kept: the original copies the processor's twelve bytes as a string into a local nothing reads.
-CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height,
-                                                    int bitsPerPixel, int /*refreshRate*/, unsigned /*backBuffers*/,
-                                                    int /*for3D*/) {
-    refs_ = 0;
-    lastLoadResult_ = 0;
-    ei::SetVtable(this, RendererBaseClass::Vtable());
-    driver_ = nullptr;
-    primary_ = nullptr;
-    renderTarget_ = nullptr;
-    clipper_ = nullptr;
-    flags_ = 0;
-    window_ = window;
+CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
+                             int /*refreshRate*/, unsigned /*backBuffers*/, int /*for3D*/)
+    : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window) {
     modes_.Construct();
-    ei::SetVtable(this, DirectDrawClass::Vtable());
     const RECT screen = {0, 0, width, height};
 
     ProcessorInfo& processor = *TheProcessorInfo();   // renderer_base_create.cpp fills it the same way
@@ -183,13 +167,14 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
     driver_ = driver;
     modes_.ClearWith([](DDSURFACEDESC2*) {});
-    device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
+    device::EnumDisplayModes(ddraw_, 0, nullptr, &modes_, &DisplayModeCallback);
     SetCooperativeLevel(fullScreen, &screen);
-    device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
-    device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
+    // (The holders keep the device object: only a CTextureDevice is ever built on this base.)
+    auto* deviceObject = static_cast<CTextureDevice*>(this);
+    device::AssignHolder(primary_, NewScreenHolder(deviceObject, width, height, bitsPerPixel));
+    device::AssignHolder(renderTarget_, NewScreenHolder(deviceObject, width, height, bitsPerPixel));
     overlayFourCC_ = 0;
     videoFourCC_ = 0;
     overlayStretch_ = false;
-    return this;
 }
-EI_REWRITTEN(0x004EDD70, CTextureDevice::ConstructDirectDraw);
+EI_REWRITTEN_SPECIAL(0x004EDD70, CDXDirectDraw::CDXDirectDraw);

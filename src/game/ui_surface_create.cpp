@@ -49,7 +49,7 @@ std::uint32_t SurfaceBytes(CDXSurface* holder) {
 void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
-    if (made) ++made->refCount;
+    if (made) ++made->refs_;
     if (previous) previous->Release();
 }
 
@@ -59,11 +59,8 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     if (scale) self->interface_->ScaleRectToScreenEntry(rect);
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
-    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
     // (The interface's renderer is the device object.)
-    CDXSurface* made = memory ? memory->Construct(
-                                    reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_)
-                              : nullptr;
+    CDXSurface* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_);
     ReplaceHolder(self, made);
     UiSurfaceBytes() += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
@@ -119,12 +116,10 @@ CUiSurface* CUiSurface::ConstructFromPicture(CInterface3D* ui, mfc::CString name
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
         picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
     }
-    CDXSurface* memory = gamecrt::operator_new_as<CDXSurface>();
-    CDXSurface* made = memory ? memory->ConstructFromPicture(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0)
-                              : nullptr;
+    CDXSurface* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0);
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
-    if (made) ++made->refCount;
+    if (made) ++made->refs_;
     if (previous) previous->Release();   // 004E6BA0
     manager->CloseFile(picture);
     CDXSurface* holder = self->holder_;

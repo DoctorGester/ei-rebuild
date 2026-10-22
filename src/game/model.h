@@ -6,10 +6,10 @@
 
 #include "chunk_archive.h"
 #include "maths.h"
+#include "renderer_base.h"
 #include "script.h"   // ScriptStream
 #include "water_tweens.h"
 
-#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
@@ -37,6 +37,14 @@ static_assert(sizeof(ClipBounds) == 0x2C);
 
 // One of the transform pipeline's matrix stacks: aligned storage of matrices and the depth.
 struct MatrixStack {
+    // 004F0DB0 (render_helper.cpp; the pipeline's constructor has the compiler's array constructor run it for each
+    // of the 16): room for 16 matrices, empty.
+    MatrixStack();
+    // 004F0DE0: the block freed.
+    ~MatrixStack();
+    MatrixStack(const MatrixStack&) = delete;
+    MatrixStack& operator=(const MatrixStack&) = delete;
+
     Matrix4* matrices;      // +0x00
     int count;              // +0x04 the top is matrices[count - 1]
 };
@@ -136,9 +144,9 @@ public:
 };
 
 
-// The transform pipeline of the 3D library (the scene renderer's +8, the device object's +0xAC).
-// Only the matrix stacks and the transform object are known.
-class CTransformPipeline {
+// The transform pipeline of the 3D library (the scene renderer's +8, the device object's +0xAC; game.exe's vtable
+// 0073D778). Only the matrix stacks and the transform object are known.
+class CTransformPipeline final : public CRendererBase {
 public:
     // Stack 2 holds the matrix ClipTest projects with; 14 the decal projector's platform objects
     // and parts (CWorldClient::ProjectDecal).
@@ -163,12 +171,13 @@ public:
     // 004F29F0 (RET 0x14, A-S8). The same for terrain vertices (slots 18 / 19), both with stack 2.
     int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
     // 004F0B90 (RET 4; render_helper.cpp; the renderer base's creation 00500540 news it with the game's
-    // work folder). Constructor: the counted base, the 16 matrix stacks, the processor's CPUID
-    // function 1 into the globals, then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s
-    // transform object taken. No library, or no such function in it: throws. Returns this.
-    CTransformPipeline* TransformPipelineConstruct(const char* folder);
-    // 004F0DF0 (RET 4; render_helper.cpp). The deleting destructor (slot 0). Returns this.
-    void* DeleteScalar(unsigned flags);
+    // work folder): the 16 matrix stacks, the processor's CPUID function 1 into the globals, then
+    // 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s transform object taken. No library, or
+    // no such function in it: throws.
+    explicit CTransformPipeline(const char* folder);
+    // 004F0E10 (deleting: 004F0DF0; render_helper.cpp): the transform object forgotten, 3DfpFPU.dll
+    // unloaded, the stacks' blocks freed from the last to the first.
+    ~CTransformPipeline() override;
     // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
     // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
     // the new top is computed by Matrix4::Multiply (004D9880), whose elements sum in another order.
@@ -190,25 +199,15 @@ public:
         if (stacks_[index].count != 0) --stacks_[index].count;
     }
 
-    // Counted: holders drop a reference and call the deleting destructor (vtable slot 0, with 1) at 0.
-    void Release() {
-        if (--refs_ != 0) return;
-        using Destroy = void(__fastcall*)(CTransformPipeline*, void*, int);
-        (*static_cast<Destroy*>(vtable_))(this, nullptr, 1);
-    }
+    // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
-    void* vtable_;
-    int refs_;                        // +0x04
-    std::uint8_t unused_08[4];
+    std::uint8_t unused_08[4] = {};
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
     void* library_;                   // +0x10 3DfpFPU.dll's module (FreeLibrary in the destructor 004F0E10)
     MatrixStack stacks_[16];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
-// The pipeline's compiled table (C19, lib/compiled_vtable.h; game.exe's 0073D778): the deleting destructor. Its base's
-// is texture.h's RendererBaseClass.
-struct TransformPipelineClass final : ei::CompiledDeleter<TransformPipelineClass, &CTransformPipeline::DeleteScalar> {};
 
 // The scene renderer's pipeline (world_singletons.cpp): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world
 // draw's, 9 the views.
@@ -224,19 +223,24 @@ class CLight;   // spell.h
 class CTexture;   // texture.h
 class CPixelConverter;   // texture.h
 
-// The renderer's counted helper object (0x118 bytes, render_helper.cpp's RenderHelperClass table in place of
-// game.exe's 0073D840, constructor 004FCA60 with the
-// Direct3D device and a flag). Slot 0 is the deleting destructor.
-// A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
-// (render_helper.cpp's RenderPresetClass table in place of game.exe's 0073D880; its base's, 0073D888, has the
-// pure slot 1.)
-class __declspec(novtable) CRenderPreset {
+// A render state preset the renderer's helper keeps (counted; game.exe's vtable 0073D880 over an abstract base
+// 0073D888 with the pure slot 1 and the plain counted root, neither with fields; render_helper.cpp).
+class CRenderPreset final {
 public:
-    void* DeleteScalar(unsigned flags);
-    virtual void* DeleteThis(unsigned flags);   // 0: 004FD880 (the destructor body 004FD8B0)
-    virtual unsigned Index();                   // 1: 004FD870 (too short to hook). index_.
+    // The helper's recording (004FD2A0, inlined): no references, a copy of `blocks`.
+    CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stages, int index);
+    // 004FD8B0 (deleting: 004FD880): the blocks' storage freed.
+    virtual ~CRenderPreset();
+    virtual unsigned Index() { return static_cast<unsigned>(index_); }   // 1: 004FD870 (too short to hook)
 
-    int refs_;                           // +0x04
+    // On the game's heap.
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+
+    CRenderPreset(const CRenderPreset&) = delete;
+    CRenderPreset& operator=(const CRenderPreset&) = delete;
+
+    int refs_ = 0;                       // +0x04
     // +0x08 Direct3D state block handles: the texture stages' first, then one for each state from
     // `stages_` on (its blend factors). The device's draws apply them (device_draw.cpp).
     stlp::vector<std::uint32_t> blocks_;
@@ -270,26 +274,25 @@ static_assert(offsetof(RenderPresetRecord::State, blend) == 0x1C);
 
 struct IDirect3DDevice7;
 
-// render_helper.cpp has all of it (A-S11 the slots that only read the tables, A-S12 the rest).
-class __declspec(novtable) CRenderHelper {
+// The renderer's counted helper object (0x118 bytes; game.exe's vtable 0073D840 over an abstract base 0073D860 with
+// the slots 1-7 pure and the plain counted root, neither with fields). render_helper.cpp has all of it (A-S11 the
+// slots that only read the tables, A-S12 the rest).
+class CRenderHelper final {
 public:
-    bool BuiltInStatesOf(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
-    bool PresetStatesOf(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
-    CRenderPreset* PresetAt(unsigned index);
-    void* PresetBlockOf(CRenderPreset* preset);
-    void ReleasePresetRecord(CRenderPreset* preset);
     static constexpr unsigned kPresetCount = 9;
 
-    virtual void* DeleteThis(unsigned flags);   // 0: 004FCC20 (the destructor body 004FCD50)
+    // 004FCA60 (RET 8). Takes the device and its capabilities, then records the nine built-in presets (`flag`'s low
+    // byte: one texture stage each).
+    CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
+    // 004FCD50 (deleting: 004FCC20). Every record's preset through slot 3, the tables freed, the device released.
+    virtual ~CRenderHelper();
     // 1: 004FD2A0 (RET 0xC). Records the state blocks of `states` and keeps the new preset (as
     // built-in preset `index` when that is below 9). `singleStage`: at most one texture stage.
     virtual CRenderPreset* Record(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
-    CRenderPreset* RecordImpl(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);   // body of the slot above (registered by member pointer)
     // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its preset.
     virtual void ReleasePreset(CRenderPreset* preset);
     // 3: 004FD9D0 (RET 4). Deletes the preset's state blocks and drops its record.
     virtual void ReleaseBlock(CRenderPreset* preset);
-    void ReleaseBlockImpl(CRenderPreset* preset);   // body of the slot above (registered by member pointer)
     // 4: 004FDB50 (RET 4). The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
     // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
@@ -299,16 +302,18 @@ public:
     // 7: 004FDD80 (RET 8). Slot 6 for preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
 
-    // 004FCA60 (RET 8; render_helper.cpp). Constructor: takes the device and its capabilities, then
-    // records the nine built-in presets (`flag`'s low byte: one texture stage each). Returns this.
-    CRenderHelper* RenderHelperConstruct(IDirect3DDevice7* device, std::uint32_t flag);
-    // 004FCC20 (RET 4; render_helper.cpp). The deleting destructor (slot 0). Returns this.
-    void* DeleteScalar(unsigned flags);
+    // On the game's heap.
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+
+    CRenderHelper(const CRenderHelper&) = delete;
+    CRenderHelper& operator=(const CRenderHelper&) = delete;
+
     // 004FCE90 (RET 8, AL; render_helper.cpp). The state list of built-in preset `index` into
     // `states` (emptied first); false beyond the nine. Presets 0 and 8 have no states.
     bool RenderHelperBuiltInStateList(stlp::vector<RenderPresetRecord::State>* states, unsigned index);
 
-    int refs_;   // +0x04
+    int refs_ = 0;   // +0x04
     IDirect3DDevice7* device_;          // +0x08 counted (AddRef / Release)
     std::uint8_t caps_[0xEC];           // +0x0C the device's D3DDEVICEDESC7
     stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // +0xF8 by preset

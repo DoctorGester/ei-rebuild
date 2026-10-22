@@ -95,7 +95,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     if (!memory) ThrowSurfaceNotMade(device, 0, 0);
     CDXSurface* previous = surface_;
     surface_ = memory;
-    ++memory->refCount;
+    ++memory->refs_;
     if (previous) previous->Release();
     SurfacePixels pixels;
     DirectPixels(memory, &pixels);

@@ -2,13 +2,13 @@
 
 #include "engine_object.h"
 #include "resource_manager.h"
-#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 #include "raster_target.h"
+#include "renderer_base.h"
 
 #include <windows.h>
 
@@ -38,10 +38,48 @@ struct TLVertex;               // clip.h
 namespace devicebuffers { struct ProjectedVertex; }   // device_buffers.h
 struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
 
-// Owns the Direct3D texture formats; held by CTextureManager. Name provisional; not rewritten yet.
-// The same object is the renderer's device object (the global at 007AF080): its DirectDraw
-// interface, the primary surface's and the render target's holders and the screen rectangle.
-class CTextureDevice {
+// The device object's DirectDraw base ("CDXDirectDraw" in its messages; game.exe's vtable 0073D770; the members up
+// to +0x50; directdraw_holder.cpp, A-S13). A failed DirectDraw call throws the game's error object (dx_errors.h).
+class CDXDirectDraw : public CRendererBase {
+public:
+    // 004EDD70 (RET 0x24). The processor's CPUID words into 007CAED0 (no MMX: a fatal error and exit), 2DintMMX.dll
+    // loaded and its graphics processor taken, the DirectDraw object of `driver` made with its display modes
+    // (CreateDirectDraw), the cooperative level, for full screen the display mode, the primary and back surfaces,
+    // and the YUV formats the driver can make an off-screen and an overlay surface of.
+    CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
+                  unsigned backBuffers, int for3D);
+    // 004EE330 (deleting: 004EE310). The display mode restored (full screen), the library freed, the clipper, both
+    // surface holders and the DirectDraw object released, the display modes freed.
+    ~CDXDirectDraw() override;
+
+    // 004EEC60 (plain RET). The display mode restored, in full screen only.
+    void RestoreDisplayMode();
+    // 004EECF0 (RET 8). The cooperative level of the window: exclusive full screen or normal, with
+    // DDSCL_FPUSETUP | DDSCL_MULTITHREADED; `screen` (or an empty rectangle) becomes screen_.
+    void SetCooperativeLevel(int fullScreen, const RECT* screen);
+
+    int lastLoadResult_ = 0;    // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
+    IDirectDraw7* ddraw_;       // +0x0C
+    GUID* driver_;              // +0x10 the driver the DirectDraw object was made for
+    CDXSurface* primary_;       // +0x14 the primary surface's holder
+    CDXSurface* renderTarget_;  // +0x18 the render target's holder
+    void* clipper_;             // +0x1C IDirectDrawClipper* of the window (004EF510)
+    std::uint32_t flags_;       // +0x20 the cooperative level; bit 0: full screen (the present flips)
+    RECT screen_;               // +0x24 the screen rectangle
+    HWND window_;               // +0x34
+    stlp::list<_DDSURFACEDESC2> modes_;   // +0x38 the driver's display modes
+    std::uint32_t videoFourCC_;     // +0x3C the YUV format an off-screen video-memory surface can have (0: none)
+    std::uint32_t overlayFourCC_;   // +0x40 the YUV format an overlay can have (0: none)
+    bool overlayStretch_;       // +0x44 DDCAPS_OVERLAYSTRETCH
+    std::uint8_t unused_45[3];
+    HMODULE converterLibrary_;  // +0x48 2DintMMX.dll
+    void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
+};
+
+// Owns the Direct3D texture formats; held by CTextureManager. Name provisional.
+// The same object is the renderer's device object (the global at 007AF080; game.exe's vtable 0073D760): its
+// DirectDraw interface, the primary surface's and the render target's holders and the screen rectangle.
+class CTextureDevice final : public CDXDirectDraw {
 public:
     // 0x004EB170 (device_states.cpp).
     int SetMaterial(CDeviceMaterial* material);
@@ -94,74 +132,23 @@ public:
     // name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // directdraw_holder.cpp (A-S13): the object's DirectDraw base class (vtable 0073D770, the
-    // members up to +0x50). A failed DirectDraw call throws the game's error object (dx_errors.h).
-    // 004EDD70 (RET 0x24). The base's constructor: the processor's CPUID words into 007CAED0 (no
-    // MMX: a fatal error and exit), 2DintMMX.dll loaded and its graphics processor taken, the
-    // DirectDraw object of `driver` made with its display modes (CreateDirectDraw), the
-    // cooperative level, for full screen the display mode, the primary and back surfaces, and the
-    // YUV formats the driver can make an off-screen and an overlay surface of. Returns this.
-    CTextureDevice* ConstructDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height,
-                                        int bitsPerPixel, int refreshRate, unsigned backBuffers, int for3D);
-    // 004EE330 (plain RET). The base's destructor body: the display mode restored (full screen),
-    // the library freed, the clipper, both surface holders and the DirectDraw object released, the
-    // display modes freed.
-    void DestructDirectDraw();
-    // 004EE310 (RET 4; render_helper.cpp). The DirectDraw holder's deleting destructor (slot 0): the
-    // base's body, then the block freed when bit 0 of `flags` is set. Returns this.
-    void* DeleteDirectDraw(unsigned flags);
-    // 004EEC60 (plain RET). The display mode restored, in full screen only.
-    void RestoreDisplayMode();
-    // 004EECF0 (RET 8). The cooperative level of the window: exclusive full screen or normal, with
-    // DDSCL_FPUSETUP | DDSCL_MULTITHREADED; `screen` (or an empty rectangle) becomes screen_.
-    void SetCooperativeLevel(int fullScreen, const RECT* screen);
-
-    // device_object.cpp (A-S13): the device object itself (vtable 0073D760).
-    // 004E5E50 (RET 0x28). The constructor: the base (one back buffer asked as the caller says,
-    // for 3D), IDirect3D7 from the DirectDraw object, its devices listed, the HAL device made on
-    // the render target, the texture formats (BuildFormatTable) and depth formats listed, the
-    // depth buffer (CreateDepthBuffer), the render target and viewport set, and four state blocks
-    // of stage 0's colour and alpha operations recorded (007AEDD0 .. 007AEDDC). Returns this.
-    CTextureDevice* Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
-                              int refreshRate, unsigned backBuffers, int depthBits, int stencilBits);
-    // 004E68A0 (plain RET). The destructor body: the four state blocks deleted, the batches'
-    // buffers, the depth surfaces and the pipeline dropped, the Direct3D device and object
-    // released, the members destroyed, then the base's destructor body.
-    void Destruct();
-    // 004E6880 (RET 4; render_helper.cpp). The device object's deleting destructor (slot 0).
-    void* DeleteDevice(unsigned flags);
+    // device_object.cpp (A-S13).
+    // 004E5E50 (RET 0x28). The base (one back buffer asked as the caller says, for 3D), IDirect3D7 from the
+    // DirectDraw object, its devices listed, the HAL device made on the render target, the texture formats
+    // (BuildFormatTable) and depth formats listed, the depth buffer (CreateDepthBuffer), the render target and
+    // viewport set, and four state blocks of stage 0's colour and alpha operations recorded (007AEDD0 .. 007AEDDC).
+    CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
+                   unsigned backBuffers, int depthBits, int stencilBits);
+    // 004E68A0 (deleting: 004E6880). The four state blocks deleted, the batches' buffers, the depth surfaces and the
+    // pipeline dropped, the Direct3D device and object released, the members destroyed; then the base's.
+    ~CTextureDevice() override;
     // 004E6EE0 (plain RET). The texture formats: the Direct3D device's formats listed again and
     // formats_ filled from them: DXT1 .. DXT5 by their four-character codes, 5:6:5, 5:5:5 (0x5550),
     // 1:5:5:5, 4:4:4:4 and 8:8:8:8 by their ids; largestFormatId_ is the largest id stored.
     void BuildFormatTable();
 
-    // Holders count references to it (the cursor): one more, or one less with the deleting
-    // destructor (vtable slot 0, with 1) at zero.
-    void AddRef() { ++refs_; }
-    void Release() {
-        if (--refs_ != 0) return;
-        using Destroy = void(__fastcall*)(CTextureDevice*, void*, int);
-        (*static_cast<Destroy*>(vtable_))(this, nullptr, 1);
-    }
+    // Holders count references to it (the cursor): CRendererBase's AddRef / Release.
 
-    void* vtable_;
-    int refs_;                  // +0x04
-    int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
-    IDirectDraw7* ddraw_;       // +0x0C
-    GUID* driver_;              // +0x10 the driver the DirectDraw object was made for
-    CDXSurface* primary_;       // +0x14 the primary surface's holder
-    CDXSurface* renderTarget_;  // +0x18 the render target's holder
-    void* clipper_;             // +0x1C IDirectDrawClipper* of the window (004EF510)
-    std::uint32_t flags_;       // +0x20 the cooperative level; bit 0: full screen (the present flips)
-    RECT screen_;               // +0x24 the screen rectangle
-    HWND window_;               // +0x34
-    stlp::list<_DDSURFACEDESC2> modes_;   // +0x38 the driver's display modes
-    std::uint32_t videoFourCC_;     // +0x3C the YUV format an off-screen video-memory surface can have (0: none)
-    std::uint32_t overlayFourCC_;   // +0x40 the YUV format an overlay can have (0: none)
-    bool overlayStretch_;       // +0x44 DDCAPS_OVERLAYSTRETCH
-    std::uint8_t unused_45[3];
-    HMODULE converterLibrary_;  // +0x48 2DintMMX.dll
-    void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
     IDirect3D7* d3d_;           // +0x50
     IDirect3DDevice7* d3dDevice_;   // +0x54
     CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
@@ -247,55 +234,38 @@ inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawD
 // past the last: a fatal error ("Can't find driver by index.") and null.
 DirectDrawDriver* __fastcall DriverAt(int index);
 
-// A DirectDraw surface wrapper (the original's 004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0
-// for an off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting
-// destructor), the reference count, the last DirectDraw result, the device object, the
-// IDirectDrawSurface7* (always null in the image: the pixels are the new renderer's memory,
-// dx_surface.h), width, height and bits per pixel.
-struct CDXSurface {
-    CDXSurface* DeleteScalar(unsigned flags);
-    // 004EF7B0 (dx_surface.cpp, thiscall). The constructor for an off-screen surface of the screen's
-    // format; returns this. Throws the game's error object when the surface cannot be made.
-    CDXSurface* Construct(CTextureDevice* device, int width, int height);
-    // 004EFC60 (dx_surface.cpp, thiscall, RET 0xC): a holder whose surface shows an .mmp picture.
-    CDXSurface* ConstructFromPicture(CTextureDevice* device, const void* picture, int flag);
-    // 004F0060 (dx_surface.cpp, thiscall, RET 8): loads the picture data into the surface.
-    int LoadPictureData(const void* data, int flag);
-    void* vtable;
-    int refCount;               // +0x04
-    long result;                // +0x08
-    CTextureDevice* device;     // +0x0C
-    void* surface;              // +0x10 (null: no holder has a DirectDraw surface)
-    int width;                  // +0x14
-    int height;                 // +0x18
-    int bitsPerPixel;           // +0x1C
+// A DirectDraw surface wrapper (game.exe's vtable 0073D774; the original's 004EFA60 constructs it from a
+// DDSURFACEDESC2, 004EF7B0 for an off-screen surface of the screen's format; 0x20 bytes): counted, the last DirectDraw
+// result, the device object, the IDirectDrawSurface7* (always null in the image: the pixels are the new renderer's
+// memory, dx_surface.h), width, height and bits per pixel. dx_surface.cpp.
+struct CDXSurface final : CRendererBase {
+    // The holder as 004EFA60 starts one: the device, no surface, no size (the creation fills it in; the
+    // switch-over's screen and texture holders, directdraw_holder.cpp / dx_surface.cpp).
+    explicit CDXSurface(CTextureDevice* device);
+    // 004EF7B0 (thiscall, RET 0xC). An off-screen surface of the screen's format. Throws the game's error object
+    // when the surface cannot be made.
+    CDXSurface(CTextureDevice* device, int width, int height);
+    // 004EFC60 (thiscall, RET 0xC): a holder whose surface shows an .mmp picture.
+    CDXSurface(CTextureDevice* device, const void* picture, int flag);
+    // 004EFD20 (deleting: 004EF790). The new renderer's memory released (the original: the surface), the device
+    // cleared, the holder counted out.
+    ~CDXSurface() override;
 
-    // 004E6BA0: drops a reference; the deleting destructor (vtable slot 0, with 1) at zero.
-    void Release() {
-        if (--refCount != 0) return;
-        using Destroy = void(__fastcall*)(CDXSurface*, void*, int);
-        (*static_cast<Destroy*>(vtable))(this, nullptr, 1);
-    }
+    // 004F0060 (thiscall, RET 8): loads the picture data into the surface.
+    int LoadPictureData(const void* data, int flag);
+
+    long result = 0;            // +0x08
+    CTextureDevice* device;     // +0x0C
+    void* surface = nullptr;    // +0x10 (null: no holder has a DirectDraw surface)
+    int width = 0;              // +0x14
+    int height = 0;             // +0x18
+    int bitsPerPixel = 0;       // +0x1C
 };
 static_assert(offsetof(CDXSurface, result) == 0x08);
 static_assert(offsetof(CDXSurface, device) == 0x0C);
 static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
-
-// The renderer's counted base (CDXSurface, the device object and the pipeline derive from it in the original): only
-// its deleting destructor (004E7800, device_helpers.cpp), which no object reaches.
-struct CRendererBase {
-    void* DeleteScalar(unsigned flags);
-};
-
-// The compiled tables (C19, lib/compiled_vtable.h) of the renderer's objects, each one slot (the deleting
-// destructor), in place of game.exe's: the counted base 0073D768, the device object's DirectDraw base 0073D770, the
-// device object 0073D760 and the surface holder 0073D774 (the pipeline's, 0073D778: model.h).
-struct RendererBaseClass final : ei::CompiledDeleter<RendererBaseClass, &CRendererBase::DeleteScalar> {};
-struct DirectDrawClass final : ei::CompiledDeleter<DirectDrawClass, &CTextureDevice::DeleteDirectDraw> {};
-struct DeviceObjectClass final : ei::CompiledDeleter<DeviceObjectClass, &CTextureDevice::DeleteDevice> {};
-struct DXSurfaceClass final : ei::CompiledDeleter<DXSurfaceClass, &CDXSurface::DeleteScalar> {};
 
 // RasterTriangle / RasterTarget: raster_target.h.
 

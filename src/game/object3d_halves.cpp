@@ -170,7 +170,7 @@ void __fastcall WoundsMaterialDestruct(WoundsMaterial* self) {
     self->stages.clear();
     self->stages.FreeStorage();
     if (CRenderPreset* preset = self->preset) {
-        if (--preset->refs_ == 0) preset->DeleteThis(1);
+        if (--preset->refs_ == 0) delete preset;
     }
     ei::SetVtable(self, PlainRootVtable());
 }

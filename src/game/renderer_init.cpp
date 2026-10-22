@@ -205,16 +205,12 @@ void AddDefaultLight(CSceneRenderer* renderer) {
 // The counted helper object (+0x24). The original pushes the flag as EDX with only DL set (the rest
 // of EDX is what operator new left there); the constructor reads only the low byte.
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
-    void* memory = gamecrt::operator_new(sizeof(CRenderHelper));
-    CRenderHelper* helper = nullptr;
-    if (memory) {
-        std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
-        helper = static_cast<CRenderHelper*>(memory)->RenderHelperConstruct(D3DDevice(renderer), flag);
-    }
+    const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
+    CRenderHelper* helper = new CRenderHelper(D3DDevice(renderer), flag);
     CRenderHelper* old = renderer->helper_;
     renderer->helper_ = helper;
     if (helper) ++helper->refs_;
-    if (old && --old->refs_ == 0) old->DeleteThis(1);
+    if (old && --old->refs_ == 0) delete old;
 }
 
 } // namespace
@@ -226,12 +222,8 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     // The switch-over (the new renderer presents, device.h): no DirectDraw driver is listed or
     // tried; the device object is built without one.
     GUID* driverId = nullptr;
-    void* memory = gamecrt::operator_new(0x17C);
-    CTextureDevice* device = nullptr;
-    if (memory) {
-        device = static_cast<CTextureDevice*>(memory)->Construct(static_cast<HWND__*>(window), driverId, settings->fullScreen_, settings->resolutionX_,
-                                 settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
-    }
+    CTextureDevice* device = new CTextureDevice(static_cast<HWND__*>(window), driverId, settings->fullScreen_, settings->resolutionX_,
+                                                settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     device_.Assign(device);
     DeviceSetPipeline(&device_->pipeline_, pipeline_);
 

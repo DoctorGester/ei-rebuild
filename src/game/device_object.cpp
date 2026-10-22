@@ -5,8 +5,8 @@
 // went in R11b (config/dead_code.csv). The base class is in directdraw_holder.cpp. See
 // docs/notes/renderer.md (sections 9, 12).
 //
-// A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
-// unwound on the way, and every such throw ends the game in WinMain.
+// A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
+// the game in WinMain.
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -18,7 +18,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -168,8 +167,7 @@ void CTextureDevice::BuildFormatTable() {
 }
 EI_REWRITTEN(0x004E6EE0, CTextureDevice::BuildFormatTable);
 
-void CTextureDevice::Destruct() {
-    ei::SetVtable(this, DeviceObjectClass::Vtable());
+CTextureDevice::~CTextureDevice() {
     for (const StageBlockSetup& block : kStageBlocks) {
         const DWORD handle = g_stageBlocks[block.block];
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
@@ -194,33 +192,27 @@ void CTextureDevice::Destruct() {
     if (pipeline_) pipeline_->Release();
     if (depth2_) depth2_->Release();
     if (depth_) depth_->Release();
-    DestructDirectDraw();
 }
-EI_REWRITTEN(0x004E68A0, CTextureDevice::Destruct);
+EI_REWRITTEN_SPECIAL(0x004E68A0, CTextureDevice::~CTextureDevice);
+EI_REWRITTEN_SPECIAL(0x004E6880, CTextureDevice::~CTextureDevice);
 
 // The base's constructor and the format table first. The original then makes the Direct3D object,
 // takes the HAL device (the T&L HAL is skipped by its id), the depth buffer (004E6C30) and the render
 // target; none of that exists in the switch-over.
-CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
-                                          int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/) {
-    ConstructDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate,
-                                    backBuffers, 1);
-    depth_ = nullptr;
-    depth2_ = nullptr;
-    deviceGuid_ = GUID{};
-    pipeline_ = nullptr;
+CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
+                               int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)
+    : CDXDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers, 1),
+      depth_(nullptr), depth2_(nullptr), deviceGuid_{}, pipeline_(nullptr) {
     devices_.Construct();
     depthFormats_.Construct();
     textureFormats_.Construct();
     formats_.InitBuckets(100);
     largestFormatId_ = 0;
     material_ = nullptr;
-    ei::SetVtable(this, DeviceObjectClass::Vtable());
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 
     // The switch-over (device.h): no Direct3D object or device (R11a: no DirectDraw fallback).
     ConstructWithoutDirect3D(this);
-    return this;
 }
-EI_REWRITTEN(0x004E5E50, CTextureDevice::Construct);
+EI_REWRITTEN_SPECIAL(0x004E5E50, CTextureDevice::CTextureDevice);

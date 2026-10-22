@@ -228,15 +228,10 @@ void CUiSurface::SwapContents(int restore) {
     if (restore) {
         if (!holder_) {
             // A new surface of the surface's size.
-            void* memory = gamecrt::operator_new(0x20);
-            SurfaceHolder* made = nullptr;
-            if (memory) {
-                made = reinterpret_cast<SurfaceHolder*>(static_cast<CDXSurface*>(memory)->Construct(
-                    reinterpret_cast<CTextureDevice*>(interface_->renderer_), width_, height_));
-            }
+            SurfaceHolder* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(interface_->renderer_), width_, height_);
             SurfaceHolder* previous = holder_;
             holder_ = made;
-            if (made) ++made->refCount;
+            if (made) ++made->refs_;
             if (previous) ReleaseHolder(previous);
             DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
             UiSurfaceBytes() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
@@ -270,10 +265,7 @@ void CUiSurface::SwapContents(int restore) {
     UiSurfaceBytes() -= keptSize_;
     SurfaceHolder* released = holder_;
     holder_ = nullptr;
-    if (released && --released->refCount == 0) {
-        using DeleteFn = void(__thiscall*)(SurfaceHolder*, int);
-        ei::VirtualSlot<DeleteFn>(static_cast<void**>(released->vtable), 0)(released, 1);
-    }
+    if (released) released->Release();
 }
 
 // 005FD240 (thiscall, RET 8). The pixel at (x, y) of the surface as 0x00RRGGBB (through the
