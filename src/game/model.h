@@ -404,6 +404,23 @@ protected:
 // The scene renderer (the global at 007AF060, 26 slots; 00500960 returns it). C19: a real virtual class over
 // CVisualizator, the compiler's table in place of game.exe's 0073D93C; the static initialiser's constructor
 // (00500A70) and the exit's destructor (00500AC0) construct and destroy it in place.
+// The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
+// left), 00504E20 (RET 4; renderer_lifetime.cpp) takes `device` (one more reference) and releases
+// the old one. Reads see the device; a plain store (`held = p`) counts nothing.
+struct HeldDevice {
+    void Assign(CTextureDevice* value);
+
+    operator CTextureDevice*() const { return device; }
+    CTextureDevice* operator->() const { return device; }
+    HeldDevice& operator=(CTextureDevice* plain) {
+        device = plain;
+        return *this;
+    }
+
+    CTextureDevice* device;
+};
+static_assert(sizeof(HeldDevice) == 4);
+
 class CSceneRenderer : public CVisualizator {
 public:
     int SetFogColourState(std::uint32_t colour) override { return SetFogColourStateImpl(colour); }   // 0
@@ -545,7 +562,7 @@ public:
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
     void SetFogColour(float r, float g, float b);
 
-    CTextureDevice* device_;         // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
+    HeldDevice device_;              // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
     CRenderHelper* helper_;          // +0x24 counted
     // +0x28 .. +0x30: the display settings slot 22 (SetGamma) last applied, as given.
     float brightness_;
@@ -573,16 +590,6 @@ static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRender
 
 // renderer_lifetime.cpp (A-U11). 00500960 (cdecl): the renderer (the global at 007AF060).
 CSceneRenderer* __cdecl SceneRenderer();
-// The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
-// left), 00504E20 (RET 4; renderer_lifetime.cpp) takes `device` (one more reference) and releases
-// the old one.
-struct HeldDevice {
-    CTextureDevice* device;
-
-    static HeldDevice* Of(CTextureDevice** holder) { return reinterpret_cast<HeldDevice*>(holder); }
-    void Assign(CTextureDevice* value);
-};
-static_assert(sizeof(HeldDevice) == 4);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
@@ -740,6 +747,15 @@ static_assert(sizeof(CLinkFigureLoader) == 0x34);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 
+// What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime
+// in ticks (the client world's +0x7A8 picks chunk 3).
+struct PrintLook {
+    float alpha;
+    int life;
+    int lifetime;
+};
+static_assert(sizeof(PrintLook) == 0xC);
+
 // A record of prints.db (terrain footprints). 0x28 bytes. The records are constructed and destroyed by the
 // game's vector code (record_vectors.h). A real virtual class (C19): the compiler makes its one-slot table
 // (game.exe's 00744264 is retired); Vtable() is it.
@@ -750,8 +766,8 @@ struct PrintRecord {
     static void* Vtable() { return ei::CompiledVtable<PrintRecord>(); }
 
     stlp::string name;           // +0x04
-    std::uint32_t values2[3];    // +0x10 chunk 2
-    std::uint32_t values3[3];    // +0x1C chunk 3
+    PrintLook look2;             // +0x10 chunk 2
+    PrintLook look3;             // +0x1C chunk 3
 };
 static_assert(offsetof(PrintRecord, name) == 0x04);
 static_assert(sizeof(PrintRecord) == 0x28);
@@ -765,26 +781,15 @@ struct PrintRecord2 {
     static void* Vtable() { return ei::CompiledVtable<PrintRecord2>(); }
 
     stlp::string name;           // +0x04
-    std::uint32_t values2[3];    // +0x10 chunk 2
-    std::uint32_t values3[3];    // +0x1C chunk 3
+    PrintLook look2;             // +0x10 chunk 2
+    PrintLook look3;             // +0x1C chunk 3
     std::uint32_t values10[3];   // +0x28 chunk 10
 };
 static_assert(offsetof(PrintRecord2, name) == 0x04);
 static_assert(sizeof(PrintRecord2) == 0x34);
 
-// What chunks 2 and 3 of both record types hold: a print's alpha and its life and lifetime in
-// ticks (the client world's +0x7A8 picks chunk 3).
-struct PrintLook {
-    float alpha;
-    int life;
-    int lifetime;
-};
-inline const PrintLook& LookOf(const PrintRecord& r, bool second) {
-    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
-}
-inline const PrintLook& LookOf(const PrintRecord2& r, bool second) {
-    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
-}
+inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.look3 : r.look2; }
+inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.look3 : r.look2; }
 
 // prints.db (007C89C8, loaded at startup by 006D0630), indexed by the ground's surface class
 // (Terrain::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
