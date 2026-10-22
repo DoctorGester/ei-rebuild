@@ -2,6 +2,7 @@ vtable,slots,class,file,note
 0073B870,25,BaseManagerClass,src/game/base_manager.cpp,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B8E0,13,EngineObjectBaseClass,src/game/engine_object_class.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
+0073B984,2,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedExceptionClass,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base, set while its constructor runs)"
 0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)

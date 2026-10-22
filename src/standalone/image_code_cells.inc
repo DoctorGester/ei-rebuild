@@ -5,8 +5,6 @@
 // a stub that reports there is no code there. {cell, the code address it holds}, by group; each group's
 // review is in the tool.
 // a vtable's slots (config/vtables.csv)
-{DataId(0x0073B984), 0x0040C4E0},
-{DataId(0x0073B988), 0x0040C430},
 {DataId(0x0073D6B4), 0x004E24C0},
 {DataId(0x0073D6B8), 0x00402D40},
 {DataId(0x0073D6BC), 0x004E23D0},
