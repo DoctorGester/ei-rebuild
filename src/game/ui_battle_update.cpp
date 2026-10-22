@@ -256,7 +256,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                     party->SetSize(1, -1);
                 } else {
                     party->SetSize(n + 1, -1);
-                    libcrt::Memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
+                    std::memmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
                     mfc::PlainElements<CUnit*>::Construct(party->data, 1);   // 0060AEC0
                 }
                 party->data[0] = unit;

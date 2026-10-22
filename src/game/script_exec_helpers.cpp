@@ -127,7 +127,7 @@ void CScript::DeleteArea(int id) {
         gamearrays::DestroyArea(&areas[i]);   // 004BCF10: the parts freed
         if (after) {
             areas = areas_.data;
-            libcrt::Memmove(&areas[i], &areas[i + 1], after * kAreaSize);
+            std::memmove(&areas[i], &areas[i + 1], after * kAreaSize);
         }
         --areas_.size;
         --i;   // the next area moved into this slot

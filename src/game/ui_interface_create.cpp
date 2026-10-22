@@ -26,6 +26,8 @@
 #include "options.h"
 
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <utility>
 
 namespace {
@@ -71,7 +73,7 @@ void ChooseKeyboardLayout() {
         char name[12];
         if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
-        libcrt::Sscanf(name, "%x", &id);
+        sscanf_s(name, "%x", &id);
         id &= 0xFFFF;
         if (id == wanted) {
             found = i;
@@ -162,7 +164,7 @@ void CInterface3D::Create(CTextureDevice* device) {
             text::SplitWords(line, &words, ' ');
             if (words.GetSize() <= 1) continue;
             const char* count = words[1];
-            helpTopics_.Subscript(words[0]) = libcrt::Atoi(count);   // operator[], inlined by the original
+            helpTopics_.Subscript(words[0]) = std::atoi(count);   // operator[], inlined by the original
         }
         file.Close();
     }

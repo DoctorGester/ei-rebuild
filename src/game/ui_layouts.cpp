@@ -41,6 +41,7 @@
 #include "figure_manager.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -681,7 +682,7 @@ void CCreditsScreen::Build() {
         currentLine_ = lines_.End();
     } else {
         mfc::CString script;
-        libcrt::Memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
+        std::memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
         RemoveCarriageReturns(&script);
@@ -699,7 +700,7 @@ void CCreditsScreen::Build() {
                                 0;   // "#scroll"
             }
             words.Next();
-            record.speed = static_cast<float>(GameAtof(words.word));
+            record.speed = static_cast<float>(std::atof(words.word));
             words.Next();
             record.style = words.WordOrNull();
             words.Next();

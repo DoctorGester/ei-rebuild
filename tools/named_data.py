@@ -109,11 +109,7 @@ TYPES = {
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
-    'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
-    'LocaleCategory': 'PPP',                 # crt_locale.cpp: __lc_category's name, locale name, init function
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
-    'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
-    'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
@@ -139,7 +135,7 @@ TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*
 REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 # The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
-# reports game.exe's unported function (ei::UnportedSlot: crt_locale.cpp's category builders).
+# reports game.exe's unported function (ei::UnportedSlot).
 REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')

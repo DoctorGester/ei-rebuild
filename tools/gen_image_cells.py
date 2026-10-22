@@ -87,7 +87,11 @@ REVIEWED_DATA = [
                                  'descriptors (".PAV...")'),
     # .data
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
+    (0x00797888, 0x007978C8, 5, 'the CRT\'s locale categories __lc_category (6 x {name, locale, init}): the names\' '
+                                 'strings and the static "C" 00797778 (unread: setlocale is the host CRT\'s, C26)'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
+    (0x00797DD8, 0x00797DDC, 2, 'the CRT\'s _pctype / _pwctype: the C locale\'s _ctype + 1 (unread: the classes are the '
+                                'host CRT\'s, C26)'),
     (0x00797C04, 0x00797C44, 4, 'the CRT\'s lock table (_locktable, _mtinitlocks 006F0741): preallocated critical '
                                 'sections'),
     (0x00798060, 0x00798068, 2, '_iob[0] (stdin) _ptr and _base: the static stdin buffer _bufin'),
@@ -142,6 +146,10 @@ REVIEWED_RDATA = [
                                  'nothing calls a descriptor\'s virtual; named_data.RETIRED_POINTED)', 0x007472B0),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
+    (0x00798928, 0x00798BE0, 88, 'getqloc\'s country and language name tables (__rg_country 00798928, __rg_language '
+                                 '007989E0): their names (unread: setlocale is the host CRT\'s, C26)'),
+    (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories __lc_category: their names "LC_ALL" .. "LC_TIME" '
+                                '(unread: setlocale is the host CRT\'s, C26)'),
     (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
                                  'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
@@ -182,7 +190,7 @@ CODE_REVIEWED = [
     (0x007975A0, 0x007975C8, 4, "the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and "
                                    "__pInconsistency"),
     (0x00797640, 0x0079768C, 16, "the CRT's math error handling: fmod's dispatch table (into its code)"),
-    (0x007978E0, 0x007978E0, 1, "the CRT's next hook after the locale categories (00797888, named: crt_locale.cpp)"),
+    (0x007978E0, 0x007978E0, 1, "the CRT's next hook after the locale categories (00797888)"),
     (0x00797B10, 0x00797B24, 6, 'the CRT\'s table of six handlers (006F9696, read by 006E72E4)'),
     (0x00797B60, 0x00797B74, 2, "the CRT's exception action table's default handlers"),
 ]
@@ -215,6 +223,10 @@ NOT_CODE = [
     (0x0078FC44, 0x0078FC44, 1, '"her": text (leather)'),
     (0x00792EF8, 0x00792EF8, 1, '" %s": text'),
     (0x00792F84, 0x00792F84, 1, '" %s": text'),
+    (0x00797890, 0x007978CC, 6, "__lc_category's table builders (__init_dummy, __init_collate, __init_ctype, "
+                                   "__init_monetary, __init_numeric, __init_time): unread, setlocale is the host "
+                                   "CRT's (C26)"),
+    (0x00797724, 0x00797724, 1, "__rgcode_page_info's ulInfo of code page 950 (_setmbcp's table; the host CRT's, C26)"),
 ]
 
 # Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.

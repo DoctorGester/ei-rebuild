@@ -21,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cmath>
+#include <cstdlib>
 
 namespace {
 
@@ -169,8 +170,8 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
         if (texts->Split(&words, 1) && words.GetSize() > 1) {
             for (int i = 1; i < words.GetSize(); i += 2) {
                 UiPointF place;
-                place.x = static_cast<float>(GameAtof(words[i - 1]));
-                place.y = static_cast<float>(GameAtof(words[i]));
+                place.x = static_cast<float>(std::atof(words[i - 1]));
+                place.y = static_cast<float>(std::atof(words[i]));
                 places.push_back(place);
             }
         }

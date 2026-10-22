@@ -49,6 +49,7 @@
 #include "lib/mfc_string.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -373,7 +374,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         infoFind.Close();
         if (entry->folder_.GetLength() > 4) {
-            int number = libcrt::Atoi(console::Ops(entry->folder_).Mid(4));
+            int number = std::atoi(console::Ops(entry->folder_).Mid(4));
             if (!(highest > number)) highest = number;
         }
     }

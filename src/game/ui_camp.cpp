@@ -37,6 +37,7 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 
+#include <cmath>
 #include <d3d.h>
 
 #include <cstdint>
@@ -1159,7 +1160,7 @@ constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;   // a static initialis
 float TurnedBy(double seconds, float turn, bool backwards) {
     const double twice = seconds + seconds;
     const double turned = backwards ? turn - twice : twice + turn;
-    return static_cast<float>(libcrt::CiFmod(turned, kCampFullTurn));
+    return static_cast<float>(std::fmod(turned, kCampFullTurn));
 }
 
 constexpr int kHeroClass = 0x32;

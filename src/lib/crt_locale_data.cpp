@@ -1,41 +1,68 @@
-// The game CRT's locale and multibyte state (crt_locale_data.h): game.exe's .data / .bss objects, named (C18i).
+// The locale and multibyte state the CRT ports read (crt_locale_data.h): the host CRT's (C26).
 #include "crt_locale_data.h"
+
+#include <windows.h>
+
+#include <clocale>
+#include <ctype.h>
+#include <cwchar>
+#include <mbctype.h>
 
 namespace libcrt {
 
-unsigned g_lcHandle[6] = /*007CABE8*/ {};
-unsigned g_lcCodePage = /*007CAC00*/ {};
-unsigned g_lcCollateCodePage = /*007CAC04*/ {};
-const std::uint16_t kCtypeC[257] = /*00797DE0*/ {
-    0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 40, 40, 40, 40, 40, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
-    32, 32, 32, 32, 72, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 132, 132, 132, 132, 132, 132, 132,
-    132, 132, 132, 16, 16, 16, 16, 16, 16, 16, 129, 129, 129, 129, 129, 129, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 16, 16, 16, 16, 16, 16, 130, 130, 130, 130, 130, 130, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2, 2, 2, 16, 16, 16, 16, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+namespace {
+
+#ifdef EI_VECTORS_REPLAY
+char replayDecimalPoint = 0;
+const std::uint16_t* replayClasses = nullptr;
+#endif
+
+// The last LC_CTYPE locale name seen and its id (one per thread: the host CRT's locale state is read from any).
+struct LocaleIdCache {
+    wchar_t name[LOCALE_NAME_MAX_LENGTH] = {};
+    unsigned id = 0;
 };
-const std::uint16_t* g_pctype = /*00797DD8*/ {kCtypeC + 1};
-const std::uint16_t* g_pwctype = /*00797DDC*/ {kCtypeC + 1};
-std::uint16_t* g_ctypeBlock = /*007CAC28*/ {nullptr};
-std::uint16_t* g_wideCtypeBlock = /*007CAC2C*/ {nullptr};
-LocaleId g_lcId[6] = /*007CAC30*/ {};
-int g_mbCurMax = /*00797FE4*/ {1};
-char g_decimalPoint[2] = /*00797FE8*/ {"."};
 
-char g_cacheIn[132] = /*0079777C*/ {"C"};
-char g_cacheOut[132] = /*00797800*/ {"C"};
-LocaleId g_cachedId = /*007CAB24*/ {};
-unsigned g_cachedCodePage = /*007CAB2C*/ {};
+} // namespace
 
-unsigned g_mbCodePage = /*007CC058*/ {};
-unsigned g_mbUlInfo[3] = /*007CC060*/ {};
-int g_isMbCodePage = /*007CC06C*/ {};
-std::uint8_t g_mbCaseMap[256] = /*007CC080*/ {};
-std::uint8_t g_mbCtype[257] = /*007CC180*/ {};
-unsigned g_mbLcid = /*007CC284*/ {};
-int g_mbTableReady = /*007CC28C*/ {};
-int g_mbSystemSet = /*007CAB20*/ {};
+const std::uint16_t* CharClasses() {
+#ifdef EI_VECTORS_REPLAY
+    if (replayClasses) return replayClasses;
+#endif
+    return __pctype_func();
+}
+
+unsigned CtypeLocale() {
+    const wchar_t* name = ___lc_locale_name_func()[LC_CTYPE];
+    if (name == nullptr) return 0;
+    thread_local LocaleIdCache cache;
+    if (std::wcscmp(cache.name, name) != 0) {
+        wcsncpy_s(cache.name, name, _TRUNCATE);
+        cache.id = LocaleNameToLCID(name, 0);
+    }
+    return cache.id;
+}
+
+unsigned CtypeCodePage() { return ___lc_codepage_func(); }
+
+int MbCurMax() { return ___mb_cur_max_func(); }
+
+char DecimalPoint() {
+#ifdef EI_VECTORS_REPLAY
+    if (replayDecimalPoint) return replayDecimalPoint;
+#endif
+    return *std::localeconv()->decimal_point;
+}
+
+const std::uint8_t* MultibyteFlags() { return __p__mbctype() + 1; }
+
+const std::uint8_t* MultibyteCaseMap() { return __p__mbcasemap(); }
+
+#ifdef EI_VECTORS_REPLAY
+void SetReplayLocale(char decimalPoint, const std::uint16_t* classes) {
+    replayDecimalPoint = decimalPoint;
+    replayClasses = classes;
+}
+#endif
 
 } // namespace libcrt

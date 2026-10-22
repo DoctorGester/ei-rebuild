@@ -7,7 +7,6 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "hook/log.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "settings_file.h"
 
@@ -43,9 +42,8 @@ void Resolution(int* width, int* height) {
     char text[64] = {};
     DWORD size = sizeof(text) - 1, type = 0;
     if (settings_file::ReadValue(kGeneralSettings, "VIDEORESOLUTION", &type, text, &size) == ERROR_SUCCESS && type == REG_SZ) {
-        // addon: its own CRT's sscanf. Ours directly (S16b): this runs before the hooks are in, when
-        // the standalone image has no code at 006EAEEC yet.
-        libcrt::Sscanf(text, "%dx%d", width, height);
+        // addon: its own CRT's sscanf; ours is the host CRT's (C26).
+        sscanf_s(text, "%dx%d", width, height);
     }
 }
 

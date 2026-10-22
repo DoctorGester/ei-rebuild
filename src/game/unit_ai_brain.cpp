@@ -455,7 +455,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         }
         call.Destruct();
         int after = size - i - 1;
-        if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+        if (after != 0) std::memmove(&data[i], &data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
         --size;
         --i;
     }
@@ -470,7 +470,7 @@ void AIMemory::Update(CUnitServer* who) {
         // The element's destructor (00558CE0): release the object.
         if (entry->object) entry->object->Release();
         entry->object = nullptr;
-        if (after != 0) libcrt::Memmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
+        if (after != 0) std::memmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
         --reports.size;
         --i;
     }
