@@ -56,8 +56,7 @@ Message* TypeRegistry::Create(std::uint32_t type) {
 }
 EI_REWRITTEN(0x00438930, TypeRegistry::Create);
 
-SessionBase* SessionBase::Construct() {
-    ei::SetVtable(this, CRefCounted::RootVtable());
+SessionBase::SessionBase() {
     // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
     auto* sentinel = stlp::allocate_as<ClientNode>();
     clients_ = sentinel;
@@ -71,16 +70,14 @@ SessionBase* SessionBase::Construct() {
     for (auto& channel : handlers_)
         for (HandlerVector& v : channel) v = HandlerVector{};
     reinterpret_cast<std::uint32_t*>(&time_)[0] = 0;
-    ei::SetVtable(this, Vtable());
     reinterpret_cast<std::uint32_t*>(&time_)[1] = 0;
     frame_ = 1;
     magic_ = 0;
     timeout_ = 0x3C;
     maxRoundTrip_ = 5;
     idReuseTime_ = 0x4B;
-    return this;
 }
-EI_REWRITTEN(0x00436770, SessionBase::Construct);
+EI_REWRITTEN_SPECIAL(0x00436770, SessionBase::SessionBase);
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;

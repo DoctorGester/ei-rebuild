@@ -52,7 +52,7 @@ EI_REWRITTEN(0x00435010, NetAddress::ToString);
 // after that byte (an empty datagram is only logged). Then ticks every connection; one that timed
 // out is reported (slot 11) and removed (slot 2). Counts the call in `frame_`. The current session
 // is this one meanwhile.
-void SessionBase::TickImpl(double dt) {
+void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
     NetAddress from{};
@@ -105,7 +105,7 @@ void SessionBase::TickImpl(double dt) {
     ++frame_;
     g_currentSession = nullptr;
 }
-EI_REWRITTEN(0x00437370, SessionBase::TickImpl);
+EI_REWRITTEN(0x00437370, SessionBase::Tick);
 
 } // namespace net
 
@@ -147,7 +147,7 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
 EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);
 
 // 00436CF0 (slot 2): logs it, closes the connection and erases the node.
-void SessionBase::RemoveClientImpl(ClientNode* node) {
+void SessionBase::RemoveClient(ClientNode* node) {
     if (node == clients_) return;
     if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
     node->connection->Close();
@@ -156,7 +156,7 @@ void SessionBase::RemoveClientImpl(ClientNode* node) {
 
 // 00437080 (slot 3, packet kind 0): an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported (slot 11) and removed (slot 2).
-bool SessionBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
+bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* node = ClientAt(from);
     if (node == clients_) {
         LogText(game::nettexts::UnknownHost());
@@ -172,7 +172,7 @@ bool SessionBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
 
 // 00437240 (slot 6, packet kind 1): a client leaves: its connection id follows; when it matches,
 // the client is reported (slot 12) and removed (slot 2).
-void SessionBase::OnLeaveImpl(const NetAddress* from, BufferCursor* cursor) {
+void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
@@ -184,22 +184,22 @@ void SessionBase::OnLeaveImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // The base session's handlers of the kinds it does not serve: each logs an error.
-void SessionBase::OnGetInfoImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleGetInfo()); }
-void SessionBase::OnLoginImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleLogin()); }
-void SessionBase::OnInfoImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleInfo()); }
-void SessionBase::OnAcceptedImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleAccepted()); }
-void SessionBase::OnRejectedImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
-void SessionBase::OnMasterImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
+void SessionBase::OnGetInfo(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleGetInfo()); }
+void SessionBase::OnLogin(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleLogin()); }
+void SessionBase::OnInfo(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleInfo()); }
+void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleAccepted()); }
+void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
+void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
 
-EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClientImpl);
-EI_REWRITTEN(0x00437080, SessionBase::OnUpdateImpl);
-EI_REWRITTEN(0x00437240, SessionBase::OnLeaveImpl);
-EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfoImpl);    // slot 4, kind 3
-EI_REWRITTEN(0x00437210, SessionBase::OnLoginImpl);      // slot 5, kind 4
-EI_REWRITTEN(0x004372B0, SessionBase::OnInfoImpl);       // slot 7, kind 5
-EI_REWRITTEN(0x004372E0, SessionBase::OnAcceptedImpl);   // slot 8, kind 6
-EI_REWRITTEN(0x00437310, SessionBase::OnRejectedImpl);   // slot 9, kind 7
-EI_REWRITTEN(0x00437340, SessionBase::OnMasterImpl);     // slot 10, kind -1
+EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClient);
+EI_REWRITTEN(0x00437080, SessionBase::OnUpdate);
+EI_REWRITTEN(0x00437240, SessionBase::OnLeave);
+EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);    // slot 4, kind 3
+EI_REWRITTEN(0x00437210, SessionBase::OnLogin);      // slot 5, kind 4
+EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);       // slot 7, kind 5
+EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);   // slot 8, kind 6
+EI_REWRITTEN(0x00437310, SessionBase::OnRejected);   // slot 9, kind 7
+EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
 
 } // namespace net
 
@@ -276,8 +276,7 @@ constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<void*>:
 // The clients list: its nodes and sentinel go back to the pool (00439E60, 0043AB30).
 } // namespace
 
-void SessionBase::Destruct() {
-    ei::SetVtable(this, Vtable());
+SessionBase::~SessionBase() {
     for (ClientNode* node = clients_->next; node != clients_; node = node->next) {
         Connection* connection = node->connection;
         std::uint32_t id = connection->id_;
@@ -312,16 +311,9 @@ void SessionBase::Destruct() {
     clients_->next = clients_;
     clients_->prev = clients_;
     stlp::deallocate(clients_, sizeof(ClientNode));
-    ei::SetVtable(this, CRefCounted::RootVtable());
 }
-EI_REWRITTEN(0x00436A50, SessionBase::Destruct);
-
-SessionBase* SessionBase::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004368D0, SessionBase::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00436A50, SessionBase::~SessionBase);
+EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 
 } // namespace net
 

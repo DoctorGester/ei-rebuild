@@ -207,16 +207,16 @@ EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 // ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss (slot 2) ---------------------
 
 // 004418F0 (slot 3): updates count only once joined.
-bool ClientBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
+bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (joinState_ != kJoined) {
         LogLine("ERROR: Normal update when not in active state");
         return false;
     }
-    return SessionBase::OnUpdateImpl(from, cursor);
+    return SessionBase::OnUpdate(from, cursor);
 }
 
 // 00441940 (slot 8, packet 6): the host accepted the join.
-void ClientBase::OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
@@ -240,7 +240,7 @@ void ClientBase::OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 00441B40 (slot 9, packet 7): the host refused the join (a reason byte follows the id).
-void ClientBase::OnRejectedImpl(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
     std::memcpy(&id, p, 4);
@@ -268,7 +268,7 @@ void ClientBase::OnRejectedImpl(const NetAddress* from, BufferCursor* cursor) {
 // ping (now - the echoed time) and when to look again: local servers and those asked directly
 // soon, others from the list never; unknown servers neither local nor asked are ignored. A known
 // server's entry is replaced (and its reply kept in its query, if asked); a new one is appended.
-void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     RefPtr entry{nullptr};
     std::uint32_t echo, magic;
     cursor->ReadBytes(&echo, 4);
@@ -335,20 +335,20 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 004420E0 (slot 2): removes a connection; when none is left the connection to the host is lost.
-void ClientBase::RemoveClientImpl(ClientNode* node) {
+void ClientBase::RemoveClient(ClientNode* node) {
     if (node == clients_) return;
-    SessionBase::RemoveClientImpl(node);
+    SessionBase::RemoveClient(node);
     if (clients_->next != clients_) return;
     LogLine("CONNECTION LOST server link is lost, entering idle");
     ei::Log("net: the client lost its connection to the host");   // not the game's (N0c)
     joinState_ = kNotJoined;
 }
 
-EI_REWRITTEN(0x004418F0, ClientBase::OnUpdateImpl);
-EI_REWRITTEN(0x00441940, ClientBase::OnAcceptedImpl);
-EI_REWRITTEN(0x00441B40, ClientBase::OnRejectedImpl);
-EI_REWRITTEN(0x00441D40, ClientBase::OnInfoImpl);
-EI_REWRITTEN(0x004420E0, ClientBase::RemoveClientImpl);
+EI_REWRITTEN(0x004418F0, ClientBase::OnUpdate);
+EI_REWRITTEN(0x00441940, ClientBase::OnAccepted);
+EI_REWRITTEN(0x00441B40, ClientBase::OnRejected);
+EI_REWRITTEN(0x00441D40, ClientBase::OnInfo);
+EI_REWRITTEN(0x004420E0, ClientBase::RemoveClient);
 
 // ---- Client: the lobby's requests ---------------------------------------------------------------
 
@@ -533,7 +533,7 @@ EI_REWRITTEN(0x00442A40, ClientBase::ServerAt);
 // 00442AD0 (slot 14): counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
 // joining the request is repeated with a doubling interval until it passes the limit (0073BAA4).
-void ClientBase::TickImpl(double dt) {
+void ClientBase::Tick(double dt) {
     ServerNode* node = servers_.End()->next;
     while (node != servers_.End()) {
         ServerEntry* e = EntryOf(node);
@@ -552,7 +552,7 @@ void ClientBase::TickImpl(double dt) {
         }
         node = node->next;
     }
-    SessionBase::TickImpl(dt);   // 00437370, the receive step
+    SessionBase::Tick(dt);   // 00437370, the receive step
     if (joinState_ != kAsking) return;
     double left = static_cast<double>(retryTimer_) - dt;
     retryTimer_ = static_cast<float>(left);
@@ -566,7 +566,7 @@ void ClientBase::TickImpl(double dt) {
     retryInterval_ = retryInterval_ + retryInterval_;
     retryTimer_ = retryInterval_;
 }
-EI_REWRITTEN(0x00442AD0, ClientBase::TickImpl);
+EI_REWRITTEN(0x00442AD0, ClientBase::Tick);
 
 // ---- Server base ------------------------------------------------------------------------------------
 
@@ -609,7 +609,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
 // 00443060 (slot 4, packet 3): a ping; the time it carries is echoed.
-void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
+void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
     std::memcpy(&echo, cursor->p, 4);
     cursor->p += 4;
@@ -617,12 +617,12 @@ void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 00443050 (slot 16): admits everybody.
-bool ServerBase::AdmitImpl(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
+bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
 
 // 004434F0 (slot 3): an update from a peer that is not connected yet but was told to join
 // becomes a connection (with the id and rate of its join), then counts.
-bool ServerBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
-    if (SessionBase::OnUpdateImpl(from, cursor)) return true;
+bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
+    if (SessionBase::OnUpdate(from, cursor)) return true;
     JoinNode* sentinel = joins_.End();
     JoinNode* node = sentinel->next;
     while (node != sentinel && !SameAddress(&node->data.address, from)) node = node->next;
@@ -630,12 +630,12 @@ bool ServerBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     PendingJoin& join = node->data;
     AddClient(&join.address, join.id, join.rate);
     joins_.Erase(node);
-    return SessionBase::OnUpdateImpl(from, cursor);
+    return SessionBase::OnUpdate(from, cursor);
 }
 
 // 00443590 (slot 14): ages the pending joins (dropping those older than 0073BF9C, logged), then
 // the session's receive step.
-void ServerBase::TickImpl(double dt) {
+void ServerBase::Tick(double dt) {
     JoinNode* node = joins_.End()->next;
     while (node != joins_.End()) {
         float& age = node->data.age;
@@ -648,7 +648,7 @@ void ServerBase::TickImpl(double dt) {
             node = node->next;
         }
     }
-    SessionBase::TickImpl(dt);   // 00437370, the receive step
+    SessionBase::Tick(dt);   // 00437370, the receive step
 }
 
 namespace {
@@ -674,7 +674,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
 // is not defined. Rebirth's FixProcessLogin (a jump at 004433D6 to a stub that clears it) is what
 // this body always does: garbage cannot be reproduced, so the flag changes nothing here.
-void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
+void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;
     cursor->ReadBytes(&magic, 4);
     if (magic != magic_) return;
@@ -730,11 +730,11 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 
-EI_REWRITTEN(0x00443080, ServerBase::OnLoginImpl);
-EI_REWRITTEN(0x00443060, ServerBase::OnGetInfoImpl);
-EI_REWRITTEN(0x00443050, ServerBase::AdmitImpl);
-EI_REWRITTEN(0x004434F0, ServerBase::OnUpdateImpl);
-EI_REWRITTEN(0x00443590, ServerBase::TickImpl);
+EI_REWRITTEN(0x00443080, ServerBase::OnLogin);
+EI_REWRITTEN(0x00443060, ServerBase::OnGetInfo);
+EI_REWRITTEN(0x00443050, ServerBase::Admit);
+EI_REWRITTEN(0x004434F0, ServerBase::OnUpdate);
+EI_REWRITTEN(0x00443590, ServerBase::Tick);
 
 // ---- Saving the queries -----------------------------------------------------------------------
 

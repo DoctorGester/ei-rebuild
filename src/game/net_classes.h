@@ -25,7 +25,6 @@
 #include "core_refcount.h"
 #include "net_coder.h"
 #include "party_storage.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/stlp.h"
@@ -407,7 +406,7 @@ void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priori
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login,
 // 5 info, 6 accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after
 // that byte.
-class __declspec(novtable) SessionBase : public CRefCounted {
+class SessionBase : public CRefCounted {
 public:
     void RegisterTradeHandler(int channel, void* handler);
     void RegisterAwardHandler(int channel, void* handler);
@@ -418,44 +417,31 @@ public:
     void RegisterMemberHandler(int channel, void* handler);
     void RegisterPartyHandler(int channel, void* handler);
     void RegisterRequestHandler(int channel, void* handler);
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BF5C)
 
-    // 0: 004368D0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
+    // 00436770 (net_session_base.cpp). The count and the flags are the creator's.
+    SessionBase();
+    // 00436A50 (deleting: 004368D0; net_session_tick.cpp). Tells every client it leaves, then destroys the handler
+    // tables, the socket, the type registry and the clients list.
+    ~SessionBase() override;
+    // 1: Serialize (empty).
     virtual void RemoveClient(ClientNode* node);                                // 2: 00436CF0 (the sentinel is ignored)
-    void RemoveClientImpl(ClientNode* node);   // body of the slot above (registered by member pointer)
     virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // 3: kind 0, 00437080
-    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // 4: kind 3, 004371E0 (logs an error)
-    void OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // 5: kind 4, 00437210 (logs an error)
-    void OnLoginImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // 6: kind 1, 00437240
-    void OnLeaveImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // 7: kind 5, 004372B0 (logs an error)
-    void OnInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // 8: kind 6, 004372E0 (logs an error)
-    void OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // 9: kind 7, 00437310 (logs an error)
-    void OnRejectedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // 10: kind -1, 00437340 (logs an error)
-    void OnMasterImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
-    virtual void OnClientLost(Connection* connection);                        // 11: 004132B0 (empty): timed out or a bad update
-    virtual void OnClientLeft(Connection* connection);                        // 12: 004132C0 (empty): sent a leave packet
-    // 13: 004376D0. Appends what the connection being updated (CurrentConnection) should have to **out.
-    virtual void CollectReplicated(ReplicatedVector** out);
+    virtual void OnClientLost(Connection*) {}                                 // 11: 004132B0 (empty): timed out or a bad update
+    virtual void OnClientLeft(Connection*) {}                                 // 12: 004132C0 (empty): sent a leave packet
+    // 13: 004376D0 (empty here). Appends what the connection being updated (CurrentConnection) should have to **out.
+    virtual void CollectReplicated(ReplicatedVector**) {}
     // 14: 00437370 (net_session_tick.cpp). Advances the session clock by `dt`, hands the waiting
     // datagrams to the handler slots, ticks the connections (dropping timed-out ones) and counts
     // the frame.
     virtual void Tick(double dt);
-    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
 
-    // 00436770. The base constructor body; returns this.
-    SessionBase* Construct();
-    // 00436A50 (net_session_tick.cpp). The destructor body: tells every client it leaves, then
-    // destroys the handler tables, the socket, the type registry and the clients list.
-    void Destruct();
-    // 004368D0 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    SessionBase* DeletingDestruct(unsigned flags);
     // 004377D0. Appends `handler` to the handlers of message `type` (low byte) on `channel` (0..2;
     // other channels are ignored).
     void AddHandler(int channel, std::uint32_t type, void* handler);
@@ -528,28 +514,24 @@ struct PendingJoin {
 
 // The server base (vtable 0073BBB4): answers pings (slot 4) and logins (slot 5), turns a pending
 // join into a connection on its first update (slot 3).
-class __declspec(novtable) ServerBase : public SessionBase {
+class ServerBase : public SessionBase {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BBB4)
 
-    // 0: 004132D0 deleting destructor (body 004132F0, DestructBase).
+    // Inlined into the game server's constructor (net_server.cpp): the pending joins, the socket bound to the game
+    // port.
+    ServerBase();
+    // 004132F0 (deleting: 004132D0; net_server_life.cpp). The pending joins.
+    ~ServerBase() override;
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;    // 3: 004434F0
-    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override;   // 4: 00443060 (a ping)
-    void OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // 5: 00443080 (patched by Rebirth)
-    void OnLoginImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                           // 14: 00443590
-    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     virtual void Describe(RefPtr* out) = 0;                                  // 15: this server's entry into *out
     // 16: 00443050 (admits everybody). Whether a client from `from` may join: `*password` (the login
     // cursor's next byte, moved past the password when one is checked) and `*reason` (1 full, 2
     // banned, 3 bad password).
     virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);
-    bool AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
-    // 004132F0. The destructor body of this layer: the pending joins, then the session base.
-    void DestructBase();
     // 00442C60. Answers a ping from `address` with this server's description (5, the echoed time,
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
@@ -562,32 +544,21 @@ static_assert(sizeof(ServerBase) == 0x2570);
 
 // The game server (vtable 0073BB70). 0x2600 bytes, pointer g_gameServer (GameServer()).
 // The lists are STLport lists of counted pointers (value at +8, or at +0xC after a float delay).
-class __declspec(novtable) ServerSession : public ServerBase {
+class ServerSession final : public ServerBase {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BB70)
 
-    // 0: 00417A10 deleting destructor (DeletingDestruct).
+    // 00412D80 (net_server.cpp). The game kind `kind`, the handlers, the zones the host may pick.
+    explicit ServerSession(std::uint32_t kind);
+    // 00417BC0 (deleting: 00417A10; net_server_life.cpp). The lists and the held messages.
+    ~ServerSession() override;
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;    // 10: 0041ACA0
-    void OnMasterImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnClientLost(Connection* connection) override;                       // 11: 0041A700 (text 4)
-    void OnClientLostImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void OnClientLeft(Connection* connection) override;                       // 12: 0041A770 (text 1)
-    void OnClientLeftImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void CollectReplicated(ReplicatedVector** out) override;                  // 13: 00417EB0
-    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                            // 14: 004182E0
-    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void Describe(RefPtr* out) override;                                      // 15: 0041A7E0
-    void DescribeImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
     bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;   // 16: 0041A050
-    bool AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
-    // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
-    ServerSession* Construct(std::uint32_t kind);
-    // 00417BC0 (net_server_life.cpp). The destructor body (the server's own vtable is not stored first).
-    void Destruct();
-    // 00417A10 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    ServerSession* DeletingDestruct(unsigned flags);
     // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
     void SetMap(const stlp::string* name);
     // 00418530. Queues a map message for each zone that follows the current map.
@@ -689,30 +660,26 @@ static_assert(sizeof(ServerSession) == 0x2600);
 
 // The client base (vtable 0073BE30): the servers found (by broadcast pings, by asking known
 // addresses, from the master server's list) and the join request to one of them.
-class __declspec(novtable) ClientBase : public SessionBase {
+class ClientBase : public SessionBase {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BE30)
 
     enum JoinState : std::uint32_t { kNotJoined = 0, kAsking = 1, kJoined = 2 };
 
-    // 0: 0041C450 deleting destructor (body 0041C530, DestructBase).
+    // Inlined into the game client's constructor (net_client.cpp): no host, an empty join buffer, the lists, an
+    // unbound socket.
+    ClientBase();
+    // 0041C530 (deleting: 0041C450; net_client_life.cpp). The waiting addresses, the queries, the servers and the
+    // join buffer.
+    ~ClientBase() override;
     void RemoveClient(ClientNode* node) override;                               // 2: 004420E0
-    void RemoveClientImpl(ClientNode* node);   // body of the slot above (registered by member pointer)
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;      // 3: 004418F0
-    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnInfo(const NetAddress* from, BufferCursor* cursor) override;        // 7: 00441D40
-    void OnInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;    // 8: 00441940
-    void OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnRejected(const NetAddress* from, BufferCursor* cursor) override;    // 9: 00441B40
-    void OnRejectedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                             // 14: 00442AD0
-    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
-    virtual void OnJoined();                                                   // 15: 0041C440 (empty)
+    virtual void OnJoined() {}                                                 // 15: 0041C440 (empty)
     virtual void CreateEntry(RefPtr* out) = 0;                                 // 16: a new server entry into *out
 
-    // 0041C530 (net_client_life.cpp). The destructor body of this layer, then the session base.
-    void DestructBase();
     // 00441660. A ping (3, the session time) to `address`.
     void SendPing(const NetAddress* address);
     // 00441740. A join request (4, magic, join id, the send rate for the host, then `data`).
@@ -776,7 +743,7 @@ static_assert(sizeof(TradeRecordNode) == 0x160);
 
 // The game client (vtable 0073BDEC). 0x2700 bytes, pointer g_gameClient (GameClient()). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
-class __declspec(novtable) ClientSession : public ClientBase {
+class ClientSession final : public ClientBase {
 public:
     // Body of the slot at 0041D9A0 (registered by member pointer).
     double BufferRatioImpl(GameBuffer* buffer);
@@ -786,23 +753,16 @@ public:
     void StartParty(CRefObject* partner);
     // 0x0041E0A0 (net_client_handlers.cpp).
     void RecordTrade(const void* party);
-    static void* Vtable();   // the compiled table (below; game.exe's 0073BDEC)
 
-    // 0: 0041C8B0 deleting destructor (DeletingDestruct).
+    // 0041BC40 (net_client.cpp). The local player's login, the handlers.
+    ClientSession();
+    // 0041CA10 (deleting: 0041C8B0; net_client_life.cpp). The parties, the lists and the held messages.
+    ~ClientSession() override;
     void CollectReplicated(ReplicatedVector** out) override;   // 13: 0041D050
-    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                             // 14: 0041CCD0
-    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void OnJoined() override;                                  // 15: 0041D410
     void CreateEntry(RefPtr* out) override;                    // 16: 0041D420
-    void CreateEntryImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
 
-    // 0041BC40. The constructor (the caller allocated 0x2700 bytes and cleared +4); returns this.
-    ClientSession* Construct();
-    // 0041CA10 (net_client_life.cpp). The destructor body (the client's own vtable is not stored first).
-    void Destruct();
-    // 0041C8B0 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    ClientSession* DeletingDestruct(unsigned flags);
     // 0041CD80 (net_client_awards.cpp). Applies the awards received: experience, gold, items.
     void ApplyAwards();
     // 0041D1A0 (net_client_commands.cpp). Keeps `object` on the timers list for `seconds`.
@@ -864,143 +824,5 @@ GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, un
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);         // 00401340
 // net_session_tick.cpp.
 void __fastcall BufferUpdateHigh(GameBuffer* buffer);                                          // 00419CC0
-
-// ---- The compiled tables of the sessions ----------------------------------------------------------
-
-// The sessions' compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's: a tag per class whose slots call
-// the bodies game.exe's table reached (the `...Impl` members; the empty slots empty, the pure ones the compiler CRT's
-// `_purecall` as game.exe's 006E73EB), a derived class's tag deriving from its base's. Slot 0 is the class's
-// deleting destructor (DeletingDestruct; for the two bases the layer's DestructBase and the memory freed into the
-// game's heap when bit 0 of the flags is set, as deleting_destructors_400.cpp's 004132D0 / 0041C450).
-extern "C" int __cdecl _purecall();
-
-class SessionBaseClass : public ei::CompiledTag<SessionBaseClass> {
-public:
-    virtual void* DeleteScalar(unsigned flags) { return As<SessionBase>()->DeletingDestruct(flags); }   // 0: 004368D0
-    virtual void Serialize(ChunkArchive*) {}                                                            // 1: 00412580
-    virtual void RemoveClient(ClientNode* node) { As<SessionBase>()->RemoveClientImpl(node); }         // 2: 00436CF0
-    virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor) {                             // 3: 00437080
-        return As<SessionBase>()->OnUpdateImpl(from, cursor);
-    }
-    virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor) {   // 4: 004371E0
-        As<SessionBase>()->OnGetInfoImpl(from, cursor);
-    }
-    virtual void OnLogin(const NetAddress* from, BufferCursor* cursor) {   // 5: 00437210
-        As<SessionBase>()->OnLoginImpl(from, cursor);
-    }
-    virtual void OnLeave(const NetAddress* from, BufferCursor* cursor) {   // 6: 00437240
-        As<SessionBase>()->OnLeaveImpl(from, cursor);
-    }
-    virtual void OnInfo(const NetAddress* from, BufferCursor* cursor) {   // 7: 004372B0
-        As<SessionBase>()->OnInfoImpl(from, cursor);
-    }
-    virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor) {   // 8: 004372E0
-        As<SessionBase>()->OnAcceptedImpl(from, cursor);
-    }
-    virtual void OnRejected(const NetAddress* from, BufferCursor* cursor) {   // 9: 00437310
-        As<SessionBase>()->OnRejectedImpl(from, cursor);
-    }
-    virtual void OnMaster(const NetAddress* from, BufferCursor* cursor) {   // 10: 00437340
-        As<SessionBase>()->OnMasterImpl(from, cursor);
-    }
-    virtual void OnClientLost(Connection*) {}                 // 11: 004132B0 (empty)
-    virtual void OnClientLeft(Connection*) {}                 // 12: 004132C0 (empty)
-    virtual void CollectReplicated(ReplicatedVector**) {}     // 13: 004376D0 (empty)
-    virtual void Tick(double dt) { As<SessionBase>()->TickImpl(dt); }   // 14: 00437370
-
-protected:
-    template <typename T>
-    T* As() { return ObjectAs<T>(); }
-    // The bases' slot 0: the layer's destructor body, the memory freed when bit 0 of `flags` is set.
-    template <typename T>
-    void* DeleteLayer(unsigned flags) {
-        As<T>()->DestructBase();
-        if (flags & 1) gamecrt::operator_delete(this);
-        return this;
-    }
-};
-
-class ServerBaseClass : public SessionBaseClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<ServerBaseClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return DeleteLayer<ServerBase>(flags); }   // 0: 004132D0
-    bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override {                    // 3: 004434F0
-        return As<ServerBase>()->OnUpdateImpl(from, cursor);
-    }
-    void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override {   // 4: 00443060
-        As<ServerBase>()->OnGetInfoImpl(from, cursor);
-    }
-    void OnLogin(const NetAddress* from, BufferCursor* cursor) override {   // 5: 00443080
-        As<ServerBase>()->OnLoginImpl(from, cursor);
-    }
-    void Tick(double dt) override { As<ServerBase>()->TickImpl(dt); }   // 14: 00443590
-    virtual void Describe(RefPtr*) { _purecall(); }                     // 15: pure
-    virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {   // 16: 00443050
-        return As<ServerBase>()->AdmitImpl(from, password, reason);
-    }
-};
-
-class ServerSessionClass final : public ServerBaseClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<ServerSessionClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<ServerSession>()->DeletingDestruct(flags); }   // 0: 00417A10
-    void OnMaster(const NetAddress* from, BufferCursor* cursor) override {   // 10: 0041ACA0
-        As<ServerSession>()->OnMasterImpl(from, cursor);
-    }
-    void OnClientLost(Connection* connection) override { As<ServerSession>()->OnClientLostImpl(connection); }   // 11: 0041A700
-    void OnClientLeft(Connection* connection) override { As<ServerSession>()->OnClientLeftImpl(connection); }   // 12: 0041A770
-    void CollectReplicated(ReplicatedVector** out) override {   // 13: 00417EB0
-        As<ServerSession>()->CollectReplicatedImpl(out);
-    }
-    void Tick(double dt) override { As<ServerSession>()->TickImpl(dt); }              // 14: 004182E0
-    void Describe(RefPtr* out) override { As<ServerSession>()->DescribeImpl(out); }   // 15: 0041A7E0
-    bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override {   // 16: 0041A050
-        return As<ServerSession>()->AdmitImpl(from, password, reason);
-    }
-};
-
-class ClientBaseClass : public SessionBaseClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<ClientBaseClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return DeleteLayer<ClientBase>(flags); }       // 0: 0041C450
-    void RemoveClient(ClientNode* node) override { As<ClientBase>()->RemoveClientImpl(node); }   // 2: 004420E0
-    bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override {                      // 3: 004418F0
-        return As<ClientBase>()->OnUpdateImpl(from, cursor);
-    }
-    void OnInfo(const NetAddress* from, BufferCursor* cursor) override {   // 7: 00441D40
-        As<ClientBase>()->OnInfoImpl(from, cursor);
-    }
-    void OnAccepted(const NetAddress* from, BufferCursor* cursor) override {   // 8: 00441940
-        As<ClientBase>()->OnAcceptedImpl(from, cursor);
-    }
-    void OnRejected(const NetAddress* from, BufferCursor* cursor) override {   // 9: 00441B40
-        As<ClientBase>()->OnRejectedImpl(from, cursor);
-    }
-    void Tick(double dt) override { As<ClientBase>()->TickImpl(dt); }   // 14: 00442AD0
-    virtual void OnJoined() {}                                          // 15: 0041C440 (empty)
-    virtual void CreateEntry(RefPtr*) { _purecall(); }                  // 16: pure
-};
-
-class ClientSessionClass final : public ClientBaseClass {
-public:
-    static void* Vtable() { return ei::CompiledVtable<ClientSessionClass>(); }
-
-    void* DeleteScalar(unsigned flags) override { return As<ClientSession>()->DeletingDestruct(flags); }   // 0: 0041C8B0
-    void CollectReplicated(ReplicatedVector** out) override {   // 13: 0041D050
-        As<ClientSession>()->CollectReplicatedImpl(out);
-    }
-    void Tick(double dt) override { As<ClientSession>()->TickImpl(dt); }                    // 14: 0041CCD0
-    void OnJoined() override { As<ClientSession>()->ClientSession::OnJoined(); }            // 15: 0041D410
-    void CreateEntry(RefPtr* out) override { As<ClientSession>()->CreateEntryImpl(out); }   // 16: 0041D420
-};
-
-inline void* SessionBase::Vtable() { return SessionBaseClass::Vtable(); }
-inline void* ServerBase::Vtable() { return ServerBaseClass::Vtable(); }
-inline void* ServerSession::Vtable() { return ServerSessionClass::Vtable(); }
-inline void* ClientBase::Vtable() { return ClientBaseClass::Vtable(); }
-inline void* ClientSession::Vtable() { return ClientSessionClass::Vtable(); }
 
 } // namespace net

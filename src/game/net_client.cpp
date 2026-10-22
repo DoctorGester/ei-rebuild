@@ -39,19 +39,21 @@ ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
 }
 EI_REWRITTEN(0x0041C420, ClientVectorConstruct);
 
-// The client base's constructor is inlined: the session base, its lobby fields, an unbound socket.
-ClientSession* ClientSession::Construct() {
-    SessionBase::Construct();
+// The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
+// socket.
+ClientBase::ClientBase() {
     host_ = NetAddress{};
     joinData_.ConstructGrowing();
     servers_.Construct();
     ClientVectorConstruct(&queries_);
     waiting_.Construct();
     alwaysAsk_ = NetAddress{};
-    ei::SetVtable(this, ClientBase::Vtable());
     joinState_ = kNotJoined;
     joinId_ = 0;
     socket_.Open(-1);
+}
+
+ClientSession::ClientSession() {
     players_.Construct();
     lines_.Construct();
     files_.Construct();
@@ -71,7 +73,6 @@ ClientSession* ClientSession::Construct() {
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
-    ei::SetVtable(this, Vtable());
 
     // The local player's login.
     auto* record = NewCounted<LoginMessage>();
@@ -117,14 +118,13 @@ ClientSession* ClientSession::Construct() {
 
     parties_[0]->Create();
     parties_[1]->Create();
-    return this;
 }
-EI_REWRITTEN(0x0041BC40, ClientSession::Construct);
+EI_REWRITTEN_SPECIAL(0x0041BC40, ClientSession::ClientSession);
 
 // 0041D050 (slot 13). What the server receives from this client: the local player's login
 // (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our
 // trade offer (+0x260C) with its members. All priority 1.
-void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
+void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
     for (TimedNode* n = self->timers_.First(); n != self->timers_.End(); n = n->next) PushReplicated(*out, n->data.ref.ptr, 1);
@@ -139,6 +139,6 @@ void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
         }
     }
 }
-EI_REWRITTEN(0x0041D050, ClientSession::CollectReplicatedImpl);
+EI_REWRITTEN(0x0041D050, ClientSession::CollectReplicated);
 
 } // namespace net

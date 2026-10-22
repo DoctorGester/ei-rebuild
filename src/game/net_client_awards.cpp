@@ -130,9 +130,9 @@ EI_REWRITTEN(0x0041CD80, ClientSession::ApplyAwards);
 // 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
 // mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
-void ClientSession::TickImpl(double dt) {
+void ClientSession::Tick(double dt) {
     ClientSession* self = this;
-    self->ClientBase::TickImpl(dt);   // 00442AD0
+    self->ClientBase::Tick(dt);   // 00442AD0
     TimedNode* sentinel = self->timers_.End();
     TimedNode* node = sentinel->next;
     if (node != sentinel) {
@@ -152,6 +152,6 @@ void ClientSession::TickImpl(double dt) {
     if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
     ApplyAwards();
 }
-EI_REWRITTEN(0x0041CCD0, ClientSession::TickImpl);
+EI_REWRITTEN(0x0041CCD0, ClientSession::Tick);
 
 } // namespace net

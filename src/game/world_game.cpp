@@ -694,8 +694,7 @@ void GameFlow::RecreateClientSession() {
     net::ClientSession* old = global;
     global = nullptr;
     ReleaseSession(old);
-    auto* memory = net::NewRefObjectAs<net::ClientSession>();
-    net::ClientSession* session = memory ? memory->Construct() : nullptr;
+    net::ClientSession* session = net::NewCounted<net::ClientSession>();
     net::ClientSession* previous = global;
     global = session;
     if (session) ++session->refs_;
@@ -964,13 +963,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     BuildZoneTable();
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     {
-        auto* memory = net::NewRefObjectAs<net::ServerSession>();
-        net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
+        net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
         reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(reinterpret_cast<CRefObject*>(server));
     }
     {
-        auto* memory = net::NewRefObjectAs<net::ClientSession>();
-        net::ClientSession* client = memory ? memory->Construct() : nullptr;
+        net::ClientSession* client = net::NewCounted<net::ClientSession>();
         reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
     }
     // The local client connects to the local server with the password as its hello.
@@ -999,8 +996,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 void GameFlow::StartClient() {
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(nullptr);
-    auto* memory = net::NewRefObjectAs<net::ClientSession>();
-    net::ClientSession* client = memory ? memory->Construct() : nullptr;
+    net::ClientSession* client = net::NewCounted<net::ClientSession>();
     reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
     AfterServerStart();
 }

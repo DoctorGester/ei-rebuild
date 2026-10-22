@@ -26,11 +26,9 @@ void DestroyInline(RefPtr& slot) {
 
 } // namespace
 
-// 00417BC0: the destructor body. The server's own vtable is not restored first (the original does
-// not either).
-void ServerSession::Destruct() {
-    mapName_.~string();
-    name_.~string();
+// The original frees the two names first; ours last (they are members). The pending joins and the session base
+// follow (their destructors).
+ServerSession::~ServerSession() {
     banned_.Release();
     finishedTrades_.Release();
     trades_.Release();
@@ -45,26 +43,13 @@ void ServerSession::Destruct() {
     files_.Release();
     lines_.Release();
     players_.Release();
-    joins_.Release();
-    SessionBase::Destruct();
 }
-EI_REWRITTEN(0x00417BC0, ServerSession::Destruct);
+EI_REWRITTEN_SPECIAL(0x00417BC0, ServerSession::~ServerSession);
+EI_REWRITTEN_SPECIAL(0x00417A10, ServerSession::~ServerSession);
 
-// 004132F0: the destructor body of the server's base layer (reached from its scalar deleting
-// destructor 004132D0 and the constructor's unwind funclets): the pending joins, then the session
-// base. The same steps end ServerSession::Destruct.
-void ServerBase::DestructBase() {
-    joins_.Release();
-    SessionBase::Destruct();
-}
-EI_REWRITTEN(0x004132F0, ServerBase::DestructBase);
-
-// 00417A10 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
-ServerSession* ServerSession::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00417A10, ServerSession::DeletingDestruct);
+// Also reached from the constructor's unwind funclets.
+ServerBase::~ServerBase() { joins_.Release(); }
+EI_REWRITTEN_SPECIAL(0x004132F0, ServerBase::~ServerBase);
+EI_REWRITTEN_SPECIAL(0x004132D0, ServerBase::~ServerBase);
 
 } // namespace net

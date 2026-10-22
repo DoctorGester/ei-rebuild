@@ -23,13 +23,14 @@ void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 } // namespace
 
-// The server base's constructor is inlined: the session base, the pending joins, the socket bound
-// to the game port.
-ServerSession* ServerSession::Construct(std::uint32_t kind) {
-    SessionBase::Construct();
+// The server base's constructor is inlined into the game server's: the session base, the pending joins, the socket
+// bound to the game port.
+ServerBase::ServerBase() {
     joins_.Construct();
-    ei::SetVtable(this, ServerBase::Vtable());
     socket_.Open(g_gamePort);
+}
+
+ServerSession::ServerSession(std::uint32_t kind) {
     masterAddress_ = NetAddress{};
     players_.Construct();
     lines_.Construct();
@@ -45,9 +46,8 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     trades_.Construct();
     finishedTrades_.Construct();
     banned_.Construct();
-    stlp::StringElement::Default(&name_);
-    stlp::StringElement::Default(&mapName_);
-    ei::SetVtable(this, Vtable());
+    stlp::string::Reserve(name_, 8);
+    stlp::string::Reserve(mapName_, 8);
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
@@ -73,9 +73,8 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     public_ = 0;
     masterToken_ = 0;
     std::memset(password_, 0, sizeof(password_));
-    return this;
 }
-EI_REWRITTEN(0x00412D80, ServerSession::Construct);
+EI_REWRITTEN_SPECIAL(0x00412D80, ServerSession::ServerSession);
 
 namespace {
 
@@ -92,7 +91,7 @@ T* TimedValueOf(const TimedNode* node) { return static_cast<T*>(node->data.ref.p
 // queued maps for the host, the host message and the map message, the awards for this connection,
 // the trade offers to the player whose members all exist (the offer and its members), and the
 // trades naming the player. Priority 2 unless noted.
-void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
+void ServerSession::CollectReplicated(ReplicatedVector** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
     for (RefNode* n = players_.First(); n != players_.End(); n = n->next) PushReplicated(*out, players_.At(n), 2);
@@ -157,6 +156,6 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }
-EI_REWRITTEN(0x00417EB0, ServerSession::CollectReplicatedImpl);
+EI_REWRITTEN(0x00417EB0, ServerSession::CollectReplicated);
 
 } // namespace net

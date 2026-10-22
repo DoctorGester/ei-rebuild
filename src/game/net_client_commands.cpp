@@ -78,7 +78,7 @@ EI_REWRITTEN(0x0041D260, ClientSession::SendCommand);
 
 // 0041D420 (slot 16): makes `*out` an empty server entry (no name or description, kind 4, no
 // players).
-void ClientSession::CreateEntryImpl(RefPtr* out) {
+void ClientSession::CreateEntry(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
     if (entry == out->ptr) return;
     if (CRefObject* old = out->ptr) {
@@ -94,14 +94,11 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
     }
     out->Share(entry);
 }
-EI_REWRITTEN(0x0041D420, ClientSession::CreateEntryImpl);
+EI_REWRITTEN(0x0041D420, ClientSession::CreateEntry);
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
 void ClientSession::OnJoined() { TheGameFlow()->BeginMultiplayerGame(); }
-namespace {
-void __fastcall ClientBeginGameHook(ClientSession* self) { self->ClientSession::OnJoined(); }
-} // namespace
-EI_REWRITTEN(0x0041D410, ClientBeginGameHook);
+EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 
 // 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
 // base plus the highest written position, from `begin`) over the dword at its start (1 when 0),

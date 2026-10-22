@@ -11,8 +11,8 @@ vtable,slots,class,file,note
 0073BB40,6,ServerEntryBase,src/game/net_classes.h,the server entry's base; slots 2-5 _purecall
 0073BB58,4,RefObjectBaseClass,src/game/core_streams.cpp,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)
 0073BB68,2,CountedRootClass,src/game/core_streams.cpp,the counted root (CRefCounted; every counted class's destructor leaves it)
-0073BB70,17,ServerSessionClass,src/game/net_classes.h,the game server (ServerSession)
-0073BBB4,17,ServerBaseClass,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
+0073BB70,17,ServerSession,src/game/net_classes.h,the game server (ServerSession)
+0073BBB4,17,ServerBase,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
 0073BBF8,6,LoginMessage,src/game/net_messages.h,message type 5
 0073BC10,6,Message,src/game/net_classes.h,the message base; slots 2-5 _purecall
 0073BC28,6,SayMessage,src/game/net_messages.h,message type 6
@@ -34,8 +34,8 @@ vtable,slots,class,file,note
 0073BD98,6,CMemoryStream,src/game/core_streams.h,the tail of 0073BD90 (a devirtualised slot call)
 0073BDB0,8,CStream,src/game/core_streams.h,the abstract stream (CStream; slots 1-6 _purecall)
 0073BDD0,6,PartyMessage,src/game/net_messages.h,message type 15
-0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
-0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
+0073BDEC,17,ClientSession,src/game/net_classes.h,the game client (ClientSession)
+0073BE30,17,ClientBase,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
 0073BE8C,2,OutOfRange,src/lib/stlp_string.cpp,"out_of_range (stlp_string's range errors; C25c: a class of ours the compiler throws)"
@@ -45,7 +45,7 @@ vtable,slots,class,file,note
 0073BF08,10,CClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
 0073BF38,4,ConnectionClass,src/game/net_connection.h,a connection (Connection)
 0073BF4C,4,ReplicaEntryClass,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
-0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
+0073BF5C,15,SessionBase,src/game/net_classes.h,the session base (SessionBase)
 0073BFA4,2,DebugPanelClass,src/game/string_map.cpp,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFB4,3,FontTable,src/lib/mfc_gdi.cpp,the game's CFont (the debug panel's, the interface's and the console's fonts)

@@ -28,9 +28,8 @@ void ReleaseInline(void* slot) {
 
 } // namespace
 
-// 0041CA10: the destructor body. The client's own vtable is not restored first (the original does
-// not either).
-void ClientSession::Destruct() {
+// The client base's part and the session base follow (their destructors).
+ClientSession::~ClientSession() {
     parties_[1].Get()->CParty::~CParty();
     parties_[0].Get()->CParty::~CParty();
     if (trade_) trade_->Release();
@@ -56,34 +55,22 @@ void ClientSession::Destruct() {
     files_.Release();
     lines_.Release();
     players_.Release();
-    waiting_.Release();
-    recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
-    servers_.Release();
-    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
-    SessionBase::Destruct();
 }
-EI_REWRITTEN(0x0041CA10, ClientSession::Destruct);
+EI_REWRITTEN_SPECIAL(0x0041CA10, ClientSession::~ClientSession);
+EI_REWRITTEN_SPECIAL(0x0041C8B0, ClientSession::~ClientSession);
 
 // 0041C530: the destructor body of the client's base layer (vtable 0073BE30; reached from its
 // scalar deleting destructor 0041C450 and the constructor's unwind funclets): the list +0x25BC,
 // the vector of buffers +0x25AC, the list +0x25A8, the buffer +0x2578, then the session base. The
 // original inlines the three container destructors (with the same element destructors and node
 // frees as the out-of-line ones called here, which ClientSession::Destruct uses too).
-void ClientBase::DestructBase() {
+ClientBase::~ClientBase() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
     static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
-    SessionBase::Destruct();
 }
-EI_REWRITTEN(0x0041C530, ClientBase::DestructBase);
-
-// 0041C8B0 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
-ClientSession* ClientSession::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0041C8B0, ClientSession::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0041C530, ClientBase::~ClientBase);
+EI_REWRITTEN_SPECIAL(0x0041C450, ClientBase::~ClientBase);
 
 } // namespace net

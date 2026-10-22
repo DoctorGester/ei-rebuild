@@ -82,7 +82,7 @@ EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 // answer of its second master server counts). Its first dword must be the session's +0x25FC; the
 // second is then kept at +0x2578 (the next announcement sends it back). The first dword is consumed
 // either way.
-void ServerSession::OnMasterImpl(const NetAddress* from, BufferCursor* cursor) {
+void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0 &&
         !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         return;
@@ -91,7 +91,7 @@ void ServerSession::OnMasterImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 namespace {
 } // namespace
-EI_REWRITTEN(0x0041ACA0, ServerSession::OnMasterImpl);
+EI_REWRITTEN(0x0041ACA0, ServerSession::OnMaster);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
 // (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the

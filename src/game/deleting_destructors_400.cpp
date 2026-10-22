@@ -47,8 +47,6 @@ using destructors400::CleanupClear8;
 using destructors400::DeletingDestructor;
 using namespace net;
 
-EI_REWRITTEN(0x004132D0, DeletingDestructor<&ServerBase::DestructBase>::Delete);       // 004132F0
-EI_REWRITTEN(0x0041C450, DeletingDestructor<&ClientBase::DestructBase>::Delete);       // 0041C530
 // Counted pointer holders (bodies 0041DDA0 and 00421640); the world range has a byte-identical copy
 // of each (A-W12).
 EI_REWRITTEN(0x004292A0, DeletingDestructor<RefPtrRelease>::Delete);

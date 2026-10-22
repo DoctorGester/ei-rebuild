@@ -55,7 +55,7 @@ EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
 // (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
 // moves past them either way), or when the clients and the pending joins reach the maximum
 // (reason 1).
-bool ServerSession::AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
+bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
     *reason = 2;
     // find_if over the banned addresses (00427FF0): the host compared, not the port.
     auto* banned = banned_.First();
@@ -200,11 +200,11 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
 }
 
 // Slots 11 (a client lost: text 4) and 12 (a client left: text 1).
-void ServerSession::OnClientLostImpl(Connection* connection) { ReportDeparture(connection, 4); }
-void ServerSession::OnClientLeftImpl(Connection* connection) { ReportDeparture(connection, 1); }
+void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
+void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
 
-EI_REWRITTEN(0x0041A050, ServerSession::AdmitImpl);
-EI_REWRITTEN(0x0041A700, ServerSession::OnClientLostImpl);
-EI_REWRITTEN(0x0041A770, ServerSession::OnClientLeftImpl);
+EI_REWRITTEN(0x0041A050, ServerSession::Admit);
+EI_REWRITTEN(0x0041A700, ServerSession::OnClientLost);
+EI_REWRITTEN(0x0041A770, ServerSession::OnClientLeft);
 
 } // namespace net

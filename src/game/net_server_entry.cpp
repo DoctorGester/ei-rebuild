@@ -20,7 +20,7 @@ namespace net {
 // 0041A7E0 (slot 15): makes `*out` a new server entry: the name, the kind, the current map's title
 // as the description when a map message is held (else empty), the number of clients, the maximum
 // and whether a password is set.
-void ServerSession::DescribeImpl(RefPtr* out) {
+void ServerSession::Describe(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
     if (&name_ != &entry->name_) entry->name_.AssignFrom(name_);
     entry->kind_ = kind_;
@@ -56,7 +56,7 @@ void ServerSession::SetPublic(bool announce) {
     if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.GetString(), 0x6D64);
 }
 
-EI_REWRITTEN(0x0041A7E0, ServerSession::DescribeImpl);
+EI_REWRITTEN(0x0041A7E0, ServerSession::Describe);
 EI_REWRITTEN(0x00417E10, ServerSession::SetPublic);
 
 } // namespace net
