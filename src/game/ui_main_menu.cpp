@@ -6,7 +6,6 @@
 #include "options.h"
 #include "sound.h"
 #include "ui.h"
-#include "ui_input_class.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"

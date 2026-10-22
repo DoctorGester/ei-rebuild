@@ -1490,12 +1490,13 @@ the input side lands at +0x94 and the compiler's adjustor thunks are game.exe's 
 as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
 (screens call the defaults qualified, `CUiContainer::LeftDown(...)`). Real classes too: the inert extra side
 (`UiInertInput`, 00741154), the battle camera's (`CCameraInput`), the view screen's unit pick (`UnitPickInput`) and
-the item screens' icon window (`CItemIconWindow`). Until C28m the screens and panels keep their tag tables: they
-build the base in place (`CUiWindow::Construct` / `CUiContainer::Construct`), store their tables (`SetTagTables`),
-destroy it qualified (`DestroyBase` / `DestroyContainer`), and a tag's call to a name the base made virtual is
-qualified (`AsScreen()->ScreenType::Update()`), which otherwise would go back through the table. Member pointers of
+the item screens' icon window (`CItemIconWindow`). Since C28m the screens (CBattleScreen ... CMpHeroScreen,
+the item screens over `CItemScreen`'s slots 42-54) and the item panels (`CUiItemPanel`'s slot 25 `ItemAt`; the
+strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureStrip`) are ordinary classes built with
+`new X(...)`, their slots the overrides (an input slot that runs a named handler is a one-line override,
+`int LeftDown(...) override { return OnLButtonDown(...), 0; }`). Member pointers of
 the windows are two words: `EI_REWRITTEN`'s record points at a constant holding `&fn`, and `ei::MemberAddress`
-takes the code word (adjustment 0). The harness names a compiled window by its table or, for the real classes, by
+takes the code word (adjustment 0). The harness names a window by its class's
 `typeid` (harness_windows.cpp's `WindowKind`).
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)

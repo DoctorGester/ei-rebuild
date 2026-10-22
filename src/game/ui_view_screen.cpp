@@ -3,7 +3,6 @@
 #include "ui_camera_keys.h"
 #include "ui_view_screen.h"
 
-#include "ui_input_class.h"
 
 #include "camera.h"
 #include "maths.h"

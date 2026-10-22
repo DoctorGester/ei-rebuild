@@ -17,14 +17,11 @@ namespace ei::verify {
 
 namespace {
 
-// A window class of the image with game.exe's table of it: a real C++ class by its type, one still built over a
-// compiled tag (C28m) by the tag's table.
+// A window class of the image with game.exe's table of it.
 struct Kind {
     const void* original;          // game.exe's table: the label
-    const void* compiled;          // the tag's table, or null
-    const std::type_info* type;    // the class, or null
-    Kind(const void* o, const void* c) : original(o), compiled(c), type(nullptr) {}
-    Kind(const void* o, const std::type_info& t) : original(o), compiled(nullptr), type(&t) {}
+    const std::type_info* type;    // the class
+    Kind(const void* o, const std::type_info& t) : original(o), type(&t) {}
 };
 
 const std::vector<Kind>& WindowKinds() {
@@ -94,12 +91,9 @@ const std::vector<Kind>& WindowKinds() {
 std::uintptr_t WindowKind(const void* window) {
     const std::uintptr_t vtable = *static_cast<const std::uintptr_t*>(window);
     if (!ei::Standalone()) return vtable;   // game.exe's windows keep game.exe's tables
-    for (const Kind& kind : WindowKinds())
-        if (kind.compiled && reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable)
-            return reinterpret_cast<std::uintptr_t>(kind.original);
     const std::type_info& type = typeid(*static_cast<const CUiWindow*>(window));
     for (const Kind& kind : WindowKinds())
-        if (kind.type && *kind.type == type) return reinterpret_cast<std::uintptr_t>(kind.original);
+        if (*kind.type == type) return reinterpret_cast<std::uintptr_t>(kind.original);
     return vtable;
 }
 

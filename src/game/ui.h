@@ -757,15 +757,6 @@ public:
     virtual void RedrawTips() { RedrawRegionTips(); }                  // 23
     virtual void Update() {}                                           // 24: 005EE010 (empty)
 
-    // C28 transition (C28m): a window class whose tables are still a compiled tag's (ui_window_class.h)
-    // builds the window base in place (Construct), stores its tag's tables (SetTagTables), destroys the
-    // base in its destructor body (DestroyBase) and frees itself through UiWindowDelete.
-    CUiWindow* Construct(CInterface3D* ui) { return new (this) CUiWindow(ui); }
-    void SetTagTables(void** window, void** input);
-    void DestroyBase() { this->CUiWindow::~CUiWindow(); }
-    CUiWindow* UiWindowDelete(unsigned flags);
-    // The window's table in the old slot numbering, for the slots of derived windows still reached by number.
-    void** TagTable() const { return *reinterpret_cast<void** const*>(this); }
 
     // 005FFCC0. Index of the first region containing the screen point (x, y), or -1.
     int RegionAt(int x, int y) const;
@@ -1942,11 +1933,6 @@ public:
     int Char(int key, int repeat, int flags) override;                 // 006018E0
     int KeyUp(int key, int repeat, int flags) override;                // 006019A0
     int Wheel(int flags, int delta, int x, int y) override;            // 00601730 (returns 1)
-
-    // C28 transition (C28m): see CUiWindow.
-    CUiContainer* Construct(CInterface3D* ui) { return new (this) CUiContainer(ui); }
-    void DestroyContainer() { this->CUiContainer::~CUiContainer(); }
-    CUiContainer* UiContainerDelete(unsigned flags);
 
     // Body of the slot at 00600F70 (registered by member pointer).
     void DrawChildrenImpl(int pass);

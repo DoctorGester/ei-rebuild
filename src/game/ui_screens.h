@@ -39,47 +39,6 @@ class CMappedResource;
 class CParty;
 class CTradePanel;
 
-// Offset of the input sub-object (the second vtable) inside every window.
-constexpr std::ptrdiff_t kUiInputOffset = 0x94;
-
-// The input side at window+0x94 as the tag tables see it (C28 transition, C28m).
-struct UiInput {
-    // The input side's slot 0 of a window (SUB ECX,0x94; JMP to the window's deleting destructor,
-    // ui_window_delete.cpp): `Delete` is that window class's own method; returns the window.
-    template <auto Delete>
-    auto DeleteWindow(unsigned flags);
-};
-
-// The class a member function pointer belongs to.
-template <typename F>
-struct MemberClass;
-template <typename R, typename C, typename... A>
-struct MemberClass<R (C::*)(A...)> {
-    using type = C;
-};
-
-// The window an input sub-object belongs to, and back.
-template <typename T>
-T* WindowFromInput(void* input) {
-    return reinterpret_cast<T*>(static_cast<char*>(input) - kUiInputOffset);
-}
-
-template <auto Delete>
-auto UiInput::DeleteWindow(unsigned flags) {
-    using Window = typename MemberClass<decltype(Delete)>::type;
-    return (WindowFromInput<Window>(this)->*Delete)(flags);
-}
-
-// An input-side handler (slots 1-12 of a window's input vtable) that is the window class's own method:
-// `Call` runs with `this` the input sub-object (at window+0x94) and forwards the same arguments to
-// `Method` on the window. Registered as EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call).
-template <auto Method, typename Signature = decltype(Method)>
-struct InputForward;
-template <auto Method, typename R, typename C, typename... A>
-struct InputForward<Method, R (C::*)(A...)> {
-    R Call(A... args) { return (WindowFromInput<C>(this)->*Method)(args...); }
-};
-
 // The input sub-object that captured the mouse (scroll arrows held down), or null.
 inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 // A shift key is held (set by the key-down dispatch 005F78C0).

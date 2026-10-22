@@ -117,16 +117,7 @@ void CTradePanel::OnLButtonUp(int, int, int) {
     heldRegion_ = -1;
     holdTime_ = 0.0f;
 }
-namespace {
-// The panel's input sub-object (window + 0x94): 00626C30 (input slot, RET 0xC) leaves 0 in EAX.
-struct TradePanelInput {
-    int OnLButtonUp(int buttons, int x, int y) {
-        WindowFromInput<CTradePanel>(this)->OnLButtonUp(buttons, x, y);
-        return 0;
-    }
-};
-} // namespace
-EI_REWRITTEN(0x00626C30, TradePanelInput::OnLButtonUp);
+EI_REWRITTEN(0x00626C30, CTradePanel::OnLButtonUp);   // through LeftUp (input slot 3, RET 0xC; 0 in EAX)
 
 // --- 00626C50: the held school / science button (slot 24) -------------------------------------------
 

@@ -10,7 +10,6 @@
 #include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
-#include "ui_input_class.h"
 
 #include "camera.h"
 #include "core_maths.h"

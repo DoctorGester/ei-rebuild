@@ -8,7 +8,6 @@
 #include "library_trees.h"
 #include "party.h"
 #include "ui.h"
-#include "ui_input_class.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
@@ -52,13 +51,6 @@ template <typename T, typename F>
 void DestroyList(stlp::list<T>& list, F destroy) {
     list.ClearWith(destroy);
     stlp::deallocate(list.head, sizeof(typename stlp::list<T>::Node));
-}
-
-// The deleting destructors' common tail.
-template <typename T>
-T* FreeIfAsked(T* self, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
 }
 
 } // namespace
@@ -258,10 +250,6 @@ EI_REWRITTEN_SPECIAL(0x00635DD0, CUiWindow::~CUiWindow);
 // --- Deleting destructors (slot 0) --------------------------------------------------------------
 
 // 005FE910 (the plain window, 00740F60) and the windows whose body is the window's.
-CUiWindow* CUiWindow::UiWindowDelete(unsigned flags) {
-    DestroyBase();
-    return FreeIfAsked(this, flags);
-}
 EI_REWRITTEN_SPECIAL(0x005FE910, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x005EE020, CUiWindow::~CUiWindow);   // the item screens' icon window (00740444)
 EI_REWRITTEN_SPECIAL(0x0060E240, CUiWindow::~CUiWindow);   // 00741B58
@@ -276,10 +264,6 @@ EI_REWRITTEN_SPECIAL(0x00635D80, CUiWindow::~CUiWindow);   // the game clock (00
 EI_REWRITTEN_SPECIAL(0x00635DB0, CUiWindow::~CUiWindow);   // the movement panel (00742530)
 
 // 00600B80 (the plain container, 00741008) and the containers whose body is the container's.
-CUiContainer* CUiContainer::UiContainerDelete(unsigned flags) {
-    DestroyContainer();
-    return FreeIfAsked(this, flags);
-}
 EI_REWRITTEN_SPECIAL(0x00600B80, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7 (00740840)
 EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu (00740688)
@@ -291,7 +275,7 @@ EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape m
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
-// Each is UiInput::DeleteWindow of the window class's own deleting destructor.
+// Each is the window class's deleting destructor reached through its input side.
 EI_REWRITTEN_SPECIAL(0x00600AC0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x005F45F0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613D50, CUiWindow::~CUiWindow);

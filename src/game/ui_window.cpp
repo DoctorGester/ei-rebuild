@@ -512,11 +512,6 @@ CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005FE700, CUiWindow::CUiWindow);
 
-void CUiWindow::SetTagTables(void** window, void** input) {
-    ei::SetVtable(this, window);
-    ei::SetVtable(Input(), input);
-}
-
 int CUiWindow::Create() { return UiObjectCreate(this); }
 const char* CUiWindow::GetClassName() { return UiObjectClassName(this); }
 int CUiWindow::GetClassId() { return UiObjectClassId(this); }
