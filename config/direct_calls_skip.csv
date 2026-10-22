@@ -60,21 +60,12 @@ address,reason
 006618C0,src/game/world_save.cpp passes a uint8_t [48] as void* (the target is CParty's method)
 00661C10,src/game/world_save.cpp passes a uint8_t [48] as void* (the target is CParty's method)
 0046AEB0,src/game/world_units.cpp passes a mapspec::UnitSpec * as void* (the target is mapspec::ObjectSpec's method)
-004DEDB0,src/game/world_client_maps.cpp passes a ClientTexts * as void* (the target is CTextManager's method)
-005636A0,world_client_maps.cpp: the target's header (sky_object.h) clashes with <windows.h>'s GetClassName macro there
 00485360,world_effect_visual.cpp: the target's header brings a second LightManager()
 00485480,world_effect_visual.cpp: the target's header brings a second LightManager()
 00532860,world_effect_visual.cpp: the target's header brings a second LightManager()
 004A8310,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
 004A8560,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
 004A88A0,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
-004E5750,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
-00567500,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
-00568800,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
-0057F150,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
-00573740,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
-00575BC0,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
-00576D40,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
 0042FCA0,src/game/net_server_list.cpp passes a uint8_t [10280] as void* (the target is CoderState's method)
 00695B80,src/game/app_frame.cpp passes a uint8_t [4] as void* (the target is CIniFile's method)
 00695BE0,src/game/app_frame.cpp passes a uint8_t [4] as void* (the target is CIniFile's method)
