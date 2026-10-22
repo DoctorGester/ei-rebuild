@@ -40,17 +40,15 @@ using Cache = stlp::map<stlp::string, CLinkMesh*>;
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr double kSameMorph = 1e-5;           // 0073B860: squared distance of the coefficients
 
-// The cache's value_type as insert_equal takes it: the name and a counted reference.
-struct CacheValue {
-    stlp::string name;
-    CLinkMesh* mesh;
+// The cache's node values: the name, then one more reference on the mesh (004FC6E0, as
+// lib_trees::MeshCache's counted pointer copies it).
+struct CachedMesh {
+    static void Copy(CLinkMesh** to, CLinkMesh* const& from) {
+        *to = from;
+        if (from) ++from->refCount_;
+    }
 };
-
-// 004FBD80: multimap insert_equal; the node copies the value (one more reference): lib_trees::MeshCache's.
-void CacheInsertEqual(Cache* cache, const CacheValue* value) {
-    lib_trees::MeshCache::Node* inserted;
-    static_cast<lib_trees::MeshCache*>(reinterpret_cast<lib_trees::MeshCache::Tree*>(cache))->InsertEqual(&inserted, *reinterpret_cast<const lib_trees::MeshCache::Value*>(value));
-}
+using CacheElement = stlp::PairElement<Cache::Value, CachedMesh>;
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
 void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::string* name, const char* data, float s,
@@ -64,10 +62,15 @@ void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::stri
         loader->LoadOldPart(mesh, name, &cursor, s, t, u);
 }
 
+// The bytes of file `name` in `archive` (its slot 5), or null.
+const char* FileData(CMappedResource* archive, const char* name) {
+    return static_cast<const char*>(archive->GetFile(name, nullptr));
+}
+
 // The data of `name` in the first open archive that has it, or null.
 const char* FindInArchives(const LinkArchiveNode* archives, const char* name) {
     for (const LinkArchiveNode* n = archives->next; n != archives; n = n->next)
-        if (void* data = n->resource->GetFile(name, nullptr)) return static_cast<const char*>(data);
+        if (const char* data = FileData(n->resource, name)) return data;
     return nullptr;
 }
 
@@ -91,9 +94,9 @@ CLinkMesh* FindCached(const Cache& cache, const stlp::string* name, float s, flo
 
 // Adds `mesh` to the cache under `name` (the node's reference).
 void AddToCache(Cache* cache, const stlp::string* name, CLinkMesh* mesh) {
-    CacheValue value{stlp::string(*name), mesh};
+    Cache::Value value{stlp::string(*name), mesh};
     if (mesh) ++mesh->refCount_;
-    CacheInsertEqual(cache, &value);
+    cache->InsertEqual<CacheElement>(value);   // 004FBD80: multimap insert_equal
     if (mesh) --mesh->refCount_;   // the value's reference; the node keeps one
 }
 
@@ -140,7 +143,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigureImpl(const stlp::string* name, const stl
         const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
         if (!set) {
             LoadArchivePart(mesh, part, ms, mt, mu);
-        } else if (const char* data = static_cast<const char*>(set->mesh->GetFile(part->data(), nullptr))) {
+        } else if (const char* data = FileData(set->mesh, part->data())) {
             LoadPartRecord(this, mesh, part, data, ms, mt, mu);
         }
     }
@@ -168,7 +171,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
     }
     const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
     if (!set) return LoadArchivePart(mesh, name, s, t, u) != 0;
-    const char* data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
+    const char* data = FileData(set->mesh, name->data());
     if (!data) return false;
     LoadPartRecord(this, mesh, name, data, s, t, u);
     return true;
@@ -203,7 +206,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
     FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
-        data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
+        data = FileData(set->mesh, name->data());
     } else {
         stlp::string file(*name);
         file.Append(".lnk", ".lnk" + 4);
@@ -225,7 +228,7 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
         ReadLinkString(&unused, &cursor);
         if (!set) {
             LoadArchivePart(mesh, &part, s, t, u);
-        } else if (const char* record = static_cast<const char*>(set->mesh->GetFile(part.data(), nullptr))) {
+        } else if (const char* record = FileData(set->mesh, part.data())) {
             LoadPartRecord(this, mesh, &part, record, s, t, u);
         }
     }
@@ -241,7 +244,7 @@ CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::v
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (!set) {
             LoadArchivePart(mesh, part, s, t, u);
-        } else if (const char* data = static_cast<const char*>(set->mesh->GetFile(part->data(), nullptr))) {
+        } else if (const char* data = FileData(set->mesh, part->data())) {
             LoadPartRecord(this, mesh, part, data, s, t, u);
         }
     }
@@ -338,7 +341,7 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stl
                                     float u) {
     const char* data;
     if (set) {
-        data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
+        data = FileData(set->mesh, name->data());
     } else {
         stlp::string file;
         mesh->CopyName(&file);

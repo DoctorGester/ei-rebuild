@@ -143,7 +143,7 @@ public:
     void ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const;
 
     int fd_;                    // +0x24 CRT file descriptor, -1 when closed
-    const void* image_;          // +0x28 archive image when opened with OpenFromMemory
+    char* image_;                // +0x28 archive image when opened with OpenFromMemory
     std::uint32_t writable_;     // +0x2C
     stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;         // +0x30
     stlp::hash_map<stlp::string, LoadedFile*, stlp::StringHash> filesByName_;  // +0x44
@@ -179,6 +179,6 @@ public:
     void FreeAllFiles() override;                                     // 7: 00672650 (empty)
 
     CMappedFile file_;           // +0x58
-    const void* mappedImage_;    // +0x68 base of the mapped archive
+    char* mappedImage_;          // +0x68 base of the mapped archive
 };
 static_assert(sizeof(CMMIOResource) == 0x6C);
