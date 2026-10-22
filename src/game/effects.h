@@ -19,6 +19,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/mfc_coll.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
@@ -682,10 +683,10 @@ public:
     // The draws' work arrays.
     lib::AlignedArray<Vector4> projected;       // +0x028 the positions projected (four per packet)
     lib::AlignedArray<VertexPacket> positions;  // +0x038 the particles' corners (w not written)
-    mfc::CArray<std::uint8_t> outcodes;         // +0x048 CByteArray: a clip outcode per position
-    mfc::CArray<std::uint8_t> frames;           // +0x05C CByteArray: a texture frame (0..3) per particle
+    mfc::impl::CByteArray outcodes;             // +0x048 a clip outcode per position
+    mfc::impl::CByteArray frames;               // +0x05C a texture frame (0..3) per particle
     lib::AlignedArray<TLVertex> vertices;       // +0x070 what is drawn (colours never written)
-    mfc::CArray<std::uint16_t> indices;         // +0x080 CWordArray: 0, 1, 2, ... (filled elsewhere)
+    mfc::impl::CWordArray indices;              // +0x080 0, 1, 2, ... (filled elsewhere)
     lib::AlignedArray<int> offsets;             // +0x094 the grid's 81 cell offsets (filled elsewhere)
     int particleCount;              // +0x0A4 positions built by the last draw
     Vector3 wind;                   // +0x0A8

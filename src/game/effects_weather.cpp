@@ -180,10 +180,10 @@ void CRainSnow::DestructBody() {
     ei::SetVtable(this, kRainSnowVtable);
     Clear();
     offsets.FreeData();
-    reinterpret_cast<mfc::impl::CWordArray*>(&indices)->Destruct();   // 006FEECD
+    indices.Destruct();   // 006FEECD
     vertices.FreeData();
-    reinterpret_cast<mfc::impl::CByteArray*>(&frames)->Destruct();   // 006FF61D
-    reinterpret_cast<mfc::impl::CByteArray*>(&outcodes)->Destruct();
+    frames.Destruct();   // 006FF61D
+    outcodes.Destruct();
     positions.FreeData();
     projected.FreeData();
     if (texture) texture->Release();

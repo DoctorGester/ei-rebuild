@@ -31,8 +31,6 @@
 namespace {
 
 // The instantiations' vtables the constructors write.
-constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);         // CByteArray
-constexpr std::uintptr_t kWordArrayVtable = std::uintptr_t(0x00745F78);         // CWordArray
 
 // The MFC lists' block size (CList(nBlockSize = 10)).
 constexpr int kListBlockSize = 10;
@@ -153,10 +151,10 @@ CWorldClient* CWorldClient::Construct() {
     rain->texture = nullptr;
     rain->projected.Construct();
     rain->positions.Construct();
-    rain->outcodes.Construct(kByteArrayVtable);
-    rain->frames.Construct(kByteArrayVtable);
+    rain->outcodes.Construct();
+    rain->frames.Construct();
     rain->vertices.Construct();
-    rain->indices.Construct(kWordArrayVtable);
+    rain->indices.Construct();
     rain->offsets.Construct();
     rain->world = nullptr;
     rain->sound = 0;
