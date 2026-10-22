@@ -33,7 +33,7 @@ public:
     virtual ItemUse* GetUse(ItemUse* out) { return Item()->NoUse(out); }   // 21: 004623C0
 
 protected:
-    CItem* Item() { return reinterpret_cast<CItem*>(this); }
+    CItem* Item() { return this->template ObjectAs<CItem>(); }
 };
 
 struct CItemClass final : ItemClass<CItemClass> {};
