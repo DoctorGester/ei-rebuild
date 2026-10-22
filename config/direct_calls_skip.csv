@@ -1,5 +1,4 @@
 address,reason
-005F7590,ui_interface: the comment says Rebirth patches it (not in rebirth_patches.csv; kept until checked)
 004DF030,src/game/map_database.cpp passes a mapdb::TextReader * as void* (the target is CTextManager's method)
 00517700,src/game/net_state.cpp passes a uint8_t * as void* (the target is CObject3D's method)
 0052B030,src/game/world_effect_missile.cpp passes a CEngineObject ** as void* (the target is AIRef's method)

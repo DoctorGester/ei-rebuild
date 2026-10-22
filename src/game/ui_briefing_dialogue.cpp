@@ -135,7 +135,7 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
     auto* unit = WorldFindUnit(TheClientWorld(), nullptr, serverUnit->id_);
     if (!unit) return;
-    auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(TheInterface()));
+    auto* screen = TheInterface()->ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }

@@ -276,7 +276,7 @@ EI_REWRITTEN(0x0068BF60, CSpellContainer::Build);
 // --- CSpellManager -----------------------------------------------------------------------------
 
 CSpellContainer* CSpellManager::NewContainer() {
-    return static_cast<CSpellContainer*>(CreateObject(kClassSpellContainer, -1));
+    return CreateObjectAs<CSpellContainer>(kClassSpellContainer, -1);
 }
 EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 
