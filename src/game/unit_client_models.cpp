@@ -223,8 +223,8 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
             }
         }
     }
-    // The controller's slot 30 (RefreshModel), after the change.
-    static_cast<CUnitController*>(static_cast<CEngineObject*>(this))->RefreshModel();
+    // The controller's slot 30 (RefreshModel), after the change (the unit's controller is this object).
+    unit->Controller()->RefreshModel();
     return 1;
 }
 EI_REWRITTEN(0x00535590, CUnitClientSpecific::ChangeWeaponModel);

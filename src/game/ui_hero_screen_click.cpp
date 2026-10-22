@@ -519,7 +519,7 @@ void CMpHeroScreen::RefreshHero() {
         CUnit* unit = previewModel_;
         unit->SetFromStats(&VirtualHeroRecord()->stats);
 
-        static_cast<CUnitController*>(unit->controller)->RefreshWounds();
+        unit->Controller()->RefreshWounds();
     }
     statsPanel_->DrawStats();
 }

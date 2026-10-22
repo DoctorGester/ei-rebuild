@@ -207,7 +207,7 @@ mfc::CString CItemLoot::FigureNameImpl() {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
-            const ItemRecordHead* record = weapon ? static_cast<ItemRecordHead*>(WeaponAt(index_)) : ArmorAt(index_);
+            const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
             mfc::CString code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
@@ -242,7 +242,7 @@ mfc::CString CItemLoot::PictureNameImpl() {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
-            const ItemRecordHead* record = weapon ? static_cast<ItemRecordHead*>(WeaponAt(index_)) : ArmorAt(index_);
+            const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
             mfc::CString code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
