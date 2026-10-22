@@ -18,6 +18,7 @@
 #include <direct.h>
 #include <fcntl.h>
 #include <io.h>
+#include <mbstring.h>
 #include <new>
 
 namespace mfc::impl {
@@ -740,8 +741,8 @@ BOOL CFileFind::FindFile(const char* pattern, unsigned long) {
         return FALSE;
     }
     // The root is everything before the last separator.
-    char* back = reinterpret_cast<char*>(libcrt::Mbsrchr(reinterpret_cast<uchar*>(path), '\\'));
-    char* front = reinterpret_cast<char*>(libcrt::Mbsrchr(reinterpret_cast<uchar*>(path), '/'));
+    char* back = reinterpret_cast<char*>(_mbsrchr(reinterpret_cast<uchar*>(path), '\\'));
+    char* front = reinterpret_cast<char*>(_mbsrchr(reinterpret_cast<uchar*>(path), '/'));
     if (front || back) {
         if (!front) front = path;
         if (!back) back = path;
@@ -830,7 +831,8 @@ CString CFileFind::GetFilePath() const {
 CString CFileFind::GetFileTitle() const {
     const CString path = Virtuals(this)->GetFilePath();
     CString title;
-    libcrt::Splitpath(path, nullptr, nullptr, title.GetBuffer(MAX_PATH), nullptr);
+#pragma warning(suppress : 4996)
+    _splitpath(path, nullptr, nullptr, title.GetBuffer(MAX_PATH), nullptr);
     title.ReleaseBuffer(-1);
     return title;
 }

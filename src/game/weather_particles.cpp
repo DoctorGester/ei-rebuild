@@ -35,6 +35,7 @@
 #include "lib/nan_audit.h"
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -276,10 +277,10 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
             // The sway: by the height on all three axes, and by the place along x and y.
             const int level = static_cast<int>(gamecrt::Ftol(z));
             const float swayX = static_cast<float>(Sway(g_swayXByHeight, level, z));
-            const float placeX = static_cast<float>(libcrt::StackFmod(static_cast<float>(x + kSwayShift), kSwayPeriod));
+            const float placeX = static_cast<float>(std::fmod(static_cast<float>(x + kSwayShift), kSwayPeriod));
             x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(gamecrt::Ftol(placeX)), placeX) + x);
             const float swayY = static_cast<float>(Sway(g_swayYByHeight, level, z));
-            const float placeY = static_cast<float>(libcrt::StackFmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
+            const float placeY = static_cast<float>(std::fmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
             y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(gamecrt::Ftol(placeY)), placeY) + y);
             Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
             frames.data[flakes] = static_cast<std::uint8_t>(cycle & 3);

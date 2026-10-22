@@ -28,6 +28,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -667,7 +668,7 @@ int HighestFileNumber(const char* pattern) {
             more = find.FindNext();
             if (!find.IsDots()) {
                 mfc::CString title = find.GetTitle();
-                int number = libcrt::Atoi(title);
+                int number = std::atoi(title);
                 if (!(highest > number)) highest = number;
             }
         } while (more);

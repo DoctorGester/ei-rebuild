@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "win_registry.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -364,9 +365,9 @@ void GameOptions::LoadFromRegistry(const char* path) {
         resolution = GetString(key, l.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
-            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(libcrt::Atoi(resolution.Left(x))));
+            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(std::atoi(resolution.Left(x))));
             l.SetBits(field::kResolutionY,
-                      static_cast<std::uint32_t>(libcrt::Atoi(Ops(resolution).Right(resolution.GetLength() - x - 1))));
+                      static_cast<std::uint32_t>(std::atoi(Ops(resolution).Right(resolution.GetLength() - x - 1))));
         }
     }
     l.Read(kVideoValues);

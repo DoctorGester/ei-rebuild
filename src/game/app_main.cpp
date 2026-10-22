@@ -58,6 +58,8 @@
 #include "game_singletons.h"
 #include "world_data.h"
 
+#include <cmath>
+#include <cstdlib>
 #include <ddraw.h>
 
 #include <bit>
@@ -309,11 +311,11 @@ void ReadCommandLine(const char* commandLine) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find("-benchmark_") == 0) {
             mfc::CString frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = libcrt::Atoi(frames);
+            options->numberOfFrames_ = std::atoi(frames);
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find("-devicetarget_") == 0) {
             mfc::CString driver = Tail(arguments[i], 14);
-            options->driverIndex_ = libcrt::Atoi(driver);
+            options->driverIndex_ = std::atoi(driver);
         }
     }
 }
@@ -365,7 +367,8 @@ struct PathParts {
 
 // "<drive>\." of `path`: the root the volume calls take.
 void DriveRoot(const char* path, PathParts& parts) {
-    libcrt::Splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
+#pragma warning(suppress : 4996)
+    _splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
     std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 
@@ -677,7 +680,7 @@ bool RunPass() {
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
         const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
-        elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
+        elapsed = gamecrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
     if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;

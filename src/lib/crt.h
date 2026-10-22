@@ -123,20 +123,14 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 } // namespace gamecrt
 
-// The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
-// at its library address, so the exe's remaining library code reaches these
-// bodies; verify_crt.cpp compared them with the originals until S21d. MSVC 6 behaviour for the CRT
-// state in the exe's data, read as the originals read it: the LC_CTYPE locale handle and code page
-// (case changes go through LCMapStringW under a locale, as _tolower_lk does), the character class
-// table _pctype (a negative argument indexes the same bytes before it) and the lead-byte flags
-// _mbctype. Only the single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's
-// code page). In the standalone image that data holds the "C" locale.
+// The game CRT's own functions (S4, docs/notes/standalone.md section 2), each registered at its library
+// address, so the exe's remaining library code reaches these bodies. The string
+// and character functions are the host CRT's under the host's locale (C26, crt_locale_data.h); with
+// EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
 namespace libcrt {
 
 int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n);               // 006E7E80
-void* __cdecl Memmove(void* to, const void* from, std::size_t n);               // 006E79A0
-int __cdecl Strcmp(const char* a, const char* b);                               // 006F07D0 (not registered)
 int __cdecl Stricmp(const char* a, const char* b);                              // 006F2230
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);              // 006FA1A0
 int __cdecl Memicmp(const void* a, const void* b, std::size_t n);               // 006FD2F0
@@ -151,29 +145,16 @@ int __cdecl Isalpha(int c);                                                     
 int __cdecl Isdigit(int c);                                                     // 006E9379
 int __cdecl Isspace(int c);                                                     // 006E93CE
 int __cdecl Isprint(int c);                                                     // 006E944C
-long __cdecl Atol(const char* text);                                            // 006E804D (not registered)
-int __cdecl Atoi(const char* text);                                             // 006E80D8
-char* __cdecl Itoa(int value, char* buffer, int radix);                         // 006E9B36
-void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, char* ext); // 006E8BEE
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
-// first): equal elements end up in the same order as in the game.
+// first): equal elements end up in the same order as in the game (the host's qsort changed 105 image
+// goldens, C26).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
 
-// The plain string and memory functions, and the multibyte ones whose single-byte path is one of them.
-void* __cdecl Memcpy(void* to, const void* from, std::size_t n);                // 006EC3A0 (overlap as memmove)
-void* __cdecl Memset(void* to, int value, std::size_t n);                       // 006E9CE0
-char* __cdecl Strstr(const char* text, const char* part);                       // 006EAE30
-std::size_t __cdecl Wcslen(const wchar_t* text);                                // 006EC6D5
-unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c);           // 006EC6F2
-unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c);          // 006EC99C
-unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part); // 006ECAB3
-unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set); // 006EC789
+// memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath
+// are the host CRT's, called by their names (C26).
 int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n); // 006ECD2B
 std::size_t __cdecl Mbclen(const unsigned char* c);                             // 006ECC98
-// _mbslwr: single bytes flagged upper case in _mbctype mapped through _mbcasemap; a lead byte and its
-// trail are left as they are (the original maps them with LCMapString; none under the game's code page).
 unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
-double __cdecl Floor(double value);                                             // 006E7F7E
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
 // game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
@@ -184,10 +165,9 @@ void __cdecl Srand(unsigned seed);                                              
 // _getptd).
 unsigned& RandState();
 
-// Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
-// are CiAcos, CiAsin and StackFmod below, in the standalone image.)
-double __cdecl Ceil(double value);                                              // 006E8B1F
-double __cdecl Modf(double value, double* whole);                               // 006EAD0B
+// Maths: floor 006E7F7E, ceil 006E8B1F, modf 006EAD0B and fmod 006E95A0 / _CIfmod 006E95AA are the host CRT's
+// (C26; std::floor, std::ceil, std::modf, std::fmod). acos 006E7334 and asin 006E83D4 are CiAcos and CiAsin below,
+// in the standalone image.
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
 unsigned __cdecl Controlfp(unsigned value, unsigned mask);                      // 006EBBB4
 
@@ -226,16 +206,11 @@ gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);         
 
 // Formatted text (S4a, src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from
 // a 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and
-// friends), and atof by __strgtold12 / _ld12tod. Byte- and bit-exact with the originals.
+// friends). Byte-exact with the originals (the host's printf differs: C26). atof and sscanf are the host CRT's.
 int __cdecl Sprintf(char* buffer, const char* format, ...);                     // 006E8715
 int __cdecl Vsprintf(char* buffer, const char* format, va_list args);           // 006ECC47
 int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);           // 006EAEB0
 int __cdecl Printf(const char* format, ...);                                    // 006E955F
-double __cdecl Atof(const char* text);                                          // 006E911A
-// sscanf (S16): MSVC 6's _input over the text for white space, literals, %% and the d i o u x p n c s [
-// conversions (no floats, no wide characters: they end the scan).
-int __cdecl Sscanf(const char* text, const char* format, ...);                  // 006EAEEC
-int __cdecl Vsscanf(const char* text, const char* format, va_list args);
 // vfprintf: formatted in memory, then one write through the game's fwrite (not registered).
 int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
 // The game's stdin, stdout and stderr (index 0..2; game.exe's &_iob[0..2]). In the image a CrtFile* is the
@@ -249,27 +224,22 @@ int FormatInto(char* buffer, std::size_t room, const char* format, va_list args)
 
 // The x87 entry points with register arguments (S4c, src/lib/crt_x87.cpp; standalone image only, the hook
 // build keeps the exe's x87 results). Each entry is called from assembly only (FtolEntry: ST0 in, EDX:EAX
-// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry / CiFmodEntry: x in ST1, y in ST0, the result
+// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry: x in ST1, y in ST0, the result
 // in ST0) and calls the plain body beside it.
 std::int64_t __cdecl FtolEntry();                                                       // 006E853C _ftol
 double __cdecl CiAcosEntry();                                                     // 006E7320 _CIacos
 double __cdecl CiAsinEntry();                                                     // 006E83C0 _CIasin
 double __cdecl CiPowEntry();                                                      // 006E81A0 _CIpow
-double __cdecl CiFmodEntry();                                                     // 006E95AA _CIfmod
 // _ftol of an 80-bit value (10 bytes): the 64-bit truncation; NaN, infinity and |value| >= 2^63 give the
 // integer indefinite (0x8000000000000000), as FISTP with the invalid exception masked.
 std::int64_t __cdecl FtolExtended(const unsigned char* value);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
-// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE, fmod exact. Out of
+// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of
 // the domain: the x87 indefinite. CiAcos and CiAsin are also acos 006E7334 and asin 006E83D4
 // themselves (the stack-argument entries; standalone image only).
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
-double __cdecl CiFmod(double x, double y);
-// fmod 006E95A0 (the stack-argument entry; standalone image only): CiFmod, but a NaN argument comes
-// in through the CRT's loader (006F2DAE), which garbles its payload's low bits.
-double __cdecl StackFmod(double x, double y);
 // _hypot 006FD026 (standalone image only; S16a: the camera, the strips, the client maps): the larger size
 // m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
 // as _hypothlp (006FD060) computes it under its control word 133F (to nearest) whatever the caller's; an
@@ -297,26 +267,6 @@ struct Exception {
 };
 static_assert(sizeof(Exception) == 12);
 
-// The locale (S4c, src/lib/crt_locale.cpp). setlocale and _setmbcp are the image's only (the hook build
-// keeps the exe's; the game's text manager sets LC_CTYPE from its "Font CharSet" option, then the
-// multibyte code page from it); LC_ALL is not ported (never called). InitMultibyteTable is the CRT
-// start-up's __initmbctable (006EA218: _setmbcp(_MB_CP_ANSI) once), for the image's start. InitCtype is
-// __init_ctype (006F47FB; LC_CTYPE's table builder, called by setlocale; 0 on success).
-struct LocaleId {   // VC6's LC_ID
-    unsigned short language;
-    unsigned short country;
-    unsigned short codePage;
-};
-static_assert(sizeof(LocaleId) == 6);
-char* __cdecl Setlocale(int category, const char* locale);                     // 006EA234
-int __cdecl Setmbcp(int codePage);                                              // 006E9E30
-void InitMultibyteTable();
-int InitCtype();
-// _ismbcdigit / _ismbcspace: a byte by _pctype, a double-byte character (lead byte high) by its class
-// in the multibyte code page (0 without one).
-int __cdecl Ismbcdigit(unsigned c);                                             // 006ECE1A
-int __cdecl Ismbcspace(unsigned c);                                             // 006ECEA9
-
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
 void* __cdecl OperatorNew(std::size_t size);                                    // 007005AF
@@ -327,12 +277,6 @@ using ExitFunction = void(__cdecl*)();
 ExitFunction __cdecl OnExit(ExitFunction function);                             // 006E71FD
 int __cdecl AtExit(ExitFunction function);                                      // 006E727B
 void __cdecl Exit(int code);                                                    // 006E8DA7
-// The rest of the heap, on the host heap Malloc / Free use (S4b; _newmode and the CRT's new handler as in
-// Malloc).
-void* __cdecl Realloc(void* p, std::size_t size);                               // 006ED69A
-void* __cdecl Calloc(std::size_t count, std::size_t size);                      // 006F0317
-std::size_t __cdecl Msize(void* p);                                             // 006EEC7B
-char* __cdecl Strdup(const char* text);                                         // 006EEC50
 
 // Files (S4b, src/lib/crt_file.cpp; image only, like the heap: MFC's CStdioFile shares the exe's FILE
 // table and descriptors in the hook build). A file is opened as VC6's _sopen opens it, through the

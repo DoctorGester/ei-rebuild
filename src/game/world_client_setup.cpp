@@ -22,6 +22,7 @@
 #include "game_singletons.h"
 
 #include <bit>
+#include <cstdlib>
 
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
@@ -53,7 +54,7 @@ void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, D
     int previous = 0;
     for (int i = 0; i < keys.size; ++i) {
         hour = console::Ops(keys[i]).Mid(4, 2);
-        int index = libcrt::Atoi(hour);
+        int index = std::atoi(hour);
         values.SetSize(0, -1);      // the sky section frees the block inline (the same state)
         ini.GetIntArray(section, keys[i], &values);
         LightColour& to = table[index];

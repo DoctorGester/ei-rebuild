@@ -7,7 +7,10 @@
 #include "mfc_resource.h"
 #include "game/game_data.h"
 
+#include <cstdlib>
 #include <cstring>
+#include <cwchar>
+#include <mbstring.h>
 #include <new>
 #include <vector>
 
@@ -37,9 +40,10 @@ const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
 uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
 char* Inc(const char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
-bool Contains(const char* set, char c) { return libcrt::Mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
-bool IsSpace(char c) { return libcrt::Ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
-bool IsDigit(char c) { return libcrt::Ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+bool Contains(const char* set, char c) { return _mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
+// _istspace / _istdigit (_ismbcspace / _ismbcdigit, the host CRT's) of the sign-extended char.
+bool IsSpace(char c) { return _ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+bool IsDigit(char c) { return _ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
 // The reference count updates and lstrlen, the Windows functions (no route takes their import slots).
 LONG Increment(long* refs) { return ::InterlockedIncrement(refs); }
@@ -399,7 +403,7 @@ int CString::Find(char c) const { return Find(c, 0); }
 
 int CString::Find(char c, int start) const {
     if (start >= GetData()->dataLength) return -1;
-    const uchar* found = libcrt::Mbschr(U(data_ + start), static_cast<uchar>(c));
+    const uchar* found = _mbschr(U(data_ + start), static_cast<uchar>(c));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
@@ -407,17 +411,17 @@ int CString::Find(const char* sub) const { return Find(sub, 0); }
 
 int CString::Find(const char* sub, int start) const {
     if (start > GetData()->dataLength) return -1;
-    const uchar* found = libcrt::Mbsstr(U(data_ + start), U(sub));
+    const uchar* found = _mbsstr(U(data_ + start), U(sub));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
 int CString::ReverseFind(char c) const {
-    const uchar* found = libcrt::Mbsrchr(U(data_), static_cast<uchar>(c));
+    const uchar* found = _mbsrchr(U(data_), static_cast<uchar>(c));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
 int CString::FindOneOf(const char* set) const {
-    const uchar* found = libcrt::Mbspbrk(U(data_), U(set));
+    const uchar* found = _mbspbrk(U(data_), U(set));
     return found ? static_cast<int>(reinterpret_cast<const char*>(found) - data_) : -1;
 }
 
@@ -574,7 +578,7 @@ void CString::FormatV(const char* format, va_list arguments) {
             else break;
         }
         if (width == 0) {
-            width = libcrt::Atoi(p);
+            width = std::atoi(p);
             for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
         }
         int precision = 0;
@@ -584,7 +588,7 @@ void CString::FormatV(const char* format, va_list arguments) {
                 precision = va_arg(arguments, int);
                 p = Inc(p);
             } else {
-                precision = libcrt::Atoi(p);
+                precision = std::atoi(p);
                 for (; *p != '\0' && IsDigit(*p); p = Inc(p)) {}
             }
         }
@@ -631,7 +635,7 @@ void CString::FormatV(const char* format, va_list arguments) {
             if (!text) {
                 itemLength = 6;
             } else {
-                itemLength = static_cast<int>(libcrt::Wcslen(text));
+                itemLength = static_cast<int>(std::wcslen(text));
                 if (itemLength < 1) itemLength = 1;
             }
             break;

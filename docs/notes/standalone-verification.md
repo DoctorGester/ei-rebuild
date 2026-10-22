@@ -17,8 +17,8 @@ real differences. Per-ticket history: `git log --grep=<ID>`.
   the harness's canonicalising patches (section 5); on the vanilla data with addon.dll's bug fixes only
   (docs/notes/rebirth.md, "One test profile"). A scenario the original cannot run (`# no original: <install>`)
   gets the image's own golden instead (`golden.py record --image`, section 2).
-- **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap and of the
-  image's heap alike (the image's malloc is a VC6-style CRT heap on the same import slots, SV7c2): a golden must hold
+- **Heap jitter** (SV7a, SV7c, SV7c2; `EI_HEAP_JITTER=<seed>[,fill]`, `EI_HEAP_FILL`) moves the blocks of game.exe's heap (the image's
+  malloc is the host CRT's since C26, whose low-fragmentation heap moves its blocks in every run): a golden must hold
   under every seed. Goldens are recorded from runs that agree plain and under jitter.
 - **Function vectors**: `set EI_VECTORS=1` then `python tools/work.py test <ID> <scenarios> --no-hooks
   --vanilla-only`: the original code with the recorders as its only hooks (refused under addon.dll); `vectors.py

@@ -29,7 +29,8 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
 The bytes a definition is compared with are game.exe's as its static initialisers leave them (C18j): their stores,
 float folds and fills in list order (gen_static_init.stored_values; tools/gen_static_init.py leaves those statements
 out of static_init.cpp, the definition's initialiser takes their place). A call's stored result is unknown: such a
-range is refused (port that initialiser by hand on the name). The unread objects of config/unread_data.csv (written
+range is refused (port that initialiser by hand on the name), unless the generated code stores it into the name
+(gen_static_init.GENERATED_NAMES): then the definition is the zero start. The unread objects of config/unread_data.csv (written
 by gen_static_init.py: only their initialiser stores into them) get the same proof that nothing reaches them.
 
 A .data or .bss object (C18d) takes the same form; it is constexpr when no code of ours writes it (most .data tables:
@@ -109,11 +110,7 @@ TYPES = {
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
-    'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
-    'LocaleCategory': 'PPP',                 # crt_locale.cpp: __lc_category's name, locale name, init function
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
-    'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
-    'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
@@ -124,6 +121,8 @@ TYPES = {
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     'lib::StaticObject<mfc::CString>': 'I',
     'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
+    'BOOL': 'i',
+    'CThreadLocalObject': 'i', 'CProcessLocalObject': 'I',   # mfc_state.h: a TLS slot, an object made on first use
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -139,7 +138,7 @@ TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*
 REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 # The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
-# reports game.exe's unported function (ei::UnportedSlot: crt_locale.cpp's category builders).
+# reports game.exe's unported function (ei::UnportedSlot).
 REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
 UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
@@ -178,6 +177,7 @@ STATIC_OBJECT_BYTES = {
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
+    'CSimpleException': 0x98,
 }
 
 
@@ -665,6 +665,8 @@ def check(img, update, img_path):
     # A definition is compared with what the static initialisers leave there (their stores are left out of the
     # generated static_init.cpp for a named range: the definition's initialiser takes their place).
     values, unknown = initialised(img_path)
+    import gen_static_init
+    generated_stores = set(gen_static_init.GENERATED_NAMES)
     if values is None:
         problems.append('game.exe\'s static initialisers do not decode (tools/check_static_init.py)')
         values = {}
@@ -685,7 +687,9 @@ def check(img, update, img_path):
         if hi <= RDATA[1] and not d.const and not own_site:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
-        late = sorted(a for a in unknown if lo <= a < hi)
+        # A call's result the generated static_init.cpp stores into the name in list order (gen_static_init's
+        # GENERATED_NAMES): the definition is the zero start the original has before that call.
+        late = sorted(a for a in unknown if lo <= a < hi and a not in generated_stores)
         if late:
             problems.append(f'{d.where()}: {d.name}: a static initialiser stores a call\'s result at {late[0]:08X}: port '
                             'that initialiser by hand on the name')
@@ -787,6 +791,8 @@ def initialised_image(img, img_path):
     """game.exe's image as the static initialisers leave it (what --check compares with), and the dwords a call's
     result went to (unknown)."""
     values, unknown = initialised(img_path)
+    import gen_static_init
+    generated_stores = set(gen_static_init.GENERATED_NAMES)
     img = bytearray(img)
     for a, v in (values or {}).items():
         if v is not None:

@@ -20,6 +20,7 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <intrin.h>
 
 #include <cstring>
@@ -46,9 +47,6 @@ constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
 float Pi() { return 3.1415927f /*0073D640*/; }
-
-// The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
-std::uint8_t& EmptyStaticGuard() { return ei::GameData<std::uint8_t>(0x007CAEE4); }
 
 } // namespace
 
@@ -166,10 +164,13 @@ int CSysInfo::Collect() {
     mfc::CString report;
     report = "OS\t\t\t" + systemName_ + " build " + systemVersion_ + "\n";
     char digits[0x400];
-    report += mfc::CString("Total physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
-    report += mfc::CString("Available physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
-    report += mfc::CString("Total virtual memory\t\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
-    report += mfc::CString("Available virtual memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+#pragma warning(push)
+#pragma warning(disable : 4996)   // _itoa
+    report += mfc::CString("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
+    report += mfc::CString("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
+    report += mfc::CString("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
+    report += mfc::CString("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+#pragma warning(pop)
     return 1;
 }
 EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
@@ -286,7 +287,7 @@ EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }   // 004013D0
 EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
-    if (!(EmptyStaticGuard() & 1)) EmptyStaticGuard() |= 1;
+    if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }
 EI_REPLACE(0x004DE855, SysInfoStaticGuard);

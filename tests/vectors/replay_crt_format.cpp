@@ -1,5 +1,5 @@
-// Replays the game CRT's formatted text (crt_format_vectors.h) against libcrt::Vsprintf and libcrt::Atof
-// (src/lib/crt_format.cpp): the count and every byte written, the bits of atof's result.
+// Replays the game CRT's formatted text (crt_format_vectors.h) against libcrt::Vsprintf (src/lib/crt_format.cpp) and
+// the host CRT's atof (C26): the count and every byte written, the bits of atof's result.
 #include "crt_format_vectors.h"
 
 #include "game/game_data.h"
@@ -7,6 +7,7 @@
 #include "lib/crt_locale_data.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -19,9 +20,9 @@ using namespace ei::vectors::crt_format;
 unsigned short g_classes[256];   // _pctype points here once the fixture ran
 
 bool CheckLocale(Reader& r, char*, std::size_t) {
-    libcrt::g_decimalPoint[0] = r.Get<char>();
+    const char decimalPoint = r.Get<char>();
     for (unsigned short& word : g_classes) word = r.Get<unsigned short>();
-    libcrt::g_pctype = g_classes;
+    libcrt::SetReplayLocale(decimalPoint, g_classes);
     return true;
 }
 EI_VECTOR_CHECK_BYTES("@CrtFormatLocale", CheckLocale);
@@ -79,7 +80,7 @@ EI_VECTOR_CHECK_BYTES("vsprintf", CheckVsprintf);
 bool CheckAtof(Reader& r, char* detail, std::size_t detailSize) {
     const std::string text = r.String();
     const double expected = r.Get<double>();
-    const double actual = libcrt::Atof(text.c_str());
+    const double actual = std::atof(text.c_str());
     if (Same(expected, actual)) return true;
     std::uint64_t e, a;
     std::memcpy(&e, &expected, sizeof e);

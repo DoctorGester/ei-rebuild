@@ -25,6 +25,7 @@
 
 #include <cstdarg>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include <type_traits>
@@ -76,7 +77,7 @@ int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
 }
 
 // *dst = (float)atof(text): the CRT's result in ST0 stored with FSTP.
-void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(libcrt::Atof(text)); }
+void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(std::atof(text)); }
 
 // FILD / FSTP of an int.
 void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }

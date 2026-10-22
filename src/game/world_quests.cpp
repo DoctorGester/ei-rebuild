@@ -659,7 +659,7 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
         int following = player->Party()->members_.size - i - 1;
         MercRecord(player, i).Destruct();
         if (following)
-            libcrt::Memmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
+            std::memmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
         --player->Party()->members_.size;
         --i;
     }

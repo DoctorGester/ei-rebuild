@@ -33,6 +33,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -230,7 +231,7 @@ int ReadTerrainTypes(CAIMap& map) {
         type.noise = 1.0f;
     }
     for (int i = 0; i < sections.size; ++i) {
-        const int index = libcrt::Atoi(sections[i].GetBuffer(0));
+        const int index = std::atoi(sections[i].GetBuffer(0));
         {
             mfc::CString name = registry.file.GetString(sections[i], "Name", mfc::CString(""));
             const char* text = name.GetBuffer(0);

@@ -15,6 +15,7 @@
 #include "game_data.h"
 #include "system_text.h"
 
+#include <cstdlib>
 #include <windows.h>
 
 #include <cstring>
@@ -85,7 +86,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(libcrt::Atof(Arg(call, 0))));
+    Store(call->FloatResult(), static_cast<float>(std::atof(Arg(call, 0))));
     return true;
 }
 

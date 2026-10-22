@@ -555,7 +555,7 @@ bool FramedLink::ReceiveImpl(CMemoryStream* stream) {   // 0047BB70
     inbox->Read(stream->data_, length);
     std::uint32_t rest = inbox->Size() - 4 - length;
     std::uint8_t* data = inbox_.data_;
-    libcrt::Memmove(data, data + length + 4, rest);
+    std::memmove(data, data + length + 4, rest);
     inbox_.Resize(rest);
     return true;
 }

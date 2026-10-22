@@ -31,6 +31,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <bit>
@@ -110,7 +111,7 @@ constexpr float kSchoolGlow[8][4] = /*00740358*/ {
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double advanced = static_cast<double>(dt) * 5.0 /*007403F0*/ + turn->glow;
     const double pi = 3.141592653589793 /*007402B8*/;
-    const double phase = libcrt::CiFmod(advanced, pi + pi);
+    const double phase = std::fmod(advanced, pi + pi);
     turn->glow = static_cast<float>(phase);
     const double strength = (x87::fsin(phase) + 1.0 /*0073BAC8*/) * 0.15000000596046448 /*007403E8*/;
     const auto channel = [&](int i) { return gamecrt::Ftol(strength * colour[i] * 255.0f /*0073C370*/); };

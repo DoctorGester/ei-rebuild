@@ -12,6 +12,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -281,7 +282,7 @@ void ScriptGroup::Remove(CEngineObject* object) {
     // RemoveAt(i, 1).
     int after = size - i - 1;
     Clear(&data[i]);
-    if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], after * 4);
+    if (after != 0) std::memmove(&data[i], &data[i + 1], after * 4);
     --size;
 }
 EI_REWRITTEN(0x004B2E60, ScriptGroup::Remove);
@@ -303,7 +304,7 @@ void ScriptGroup::Insert(CEngineObject* object) {
     // InsertAt(low, object).
     Resize(oldSize + 1);
     ScriptObjectRef* d = data;
-    if (low < oldSize) libcrt::Memmove(&d[low + 1], &d[low], (oldSize - low) * 4);
+    if (low < oldSize) std::memmove(&d[low + 1], &d[low], (oldSize - low) * 4);
     d[low].object = nullptr;
     ++object->refCount_;
     d[low].object = object;
@@ -324,7 +325,7 @@ void ScriptGroup::RemoveDeleted() {
         } else {
             int after = size - i - 1;
             Clear(&data[i]);
-            if (after != 0) libcrt::Memmove(&data[i], &data[i + 1], after * 4);
+            if (after != 0) std::memmove(&data[i], &data[i + 1], after * 4);
             --size;
         }
     } while (i < size);

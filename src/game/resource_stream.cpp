@@ -12,13 +12,17 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
 namespace {
 
 // CRT and MFC routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { libcrt::Splitpath(path, drive, dir, name, ext); }
+void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) {
+#pragma warning(suppress : 4996)
+    _splitpath(path, drive, dir, name, ext);
+}
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {

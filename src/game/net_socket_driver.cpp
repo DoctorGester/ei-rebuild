@@ -14,6 +14,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace net {
@@ -66,7 +67,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         if (n >= npos) n = npos;
         {
             stlp::string digits(s.data() + first, s.data() + first + n);
-            number = libcrt::Atoi(digits.data());
+            number = std::atoi(digits.data());
         }
         std::size_t m = s.size() < colon ? s.size() : colon;
         stlp::string host(s.data(), s.data() + m);
