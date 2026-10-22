@@ -101,7 +101,7 @@ EI_REPLACE_METHOD(0x00632A90, CMainMenu::DrawImpl);
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
 int CHeroEquipPanel::DrawImpl(int pass) {
-    PartyUnitRecord* hero = ShownHero(owner_);
+    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
     if (quick < hero->weaponCount) {

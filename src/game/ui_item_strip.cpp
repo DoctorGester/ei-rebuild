@@ -22,16 +22,6 @@ namespace {
 
 
 
-// The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number
-// shown under the item for mode `mode`).
-bool OwnerTakes(CUiWindow* owner, CItem* item, int mode) {
-    using Fn = bool(__thiscall*)(CUiWindow*, CItem*, int);
-    return ei::VirtualSlot<Fn>(owner->vtable_, 0xAC / 4)(owner, item, mode);
-}
-int OwnerNumber(CUiWindow* owner, CItem* item, int mode) {
-    using Fn = int(__thiscall*)(CUiWindow*, CItem*, int);
-    return ei::VirtualSlot<Fn>(owner->vtable_, 0xD8 / 4)(owner, item, mode);
-}
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
@@ -185,8 +175,8 @@ BOOL CUiItemStrip::Draw(int pass) {
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
-        if (!OwnerTakes(owner_, item, mode_)) continue;
-        text.Format(kNumber, OwnerNumber(owner_, item, slots_));
+        if (!owner_->VirtualCanEquip(item, mode_)) continue;     // whether the strip's mode takes the item
+        text.Format(kNumber, owner_->VirtualPrice(item, slots_));   // the number shown under it
         RECT rect = cellRect(i);
         numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
     }

@@ -357,7 +357,6 @@ EI_REPLACE_METHOD(0x0062C9C0, CExchangeScreen::Draw);
 namespace {
 const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
 const char* const kPutOffSound = "buttons\\camp\\put_off.wav";
-constexpr int kSlotCanMove = 43;
 constexpr int kOfferLimit = 8;
 } // namespace
 
@@ -365,8 +364,7 @@ bool CExchangeScreen::CanMove(CItem*, int) { return true; }
 EI_REPLACE_METHOD(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
-    using CanMoveFn = bool(__thiscall*)(CExchangeScreen*, CItem*, int);
-    if (!ei::VirtualSlot<CanMoveFn>(vtable_, kSlotCanMove)(this, item, mode)) {
+    if (!VirtualCanEquip(item, mode)) {   // slot 43 (CanMove here)
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
         return;
     }

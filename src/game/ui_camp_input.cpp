@@ -97,7 +97,7 @@ void CCampPages::OnKeyDown(int key, int repeat, int flags) {
 
 void CCampPages::OnMessageResult(int result) {
     if (static_cast<std::uint32_t>(result) != kAnswerYes) return;
-    PartyUnitRecord* hero = ShownHero(this);
+    PartyUnitRecord* hero = VirtualHeroRecord();
     if (static_cast<int>(hero->weaponCount) <= 0) return;
     CItem* weapon = hero->weapons[0];
     CItem* item = LocalPlayerData()->AddItem(weapon, 0, 1);

@@ -20,6 +20,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "unit.h"
+#include "combat.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -29,12 +30,6 @@ namespace {
 inline double D(float f) { return f; }
 
 
-template <typename T>
-T Read(const std::uint8_t* p, int offset) {
-    T v;
-    std::memcpy(&v, p + offset, sizeof(T));
-    return v;
-}
 
 // Unit statistics (UnitStats) values left in ST0 (not rewritten here).
 
@@ -120,11 +115,9 @@ void CHeroStatsPanel::DrawStats() {
     RECT title = {0, 0x1B, 0xC8, 0x2B};
     draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
 
-    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    using UnitFn = std::uint8_t*(__thiscall*)(CUiWindow*, int);
-    auto hero = [this]() { return ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_); };   // +0xCC
+    auto hero = [this]() { return owner_->VirtualHeroRecord(); };
     UnitStats* stats = &hero()->stats;
-    std::uint8_t* unit = ei::VirtualSlot<UnitFn>(owner_->vtable_, 50)(owner_, heroIndex_);  // +0xC8
+    CUnit* unit = owner_->VirtualHeroUnit(heroIndex_);
     mfc::CString line;
     mfc::CString text;
     CTextManager* texts = TheTextManager();
@@ -199,33 +192,21 @@ void CHeroStatsPanel::DrawStats() {
         } else {
             draw->DrawLine(texts_[3], &rect, 0, kBright, 0, 1);
             Down(&rect);
-            // The weapon's figures (the unit's slot 50 of +0x240 fills them).
-            struct WeaponInfo {
-                std::uint32_t unused_00;
-                std::uint32_t damageKind;    // +0x04
-                std::uint32_t unused_08;
-                float damageMin;             // +0x0C
-                float damageMax;             // +0x10
-                std::uint32_t unused_14;
-                int value18;                 // +0x18
-                int value1C;                 // +0x1C
-                std::uint8_t unused_20[0x20];
-            } info;
-            void* inner = Read<void*>(unit, 0x240);
-            using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
-            ei::ObjectSlot<InfoFn>(inner, 50)(inner, &info);
+            // The weapon's figures (the controller's slot 50 fills them).
+            AttackParams info;
+            unit->Controller()->GetAttackParams(&info);
             line.Format("     %s", texts_[0].GetString());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
-            line.Format("%d", info.value18);
+            line.Format("%d", info.attack);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             line.Format("     %s", texts_[1].GetString());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
-            line.Format("%d", info.value1C);
+            line.Format("%d", info.defence);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            if (info.damageKind < 7) {
-                line.Format("damage_%d", info.damageKind);
+            if (static_cast<std::uint32_t>(info.damageType) < 7) {
+                line.Format("damage_%d", info.damageType);
                 texts->GetString(line, &text);
             }
             line.Format("     %s %s", texts_[2].GetString(), text.GetString());
@@ -264,8 +245,7 @@ void CHeroStatsPanel::DrawStats() {
         Down(&rect);
         double carried;
         if (page_ == 11) {
-            using WeightFn = double(__thiscall*)(CUiWindow*);
-            carried = ei::VirtualSlot<WeightFn>(owner_->vtable_, 53)(owner_);   // +0xD4
+            carried = owner_->VirtualWeight();
         } else {
             carried = hero()->CarriedWeight();
         }

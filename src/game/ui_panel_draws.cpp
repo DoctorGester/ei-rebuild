@@ -55,7 +55,7 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 // --- 00622C10: the quick strip ------------------------------------------------------------------
 
 BOOL CHeroQuickStrip::Draw(int pass) {
-    PartyUnitRecord* hero = ShownHero(owner_);
+    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
     auto* frame = SceneMesh(0);
     int count = static_cast<int>(hero->spellCount);
     if (selected_ >= 0 && selected_ < count) {
@@ -104,8 +104,7 @@ BOOL CRepairGrid::Draw(int pass) {
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
             surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
         }
-        using PriceFn = int(__thiscall*)(CUiWindow*, CItem*, int);
-        int price = ei::VirtualSlot<PriceFn>(owner_->vtable_, 54)(owner_, item, 8);
+        int price = owner_->VirtualPrice(item, 8);
         text.Format(NumberFormat(), price);
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
         surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
@@ -202,8 +201,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
     int skill = 0;
     int mana = 0;
     if (hasSpell) {
-        using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
-        ei::VirtualSlot<BestFn>(owner_->vtable_, 45)(owner_, school, &skill, &mana);
+        owner_->VirtualBestPartySkill(school, &skill, &mana);   // the party's best
     }
     auto* surface = surfaces_.data[0];
     surface->GetDC();

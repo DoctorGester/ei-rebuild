@@ -47,11 +47,6 @@ __declspec(naked) void __fastcall DrawHeroFaceAt(CUiWindow* /*owner*/, void*, in
 // "buttons\battle\on_off.wav": the sound system keeps the game's own string pointer.
 const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
 
-// The owner's virtual slot 52 (the hero screen: the figure chosen for the new hero).
-void ChooseFigure(CUiWindow* owner, const char* name) {
-    using Fn = void(__thiscall*)(CUiWindow*, const char*);
-    ei::VirtualSlot<Fn>(owner->vtable_, 52)(owner, name);
-}
 
 CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 
@@ -133,7 +128,7 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
-    ChooseFigure(owner_, figures_->begin()[index]);
+    owner_->VirtualChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }
 namespace {
 } // namespace

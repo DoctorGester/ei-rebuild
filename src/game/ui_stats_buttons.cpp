@@ -29,20 +29,6 @@ constexpr float kHeightScale = 0.01f;
 constexpr double kRepeatDelay = 0.25;
 constexpr float kFirstHold = -0.5f;
 
-// Owner slots.
-constexpr int kOwnerHero = 51;
-constexpr int kOwnerRefresh = 47;
-constexpr int kOwnerNextHero = 48;
-constexpr int kOwnerPreviousHero = 49;
-
-PartyUnitRecord* OwnerHero(CUiWindow* owner) {
-    using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    return ei::VirtualSlot<Fn>(owner->vtable_, kOwnerHero)(owner);
-}
-void OwnerCall(CUiWindow* owner, int slot) {
-    using Fn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<Fn>(owner->vtable_, slot)(owner);
-}
 UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 // An attribute pair (its base and current value, kept equal on this page).
@@ -54,7 +40,7 @@ void SetAttribute(float& base, float& current, float value) {
 } // namespace
 
 bool CHeroStatsPanel::StepPoint(int region) {
-    PartyUnitRecord* hero = OwnerHero(owner_);
+    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
     UnitStats* stats = StatsOf(hero);
     int total = static_cast<int>(stats->stat10Base) + static_cast<int>(stats->stat20Base) +
                 static_cast<int>(stats->stat18Base);
@@ -110,7 +96,7 @@ void CHeroStatsPanel::Update() {
     holdTime_ = static_cast<float>(held);
     if (held < kRepeatDelay) return;   // TEST AH,1: less (a NaN goes on)
     bool stepped = StepPoint(heldRegion_);
-    OwnerCall(owner_, kOwnerRefresh);
+    owner_->VirtualRefreshStats();
     if (!stepped) {
         UiCapture(interface_) = nullptr;
         heldRegion_ = -1;
@@ -128,7 +114,7 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         if (StepPoint(region)) heldRegion_ = region;
         if (region >= kFirstButton && region < kButtonEnd) {
             interface_->PlaySound(kPerkSound, 0);
-            OwnerCall(owner_, kOwnerRefresh);
+            owner_->VirtualRefreshStats();
         }
         if (heldRegion_ > 0) {
             holdTime_ = kFirstHold;
@@ -138,10 +124,10 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
     }
     if (region == kPreviousHero) {
         interface_->PlaySound(kHeroSound, 0);
-        OwnerCall(owner_, kOwnerPreviousHero);
+        owner_->VirtualPreviousHero();
     } else if (region == kNextHero) {
         interface_->PlaySound(kHeroSound, 0);
-        OwnerCall(owner_, kOwnerNextHero);
+        owner_->VirtualNextHero();
     }
 }
 namespace {

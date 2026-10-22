@@ -472,12 +472,6 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
 
-PartyUnitRecord* CMpHeroScreen::Hero() { return Virtual<PartyUnitRecord*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
-void CMpHeroScreen::Refresh() { Virtual<void(__thiscall*)(CMpHeroScreen*)>(this, 47)(this); }
-void CMpHeroScreen::VirtualChooseFigure(const char* prototype) {
-    Virtual<void(__thiscall*)(CMpHeroScreen*, const char*)>(this, 52)(this, prototype);
-}
-
 void CMpHeroScreen::ClampHeroSelection() {
     if (heroIndex_ < 0) heroIndex_ = 0;
     auto count = static_cast<std::uint32_t>(SavedHeroCount());
@@ -504,13 +498,13 @@ void CMpHeroScreen::ClampVoiceSelection() {
     TakeScrollPos(voiceScroll_, nullptr, &voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const mfc::CString& file = voices_->begin()[voiceIndex_].file;
-    Hero()->texts[6] = file;
+    VirtualHeroRecord()->texts[6] = file;
     DrawVoices();
 }
 EI_REWRITTEN(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 
 double CMpHeroScreen::EquipmentWeight() {
-    PartyUnitRecord* hero = Hero();
+    PartyUnitRecord* hero = VirtualHeroRecord();
     double weight = 0.0;
     if (weapon_) weight = weapon_->Weight();
     if (armor_) weight += armor_->Weight();
@@ -526,7 +520,7 @@ double CMpHeroScreen::EquipmentWeight() {
 EI_REPLACE_METHOD(0x006193C0, CMpHeroScreen::EquipmentWeight);
 
 void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
-    Hero();   // called for nothing, as in the original
+    VirtualHeroRecord();   // called for nothing, as in the original
     if (mode == 0) {
         bool equipped = true;
         switch (item->type_) {
@@ -548,7 +542,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
         }
         if (equipped) uiorig::PlayUiSound(interface_, kSoundMessageOk, 0);
     }
-    Refresh();
+    VirtualRefreshStats();
 }
 EI_REPLACE_METHOD(0x00618980, CMpHeroScreen::OnItemChosen);
 
@@ -556,7 +550,7 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
     if (item->type_ != kTypeSpellContainer) return true;
     CSpell* spell = item->spell_;
     if (!spell) return true;
-    return HeroCanUseSpell(&Hero()->stats, spell);
+    return HeroCanUseSpell(&VirtualHeroRecord()->stats, spell);
 
 }
 EI_REPLACE_METHOD(0x006188E0, CMpHeroScreen::CanEquip);

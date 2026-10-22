@@ -120,11 +120,9 @@ EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 // --- 00625880 -----------------------------------------------------------------------------------
 
 void CTradePanel::BuildLists() {
-    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    using RefreshFn = void(__thiscall*)(CUiWindow*);
-    UnitStats* stats = &ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_)->stats;
+    UnitStats* stats = &owner_->VirtualHeroRecord()->stats;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
-    ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
+    owner_->VirtualRefreshStats();
     CTextManager* table = GameClientTexts();
     CTextManager* texts = table;
     Clear(&perks_);

@@ -136,7 +136,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    nameEdit_->SetText(Hero()->texts[0].GetString());
+    nameEdit_->SetText(VirtualHeroRecord()->texts[0].GetString());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -260,7 +260,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             VirtualChooseFigure(defaults_[0]);
-            PartyUnitRecord* hero = Hero();
+            PartyUnitRecord* hero = VirtualHeroRecord();
             auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
             stats->stat10 = 25.0f;
@@ -271,7 +271,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             hero->height = 0.7f;
             nameEdit_->SetText(game::EmptyText());
             statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-            Refresh();
+            VirtualRefreshStats();
             return;
         }
         default:
@@ -286,7 +286,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
         const mfc::CString& file = voices.begin()[index].file;
-        Hero()->texts[6] = file;
+        VirtualHeroRecord()->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
         return;
@@ -302,7 +302,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             tradePanel_->Settle(0, 0);
-            PartyUnitRecord* hero = Hero();
+            PartyUnitRecord* hero = VirtualHeroRecord();
             weapon_ = FirstOf(hero->weapons, hero->weaponCount);
             weaponPanel_->ShowWeapon(weapon_);
             armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
@@ -424,7 +424,7 @@ bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) =
 void CMpHeroScreen::PlayVoice() {
     interface_->StopSound(voiceSound_);
     voiceSound_ = -1;
-    auto* hero = Hero();
+    auto* hero = VirtualHeroRecord();
     UnitPrototypeRecord* prototype;
     {
         stlp::string key(hero->texts[6].GetString());
@@ -510,14 +510,14 @@ float AttributePoints() { return 75.0f /*00741C98*/; }
 
 void CMpHeroScreen::RefreshHero() {
     if (previewModel_) {
-        auto* hero = Hero();
+        auto* hero = VirtualHeroRecord();
         auto* stats = &hero->stats;
         stats->RestoreSlots();
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
         previewModel_->SetFigureScale(&hero->scaleX);
         CUnit* unit = previewModel_;
-        unit->SetFromStats(&Hero()->stats);
+        unit->SetFromStats(&VirtualHeroRecord()->stats);
 
         static_cast<CUnitController*>(unit->controller)->RefreshWounds();
     }
@@ -530,7 +530,7 @@ EI_REPLACE(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     mfc::CString name(nameEdit_->text_);
-    auto* hero = Hero();
+    auto* hero = VirtualHeroRecord();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float points = AttributePoints();
@@ -548,7 +548,7 @@ void CMpHeroScreen::CreateHero() {
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
     statsPanel_->SetHero(0, const_cast<char*>(name.GetString()));
-    Refresh();
+    VirtualRefreshStats();
     SetMode(this, nullptr, kModeStats);
 }
 namespace {
@@ -685,7 +685,7 @@ int HighestFileNumber(const char* pattern) {
 
 void CMpHeroScreen::AddNewHero() {
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    auto* hero = Hero();
+    auto* hero = VirtualHeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)

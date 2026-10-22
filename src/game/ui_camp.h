@@ -73,11 +73,6 @@ struct ItemHoverInfo;
 struct ClassTemplate;
 struct PartyUnitRecord;
 
-// Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
-inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
-    using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
-    return ei::VirtualSlot<Fn>(screen->vtable_, 51)(screen);
-}
 // The statistics' names, also their text keys: the six skill schools followed by "Science"; the
 // attributes (index 7 "Encumbrance").
 inline const char* const* SkillNames() {
@@ -670,24 +665,10 @@ public:
 
     // The rewritten members above through their addresses, so their hooks and wrappers see the
     // calls the original makes (ui_camp.cpp).
-    // The camp's virtual slots the pages call (the main vtable 0074091C): 43 CanEquip (AL), 45 the
-    // party's best skill and mana in a school (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51
-    // the shown hero's record (HeroRecord), 54 Price (Rebirth-patched 0060FAB0).
-    bool VirtualCanEquip(CItem* item, int mode) {
-        using Fn = bool(__thiscall*)(CCampPages*, CItem*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
-    }
-    void VirtualBestPartySkill(int school, int* skill, int* mana) {
-        using Fn = void(__thiscall*)(CCampPages*, int, int*, int*);
-        ei::VirtualSlot<Fn>(vtable_, 45)(this, school, skill, mana);
-    }
-    void VirtualRefreshWeapons() { CallVirtual(46); }
-    void VirtualRefreshStats() { CallVirtual(47); }
-    PartyUnitRecord* VirtualHeroRecord() { return ShownHero(this); }
-    int VirtualPrice(CItem* item, int kind) {
-        using Fn = int(__thiscall*)(CCampPages*, CItem*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
-    }
+    // The camp's virtual slots the pages call (the main vtable 0074091C) are CItemScreen's
+    // Virtual* members: 43 CanEquip (AL), 45 the party's best skill and mana in a school
+    // (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51 the shown hero's record (HeroRecord),
+    // 54 Price (Rebirth-patched 0060FAB0).
 
     int page_;                       // +0x190
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
