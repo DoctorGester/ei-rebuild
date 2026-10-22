@@ -30,29 +30,22 @@
 
 class CAnimationNode;   // figure.h
 class CFigureMesh;      // figure_mesh.h
+class CPlainFigureMesh; // figure_mesh.h
 class CObject3D;        // map_object_figures.h
+
+namespace scene {
+struct TextureNameRecord;
+} // namespace scene
 
 namespace figure {
 // 0044C490 / 00454360 (figure_slots.cpp): a record whose only member to destroy is the CString at +4
 // (and its scalar deleting destructor, mfc::impl::ScalarDeleting over this).
-void __fastcall NamedRecordDestruct(std::uint8_t* self);
+void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self);
 // 005AD870 (figure_slots.cpp): an aligned array's four fields cleared; returns it.
 void* __fastcall ClearArray(std::uint32_t* self);
 } // namespace figure
 
 namespace scene {
-
-// An MFC CArray of records (vtable, data, size, capacity, grow step: 0 is an eighth of the size, 4..1024)
-// seen as bytes: the scene's mesh, node, helper and figure arrays, whose records are reached through
-// byte offsets. Resize them only through a typed instantiation (scene_loader.cpp); SetSize here would
-// move one-byte elements.
-using VtArray = mfc::CArray<char, mfc::RawElements<char>>;
-
-// A record the scene code only reaches through byte offsets.
-template <std::size_t K>
-struct Rec {
-    std::uint8_t bytes[K];
-};
 
 // ConstructElements / DestructElements(elements, count) of an instantiation the original calls out
 // of line (`Unmake` null: nothing is destroyed).
@@ -63,13 +56,6 @@ struct OriginalElements {
         if constexpr (Unmake != nullptr) Unmake(elements, count);
     }
 };
-
-// The caller's untyped array resized through the typed instantiation of the same layout.
-template <typename Records>
-Records& Typed(VtArray& a) {
-    static_assert(sizeof(Records) == sizeof(VtArray));
-    return reinterpret_cast<Records&>(a);
-}
 
 // The "aligned" arrays (vertex lists, 32-byte aligned blocks with the raw pointer stored before the
 // data; lib::AlignedArray), per element type. Positions and normals are kept as the bits that were
@@ -206,6 +192,10 @@ struct NodeFrame {
     Quaternion rotation;                // +0x18
 };
 static_assert(sizeof(NodeFrame) == 40);
+// 00453730 (scene_skeleton.cpp; mfc::impl::KeyFrames' ConstructElements): the records zero filled,
+// each rotation the identity. The node's frame array (never destroyed element by element).
+void __stdcall ConstructNodeFrames(void* records, int count);
+using NodeFrameArray = mfc::CArray<NodeFrame, OriginalElements<NodeFrame, ConstructNodeFrames>>;
 
 // A node (the node:: offsets above). The loader fills the key arrays (their instantiations zero
 // new elements, the morph keys' construct them out of line); scene_skeleton.cpp names the rest.
@@ -239,9 +229,8 @@ struct SceneNode {
     mfc::CArray<NodePositionKey> positionKeys;                  // +0x0BC
     mfc::CArray<NodeMorphKey, NodeMorphKeyElements> morphKeys;  // +0x0D0
     mfc::CArray<Vector3> normals;                               // +0x0E4 (version 0x1468FCCA only)
-    // +0x0F8 NodeFrame records (elements constructed by 00453730); the loader copies them to the
-    // figures' bone links.
-    VtArray frames;
+    // +0x0F8 (elements constructed by 00453730); the loader copies them to the figures' bone links.
+    NodeFrameArray frames;
     mfc::CArray<SceneNode*> children;                 // +0x10C (SetSize 00453790)
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
@@ -339,9 +328,16 @@ static_assert(offsetof(SceneMesh, center) == 0x15C);
 static_assert(offsetof(SceneMesh, materialValue) == 0x184);
 static_assert(sizeof(SceneMesh) == mesh::kSize);
 
-// The caller's node and mesh arrays seen with their element types (never resized through these).
-using NodeArray = mfc::CArray<SceneNode, mfc::RawElements<SceneNode>>;
-using MeshArray = mfc::CArray<SceneMesh, mfc::RawElements<SceneMesh>>;
+// The scene's mesh and node arrays (record_arrays.h registers their instantiations). A mesh is built
+// by its C++ constructor (InitSceneMesh, scene_loader.cpp; ConstructElements 004545C0) and destroyed
+// through slot 0 (00476F50); a node by its bodies (00454F80 / 00477100).
+void InitSceneMesh(SceneMesh* p);
+inline void InitSceneNode(SceneNode* p) { p->Construct(); }
+inline void DestroySceneNode(SceneNode* p) { p->Destruct(); }
+using MeshElements = mfc::impl::EachElements<SceneMesh, InitSceneMesh, mfc::impl::DeleteThroughFirst<SceneMesh>>;
+using NodeElements = mfc::impl::EachElements<SceneNode, InitSceneNode, DestroySceneNode>;
+using MeshArray = mfc::CArray<SceneMesh, MeshElements>;
+using NodeArray = mfc::CArray<SceneNode, NodeElements>;
 
 // The fake unit's skin the bones are built into (BuildSkeleton's last argument): its bone list and
 // root bone and its clock.
@@ -403,8 +399,28 @@ inline constexpr Vector3 kZeroVector = /*0079B9B0*/ {0.0f, 0.0f, 0.0f};
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
-// The helpers (+0x56C) are materials (material.h).
-using HelperArray = mfc::CArray<CMaterial, mfc::RawElements<CMaterial>>;
+// The helpers (+0x56C) are materials (material.h): built by CMaterial's constructor (0068DBC0;
+// ConstructElements 00454E40, SetSize 00453550), destroyed through slot 0.
+inline void InitHelper(CMaterial* p) { p->Construct(); }
+using HelperElements = mfc::impl::EachElements<CMaterial, InitHelper, mfc::impl::DeleteThroughFirst<CMaterial>>;
+using HelperArray = mfc::CArray<CMaterial, HelperElements>;
+
+// The figures (+0x530): 0x220-byte class 0x42 figure meshes as the figure factory builds one
+// (InitFigurePart, figure_mesh_life.cpp: CPlainFigureMesh's constructor; ConstructElements 00453240,
+// SetSize 0044FCD0), destroyed through slot 0 (00453210).
+void InitFigurePart(CPlainFigureMesh* p);
+using FigurePartElements =
+    mfc::impl::EachElements<CPlainFigureMesh, InitFigurePart, mfc::impl::DeleteThroughFirst<CPlainFigureMesh>>;
+using FigurePartArray = mfc::CArray<CPlainFigureMesh, FigurePartElements>;
+
+// The bone links (+0x558): per figure, a copy of its node's frame records (sized by 00450F20 as key
+// frames), the arrays built empty (004534F0) and destroyed through slot 1 (004534C0); the unit's
+// array is sized by 00450370.
+using BoneLinkRecords = mfc::impl::KeyFrames::Array;
+inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
+using BoneLinkElements =
+    mfc::impl::EachElements<BoneLinkRecords, InitBoneLinks, mfc::impl::DeleteThroughObject<BoneLinkRecords>>;
+using BoneLinkArray = mfc::CArray<BoneLinkRecords, BoneLinkElements>;
 
 // The fake unit (CFakeUnit, GetClassName "CFakeUnit", 0x580 bytes; fake_unit.cpp): a unit (unit.h)
 // with the skin and the scene's arrays, which LoadFakeUnitScene fills. A real virtual class: the
@@ -436,10 +452,10 @@ public:
 
     std::uint8_t unused_4DC[4];         // +0x4DC the skin's alignment (its clock is a double in the original)
     SceneSkin skin;                     // +0x4E0 (0x50 bytes)
-    VtArray figures;                    // +0x530 CFigureMesh records (0x220, constructed by 00453240)
-    VtArray meshes;                     // +0x544 SceneMesh records
-    VtArray boneLinks;                  // +0x558 per figure a CArray of NodeFrame records (0x14 each)
-    VtArray helpers;                    // +0x56C CMaterial records (HelperArray)
+    FigurePartArray figures;            // +0x530
+    MeshArray meshes;                   // +0x544
+    BoneLinkArray boneLinks;            // +0x558 per figure a CArray of NodeFrame records (0x14 each)
+    HelperArray helpers;                // +0x56C
 
 private:
     // The parts let go (the start of both the destructor and Destroy): the skin emptied and
@@ -469,7 +485,7 @@ struct TextureNameElements {
         mfc::impl::ConstructElementsAt<mfc::impl::NamedDwords>(elements, count);
     }
     static void Destruct(TextureNameRecord* elements, int count) {
-        for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&elements[i]));
+        for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(&elements[i]);
     }
 };
 using TextureNameArray = mfc::CArray<TextureNameRecord, TextureNameElements>;
@@ -482,7 +498,7 @@ class SceneInfo {
 public:
     // 00471B10. Reads the scene from `file` (an open CFile; only slot 13, Read, is used). `meshes`
     // and `nodes` get one element per record, `helpers` one per helper. Returns 1.
-    mfc::BOOL Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* helpers, VtArray* nodes);
+    mfc::BOOL Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes);
 
     std::uint16_t flags_;
 };
@@ -491,9 +507,9 @@ public:
 int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
                                   TextureNameArray* names);
 // 00448A40 (scene_skeleton.cpp): the skin's bones built from the scene nodes; 0 without a root node.
-int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames, SceneSkin* skin);
+int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin);
 // 0044C4A0 (scene_weld.cpp): the meshes' vertices welded to the registry's nodes.
-void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes);
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes);
 // 0044E3B0 / 0044E8A0 (scene_normals.cpp): the meshes' positions packed; one mesh's bounds.
 void __fastcall PackMeshPositions(FakeUnitScene* unit);
 void __fastcall ComputeMeshBounds(SceneMesh* mesh);

@@ -34,16 +34,16 @@ double WeldDistance() {
 // 0044C4A0. `unit`: the fake unit (meshes: CArray at +0x544, 0x18C each); `nodes`: the scene's
 // nodes, one per mesh (morph keys at +0xD0). A position or coordinate within the weld distance of
 // an earlier kept one (or a NaN distance) maps to it, otherwise it is kept.
-void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
     PointBuffer points{};
     DwordBuffer pointMap{};
     UvBuffer coords{};
     DwordBuffer coordMap{};
-    VtArray& meshes = unit->meshes;
+    MeshArray& meshes = unit->meshes;
     if (meshes.size <= 0) return;
     const double weld = WeldDistance();
     for (int m = 0; m < meshes.size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        SceneMesh* mesh = &meshes.data[m];
         PointBuffer& positions = mesh->positions;
 
         points.SetSize(0);
@@ -69,7 +69,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
         std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Vector3));
 
         // The node's morph keys (0x14 each, an aligned point array at +4) move to the merged list.
-        SceneNode* node = &Typed<NodeArray>(*nodes).data[m];
+        SceneNode* node = &nodes->data[m];
         auto& morph = node->morphKeys;
         for (int k = 0; k < morph.size; ++k) {
             lib::AlignedArray<Vector3>& keyPoints = morph.data[k].points;

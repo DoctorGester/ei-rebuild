@@ -53,7 +53,7 @@ void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::Scrip
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
 // record_arrays.cpp's other element types.
-void recordarrays::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("recordarrays::InitFigurePart")
+void scene::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("scene::InitFigurePart")
 CMaterial* CMaterial::Construct() EI_UNLINKED("CMaterial::Construct")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
@@ -61,7 +61,7 @@ void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED(
 void __stdcall scene::FaceGroup::ConstructElements(scene::FaceGroup*, int) EI_UNLINKED("scene::FaceGroup::ConstructElements")
 void scene::FaceGroup::Destruct() EI_UNLINKED("scene::FaceGroup::Destruct")
 void __fastcall scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
-void recordarrays::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("recordarrays::InitSceneMesh")
+void scene::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("scene::InitSceneMesh")
 void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
 void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")
 DeltaField* DeltaField::Construct() EI_UNLINKED("DeltaField::Construct")

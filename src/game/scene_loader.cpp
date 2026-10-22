@@ -91,9 +91,6 @@ using PosKeyRecords = mfc::CArray<FilePositionKey>;          // F
 using MorphHeadRecords = mfc::CArray<FileMorphHead>;         // G
 using NormalRecords = mfc::CArray<FileNormal>;               // H
 
-using MeshRecordArray = recordarrays::SceneMeshes::Array;     // 004545C0 / 00476F50
-using NodeRecordArray = recordarrays::SceneNodes::Array;       // 00454F80 / 00477100
-
 // One CMap<DWORD, DWORD> per group (00477380 builds them; destroyed through slot 1 by 004763C0).
 using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
@@ -116,9 +113,6 @@ namespace {
 // 00475D40 G, 00476AB0 H, 00476780 the index lists; 00475500 .. 00476930 the skipped records' E .. H).
 using mfc::impl::ConstructArrayOf;
 using mfc::impl::DestructArrayOf;
-
-// The helpers array (+0x56C): materials, sized by 00453550.
-recordarrays::Materials::Array& Helpers(VtArray& helpers) { return Typed<recordarrays::Materials::Array>(helpers); }
 
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
@@ -229,7 +223,7 @@ class Loader {
 public:
     Loader(mfc::CFileVirtuals* file, std::uint32_t version) : file_(file), version_(version) {}
 
-    void LoadRecord(int i, VtArray* meshes, VtArray* nodes);
+    void LoadRecord(int i, MeshArray* meshes, NodeArray* nodes);
     void SkipRecord();
     void LoadHelper(CMaterial* helper);
 
@@ -417,7 +411,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
 }
 
 // Record i: node i and mesh i.
-void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
+void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
     mfc::CString name;
     mfc::CString parent;
     RecordArrays r;
@@ -432,8 +426,8 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
-    SceneNode* node = &Typed<NodeArray>(*nodes).data[i];
-    SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[i];
+    SceneNode* node = &nodes->data[i];
+    SceneMesh* mesh = &meshes->data[i];
     std::uint32_t x;
     std::memcpy(&x, &h.offset[0], 4);
     std::uint32_t y;
@@ -545,7 +539,7 @@ void Loader::LoadHelper(CMaterial* helper) {
 
 } // namespace
 
-mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* helpers, VtArray* nodes) {
+mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes) {
     struct FileHeader {
         std::uint32_t version;
         int recordCount;
@@ -558,15 +552,15 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* he
     Read(file, &header, sizeof(header));
     flags_ = header.flags;
 
-    Typed<MeshRecordArray>(*meshes).SetSize(header.recordCount);
-    Typed<NodeRecordArray>(*nodes).SetSize(header.recordCount);
+    meshes->SetSize(header.recordCount);
+    nodes->SetSize(header.recordCount);
 
     Loader loader(file, header.version);
     for (int i = 0; i < meshes->size; ++i) loader.LoadRecord(i, meshes, nodes);
     for (int i = 0; i < header.skippedCount; ++i) loader.SkipRecord();
 
-    Helpers(*helpers).SetSize(header.helperCount, -1);
-    for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&Typed<HelperArray>(*helpers).data[i]);
+    helpers->SetSize(header.helperCount, -1);
+    for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&helpers->data[i]);
     return 1;
 }
 EI_REWRITTEN(0x00471B10, SceneInfo::Load);
@@ -675,9 +669,7 @@ SceneMesh::~SceneMesh() {
 
 void SceneMesh::Destruct() { this->SceneMesh::~SceneMesh(); }
 
-} // namespace scene
-void recordarrays::InitSceneMesh(scene::SceneMesh* p) { new (p) scene::SceneMesh(); }
-namespace scene {
+void InitSceneMesh(SceneMesh* p) { new (p) SceneMesh(); }
 EI_REWRITTEN(0x00454830, SceneMesh::Destruct);
 
 SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
@@ -697,27 +689,17 @@ void SceneMesh::LoadTransform(void*) {}
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
-void __fastcall ComputeMeshNormals(VtArray*);
-void __fastcall IndexMeshCorners(VtArray*);
+void __fastcall ComputeMeshNormals(MeshArray*);
+void __fastcall IndexMeshCorners(MeshArray*);
 namespace {
-
-// The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
-using FigureRecordArray = recordarrays::FigureParts::Array;
-// Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each, sized by 00450F20 as
-// key frames): the arrays built empty (004534F0) and destroyed through slot 1 (004534C0); the
-// unit's array (+0x558) is sized by 00450370.
-using BoneLinkRecords = mfc::impl::KeyFrames::Array;
-inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
-using BoneLinkArray =
-    mfc::CArray<BoneLinkRecords, mfc::impl::EachElements<BoneLinkRecords, InitBoneLinks, mfc::impl::DeleteThroughObject<BoneLinkRecords>>>;
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
-struct SceneNodes : VtArray {
-    SceneNodes() : VtArray{recordarrays::SceneNodeArrayClass::Vtable(), nullptr, 0, 0, 0} {}
+struct SceneNodes : NodeArray {
+    SceneNodes() : NodeArray{recordarrays::SceneNodeArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) static_cast<SceneNode*>(&Typed<NodeArray>(*this).data[i])->Destruct();
+        for (int i = 0; i < size; ++i) data[i].Destruct();
         gamecrt::operator_delete(data);
     }
 };
@@ -770,15 +752,15 @@ struct SceneLoad {
 // it is not read.
 mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
     FakeUnitScene* u = fakeUnit;
-    VtArray* meshes = &u->meshes;
-    VtArray* helpers = &u->helpers;
-    VtArray* figures = &u->figures;
-    VtArray* boneLinks = &u->boneLinks;
+    MeshArray* meshes = &u->meshes;
+    HelperArray* helpers = &u->helpers;
+    FigurePartArray* figures = &u->figures;
+    BoneLinkArray* boneLinks = &u->boneLinks;
 
     SceneLoad s(fileName);
-    Typed<BoneLinkArray>(*boneLinks).SetSize(0, -1);
-    Helpers(*helpers).SetSize(0, -1);
-    Typed<FigureRecordArray>(*figures).SetSize(0, -1);
+    boneLinks->SetSize(0, -1);
+    helpers->SetSize(0, -1);
+    figures->SetSize(0, -1);
 
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;
@@ -792,7 +774,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     // Exactly one node may have no parent.
     int tops = 0;
     for (int i = 0; i < s.nodes.size; ++i) {
-        SceneNode& n = Typed<NodeArray>(s.nodes).data[i];
+        SceneNode& n = s.nodes.data[i];
         if (n.parent.GetLength() == 0) {
             ++tops;
             s.roots.SetAtGrow(s.roots.size, n.name);
@@ -823,9 +805,9 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     }
 
     // One figure per mesh.
-    FigureRecordArray& figureArray = Typed<FigureRecordArray>(*figures);
-    MeshArray& meshArray = Typed<MeshArray>(*meshes);
-    NodeArray& nodeArray = Typed<NodeArray>(s.nodes);
+    FigurePartArray& figureArray = *figures;
+    MeshArray& meshArray = *meshes;
+    NodeArray& nodeArray = s.nodes;
     figureArray.SetSize(meshes->size);
     for (int i = 0; i < meshes->size; ++i) {
         figureArray.data[i].name_ = meshArray.data[i].GetName();
@@ -838,7 +820,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     PackMeshPositions(fakeUnit);   // 0044E3B0
 
     // Each figure takes the bone links of the nodes of the same name.
-    BoneLinkArray& linkArray = Typed<BoneLinkArray>(*boneLinks);
+    BoneLinkArray& linkArray = *boneLinks;
     linkArray.SetSize(figures->size);
     for (int f = 0; f < figures->size; ++f) {
         for (int n = 0; n < s.nodes.size; ++n) {
@@ -848,7 +830,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
                                 name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];
-            const VtArray* from = &nd.frames;
+            const NodeFrameArray* from = &nd.frames;
             links->SetSize(from->size, -1);
             std::memcpy(links->data, from->data, from->size * 0x28);
         }

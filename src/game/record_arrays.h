@@ -31,25 +31,12 @@ using mfc::impl::EachElements;
 
 // ---- Scene records -------------------------------------------------------------------------------
 
-// The figure's 0x220-byte parts (ConstructElements 00453240): a class 0x42 figure mesh as the figure
-// factory builds one (figure_factory.cpp): CPlainFigureMesh's constructor (InitFigurePart,
-// figure_mesh_life.cpp). Destroyed through slot 0 (00453210).
-void InitFigurePart(CPlainFigureMesh* p);
-using FigureParts = ArrayAbi<CPlainFigureMesh, EachElements<CPlainFigureMesh, InitFigurePart, DeleteThroughFirst<CPlainFigureMesh>>>;
-
-// The scene's 0x9C-byte materials (00454E40): CMaterial's constructor (0068DBC0); destroyed through
-// slot 0.
-inline void InitMaterial(CMaterial* p) { p->Construct(); }
-using Materials = ArrayAbi<CMaterial, EachElements<CMaterial, InitMaterial, DeleteThroughFirst<CMaterial>>>;
-
-// The scene's meshes (004545C0) and nodes (00454F80): the constructor bodies the instantiations
-// inline (scene_loader.cpp; the mesh's is SceneMesh's C++ constructor, InitSceneMesh). Meshes are
-// destroyed through slot 0 (00476F50), nodes by their destructor (004543E0; 00477100).
-void InitSceneMesh(scene::SceneMesh* p);
-inline void InitSceneNode(scene::SceneNode* p) { p->Construct(); }
-inline void DestroySceneNode(scene::SceneNode* p) { p->Destruct(); }
-using SceneMeshes = ArrayAbi<scene::SceneMesh, EachElements<scene::SceneMesh, InitSceneMesh, DeleteThroughFirst<scene::SceneMesh>>>;
-using SceneNodes = ArrayAbi<scene::SceneNode, EachElements<scene::SceneNode, InitSceneNode, DestroySceneNode>>;
+// The fake unit's arrays (scene_loader.h has their element types): the figure's 0x220-byte parts
+// (00453240), the scene's 0x9C-byte materials (00454E40), meshes (004545C0) and nodes (00454F80).
+using FigureParts = ArrayAbi<CPlainFigureMesh, scene::FigurePartElements>;
+using Materials = ArrayAbi<CMaterial, scene::HelperElements>;
+using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
+using SceneNodes = ArrayAbi<scene::SceneNode, scene::NodeElements>;
 
 // A mesh's face groups: built by FaceGroup::ConstructElements (00454DB0), each destroyed by
 // FaceGroup::Destruct (00454C50; 00476F20 and 00474DB0 call it).

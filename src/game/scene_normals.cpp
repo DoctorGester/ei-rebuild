@@ -30,11 +30,11 @@ double WeldDistance() {
 
 } // namespace
 
-void __fastcall ComputeMeshNormals(VtArray* meshes) {
+void __fastcall ComputeMeshNormals(MeshArray* meshes) {
     DwordBuffer facesOfVertex{};
     const double weld = WeldDistance();
     for (int m = 0; m < meshes->size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[m];
+        SceneMesh* mesh = &meshes->data[m];
         PointBuffer& normals = mesh->normals;
         PointBuffer& positions = mesh->positions;
         FaceBuffer& faces = mesh->faces;
@@ -116,9 +116,9 @@ EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 // positions packed four at a time into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every
 // lane starts as the first position, so the unused lanes of the last block keep it.
 void __fastcall PackMeshPositions(FakeUnitScene* unit) {
-    VtArray& meshes = unit->meshes;
+    MeshArray& meshes = unit->meshes;
     for (int m = 0; m < meshes.size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        SceneMesh* mesh = &meshes.data[m];
         PointBuffer& positions = mesh->positions;
         BlockBuffer& blocks = mesh->positionBlocks;
         int count = positions.size;

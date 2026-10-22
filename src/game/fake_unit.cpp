@@ -32,21 +32,13 @@ namespace {
 
 constexpr int kFakeUnitClassId = 0x50;
 
-// The unit's arrays with their element types (the destructor's loops are the instantiations'
-// inlined DestructElements: each element's destructor through its vtable).
-using FigureArray = mfc::CArray<CFigureMesh, mfc::RawElements<CFigureMesh>>;
-using BoneLinkArray = mfc::CArray<scene::VtArray, mfc::RawElements<scene::VtArray>>;
-FigureArray& Figures(FakeUnitScene* self) { return scene::Typed<FigureArray>(self->figures); }
-BoneLinkArray& BoneLinks(FakeUnitScene* self) { return scene::Typed<BoneLinkArray>(self->boneLinks); }
-scene::MeshArray& Meshes(FakeUnitScene* self) { return scene::Typed<scene::MeshArray>(self->meshes); }
-scene::HelperArray& Helpers(FakeUnitScene* self) { return scene::Typed<scene::HelperArray>(self->helpers); }
-
 // The figure records and the helpers are engine objects (vtable and count first; the classes
 // declare no virtuals): slot 0, the deleting destructor, with 0.
 void DestroyRecord(void* record) { static_cast<CEngineObject*>(record)->~CEngineObject(); }
 
-// The array's vtable back, each element destroyed (`destroy`), the block freed; the fields are
-// left as they are.
+// The array's vtable back, each element destroyed (`destroy`; the destructor's loops are the
+// instantiations' inlined DestructElements: each element's destructor through its vtable), the
+// block freed; the fields are left as they are.
 template <typename Array, typename Destroy>
 void DestructArray(Array& a, const void* vtable, Destroy destroy) {
     ei::SetVtable(&a, vtable);
@@ -77,21 +69,20 @@ void FakeUnitScene::ReleaseParts() {
 FakeUnitScene::~FakeUnitScene() {
     using namespace fakeunit;
     ReleaseParts();
-    scene::Typed<recordarrays::FigureParts::Array>(figures).SetSize(0, -1);   // 0044FCD0
-    FigureArray& figureRecords = Figures(this);
+    figures.SetSize(0, -1);   // 0044FCD0
+    scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) --figureRecords.data[i].refCount_;
-    DestructArray(Helpers(this), recordarrays::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
-    DestructArray(BoneLinks(this), mfc::impl::FakeUnitBoneArraysClass::Vtable(), [](scene::VtArray& links) {
-        reinterpret_cast<mfc::CObjectVirtuals*>(&links)->DeletingDestructor(0);
-    });
-    DestructArray(Meshes(this), recordarrays::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
+    DestructArray(helpers, recordarrays::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
+    DestructArray(boneLinks, mfc::impl::FakeUnitBoneArraysClass::Vtable(),
+                  [](scene::BoneLinkRecords& links) { mfc::impl::DeleteThroughObject(&links); });
+    DestructArray(meshes, recordarrays::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
     DestructArray(figureRecords, recordarrays::FakeUnitPartArrayClass::Vtable(), [](CFigureMesh& record) { DestroyRecord(&record); });
 }
 
 void FakeUnitScene::Destroy() {
     using namespace fakeunit;
     ReleaseParts();
-    FigureArray& figureRecords = Figures(this);
+    scene::FigurePartArray& figureRecords = figures;
     if (figureRecords.data) {
         for (int i = 0, n = figureRecords.size; i < n; ++i) DestroyRecord(&figureRecords.data[i]);
         gamecrt::operator_delete(figureRecords.data);
@@ -105,7 +96,7 @@ int FakeUnitScene::GetClassId() { return fakeunit::kFakeUnitClassId; }
 
 int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     if (!scene::LoadFakeUnitScene(file, regFile, this)) return 0;   // 00446C10 (ECX the unit as well, not read)
-    fakeunit::FigureArray& figureRecords = fakeunit::Figures(this);
+    scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) {
         CBaseManager* manager = WorldContext()->SpecificManager();
         CEngineObject* object = manager->CreateObject(0x45, -1);

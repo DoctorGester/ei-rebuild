@@ -6,6 +6,7 @@
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "originals_core.h"
+#include "scene_loader.h"   // TextureNameRecord
 
 #include <cstdint>
 #include <cstring>
@@ -30,7 +31,7 @@ EI_REPLACE_METHOD(0x00453470, mfc::impl::ScalarDeleting<&FigureDestructBodyOrigi
 
 // 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
 // deleting destructor.
-void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
+void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { self->name.~CString(); }
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
 EI_REWRITTEN(0x00454360, mfc::impl::ScalarDeleting<&NamedRecordDestruct>::Delete);
 

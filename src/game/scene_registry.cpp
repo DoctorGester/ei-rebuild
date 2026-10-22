@@ -30,7 +30,7 @@ int __fastcall ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/
 namespace {
 
 // The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
-SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit->meshes).data[index]; }
+SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return unit->meshes.data[index]; }
 
 // The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
 using Registry = CFileRegistry;
@@ -127,7 +127,7 @@ struct GroupStrings {
 
 void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
-    CMaterial* helperRecord = &Typed<HelperArray>(unit->helpers).data[helper];   // ElementAt (00450750)
+    CMaterial* helperRecord = &unit->helpers.data[helper];   // ElementAt (00450750)
     {
         mfc::CString found(mfc::CString::kUnset);
         // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
@@ -253,7 +253,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
         for (int g = 0; g < MeshAt(unit, m).groups.size; ++g) {
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
-                const CMaterial& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
+                const CMaterial& helperRecord = unit->helpers.data[h];
                 if (gamecrt::mbscmp(helperRecord.name.GetString(),
                                     groupName.GetString()) != 0) {
                     continue;

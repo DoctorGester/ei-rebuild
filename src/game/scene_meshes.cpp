@@ -191,14 +191,14 @@ void BuildPairs(SceneMesh* mesh) {
 
 // 0044CFF0 (__fastcall: the unit's mesh array). The record list (vtable 0073C19C) is shared by all
 // meshes and freed at the end.
-void __fastcall IndexMeshCorners(VtArray* meshes) {
+void __fastcall IndexMeshCorners(MeshArray* meshes) {
     RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(mfc::impl::CornerMapAClass::Vtable());
         IndexMap indices = NewMap<IndexMap>(mfc::impl::CornerMapBClass::Vtable());
-        BuildCornerTable(&Typed<MeshArray>(*meshes).data[m], records, corners, indices);
-        IndexFaceCorners(&Typed<MeshArray>(*meshes).data[m]);
-        BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
+        BuildCornerTable(&meshes->data[m], records, corners, indices);
+        IndexFaceCorners(&meshes->data[m]);
+        BuildPairs(&meshes->data[m]);
         DestroyMap(indices, mfc::impl::CornerMapBClass::Vtable());
         corners.vtable = mfc::impl::CornerMapAClass::Vtable();
         corners.RemoveAll();   // 00453F80
