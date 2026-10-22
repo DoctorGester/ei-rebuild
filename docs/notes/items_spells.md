@@ -56,7 +56,7 @@ Record Serialize (A-H23, item_db_serialize.cpp; loading read twice, ours then th
 quick, the 0x7C kind (zone list through InlineStrings), the 0x78 kind (fields 0x15-0x17).
 
 The item database's tables are `itemdb::NamedRecordTable<Record>` (item_db.h: `stlp::vector<Record>` plus the name
-index; `At` (the bounds-checked lookup, also `WeaponAt` / `ArmorAt` / ... ), `IndexOf` (the byte offset divided by the
+index, a typed `hash_map<string, Record*>` that stlp::NamedSlot looks up like the spell tables' code index; `At` (the bounds-checked lookup, also `WeaponAt` / `ArmorAt` / ... ), `IndexOf` (the byte offset divided by the
 record size, signed, as the original computes it, also for a null record), `Named` (the by-name lookups 004AB720 etc.:
 a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
 
