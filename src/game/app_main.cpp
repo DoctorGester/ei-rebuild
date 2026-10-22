@@ -19,6 +19,7 @@
 // docs/notes/app.md ("WinMain").
 #include "bink_video.h"
 #include "device.h"   // the old device's calls
+#include "engine_object.h"
 #include "game_strings.h"
 #include "app.h"
 #include "acks_db.h"
@@ -436,7 +437,7 @@ void CreateMouse() {
     CDirectInputMouse* old = Mouse();
     Mouse() = mouse;
     if (mouse) ++mouse->references_;
-    if (old) ReleaseCountedOriginal(old);
+    if (old) reinterpret_cast<CEngineObject*>(old)->ReleaseAndDelete();
 }
 
 // The folders the game writes to.

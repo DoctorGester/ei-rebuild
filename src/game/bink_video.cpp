@@ -181,7 +181,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         return 1;
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
-    CursorShowOriginal(TheCursor(), nullptr, 0);
+    TheCursor()->ShowImage(0);
     // (The original fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
@@ -254,7 +254,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (holder) holder->Release();
     SetQuitAllowed(1);
     TheCursor()->SaveBackground(1);
-    CursorShowOriginal(TheCursor(), nullptr, 1);
+    TheCursor()->ShowImage(1);
     return escaped ? 0 : 1;
 }
 EI_REWRITTEN(0x005DB3F0, PlayMovie);
@@ -266,7 +266,7 @@ EI_REWRITTEN(0x005DB3F0, PlayMovie);
 void __fastcall ShowLoadingMovie(int progress) {
     net::Pump();   // 004122D0
     if (g_loadingMovieOff) return;
-    CursorShowOriginal(TheCursor(), nullptr, 0);
+    TheCursor()->ShowImage(0);
     if (!g_loadingHolder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = DataFolderText();
@@ -346,7 +346,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);   // "Can't open (or bad format) video file %s."
         return 0;
     }
-    CursorShowOriginal(TheCursor(), nullptr, 0);
+    TheCursor()->ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
     gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
@@ -379,7 +379,7 @@ void CloseLoadingMovie() {
     g_loadingBink = nullptr;
     g_loadingHolder = nullptr;
     if (holder) holder->Release();
-    CursorShowOriginal(TheCursor(), nullptr, 1);
+    TheCursor()->ShowImage(1);
 }
 EI_REWRITTEN(0x005DA3C0, CloseLoadingMovie);
 EI_REPLACE(0x005DA380, ReleaseLoadingHolder);
@@ -400,7 +400,7 @@ void CBinkVideo::Close() {
     holder = nullptr;
     if (old) old->Release();
     TheCursor()->SaveBackground(1);
-    CursorShowOriginal(TheCursor(), nullptr, 1);
+    TheCursor()->ShowImage(1);
 }
 EI_REWRITTEN(0x005DBF70, CBinkVideo::Close);
 

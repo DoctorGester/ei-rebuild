@@ -578,7 +578,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             const PartyMemberArray& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
             if (index >= 0 && index < members.size)
-                o = WorldFindUnit(TheServerWorld(), nullptr, static_cast<int>(members.data[index].unitId));
+                o = static_cast<CWorld*>(TheServerWorld())->FindUnit(static_cast<int>(members.data[index].unitId));
         }
         Store(*result, o);
         return;
@@ -627,7 +627,7 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 
 // The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
-inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's

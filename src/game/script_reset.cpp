@@ -31,7 +31,7 @@ namespace {
 // ---- Original code ------------------------------------------------------------------------------
 
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
-inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // The world (007AFF60): timed objects.
 

@@ -67,7 +67,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 UiSurfaceGetDC(headerSurface_);
-                SurfaceClearOriginal(headerSurface_);
+                static_cast<CUiSurface*>(headerSurface_)->Clear();
                 RECT rect = {0, 0, 0, 0};
                 headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);
@@ -97,6 +97,6 @@ void CCreditsScreen::OnClose() {
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;
-    CursorShowOriginal(TheCursor(), nullptr, 1);
+    TheCursor()->ShowImage(1);
 }
 EI_REPLACE_METHOD(0x0062BD00, CCreditsScreen::OnClose);

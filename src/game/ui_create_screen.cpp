@@ -4,6 +4,7 @@
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
 #include "app.h"
+#include "bink_video.h"
 #include "options.h"
 #include "world.h"
 #include "ui_camp.h"
@@ -358,7 +359,6 @@ namespace {
 // Members (thiscall): screen 9's two maps are item caches (lib_trees::ItemCache: 005F9F80 with two
 // allocators, 005F98F0); screen 8's player at +0x1D8 (005DB340 / 005DB350).
 using ItemCache = lib_trees::ItemCache;
-__declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 
 } // namespace
 
@@ -393,7 +393,7 @@ CCreditsScreen* CCreditsScreen::Construct(CInterface3D* ui, int flag, const char
     archive_->Construct();
     self->lines_.Construct();   // the header from the node pool, linked to itself
     new (&self->name_) mfc::CString(text);
-    Screen8Member1D8(&self->player_);
+    static_cast<CBinkVideo*>(&self->player_)->Construct();
     vtable_ = Vtable();
     const auto low = static_cast<std::uint8_t>(flag);
     std::memcpy(&self->fromGame_, &low, 1);
@@ -406,7 +406,7 @@ EI_REWRITTEN(0x005F6D50, CCreditsScreen::Construct);
 // CStrings, style then text) back to the node allocator, then the container base.
 void __fastcall Screen8Destroy(void* self) {
     auto* screen = static_cast<CCreditsScreen*>(self);
-    Screen8Member1D8Destruct(&screen->player_);
+    static_cast<CBinkVideo*>(&screen->player_)->Destruct();
     screen->name_.~CString();
     using Node = stlp::list<TitleLine>::Node;
     stlp::list<TitleLine>& lines = screen->lines_;
@@ -421,6 +421,6 @@ void __fastcall Screen8Destroy(void* self) {
     lines.head->prev = lines.head;
     stlp::deallocate(lines.head, sizeof(Node));
     MappedResourceDestroyOriginal(screen->archive_.Get());
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6E40, Screen8Destroy);

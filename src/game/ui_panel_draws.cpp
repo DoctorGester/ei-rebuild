@@ -138,7 +138,7 @@ struct Pulse {
     int high;
 };
 Pulse Advance(CConstructorPage* page) {
-    double t = WindowFrameTimeOriginal(page) + page->pulse_;
+    double t = CUiContainer::FrameTime() + page->pulse_;
     page->pulse_ = static_cast<float>(t);
     float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
     double a = 1.0 - p;

@@ -294,7 +294,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = WorldCopyItemOriginal(TheClientWorld(), nullptr, item);
+        CItem* copy = reinterpret_cast<CParty*>(TheClientWorld())->MakeCopyOf(item);
         copy->count_ = item->count_;
         ++copy->refCount_;
         merged.AddTail(copy);

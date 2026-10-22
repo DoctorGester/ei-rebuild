@@ -271,7 +271,7 @@ int CPlayerClient::OnJingle() {
 int CPlayerClient::OnZone() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    PlayerClearOriginal(Owner());
+    static_cast<CPlayer*>(Owner())->Clear();
     TheClientWorld()->LoadZone(block.Get());
     return 1;
 }
@@ -320,7 +320,7 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = WorldFindUnit(TheClientWorld(), nullptr, id);
+    auto* unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(id);
     if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
@@ -452,7 +452,7 @@ int CPlayerClient::OnPathMarker() {
         // The controller's slot 16 (00533DF0 for the client's): its path.
         PathOrder* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field->BeginWriteB(0);
-        PathWriteOriginal(path, nullptr, writing);
+        path->WriteState(writing);
         writing->EndField();
         DeltaField* reading = field->BeginReadB(0, &in_);
         path->ReadState(reading);
@@ -475,7 +475,7 @@ int CPlayerClient::OnPathMarker() {
         auto* marker = TheParticleManager()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
-        CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
+        CUnit* unit = static_cast<CWorld*>(owner->ManagerContext())->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     field->Destruct();
@@ -887,7 +887,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < partyUnitIds_.size; ++i) {
         bool inserted;
         PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CEngineObject* unit = WorldFindUnit(player->ManagerContext(), nullptr, partyUnitIds_.data[i]);
+        CEngineObject* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(partyUnitIds_.data[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 
@@ -901,7 +901,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
         partyUnitIds_.data[i] = id;
-        auto* unit = WorldFindUnit(player->ManagerContext(), nullptr, id);
+        auto* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&

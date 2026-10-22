@@ -191,7 +191,7 @@ void DestroyCache(ItemObjectCache& cache) {
 void __fastcall ItemScreenDestroy(CItemScreen* self) {
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6470, ItemScreenDestroy);
 
@@ -203,7 +203,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6620, CampScreenDestroy);
 
@@ -217,7 +217,7 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     stlp::deallocate(names.begin(), static_cast<std::size_t>(names.EndOfStorage() - names.begin()) * sizeof(mfc::CString));
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F7010, Screen9Destroy);
 

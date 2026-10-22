@@ -2,6 +2,7 @@
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "core_refcount.h"
 #include "core_streams.h"
 #include "lever.h"
 #include "magic_trap.h"
@@ -72,7 +73,6 @@ using PlacementArray = mfc::CArray<Placement>;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-__declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
@@ -91,7 +91,7 @@ void DestroyMessage(UnitSpec* message) {
     // The CRT's eh vector destructor iterator (006E859F): each behaviour record's destructor
     // (0046C290), last to first.
     for (int i = 5; --i >= 0;) mapspec::BehaviourDestruct(&message->behaviour[i]);
-    MessageDestructBase(message, nullptr);
+    message->object.ObjectSpecDestruct();
 }
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
@@ -177,7 +177,7 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
         }
     }
     record->value = static_cast<std::uint32_t>(itemRecord->id_);
-    RefPtrAssign(&item->link_, nullptr, record);
+    reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(record));
     return item;
 }
 
@@ -250,7 +250,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
             PlaceInLine(message, position, rotation, i);
         }
 
-        CUnit* unit = WorldFindUnit(this, nullptr, CreateObject(&base));
+        CUnit* unit = static_cast<CWorld*>(this)->FindUnit(CreateObject(&base));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
@@ -314,14 +314,14 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = records->data[i];
-            CUnit* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
+            CUnit* unit = static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
             if (!unit) continue;
             CUnitServer* controller = unit->ServerController();
             if (record->leaderId <= 0) continue;
             AIBrain* brain = &controller->brain;
             PlayerMode* follow = brain->FindPlayerMode();
             if (!follow) continue;
-            follow->SetLeader(brain, WorldFindUnit(this, nullptr, record->leaderId));
+            follow->SetLeader(brain, static_cast<CWorld*>(this)->FindUnit(record->leaderId));
         }
     }
 
@@ -357,7 +357,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     int id = CreateObject(&message->base);
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
-    MessageDestructBase(message, nullptr);
+    message->ObjectSpecDestruct();
 }
 
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
@@ -412,7 +412,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->WriteFullState();
     };
     auto place = [spec](CMapObject* object) {
-        ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
+        static_cast<CObject3D*>(object)->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
         Copy(&object->localPosition_.x, &spec->base.position, 12);

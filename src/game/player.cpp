@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "world.h"
 #include "lib/mfc_slots.h"
 
 namespace {
@@ -159,8 +160,8 @@ void CPlayer::Clear() {
         item->Release();
     }
     items_.RemoveAll();
-    ObjectMapClearOriginal(&knownTimed_);
-    ObjectMapClearOriginal(&knownObjects_);
+    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
+    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
     // Each unit leaves (its SetPlayer erases it here) until the map is empty or its first entry
     // holds no unit.
     for (UnitMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
@@ -222,8 +223,8 @@ void CPlayer::Disconnect() {
 EI_REPLACE_METHOD(0x00665A10, CPlayer::Disconnect);
 
 void CPlayer::ForgetKnownObjects() {
-    ObjectMapClearOriginal(&knownTimed_);
-    ObjectMapClearOriginal(&knownObjects_);
+    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
+    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
     dirty_ = 0xFFFFFFFFu;
 }

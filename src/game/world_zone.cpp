@@ -3,6 +3,7 @@
 // docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
+#include "core_refcount.h"
 #include "map_spec.h"
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
@@ -69,7 +70,7 @@ struct UnitRecordBuilder {
     void Fill(const char* text, const char* prototype, const char* name) {
         Party()->AddMember(text, prototype, name);
     }
-    void Destruct() { PartyRecordsDestructOriginal(Party()); }
+    void Destruct() { static_cast<CParty*>(Party())->DestructBody(); }
     PartyUnitRecord* Record() { return Party()->members_.data; }
 };
 
@@ -191,7 +192,7 @@ void CWorldServer::ClearMapObjects() {
     }
 
     for (auto* node = projectiles_.head; node; node = node->next)
-        if (node->data) RefObjectRelease(node->data);
+        if (node->data) reinterpret_cast<CRefObject*>(node->data)->Release();
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)

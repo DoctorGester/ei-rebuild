@@ -43,7 +43,7 @@ bool GamePaused() { return TheClientWorld()->paused_ != 0; }   // 00578D50
 int SelectedUnitId() { return TheCamera()->targetId_; }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
+inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;           // 0073D734

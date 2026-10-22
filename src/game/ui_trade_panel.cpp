@@ -121,7 +121,7 @@ EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 
 void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->VirtualHeroRecord()->stats;
-    UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
+    stats->ResetToBase(0.0f);
     owner_->VirtualRefreshStats();
     CTextManager* table = GameClientTexts();
     CTextManager* texts = table;

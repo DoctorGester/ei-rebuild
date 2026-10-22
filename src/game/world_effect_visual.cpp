@@ -11,6 +11,7 @@
 #include "spell.h"
 #include "terrain.h"
 #include "texture.h"
+#include "unit.h"
 #include "world.h"
 #include "world_effect_internal.h"
 #include "originals_effects.h"
@@ -29,9 +30,6 @@ using namespace effect;
 namespace {
 
 
-// CParticleSource (effects.cpp, through the game addresses).
-__declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
-__declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 
@@ -247,7 +245,7 @@ double CEffectPointLight::Radius() { return static_cast<double>(ConstAt(worlddat
 void CEffectParticle::Reset() {
     ClearBase(this);
     if (source_ != nullptr) {
-        StopSource(source_);
+        static_cast<CParticleSource*>(source_)->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();
@@ -284,7 +282,7 @@ Vector3* CEffectParticle::Position(void* group) {
 
 void CEffectParticle::Start(int update) {
     if (update == 0 && source_ != nullptr) {
-        StopSource(source_);
+        static_cast<CParticleSource*>(source_)->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();
@@ -311,7 +309,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
         void* unit = FindUnit(ObjectWorld(this), nullptr, unitId_);
         if (unit != nullptr) {
             Vector3 point;
-            std::memcpy(&position, UnitEffectPoint(unit, nullptr, &point), sizeof(Vector3));
+            std::memcpy(&position, static_cast<CUnit*>(unit)->EffectPoint(&point), sizeof(Vector3));
         }
     }
     localPosition_ = position;
@@ -325,7 +323,7 @@ void CEffectParticle::Spawn() {
         std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
         float baseSize;
         std::memcpy(&baseSize, &source_->baseSize, 4);
-        ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
+        source_->ScaleSize(static_cast<float>(size_ / baseSize));
         std::memcpy(&source_->alpha, &alpha_, sizeof(float));
         std::memcpy(&source_->typeParam, &param164_, sizeof(float));
         Attach();
@@ -336,8 +334,8 @@ void CEffectParticle::Spawn() {
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
-    ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
-    ParticleSourceAttachOriginal(source_, nullptr, nullptr);
+    source_->ScaleSize(static_cast<float>(size_ / baseSize));
+    static_cast<CParticleSource*>(source_)->Attach(nullptr);
     std::memcpy(&source_->alpha, &alpha_, sizeof(float));
     std::memcpy(&source_->typeParam, &param164_, sizeof(float));
     Attach();
@@ -417,7 +415,7 @@ void CEffectParticle::Attach() {
     void* object = FindObject(TheObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
     std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
-    ParticleSourceAttachOriginal(source_, nullptr, object);
+    static_cast<CParticleSource*>(source_)->Attach(static_cast<CObject3D*>(object));
     if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
 }
 
@@ -490,7 +488,7 @@ void CEffectWall::Reset() {
     moving_ = 0;
     changeStamp_ = -1;
     if (source_ != nullptr) {
-        StopSource(source_);
+        static_cast<CParticleSource*>(source_)->Stop();
         CParticleSource* old = source_;
         source_ = nullptr;
         if (old != nullptr) old->Release();
@@ -579,7 +577,7 @@ void CEffectLightning::UpdateEnds() {
     CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);
     if (source != nullptr && source->GetClassId() == 0x50 && ContextWorld(this)->IsServer() == 0) {
         Vector3 point;
-        std::memcpy(&from_, UnitEffectPoint(source, nullptr, &point), sizeof(Vector3));
+        std::memcpy(&from_, static_cast<CUnit*>(source)->EffectPoint(&point), sizeof(Vector3));
     }
 }
 

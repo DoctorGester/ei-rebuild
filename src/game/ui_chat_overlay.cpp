@@ -210,7 +210,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
                          kLineSurfaceHeight, kLineSurfaceFormat, 1)
                    : nullptr;
         UiSurfaceGetDC(surface);
-        SurfaceClearOriginal(surface);
+        static_cast<CUiSurface*>(surface)->Clear();
         const mfc::CString& codes = formatted[i];
         mfc::CString drawn;
         mfc::CString piece;

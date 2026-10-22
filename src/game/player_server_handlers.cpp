@@ -65,7 +65,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 // 00671200 are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
-CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
+CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:

@@ -577,7 +577,7 @@ void CUnitServer::TickAction() {
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
             static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
-            WorldAddTimed(world, nullptr, effect);
+            static_cast<CWorldServer*>(world)->AddTimedObject(effect);
             CEngineObject* old = effectObject;
             effectObject = effect;
             if (effect) ++effect->refCount_;

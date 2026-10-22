@@ -198,7 +198,7 @@ void CCampPages::ShowPage(int page) {
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         UiSurfaceGetDC(title);
-        SurfaceClearOriginal(title);
+        static_cast<CUiSurface*>(title)->Clear();
         RECT rect = {0, 10, 200, 30};
         DrawLine(title, pageTitles_[page_], &rect);
         UiSurfaceReleaseDC(title);
@@ -571,7 +571,7 @@ void CCampPages::UpdateAction() {
     CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
     UiSurfaceGetDC(draw);
-    SurfaceClearOriginal(draw);
+    static_cast<CUiSurface*>(draw)->Clear();
     if (action.GetLength() != 0) {
         texts->GetString(action, &text);
         RECT name = {0, 30, 200, 50};
@@ -1167,16 +1167,16 @@ constexpr int kHeroClass = 0x32;
 } // namespace
 
 void CCampPages::Update() {
-    UiUpdateChildrenOriginal(this);   // 006010E0: the container's update
+    static_cast<CUiContainer*>(this)->UpdateBase();   // 006010E0: the container's update
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
     // 00600270: the frame time in seconds (ST0, unrounded).
     if (turning == 1) {
-        float turned = TurnedBy(WindowFrameTimeOriginal(this), turn, false);
+        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, false);
         std::memcpy(&heroTurn_, &turned, 4);
     } else if (turning == 2) {
-        float turned = TurnedBy(WindowFrameTimeOriginal(this), turn, true);
+        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, true);
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }

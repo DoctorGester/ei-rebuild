@@ -90,7 +90,7 @@ void CMpHeroScreen::DrawExperience() {
     mfc::CString text;
     mfc::CString line;
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     TextsGetString(TheTextManager(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
@@ -146,9 +146,9 @@ EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
 // --- 00617820: Update (slot 24) ----------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
     if (rotating_ == 1 || rotating_ == 2) {
-        double step = WindowFrameTimeOriginal(this);
+        double step = static_cast<CUiContainer*>(this)->FrameTime();
         step += step;
         double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
@@ -245,7 +245,7 @@ void CMpHeroScreen::Destroy() {
     textures_.map.Destroy();   // 00634200
     ReleaseCachedObjects(&models_);
     models_.map.Destroy();     // 00634160
-    DestroyContainerBody(this);
+    DestroyContainer();
 }
 namespace {
 void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->Destroy(); }
@@ -276,7 +276,7 @@ std::uint32_t MpHeroCount() {
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     SelectionFrame(*this)->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
@@ -300,7 +300,7 @@ EI_REWRITTEN(0x006167C0, HeroScreenDrawHeroList);
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_.data[2];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     SelectionFrame(*this)->visible_ = 0;
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};

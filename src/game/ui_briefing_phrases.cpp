@@ -320,7 +320,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
+                if (auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();

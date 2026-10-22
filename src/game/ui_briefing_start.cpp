@@ -257,7 +257,7 @@ void CBriefingScreen::FinishDialogue() {
         CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
+        auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);

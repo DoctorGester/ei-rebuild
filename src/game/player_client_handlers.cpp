@@ -46,7 +46,7 @@ const char* FixedViewZone() { return "gz20g"; }
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 
-CUnit* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
+CUnit* FindClientUnit(int id) { return static_cast<CWorld*>(TheClientWorld())->FindUnit(id); }
 
 
 } // namespace

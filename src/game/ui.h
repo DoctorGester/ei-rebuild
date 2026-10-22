@@ -2028,7 +2028,7 @@ public:
     void DrawChildrenImpl(int pass);
     // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
     // seconds: the display object's (00500960) slot 6 milliseconds * 0.001f, left unrounded in ST0.
-    double FrameTime();
+    static double FrameTime();
     // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
     // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this calls it).

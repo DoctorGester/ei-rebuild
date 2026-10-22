@@ -153,7 +153,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
-static CUnit* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
+static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
 // vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
@@ -169,7 +169,7 @@ using PartyIds = CBattleScreen::PartyIds;
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
 // message box's constructor.
-void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
+void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.

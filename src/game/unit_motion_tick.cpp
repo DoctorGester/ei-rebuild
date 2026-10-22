@@ -369,7 +369,7 @@ void Exhaustion(CUnitServer* c) {
         } else {
             if (Drain(stamina, rate)) {
                 if (UnitOf(c)->player)
-                    PlayerSendObject0BOriginal(UnitOf(c)->player->connection_, nullptr, UnitOf(c), 0x1D);
+                    UnitOf(c)->player->Server()->SendObject0B(UnitOf(c), 0x1D);
                 std::memset(stamina, 0, 4);
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;

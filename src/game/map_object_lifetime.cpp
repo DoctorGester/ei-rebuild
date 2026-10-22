@@ -4,9 +4,11 @@
 #include "ai_map.h"        // AIPath
 #include "ai_motion.h"     // UnitMotion
 #include "combat.h"
+#include "core_refcount.h"
 #include "core_streams.h"
 #include "core_transform.h"
 #include "effects.h"       // CParticleSource
+#include "engine_object.h"
 #include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
@@ -61,8 +63,8 @@ void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); 
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
-void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
-void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
+void __fastcall BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
+void __fastcall BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).

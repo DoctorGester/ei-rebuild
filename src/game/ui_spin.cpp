@@ -63,7 +63,7 @@ void CUiSpin::SetValue(int value) {
     value_ = value < texts_.size ? value : 0;
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     RECT rect = layout_;
     gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
     // DrawText is Rebirth-patched: through its address.

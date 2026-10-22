@@ -356,7 +356,7 @@ void COptionsWindow::DestroyOptions() {
     settings_.FreeStorage();
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();
-    DestroyContainerBody(this);   // 00600BA0 by address: its wrapper runs
+    DestroyContainer();   // 00600BA0 by address: its wrapper runs
 }
 EI_REWRITTEN(0x0062B180, COptionsWindow::DestroyOptions);
 

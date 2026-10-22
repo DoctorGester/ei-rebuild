@@ -33,9 +33,6 @@ __declspec(naked) inline bool __fastcall SectorMapMove(void* /*sectors*/, void*,
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
                                                                       const std::int16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
 
-// An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field (RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
-
 // The brain's save-game helpers, called through their addresses so the verify wrappers see the calls
 // (unit_ai_brain.cpp, unit_ai_save.cpp). 005D9010 / 005D91B0: looks load / save (fastcall: ECX the
 // looks, EDX the stream; plain RET). 005CE920: an attack option's Save; 005D9B80: an attack option

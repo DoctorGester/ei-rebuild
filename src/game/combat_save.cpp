@@ -53,9 +53,6 @@ void AssignCounted(T*& slot, T* object) {
 } // namespace
 
 namespace {
-// 00544EF0 / 00544F60: the plan's own AnimationList part (its fields +0x18.. follow here).
-__declspec(naked) void __fastcall PlanLoad(void*, void*, CStream*) EI_ORIGINAL(0x00544EF0)
-__declspec(naked) void __fastcall PlanSave(void*, void*, CStream*) EI_ORIGINAL(0x00544F60)
 // 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
 // 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
 
@@ -182,7 +179,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     LoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
     motion.LoadPath(stream);
-    PlanLoad(&currentPlan, nullptr, stream);
+    reinterpret_cast<AnimationSteps*>(&currentPlan)->Load(stream);
     LoadPlanFields(stream, &currentPlan);
     stream->Read(&keepHitDirection, 1);
     stream->Read(&stoodBlocked, 1);
@@ -246,7 +243,7 @@ void CUnitServer::SaveServer(CStream* stream) {
     SaveStepList(&queue, stream);
     WriteCopy(stream, queue.extra);
     motion.SavePath(stream);
-    PlanSave(&currentPlan, nullptr, stream);
+    reinterpret_cast<AnimationSteps*>(&currentPlan)->Save(stream);
     SavePlanFields(stream, &currentPlan);
     WriteCopy(stream, keepHitDirection);
     WriteCopy(stream, stoodBlocked);

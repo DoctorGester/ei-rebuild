@@ -110,8 +110,6 @@ EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 
 namespace {
 // Object model helpers not rewritten yet.
-__declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
-    EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (004698A0, PartNames::CopyAt: a CString copy-constructed into `out`).
 mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
     new (out) mfc::CString(names->data[index]);
@@ -203,7 +201,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
             p.y = y + placed->offset.y;
             p.z = z + placed->offset.z;
             Vector3 world;
-            TransformVector(matrix, nullptr, &world, &p);
+            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &p);
             std::memcpy(&p, &world, sizeof(p));
             p.x = position.x + p.x;
             p.y = position.y + p.y;
@@ -211,7 +209,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         }
         for (Vector3& v : normal) {
             Vector3 world;
-            TransformVector(matrix, nullptr, &world, &v);
+            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &v);
             std::memcpy(&v, &world, sizeof(v));
         }
 

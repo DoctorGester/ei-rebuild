@@ -71,7 +71,7 @@ CScript* CScript::Construct() {
     ConstructArray(static_cast<mfc::CArray<ScriptObjectRef>*>(&group), mfc::impl::ScriptGroupClass::Vtable());
     // An empty group and a null reference at the temporary lists' heads (004C8CE0, 004C9210).
     tempGroups_.PushHead(&group);
-    ScriptGroupDestructOriginal(&group);
+    static_cast<ScriptGroup*>(&group)->DestructBody();
     ScriptObjectRef none{nullptr};
     tempObjects_.PushHead(&none);
     none.Reset();

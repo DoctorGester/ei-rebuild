@@ -5,6 +5,7 @@
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "ai_mode_class.h"
 #include "combat.h"
+#include "engine_object.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
@@ -35,7 +36,7 @@ constexpr int kStatTaming = 2;
 void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 template <typename T>
-void __fastcall ReferenceRelease(T** a0) { CountedRefResetOriginal((void*)a0); }
+void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }

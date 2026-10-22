@@ -91,7 +91,7 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
         node = next;
     }
     topPanel_->AddMoney(money);
-    TopPanelShowPageOriginal(topPanel_);
+    topPanel_->ShowItems();
     RefreshSelection();
 }
 EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);

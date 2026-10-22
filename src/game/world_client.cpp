@@ -140,7 +140,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     float best = 1e38f;
     CUnit* nearest = nullptr;
     for (int i = 0; i < view->partyUnitIds_.size; ++i) {
-        CUnit* found = WorldFindUnit(this, nullptr, view->partyUnitIds_[i]);
+        CUnit* found = static_cast<CWorld*>(this)->FindUnit(view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (ObjectSlots(found)->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
@@ -248,7 +248,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     for (int i = 0; i < records->size; ++i) {
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
-            WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
+            static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
@@ -347,7 +347,7 @@ namespace {
 // Callees, through their addresses (thiscall as fastcall).
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
-void __fastcall SessionDisconnect(CPlayer* session) { PlayerDisconnectOriginal(session); }
+void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 
 // FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -428,7 +428,7 @@ int CWorldClient::Segment() {
     if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
     if (CPlayer* session = Session()) {
         CPlayerConnection* view = session->connection_;
-        if (!paused_) PlayerTickOriginal(session);
+        if (!paused_) static_cast<CPlayer*>(session)->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
             // keeps the session: only the error is reported.

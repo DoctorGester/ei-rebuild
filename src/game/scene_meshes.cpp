@@ -139,7 +139,7 @@ void IndexFaceCorners(SceneMesh* mesh) {
             const MeshFace& face = FaceAt(mesh, f);
             int index = FindCorner(mesh, face.vertex[k], face.position[k], face.vertex2[k]);
             WordArray& out = mesh->cornerIndices;
-            WordsSetAtGrow(&out, nullptr, out.size, index);
+            out.SetAtGrow(out.size, static_cast<unsigned short>(index));
         }
     }
 }

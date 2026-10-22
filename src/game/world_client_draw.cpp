@@ -8,6 +8,7 @@
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
+#include "lightning.h"
 #include "options.h"
 #include "renderer_lines.h"
 #include "net_session.h"
@@ -100,7 +101,6 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL(0x00468940)
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
@@ -332,7 +332,7 @@ int CWorldClient::Render() {
         particles->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        LightningDraw(listManager_, nullptr, TheSceneRenderer());
+        static_cast<CLightningManager*>(listManager_)->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         RainSnow()->DrawImpl(TheSceneRenderer());

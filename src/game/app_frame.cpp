@@ -45,9 +45,6 @@ CursorLock CursorLockAtCallSite() {
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
-__declspec(naked) void __fastcall IniConstruct(CIniFile*) EI_ORIGINAL(0x00695B80)
-__declspec(naked) int __fastcall IniSetPath(CIniFile*, void*, const char*) EI_ORIGINAL(0x00695BF0)
-__declspec(naked) void __fastcall IniDestruct(CIniFile*) EI_ORIGINAL(0x00695BE0)
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
@@ -122,10 +119,10 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     list.Construct();
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the original's calls
     CIniFile* ini = iniStorage.Get();
-    IniConstruct(ini);
+    ini->Construct();
     {
         mfc::CString path(mfc::CString::kUnset);
-        IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
+        ini->SetPath(*ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
@@ -138,7 +135,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         }
         if (clearAfter) ClearScreen();
     }
-    IniDestruct(ini);
+    ini->Destruct();
     list.Destruct();
 }
 EI_REPLACE(0x00458270, PlayMovies);

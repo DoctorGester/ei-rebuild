@@ -3,6 +3,7 @@
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "bink_video.h"
 #include "combat.h"
+#include "core_refcount.h"
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "map_object_figures.h"
@@ -154,13 +155,6 @@ void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // pointer's assignment (reference added, old one released through slot 4).
 // Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
 // tables (+0x12C64) and the countdowns (+0x70).
-__declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAE30)
-__declspec(naked) void __fastcall TimeWheelSave(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAFA0)
-__declspec(naked) void __fastcall CommandQueueLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0D00)
-__declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0F90)
-// 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
-__declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
-__declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
 // 0055FB00 (RET 4). CWorld::FindUnit.
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
@@ -290,7 +284,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
-        CUnit* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
+        CUnit* unit = static_cast<CWorld*>(world)->FindUnit(stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             world->Sectors()->Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
@@ -318,7 +312,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->Server();
         stream->Read(&player->partyId_, 4);
-        PlayerRecordsLoad(player->Party(), nullptr, stream, 1);
+        static_cast<CParty*>(player->Party())->LoadParty(stream, 1);
         player->lastTick_ = world->tick_;
         stream->Read(&player->sessionKind100_, 4);
         CBaseManager* items = world->ItemFactory();
@@ -347,7 +341,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
             group.vtable = mfc::impl::ScriptGroupClass::Vtable();
             group.Load(stream);
-            ScriptGroupDestructOriginal((void*)&group);
+            static_cast<ScriptGroup*>((void*)&group)->DestructBody();
         }
         state->SendParty();
         state->SetFlag70(1);
@@ -377,7 +371,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             scriptsActive_ = 1;
-            PlayerClearOriginal((void*)player);
+            static_cast<CPlayer*>((void*)player)->Clear();
         }
     }
     AIMap()->BeginRefresh();
@@ -464,14 +458,14 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
-                RefPtrAssign(&node->data, nullptr, missile);
+                reinterpret_cast<RefPtr*>(&node->data)->Assign(reinterpret_cast<CRefObject*>(missile));
                 if (list.tail) list.tail->next = node;
                 else list.head = node;
                 list.tail = node;
             }
 
-            TimeWheelLoad(AIEvents(), nullptr, stream);
-            CommandQueueLoad(MainScript(), nullptr, stream);
+            static_cast<AIEventTable*>(AIEvents())->Load(stream);
+            static_cast<CScript*>(MainScript())->LoadState(stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
@@ -512,7 +506,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     CItemLink* old = object->ServerLink();
                     object->link_ = record;
                     if (record) ++record->references;
-                    if (old) RefObjectRelease(old);
+                    if (old) reinterpret_cast<CRefObject*>(old)->Release();
                 }
             }
 
@@ -584,7 +578,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         stream->Write(&player->partyId_, 4);
-        PlayerRecordsSave(player->Party(), nullptr, stream, 1);
+        player->Party()->SaveParty(stream, 1);
         stream->Write(&player->sessionKind100_, 4);
         for (auto* node = player->items_.head; node;) {
             auto* next = node->next;
@@ -690,8 +684,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
-    TimeWheelSave(AIEvents(), nullptr, stream);
-    CommandQueueSave(MainScript(), nullptr, stream);
+    static_cast<AIEventTable*>(AIEvents())->Save(stream);
+    static_cast<CScript*>(MainScript())->SaveState(stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);

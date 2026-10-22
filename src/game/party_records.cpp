@@ -183,7 +183,7 @@ EI_REWRITTEN(0x004A8910, PartyNextId);
 
 bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* target) const {
     if (*key == 0) {
-        PartyResetOriginal((void*)target, nullptr, 1, 0);
+        static_cast<CParty*>((void*)target)->Clear(1, 0);
         return true;
     }
     CParty* stored = FindParty(parties, *key);

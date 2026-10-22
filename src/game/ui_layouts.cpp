@@ -19,6 +19,7 @@
 #include "model.h"
 #include "net_second_master.h"
 #include "resource.h"
+#include "ui_cursor.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -445,7 +446,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->archive_->Construct();
             w->lines_.Construct();   // 00634300
             ::new (&w->name_) mfc::CString("Titles");
-            Screen8Member1D8(&w->player_);
+            static_cast<CBinkVideo*>(&w->player_)->Construct();
             w->fromGame_ = true;
             SetVtables(w, CCreditsScreen::Vtable(), CCreditsScreen::InputVtable());
         }
@@ -661,7 +662,7 @@ void CCreditsScreen::Build() {
         TheSoundManager()->StopAll(1);
         TheMusicSystem()->Stop();
     }
-    CursorShowOriginal(TheCursor(), nullptr, 0);
+    TheCursor()->ShowImage(0);
     PlayMoviesOriginal(mfc::operator+(name, "fin"), 1, 0, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font

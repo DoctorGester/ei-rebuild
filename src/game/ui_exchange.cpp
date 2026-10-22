@@ -51,7 +51,7 @@ EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
 // --- 0062C930: the update (slot 24) ----------------------------------------------------------------
 
 void CExchangeScreen::Update() {
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
     if (!LiveOffer()) {
         ReturnAll(LocalParty(), ownOffer_);
         GameRejoin();
@@ -103,7 +103,7 @@ EI_REPLACE_METHOD(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Cal
 // --- 0062D210: the exchange went through (slot 37) -------------------------------------------------
 
 void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    PartyReleaseItemsOriginal(LocalPlayerData());
+    static_cast<CParty*>(LocalPlayerData())->ReleaseAllItems();
     auto* local = LocalPlayerData();
     ReturnAll(local, partyC);
     ReturnAll(LocalPlayerData(), partyB);
@@ -184,7 +184,7 @@ void CExchangeScreen::Create() {
     net::ClientSession* client = net::GameClient();
     ownOffer_ = client->parties_[0].Party();
     partnerOffer_ = client->parties_[1].Party();
-    PartyResetOriginal(ownOffer_, nullptr, 1, 0);
+    static_cast<CParty*>(ownOffer_)->Clear(1, 0);
 
     // The description panel (its item list and text arrays constructed in place).
     auto* panel = NewChild<CItemInfoPanel>(sizeof(CItemInfoPanel), interface_, ItemPanelVtables());

@@ -113,7 +113,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 4:
-            PartyResetItems(player->Party());
+            player->Party()->RemoveQuestItems();
             for (GivenItems::Node* position = player->items_.head; position;) {
                 GivenItems::Node* current = position;
                 position = position->next;

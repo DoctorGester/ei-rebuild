@@ -24,10 +24,5 @@ struct Vector3;
 // 00511FB0: the light factory's (*007AF748) list of lit ids (+0xD4): removes every entry equal to *id (RET 4).
 
 
-// 0049A010: the weather object's alpha ramp (thiscall, RET 0xC: start and width as ints, an exponent; stores them at
-// +4..+0xC and fills its 256-entry table at +0x10; no result).
-__declspec(naked) inline void __fastcall WeatherSetRampOriginal(void* /*weather*/, void*, int /*start*/, int /*width*/,
-                                                                float /*exponent*/) EI_ORIGINAL(0x0049A010)
-
 class CRainSnow;
 

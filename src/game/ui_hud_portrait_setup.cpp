@@ -229,7 +229,7 @@ void CHudPortraits::Rebuild(int wide) {
     for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
         auto* player = net::GameClient()->players_.At(node);
         CEngineObject* unit = nullptr;
-        if (player->id_ >= 0) unit = WorldFindUnit(TheClientWorld(), nullptr, player->id_);
+        if (player->id_ >= 0) unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;

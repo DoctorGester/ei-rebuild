@@ -5,6 +5,7 @@
 #include "ai_map.h"
 #include "map_object.h"
 #include "combat.h"
+#include "map_object_figures.h"
 #include "map_spec.h"
 #include "map_spec_class.h"
 #include "core_streams.h"
@@ -406,7 +407,7 @@ void UnitSpec::UnitSpecApply() {
     SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
     TheServerWorld()->AIMap()->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->localRotation_, &b.rotation, 16);
-    ObjectSetFigureScaleOriginal(b.object, nullptr, &object.scale.x);
+    static_cast<CObject3D*>(b.object)->SetFigureScale(&object.scale.x);
     std::memcpy(&unit->baseScale, &object.scale, 12);
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;

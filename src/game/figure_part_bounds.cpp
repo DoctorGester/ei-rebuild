@@ -19,7 +19,7 @@ namespace {
 
 // 00455940 the owning manager's context (object.cpp; the world, an engine object). 0049B140 (RET 4)
 // appends a point.
-CEngineObject* ContextOf(FigureMeshDrawer* node) { return static_cast<CEngineObject*>(ManagerContextOf(node)); }
+CEngineObject* ContextOf(FigureMeshDrawer* node) { return reinterpret_cast<CEngineObject*>(node->ManagerContext()); }
 
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 

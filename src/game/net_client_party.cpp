@@ -174,7 +174,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
 
     CParty* party = self->parties_[1].Party();
-    PartyResetOriginal((void*)party, nullptr, 1, 0);
+    static_cast<CParty*>((void*)party)->Clear(1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
     items.ConstructEmpty();   // 00424B40

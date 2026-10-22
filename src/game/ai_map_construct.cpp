@@ -22,10 +22,6 @@
 
 namespace {
 
-// Constructors of the members (thiscall).
-// 005B40F0: resets the dirty rectangle (+4).
-__declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
-
 
 
 void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, void* vtable) {
@@ -75,7 +71,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->Events()->Construct();
     self->loaded = false;
     self->batching = false;
-    ResetDirty(&self->dirtyMinX, nullptr);
+    reinterpret_cast<AIDirtyRect*>(&self->dirtyMinX)->Reset();
     FillAreaLists(self);
     self->footprintTick = 0;
     self->refreshUnits = false;

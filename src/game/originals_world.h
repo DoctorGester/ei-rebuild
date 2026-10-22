@@ -25,9 +25,6 @@ struct VertexPacket;
 struct DecalTexCoord;
 namespace lib { template <typename T> struct AlignedArray; }
 
-// 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
-// object released (slot 4) until a null one, the nodes freed, count and highest id 0.
-__declspec(naked) inline void __fastcall ObjectMapClearOriginal(void* /*map*/) EI_ORIGINAL(0x0047B670)
 // 00565E40: the client world (007AF5B8) picks the unit drawn at a screen point (thiscall, RET 4: the address of
 // the point's x, y; EAX = the unit or null). The battle screen passes its own (x, y) argument slots.
 class CTexture;
@@ -35,8 +32,6 @@ class CMaterial;
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
 // flow (007AFE20) applies a multiplayer client's update from the server (thiscall, plain RET).
 // 0055FB00 (RET 4): the world's object with this id when it is a unit (type 0x50), else null.
-__declspec(naked) inline CUnit* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
-    EI_ORIGINAL(0x0055FB00)
 
 // C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at
 // 007AF788; ECX is not read, so the callers' flow argument was a dummy.
@@ -53,7 +48,6 @@ __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/,
 
 // 0055E940 (CWorld's slot 24, called directly on the client world 007AF5B8; RET 4): a new item made like `item` by the
 // item factory and given its values; EAX is the copy.
-__declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/, void*, CItem* /*item*/) EI_ORIGINAL(0x0055E940)
 
 // A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
 // (both RET 8: name, value bits; EAX not a result).
@@ -95,7 +89,6 @@ __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*ser
 // 0058E850 CastSpell (RET 0x18: spell, caster, from, target, to, extra); 0058EF20 CreateUnits (RET 0x20: player, records,
 // position, rotation by value, placements); 005911C0 AwardExperience (RET 8: player, the amount as float bits);
 // 00591800 UpdateMercBriefings (plain RET); 00593AA0 FindObject (RET 4: an id; the object or null).
-__declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x0058E520)
 __declspec(naked) inline void __fastcall WorldCreateUnitsOriginal(void* /*world*/, void*, void* /*player*/, void* /*records*/,
                                                                   const Vector3* /*position*/, Quaternion /*rotation*/,
                                                                   void* /*placements*/) EI_ORIGINAL(0x0058EF20)

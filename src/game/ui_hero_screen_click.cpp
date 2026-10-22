@@ -52,7 +52,6 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4).
-__declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
@@ -123,7 +122,7 @@ mfc::CString& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    SurfaceFreeze(surfaces_.data[3], nullptr, 0, 0);
+    static_cast<CUiSurface*>(surfaces_.data[3])->Freeze(0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
@@ -401,7 +400,7 @@ void CMpHeroScreen::Rename() {
         name.TrimRight();
     }
     auto* surface = surfaces_.data[3];
-    SurfaceFreeze(surface, nullptr, 1, 0);
+    static_cast<CUiSurface*>(surface)->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
@@ -576,7 +575,7 @@ EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();
-    PartyRecordsDestructOriginal(Party());   // 006611D0 by address: its wrapper runs
+    static_cast<CParty*>(Party())->DestructBody();   // 006611D0 by address: its wrapper runs
 }
 EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 

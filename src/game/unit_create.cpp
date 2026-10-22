@@ -80,7 +80,7 @@ void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
     if (code == 0xFFFFFFFFu) return;   // already excluded above; the original tests it anyway
     if (!unit->player) return;
-    PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, code);
+    PlayerMessages(unit->player)->SendObject0B(unit, code);
 }
 EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 

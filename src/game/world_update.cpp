@@ -46,7 +46,7 @@ void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, CPlayer* player) {
-    PlayerDisconnectOriginal(player);
+    static_cast<CPlayer*>(player)->Disconnect();
     world->PlayerList()->ReleasePlayer(player);
     NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->playerId_)->PutChar('\n')
         ->Apply(libcrt::FlushManipulator);
@@ -97,7 +97,7 @@ int CWorldServer::Update() {
 
     if (!paused_) {
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            PlayerTickOriginal(player);
+            static_cast<CPlayer*>(player)->Tick();
         Tick(static_cast<char>(0));
     }
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
@@ -122,7 +122,7 @@ int CWorldServer::Update() {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);
-            ScriptGroupDestructOriginal((void*)storage.Get());
+            static_cast<ScriptGroup*>((void*)storage.Get())->DestructBody();
             break;
         }
     }

@@ -171,7 +171,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
     // The group buttons' titles down the left; the shown group's button at full tint.

@@ -115,7 +115,7 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     } else {
         number = human ? kHumanListen[IsaacRandom::Global().Next() & 3] : kListen;
     }
-    auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
+    auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
@@ -133,7 +133,7 @@ EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 // briefing screen unchecked, as the original does; the count is read again after each call.
 void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     if (!serverUnit) return;
-    auto* unit = WorldFindUnit(TheClientWorld(), nullptr, serverUnit->id_);
+    auto* unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(serverUnit->id_);
     if (!unit) return;
     auto* screen = TheInterface()->ActiveWindowAs<CBriefingScreen>();
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
@@ -319,7 +319,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         CUnitClientSpecific* model = person->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, person->id_)) {
+        if (auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(person->id_)) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = serverUnit->ServerController();

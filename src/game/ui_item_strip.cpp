@@ -3,6 +3,7 @@
 // (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
+#include "ui_mesh_build.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -90,7 +91,7 @@ void CUiItemStrip::Build(char top) {
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = AddSprite(0);
-    UiMeshFramedOriginal((void*)frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    static_cast<CUiMeshBuilder*>((void*)frame)->Framed(scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
@@ -101,7 +102,7 @@ void CUiItemStrip::Build(char top) {
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = AddSprite(0);
         const float fx = static_cast<float>(x);
-        UiMeshFramedOriginal((void*)cell, nullptr, scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
+        static_cast<CUiMeshBuilder*>((void*)cell)->Framed(scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
     tab_ = 5;
     SetTab(5);
@@ -160,7 +161,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     mfc::CString text;
     CUiSurface* counts = surfaces_.data[0];
     counts->GetDC();
-    SurfaceClearOriginal(counts);
+    static_cast<CUiSurface*>(counts)->Clear();
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
         int count = static_cast<int>(shown[i]->count_);
@@ -172,7 +173,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     counts->ReleaseDC();
     CUiSurface* numbers = surfaces_.data[1];
     numbers->GetDC();
-    SurfaceClearOriginal(numbers);
+    static_cast<CUiSurface*>(numbers)->Clear();
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
@@ -191,7 +192,7 @@ EI_REPLACE_METHOD(0x00621B50, CUiItemStrip::Draw);
 namespace {
 
 // 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
-inline double __fastcall StripFrameTime(void* w) { return WindowFrameTimeOriginal(w); }
+inline double __fastcall StripFrameTime(void* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 } // namespace
 

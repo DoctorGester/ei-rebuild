@@ -46,7 +46,7 @@ struct TextReader : CTextManager {
     mfc::BOOL Close();                                         // 004DF020
 };
 mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-mfc::BOOL TextReader::NextHeader() { return ::TextFindLineOriginal(this, nullptr, nullptr); }
+mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
     return CTextManager::Split(words, flag);
 }

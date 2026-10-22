@@ -36,7 +36,6 @@ namespace {
 // 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
-__declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
 
 // The game's atexit (006E727B).
 
@@ -133,7 +132,7 @@ void CWorldServer::Tick(char force) {
     }
     finished.Clear();
 
-    TimeWheelAdvance(AIEvents(), nullptr, tick_);
+    static_cast<AIEventTable*>(AIEvents())->Advance(tick_);
     // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 

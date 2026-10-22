@@ -85,7 +85,7 @@ EI_REWRITTEN(0x00600CC0, CUiContainer::AddInput);
 
 // The milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
 double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds()) * static_cast<double>(0.001f); }
-EI_REPLACE_METHOD(0x00600270, CUiContainer::FrameTime);
+EI_REPLACE(0x00600270, CUiContainer::FrameTime);
 
 void CUiContainer::UpdateBase() {
     for (int i = 0; i < children_.size; ++i) children_.data[i]->VirtualUpdate();

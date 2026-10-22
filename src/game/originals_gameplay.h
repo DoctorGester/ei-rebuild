@@ -18,19 +18,12 @@ class CSpell;
 class CPlayer;
 class CBaseManager;   // base_manager.h
 
-__declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
-
 // C3h. 00661700: party Reset(a, b) (RET 8, EAX not a result); 00661DB0: party AddItem(item, flag1, flag2) (RET 0xC; the
 // two flags are read as bytes; EAX is the item, or null).
-__declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)
-    EI_ORIGINAL(0x00661700)
 
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player
 // clear, 00665A10: player disconnect (all plain RET, EAX not a result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
-__declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*party*/) EI_ORIGINAL(0x006611D0)
-__declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
-__declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 // 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
 // type (bytes) and raises the fatal error 00480080; returns its result.
 __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)
@@ -47,8 +40,6 @@ __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /
 // when found, else 0). 00665780: erases the quest item (type 0x3009)
 // with a number (RET 4; EAX 1 when found, else 0). 00665A70 / 00665B50: add / remove a unit of the player (RET 4, EAX is not a
 // result).
-__declspec(naked) inline int __fastcall PlayerEraseQuestItemOriginal(void* /*player*/, void*, int /*number*/)
-    EI_ORIGINAL(0x00665780)
 
 // 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
 // C3m. 0069D290: a record of the material table by name; 0069D380: the class-0x15 prototype table's record by name
@@ -58,9 +49,4 @@ __declspec(naked) inline int __fastcall PlayerEraseQuestItemOriginal(void* /*pla
 // (rewritten as CPlayer::Tick; plain RET) the player's update before the tick; 0066D6E0 (CPlayerServer::SendObject0B; RET 8)
 // the message (player + 0x20) about an object with a code / value; 0066EE10 / 0066EE80 (CPlayerServer::SetVariable /
 // SetVariableMax; RET 8) a quest variable of the name, set / raised to the value.
-__declspec(naked) inline void __fastcall PlayerTickOriginal(void* /*player*/) EI_ORIGINAL(0x00665DE0)
-__declspec(naked) inline void __fastcall PlayerSendObject0BOriginal(void* /*messages*/, void*, const void* /*object*/,
-                                                                    std::uint32_t /*value*/) EI_ORIGINAL(0x0066D6E0)
-__declspec(naked) inline void __fastcall PlayerStateSetVariableMaxOriginal(void* /*state*/, void*, const char* /*name*/,
-                                                                           float /*value*/) EI_ORIGINAL(0x0066EE80)
 

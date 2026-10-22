@@ -9,6 +9,7 @@
 #include "ai_motion.h"
 #include "combat.h"
 #include "core_maths.h"
+#include "engine_object.h"
 #include "map_object.h"
 #include "originals_combat.h"
 #include "combat_internal.h"
@@ -575,7 +576,7 @@ EI_REWRITTEN(0x0054A150, CUnitServer::ChangeMoveMode);
 // --- Paths --------------------------------------------------------------------------------------
 
 bool CUnitServer::PathTo(const Vector3* point, float range) {
-    ManagerContextOf(this);
+    ManagerContext();
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;

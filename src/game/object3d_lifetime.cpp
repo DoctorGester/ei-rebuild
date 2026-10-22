@@ -1,5 +1,6 @@
 // The 3D object's Create / Destroy slots, its effect sources and the counted figure reference.
 // See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "effects.h"
 #include "map_object_figures.h"
 #include "link_figure.h"   // CLinkMesh: the figure
 #include "map_object_shadow.h"   // WoundsMaterial: the client half's
@@ -113,7 +114,7 @@ void CObject3D::AddEffectSource(CEngineObject* source) {
     effectSources.AddTail(source);
     if (source) {
         ++source->refCount_;
-        ParticleSourceAttachOriginal(source, nullptr, this);
+        static_cast<CParticleSource*>(source)->Attach(this);
     }
 }
 EI_REWRITTEN(0x00518A00, CObject3D::AddEffectSource);
@@ -123,7 +124,7 @@ void CObject3D::RemoveEffectSource(CEngineObject* source) {
     if (!node) return;
     effectSources.RemoveAt(node);
     if (source) {
-        ParticleSourceAttachOriginal(source, nullptr, nullptr);
+        static_cast<CParticleSource*>(source)->Attach(nullptr);
         source->Release();
     }
 }

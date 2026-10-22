@@ -17,8 +17,6 @@ struct DeltaField;
 struct DeltaState;
 struct ParticleElement;
 
-// 00455940 (rewritten as CEngineObject::ManagerContext): the object's manager context (+0x14 -> +0xAC, the world).
-__declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*/) EI_ORIGINAL(0x00455940)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
 __declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)
@@ -27,10 +25,6 @@ __declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, c
     EI_ORIGINAL(0x004E0020)
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
-
-// C3j. 004849F0: particle source attaches to an object (RET 4, no result).
-__declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
-    EI_ORIGINAL(0x004849F0)
 
 // 006714A0: CMappedResource's destructor body at its original address. Rebirth patches it (it then runs Rebirth's
 // version); in the vanilla launch the address leads to CMappedResource::Destroy.

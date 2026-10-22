@@ -101,7 +101,7 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 // 00665470. Player: receives the items in `list` (a CPtrList).
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code) {
-    PlayerSendObject0BOriginal(messages, nullptr, unit, code);
+    static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.

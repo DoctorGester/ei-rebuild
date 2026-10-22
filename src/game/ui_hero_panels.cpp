@@ -20,6 +20,7 @@
 #include <initializer_list>
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "ui_mesh_build.h"
 #include "unit.h"
 #include "combat.h"
 #include "game_data.h"
@@ -273,7 +274,7 @@ struct SpriteBuild {
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                int v1, int count, int flag);   // 005E7680
 };
-void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float a5, float a6, int a7, int a8, int a9, int a10) { UiMeshFramedOriginal(this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
+void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float a5, float a6, int a7, int a8, int a9, int a10) { reinterpret_cast<CUiMeshBuilder*>(this)->Framed(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sprite); }
 

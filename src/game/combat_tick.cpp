@@ -134,7 +134,7 @@ namespace {
 
 namespace {
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, message);
+    if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
 }
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.

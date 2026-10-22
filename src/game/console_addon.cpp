@@ -25,6 +25,7 @@
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"
+#include "ui_cursor.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -180,7 +181,7 @@ void __fastcall NoGui(CStringArray* args) {
     g_guiShown = mode == 0;
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
-    CursorShowOriginal(TheCursor(), nullptr, g_cursorShown ? 1 : 0);
+    TheCursor()->ShowImage(g_cursorShown ? 1 : 0);
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {

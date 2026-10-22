@@ -12,6 +12,7 @@
 #include "lightning.h"
 #include "map_object_shadow.h"
 #include "player_manager.h"
+#include "player_messages.h"
 #include "world.h"
 #include "world_client_class.h"
 #include "world_data.h"
@@ -268,7 +269,7 @@ using DynamicNode = DynamicList::Node;
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
 
 // ClearMaps: the session's player data [00665200].
-void __fastcall SessionPlayerClear(CPlayer* session) { PlayerClearOriginal(session); }
+void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
 
 // The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
 // ScreenIntroSort (00573740), ScreenInsertionSort (00575BC0), ScreenUnguardedInsertionSort (00576D40).
@@ -712,7 +713,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(&record->stats);
-        ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
+        static_cast<CObject3D*>(unit)->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();

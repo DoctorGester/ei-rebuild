@@ -1,5 +1,6 @@
 // Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
+#include "engine_object.h"
 #include "game_arrays.h"          // aligned::AllocateDwords
 #include "map_object.h"           // ObjectSlots
 #include "map_object_figures.h"
@@ -50,7 +51,7 @@ constexpr int kStackObject = 3;
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
 // 00457720. A temporary texture reference: released.
-void __fastcall ReleaseTemporary(void* object) { ReleaseCountedOriginal(object); }
+void __fastcall ReleaseTemporary(void* object) { static_cast<CEngineObject*>(object)->ReleaseAndDelete(); }
 
 // The light list being collected: aligned storage of light pointers.
 using LightList = lib::AlignedArray<CEngineObject*>;

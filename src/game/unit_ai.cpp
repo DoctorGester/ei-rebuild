@@ -1,4 +1,5 @@
 // The unit AI brain (005D0000-005DC000): the per-tick mode selection and the actions.
+#include "core_refcount.h"
 #include "unit_ai.h"
 #include "console.h"
 
@@ -91,7 +92,7 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-void AIMode::Release() { RefObjectRelease((void*)this); }
+void AIMode::Release() { static_cast<CRefObject*>((void*)this)->Release(); }
 int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
 void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
 void AIMode::Enter(AIBrain* brain) { Virtuals()->Enter(brain); }

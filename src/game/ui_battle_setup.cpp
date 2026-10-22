@@ -280,7 +280,7 @@ void CBattleScreen::Create() {
             owner->MessageLog()->AddText(text);
         }
     }
-    TopPanelShowPageOriginal(topPanel_);
+    topPanel_->ShowItems();
 
     CCameraInput* camera = gamecrt::operator_new_as<CCameraInput>();
     AddInput(camera ? reinterpret_cast<UiInputSide*>(camera->Construct(interface_)) : nullptr);

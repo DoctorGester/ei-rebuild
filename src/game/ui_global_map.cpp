@@ -526,7 +526,7 @@ EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
 namespace {
 
 // 006010E0 (not rewritten): the container's base update (its children).
-void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
+void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
@@ -720,7 +720,7 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     DestroyArray(&self->links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     DestroyArray(&self->zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
     CStringDestroy(&self->allodTitle_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6920, GlobalMapDestroy);
 

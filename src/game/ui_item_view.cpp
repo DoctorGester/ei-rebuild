@@ -6,6 +6,7 @@
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
 #include "app.h"
+#include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
@@ -239,7 +240,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->flag = false;
         std::uint32_t word = IsaacRandom::Global().Next();
         turn->glow = RandomPhase(word);
-        RefPtrAssign(&item->link_, nullptr, turn);   // the item's RefPtr slot
+        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(turn));   // the item's RefPtr slot
     }
 
     if (cell->mode == 9) {

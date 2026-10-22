@@ -84,5 +84,3 @@ inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return
 // C3n. The engine's aligned arrays (lib::AlignedArray<T>, thiscall on the array): 004513A0 (rewritten as
 // DwordArraySetSize2) SetSize(n, growBy); 00452FC0 / 004538D0 (rewritten as ShortArraySetAtGrow / DwordArraySetAtGrow)
 // SetAtGrow(index, value) on 16-bit elements (the value pushed as a dword).
-__declspec(naked) inline void __fastcall WordsSetAtGrow(lib::AlignedArray<std::uint16_t>* /*array*/, void*, int /*index*/,
-                                                        int /*value*/) EI_ORIGINAL(0x00452FC0)

@@ -102,7 +102,7 @@ void CMainMenu::AddVersionLine() {
     if (CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>())
         surface = memory->Construct(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     mfc::CString text;
     TextsGetString(TheTextManager(), nullptr, kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
@@ -151,7 +151,7 @@ EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
 // --- 00632B10: Update (slot 24, every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
     int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);

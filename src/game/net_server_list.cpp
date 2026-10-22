@@ -18,7 +18,6 @@
 namespace net {
 
 namespace {
-__declspec(naked) void __fastcall CoderConstruct(CoderState* /*coder*/) EI_ORIGINAL(0x0042FCA0)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
@@ -47,7 +46,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     GameBuffer buffer;
     buffer.ConstructGrowing();
     CoderState coder;
-    CoderConstruct(&coder);
+    coder.Construct();
     in->Seek(0);
     std::uint32_t size;
     ReadBytes(in, &size, 4);

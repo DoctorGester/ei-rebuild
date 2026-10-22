@@ -3,6 +3,7 @@
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "ai_map.h"
 #include "base_manager.h"
+#include "map_object_figures.h"
 #include "map_spec.h"
 #include "map_spec_class.h"
 #include "game_strings.h"
@@ -309,7 +310,7 @@ void ObjectSpec::ObjectSpecApply() {
     CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
     std::memcpy(&object->localRotation_, &base.rotation, 16);
-    ObjectSetFigureScaleOriginal(base.object, nullptr, &scale.x);
+    static_cast<CObject3D*>(base.object)->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, 12);
     object->ApplyBaseScale();
     std::uint32_t& flags = object->flags_;

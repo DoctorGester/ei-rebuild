@@ -66,13 +66,11 @@ inline float BelowOneOrOne(const float& value) {
 // --- Engine objects ------------------------------------------------------------------------------
 
 // 00455940 (originals_engine.h). The owning manager's context.
-inline void* ManagerContext(const void* object) { return ManagerContextOf(object); }
+inline void* ManagerContext(const void* object) { return static_cast<const CEngineObject*>(object)->ManagerContext(); }
 // 0055FB00 (world). A unit by id, or null.
-inline void* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
+inline void* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 // 00403F40 (originals_core.h). An object of a manager by id, or null.
 inline void* FindObject(void* manager, void*, int id) { return static_cast<CBaseManager*>(manager)->FindObject(id); }
-// 00532860 (unit). A point of the unit (its effect origin); returns `out`.
-__declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
 
 // The world an object belongs to (the effects' manager context is the world, too). The effects
 // reach their own slots 18-23 through TimedSlots / EffectSlots (world_effect.h).

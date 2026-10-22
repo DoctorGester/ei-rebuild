@@ -12,6 +12,7 @@
 #include "texture.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
@@ -119,8 +120,8 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
 void AddQuad(int count, bool firstBySetAtGrow) {
     if (firstBySetAtGrow) {
-        WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 4);
-        WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 3);
+        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 4));
+        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 3));
     } else {
         Indices().Add(static_cast<unsigned short>(count - 4));
         Indices().Add(static_cast<unsigned short>(count - 3));

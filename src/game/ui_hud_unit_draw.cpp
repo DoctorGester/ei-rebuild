@@ -123,7 +123,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
     UiSurfaceGetDC(surfaces_.data[0]);
-    SurfaceClearOriginal(surfaces_.data[0]);
+    static_cast<CUiSurface*>(surfaces_.data[0])->Clear();
 
     if (unit && unit->Object3D()->attached) {
         CObject3D* model = unit->Object3D();

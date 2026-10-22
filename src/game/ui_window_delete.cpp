@@ -6,6 +6,7 @@
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
 #include "library_trees.h"
+#include "party.h"
 #include "ui.h"
 #include "ui_input_class.h"
 #include "ui_briefing.h"
@@ -87,7 +88,7 @@ void CItemInfoPanel::DestroyBody() {
     inputVtable_ = InputVtable();
     skillTexts_.Destruct();
     itemTexts_.Destruct();
-    PartyRecordsDestructOriginal(itemList_);
+    reinterpret_cast<CParty*>(itemList_)->DestructBody();
     DestroyBase();
 }
 EI_REWRITTEN(0x005EE380, CItemInfoPanel::DestroyBody);

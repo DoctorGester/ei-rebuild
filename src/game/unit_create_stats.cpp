@@ -355,9 +355,9 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
     LearnNpcSkills(stats, npc);
-    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
+    stats->ResetToBase(1.0f);
     stats->RefillSlots();
-    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
+    stats->ResetToBase(1.0f);
     return 1;
 }
 EI_REWRITTEN(0x00513DA0, BuildNpcStats);
@@ -611,7 +611,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         std::memcpy(&scale, &prototype->scale, sizeof(scale));
-        ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
+        static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
         std::memcpy(&object->baseScale, &scale, sizeof(scale));
         object->ApplyBaseScale();
         static_cast<CUnit*>(object)->SetPrototype23C(prototype);

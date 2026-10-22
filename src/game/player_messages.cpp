@@ -1,6 +1,7 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "ai_map.h"
 #include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
@@ -9,6 +10,7 @@
 #include "game_singletons.h"
 #include "party.h"
 #include "random.h"
+#include "script.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -386,8 +388,8 @@ CPlayerServer* CPlayerServer::Construct() {
 void CPlayerServer::DestructBody() {
     ei::SetVtable(this, Vtable());
     ClearServerState();
-    ScriptGroupDestructOriginal(&partyUnits_);
-    ScriptGroupDestructOriginal(&group50F8_);
+    static_cast<ScriptGroup*>(&partyUnits_)->DestructBody();
+    static_cast<ScriptGroup*>(&group50F8_)->DestructBody();
     sentTimed_.FreeData();
     sentObjects_.FreeData();
     decompressor_.out.End();
@@ -466,7 +468,7 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     if (kind == kPathKindNoPath) return;
     LocalDeltaField field;
     DeltaField* delta = field.Get()->BeginWriteB(0);
-    PathWriteOriginal(path, nullptr, delta);
+    path->WriteState(delta);
     delta->EndField();
     out_.EndBits();
     BitStream& written = field.Get()->out[0];

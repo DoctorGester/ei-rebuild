@@ -2,6 +2,7 @@
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
 #include "at_exit_functions.h"
+#include "core_refcount.h"
 #include "options.h"
 #include "player_manager.h"
 #include "random.h"
@@ -114,7 +115,6 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 void VariableSet(NamedFloatTable* table, const char* name, float value) { table->Set(name, value); }
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
-__declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 // The console's ostream.
 
@@ -146,7 +146,7 @@ struct LocalRecords {
     PartyStorage storage;
     CParty* Party() { return storage.Party(); }
     LocalRecords() { Party()->Construct(); }
-    ~LocalRecords() { PartyRecordsDestructOriginal(Party()); }
+    ~LocalRecords() { static_cast<CParty*>(Party())->DestructBody(); }
     LocalRecords(const LocalRecords&) = delete;
     LocalRecords& operator=(const LocalRecords&) = delete;
 };
@@ -265,7 +265,7 @@ int GameFlow::SaveGame(const char* slot) {
             ei::SetVtable(s, CStream::StreamVtable());
         }
     } scenarioOwner{&scenario};
-    PartySave(ThePartyManager(), nullptr, &scenario);
+    static_cast<PartyManager*>(ThePartyManager())->Save(&scenario);
     TheInterface()->SaveState(&scenario);
     ScriptsReset(GameSaveStream());
     TheInterface()->SaveWindowState();
@@ -1075,7 +1075,6 @@ constexpr std::size_t kPasswordSize = 0x14;
 
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
-__declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
 
 } // namespace
 
@@ -1086,16 +1085,16 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     {
         auto* memory = net::NewRefObjectAs<net::ServerSession>();
         net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
-        RefPtrAssign(&net::GameServer(), nullptr, server);
+        reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(reinterpret_cast<CRefObject*>(server));
     }
     {
         auto* memory = net::NewRefObjectAs<net::ClientSession>();
         net::ClientSession* client = memory ? memory->Construct() : nullptr;
-        RefPtrAssign(&net::GameClient(), nullptr, client);
+        reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
     }
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
-    AddressSet(&address, nullptr, kLocalHost, net::g_gamePort);
+    static_cast<net::NetAddress*>(&address)->Parse(kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
@@ -1118,10 +1117,10 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 
 void GameFlow::StartClient() {
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
-    RefPtrAssign(&net::GameServer(), nullptr, nullptr);
+    reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(nullptr);
     auto* memory = net::NewRefObjectAs<net::ClientSession>();
     net::ClientSession* client = memory ? memory->Construct() : nullptr;
-    RefPtrAssign(&net::GameClient(), nullptr, client);
+    reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
     AfterServerStart();
 }
 EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);
@@ -1420,7 +1419,6 @@ void GameFlow::StartZone(const char* zone, int mode) {
 namespace {
 
 // 005DC620 / 004A88A0 through their addresses: the console executor, the party manager's new game.
-__declspec(naked) void __fastcall PartyNewGameAt(void*) EI_ORIGINAL(0x004A88A0)
 
 } // namespace
 
@@ -1429,7 +1427,7 @@ void GameFlow::StartNewGame() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
     console::Execute(kExecAutoexec);
     ToMainMenu() = 1;
-    PartyNewGameAt(ThePartyManager());
+    PartyManagerNewGame(ThePartyManager());
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
@@ -1600,7 +1598,6 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // The scenario.sav parts read back: the party (004A8310), the input state (005F85C0's reader
 // 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
 // mission.sav (00579E60, a flow method, from the file stream).
-__declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
 void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
 
 } // namespace
@@ -1651,7 +1648,7 @@ int GameFlow::LoadGame(const char* slot) {
         StartZone(kMainMenu, 2);
         return 0;
     }
-    PartyLoad(ThePartyManager(), nullptr, &scenario);
+    static_cast<PartyManager*>(ThePartyManager())->Load(&scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(GameSaveStream());
@@ -1792,7 +1789,7 @@ void GameFlow::AfterServerStart() {
         ClearVariablesKeepingGlobals(variables);
     else
         variables->Clear();
-    PartyResetItems(GlobalParty());
+    GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->members_.size == 1) {
         const mfc::CString* names = GlobalParty()->members_.data->texts;
@@ -1985,7 +1982,7 @@ void DestroyPartyEntry(MpHeroRecord* entry) {
     CParty* records = entry->Party();
     entry->file.~CString();
     ei::SetVtable(records, CParty::Vtable());
-    PartyResetOriginal(records, nullptr, 1, 1);
+    static_cast<CParty*>(records)->Clear(1, 1);
     records->DestroyParty();   // 00661640
     records->zone_.~CString();
     records->variables_.Destroy();   // 00663330

@@ -26,39 +26,23 @@ class CItemScreen;
 struct ItemCell;
 struct NamedFloatTable;
 
-__declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
 // CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
 // two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
-__declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
 // 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
 // the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
 __declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*section*/, int /*clearFirst*/, int, int, int)
     EI_ORIGINAL(0x00458270)
-// 00600270: CUiWindow's frame time in seconds, unrounded in ST0 (ECX = window, plain RET).
-__declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*window*/) EI_ORIGINAL(0x00600270)
 // 00578D00: the flag's byte (007AFFCC) in AL; plain RET, ECX not read.
 
-// 005E8450 (rewritten as CUiMeshBuilder::Framed through MeshFramed): the sprite as a framed rectangle (depth, scale, left, top,
-// right, bottom, border, u0, v0, u1, v1; RET 0x2C, EAX not a result).
-__declspec(naked) inline void __fastcall UiMeshFramedOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
-                                                              float /*left*/, float /*top*/, float /*right*/,
-                                                              float /*bottom*/, float /*border*/, int /*u0*/, int /*v0*/,
-                                                              int /*u1*/, int /*v1*/) EI_ORIGINAL(0x005E8450)
 // The cursor object 007C7BD8: 005E5270 shows / hides it (thiscall, RET 4: +0x0C = `show` under its lock +0xA0).
-__declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
 // 006B71C0: CSoundManager::StopAll(stopStream) (thiscall on the sound manager [007AF784], RET 4;
 // rewritten in sound_manager.cpp; the name is historical).
-
-// 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
-__declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
 
 // 005F8340 (Rebirth-patched; thiscall, RET 0xC): the extent (a SIZE written to `out`, returned) of a text in interface
 // font `font`. The text is a CString taken by value: its data pointer is handed over and the callee releases it.
 __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface3D*, void*, void* /*out SIZE*/,
                                                                       char* /*text, owned*/, int /*font*/)
     EI_ORIGINAL(0x005F8340)
-// 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
-__declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
 // 005187B0 (thiscall on a figure, RET 8): plays `animation` (`restart` 1: from the start). 00512B20 (thiscall on the object
 // manager 007AF5F8, RET 8): its object of `kind` named `name` (an animation for kind 0x80590000, the rest pose), or null.
 
@@ -74,7 +58,6 @@ __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/)
 // 006407E0: the portraits rebuild their slots from the battle screen's party (RET 4: camera player first; no result).
 // The top panel (thiscall): 0064A4E0 adds the "combat_picked_up" (or with `crippled` "combat_crippled") line of an item
 // (RET 8); 0064A7A0 shows its current page (plain RET).
-__declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*/) EI_ORIGINAL(0x0064A7A0)
 // 00566030: the client world (007AF5B8) controls `unit` (thiscall, RET 4; no result).
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
@@ -100,17 +83,10 @@ void __cdecl SaveKeyBindings();
 namespace keybind {
 void __cdecl LoadKeyBindings();
 }
-// 00661FE0 (thiscall on a CParty, plain RET): every item released (its slot 4), the item array's storage freed.
-__declspec(naked) inline void __fastcall PartyReleaseItemsOriginal(void* /*party*/) EI_ORIGINAL(0x00661FE0)
 
 // A-E2. 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
 void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 // 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
 void __fastcall ResetCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 
-
-// C3o. 004DF030 (rewritten as TextFindLine; thiscall on the text reader, RET 4): moves to the line that starts with
-// `key`; a null key finds the next "#..." header. 1 when found, else 0 (the cursor at the end).
-__declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, void*, const char* /*key*/)
-    EI_ORIGINAL(0x004DF030)
 

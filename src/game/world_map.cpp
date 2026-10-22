@@ -1,6 +1,7 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "core_refcount.h"
 #include "game_lists.h"
 #include "base_manager.h"
 #include "hash_tables_400.h"
@@ -51,7 +52,7 @@ void EndTimedObjects(CWorldServer* world) {
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
-        if (node->data) RefObjectRelease(node->data);
+        if (node->data) reinterpret_cast<CRefObject*>(node->data)->Release();
     list.RemoveAll();
 }
 
@@ -158,7 +159,7 @@ void CWorldServer::ResetZone() {
         auto* it = gamecrt::operator_new_as<PlayerIterator>();
         if (it) it->manager = nullptr;
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
-            PlayerClearOriginal((void*)player);
+            static_cast<CPlayer*>((void*)player)->Clear();
         if (it) {
             if (it->manager) {
                 --it->manager->refCount_;
@@ -170,7 +171,7 @@ void CWorldServer::ResetZone() {
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         node->value->ClearState();
-    ObjectMapClearOriginal(&objects_);
+    reinterpret_cast<ObjectIdMap*>(&objects_)->ReleaseAll();
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
         map->map.Clear();   // 0059D6D0
@@ -196,7 +197,7 @@ void CWorldServer::TeardownZone() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
-        PlayerDisconnectOriginal((void*)player);
+        static_cast<CPlayer*>((void*)player)->Disconnect();
         PlayerList()->ReleasePlayer(player);
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;

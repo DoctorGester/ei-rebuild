@@ -2,6 +2,7 @@
 // that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
 // docs/notes/units.md ("Network state"). The slots are virtual; their bodies are the *Impl members,
 // registered by member pointer (rewrite-guide rule 4).
+#include "map_object_figures.h"
 #include "net_delta.h"
 
 #include "ai_map.h"
@@ -118,7 +119,7 @@ void CUnit::WriteNetStateImpl() {
     }
     if (DeltaField* field = state->BeginField(10)) {
         PathOrder* path = unit->Controller()->Path();
-        PathWriteOriginal(path, nullptr, field);
+        path->WriteState(field);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(11)) {
@@ -169,7 +170,7 @@ std::uint32_t CMapObject::ReadNetStateImpl(int first) {
     if (DeltaField* field = state->BeginField(1)) {
         Vector3 figureScale;   // the figure scale (00517700)
         field->ReadDelta(&figureScale, 0xC);
-        ObjectSetFigureScaleOriginal(this, nullptr, &figureScale.x);
+        SetFigureScale(&figureScale.x);
         complete &= SnapshotConsumed();
         field->EndField();
     }

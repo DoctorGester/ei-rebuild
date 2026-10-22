@@ -99,7 +99,7 @@ void MoveRegions(CUiWindow* window, int offsetX) {
 template <typename Panel>
 void AdvanceSlide(Panel* panel) {
     const double moved =
-        WindowFrameTimeOriginal(panel) * panel->slideDirection_ / SlideTime() + panel->slide_;
+        CUiContainer::FrameTime() * panel->slideDirection_ / SlideTime() + panel->slide_;
     panel->slide_ = static_cast<float>(moved);
     if (moved > 1.0) panel->slide_ = 1.0f;
     if (panel->slide_ < 0.0f) panel->slide_ = 0.0f;
@@ -152,12 +152,12 @@ EI_REPLACE_METHOD(0x00642930, CHudMap::LayoutVanilla);
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
     if (view_ == 1) {
-        const double zoom = std::pow(kZoomRate, WindowFrameTimeOriginal(this)) * zoom_;
+        const double zoom = std::pow(kZoomRate, CUiContainer::FrameTime()) * zoom_;
         zoom_ = static_cast<float>(zoom);
         if (zoom > zoomMax_) zoom_ = zoomMax_;
     }
     if (view_ == 2) {
-        const double zoom = zoom_ / std::pow(kZoomRate, WindowFrameTimeOriginal(this));
+        const double zoom = zoom_ / std::pow(kZoomRate, CUiContainer::FrameTime());
         zoom_ = static_cast<float>(zoom);
         if (zoom < 1.0) zoom_ = 1.0f;
     }
@@ -177,7 +177,7 @@ void CHudMap::UpdateVanilla() {
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     // The "camera north" button (scene object 11) is lit while its time runs.
-    if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - WindowFrameTimeOriginal(this));
+    if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - CUiContainer::FrameTime());
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 EI_REWRITTEN(0x00642B40, CHudMap::UpdateVanilla);

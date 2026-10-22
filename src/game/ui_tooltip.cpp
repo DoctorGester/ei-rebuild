@@ -171,7 +171,7 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
             return;
         }
         if (timer_ < delay) {
-            timer_ = static_cast<float>(WindowFrameTimeOriginal(this) + timer_);
+            timer_ = static_cast<float>(CUiContainer::FrameTime() + timer_);
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
@@ -209,7 +209,7 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
         // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
         if (timer_ < AppearTime()) {
             DrawLines();
-            timer_ = static_cast<float>(WindowFrameTimeOriginal(this) + timer_);
+            timer_ = static_cast<float>(CUiContainer::FrameTime() + timer_);
         } else {
             state_ = kShown;
             timer_ = AppearTime();
@@ -219,7 +219,7 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
     case kDisappearing:
         if (timer_ > 0.0f) {
             DrawLines();
-            timer_ = static_cast<float>(timer_ - WindowFrameTimeOriginal(this));
+            timer_ = static_cast<float>(timer_ - CUiContainer::FrameTime());
         } else {
             state_ = kIdle;
             ClearSceneObjects();

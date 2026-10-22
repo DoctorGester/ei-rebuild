@@ -41,7 +41,7 @@ void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast
 
 // A unit of the player's world (the server's).
 CUnit* FindUnit(CPlayer* player, int id) {
-    return WorldFindUnit(player->ManagerContext(), nullptr, id);
+    return static_cast<CWorld*>(player->ManagerContext())->FindUnit(id);
 }
 bool Alive(CUnit* unit) { return ObjectSlots(unit)->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }

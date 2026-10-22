@@ -6,6 +6,7 @@
 #include "net_coder.h"
 #include "net_messages.h"
 #include "core_refcount.h"
+#include "party.h"
 #include "record_lists.h"
 
 #include "ei/hook.h"
@@ -20,7 +21,7 @@ namespace net {
 namespace {
 
 // The two parties (00661050 class, outside this range).
-void __fastcall PartyDestruct(void* a0) { PartyRecordsDestructOriginal(a0); }
+void __fastcall PartyDestruct(void* a0) { static_cast<CParty*>(a0)->DestructBody(); }
 
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(void* slot) {
