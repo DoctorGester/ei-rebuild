@@ -177,10 +177,10 @@ bool CCampPages::DeconstructItem() {
         AddNamed(results, name, 0, false);
     }
     if (copy->spell_) {
-        CResourceManager* manager = results->ItemManager();
+        CItemManager* manager = results->ItemManager();
         itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
         int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
-        auto* container = static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1);
+        auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
         if (container) {
             ++container->refCount_;
             CSpell* clone = copy->spell_->Clone(results->SpellManager());

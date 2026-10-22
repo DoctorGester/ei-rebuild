@@ -56,7 +56,10 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   unit's id, `CLightFactory::LightWithId`, `AIBrain::FindPlayerMode` / `FindPatrolMode`,
   `CBattleScreen::MessageLog()`, `UnitOrNull` after a class test, `ObjectSlots` where a generic lookup is a
   map object; `CWorld::ObjectWithId` and `CWorldServer::FindObject` already return `CMapObject*`, and the server
-  world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`), not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
+  world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
+  lists are `stlp::SharedRefListOf<T>` / `CountedRefListOf<T>` (stlp_list_refs.h: `list.At(node)`, `Front()`,
+  `Back()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
+  the owning figure manager), not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.
 - `static_cast<T*>(gamecrt::operator_new(sizeof(T)))` is `gamecrt::operator_new_as<T>()`; a literal size

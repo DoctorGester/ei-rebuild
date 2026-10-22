@@ -23,6 +23,7 @@ using BOOL = int;
 
 class CItem;
 class CItemConstructor;
+class CItemManager;   // item.h
 class CParty;
 class CResourceManager;
 class CSpellConstructor;
@@ -81,7 +82,7 @@ public:
     virtual void FigureManager();              // 15: 0065F4C0 (null)
     virtual CItemConstructor* ItemConstructor();   // 16: 0065F540 (itemConstructor_)
     virtual CSpellConstructor* SpellConstructor();   // 17: 0065F550 (spellConstructor_)
-    virtual CResourceManager* ItemManager();   // 18: itemManager_
+    virtual CItemManager* ItemManager();       // 18: itemManager_
     virtual void MapObjectManager();           // 19: 0065F4D0 (null)
     virtual void PlayerList();                 // 20: 0065F4E0 (null)
     virtual void SpecificManager();            // 21: 0065F4F0 (null)
@@ -193,7 +194,7 @@ public:
     // The money (+0x50; the camp's deals and the trade read it).
     int& Money() { return reinterpret_cast<int&>(money_); }
 
-    CResourceManager* itemManager_;         // +0x1C a CItemManager (slot 18 returns it)
+    CItemManager* itemManager_;             // +0x1C (slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
     CSpellManager* spellManager_;           // +0x24 (slot 22)
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)

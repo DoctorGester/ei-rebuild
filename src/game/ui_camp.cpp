@@ -676,7 +676,7 @@ void ReleaseObject(CEngineObject* object) {
 bool CCampPages::CanMakeSpell() {
     // The slot list's spell constructor, item factory and spell manager (its slots 17, 18, 22).
     CSpellConstructor* constructor = spellResults_->SpellConstructor();
-    CResourceManager* factory = spellResults_->ItemManager();
+    CItemManager* factory = spellResults_->ItemManager();
     CSpellManager* manager = spellResults_->SpellManager();
     const itemdb::SpellRecord* spell = nullptr;
     // The original keeps the modifiers in an 8-entry stack array (more would overwrite its
@@ -711,7 +711,7 @@ bool CCampPages::CanMakeSpell() {
     constructor->CallSetManager(nullptr);
     itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
-    CItem* container = static_cast<CItemManager*>(factory)->MakeItem(0x3008, index, 0, -1);
+    CItem* container = factory->MakeItem(0x3008, index, 0, -1);
     if (container) container->AttachSpell(made);
     spellMade_ = container;
     if (!container) return false;

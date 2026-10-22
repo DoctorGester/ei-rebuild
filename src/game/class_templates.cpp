@@ -40,10 +40,10 @@ namespace {
 // 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records
 // have the class mask at +0x4C). The spell database (template +0xAC slot 22): 00689570 spells,
 // 00689610 spell modifiers (originals_gameplay.h).
-void ListWeapons(void* db, void*, console::CStringArray* names) { static_cast<CItemManager*>(db)->ListWeaponNames(names); }
-void ListArmors(void* db, void*, console::CStringArray* names) { static_cast<CItemManager*>(db)->ListArmorNames(names); }
-void ListQuickItems(void* db, void*, console::CStringArray* names) { static_cast<CItemManager*>(db)->ListQuickItemNames(names); }
-void ListFourthKind(void* db, void*, console::CStringArray* names) { static_cast<CItemManager*>(db)->ListMaterialNames(names); }
+void ListWeapons(CItemManager* db, void*, console::CStringArray* names) { db->ListWeaponNames(names); }
+void ListArmors(CItemManager* db, void*, console::CStringArray* names) { db->ListArmorNames(names); }
+void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db->ListQuickItemNames(names); }
+void ListFourthKind(CItemManager* db, void*, console::CStringArray* names) { db->ListMaterialNames(names); }
 void ListSpells(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListSpellNames(names); }
 void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListModifierNames(names); }
 // 006893F0 / 006894B0 (SpellCodeByName / SpellModifierCodeByName, spell.cpp; __stdcall, the
@@ -74,7 +74,7 @@ ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 
 void __fastcall ClassTemplateFill(ClassTemplate* t) {
     console::CStringArray names;
-    void* items = t->ItemsParty()->ItemManager();
+    CItemManager* items = t->ItemsParty()->ItemManager();
     void* spells = t->SpellsParty()->SpellManager();
 
     itemdb::ItemDatabase& db = itemdb::TheItemDatabase();

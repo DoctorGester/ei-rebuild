@@ -31,7 +31,7 @@ const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell databases (their name lists, originals_gameplay.h).
-void* ItemDatabase() { return ei::GameData<void* const>(0x007AF60C); }
+CItemManager* ItemDatabase() { return ei::GameData<CItemManager* const>(0x007AF60C); }
 void* SpellDatabase() { return ei::GameData<void* const>(0x007AF604); }
 
 constexpr int kWeaponClass = 0x3004;
@@ -85,12 +85,12 @@ bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
 void CCampPages::DebugFill() {
     console::CStringArray names;
     console::CStringArray materials;
-    static_cast<CItemManager*>(ItemDatabase())->ListMaterialNames(&materials);
+    ItemDatabase()->ListMaterialNames(&materials);
 
     if (CParty* items = itemParts_[0]) {
         PartyResetOriginal(items, nullptr, 1, 0);
 
-        static_cast<CItemManager*>(ItemDatabase())->ListWeaponNames(&names);
+        ItemDatabase()->ListWeaponNames(&names);
         for (int i = 0; i < names.size; ++i) {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemManager();
@@ -99,7 +99,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, weapon, kWeaponClass, materials.size);
         }
 
-        static_cast<CItemManager*>(ItemDatabase())->ListArmorNames(&names);
+        ItemDatabase()->ListArmorNames(&names);
         for (int i = 0; i < names.size; ++i) {
             CResourceManager* manager = items->ItemManager();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
@@ -109,7 +109,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, armor, kArmorClass, materials.size);
         }
 
-        static_cast<CItemManager*>(ItemDatabase())->ListQuickItemNames(&names);
+        ItemDatabase()->ListQuickItemNames(&names);
         for (int i = 0; i < names.size; ++i) {
             itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
             if (NameHas(quick, WandWord()))
@@ -118,7 +118,7 @@ void CCampPages::DebugFill() {
 
         // "Material.<name>" (CString + "." + name, as the original's two operator+), twenty each,
         // the record index left as made.
-        static_cast<CItemManager*>(ItemDatabase())->ListMaterialNames(&names);
+        ItemDatabase()->ListMaterialNames(&names);
         for (int i = 0; i < names.size; ++i) {
             mfc::CString name(MaterialWord());
             name += Dot();

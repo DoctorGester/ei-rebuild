@@ -146,7 +146,7 @@ EI_REWRITTEN(0x006A57F0, CItemSpell::CopyToImpl);
 
 CItem* CParty::MakeCopyOf(CItem* item) {
     std::uint32_t packed = item->prototypeId_;
-    CItem* copy = static_cast<CItemManager*>(ItemManager())->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
+    CItem* copy = ItemManager()->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
     item->CopyTo(copy, SpellManager());
     return copy;
 }

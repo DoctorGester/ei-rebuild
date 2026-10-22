@@ -235,23 +235,23 @@ EI_REPLACE_METHOD(0x00661190, CParty::DeletingDestruct);
 
 BOOL CParty::CreateParty() {
     // The base class's slot 2 (0055E930) only returns 1.
-    void* memory = gamecrt::operator_new(sizeof(CItemManager));
-    itemManager_ = memory != nullptr ? static_cast<CItemManager*>(memory)->Construct() : nullptr;
+    CItemManager* items = gamecrt::operator_new_as<CItemManager>();
+    itemManager_ = items != nullptr ? items->Construct() : nullptr;
     ++itemManager_->refCount_;   // not tested for null, as in the original
     itemManager_->Init(this);
 
-    memory = gamecrt::operator_new(sizeof(CSpellManager));
-    spellManager_ = memory != nullptr ? static_cast<CSpellManager*>(memory)->Construct() : nullptr;
+    CSpellManager* spells = gamecrt::operator_new_as<CSpellManager>();
+    spellManager_ = spells != nullptr ? spells->Construct() : nullptr;
     ++spellManager_->refCount_;
     spellManager_->Init(this);
 
-    memory = gamecrt::operator_new(sizeof(CItemConstructor));
-    itemConstructor_ = memory != nullptr ? static_cast<CItemConstructor*>(memory)->Construct() : nullptr;
+    CItemConstructor* itemMaker = gamecrt::operator_new_as<CItemConstructor>();
+    itemConstructor_ = itemMaker != nullptr ? itemMaker->Construct() : nullptr;
     ++itemConstructor_->refCount_;
     itemConstructor_->Create();
 
-    memory = gamecrt::operator_new(sizeof(CSpellConstructor));
-    spellConstructor_ = memory != nullptr ? static_cast<CSpellConstructor*>(memory)->Construct() : nullptr;
+    CSpellConstructor* spellMaker = gamecrt::operator_new_as<CSpellConstructor>();
+    spellConstructor_ = spellMaker != nullptr ? spellMaker->Construct() : nullptr;
     ++spellConstructor_->refCount_;
     spellConstructor_->Create();
 

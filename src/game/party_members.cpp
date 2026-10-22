@@ -149,7 +149,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     const CStringVector& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
         CItem* copy = CountedClone(spell);
         PartyItemArray& list = ItemList(record->spells);
         int index = list.size;
@@ -176,7 +176,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     const CStringVector& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItemManager*>(ItemManager())->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
         ItemList(record->spells).Add(CountedClone(spell));
         Drop(spell);
     }
