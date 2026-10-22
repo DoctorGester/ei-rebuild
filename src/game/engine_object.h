@@ -92,6 +92,41 @@ struct HeldEngineObject {
     HeldEngineObject* Construct(CEngineObject* const* value);
 };
 static_assert(sizeof(HeldEngineObject) == 4);
+
+// A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
+// reference fields (orders, modes, the brain's target, the reports) and the effects' figures are
+// AIRefTo<T> of the class they hold (AIRef: any engine object): reads see the object (the
+// conversion and ->); Assign / Reset count, a plain store (`ref = p`) does not. The bodies are
+// counted_ref.cpp's, instantiated there for each T; AIRef's are the registered ones.
+template <typename T>
+struct AIRefTo {
+    // 0052B030. Release and clear.
+    void Reset();
+    // 0052A8F0. Hold `object` (released first unless it is already held).
+    void Assign(T* newObject);
+    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
+    void Load(CStream* stream, CWorld* world);
+    void Save(CStream* stream);
+    // 00558CA0 (AIRef only; world_deleting_destructors.cpp).
+    AIRefTo* DeleteScalar(unsigned flags);
+    // A counted object pointer kept in a container of plain pointers (a unit list's element) seen
+    // as the reference it is.
+    static AIRefTo* Of(T** slot) { return reinterpret_cast<AIRefTo*>(slot); }
+
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    // A plain store (no reference taken or released), as the original's constructors and copies.
+    AIRefTo& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
+};
+using AIRef = AIRefTo<CEngineObject>;
+template <>
+AIRef* AIRef::DeleteScalar(unsigned flags);
+static_assert(sizeof(AIRef) == 4);
 // 0040CB20 (camera_object.cpp): the engine object's constructor body (inlined in most classes).
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 // 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World

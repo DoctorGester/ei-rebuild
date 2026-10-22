@@ -390,7 +390,7 @@ public:
     void LoadState(CStream* stream);                 // 0067C200 (slot 9)
     void SaveState(CStream* stream);                 // 0067C290 (slot 10)
 
-    CMapObject* figure_;       // +0x158 client only: the figure object (a stuff object, class 0x38, counted), null: none
+    AIRefTo<CMapObject> figure_;   // +0x158 client only: the figure object (a stuff object, class 0x38, counted), null: none
     int casterId_;             // +0x15C the shooter, -1: none
     DamageInfo hit_;           // +0x160 delivered on arrival (multiplier 1 after Reset)
 };
@@ -455,7 +455,7 @@ public:
 
     CParticleSource* Source() { return static_cast<CParticleSource*>(source_); }
 
-    CMapObject* bird_;         // +0x14C the figure object (a stuff object, class 0x38, counted), null: none
+    AIRefTo<CMapObject> bird_;     // +0x14C the figure object (a stuff object, class 0x38, counted), null: none
     CEngineObject* source_;    // +0x150 its CParticleSource (counted), null: none
     int followedId_;           // +0x154 world object id, -1: none
     float lastTime_;           // +0x158 Update's last `now`

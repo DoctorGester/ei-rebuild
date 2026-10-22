@@ -253,8 +253,8 @@ void CEffectMoshka::Follow(int objectId) {
     mfc::CString model(game::MoshkaModelText());
     mfc::CString texture(game::MoshkaTextureText());
     int id = NextClientObjectId()--;
-    CEngineObject* object = TheObjectManager()->CreateObject(kClassFigureObject, id);
-    AIRef::Of(&bird_)->Assign(object);
+    auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
+    bird_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
     CObject3D* bird = bird_;

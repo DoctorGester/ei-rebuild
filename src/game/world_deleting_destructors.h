@@ -9,7 +9,6 @@
 class CEngineObject;
 class CFigureManager;
 struct AICallRecord;
-struct AIRef;
 struct RefPtr;
 struct ScriptPointLight;
 namespace mapspec {

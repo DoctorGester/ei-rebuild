@@ -43,54 +43,8 @@ struct CountedUnits : mfc::CTypedPtrList<CUnit> {
 };
 using AIObjectList = CountedUnits;
 
-// A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
-// reference fields (orders, modes, the brain's target, the reports) are AIRefs: reads see the
-// object (the conversion and ->); Assign / Reset count, a plain store (`ref = p`) does not.
-struct AIRef {
-    AIRef* DeleteScalar(unsigned flags);
-    // 0052B030. Release and clear.
-    void Reset();
-    // 0052A8F0. Hold `object` (released first unless it is already held).
-    void Assign(CEngineObject* object);
-    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
-    void Load(CStream* stream, CWorld* world);
-    void Save(CStream* stream);
-    // A counted object pointer of another type (a unit list's element, a missile's figure) seen as
-    // the reference it is.
-    template <typename T>
-    static AIRef* Of(T** slot) { return reinterpret_cast<AIRef*>(slot); }
+// (The counted reference AIRefTo<T> / AIRef is in engine_object.h.)
 
-    operator CEngineObject*() const { return object; }
-    CEngineObject* operator->() const { return object; }
-    // A plain store (no reference taken or released), as the original's constructors and copies.
-    AIRef& operator=(CEngineObject* plain) {
-        object = plain;
-        return *this;
-    }
-
-    CEngineObject* object;
-};
-static_assert(sizeof(AIRef) == 4);
-
-// An AIRef whose object has a known class (the orders, targets, leaders and reports of the AI hold map
-// objects); the counting and the save format are AIRef's.
-template <typename T>
-struct AIRefTo {
-    void Reset() { AIRef::Of(&object)->Reset(); }
-    void Assign(T* newObject) { AIRef::Of(&object)->Assign(newObject); }
-    void Load(CStream* stream, CWorld* world) { AIRef::Of(&object)->Load(stream, world); }
-    void Save(CStream* stream) { AIRef::Of(&object)->Save(stream); }
-
-    operator T*() const { return object; }
-    T* operator->() const { return object; }
-    // A plain store (no reference taken or released), as AIRef's.
-    AIRefTo& operator=(T* plain) {
-        object = plain;
-        return *this;
-    }
-
-    T* object;
-};
 
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
@@ -631,7 +585,7 @@ struct PlayerMode : AIMode {
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
     AIRefTo<CMapObject> target;     // +0x08
-    CUnit* leader;                  // +0x0C
+    AIRefTo<CUnit> leader;          // +0x0C
     Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
     std::uint8_t run;               // +0x20
