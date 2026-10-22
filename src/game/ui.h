@@ -130,6 +130,12 @@ public:
     void OnStringEvent(const char* event);
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
+    // The top window as the screen the caller runs under (the HUD's panels under the CBattleScreen,
+    // the briefing chat under the CBriefingScreen): the original reads its fields without a check.
+    template <typename Screen>
+    Screen* ActiveWindowAs() const {
+        return static_cast<Screen*>(GetActiveWindow());
+    }
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
     void SetPendingValue(std::uint32_t value);
     // 005F5BA0 (RET 4). Makes screen `id` (1 in-game, 2, 3 base, 4 island map, 5, 7, 8, 9) and hands

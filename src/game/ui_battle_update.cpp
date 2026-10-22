@@ -357,7 +357,7 @@ void CBattleScreen::Update() {
         inside.Construct();   // 00404A70
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (static_cast<CEngineObject*>(party->data[i]) != node->data) continue;
+                if (party->data[i] != node->data) continue;
                 List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
             }
         }
@@ -454,7 +454,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (units.head->next != units.head) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (static_cast<CEngineObject*>(party->data[i]) != node->data) continue;
+                if (party->data[i] != node->data) continue;
                 List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
                 if (first < 0) first = i;
             }
