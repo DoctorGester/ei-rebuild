@@ -129,7 +129,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
             name.Format(kWoundCacheName, unit->id_);
-            result = ComposeTexture(TheTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
+            result = TheTextureManager()->Compose(&out, request, &name, &name, kMipCount, 0, kFormat);
         }
         request->textures.~CStringArray();
         lib::FreeAligned32(request->layers);

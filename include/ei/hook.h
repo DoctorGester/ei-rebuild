@@ -67,6 +67,9 @@ constexpr bool InGameText(std::uintptr_t address) { return address - kGameTextBe
 // game.exe's WinMain (app_main.cpp's GameMain): the harness installs the hooks when it starts (hook.cpp), the
 // image calls it (standalone.cpp).
 constexpr std::uintptr_t kGameWinMain = 0x00456440;
+// game.exe's CRT atexit (originals_library.h's GameAtExit): the static initialisers register their exit functions
+// through it, so the image needs code there (src/standalone/static_init.h's Targets).
+constexpr std::uintptr_t kGameAtExit = 0x006E727B;
 
 // What runs for game.exe's function at `address` (S18i, src/standalone/image_code.cpp): in game.exe the
 // address itself (the original); in the standalone image, whose code section is guarded, the replacement

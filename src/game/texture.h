@@ -31,6 +31,7 @@ struct ClipBounds;   // model.h
 class CTransformPipeline;
 class CDeviceMaterial;   // device_material.h
 struct NamedTexture;   // ground_print.h
+struct SkinRequest;    // unit_client_models.h
 struct Direct3DDeviceRecord;   // device.h
 struct TLVertex;               // clip.h
 namespace devicebuffers { struct ProjectedVertex; }   // device_buffers.h
@@ -592,6 +593,11 @@ public:
     // through the pixel converter's slot 5. A missing one goes to the debug log and is skipped;
     // one of another size is a fatal error (its result returned). Returns the layers drawn.
     int DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width);
+    // 00693180 (texture_compose.cpp; RET 0x1C). The skin `request` composed into the cached texture
+    // `name` (or `fallback`), the name used into `out`: 1 when cached or written, 0 when nothing was
+    // drawn (FatalError's result when the file cannot be written).
+    int Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
+                const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
     // texture_slots.cpp (A-H25).
     // 00691CF0 (RET 4). GetFile(name) without the size.
