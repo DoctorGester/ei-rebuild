@@ -9,6 +9,7 @@
 #include "core_streams.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/stlp_list_refs.h"
@@ -242,8 +243,8 @@ std::uint32_t SessionBase::RateFor(const NetAddress* address) {
 EI_REWRITTEN(0x00436F80, SessionBase::RateFor);
 
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
-    alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
-    auto* buffer = reinterpret_cast<GameBuffer*>(storage);
+    lib::InPlace<GameBuffer> storage;
+    auto* buffer = storage.Get();
     buffer->ConstructGrowing();
     std::uint8_t kind = 1;
     if (buffer->cur + 1 <= buffer->end) {
@@ -285,8 +286,8 @@ void SessionBase::Destruct() {
     for (ClientNode* node = clients_->next; node != clients_; node = node->next) {
         Connection* connection = node->connection;
         std::uint32_t id = connection->id_;
-        alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
-        auto* buffer = reinterpret_cast<GameBuffer*>(storage);
+        lib::InPlace<GameBuffer> storage;
+        auto* buffer = storage.Get();
         buffer->ConstructGrowing();
         std::uint8_t kind = 1;
         buffer->BufferWrite(&kind, 1);

@@ -23,6 +23,7 @@
 #include "engine_object.h"
 #include "net_coder.h"
 
+#include "lib/static_object.h"
 #include "lib/containers.h"
 
 #include <cstddef>
@@ -207,10 +208,10 @@ static_assert(sizeof(CMemoryStream) == 0x28);
 // A memory stream on the stack with the network queue's vtable, as the original builds and
 // destroys it inline.
 struct QueueStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    lib::InPlace<CMemoryStream> bytes;
     QueueStream() { Get()->ConstructQueueStream(); }
     ~QueueStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    CMemoryStream* Get() { return bytes.Get(); }
 };
 static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 

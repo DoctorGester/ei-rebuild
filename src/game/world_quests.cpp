@@ -74,13 +74,13 @@ void CWorldServer::UpdateMercBriefings() {
             bool briefedHere = gamecrt::mbsicmp(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
-            b.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(merc), slot);
-            b.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(merc), slot);
-            b.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(merc), slot);
-            b.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(merc), slot);
-            b.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(merc), slot);
-            b.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(merc), slot);
-            b.n11.Format(worlddata::MercVariableN11Format(), static_cast<const char*>(merc), slot);
+            b.n8.Format(worlddata::MercVariableN8Format(), merc.GetString(), slot);
+            b.n1.Format(worlddata::MercVariableN1Format(), merc.GetString(), slot);
+            b.n2.Format(worlddata::MercVariableN2Format(), merc.GetString(), slot);
+            b.n3.Format(worlddata::MercVariableN3Format(), merc.GetString(), slot);
+            b.n9.Format(worlddata::MercVariableN9Format(), merc.GetString(), slot);
+            b.n10.Format(worlddata::MercVariableN10Format(), merc.GetString(), slot);
+            b.n11.Format(worlddata::MercVariableN11Format(), merc.GetString(), slot);
             b.hired.Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 
@@ -297,19 +297,19 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const mfc::CString& variable) {
-        return gamecrt::mbsicmp(static_cast<const char*>(variable),
+        return gamecrt::mbsicmp(variable.GetString(),
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
         v.merc.Format(worlddata::MercNameFormat(), slot);
         unsigned key = TextKeyFromName(v.merc);
-        v.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(v.merc), slot);
-        v.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(v.merc), slot);
-        v.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(v.merc), slot);
-        v.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(v.merc), slot);
-        v.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(v.merc), slot);
-        v.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(v.merc), slot);
+        v.n8.Format(worlddata::MercVariableN8Format(), v.merc.GetString(), slot);
+        v.n1.Format(worlddata::MercVariableN1Format(), v.merc.GetString(), slot);
+        v.n2.Format(worlddata::MercVariableN2Format(), v.merc.GetString(), slot);
+        v.n3.Format(worlddata::MercVariableN3Format(), v.merc.GetString(), slot);
+        v.n9.Format(worlddata::MercVariableN9Format(), v.merc.GetString(), slot);
+        v.n10.Format(worlddata::MercVariableN10Format(), v.merc.GetString(), slot);
         v.hired.Format(worlddata::MercHiredFormat(), slot);
         CUnit* unit = WorldFindUnit(this, nullptr, key);
 
@@ -323,7 +323,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : worlddata::HumanHeroText();
+            const char* prototype = unit ? unit->GetPrototype()->name.GetString() : worlddata::HumanHeroText();
             party->AddMember(v.merc, prototype, game::EmptyText());
         }
     }
@@ -485,12 +485,13 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
     return added;
 }
 
-// A fresh item record (ItemSourceRef, item.h) for the item's link (+0x1C).
-ItemSourceRef* NewItemRecord(bool refValueBase) {
-    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
-    memory->refs = 0;   // before the null test
+// A fresh item record (CItemLink, item.h) for the item's link (+0x1C).
+CItemLink* NewItemRecord(bool refValueBase) {
+    auto* memory = gamecrt::operator_new_as<CItemLink>();
+    memory->references = 0;   // the count's whole dword, before the null test
+    memory->refsHigh = 0;
     if (!memory) return nullptr;
-    if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
+    if (!refValueBase) return memory->Construct();
     RefValueConstructBase(memory);
     memory->vtable = CItemLink::Vtable();
     return memory;
@@ -512,16 +513,16 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CItem* item = unit->GetWeapon(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
-        ItemSourceRef* ref = NewItemRecord(false);
-        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        CItemLink* ref = NewItemRecord(false);
+        ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CItem* item = unit->WornItem(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
-        ItemSourceRef* ref = NewItemRecord(true);
-        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        CItemLink* ref = NewItemRecord(true);
+        ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
@@ -532,12 +533,11 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (entry) ++entry->refCount_;
         CEngineObject* added = (CEngineObject*)record->AddQuickItem(entry);
         if (entry) entry->Release();
-        ItemSourceRef* ref = NewItemRecord(true);
-        ref->itemId = static_cast<std::uint32_t>(added->id_);
+        CItemLink* link = NewItemRecord(true);
+        link->value = static_cast<std::uint32_t>(added->id_);
         // The counted pointer's assignment, inlined (16-bit count at +4).
-        auto* link = reinterpret_cast<CItemLink*>(ref);
-        CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->link_));
-        item->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
+        CItemLink* old = item->ServerLink();
+        item->link_ = link;
         if (link) ++link->references;
         if (old) RefObjectRelease(old);
     }

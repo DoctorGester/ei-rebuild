@@ -122,7 +122,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
 void SetSize(StaticPtrArray& a, int n) {
     if (n == 0) {
         if (a.data) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
+            lib::FreeAligned32(a.data);
             a.data = nullptr;
         }
         a.capacity = 0;
@@ -144,7 +144,7 @@ void SetSize(StaticPtrArray& a, int n) {
         if (n >= capacity) capacity = n;
         auto** fresh = reinterpret_cast<CEngineObject**>(AlignedPointerArrayAlloc(capacity));
         std::memcpy(fresh, a.data, static_cast<std::size_t>(a.size) * 4);
-        gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
+        lib::FreeAligned32(a.data);
         a.data = fresh;
         a.size = n;
         a.capacity = capacity;

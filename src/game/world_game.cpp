@@ -36,6 +36,7 @@
 #include "mod_folders.h"
 #include "world_map_files.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
@@ -172,7 +173,7 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
             keep = gamecrt::mbscmp(record->name,
                                    kAlwaysCopied) == 0 ||
                    gamecrt::mbscmp(record->allod,
-                                   static_cast<const char*>(currentMap)) == 0;
+                                   currentMap.GetString()) == 0;
         }
         if (keep) {
             zone = RecordName(record);
@@ -343,7 +344,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
         }
     } owner{&data};
     if (!SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268), &file.stream)) {
-        game::FatalError(kCorruptSave, static_cast<const char*>(fileName));
+        game::FatalError(kCorruptSave, fileName.GetString());
         failed = true;
         return 0;
     }
@@ -392,7 +393,7 @@ int __stdcall EnterZone(CParty* records) {
 
     NamedFloatTable* variables = &records->variables_;
     if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
-        if (gamecrt::mbscmp(static_cast<const char*>(zone),
+        if (gamecrt::mbscmp(zone.GetString(),
                             kMovieZone) != 0) {
             {
                 mfc::CString movie = MoviesFolder() + kMovieFile;
@@ -407,7 +408,7 @@ int __stdcall EnterZone(CParty* records) {
     if (gamecrt::mbscmp(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
-        if (gamecrt::mbsicmp(static_cast<const char*>(zone),
+        if (gamecrt::mbsicmp(zone.GetString(),
                             kFrozenZone) == 0) {
             double frozen = VariableGet(variables, kFrozenVariable);
             mapOverride = kFrozenMap;
@@ -558,8 +559,8 @@ int __stdcall StartNetworkZone(const char* zone) {
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
     gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
-        alignas(ZoneExit) std::uint8_t copy[sizeof(ZoneExit)];
-        ZoneExit* exit = source->CopyAt(reinterpret_cast<ZoneExit*>(copy), i);
+        lib::InPlace<ZoneExit> copy;
+        ZoneExit* exit = source->CopyAt(copy.Get(), i);
         exits.data[i].Assign(exit);
         exit->target.~CString();
     }
@@ -620,7 +621,7 @@ int __stdcall LeaveZone(CParty* records) {
         path += fileName;
     }
     if (!file.Open(path, kOpenWrite, 0)) {
-        game::FatalError(kCantWrite, static_cast<const char*>(path));
+        game::FatalError(kCantWrite, path.GetString());
         return 0;
     }
     TheServerWorld()->PrepareSave();
@@ -639,7 +640,7 @@ int __stdcall LeaveZone(CParty* records) {
     NamedFloatTable* variables = &records->variables_;
     {
         mfc::CString prefix(kVisitedPrefix);
-        mfc::CString variable = prefix + static_cast<const char*>(zone);
+        mfc::CString variable = prefix + zone.GetString();
         VariableSet(variables, variable, 1.0f);
     }
     float now = static_cast<float>(VariableGet(variables, kGTime));
@@ -719,7 +720,7 @@ void GameFlow::BeginMultiplayerGame() {
         mfc::CString zone(mfc::CString::kUnset);
         MultiplayerZoneInto(&zone);
         state_ = 4;   // the state: load the zone
-        requestTarget_ = static_cast<const char*>(zone);
+        requestTarget_ = zone.GetString();
         requestArg_ = 0;
     }
     flag80_ = 0;
@@ -1463,7 +1464,7 @@ int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
-const char* ResourcesPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
+const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -1491,8 +1492,8 @@ void GameFlow::UseResources(bool network) {
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
-    if (gamecrt::mbscmp(static_cast<const char*>(wanted),
-                        static_cast<const char*>(LastResources())) == 0)
+    if (gamecrt::mbscmp(wanted.GetString(),
+                        LastResources().GetString()) == 0)
         return;
     LastResources() = wanted;
     SwitchResourceDatabases(wanted);
@@ -1685,7 +1686,7 @@ int GameFlow::LoadGame(const char* slot) {
             bool keep = gamecrt::mbscmp(record->name,
                                         kAlwaysCopied) == 0 ||
                         gamecrt::mbscmp(record->allod,
-                                        static_cast<const char*>(currentMap)) == 0;
+                                        currentMap.GetString()) == 0;
             if (keep) {
                 zone = RecordName(record);
                 mfc::CString currentPath = currentFolder + zone;
@@ -1908,11 +1909,11 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             mfc::CString prefix = name.Left(2);
-            quest = gamecrt::mbscmp(static_cast<const char*>(prefix),
+            quest = gamecrt::mbscmp(prefix.GetString(),
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
-        mfc::CString rest = name.Right(console::Length(name) - 2);
+        mfc::CString rest = name.Right(name.GetLength() - 2);
         int dot = rest.Find(kDot);
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);
@@ -2015,8 +2016,8 @@ void SavedParties::Reload() {
     if (search == INVALID_HANDLE_VALUE) return;
     do {
         // The party records and the file name, side by side as the list's entries are.
-        alignas(MpHeroRecord) std::uint8_t storage[sizeof(MpHeroRecord)];
-        auto* entry = reinterpret_cast<MpHeroRecord*>(storage);
+        lib::InPlace<MpHeroRecord> storage;
+        auto* entry = storage.Get();
         entry->Party()->Construct();
         new (&entry->file) mfc::CString();
         entry->file = found.cFileName;

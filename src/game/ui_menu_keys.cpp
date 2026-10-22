@@ -253,9 +253,9 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             mfc::CString format;
             mfc::CString message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
-            message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
+            message.Format(format, pressed->name_, other->name_.GetString());
             // The box's text (a null box is written through, as in the original).
-            box->text_ = static_cast<const char*>(message);
+            box->text_ = message.GetString();
             interface_->PushWindow(box, 1, 1);
             return;
         }

@@ -76,10 +76,11 @@ static_assert(sizeof(NamedPartyRecords) == 0x14);
 // the variable gtime = 6.
 void __fastcall PartyRecordsReset(NamedPartyRecords* list);
 
-// The party manager (007AA5A0): records at +0x24, class templates at +0x38. __thiscall.
+// The party manager (007AA5A0, party_manager.h). __thiscall.
 // 004A88A0 / 004A88C0: new game; the records reset (004A5BD0), then five / four templates (004A7630).
-void __fastcall PartyManagerNewGame(void* manager);
-void __fastcall PartyManagerNewGameFour(void* manager);
+struct PartyManager;
+void __fastcall PartyManagerNewGame(PartyManager* manager);
+void __fastcall PartyManagerNewGameFour(PartyManager* manager);
 // (004A8890 / 004A8880 are PartyManager::BeginRedeploy / EndRedeploy.)
 // 004A8910 (__stdcall): *out = the counter at 0078B0E8, then the counter is raised; returns it.
 int __stdcall PartyNextId(int* out);

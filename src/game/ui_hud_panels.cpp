@@ -125,7 +125,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         mfc::CString name;
         name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
-            if (gamecrt::mbscmp(static_cast<const char*>(name),
+            if (gamecrt::mbscmp(name.GetString(),
                                 kPartNames[k]) == 0) {
                 name = partLabels_[k];
                 break;
@@ -191,7 +191,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);
         if (spell) {
             icons[i] = static_cast<int>(spell->icon);
-            code = static_cast<const char*>(spell->code);
+            code = spell->code.GetString();
             // The texts' section "spell <code>": its first line is the spell's name.
             bool found = TextsOpenSection(texts, nullptr, mfc::CString("spell ") + code) != 0;
             if (found) texts->ReadLine(&text, 1);

@@ -134,7 +134,7 @@ BOOL CWinRegistry::SetFloat(const char* subkey, const char* name, std::uint32_t 
 EI_REWRITTEN(0x00697E80, CWinRegistry::SetFloat);
 
 BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CString value) {
-    return SetValue(key_, subkey, name, REG_SZ, static_cast<const char*>(value), static_cast<DWORD>(value.GetLength() + 1),
+    return SetValue(key_, subkey, name, REG_SZ, value.GetString(), static_cast<DWORD>(value.GetLength() + 1),
                     "CWinRegistry::SetStringInt().\nUnable to open key.\n",
                     "CWinRegistry::SetStringInt().\nUnable to access registry.\n");
 }

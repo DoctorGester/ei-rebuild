@@ -188,7 +188,7 @@ void __fastcall Execute(const char* text) {
     // Rebirth's AddNewConsoleCommands (context hook at 005DD565): addon's commands, registered
     // again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
-    char first = static_cast<const char*>(command)[0];
+    char first = command.GetString()[0];
     if (first == '@' || first == '#' || first == '$') {
         if (CheatEnabled() && local) {
             mfc::CString script = Ops(command).Mid(1);
@@ -249,7 +249,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         if (c == ' ') {
             if (state == 1) {
                 state = 0;
-                if (Length(token) != 0) {
+                if (token.GetLength() != 0) {
                     out->SetAtGrow(out->GetSize(), token);
                     token.Empty();
                 }
@@ -274,7 +274,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         token += character;
         p = MbsInc(p);
     }
-    if (Length(token) != 0) {
+    if (token.GetLength() != 0) {
         out->SetAtGrow(out->GetSize(), token);
         token.Empty();
     }
@@ -295,7 +295,7 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     }
     Ops(line).AppendText(suffix);
     if (!RunScriptText(&line, 1, &error))
-        EndLine(Out() << "Script error: " << static_cast<const char*>(error.text));
+        EndLine(Out() << "Script error: " << error.text.GetString());
 }
 EI_REWRITTEN(0x005DD800, RunScriptLine);
 

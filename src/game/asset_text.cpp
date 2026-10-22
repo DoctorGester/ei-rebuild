@@ -12,7 +12,7 @@ namespace text {
 namespace {
 
 std::string_view Bytes(const mfc::CString& text) {
-    return std::string_view(static_cast<const char*>(text), static_cast<std::size_t>(text.GetLength()));
+    return std::string_view(text.GetString(), static_cast<std::size_t>(text.GetLength()));
 }
 
 bool IsAscii(std::string_view bytes) {
@@ -55,7 +55,7 @@ std::string FromAssetText(std::string_view bytes, unsigned codepage) {
 
 void FromAssetText(mfc::CString* text, unsigned codepage) {
     if constexpr (kUtf8) {
-        const std::string_view bytes(static_cast<const char*>(*text), static_cast<std::size_t>(text->GetLength()));
+        const std::string_view bytes(text->GetString(), static_cast<std::size_t>(text->GetLength()));
         if (IsAscii(bytes)) return;
         const std::string converted = FromAssetText(bytes, codepage);
         const int length = static_cast<int>(converted.size());

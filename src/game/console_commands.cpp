@@ -218,7 +218,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() > 1) {
         writing = file.Open((*args)[1], CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr);
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[1]) << " for writing");
+            EndLine(Out() << "Cannot open file " << ((*args)[1]).GetString() << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
@@ -245,7 +245,7 @@ void __fastcall LoadVar(CStringArray* args) {
     CStringArray parts;
     CStdioFile file;
     if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[1]) << " for reading");
+        EndLine(Out() << "Cannot open file " << ((*args)[1]).GetString() << " for reading");
         return;
     }
     while (file.ReadString(line)) {
@@ -281,7 +281,7 @@ void __fastcall Exec(CStringArray* args) {
     Ops(name).TrimRight('"');
     CStdioFile file;
     if (!file.Open(name, CStdioFile::typeText, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[0]) << " for reading");
+        EndLine(Out() << "Cannot open file " << ((*args)[0]).GetString() << " for reading");
         return;
     }
     while (file.ReadString(line)) ExecuteAt(line);
@@ -457,13 +457,13 @@ EI_REWRITTEN(0x005DFDA0, GenerateAcks);
 void __fastcall Days(CStringArray* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
-            signed char c = static_cast<const char*>((*args)[i])[k];
+            signed char c = ((*args)[i]).GetString()[k];
             if (c < '0' || c > '9') return false;
         }
         return true;
     };
     auto number = [&](int i, int first, int count) { return libcrt::Atoi(Ops((*args)[i]).Mid(first, count)); };
-    if (args->GetSize() >= 2 && Length((*args)[0]) >= 8 && Length((*args)[1]) >= 8 && digits(0) && digits(1)) {
+    if (args->GetSize() >= 2 && ((*args)[0]).GetLength() >= 8 && ((*args)[1]).GetLength() >= 8 && digits(0) && digits(1)) {
         int year = number(0, 4, 4);
         if (year >= 1900) {
             int month = number(0, 2, 2);
@@ -526,7 +526,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
     if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
     mfc::CString name((*args)[0]);
     const char* text = name;
-    if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);
+    if (text[0] == '"' && text[name.GetLength() - 1] == '"') name = Ops(name).Mid(1, name.GetLength() - 2);
     if (ServerActive(Server())) Server()->SendCommand(command, name);
 }
 } // namespace

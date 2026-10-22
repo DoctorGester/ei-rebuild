@@ -342,9 +342,9 @@ int Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         mfc::CString name;
         if (i < count) {
-            name.Format("%s%3.3i", static_cast<const char*>(textF8), i);
+            name.Format("%s%3.3i", textF8.GetString(), i);
         } else {
-            name.Format("%sL%2.2i", static_cast<const char*>(textF8), i - count);
+            name.Format("%sL%2.2i", textF8.GetString(), i - count);
             if (!TheTextureManager()->HasFile(name + ".mmp")) return 1;
             ++extraPages;
             pageTextures.SetAtGrow(pageTextures.size, nullptr);

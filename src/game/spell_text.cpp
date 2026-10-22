@@ -44,8 +44,6 @@ stlp::NameMap& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.N
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 
-int Length(const mfc::CString& s) { return console::Length(s); }
-
 } // namespace
 
 int TextOps::Find(char c) const { return mfc::CString::Find(c); }
@@ -63,7 +61,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
         Ops(text).TrimRight();
         return;
     }
-    mfc::CString inner = Ops(text).Right(Length(text) - brace - 1);
+    mfc::CString inner = Ops(text).Right(text.GetLength() - brace - 1);
     Ops(inner).TrimLeft();
     Ops(inner).TrimRight();
     Ops(inner).TrimRight('}');
@@ -93,15 +91,15 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     itemdb::SpellRecord* prototype;
     {
-        stlp::string key(static_cast<const char*>(text));
+        stlp::string key(text.GetString());
         prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
     if (!constructor->CallBeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(text));
+        return game::FatalErrorAs<CSpell>(kCantBegin, text.GetString());
 
     for (int i = 0; i < codes.GetSize(); ++i) {
         const mfc::CString& code = codes[i];
-        if (Length(code) == 0) continue;
+        if (code.GetLength() == 0) continue;
         constructor->CallAddModifier(FindModifier(code));
     }
 

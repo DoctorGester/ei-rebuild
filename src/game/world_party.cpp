@@ -97,7 +97,7 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zonesEnd - info->zonesBegin); ++i)
-        if (gamecrt::mbsicmp(static_cast<const char*>(info->zonesBegin[i]),
+        if (gamecrt::mbsicmp(info->zonesBegin[i].GetString(),
                             zone) == 0)
             found = true;
     return found;
@@ -295,10 +295,10 @@ EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);
 
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
-        if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
+        if (CItemLink* link = item->ServerLink()) {
             CParty* party = unit->player->Party();
             if (party->Find(unit->id_)) {
-                CItem* source = FindItem(party->ItemManager(), link->itemId);
+                CItem* source = FindItem(party->ItemManager(), link->value);
                 if (source) --source->count_;
             }
         }

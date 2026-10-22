@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 
+#include "lib/static_object.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
@@ -51,8 +52,8 @@ SetRectFn ImportSetRect() { return ei::GameData<SetRectFn const>(0x0073B478); }
 
 int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
     // The .reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
-    alignas(4) std::uint8_t storage[sizeof(CFileRegistry)];
-    auto* reg = reinterpret_cast<CFileRegistry*>(storage);
+    lib::InPlace<CFileRegistry> storage;
+    auto* reg = storage.Get();
     reg->Construct();
     // The manager's GetFile (slot 19): the resource file's data.
     void* file = GetFile(game::menutexts::MenusReg(), nullptr);
@@ -68,13 +69,13 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
         reg->GetIntArray(entry.section, entry.name, reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
         if (values.size != 4) {
             int result = game::FatalError(entry.error);
-            if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
+            if (values.data) lib::FreeAligned32(values.data);
             reg->Destroy();
             return result;
         }
         setRect(rects + entry.offset, values.data[0], values.data[1], values.data[2], values.data[3]);
     }
-    if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
+    if (values.data) lib::FreeAligned32(values.data);
     reg->Destroy();
     return 1;
 }

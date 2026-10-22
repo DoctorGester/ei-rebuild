@@ -985,21 +985,13 @@ void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream*
 // List loaders (__fastcall on the CList): the count, that many default nodes appended, then every
 // node read from the head. 004CA480 particle sources (+0x14), 004CA5D0 FX sources (+0x30),
 // 004CA720 lightning (+0x4C), 004CA810 WorldScript blocks (+0x178), 004CA980 instances (+0x140),
-// 004CAC00 runs (+0x15C).
-// The script's CLists (0x1C bytes) seen with the element as bytes: each list's element type
-// differs, and their NewNode / element helpers stay the instantiations' own. A node's element
-// starts at `data.bytes` (+8).
-struct ScriptListElement {
-    char bytes[4];
-};
-using ScriptList = mfc::CList<ScriptListElement, mfc::RawElements<ScriptListElement>>;
-using ScriptListNode = ScriptList::Node;
-void __fastcall ScriptParticlesLoad(ScriptList* list, ScriptStream* stream);
-void __fastcall ScriptFxSourcesLoad(ScriptList* list, ScriptStream* stream);
-void __fastcall ScriptLightningLoad(ScriptList* list, ScriptStream* stream);
-void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
-void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
-void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);
+// 004CAC00 runs (+0x15C). Their NewNode / element helpers stay the instantiations' own.
+void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream);
+void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream);
+void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream);
+void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream);
+void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream);
+void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream);
 
 // 004B5F70 (SSCCmd::Clear). id 0, every argument / binding / nested-call array emptied (nested
 // commands deleted; growBy kept), called script null.

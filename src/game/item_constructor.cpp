@@ -375,7 +375,7 @@ BOOL CItemConstructor::Build() {
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = static_cast<CManagerContext*>(manager_->context_)->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText(static_cast<const char*>(static_cast<const QuickItemRecord*>(prototype)->text7C));
+        CSpell* spell = spellManager->CreateSpellFromText((static_cast<const QuickItemRecord*>(prototype)->text7C).GetString());
         spell_ = spell;
         item_->SetSpell(spell);
     } else if (spell_) {
@@ -463,7 +463,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     console::CStringArray parts;      // the name split at '.'
     int bracket = AsText(text).Find('[');
     if (bracket != -1) {
-        extra = AsText(text).Right(console::Length(text) - bracket - 1);
+        extra = AsText(text).Right(text.GetLength() - bracket - 1);
         console::Ops(extra).TrimLeft('[');
         console::Ops(extra).TrimRight(']');
         AsText(extra).TrimSpaceLeft();
@@ -475,7 +475,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(static_cast<const char*>(parts.data[0]),
+    if (gamecrt::mbscmp(parts.data[0].GetString(),
                         kSpellContainer) == 0) {
         const char* spellText = extra;
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
@@ -500,7 +500,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (!prototype) {
         // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
-            game::FatalError(kNoPrototype, static_cast<const char*>(parts.data[0]));
+            game::FatalError(kNoPrototype, parts.data[0].GetString());
         return nullptr;
     }
     constructor->SetManager(this);
@@ -511,11 +511,11 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
     const char* type = prototype->text04;
-    if (console::Length(extra) != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
+    if (extra.GetLength() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
-               console::Length(extra) != 0) {
+               extra.GetLength() != 0) {
         constructor->count_ = libcrt::Atoi(extra);
     }
     CItem* item = constructor->EndCreateItem();

@@ -53,7 +53,8 @@ struct StringPair {
 };
 static_assert(sizeof(StringPair) == 0x18);
 
-// pair<const string, list<T*>> (the trader stock's recipe map, item_stock.cpp).
+// pair<const string, list<T*>> (the trader stock's recipe map, item_stock.cpp; first and second
+// are named key and mapped, as the hash_map values are).
 struct StringListPair {
     // pair(const string&, const list&) (0069C1C0; RET 8): the string copied, then list(const list&)
     // inlined: a sentinel, then insert(end(), first, last) (0069D680), one node per element in order.
@@ -62,8 +63,8 @@ struct StringListPair {
     // order), then the string's block.
     void Destruct();
 
-    string first;
-    list<void*> second;
+    string key;
+    list<void*> mapped;
 };
 static_assert(sizeof(StringListPair) == 0x10);
 

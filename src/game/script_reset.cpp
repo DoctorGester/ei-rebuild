@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/static_object.h"
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_library.h"
@@ -54,38 +55,40 @@ void __fastcall ScriptReset(CScript* script) {
     script->ErrorText() = "Unknown error";
     script->ErrorLine() = 0;
 
-    // Instances and runs, removed from the head; a run's destructor is its variables'.
-    alignas(4) unsigned char element[sizeof(ScriptDefinition)];
-    static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
+    // Instances and runs, removed from the head into a local; a run's destructor is its variables'.
     while (script->instances_.count != 0) {
-        script->instances_.PopHead(reinterpret_cast<ScriptDefinition*>(element));
-        ScriptDefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
+        lib::InPlace<ScriptDefinition> instance;
+        script->instances_.PopHead(instance.Get());
+        ScriptDefinitionDestruct(instance.Get());
     }
     while (script->runs_.count != 0) {
-        script->runs_.PopHead(reinterpret_cast<ScriptRun*>(element));
-        ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
+        lib::InPlace<ScriptRun> run;
+        script->runs_.PopHead(run.Get());
+        ScriptVarsDestruct(&run->vars);
     }
 
     RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { block->DestroyElement(0); });
 
     ScriptVars* globals = script->Globals();
-    ScriptFloatsClear(reinterpret_cast<ScriptNamedValues<float>*>(&globals->floats));
-    ScriptStringsClear(reinterpret_cast<ScriptNamedValues<mfc::CString>*>(&globals->strings));
-    ScriptObjectsClear(reinterpret_cast<ScriptNamedValues<ScriptObjectRef>*>(&globals->objects));
-    ScriptGroupsClear(reinterpret_cast<ScriptNamedValues<ScriptGroup>*>(&globals->groups));
+    ScriptFloatsClear(NamedValues(&globals->floats));
+    ScriptStringsClear(NamedValues<mfc::CString>(&globals->strings));
+    ScriptObjectsClear(NamedValues<ScriptObjectRef>(&globals->objects));
+    ScriptGroupsClear(NamedValues<ScriptGroup>(&globals->groups));
     script->forDepth_ = 0;
 
     // Temporaries: every entry but one dropped, the last one emptied.
     auto& groups = script->tempGroups_;
     while (groups.count > 1) {
-        groups.PopTail(reinterpret_cast<ScriptGroup*>(element));
-        GroupDestruct(element);
+        lib::InPlace<ScriptGroup> group;
+        groups.PopTail(group.Get());
+        GroupDestruct(group.Get());
     }
     groups.tail->data.SetSize(0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
-        objects.PopTail(reinterpret_cast<ScriptObjectRef*>(element));
-        reinterpret_cast<ScriptObjectRef*>(element)->Reset();
+        lib::InPlace<ScriptObjectRef> object;
+        objects.PopTail(object.Get());
+        object->Reset();
     }
     objects.tail->data.Assign(nullptr);
 
@@ -110,8 +113,9 @@ void __fastcall ScriptReset(CScript* script) {
 
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
-        script->blocks_.PopHead(reinterpret_cast<ScriptDecl*>(element));   // 004C69B0
-        ScriptDeclDestruct(reinterpret_cast<ScriptDecl*>(element));
+        lib::InPlace<ScriptDecl> block;
+        script->blocks_.PopHead(block.Get());   // 004C69B0
+        ScriptDeclDestruct(block.Get());
     }
 }
 EI_REWRITTEN(0x004BE6E0, ScriptReset);

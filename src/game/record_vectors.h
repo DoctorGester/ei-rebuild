@@ -126,7 +126,7 @@ struct UnitNpcElement
 };
 
 // 0053E730's copies (e.g. 00540510): the members up to the sound names, the sound counts (a
-// vector<int> declared as its three pointers), the rest; +0x11D..+0x11F are not copied.
+// vector<int>), the rest; +0x11D..+0x11F are not copied.
 struct UnitModelElement {
     using R = UnitModelRecord;
     using Head = records::Memberwise<
@@ -137,8 +137,8 @@ struct UnitModelElement {
     using Tail = records::Memberwise<R, &R::idleSoundChance, &R::attackSoundChance, &R::eyeLeft, &R::eyeBottom,
                                      &R::eyeWidth, &R::eyeHeight>;
     using Counts = stlp::vector<std::uint32_t>;
-    static Counts& CountsOf(R& r) { return *reinterpret_cast<Counts*>(&r.soundCounts); }
-    static const Counts& CountsOf(const R& r) { return *reinterpret_cast<const Counts*>(&r.soundCounts); }
+    static Counts& CountsOf(R& r) { return r.soundCounts; }
+    static const Counts& CountsOf(const R& r) { return r.soundCounts; }
 
     static void Construct(R* to, const R& from) {
         Head::Construct(to, from);

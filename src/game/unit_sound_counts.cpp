@@ -20,28 +20,30 @@ constexpr const char* kSoundPattern = "*.wav";   // 0078FCA8
 // STLport vector<int>::resize(count, value) (004FE0C0, inlined here): fewer elements are dropped,
 // more are appended; a full vector grows to size + max(size, added).
 void ResizeCounts(UnitModelRecord* model, std::size_t count, std::uint32_t value) {
-    std::size_t size = static_cast<std::size_t>(model->soundCountsEnd - model->soundCounts);
+    stlp::vector<std::uint32_t>& counts = model->soundCounts;
+    std::uint32_t*& begin = counts.Start();
+    std::uint32_t*& end = counts.Finish();
+    std::uint32_t*& endOfStorage = counts.EndOfStorage();
+    std::size_t size = static_cast<std::size_t>(end - begin);
     if (count < size) {
-        model->soundCountsEnd = model->soundCounts + count;
+        end = begin + count;
         return;
     }
     std::size_t added = count - size;
     if (added == 0) return;
-    if (static_cast<std::size_t>(model->soundCountsEndOfStorage - model->soundCountsEnd) >= added) {
-        for (std::size_t i = 0; i < added; ++i) model->soundCountsEnd[i] = value;
-        model->soundCountsEnd += added;
+    if (static_cast<std::size_t>(endOfStorage - end) >= added) {
+        for (std::size_t i = 0; i < added; ++i) end[i] = value;
+        end += added;
         return;
     }
     std::size_t length = size + (size > added ? size : added);
     auto* fresh = static_cast<std::uint32_t*>(stlp::allocate(length * sizeof(std::uint32_t)));
-    if (size) std::memcpy(fresh, model->soundCounts, size * sizeof(std::uint32_t));
+    if (size) std::memcpy(fresh, begin, size * sizeof(std::uint32_t));
     for (std::size_t i = 0; i < added; ++i) fresh[size + i] = value;
-    if (model->soundCounts)
-        stlp::deallocate(model->soundCounts,
-                         static_cast<std::size_t>(model->soundCountsEndOfStorage - model->soundCounts) * sizeof(std::uint32_t));
-    model->soundCounts = fresh;
-    model->soundCountsEnd = fresh + count;
-    model->soundCountsEndOfStorage = fresh + length;
+    if (begin) stlp::deallocate(begin, static_cast<std::size_t>(endOfStorage - begin) * sizeof(std::uint32_t));
+    begin = fresh;
+    end = fresh + count;
+    endOfStorage = fresh + length;
 }
 
 // The original's three-way compare (00445810) of the file name cut to the sound name's length

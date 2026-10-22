@@ -27,7 +27,7 @@ int LeverRecordTable::Load(const char* folder) {
     if (!opened) {
         // The message names "databases.res", not the file it tried: as the original.
         mfc::CString path = dir + "databases.res";
-        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     }
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFileImpl("Levers.ldb", &size);
@@ -45,7 +45,7 @@ int LeverRecordTable::Load(const char* folder) {
     archive.SerializeLevers(1, reinterpret_cast<stlp::vector<LeverRecord>*>(this), static_cast<int>(size));
     archive.Close(&local.stream);
     for (LeverRecord* record = begin; record != end; ++record) {
-        stlp::string key(static_cast<const char*>(record->name));
+        stlp::string key(record->name.GetString());
         byName[key] = record;
     }
     archive.Destruct();

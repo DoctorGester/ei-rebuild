@@ -14,6 +14,7 @@
 #include "unit.h"
 #include "unit_db.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -114,9 +115,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
         auto* request = new (storage) SkinRequest{nullptr, 0, 0, 0, {}, 0};
         // 004ECB50: six level bytes in 32-byte aligned storage (the block kept before them).
-        auto* block = static_cast<char*>(gamecrt::operator_new(kBodyParts + 0x24));
-        request->layers = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<void**>(request->layers)[-1] = block;
+        request->layers = static_cast<std::uint8_t*>(lib::AllocAligned32(kBodyParts));
         request->capacity = kBodyParts;
         request->layerBytes = kBodyParts;
         if (WoundLevels(&request->layers)) {
@@ -125,7 +124,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request->layers[i];
                 if (!level) continue;
-                name.Format(kWoundTexture, static_cast<const char*>(unit->name), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name.Format(kWoundTexture, unit->name.GetString(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
@@ -133,7 +132,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             result = ComposeTexture(TheTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
         }
         request->textures.~CStringArray();
-        gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
+        lib::FreeAligned32(request->layers);
     }
     return result;
 }
@@ -228,8 +227,8 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
-    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, static_cast<const char*>(unit->name), prototype->skin);
-    else gamecrt::sprintf(name, kFace, static_cast<const char*>(unit->name));
+    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name.GetString(), prototype->skin);
+    else gamecrt::sprintf(name, kFace, unit->name.GetString());
     CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;
     faceTexture = texture;
@@ -258,7 +257,7 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
-    const FigureBone* found = unit->Object3D()->animation->FindBone(static_cast<const char*>(node));
+    const FigureBone* found = unit->Object3D()->animation->FindBone(node.GetString());
     if (!found) return false;
     // The bone's position in figure space.
     const Vector3& position = found->position;

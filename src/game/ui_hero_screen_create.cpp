@@ -150,7 +150,7 @@ void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* pr
 // plugin reads them, past a short name's end included.
 bool ModelNameIsFemale(const mfc::CString& model) {
     std::uint16_t word;
-    std::memcpy(&word, static_cast<const char*>(model) + 4, sizeof word);
+    std::memcpy(&word, model.GetString() + 4, sizeof word);
     return word == 0x6566;
 }
 
@@ -322,19 +322,19 @@ void CMpHeroScreen::Create() {
         };
         const UnitPrototypeRecord* prototype;
         {
-            stlp::string key(static_cast<const char*>(creature()->name));
+            stlp::string key(creature()->name.GetString());
             prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
         const FigurePrototypeRecord* figure;
         {
             // The original inlines operator[] (a pair of the name and null through 0053D340).
-            stlp::string key(static_cast<const char*>(prototype->modelName));
+            stlp::string key(prototype->modelName.GetString());
             figure = reinterpret_cast<const FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
         figureModel = figure->model;
         auto isModel = [&figureModel](const char* name) {
-            return gamecrt::mbsicmp(static_cast<const char*>(figureModel),
+            return gamecrt::mbsicmp(figureModel.GetString(),
                                    name) == 0;
         };
         bool isMale = isModel("unhuma");
@@ -347,11 +347,11 @@ void CMpHeroScreen::Create() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label.Format("%s %d", static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);
+            label.Format("%s %d", male.GetString(), static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label.Format("%s %d", static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
+            label.Format("%s %d", female.GetString(), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }

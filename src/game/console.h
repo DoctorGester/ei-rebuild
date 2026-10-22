@@ -23,9 +23,6 @@ namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 namespace console {
 
 
-// CString length (stored before the characters).
-inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
-
 // CString members beyond lib/mfc.h, called on existing strings through this view (no extra data).
 struct Str : mfc::CString {
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)

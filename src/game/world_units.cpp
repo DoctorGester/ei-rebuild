@@ -29,6 +29,7 @@
 #include "unit_db.h"
 #include "world_effect.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -68,14 +69,12 @@ using PlacementArray = mfc::CArray<Placement>;
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
-// 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
-void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 // Placement on the maps.
 // The unit's setup.
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
-// Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
+// Items: the counted record at item + 0x1C (CItemLink, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 
 // ---- The creation message ---------------------------------------------------------------------
@@ -85,8 +84,9 @@ void DestroyMessage(UnitSpec* message) {
     ei::SetVtable(message, worlddata::kUnitSpecVtable);
     for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
     message->prototype.~CString();
-    VectorDestruct(message->behaviour, sizeof(mapspec::Behaviour), 5,
-                   reinterpret_cast<void*>(worlddata::kBehaviourDestructor));
+    // The CRT's eh vector destructor iterator (006E859F): each behaviour record's destructor
+    // (0046C290), last to first.
+    for (int i = 5; --i >= 0;) mapspec::BehaviourDestruct(&message->behaviour[i]);
     MessageDestructBase(message, nullptr);
 }
 
@@ -159,19 +159,20 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 // vtable stored after it, instead of 0058FBB0.
 CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
     CItem* item = world->DuplicateItem(itemRecord);
-    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
-    memory->refs = 0;   // written before the null test
-    ItemSourceRef* record = nullptr;
+    auto* memory = gamecrt::operator_new_as<CItemLink>();
+    memory->references = 0;   // the count's whole dword, written before the null test
+    memory->refsHigh = 0;
+    CItemLink* record = nullptr;
     if (memory) {
         if (refValueBase) {
             RefValueConstructBase(memory);
             memory->vtable = CItemLink::Vtable();
             record = memory;
         } else {
-            record = reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
+            record = memory->Construct();
         }
     }
-    record->itemId = static_cast<std::uint32_t>(itemRecord->id_);
+    record->value = static_cast<std::uint32_t>(itemRecord->id_);
     RefPtrAssign(&item->link_, nullptr, record);
     return item;
 }
@@ -185,8 +186,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     // Destroyed after the two strings (declared after it), as the original does. Plain storage:
     // the original's constructor (0046C010) and inlined destructor build and tear it down.
     struct Message {
-        alignas(4) std::uint8_t bytes[sizeof(UnitSpec)];
-        UnitSpec* Get() { return reinterpret_cast<UnitSpec*>(bytes); }
+        lib::InPlace<UnitSpec> bytes;
+        UnitSpec* Get() { return bytes.Get(); }
         Message() { mapspec::UnitSpecConstruct(Get()); }   // 0046C010
         ~Message() { DestroyMessage(Get()); }
     } holder;
@@ -337,8 +338,8 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
 } // namespace
 
 void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
-    alignas(4) std::uint8_t storage[sizeof(ObjectSpec)];
-    auto* message = reinterpret_cast<ObjectSpec*>(storage);
+    lib::InPlace<ObjectSpec> storage;
+    auto* message = storage.Get();
     message->ObjectSpecConstruct();
     ei::SetVtable(message, worlddata::kQuickEffectSpecVtable);
     message->base.kind = kQuickEffectType;
@@ -408,8 +409,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->base.kind == 5 ? static_cast<const char*>(reinterpret_cast<UnitSpec*>(spec)->prototype)
-                                                     : static_cast<const char*>(spec->primaryTexture);
+        const char* prototype = spec->base.kind == 5 ? (reinterpret_cast<UnitSpec*>(spec)->prototype).GetString()
+                                                     : spec->primaryTexture.GetString();
         ObjectSlots(object)->TakePrototype(prototype);
         object->WriteFullState();
     };
@@ -513,7 +514,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 9: {   // map objects, units (5) and levers (8)
         CMapObject* object = created();
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(static_cast<const char*>(spec->model),
+        if (gamecrt::mbscmp(spec->model.GetString(),
                             game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);
@@ -535,7 +536,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
-            reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
+            static_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];

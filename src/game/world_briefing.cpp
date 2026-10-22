@@ -43,7 +43,7 @@ namespace {
 // current line into words.
 
 bool IsEmpty(const mfc::CString& s) {
-    return gamecrt::mbscmp(static_cast<const char*>(s),
+    return gamecrt::mbscmp(s.GetString(),
                            game::EmptyText()) == 0;
 }
 
@@ -63,7 +63,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
         static_cast<CTextManager*>(texts)->Split(&words, 1);
         if (words.GetSize() >= 2 &&
-            gamecrt::mbsicmp(static_cast<const char*>(words[1]),
+            gamecrt::mbsicmp(words[1].GetString(),
                             game::briefingwords::Hero()) != 0)
             return new (out) mfc::CString(words[1]);
     }
@@ -95,7 +95,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
         mfc::CString zone(briefing);
         {
-            mfc::CString left = zone.Left(reinterpret_cast<const int*>(static_cast<const char*>(zone))[-2] - 2);
+            mfc::CString left = zone.Left(zone.GetLength() - 2);
             zone = left;
         }
         FlowLoadQuestsOriginal(zone);
@@ -196,7 +196,7 @@ stlp::string MapFilePath(const mfc::CString& file) {
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
     MapsFolderAt(&folder);
     mfc::CString full = folder + file;
-    return stlp::string(static_cast<const char*>(full));
+    return stlp::string(full.GetString());
 }
 
 } // namespace
@@ -211,7 +211,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         mfc::CString folder;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         MapsFolderAt(&folder);
-        mfc::CString pattern = folder + static_cast<const char*>(file);
+        mfc::CString pattern = folder + file.GetString();
         found = find.FindFile(pattern, 0) != 0;
     }
     if (!found) return false;
@@ -244,7 +244,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     bool quest;
     {
         mfc::CString prefix = name.Left(2);
-        quest = gamecrt::mbscmp(static_cast<const char*>(prefix),
+        quest = gamecrt::mbscmp(prefix.GetString(),
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {

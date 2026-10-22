@@ -185,8 +185,8 @@ void CTradePanel::BuildLists() {
         else
             text = record->field0;
         if (level > 1)
-            row->name.Format("%s (%s%d)", static_cast<const char*>(text),
-                                   static_cast<const char*>(perkLevel), level);
+            row->name.Format("%s (%s%d)", text.GetString(),
+                                   perkLevel.GetString(), level);
         else
             row->name = text;
         if (level < 3) {

@@ -242,7 +242,7 @@ void CWorldClient::Destruct() {
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
     lineLists_.Destroy();
-    reinterpret_cast<stlp::vector<ScreenEntry>*>(&hits_)->FreeStorage();
+    hits_.FreeStorage();
     screenEntries_.Destroy();
     dynamicNodes_.Destroy();
     dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();

@@ -179,7 +179,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(flowdata::kSlotFolder, DataFolderText(), static_cast<const char*>(entry->folder_));
+    folder.Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.GetString());
     mfc::CFileFind find;
     BOOL found;
     {
@@ -230,15 +230,15 @@ void SaveEntry::MakeTitle(int) {
     TheTextManager()->GetString(kAutoExitTitle, &autoExit);
     mfc::CString& title = title_;
     if (SameFolder(folder_, kQuickFolder)) {
-        title.Format(kPlainFormat, static_cast<const char*>(quick));
+        title.Format(kPlainFormat, quick.GetString());
     } else if (SameFolder(folder_, kAutoFolderA)) {
-        title.Format(kPlainFormat, static_cast<const char*>(autoEnter));
+        title.Format(kPlainFormat, autoEnter.GetString());
     } else if (SameFolder(folder_, kAutoFolderB)) {
-        title.Format(kPlainFormat, static_cast<const char*>(autoExit));
+        title.Format(kPlainFormat, autoExit.GetString());
     } else {
         // 00653BD0: the zone name ("zone" + zone_ in the texts, else "save_camp").
         const mfc::CString name = ZoneTitle();
-        title.Format(kPlainFormat, static_cast<const char*>(name));
+        title.Format(kPlainFormat, name.GetString());
     }
 }
 EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
@@ -263,7 +263,7 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(flowdata::kSlotFolder, DataFolderText(), static_cast<const char*>(entry->folder_));
+    folder.Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.GetString());
     mfc::CString notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
     TheInterface()->ShowStatusText(notice);
@@ -373,11 +373,11 @@ void CSaveLoadWindow::FillEntries() {
                 if (static_cast<int>(info.s.version_) > 2) info.Stream()->ReadInto(&entry->title_);
             }
             info.Close();
-            if (console::Length(entry->title_) == 0) entry->MakeTitle(1);
+            if (entry->title_.GetLength() == 0) entry->MakeTitle(1);
             entry->broken_ = false;
         }
         infoFind.Close();
-        if (console::Length(entry->folder_) > 4) {
+        if (entry->folder_.GetLength() > 4) {
             int number = libcrt::Atoi(console::Ops(entry->folder_).Mid(4));
             if (!(highest > number)) highest = number;
         }
@@ -657,7 +657,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     mfc::CString folder;
-    folder.Format(kFolderFormat, DataFolderText(), static_cast<const char*>(entriesBegin_[selected].folder_));
+    folder.Format(kFolderFormat, DataFolderText(), entriesBegin_[selected].folder_.GetString());
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {

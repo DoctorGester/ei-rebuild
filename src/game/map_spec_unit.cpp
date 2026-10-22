@@ -11,6 +11,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -174,8 +175,8 @@ void Patrols::CopyFrom(const Patrols& from) {
         maxSize = capacity;
     }
     for (int i = 0; i < from.size; ++i) {
-        alignas(4) std::uint8_t raw[sizeof(Patrol)];
-        auto* copy = reinterpret_cast<Patrol*>(raw);
+        lib::InPlace<Patrol> raw;
+        auto* copy = raw.Get();
         from.CopyAt(copy, i);
         Patrol& to = data[i];
         to.position = copy->position;

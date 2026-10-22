@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_render.h"
 
@@ -190,7 +191,7 @@ void __fastcall LightningDestruct(CLightning* self) {
     DropTexture(self->texture_);
     DropTexture(self->glowTexture_);
     VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentDestruct));
-    if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
+    if (self->main_.points.data) lib::FreeAligned32(self->main_.points.data);
     if (self->glowTexture_) self->glowTexture_->Release();
     if (self->texture_) self->texture_->Release();
     self->DestructBase();

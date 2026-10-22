@@ -85,7 +85,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!ei::GameData<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", static_cast<const char*>(MovieFolder()), g_movieFrame);
+    gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().GetString(), g_movieFrame);
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"

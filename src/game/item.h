@@ -41,6 +41,8 @@ struct ItemUse {
 };
 
 // Base of every item (vtable 00743DA4, 22 slots).
+struct CItemLink;   // below
+
 class CItem : public CEngineObject {
 public:
     ItemUse* NoUse(ItemUse* out);
@@ -139,8 +141,10 @@ public:
     }
 
     // +0x1C a counted link record (a RefPtr slot): the world server's CItemLink (the id the
-    // world's save keeps per item), the party record's ItemSourceRef, the HUD's ItemTurn.
-    std::uint32_t link_;
+    // world's save keeps per item, or the party record's item), the HUD's ItemTurn.
+    void* link_;
+    // The link as the world server makes it (CItemLink, below; null when there is none).
+    CItemLink* ServerLink() const;
     // +0x20 / +0x24 the condition and its maximum (float bits; both from the prototype's
     // condition): at 0 or below (rounded) the item is broken.
     std::uint32_t condition_;
@@ -157,15 +161,6 @@ public:
     CSpell* spell_;               // +0x44 the spell carried by the item (scrolls, wands)
     std::uint32_t count_;         // +0x48 the stack's count
 };
-// The counted record an item's link_ (a RefPtr slot) points at when the world
-// server builds a unit's items from its party record (0058EF20): a reference value (constructor
-// 00419720 then CItemLink::Vtable(), or 0058FBB0) holding the id of the record's item.
-struct ItemSourceRef {
-    void* vtable;                 // +0x00
-    std::uint32_t refs;           // +0x04 CRefCounted's count and flags (written as one dword)
-    std::uint32_t itemId;         // +0x08 the source item's id_ (its +0x0C)
-};
-static_assert(sizeof(ItemSourceRef) == 0xC);
 static_assert(offsetof(CItem, link_) == 0x1C && offsetof(CItem, condition_) == 0x20);
 static_assert(offsetof(CItem, charge_) == 0x28 && offsetof(CItem, weight_) == 0x34);
 static_assert(offsetof(CItem, magicLevel_) == 0x40 && offsetof(CItem, count_) == 0x48);
@@ -174,7 +169,9 @@ static_assert(sizeof(CItem) == 0x4C);
 
 // The record an item's link (CItem::link_) points at as the world server makes it (0xC
 // bytes): a counted value with a 16-bit count and the dword the world's save keeps
-// per item (world_save.cpp, world_units.cpp, world_quests.cpp).
+// per item (world_save.cpp, world_units.cpp, world_quests.cpp). When the server builds a unit's
+// items from its party record (0058EF20) the record is a reference value (constructor 00419720
+// then CItemLink::Vtable(), or 0058FBB0) holding the id of the record's item.
 struct CItemLink {
     static void* Vtable();   // the compiled table (CItemLinkClass, item_link.cpp; game.exe's 0073FA88)
 
@@ -193,6 +190,7 @@ struct CItemLink {
     std::uint32_t value;            // +0x08
 };
 static_assert(sizeof(CItemLink) == 0xC);
+inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
 
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {

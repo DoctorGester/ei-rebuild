@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 
 #include <cstddef>
@@ -197,8 +198,8 @@ EI_REWRITTEN(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 void ScriptCommands::CopyFrom(const ScriptCommands& source) {
     mfc::impl::ArrayAs<recordarrays::Cmds>(*this).SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) {
-        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
-        auto* copy = reinterpret_cast<SSCCmd*>(storage);
+        lib::InPlace<SSCCmd> storage;
+        auto* copy = storage.Get();
         source.CopyAt(copy, i);
         data[i].ScriptCmdAssign(copy);
         ScriptCmdDestruct(copy);

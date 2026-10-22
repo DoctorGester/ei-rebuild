@@ -25,12 +25,12 @@
 
 namespace {
 
-struct MeshCorner {           // 6 bytes
+struct DeviceCorner {           // 6 bytes
     std::uint16_t position;   // into the projected vertices
     std::uint16_t colour;     // into the colour and specular arrays
     std::uint16_t uv;         // into the texture coordinates
 };
-static_assert(sizeof(MeshCorner) == 6);
+static_assert(sizeof(DeviceCorner) == 6);
 struct TexCoord {
     float u, v;
 };
@@ -45,7 +45,7 @@ struct MeshArgs {
     std::uint32_t* speculars;
     const TexCoord* uvs;
     int unused10;
-    const MeshCorner* corners;
+    const DeviceCorner* corners;
     int cornerCount;
     int unused13;
     int unused14;
@@ -103,7 +103,7 @@ void FillCorners(const MeshArgs& a) {
     EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
     bool moved = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
     for (int i = 0; i < a.cornerCount; ++i, ++v) {
-        const MeshCorner& c = a.corners[i];
+        const DeviceCorner& c = a.corners[i];
         std::memcpy(&v->x, &projected[c.position], 16);
         v->color = a.colours[c.colour];
         v->specular = a.speculars[c.colour];
@@ -238,7 +238,7 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, int unused
                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
                               int flags) {
     MeshArgs a{positions, blocks, unused5, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
-               unused10, static_cast<const MeshCorner*>(corners), cornerCount, unused13, unused14, indices,
+               unused10, static_cast<const DeviceCorner*>(corners), cornerCount, unused13, unused14, indices,
                indexCount, &uOffset, &vOffset, alpha, flags};
     return DrawMesh(this, a, nullptr);
 }
@@ -251,7 +251,7 @@ int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, con
                                int cornerCount, int unused13, int unused14, std::uint16_t* indices, int indexCount,
                                float uOffset, float vOffset, int alpha, int flags) {
     MeshArgs a{positions, blocks, unused5, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
-               unused10, static_cast<const MeshCorner*>(corners), cornerCount, unused13, unused14, indices,
+               unused10, static_cast<const DeviceCorner*>(corners), cornerCount, unused13, unused14, indices,
                indexCount, &uOffset, &vOffset, alpha, flags};
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);

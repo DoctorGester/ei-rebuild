@@ -147,7 +147,7 @@ EI_REPLACE_METHOD(0x00518D30, CObject3D::AnimationFactor);
 
 int CObject3D::FindPartIndex(const char* partName) {
     for (int i = 0; i < partNames.size; ++i)
-        if (gamecrt::mbscmp(static_cast<const char*>(partNames[i]),
+        if (gamecrt::mbscmp(partNames[i].GetString(),
                             partName) == 0)
             return i;
     return -1;

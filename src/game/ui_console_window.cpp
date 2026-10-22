@@ -51,7 +51,7 @@ int Clamp(int value, int high) {
 int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text, Length(text), &size);   // EI_UTF8: measured wide (system_text.h)
+    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
     return size.cx;
 }
 
@@ -100,7 +100,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_END:
         if (!ctrl_) {
-            caret_ = Length(input_);
+            caret_ = input_.GetLength();
             if (!shift_) anchor_ = caret_;
             DrawInput();
             return;
@@ -136,13 +136,13 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             input_ = commands_[commandIndex_];
         else
             input_.Empty();
-        caret_ = Length(input_);
+        caret_ = input_.GetLength();
         anchor_ = caret_;
         DrawInput();
         return;
     case VK_DELETE:
         if (anchor_ == caret_) {
-            if (caret_ < Length(input_)) {
+            if (caret_ < input_.GetLength()) {
                 mfc::CString rest = Ops(input_).Mid(::text::NextCharacter(input_, caret_));
                 input_ = Left(input_, caret_) + rest;
                 DrawInput();
@@ -292,7 +292,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
         if (letter == 'a') {
             anchor_ = 0;
-            caret_ = Length(input_);
+            caret_ = input_.GetLength();
             DrawInput();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
             const char* text = input_;
@@ -312,7 +312,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             mfc::CString rest = MidOf(input_, high);
             mfc::CString head = Left(input_, low);
             input_ = (head + clip) + rest;
-            int position = Length(clip) - (anchor_ != caret_ ? 1 : 0) + high;
+            int position = clip.GetLength() - (anchor_ != caret_ ? 1 : 0) + high;
             position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
@@ -346,17 +346,17 @@ void ConsoleWindow::DrawLines() {
     for (int i = 0, y = 0; i < visibleLines_ && line >= 0; ++i, y += kLineHeight, --line) {
         RECT rect{8, height_ - y - 0x2E, width_ - 0x12, height_ - y - 0x1A};
         const mfc::CString& text = lines_[line];
-        dc->DrawText(text, Length(text), &rect, kDrawLine);
+        dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
         mfc::CString mark(game::consoletexts::More());
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
-        dc->DrawText(mark, Length(mark), &rect, kDrawMark);
+        dc->DrawText(mark, mark.GetLength(), &rect, kDrawMark);
     }
     if (scroll_ < lines_.GetSize() - visibleLines_) {
         mfc::CString mark(game::consoletexts::More());
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
-        dc->DrawText(mark, Length(mark), &rect, kDrawMark);
+        dc->DrawText(mark, mark.GetLength(), &rect, kDrawMark);
     }
     dc->SelectFont(oldFont);
     surface->ReleaseDC();
@@ -367,8 +367,8 @@ EI_REWRITTEN(0x005E4800, ConsoleWindow::DrawLines);
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
 // the input, and a 2-pixel caret line when it lies left of that limit.
 void ConsoleWindow::DrawInput() {
-    caret_ = Clamp(caret_, Length(input_));
-    anchor_ = Clamp(anchor_, Length(input_));
+    caret_ = Clamp(caret_, input_.GetLength());
+    anchor_ = Clamp(anchor_, input_.GetLength());
     if (!surface_ || !font_) return;
     SurfaceDC* surface = static_cast<SurfaceDC*>(surface_);
     GameDC* dc = surface->GetDC();
@@ -386,7 +386,7 @@ void ConsoleWindow::DrawInput() {
     dc->SetBkMode(TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + input_;
-    dc->DrawText(text, Length(text), &rect, kDrawLine);
+    dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
         GamePen pen;
         pen.Construct(PS_SOLID, 2, kInputText);

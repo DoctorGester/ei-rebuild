@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -154,10 +155,7 @@ EI_REWRITTEN(0x00468C20, CMemoryStream::Reset);
 // --- Aligned pointer arrays --------------------------------------------------------------------
 
 void** __fastcall AlignedPointerArrayAlloc(int count) {
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 4 + 0x24));
-    auto aligned = (reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F};
-    reinterpret_cast<std::uint8_t**>(aligned)[-1] = block;
-    return reinterpret_cast<void**>(aligned);
+    return static_cast<void**>(lib::AllocAligned32(static_cast<std::size_t>(count) * 4));
 }
 EI_REWRITTEN(0x0047B940, AlignedPointerArrayAlloc);
 EI_REWRITTEN(0x004D9ED0, AlignedPointerArrayAlloc);

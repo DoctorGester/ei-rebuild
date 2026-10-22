@@ -103,7 +103,7 @@ bool GetPlayerOfUnit(Call* call) {
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* what = call->cmd->stringArgs.size == 0 ? "max" : static_cast<const char*>(call->cmd->stringArgs.data[0]);
+    const char* what = call->cmd->stringArgs.size == 0 ? "max" : call->cmd->stringArgs.data[0].GetString();
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
@@ -255,7 +255,7 @@ bool GetPrototype(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->name);
+    *static_cast<mfc::CString*>(call->result) = prototype->name.GetString();
     return true;
 }
 
@@ -263,7 +263,7 @@ bool GetRace(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->modelName);
+    *static_cast<mfc::CString*>(call->result) = prototype->modelName.GetString();
     return true;
 }
 

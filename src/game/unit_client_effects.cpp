@@ -151,7 +151,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
             material = "leather";
     }
     mfc::CString sound;
-    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, static_cast<const char*>(material));
+    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, material.GetString());
     if (sound.GetLength() != 0) {
         auto* world = ClientWorld();
         world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);

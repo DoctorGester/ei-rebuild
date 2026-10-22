@@ -480,14 +480,14 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         index = next;
         if (next < 0) return 0;
         index = next & 0xBFFFFFFF;
-        int h = manager->Play3D(static_cast<const char*>(names.data[next & 0xBFFFFFFF]), priority, &position.x, nearDistance, farDistance,
+        int h = manager->Play3D(names.data[next & 0xBFFFFFFF].GetString(), priority, &position.x, nearDistance, farDistance,
                                 next & 0x40000000, 0);
         handle = h;
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
     if (random != 0) index = static_cast<std::int32_t>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(names.size));
-    int h = manager->Play3D(static_cast<const char*>(names.data[index]), priority, &position.x, nearDistance, farDistance, 0, 0);
+    int h = manager->Play3D(names.data[index].GetString(), priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
     index = (index + 1) % names.size;
@@ -737,7 +737,7 @@ void CSoundManager::Tick() {
         if (e->names.size > 1) index = random.Next() % static_cast<std::uint32_t>(e->names.size);
         std::uint32_t panRoll = random.Next();
         std::uint32_t volumeRoll = random.Next();
-        Play2D(static_cast<const char*>(e->names.data[index]), 1, static_cast<int>(volumeRoll % 51 + 50),
+        Play2D(e->names.data[index].GetString(), 1, static_cast<int>(volumeRoll % 51 + 50),
                static_cast<int>(panRoll % 101), 0, 0, 0, 0);
     }
 }
@@ -779,7 +779,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
     int m = 4;
     if (streamState != 0) {
         m = mode;
-        if (gamecrt::mbscmp(static_cast<const char*>(streamName),
+        if (gamecrt::mbscmp(streamName.GetString(),
                             name) == 0 &&
             *name != '\0') {
             streamState = 1;
@@ -795,7 +795,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         }
     }
     if (streamState == 2 &&
-        gamecrt::mbscmp(static_cast<const char*>(nextName),
+        gamecrt::mbscmp(nextName.GetString(),
                         name) == 0 &&
         switchMode >= m) {
         gameapi::LeaveCriticalSection(lock);

@@ -157,10 +157,7 @@ EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 
 CSpellContainer* CSpellContainer::Construct() {
     ClearFields();
-    auto* sentinel = static_cast<SpellModifierNode*>(stlp::allocate(sizeof(SpellModifierNode)));
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
-    modifiers_ = sentinel;
+    modifiers_.Construct();
     // The code string: empty, with room for 8 bytes (00424E40).
     codes_ = codesEnd_ = static_cast<char*>(stlp::allocate(8));
     codesCapacity_ = codes_ + 8;
@@ -177,14 +174,14 @@ void CSpellContainer::Destruct() {
     ei::SetVtable(this, Vtable());
     // (Slot 5, 0068BE20, called directly here, is empty.)
     prototype_ = nullptr;
-    FreeModifierNodes(modifiers_);
+    FreeModifierNodes(modifiers_.head);
     Spell()->Destroy();   // slot 3: CSpell::ClearModifiers
     name_.~CString();
     Spell()->Destruct();
     if (codes_) stlp::deallocate(codes_, static_cast<std::size_t>(codesCapacity_ - codes_));
     // The list's destructor: its (empty) clear, then the sentinel.
-    FreeModifierNodes(modifiers_);
-    stlp::deallocate(modifiers_, sizeof(SpellModifierNode));
+    FreeModifierNodes(modifiers_.head);
+    stlp::deallocate(modifiers_.head, sizeof(SpellModifierNode));
     DestructBase();
 }
 EI_REWRITTEN(0x0068BC50, CSpellContainer::Destruct);

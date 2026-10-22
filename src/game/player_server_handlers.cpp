@@ -3,6 +3,7 @@
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
+#include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
 #include "ai_map.h"
@@ -351,10 +352,10 @@ int MoveUnits(MoveCommand command) {
 
 // A memory stream on the stack, as the original builds and destroys it inline.
 struct LocalStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    lib::InPlace<CMemoryStream> bytes;
     LocalStream() { Get()->Construct(); }
     ~LocalStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    CMemoryStream* Get() { return bytes.Get(); }
 };
 // A party on the stack (constructor 00661050, destructor body 006611D0).
 struct LocalParty {

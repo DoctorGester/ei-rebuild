@@ -67,7 +67,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
 // 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;
-    if (announce) masterAddress_.Parse(static_cast<const char*>(options::TheOptions()->masterServerName_), 0x6D64);
+    if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.GetString(), 0x6D64);
 }
 
 EI_REWRITTEN(0x0041A7E0, ServerSession::DescribeImpl);

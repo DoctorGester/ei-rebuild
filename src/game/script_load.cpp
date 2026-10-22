@@ -136,16 +136,13 @@ namespace {
 
 using namespace scriptarray;
 
-using ListNode = ScriptListNode;
-using RawList = ScriptList;
-
 // CList::NewNode instantiations (004CD540 particle sources, 004CD5B0 FX sources, 004CD620 lightning, 004CD6D0
 // command blocks, 004CD930 instances, 004CDA30 runs): mfc::impl::NewNodeAs<Abi>. AddTail as inlined: a new node
 // after the tail, its element filled by `fill`, then linked.
-template <typename Abi, typename Fill>
-void AppendNode(RawList* list, Fill fill) {
-    ListNode* node = mfc::impl::NewNodeAs<Abi>(list, list->tail, nullptr);
-    fill(node->data.bytes);
+template <typename Abi, typename T, typename E, typename Fill>
+void AppendNode(mfc::CList<T, E>* list, Fill fill) {
+    auto* node = mfc::impl::NewNodeAs<Abi>(list, list->tail, nullptr);
+    fill(&node->data);
     if (list->tail) list->tail->next = node;
     else list->head = node;
     list->tail = node;
@@ -424,15 +421,15 @@ EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 
 // Particle sources (CScript +0x14; element 0x24 bytes at node +8): source object, id, flags,
 // moving, steps, step (12 bytes), lifetime.
-void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        AppendNode<mfc::impl::ParticleSourceList>(list, [](char* data) {
-            std::memset(data, 0, 0x24);   // the original copies a stack temporary: +0 = 0, the rest unset
+        AppendNode<mfc::impl::ParticleSourceList>(list, [](ScriptParticleSource* source) {
+            std::memset(source, 0, sizeof(*source));   // the original copies a stack temporary: +0 = 0, the rest unset
         });
     }
-    for (ListNode* node = list->head; node;) {
-        auto* source = reinterpret_cast<ScriptParticleSource*>(node->data.bytes);
+    for (auto* node = list->head; node;) {
+        ScriptParticleSource* source = &node->data;
         node = node->next;
         source->object = AcquireById(ReadInt(stream));
         stream->Read(&source->id, 4);
@@ -446,40 +443,38 @@ void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
 EI_REWRITTEN(0x004CA480, ScriptParticlesLoad);
 
 // FX sources (CScript +0x30; element 0x34 bytes): each node is filled by 004B1B40.
-void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // The original builds a temporary element (effect 0, empty name, the rest unset), copies it
         // into the node and destroys it (releasing its effect, which is always null).
         mfc::CString emptyName;
-        AppendNode<mfc::impl::FxSourceList>(list, [&](char* data) {
-            auto* source = reinterpret_cast<ScriptFxSource*>(data);
+        AppendNode<mfc::impl::FxSourceList>(list, [&](ScriptFxSource* source) {
             source->object = nullptr;
             source->id = 0;
             source->name = emptyName;
-            std::memset(data + 0x0C, 0, 0x28);
+            std::memset(&source->position, 0, sizeof(*source) - offsetof(ScriptFxSource, position));   // +0x0C..+0x33
         });
     }
-    for (ListNode* node = list->head; node;) {
-        char* data = node->data.bytes;
+    for (auto* node = list->head; node;) {
+        ScriptFxSource* source = &node->data;
         node = node->next;
-        reinterpret_cast<ScriptFxSource*>(data)->ScriptFxSourceLoad(stream);
+        source->ScriptFxSourceLoad(stream);
     }
 }
 EI_REWRITTEN(0x004CA5D0, ScriptFxSourcesLoad);
 
 // Lightning (CScript +0x4C; element: object, id).
-void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
-        AppendNode<mfc::impl::LightningList>(list, [](char* data) {
-            auto* bolt = reinterpret_cast<ScriptLightning*>(data);
+        AppendNode<mfc::impl::LightningList>(list, [](ScriptLightning* bolt) {
             bolt->object = nullptr;
             bolt->id = -1;
         });
     }
-    for (ListNode* node = list->head; node;) {
-        auto* bolt = reinterpret_cast<ScriptLightning*>(node->data.bytes);
+    for (auto* node = list->head; node;) {
+        ScriptLightning* bolt = &node->data;
         node = node->next;
         bolt->object = AcquireById(ReadInt(stream));
         stream->Read(&bolt->id, 4);
@@ -488,21 +483,20 @@ void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
 EI_REWRITTEN(0x004CA720, ScriptLightningLoad);
 
 // WorldScript blocks (CScript +0x178; element ScriptDecl): id, count, each SSCCmd.
-void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary empty block (vtable 0073D3DC, id unset) is copied into the node.
         ScriptDecl temp{};
         temp.commands.vtable = mfc::impl::ScriptCommandsClass::Vtable();
-        AppendNode<mfc::impl::CommandBlockList>(list, [&](char* data) {
-            auto* block = reinterpret_cast<ScriptDecl*>(data);
+        AppendNode<mfc::impl::CommandBlockList>(list, [&](ScriptDecl* block) {
             block->commands.CopyFrom(temp.commands);
             block->id = temp.id;
         });
         // Its destructor frees nothing (no commands).
     }
-    for (ListNode* node = list->head; node;) {
-        auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
+    for (auto* node = list->head; node;) {
+        ScriptDecl* block = &node->data;
         node = node->next;
         stream->Read(&block->id, 4);
         int size = ReadInt(stream);
@@ -514,7 +508,7 @@ EI_REWRITTEN(0x004CA810, ScriptWorldBlocksLoad);
 
 // Script instances (CScript +0x140; element ScriptDefinition): killed flag, name, parameter
 // types, if-then pairs (004BB590 each), variables.
-void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary empty definition is copied into the node, then destroyed (frees nothing).
@@ -527,8 +521,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         } temp{};
         temp.ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         temp.vars.ScriptVarsConstruct();
-        AppendNode<gamelists::Definitions>(list, [&](char* data) {
-            auto* instance = reinterpret_cast<ScriptDefinition*>(data);
+        AppendNode<gamelists::Definitions>(list, [&](ScriptDefinition* instance) {
             instance->index = temp.index;
             instance->name = temp.name;
             instance->params = temp.params;
@@ -537,8 +530,8 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         });
         ScriptVarsDestruct(&temp.vars);
     }
-    for (ListNode* node = list->head; node;) {
-        auto* instance = reinterpret_cast<ScriptDefinition*>(node->data.bytes);
+    for (auto* node = list->head; node;) {
+        ScriptDefinition* instance = &node->data;
         node = node->next;
         stream->Read(&instance->index, 4);
         // The original reads each string (00461190) into a temporary and assigns it: 004B3D10.
@@ -554,14 +547,13 @@ EI_REWRITTEN(0x004CA980, ScriptInstancesLoad);
 
 // Runs (CScript +0x15C; element ScriptRun): block id (FindBlock), index, ticks, sleep start, the
 // index of its instance in the loading script's instance list (-1 or out of range: none), vars.
-void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
+void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
         // A temporary run (sleep start unset) is copied into the node, then destroyed.
         ScriptRun temp{};
         temp.vars.ScriptVarsConstruct();
-        AppendNode<gamelists::Runs>(list, [&](char* data) {
-            auto* run = reinterpret_cast<ScriptRun*>(data);
+        AppendNode<gamelists::Runs>(list, [&](ScriptRun* run) {
             run->block = temp.block;
             run->index = temp.index;
             run->ticks = temp.ticks;
@@ -571,8 +563,8 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         });
         ScriptVarsDestruct(&temp.vars);
     }
-    for (ListNode* node = list->head; node;) {
-        auto* run = reinterpret_cast<ScriptRun*>(node->data.bytes);
+    for (auto* node = list->head; node;) {
+        ScriptRun* run = &node->data;
         node = node->next;
         int id = 0;
         stream->Read(&id, 4);
@@ -585,10 +577,10 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         int* killFlag = nullptr;
         int k = 0;
         for (auto* inst = LoadingScript()->instances_.head; inst; ++k) {
-            char* data = reinterpret_cast<char*>(&inst->data);
+            ScriptDefinition* instance = &inst->data;
             inst = inst->next;
             if (k == instanceIndex) {
-                killFlag = reinterpret_cast<int*>(data);
+                killFlag = &instance->index;   // an instance's index is its killed flag
                 break;
             }
         }
@@ -609,9 +601,9 @@ void CScript::LoadState(ScriptStream* stream) {
     mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);   // 004C5CB0
     for (int i = 0; i < pointLights_.size; ++i) pointLights_.data[i].ScriptPointLightLoad(stream);
 
-    ScriptParticlesLoad(reinterpret_cast<RawList*>(&particles_), stream);
-    ScriptFxSourcesLoad(reinterpret_cast<RawList*>(&fxSources_), stream);
-    ScriptLightningLoad(reinterpret_cast<RawList*>(&lightning_), stream);
+    ScriptParticlesLoad(&particles_, stream);
+    ScriptFxSourcesLoad(&fxSources_, stream);
+    ScriptLightningLoad(&lightning_, stream);
     stream->Read(&nextParticleId_, 4);
     stream->Read(&nextFxId_, 4);
 
@@ -624,7 +616,7 @@ void CScript::LoadState(ScriptStream* stream) {
         stream->Read(&block->id, 4);
         ScriptDeclCommandsLoad(block, stream);
     }
-    ScriptWorldBlocksLoad(reinterpret_cast<RawList*>(&worldBlocks_), stream);
+    ScriptWorldBlocksLoad(&worldBlocks_, stream);
 
     // Definitions (+0x8C).
     auto& scripts = definitions_;
@@ -639,8 +631,8 @@ void CScript::LoadState(ScriptStream* stream) {
     }
 
     LoadVariables(Globals(), stream);
-    ScriptInstancesLoad(reinterpret_cast<RawList*>(&instances_), stream);
-    ScriptRunsLoad(reinterpret_cast<RawList*>(&runs_), stream);
+    ScriptInstancesLoad(&instances_, stream);
+    ScriptRunsLoad(&runs_, stream);
     stream->Read(&loaded_, 4);
     stream->Read(&fileCount_, 4);
     LoadingScript() = nullptr;

@@ -288,11 +288,11 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, const PixelPair* pixe
         texturePixels.data[i].y = x87::fistp(static_cast<float>(uv[1] * kByteScale));
     }
 
-    const IndexTriangle* corners = corners_.data + r.corners.start;
+    const MeshCorner* corners = corners_.data + r.corners.start;
     const std::uint16_t* indices = indices_.data + r.indices.start;
     for (unsigned n = 0; n < static_cast<unsigned>(r.indices.count); n += 3) {
         for (int k = 0; k < 3; ++k) {
-            const IndexTriangle& corner = corners[indices[n + k]];
+            const MeshCorner& corner = corners[indices[n + k]];
             std::memcpy(&target->corners[k].screen, &pixels[corner.index[0]], sizeof(PixelPair));
             std::memcpy(&target->corners[k].texture, &texturePixels.data[corner.index[2]], sizeof(PixelPair));
         }

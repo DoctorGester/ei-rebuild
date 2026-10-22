@@ -23,7 +23,7 @@ CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nul
 
 // `texture` takes `name` and is loaded again (the original's inlined common tail).
 void Reload(CTexture* texture, const mfc::CString& name) {
-    texture->name_ = static_cast<const char*>(name);   // operator=(LPCTSTR)
+    texture->name_ = name.GetString();   // operator=(LPCTSTR)
     texture->flags_ &= ~kTextureLoaded;
     static_cast<CTextureManager*>(texture->owner_)->LoadTexture(texture);
 }
@@ -33,7 +33,7 @@ void Reload(CTexture* texture, const mfc::CString& name) {
 bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
-    return gamecrt::mbscmp(static_cast<const char*>(name),
+    return gamecrt::mbscmp(name.GetString(),
                            texture->GetName()) != 0;
 }
 

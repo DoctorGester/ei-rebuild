@@ -100,7 +100,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         mfc::CString part(plain);
-        if (gamecrt::mbscmp(static_cast<const char*>(part),
+        if (gamecrt::mbscmp(part.GetString(),
                             kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
@@ -108,14 +108,14 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
             part.Format("hr.%.2d", hair);
         }
         CFigureMesh* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
-        armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), armour->number);
+        armourPart.Format("%s.armor%.2d", part.GetString(), armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
-            } else if (gamecrt::mbscmp(static_cast<const char*>(part),
+            } else if (gamecrt::mbscmp(part.GetString(),
                                        current->GetName()) != 0) {
                 unit->LoadPart(part, model, FiguresFlag(unit));
                 unit->RemovePart(current);
@@ -175,7 +175,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
             for (int k = 0; k < parts.size; ++k) unit->RemovePart(parts.data[k]);
             unit->LoadPart(part, model, FiguresFlag(unit));
         }
-        if (parts.data) gamecrt::operator_delete(reinterpret_cast<void**>(parts.data)[-1]);
+        if (parts.data) lib::FreeAligned32(parts.data);
     }
     return true;
 }
@@ -381,7 +381,7 @@ namespace {
 void SetLayerBytes(SkinRequest& request, int bytes) {
     if (bytes == 0) {
         if (request.layers) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(request.layers)[-1]);
+            lib::FreeAligned32(request.layers);
             request.layers = nullptr;
         }
         request.capacity = 0;
@@ -389,10 +389,7 @@ void SetLayerBytes(SkinRequest& request, int bytes) {
         return;
     }
     auto allocate = [](int count) {
-        auto* block = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(count) + 0x24));
-        auto* data = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<void**>(data)[-1] = block;
-        return data;
+        return static_cast<std::uint8_t*>(lib::AllocAligned32(static_cast<std::size_t>(count)));
     };
     if (!request.layers) {
         request.layers = allocate(bytes);
@@ -414,7 +411,7 @@ void SetLayerBytes(SkinRequest& request, int bytes) {
     if (bytes >= capacity) capacity = bytes;
     std::uint8_t* fresh = allocate(capacity);
     std::memcpy(fresh, request.layers, static_cast<std::size_t>(request.layerBytes));
-    gamecrt::operator_delete(reinterpret_cast<void**>(request.layers)[-1]);
+    lib::FreeAligned32(request.layers);
     request.layers = fresh;
     request.layerBytes = bytes;
     request.capacity = capacity;
@@ -462,9 +459,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
-        texture.Format("%sskin_%.2d.mmp", static_cast<const char*>(unit->name), prototype->skin);
+        texture.Format("%sskin_%.2d.mmp", unit->name.GetString(), prototype->skin);
     else
-        texture.Format("%sskin_00.mmp", static_cast<const char*>(unit->name));
+        texture.Format("%sskin_00.mmp", unit->name.GetString());
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
@@ -508,7 +505,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         result = reinterpret_cast<void*>(
             ComposeTexture(textureManager, nullptr, static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request->textures.~CStringArray();
-        if (request->layers) gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
+        if (request->layers) lib::FreeAligned32(request->layers);
     }
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;

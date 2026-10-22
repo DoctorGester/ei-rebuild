@@ -30,7 +30,7 @@ void UpdateHigh(GameBuffer& b) {
 }
 std::int32_t Length(GameBuffer& b) {
     UpdateHigh(b);
-    return static_cast<std::int32_t>(b.base - reinterpret_cast<std::intptr_t>(b.begin) + reinterpret_cast<std::intptr_t>(b.high));
+    return b.PositionOf(b.high);
 }
 // Seek to `at` from the start, growing when past the end.
 void SeekTo(GameBuffer& b, std::int32_t at) {

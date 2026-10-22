@@ -23,7 +23,7 @@ CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
     int split = name->Find("::");
     if (split >= 0) {
         owner = console::Ops(*name).Mid(0, split);
-        *name = console::Ops(*name).Mid(split + 2, console::Length(*name) - split - 2);
+        *name = console::Ops(*name).Mid(split + 2, name->GetLength() - split - 2);
     }
     if (GameMbscmp(owner, RecordList()->text10) == 0) return player->Party();
     return (RecordList())->Find(owner);

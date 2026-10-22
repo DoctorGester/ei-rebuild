@@ -66,7 +66,7 @@ const char* RefusalKey(int refusal) {
     }
 }
 // The master server's host name.
-const char* MasterHost() { return static_cast<const char*>(options::TheOptions()->masterServerName_); }
+const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0, 0073B858), on (-0.08984375, 00741DA0); the selected game

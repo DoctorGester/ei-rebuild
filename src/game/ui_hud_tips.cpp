@@ -95,12 +95,12 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             line.Format("damage_%d", type);
             TheTextManager()->GetString(line, &description);
         }
-        line.Format("%s %d-%d %s\n", static_cast<const char*>(labels_[0]), Truncate(weapon->damage_),   // "%s %d-%d %s\n"
-                    Truncate(weapon->damageSpread_ + weapon->damage_), static_cast<const char*>(description));
+        line.Format("%s %d-%d %s\n", labels_[0].GetString(), Truncate(weapon->damage_),   // "%s %d-%d %s\n"
+                    Truncate(weapon->damageSpread_ + weapon->damage_), description.GetString());
         tip += line;
         float value = weapon->reach_;
         int category = static_cast<int>(weapon->GetPrototype()->category);
-        line.Format("%s %d  %s %d\n", static_cast<const char*>(labels_[1]), category, static_cast<const char*>(labels_[2]), Truncate(value));   // "%s %d  %s %d\n"
+        line.Format("%s %d  %s %d\n", labels_[1].GetString(), category, labels_[2].GetString(), Truncate(value));   // "%s %d  %s %d\n"
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
@@ -110,7 +110,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
                                  mfc::operator+(mfc::CString("spell "),
                                                 SpellPrototype(spell)->code));
             if (found) TheTextManager()->ReadLine(&description, 1);
-            line.Format("%s %s\n", static_cast<const char*>(labels_[3]), static_cast<const char*>(description));   // "%s %s\n"
+            line.Format("%s %s\n", labels_[3].GetString(), description.GetString());   // "%s %s\n"
             tip += line;
         }
         regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
@@ -145,55 +145,55 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         float level = Get<float>(data, 0x40);
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
-        line.Format("%s %d/%d (%d)\n", static_cast<const char*>(labels_[0]), Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
+        line.Format("%s %d/%d (%d)\n", labels_[0].GetString(), Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
         *text += line;
         if (SpellPrototype(data)->bytes78[3] == 0)
-            line.Format("%s %s  ", static_cast<const char*>(labels_[1]), static_cast<const char*>(labels_[11]));
+            line.Format("%s %s  ", labels_[1].GetString(), labels_[11].GetString());
         else
-            line.Format("%s %d  ", static_cast<const char*>(labels_[1]), Truncate(Get<float>(data, 0x24)));
+            line.Format("%s %d  ", labels_[1].GetString(), Truncate(Get<float>(data, 0x24)));
         *text += line;
         float duration = Get<float>(data, 0x30);
         EI_NAN_AUDIT(duration);
         if (duration < one)
-            line.Format("%s %s \n", static_cast<const char*>(labels_[2]), static_cast<const char*>(labels_[7]));   // "%s %s \n"
+            line.Format("%s %s \n", labels_[2].GetString(), labels_[7].GetString());   // "%s %s \n"
         else
-            line.Format("%s %d \n", static_cast<const char*>(labels_[2]), Truncate(duration));   // "%s %d \n"
+            line.Format("%s %d \n", labels_[2].GetString(), Truncate(duration));   // "%s %d \n"
         *text += line;
-        line.Format("%s %d%s  ", static_cast<const char*>(labels_[3]), Truncate(Get<float>(data, 0x34)), static_cast<const char*>(labels_[9]));
+        line.Format("%s %d%s  ", labels_[3].GetString(), Truncate(Get<float>(data, 0x34)), labels_[9].GetString());
         *text += line;
         if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-            line.Format("%s %s \n", static_cast<const char*>(labels_[4]), static_cast<const char*>(labels_[8]));
+            line.Format("%s %s \n", labels_[4].GetString(), labels_[8].GetString());
         } else {
             float radius = Get<float>(data, 0x28);
             double area = static_cast<double>(radius) * radius * pi;
-            line.Format("%s %.1f%s \n", static_cast<const char*>(labels_[4]), area, static_cast<const char*>(labels_[9]));   // "%s %.1f%s \n"
+            line.Format("%s %.1f%s \n", labels_[4].GetString(), area, labels_[9].GetString());   // "%s %.1f%s \n"
         }
         *text += line;
         std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
         if (ticks < 2) {
-            line.Format("%s %s  ", static_cast<const char*>(labels_[5]), static_cast<const char*>(labels_[7]));
+            line.Format("%s %s  ", labels_[5].GetString(), labels_[7].GetString());
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format("%s %.1f%s  ", static_cast<const char*>(labels_[5]), seconds, static_cast<const char*>(labels_[10]));
+            line.Format("%s %.1f%s  ", labels_[5].GetString(), seconds, labels_[10].GetString());
         }
         *text += line;
-        line.Format("%s %d \n", static_cast<const char*>(labels_[6]), Get<int>(data, 0x38));
+        line.Format("%s %d \n", labels_[6].GetString(), Get<int>(data, 0x38));
         *text += line;
     }
     if (item->GetCategory() == 8) {
         // A scroll: mana and time.
         *text += " \n";   // " \n"
         if (SpellPrototype(data)->bytes78[3] == 0)
-            line.Format("%s %s\n", static_cast<const char*>(labels_[1]), static_cast<const char*>(labels_[11]));   // "%s %s\n"
+            line.Format("%s %s\n", labels_[1].GetString(), labels_[11].GetString());   // "%s %s\n"
         else
-            line.Format("%s %d\n", static_cast<const char*>(labels_[1]), Truncate(Get<float>(data, 0x24)));   // "%s %d\n"
+            line.Format("%s %d\n", labels_[1].GetString(), Truncate(Get<float>(data, 0x24)));   // "%s %d\n"
         *text += line;
         std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
         if (ticks < 2) {
-            line.Format("%s %s\n", static_cast<const char*>(labels_[5]), static_cast<const char*>(labels_[7]));
+            line.Format("%s %s\n", labels_[5].GetString(), labels_[7].GetString());
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format("%s %.1f%s\n", static_cast<const char*>(labels_[5]), seconds, static_cast<const char*>(labels_[10]));   // "%s %.1f%s\n"
+            line.Format("%s %.1f%s\n", labels_[5].GetString(), seconds, labels_[10].GetString());   // "%s %.1f%s\n"
         }
         *text += line;
     }
@@ -224,7 +224,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     title = "Science";
     int found = TextsOpenSection(TheTextManager(), nullptr, mfc::operator+(mfc::CString("perk "), title));
     if (found) TheTextManager()->ReadLine(&tip, 1);
-    title.Format("%s %d\n", static_cast<const char*>(labels_[0]), Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
+    title.Format("%s %d\n", labels_[0].GetString(), Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
     if (TextsOpenSection(TheTextManager(), nullptr, "tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);

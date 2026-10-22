@@ -290,7 +290,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line.Format("%s %d", static_cast<const char*>(text), LocalParty()->Money());
+    line.Format("%s %d", text.GetString(), LocalParty()->Money());
     RECT rect{0, 0, 200, 0x14};
     SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);

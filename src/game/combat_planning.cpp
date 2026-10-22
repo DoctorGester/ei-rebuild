@@ -19,6 +19,7 @@
 #include "unit.h"
 #include "world.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -85,14 +86,14 @@ float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
-    alignas(4) std::uint8_t bytes[sizeof(AIPath)];
-    AIPath* Path() { return reinterpret_cast<AIPath*>(bytes); }
-    const AIPath* Path() const { return reinterpret_cast<const AIPath*>(bytes); }
+    lib::InPlace<AIPath> path;
+    AIPath* Path() { return path.Get(); }
+    const AIPath* Path() const { return &path.object; }
     LocalPath() {
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->steps, 0x80);
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->cells, 0x80);
         PointArrayConstruct(&Path()->excludedBlocks);
-        reinterpret_cast<AIPath*>(bytes)->Clear();
+        Path()->Clear();
     }
     ~LocalPath() {
         mfc::impl::DestructHeader<mfc::impl::PointArrayClass>(&Path()->excludedBlocks);
@@ -182,8 +183,8 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
         CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
             std::memcpy(&spot, spots.data[i], sizeof(spot));
-            reinterpret_cast<AIPath*>(path.bytes)->Clear();
-            if (!MapFindPath(map, nullptr, unit, &spot, path.bytes, kFar, 0.0f)) continue;
+            path.Path()->Clear();
+            if (!MapFindPath(map, nullptr, unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
@@ -335,7 +336,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             path.Path()->flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.bytes, kFar, 0.0f);
+            bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.Path(), kFar, 0.0f);
             unit->altPassCosts = saved43C;
             if (!found) path.Path()->StandStill(unit);
             if (target) {
@@ -383,7 +384,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.bytes, range, 0.0f);
+    bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.Path(), range, 0.0f);
     unit->altPassCosts = saved43C;
     if (running) {
         SectorMapRemove(sectors, nullptr, unit);
@@ -396,7 +397,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         node = node->next;
         SectorMapAdd(sectors, nullptr, current->data);
     }
-    ReportPath(path.bytes, found ? 1 : 0);
+    ReportPath(path.Path(), found ? 1 : 0);
     // The list's RemoveAll (inlined).
     lifted.count = 0;
     lifted.free = nullptr;

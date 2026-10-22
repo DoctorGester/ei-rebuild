@@ -43,17 +43,6 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-// 00675CA0 (unit code): marks an object new (flags_ |= 2) and stamps it with the global at 007AFFC8.
-struct NewObjectMark {
-    void Apply();
-};
-void NewObjectMark::Apply() { static_cast<CEffect*>((void*)this)->MarkChanged(); }
-
-// 0055FB00 (world base): FindObject (slot 40) restricted to units.
-struct WorldBase {
-    CUnit* FindUnit(unsigned id);
-};
-CUnit* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 
 // RemoveObject's callees (not rewritten).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
@@ -107,7 +96,7 @@ int CWorldServer::CountLivingMercs(int id) {
     int living = 0;
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         unsigned unitId = player->Party()->members_.data[i].unitId;
-        CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(unitId);
+        CEngineObject* unit = FindUnit(static_cast<int>(unitId));   // 0055FB00
         if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
     }
     return living - 1;
@@ -127,7 +116,7 @@ void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
         const SharedObject& current = node->data;
         node = node->next;
         if (current.player != player && current.player != -1) continue;   // -1: every player
-        if (CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(current.objectId)) group->Insert(unit);
+        if (CEngineObject* unit = FindUnit(static_cast<int>(current.objectId))) group->Insert(unit);   // 0055FB00
     }
 }
 
@@ -174,7 +163,7 @@ void CWorldServer::AddTimedObject(CEngineObject* object) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
     static_cast<CEffect*>(object)->startTick_ = tick_;
     ++object->refCount_;
-    reinterpret_cast<NewObjectMark*>(object)->Apply();
+    static_cast<CEffect*>(object)->MarkChanged();   // 00675CA0: flags_ |= 2, stamped with 007AFFC8
     unsigned id = static_cast<unsigned>(object->id_);
     timedObjects_.Set(id, object);
 }

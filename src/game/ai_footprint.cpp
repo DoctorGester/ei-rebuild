@@ -162,7 +162,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         if (index < 0) {
             const char* objectName = mapObject->name;
             mfc::CString name(mfc::CString::kUnset);
-            game::FatalError(PartNotFoundFormat(), static_cast<const char*>(*StringArrayGetAt(names, &name, n)), objectName);
+            game::FatalError(PartNotFoundFormat(), (*StringArrayGetAt(names, &name, n)).GetString(), objectName);
             continue;
         }
         const FootprintPart* part = &mapObject->partBoxes[index];

@@ -6,6 +6,7 @@
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
@@ -60,8 +61,8 @@ void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
     mfc::impl::ConstructHeader<mfc::impl::ScriptCommandsClass>(&to->commands);
     mfc::impl::ArrayAs<recordarrays::Cmds>(to->commands).SetSize(from->commands.size, -1);
     for (int i = 0; i < from->commands.size; ++i) {
-        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
-        auto* copy = reinterpret_cast<SSCCmd*>(storage);
+        lib::InPlace<SSCCmd> storage;
+        auto* copy = storage.Get();
         from->commands.CopyAt(copy, i);
         to->commands.data[i].ScriptCmdAssign(copy);
         ScriptCmdDestruct(copy);
@@ -82,24 +83,16 @@ void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from)
 
 // A run's copy constructor (inlined by 004C82B0): the variables through the four value-and-names
 // copy constructors.
-template <typename T>
-ScriptNamedValues<T>* Pair(mfc::CArray<T>* values) {
-    return reinterpret_cast<ScriptNamedValues<T>*>(values);
-}
-template <typename T>
-const ScriptNamedValues<T>* Pair(const mfc::CArray<T>* values) {
-    return reinterpret_cast<const ScriptNamedValues<T>*>(values);
-}
 void CopyConstructRun(ScriptRun* to, const ScriptRun* from) {
     to->block = from->block;
     to->index = from->index;
     to->ticks = from->ticks;
     to->sleepStart = from->sleepStart;
     to->killFlag = from->killFlag;
-    Pair(&to->vars.floats)->CopyConstruct(Pair(&from->vars.floats));
-    Pair(&to->vars.strings)->CopyConstruct(Pair(&from->vars.strings));
-    Pair(&to->vars.objects)->CopyConstruct(Pair(&from->vars.objects));
-    Pair(&to->vars.groups)->CopyConstruct(Pair(&from->vars.groups));
+    NamedValues(&to->vars.floats)->CopyConstruct(NamedValues(&from->vars.floats));
+    NamedValues(&to->vars.strings)->CopyConstruct(NamedValues(&from->vars.strings));
+    NamedValues(&to->vars.objects)->CopyConstruct(NamedValues(&from->vars.objects));
+    NamedValues(&to->vars.groups)->CopyConstruct(NamedValues(&from->vars.groups));
 }
 
 // A group's copy constructor: an empty group, then the references copied.

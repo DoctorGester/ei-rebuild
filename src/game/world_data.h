@@ -51,9 +51,8 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// The unit record's (mapspec::UnitSpec) vtable and its behaviour records' destructor body.
+// The unit record's (mapspec::UnitSpec) vtable.
 constexpr std::uintptr_t kUnitSpecVtable = std::uintptr_t(0x0073C6E0);
-constexpr std::uintptr_t kBehaviourDestructor = std::uintptr_t(0x0046C290);
 
 // ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
 
@@ -113,9 +112,9 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 // text pointers).
 inline void* TextFolderString() { return &TheTextFolder(); }
 inline void* BaseFolderString() { return &TheDiscFolder(); }
-inline const char* ConfiguredDataPath() { return static_cast<const char*>(options::TheOptions()->workPath_); }
-inline const char* ConfiguredTextPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
-inline const char* ConfiguredBasePath() { return static_cast<const char*>(options::TheOptions()->cdRomPath_); }
+inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
+inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
+inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 
