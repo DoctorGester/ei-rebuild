@@ -169,16 +169,8 @@ void CObject3D::TearDownObject3D() {
 
 // --- CMapObject -------------------------------------------------------------------------------
 
-CMapObject* CMapObject::Construct() {
-    CObject3D::Construct();   // 00515BD0
-    ::new (&name2) mfc::CString;
-    SetUpMapObject();
-    SetVtable(this, CMapObject::MapObjectVtable());
-    return this;
-}
-EI_REWRITTEN(0x0050E2D0, CMapObject::Construct);
-
 CMapObject::CMapObject() { SetUpMapObject(); }
+EI_REWRITTEN_SPECIAL(0x0050E2D0, CMapObject::CMapObject);
 
 void CMapObject::SetUpMapObject() {
     effectsVtable = mfc::impl::EffectArrayClass::Vtable();
@@ -203,15 +195,6 @@ void CMapObject::SetUpMapObject() {
     SetBits(animationSpeed, kOne);
 }
 
-void CMapObject::DestructBody() {
-    SetVtable(this, CMapObject::MapObjectVtable());
-    TearDownMapObject();
-    name2.~CString();
-    effectsVtable = mfc::impl::EffectArrayClass::Vtable();
-    if (effects) gamecrt::operator_delete(effects);
-    CObject3D::DestructBody();   // 00515D70
-}
-
 // The second name is destroyed after the body (before the effects in the original), then the 3D
 // object.
 CMapObject::~CMapObject() {
@@ -231,11 +214,12 @@ void CMapObject::TearDownMapObject() {
         gamecrt::operator_delete(records->fields_);
     }
 }
-EI_REWRITTEN(0x0050E660, CMapObject::DestructBody);
+EI_REWRITTEN_SPECIAL(0x0050E660, CMapObject::~CMapObject);
+EI_REWRITTEN_SPECIAL(0x0050E560, CMapObject::~CMapObject);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REWRITTEN(0x00529B20, CMapObject::DestructBody);
-EI_REWRITTEN(0x00529B50, CMapObject::DestructBody);
+// code at them).
+EI_REWRITTEN_SPECIAL(0x00529B20, CMapObject::~CMapObject);
+EI_REWRITTEN_SPECIAL(0x00529B50, CMapObject::~CMapObject);
 
 // --- CUnit ------------------------------------------------------------------------------------
 

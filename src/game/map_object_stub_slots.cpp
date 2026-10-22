@@ -1,6 +1,6 @@
 // The map object's small virtual slots (CMapObject, vtable 0073DAA0; A-U12): the ones a plain
-// object leaves empty (units, levers, traps and torches override them), its deleting destructor
-// and the network state's write / read wrappers. Slot names: CMapObject (map_object.h).
+// object leaves empty (units, levers, traps and torches override them) and the network state's
+// write / read wrappers. Slot names: CMapObject (map_object.h).
 #include "map_object.h"
 
 #include "core_transform.h"
@@ -69,13 +69,6 @@ float __fastcall MapObjectRadius(CMapObject*) { return kPlainRadius; }
 EI_REWRITTEN(0x0050E550, MapObjectRadius);
 
 // --- Slots that read the object ------------------------------------------------------------------------
-
-CMapObject* CMapObject::DeleteMapObject(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0050E560, CMapObject::DeleteMapObject);
 
 int CMapObject::CompanionIsDead() { return companion->IsDead(); }
 EI_REWRITTEN(0x0050E500, CMapObject::CompanionIsDead);

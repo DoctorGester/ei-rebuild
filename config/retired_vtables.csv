@@ -216,7 +216,7 @@ vtable,slots,class,file,note
 0073DA40,3,BoneListClass,src/lib/mfc_slots.h,CList (a figure bone's children and an animation state's bones)
 0073DA4C,13,CFigureAnimationState,src/game/map_object_figures.h,class 0x300D (the figure and map object factories)
 0073DA80,3,AnimationStateListClass,src/lib/mfc_slots.h,CList (an animation state's queue)
-0073DAA0,61,MapObjectBaseClass,src/game/map_object_tables.cpp,"CMapObject's own table (Construct / DestructBody; slots 11, 12 _purecall)"
+0073DAA0,61,CMapObject,src/game/map_object.h,"CMapObject's own table (slots 11, 12 _purecall)"
 0073DB94,3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
 0073DBA0,3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
 0073DBEC,20,CMapObjectClientSpecific,src/game/unit.h,the map objects' client companion

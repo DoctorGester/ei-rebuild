@@ -1396,7 +1396,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont): the debug panel, the interface and the
     console store `CFont::Vtable()`.
   - **Map objects** (map_object_tables.cpp): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
-    MapObjectBaseClass over it (CMapObject's 61), each slot the class's C++ virtual called qualified. CObject3D's row is
+    MapObjectBaseClass over it (CMapObject's 61; gone in C28h: CMapObject's own table), each slot the class's C++
+    virtual called qualified. CObject3D's row is
     five slots (find_vtables split it at 0073DDE8): its slots 5-26 moved from gen_image_cells.py's CODE_REVIEWED to
     NOT_CODE, with a `data` line in config/standalone_unreachable.csv (nothing stores the table).
   - **Left**: the item strips (C21), 00746E60 (a false row: the "ime" string 00704BE6 hands lstrcmpiA; retiring it

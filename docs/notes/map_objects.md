@@ -235,7 +235,8 @@ each one is in the head comment of its verify file.
   equipment changes, highlighting, wounds). The older files of the client unit (unit_client_*.cpp, map_object_draw /
   shadow / client_effects, world_rules.cpp) now call these directly instead of through local forwarders.
 - **The map object's small slots** (`map_object_stub_slots.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
-  constant slots (0050E400-0050E560, 0050E760, 0050F0C0-0050F110), DeleteMapObject 0050E560, NotifyCompanion 0050E930,
+  constant slots (0050E400-0050E560, 0050E760, 0050F0C0-0050F110), NotifyCompanion 0050E930 (the deleting destructor 0050E560 is
+  ~CMapObject's since C28h),
   ScaleEffectChanged 0050E960, TakePrototype 0050E9B0, the network state wrappers 0050EA40 / 0050EA70 / 0050EAB0,
   SetSecondName 0050F150, the transform slots 00516350 / 00516360. Side by side: CompanionIsDead, KeyId,
   ScaleEffectChanged, MoveSpeed, Radius; the rest ours only (plain objects of any zone). The one-byte slots cannot be

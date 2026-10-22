@@ -107,9 +107,9 @@ public:
     int AcceptsNoKey(const void* /*key*/);
     void IgnoreArgument(int);
     void SetScriptPosition(const Vector3* point);
-    static void* MapObjectVtable();   // the compiled 0073DAA0 (map_object_tables.cpp)
 
-    // 0050E660's work without the vtables (map_object_lifetime.cpp); 0050E560 is slot 0.
+    // 0050E660 (deleting: 0050E560; map_object_lifetime.cpp): the streams' buffers, the network records
+    // (00510340), the second name and the effects freed, then the 3D object's destructor.
     ~CMapObject() override;
     int Create() override { return CreateMapObject(); }   // 2: 0050E770
     void Destroy() override { DestroyMapObject(); }        // 3: 0050E840
@@ -227,18 +227,8 @@ public:
     // 0050F630. Has the object an active effect of type `type` (compared with MapEffect::type)?
     int HasEffect(std::uint32_t type);
 
-    // map_object_lifetime.cpp.
-    // 0050E2D0. The constructor: the 3D object (00515BD0), the effect array (vtable 0073DBA0),
-    // the second name, the network record array and its two memory streams (+0x1C4), then the
-    // vtable 0073DAA0, no companion, packed vitals cleared, no sector cell, animationSpeed 1. Returns
-    // this.
-    CMapObject* Construct();
-    // 0050E660. The destructor body: the streams' buffers, the network records (00510340), the
-    // second name and the effects freed, then the 3D object's destructor body.
-    void DestructBody();
-    // The fields the constructor sets past the 3D object's and the second name (Construct and the
-    // C++ constructor), and the destructor body's work but for the second name, the vtables and
-    // the 3D object (DestructBody and the C++ destructor).
+    // map_object_lifetime.cpp. The fields the constructor sets past the 3D object's and the second
+    // name, and the destructor's work but for the second name and the effects.
     void SetUpMapObject();
     void TearDownMapObject();
 
@@ -317,8 +307,6 @@ public:
 
     // map_object_stub_slots.cpp (A-U12). The slots a plain map object leaves empty are free
     // functions there; these read the object.
-    // 0050E560 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
-    CMapObject* DeleteMapObject(unsigned flags);
     // 0050E500 (slot 55). Whether the object is dead: the companion's slot 17 (a tail call).
     int CompanionIsDead();
     // 0050E930 (the sector map's Remove). The companion's slot 14 (empty in both); returns 1.
@@ -380,8 +368,9 @@ public:
     std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams at +0x1E8 and +0x210
 
 protected:
-    // 0050E2D0 as C++, for a class whose vtable is the compiler's: SetUpMapObject (the second name
-    // is a member).
+    // 0050E2D0 (map_object_lifetime.cpp): the 3D object, the effect array, the second name, the network
+    // record array and its two memory streams (+0x1C4), no companion, packed vitals cleared, no sector cell,
+    // animationSpeed 1 (SetUpMapObject).
     CMapObject();
 };
 static_assert(sizeof(CObject3D) == 0x170);
