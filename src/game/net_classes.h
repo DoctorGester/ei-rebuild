@@ -619,7 +619,7 @@ public:
     // replicated to everyone when set
     RefPtrTo<HostMessage> hostInfo_;
     stlp::SharedRefListOf<BindingMessage> bindings_; // +0x25A4 player <-> connection (0073BCB8)
-    RefPtr map_;                        // +0x25A8 the map message (0073BD00) while a map is played
+    RefPtrTo<MapMessage> map_;          // +0x25A8 the map message (0073BD00) while a map is played
     stlp::SharedRefListOf<ZoneMessage> queuedMaps_; // +0x25AC map messages (0073BCD0) the host may pick next
     stlp::SharedRefListOf<VariableMessage> variables_; // +0x25B0 script variables (0073BCE8)
     SharedTimedList awards_;            // +0x25B4 {delay, award (0073BD48)}
