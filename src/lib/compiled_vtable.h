@@ -23,6 +23,14 @@ void* CompiledVtable() {
 template <typename Self>
 struct CompiledTag {
     static void* Vtable() { return CompiledVtable<Self>(); }
+
+protected:
+    // The object a slot runs on, as a T. The tag is never an object of its own: its slots are reached through the
+    // table an object of the class stores, so their `this` is that object (the one place this view is taken).
+    template <typename T>
+    T* ObjectAs() { return reinterpret_cast<T*>(static_cast<Self*>(this)); }
+    template <typename T>
+    const T* ObjectAs() const { return reinterpret_cast<const T*>(static_cast<const Self*>(this)); }
 };
 
 template <typename F>
@@ -39,7 +47,7 @@ class CompiledDeleter : public CompiledTag<Self> {
 public:
     virtual void* DeleteScalar(unsigned flags) {   // 0
         using Target = typename DeleteTarget<decltype(Delete)>::Type;
-        return (reinterpret_cast<Target*>(this)->*Delete)(flags);
+        return (this->template ObjectAs<Target>()->*Delete)(flags);
     }
 };
 

@@ -12,7 +12,8 @@ namespace {
 struct ByStamp {
     bool operator()(void* a, void* b) const {
         EntryIdLess less;
-        return less.Less(static_cast<const std::uint8_t*>(a), static_cast<const std::uint8_t*>(b)) != 0;
+        using Node = stlp::list<RefPtr>::Node;
+        return less.Less(static_cast<const Node*>(a), static_cast<const Node*>(b)) != 0;
     }
 };
 using StampSort = stlp::Sort<void*, ByStamp>;

@@ -89,7 +89,7 @@ public:
     virtual void TakeNew(void*) { _purecall(); }                                // 6: pure
 
 private:
-    CPlayerSource* Object() { return reinterpret_cast<CPlayerSource*>(this); }
+    CPlayerSource* Object() { return ObjectAs<CPlayerSource>(); }
 };
 
 // The server world's counted helper's (0073F240).
@@ -104,14 +104,14 @@ public:
     virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00478880
 
 private:
-    CWorldHandle* Object() { return reinterpret_cast<CWorldHandle*>(this); }
+    CWorldHandle* Object() { return ObjectAs<CWorldHandle>(); }
 };
 
 // The client world's player source's (0073F628).
 class CClientHandleClass final : public ei::CompiledTag<CClientHandleClass> {
 public:
     virtual void* DeleteScalar(unsigned flags) {                                // 0: 00562750
-        return reinterpret_cast<CRefObject*>(this)->ValueDeletingDestruct(flags);
+        return Object()->ValueDeletingDestruct(flags);
     }
     virtual void Serialize(ChunkArchive*) {}                                    // 1: 00412580 (empty)
     virtual int OnShutdown() { return Object()->CClientHandle::OnShutdown(); } // 2: 005626D0
@@ -121,7 +121,7 @@ public:
     virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }      // 6: 00562700
 
 private:
-    CClientHandle* Object() { return reinterpret_cast<CClientHandle*>(this); }
+    CClientHandle* Object() { return ObjectAs<CClientHandle>(); }
 };
 
 } // namespace
