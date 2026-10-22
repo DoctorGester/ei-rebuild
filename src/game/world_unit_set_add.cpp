@@ -114,7 +114,7 @@ void UnitSet::Add(CUnit* unit) {
     if (!marked) {
         if (unit->type_ != kUnitTypeHero) {
             // The texts the server companion holds (CMapObjectServer's string array).
-            const CMapObjectServer* server = static_cast<const CMapObjectServer*>(unit->companion);
+            const CMapObjectServer* server = unit->ServerCompanion();
             for (int i = 0; i < server->strings.size; ++i) {
                 mfc::CString name(server->strings[i].GetString());
                 record.names.PushBack<NameElement>(name);

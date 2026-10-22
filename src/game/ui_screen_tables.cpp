@@ -225,7 +225,7 @@ struct DifficultyBoxInputClass final
     : MessageBoxInputBaseClass<DifficultyBoxInputClass, &CMessageBox::MessageBoxDelete, CDifficultyBox> {};
 struct MasterRequestBoxClass final
     : MessageBoxBaseClass<MasterRequestBoxClass, &CMasterRequestBox::MasterRequestBoxDelete, CMessageBox> {
-    void Update() override { static_cast<CMasterRequestBox*>(AsScreen())->Update(); }   // 24: 0061E4E0
+    void Update() override { ObjectAs<CMasterRequestBox>()->Update(); }   // 24: 0061E4E0
 };
 struct MasterRequestBoxInputClass final
     : MessageBoxInputBaseClass<MasterRequestBoxInputClass, &CMasterRequestBox::MasterRequestBoxDelete, CMessageBox> {};

@@ -50,7 +50,6 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScro
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 
-void* MultiplayerClient() { return net::GameClient(); }
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
 
@@ -672,7 +671,7 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         break;
     case VK_ESCAPE:
-        net::ClientDropParty(static_cast<net::ClientSession*>(MultiplayerClient()));
+        net::ClientDropParty(net::GameClient());
         inputHandled_ = true;
         break;
     }

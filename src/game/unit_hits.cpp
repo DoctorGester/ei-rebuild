@@ -85,8 +85,7 @@ UnitLogStream* HitLog() { return ei::GameData<UnitLogStream*>(0x007AF284); }
 
 namespace {
 void Remark(CUnit* unit, int code) {
-    CEngineObject* controller = unit->controller;
-    if (controller->GetClassId() == kClassUnitServer) static_cast<CUnitServer*>(controller)->Shout(code);
+    if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(code);
 }
 } // namespace
 

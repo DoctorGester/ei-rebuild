@@ -25,6 +25,7 @@
 
 class CStream;              // core_streams.h
 class CMapObjectServer;     // unit.h
+class CMapObjectClientSpecific;   // unit.h
 class CMapObjectCompanion;  // below
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
@@ -350,6 +351,8 @@ public:
     CMapObjectCompanion* companion; // +0x170 CMapObjectServer / CMapObjectClientSpecific
     // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
     CMapObjectServer* ServerCompanion() const;
+    // The companion as the client's CMapObjectClientSpecific (on the client; defined in unit.h).
+    CMapObjectClientSpecific* ClientCompanion() const;
     // +0x174 world updates until the object's effects are next looked at (5 after Create; the
     // server world's update map sets it, world_units.cpp / world_server.cpp).
     int updateCountdown;

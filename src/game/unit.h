@@ -1330,4 +1330,5 @@ public:
 static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
 static_assert(offsetof(CMapObjectClientSpecific, sounds) == 0x3C);
 static_assert(offsetof(CMapObjectClientSpecific, light) == 0x50);
+inline CMapObjectClientSpecific* CMapObject::ClientCompanion() const { return static_cast<CMapObjectClientSpecific*>(companion); }
 
