@@ -269,7 +269,7 @@ void CEffectMoshka::Follow(int objectId) {
     bird->RestartPose();
     attached->SetSkins(texture, game::EmptyText());
     TheClientWorld()->AddObject(bird_);
-    attached->AsSpecific()->SetLit(1);
+    attached->SetLit(1);   // slot 26
     if (FigureAnimation* first = bird->AnimationAt(0)) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);

@@ -7,6 +7,7 @@
 
 #include "core_refcount.h"   // CountedRef
 #include "engine_object.h"
+#include "map_object_figures.h"   // CObject3D, CObject3DSpecific (the base half)
 #include "maths.h"
 
 #include "lib/containers.h"
@@ -56,7 +57,10 @@ static_assert(sizeof(TextureParts) == 0x14);
 
 struct WoundsMaterial;   // below
 
-class CObject3DClientSpecific : public CEngineObject {
+// The client's half of a 3D object: a CObject3DSpecific (its slots are the base's virtuals, the
+// compiled table object3d_specific_slots.cpp makes), with the shadow, the part sets and the skins.
+// Members that are slot bodies have names of their own, so none of them overrides a slot.
+class CObject3DClientSpecific : public CObject3DSpecific {
 public:
     CObject3DClientSpecific* DeleteScalar(unsigned flags);
     // 0051CE60. Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
@@ -116,9 +120,9 @@ public:
     // flags_ 0x20 of the 3D object): 0051C130 whether the point (x, y) is in the object's dirtyRect;
     // 0051C160 in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
     // 0051C1D0 whether `rect` meets such a part's rectangle (a non-empty intersection).
-    int BoundsContainPoint(const long* point);
-    int PartsContainPoint(const long* point);
-    int PartsIntersectRect(const tagRECT* rect);
+    int DirtyRectContains(const long* point);
+    int PartRectsContain(const long* point);
+    int PartRectsMeet(const tagRECT* rect);
     // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
     // its part of type `type` (CObject3D::FindPartOfType).
     CFigureMesh* ObjectPartNamed(const char* name);
@@ -179,11 +183,11 @@ public:
     // 0051CB30 (slot 21). Every material takes the world material manager's colours for its kind
     // (0068EAF0; the cursor walks them), then SetSkins with the names kept (the second only when it
     // is not "none").
-    void ApplyMaterials();
+    void ApplyWorldMaterials();
     // 0051C9F0 (RET 4). With `lit` every material's emissive colour is pushed on its stack and set
     // to white (alpha kept); without, each takes back the colour last pushed (if any).
-    void SetLit(int lit);
-    // 0051C9E0 (slot 26, RET 4): SetLit. 0051C9D0 (slot 25, RET 4): nothing.
+    void SetMaterialsLit(int lit);
+    // 0051C9E0 (slot 26, RET 4): SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing.
     void SetLitSlot(int lit);
     void EmptySlot25(int);
     // object3d_client_shadow_state.cpp (A-U12).
@@ -201,10 +205,7 @@ public:
     // drawnRect as the RECT it is (windows.h).
     tagRECT* DrawnRect() { return reinterpret_cast<tagRECT*>(drawnRect); }
 
-    // The half as the interface its slots are called through (map_object_figures.h).
-    class CObject3DSpecific* AsSpecific() { return reinterpret_cast<class CObject3DSpecific*>(this); }
-
-    CObject3D* object;              // +0x1C
+    // +0x1C the object it belongs to (CObject3DSpecific::object)
     // +0x20 the two part sets Draw walks: the first has the skin texture (its +0x60 is the shadow
     // colour key), the second a hero's simple skin (CUnitClientSpecific slot 30).
     TextureParts* partSets[2];
@@ -274,8 +275,5 @@ inline void CObject3DClientSpecific::ClearWoundsMaterial() {
     if (old) old->Release();
 }
 
-#include "map_object_figures.h"   // CObject3D
-
 // The 3D object's half (+0x94) on the client.
-// (CObject3DSpecific is its slot view: the same object.)
-inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return reinterpret_cast<CObject3DClientSpecific*>(attached); }
+inline CObject3DClientSpecific* CObject3D::ClientSpecific() const { return static_cast<CObject3DClientSpecific*>(attached); }

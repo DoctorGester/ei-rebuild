@@ -49,13 +49,13 @@ POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
 const RECT* PartRect(const CFigureMesh* part) { return &part->drawer_->screen_; }
 } // namespace
 
-int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
+int CObject3DClientSpecific::DirtyRectContains(const long* point) {
     if (!(object->flags_ & kObjectShown)) return FALSE;
     return gameapi::PtInRect(object->DirtyRect(), AsPoint(point));
 }
-EI_REWRITTEN(0x0051C130, CObject3DClientSpecific::BoundsContainPoint);
+EI_REWRITTEN(0x0051C130, CObject3DClientSpecific::DirtyRectContains);
 
-int CObject3DClientSpecific::PartsContainPoint(const long* point) {
+int CObject3DClientSpecific::PartRectsContain(const long* point) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
     for (int i = 0; i < target->parts.size; ++i) {
@@ -65,9 +65,9 @@ int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     }
     return FALSE;
 }
-EI_REWRITTEN(0x0051C160, CObject3DClientSpecific::PartsContainPoint);
+EI_REWRITTEN(0x0051C160, CObject3DClientSpecific::PartRectsContain);
 
-int CObject3DClientSpecific::PartsIntersectRect(const tagRECT* rect) {
+int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
     for (int i = 0; i < target->parts.size; ++i) {
@@ -79,7 +79,7 @@ int CObject3DClientSpecific::PartsIntersectRect(const tagRECT* rect) {
     }
     return FALSE;
 }
-EI_REWRITTEN(0x0051C1D0, CObject3DClientSpecific::PartsIntersectRect);
+EI_REWRITTEN(0x0051C1D0, CObject3DClientSpecific::PartRectsMeet);
 
 CFigureMesh* CObject3DClientSpecific::ObjectPartNamed(const char* name) { return object->FindPart(name); }
 EI_REWRITTEN(0x0051B2E0, CObject3DClientSpecific::ObjectPartNamed);
@@ -207,12 +207,12 @@ public:
         return Client()->Draw(static_cast<CSceneRenderer*>(context), dirty);
     }
     int DrawPartsShadow(void* context) override { return Client()->DrawShadow(static_cast<CSceneRenderer*>(context)); }   // 20: 0051CE60
-    void ApplyMaterials() override { Client()->CObject3DClientSpecific::ApplyMaterials(); }   // 21: 0051CB30
-    int BoundsContainPoint(const long* point) override { return Client()->CObject3DClientSpecific::BoundsContainPoint(point); }   // 22: 0051C130
+    void ApplyMaterials() override { Client()->ApplyWorldMaterials(); }   // 21: 0051CB30
+    int BoundsContainPoint(const long* point) override { return Client()->DirtyRectContains(point); }   // 22: 0051C130
     int PartsIntersectRect(const long* rect) override {   // 23: 0051C1D0
-        return Client()->CObject3DClientSpecific::PartsIntersectRect(reinterpret_cast<const tagRECT*>(rect));
+        return Client()->PartRectsMeet(reinterpret_cast<const tagRECT*>(rect));
     }
-    int PartsContainPoint(const long* point) override { return Client()->CObject3DClientSpecific::PartsContainPoint(point); }   // 24: 0051C160
+    int PartsContainPoint(const long* point) override { return Client()->PartRectsContain(point); }   // 24: 0051C160
     void Unused25(int value) override { Client()->EmptySlot25(value); }   // 25: 0051C9D0
     void SetLit(int lit) override { Client()->SetLitSlot(lit); }          // 26: 0051C9E0
 
