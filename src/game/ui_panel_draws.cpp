@@ -33,15 +33,6 @@ const char* CostFormat() { return "%s %d (%d)"; }
 // an item's model in a cell (RET 8).
 void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<CItemScreen*>(owner)->DrawItem(pass, cell); }
 
-// The window's surface text (005FDE20 Rebirth-patched: through its address).
-struct SurfaceText : CUiSurface {
-    void Begin() { UiSurfaceGetDC(this); }
-    void Clear() { SurfaceClearOriginal(this); }
-    void Draw(const char* text, RECT* rect, int format, int align) {
-        SurfaceDrawText(this, nullptr, text, rect, format, kTextColour, align, 1);
-    }
-    void End() { UiSurfaceReleaseDC(this); }
-};
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of
 // it) to `z` under the device lock, as the original inlines it; the new renderer gets the clear too.
@@ -94,8 +85,8 @@ BOOL CRepairGrid::Draw(int pass) {
     ClearDepth(ui->renderer_, &inside, 1.0f);
 
     mfc::CString text;
-    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
-    surface->Begin();
+    auto* surface = surfaces_.data[0];
+    surface->GetDC();
     surface->Clear();
     const UiItemList* list = items_;
     for (int i = 0; i < list->size; ++i) {
@@ -111,15 +102,15 @@ BOOL CRepairGrid::Draw(int pass) {
         if (pieces > 1) {
             text.Format(NumberFormat(), pieces);
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
-            surface->Draw(text, &r, 1, 2);
+            surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
         }
         using PriceFn = int(__thiscall*)(CUiWindow*, CItem*, int);
         int price = ei::VirtualSlot<PriceFn>(owner_->vtable_, 54)(owner_, item, 8);
         text.Format(NumberFormat(), price);
         RECT r{x + 0x0F, y + 0x41, x + 0x55, y + 0x55};
-        surface->Draw(text, &r, 1, 1);
+        surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
     }
-    surface->End();
+    surface->ReleaseDC();
     DrawBase(pass);
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
@@ -214,26 +205,26 @@ BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
         using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
         ei::VirtualSlot<BestFn>(owner_->vtable_, 45)(owner_, school, &skill, &mana);
     }
-    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
-    surface->Begin();
+    auto* surface = surfaces_.data[0];
+    surface->GetDC();
     surface->Clear();
     if (hasSpell) {
         mfc::CString text;
         text.Format(CostFormat(), texts_[0].GetString(), skill, needed);
         RECT first{10, 0, 200, 20};
-        surface->Draw(text, &first, 1, 0);
+        surface->DrawLine(text, &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
         text.Format(CostFormat(), texts_[1].GetString(), mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
-        surface->Draw(text, &second, 1, 0);
+        surface->DrawLine(text, &second, 1, kTextColour, 0, 1);
     } else {
         RECT first{10, 0, 200, 20};
-        surface->Draw(texts_[0], &first, 1, 0);
+        surface->DrawLine(texts_[0], &first, 1, kTextColour, 0, 1);
         RECT second{10, 20, 200, 40};
-        surface->Draw(texts_[1], &second, 1, 0);
+        surface->DrawLine(texts_[1], &second, 1, kTextColour, 0, 1);
     }
-    surface->End();
+    surface->ReleaseDC();
     DrawBase(pass);
 
     CUiMesh* highlight = Highlight(this);

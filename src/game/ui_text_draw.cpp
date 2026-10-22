@@ -25,6 +25,10 @@ HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
 
 // --- 005FDE20 ----------------------------------------------------------------------------------------------
 
+int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
+    return SurfaceDrawText(this, nullptr, text, rect, font, colour, format, shadow);
+}
+
 int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
     if (!holder_) return 0;
     auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));

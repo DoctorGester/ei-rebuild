@@ -43,13 +43,6 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
 
 
-struct SurfaceDraw : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
-    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { UiSurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
 int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecords()); }
@@ -247,16 +240,16 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 }
 
 // A school row: name, level 40 pixels in from the right, and below level 100 the next level's price.
-void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* school, mfc::CString* value) {
-    draw->Text(school->name, row, 0, kBright, 0, 1);
+void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
+    draw->DrawLine(school->name, row, 0, kBright, 0, 1);
     value->Format("%d", school->level);
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
     RECT levelRect = shifted;
-    draw->Text(*value, &levelRect, 0, kBright, 2, 1);
+    draw->DrawLine(*value, &levelRect, 0, kBright, 2, 1);
     if (school->level < 100) {
         panel->FormatPrice(school->price, value);
-        draw->Text(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
+        draw->DrawLine(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -264,18 +257,18 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
 } // namespace
 
 void CTradePanel::DrawLists() {
-    SurfaceDraw* draw = static_cast<SurfaceDraw*>(surfaces_.data[0]);
-    draw->Begin();
+    CUiSurface* draw = surfaces_.data[0];
+    draw->GetDC();
     draw->Clear();
     mfc::CString value;
     while (sceneObjects_.size > 4) RemoveSceneObjectAt(sceneObjects_.size - 1);
 
     RECT title = {0, 10, 200, 25};
-    draw->Text(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[0], &title, 0, 0xFFFFFF, 1, 1);
     title = {0, 205, 200, 220};
-    draw->Text(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[1], &title, 0, 0xFFFFFF, 1, 1);
     title = {200, 10, 400, 25};
-    draw->Text(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
+    draw->DrawLine(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
 
     // The schools; the third one's row stays empty (science is drawn there).
     RECT row = {15, 35, 180, 50};
@@ -297,11 +290,11 @@ void CTradePanel::DrawLists() {
     for (int shown = 0; shown < 10; ++shown, ++index) {
         if (index >= static_cast<unsigned>(perks_.Count())) break;
         TradeRow* perk = &perks_.begin[index];
-        draw->Text(perk->name, &row, 0, kBright, 0, 1);
+        draw->DrawLine(perk->name, &row, 0, kBright, 0, 1);
         if (perk->nextKey.GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
             FormatPrice(perk->price, &value);
-            draw->Text(value, &row, 0, colour, 2, 1);
+            draw->DrawLine(value, &row, 0, colour, 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -319,13 +312,13 @@ void CTradePanel::DrawLists() {
             textColour = kBright;
             priceColour = PriceColour(perk->price, experience_);
         }
-        draw->Text(perk->name, &row, 0, textColour, 0, 1);
+        draw->DrawLine(perk->name, &row, 0, textColour, 0, 1);
         FormatPrice(perk->price, &value);
-        draw->Text(value, &row, 0, priceColour, 2, 1);
+        draw->DrawLine(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }
-    draw->End();
+    draw->ReleaseDC();
 }
 namespace {
 void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }

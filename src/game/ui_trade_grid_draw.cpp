@@ -27,15 +27,6 @@ namespace {
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 
-// 005ECA10 (thiscall on the grid's +0x14C object): draws an item's model in a cell.
-// The window's surface text helpers (Rebirth patches 005FDE20).
-struct SurfaceText : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }
-    void Clear() { SurfaceClearOriginal(this); }
-    int Draw(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);
-    void End() { UiSurfaceReleaseDC(this); }
-};
-int SurfaceText::Draw(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // IDirect3DDevice7::Clear of the depth buffer (and the stencil when the device has one) over
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
@@ -50,7 +41,7 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surface, mfc::CString& text, float yOffset,
+void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface, mfc::CString& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
     CItem** items = list->data;
     int count = list->size;
@@ -64,13 +55,13 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         if (pieces > 1) {
             text.Format("%d", pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
-            surface->Draw(text, &r, 1, kTextColour, 2, 1);
+            surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
             int price = static_cast<CCampPages*>(grid->owner_)->VirtualPrice(cell.item, kind);   // the camp
             text.Format("%d", price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
-            surface->Draw(text, &r, 1, kTextColour, 1, 1);
+            surface->DrawLine(text, &r, 1, kTextColour, 1, 1);
         }
     }
 }
@@ -89,14 +80,14 @@ int CTradeGrid::DrawGrid(int pass) {
     DrawBase(pass);
 
     mfc::CString text;
-    auto* surface = static_cast<SurfaceText*>(surfaces_.data[0]);
-    surface->Begin();
+    auto* surface = surfaces_.data[0];
+    surface->GetDC();
     surface->Clear();
     DrawItems(this, pass, bought_, surface, text, 150.0f /*0073D618*/, 48.0f, 24.0f, 0x0F, 0x41,
               buyKind_);
     DrawItems(this, pass, sold_, surface, text, 350.0f /*00741F18*/, 12.0f, 6.0f, 0xD7, 0x109,
               sellKind_);
-    surface->End();
+    surface->ReleaseDC();
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &whole, 1.0f);

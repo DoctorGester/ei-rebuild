@@ -498,6 +498,12 @@ public:
     // The DC must be held. Returns DrawText's height scaled back to the layout (005F7E30), or 0
     // without a surface.
     int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
+    // 005FDC00 / 005FDC60 (UiSurfaceGetDC / UiSurfaceReleaseDC below): the surface's DC held and
+    // released.
+    ui_gdi::GameDC* GetDC();
+    void ReleaseDC();
+    // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
+    int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
@@ -581,6 +587,8 @@ struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
+inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
