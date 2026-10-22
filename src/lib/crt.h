@@ -222,16 +222,11 @@ gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);         
 
 // Formatted text (S4a, src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from
 // a 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and
-// friends), and atof by __strgtold12 / _ld12tod. Byte- and bit-exact with the originals.
+// friends). Byte-exact with the originals (the host's printf differs: C26). atof and sscanf are the host CRT's.
 int __cdecl Sprintf(char* buffer, const char* format, ...);                     // 006E8715
 int __cdecl Vsprintf(char* buffer, const char* format, va_list args);           // 006ECC47
 int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);           // 006EAEB0
 int __cdecl Printf(const char* format, ...);                                    // 006E955F
-double __cdecl Atof(const char* text);                                          // 006E911A
-// sscanf (S16): MSVC 6's _input over the text for white space, literals, %% and the d i o u x p n c s [
-// conversions (no floats, no wide characters: they end the scan).
-int __cdecl Sscanf(const char* text, const char* format, ...);                  // 006EAEEC
-int __cdecl Vsscanf(const char* text, const char* format, va_list args);
 // vfprintf: formatted in memory, then one write through the game's fwrite (not registered).
 int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
 // The game's stdin, stdout and stderr (index 0..2; game.exe's &_iob[0..2]). In the image a CrtFile* is the

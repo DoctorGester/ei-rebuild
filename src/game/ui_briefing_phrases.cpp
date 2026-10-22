@@ -34,6 +34,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cstdlib>
 #include <string_view>
 
 namespace {
@@ -146,9 +147,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
             animation = libcrt::Atoi(words[1]);
         } else if (Compare(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kRadiansPerDegree * GameAtof(words[2]));
-                distance = static_cast<float>(GameAtof(words[3]));
-                height = static_cast<float>(GameAtof(words[4]));
+                angle = static_cast<float>(kRadiansPerDegree * std::atof(words[2]));
+                distance = static_cast<float>(std::atof(words[3]));
+                height = static_cast<float>(std::atof(words[4]));
                 view = true;
             }
             preset = libcrt::Atoi(words[1]);

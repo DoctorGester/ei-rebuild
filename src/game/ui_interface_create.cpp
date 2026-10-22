@@ -26,6 +26,7 @@
 #include "options.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <utility>
 
 namespace {
@@ -71,7 +72,7 @@ void ChooseKeyboardLayout() {
         char name[12];
         if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
-        libcrt::Sscanf(name, "%x", &id);
+        sscanf_s(name, "%x", &id);
         id &= 0xFFFF;
         if (id == wanted) {
             found = i;

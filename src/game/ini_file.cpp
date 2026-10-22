@@ -12,6 +12,7 @@
 #include "game_data.h"
 #include "lib/mfc_string.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -191,7 +192,7 @@ double CIniFile::GetDouble(const char* section, const char* key, double defaultV
     mfc::CString text;
     text.Format(kDoubleFormat, defaultValue);
     mfc::CString value = ReadString(this, section, key, text);
-    volatile double result = GameAtof(value);   // stored as a double, as the original does
+    volatile double result = std::atof(value);   // stored as a double, as the original does
     return result;
 }
 EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);

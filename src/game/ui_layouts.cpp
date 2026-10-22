@@ -40,6 +40,7 @@
 #include "lib/mfc_string.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -699,7 +700,7 @@ void CCreditsScreen::Build() {
                                 0;   // "#scroll"
             }
             words.Next();
-            record.speed = static_cast<float>(GameAtof(words.word));
+            record.speed = static_cast<float>(std::atof(words.word));
             words.Next();
             record.style = words.WordOrNull();
             words.Next();

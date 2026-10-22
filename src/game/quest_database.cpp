@@ -18,6 +18,7 @@
 #include "text_split.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -66,9 +67,9 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
         places[i].TrimRight('}');
         text::Split(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
-            float x = static_cast<float>(GameAtof(parts[0]));
+            float x = static_cast<float>(std::atof(parts[0]));
             PushPlace(quest, x);
-            float y = static_cast<float>(GameAtof(parts[1]));
+            float y = static_cast<float>(std::atof(parts[1]));
             PushPlace(quest, y);
         }
     }

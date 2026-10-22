@@ -1591,11 +1591,12 @@ the `--no-hooks` suite) keeps the registry.
   `_output` (the `__lookuptable` state machine copied from 007476D0, `%I64`, `%Z`, "(null)"). Floats are not "17
   correct digits": `$I10_OUTPUT` builds them from a 12-byte long double (96-bit `__ld12mul` with truncated partial
   products, the exe's power-of-ten tables 0079AE60 / 0079AFC0), then `_fptostr` rounds half up; three exponent digits;
-  "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0. atof 006E911A is
-  `__strgtold12` (24 digits, the 24th bumped when more follow and it is >= 5; exponents beyond 5200 saturate; 'd'
-  accepted) then `_ld12tod` (ties and some values above round down). sscanf 006EAEEC is `_input` for integers, %n,
-  %c / %s / %[ (floats and wide characters end the scan; a format that starts with %n reads a stale stack byte in the
-  original). The decimal point comes from 00797FE8.
+  "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0. The decimal point is the
+  host's LC_NUMERIC one ("."). C26 tried the host's printf: the crt vectors differ (3 of 258 records: "%g" / "%.6g"
+  of FLT_MAX "3.40282e+38" for VC6's "3.40282e+038", infinity "inf" for "1.#INF") and so do six image goldens
+  (combat, combat_more, sound, unit_ai_cast, unit_ai_corpse, unit_ai_heal: the console's "skill=3.40282e+038"
+  attack line), so _output stays. atof and sscanf are the host CRT's (C26: goldens and the atof vectors the
+  same); callers use std::atof / sscanf_s.
 - **Files** (crt_file.cpp): _open is VC6's _sopen through the game's import slots (so the harness's save / install
   redirection applies), the handle wrapped as a host descriptor; fopen parses the mode as `_openfile` and wraps with
   `_fdopen`, so the game's CrtFile* is the host's FILE*; the stream and descriptor functions are the host's (a bad

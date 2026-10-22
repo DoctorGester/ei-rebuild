@@ -20,6 +20,7 @@
 #include "render/render_state.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <new>
 
 namespace {
@@ -85,9 +86,9 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* n
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
             while (words.GetSize() < 3) words.SetAtGrow(words.GetSize(), kMissingNumber);
-            out->x = static_cast<float>(GameAtof(words[0]));
-            out->y = static_cast<float>(GameAtof(words[1]));
-            out->z = static_cast<float>(GameAtof(words[2]));
+            out->x = static_cast<float>(std::atof(words[0]));
+            out->y = static_cast<float>(std::atof(words[1]));
+            out->z = static_cast<float>(std::atof(words[2]));
             found = true;
         }
     }
