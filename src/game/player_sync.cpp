@@ -182,7 +182,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         std::uint32_t prototype = 0;
         if (isUnit) {
             WriteText(&out_, object->GetName());
-            prototype = static_cast<std::uint32_t>(reinterpret_cast<CUnit*>(object)->prototype23C);
+            prototype = static_cast<std::uint32_t>(static_cast<CUnit*>(object)->prototype23C);
         } else {
             WriteText(&out_, game::EmptyText());
         }

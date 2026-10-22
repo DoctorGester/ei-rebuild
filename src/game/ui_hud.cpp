@@ -859,8 +859,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
-        void* item = first->GetQuickItem(pendingSlot_);
-        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) return;
+        CItem* item = first->GetQuickItem(pendingSlot_);
+        if (item && item->GetCategory() == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;
     }
@@ -989,7 +989,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         screen->pendingSlot_ = region;
         screen->pendingAction_ = 6;
         clearPanels(-1);
-        reinterpret_cast<CHudQuickItems*>(screen->quickItems_)->Highlight(region, 1);
+        screen->quickItems_->Highlight(region, 1);
         return;
     }
     // The highlighted one again: back to plain selection.

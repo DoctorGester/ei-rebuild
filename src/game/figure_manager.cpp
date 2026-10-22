@@ -68,7 +68,7 @@ CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName
 CEngineObject* CFigureManager::NewFigure(const char* name) {
     CEngineObject* object = CreateObject(kFigureClass, -1);
     if (!name) return object;
-    auto* figure = reinterpret_cast<CFigureMesh*>(object);
+    auto* figure = static_cast<CFigureMesh*>(object);
     figure->name_ = name;
     figure->directory_ = game::EmptyText();
     mfc::CString path;

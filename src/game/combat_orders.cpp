@@ -275,7 +275,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
             world->CastSpell(spellCarrier->spell_, unit, &unit->localPosition_, target,
-                                   &reinterpret_cast<CUnit*>(target)->localPosition_, 0);
+                                   &static_cast<CUnit*>(target)->localPosition_, 0);
             world->UseItemUp(unit, scroll);
             return;
         }

@@ -573,7 +573,7 @@ void CUnitServer::TickAction() {
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;
-            auto* particle = reinterpret_cast<CEffectParticle*>(effect);
+            auto* particle = static_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
             static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
