@@ -3130,7 +3130,7 @@ id = "H30b"
 title = "Harness: read game.exe's objects through its own views, so game headers leave the reference key"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22 asked why C28 runs the vanilla suite: the harness's game.exe side (harness_digest, harness_watch, harness_address_order, harness_leftovers, harness_objects.h, harness.cpp...) reads game.exe's objects through our src/game class headers (unit.h, world.h, map_object.h, ...), so every C28 header change alters harness_files() and run_all replays the original suite. It is a real dependency today: the vanilla digest reads game.exe's objects with our members' order. Give tests/verify its own small views of game.exe's objects (the fields the digest/watch/order code reads, at game.exe's offsets), include none of src/game's class headers there, and the key drops to the harness alone; our classes then owe game.exe's layout nothing. Not scheduled (user 2026-10-22 15:26: no new work today)."
+note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
