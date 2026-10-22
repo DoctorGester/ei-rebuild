@@ -1293,15 +1293,11 @@ public:
     int shownCount_;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    void* entriesVtable_;            // +0x158 CArray<Entry>
-    Entry* entries_;                 // +0x15C
-    int entryCount_;                 // +0x160
-    int entryCapacity_;              // +0x164
-    int entryGrowBy_;                // +0x168
+    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass; SetSize 0064B060, inlined)
     int regionItem_[8];              // +0x16C
     mfc::CStringArray labels_;       // +0x18C the tooltip's labels
 };
-static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
+static_assert(offsetof(CHudQuickItems, entries_) == 0x158);
 static_assert(offsetof(CHudQuickItems, labels_) == 0x18C);
 static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator new
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
