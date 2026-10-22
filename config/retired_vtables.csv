@@ -193,6 +193,7 @@ vtable,slots,class,file,note
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
 0073D644,13,SysInfoClass,src/game/sys_info.cpp,the system information (CSysInfo)
+0073D6B4,13,VisibilityFogClass,src/game/effects_weather.cpp,the visibility fog (CVisibilityFog; the fog manager NewObject and the destructor body)
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"

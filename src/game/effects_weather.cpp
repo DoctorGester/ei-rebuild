@@ -346,7 +346,7 @@ void CVisibilityFog::ClearCells() {
 }
 
 void CVisibilityFog::Destruct() {
-    ei::SetVtable(this, 0x0073D6B4);
+    ei::SetVtable(this, Vtable());
     ClearCells();
     cells.Destroy();
     DestructBase();
@@ -375,3 +375,18 @@ EI_REPLACE(0x004E23D0, FogCreate);
 EI_REPLACE(0x004E2440, FogDestroy);
 EI_REPLACE(0x004E24A0, FogClassName);
 EI_REPLACE(0x004E24B0, FogClassId);
+
+namespace {
+// The compiled table (C19, engine_object_class.h) in place of game.exe's 0073D6B4: 0 the deleting destructor, 2 / 3
+// the cells cleared (2 returns 1), 6 the cells' fade, 11 / 12 the class name and id.
+class VisibilityFogClass final : public EngineObjectClass<VisibilityFogClass, CVisibilityFog> {
+public:
+    int Create() override { return FogCreate(As<CVisibilityFog>()); }                 // 2: 004E23D0
+    void Destroy() override { FogDestroy(As<CVisibilityFog>()); }                     // 3: 004E2440
+    int RunTick() override { return As<CVisibilityFog>()->UpdateCells(); }            // 6: 004E1AB0
+    const char* ClassName() override { return FogClassName(As<CVisibilityFog>()); }   // 11: 004E24A0
+    int ClassId() override { return FogClassId(As<CVisibilityFog>()); }               // 12: 004E24B0
+};
+} // namespace
+
+void* CVisibilityFog::Vtable() { return VisibilityFogClass::Vtable(); }

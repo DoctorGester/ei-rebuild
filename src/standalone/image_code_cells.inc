@@ -5,19 +5,6 @@
 // a stub that reports there is no code there. {cell, the code address it holds}, by group; each group's
 // review is in the tool.
 // a vtable's slots (config/vtables.csv)
-{DataId(0x0073D6B4), 0x004E24C0},
-{DataId(0x0073D6B8), 0x00402D40},
-{DataId(0x0073D6BC), 0x004E23D0},
-{DataId(0x0073D6C0), 0x004E2440},
-{DataId(0x0073D6C4), 0x00455980},
-{DataId(0x0073D6C8), 0x00402CC0},
-{DataId(0x0073D6CC), 0x004E1AB0},
-{DataId(0x0073D6D0), 0x00402CE0},
-{DataId(0x0073D6D4), 0x00402CF0},
-{DataId(0x0073D6D8), 0x00402D00},
-{DataId(0x0073D6DC), 0x00402D10},
-{DataId(0x0073D6E0), 0x004E24A0},
-{DataId(0x0073D6E4), 0x004E24B0},
 {DataId(0x007472B0), 0x006E7DF4},
 // C++ EH: ThrowInfo: the thrown object's destructor
 {DataId(0x00749CEC), 0x0040C500},
