@@ -1076,8 +1076,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     readers 0073C710 / 18 / 20 (map_spec_unit.cpp, next to C21's unit spec tables), the UI's 007403F8 / 00740FD4 /
     007418E0 / 00742464, and the MFC library kind.
 - **Batch 18's families** (2026-10-22): the two counted roots, the render helper, the cloud noise, the item turn,
-  four input sides, the figure loader, seven engine objects and the party: 26 rows (retired 388 -> 414), 4,548 ->
-  4,301 code cells, 84 registrations EI_REWRITTEN.
+  four input sides, the figure loader, seven engine objects, the party and the player connections: 29 rows (retired
+  388 -> 417), 4,548 -> 4,229 code cells, 109 registrations EI_REWRITTEN.
   - **Roots**: `CRefCounted::RootVtable()` (core_streams.cpp's CountedRootClass: the deleting destructor, the empty
     Serialize) in place of 0073BB68, which every counted class's destructor leaves (net messages, sessions, links,
     AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
@@ -1106,12 +1106,16 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     and id and the item and spell getters. Its unit records' CArray is PartyMemberArrayClass (00742FF4), a
     CompiledCollection whose Serialize goes through a mfc::impl::CArchive member (mfc.h's CArray takes mfc.h's
     CArchive).
+  - **The player connections** (player_connection_class.h): ConnectionClass declares CPlayerConnection's slots 13-23
+    (13 / 23 pure, the others empty) over EngineObjectClass; PlayerConnectionClass (007431E0, player_client.cpp),
+    PlayerClientClass (00743180) and PlayerServerClass (00743280, player_messages.cpp) override the sides' bodies.
+    CPlayerConnection's `DeleteScalar` became `DeletingDestruct`.
   - **UI_INPUT_HANDLER registrations** are not taken by `registration_readers.py --drop` (its default kinds): the top
     panel's four became EI_REWRITTEN of the window members by hand.
   - **Left**: the windows' main tables (harness id first), the scene renderer 0073D93C and its base 0073D8A0 (26 / 25
-    slots, the placeholder slots need their real signatures), the player client 00743180 and
-    messages 00743280 (24 slots each), CRefObject's 0073BB58 (net_connection.cpp stores it: after C21), the map spec
-    chunk readers (C21), the streams (the harness names their Write slots), the MFC library kind.
+    slots, the placeholder slots need their real signatures), CRefObject's 0073BB58 (net_connection.cpp stores it:
+    after C21), the map spec chunk readers (C21), the streams (the harness names their Write slots), the MFC library
+    kind.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

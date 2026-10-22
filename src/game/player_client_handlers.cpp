@@ -351,4 +351,4 @@ EI_REPLACE_METHOD(0x00669760, CPlayerClient::OnWeather);
 EI_REPLACE_METHOD(0x006697B0, CPlayerClient::OnWorldTime);
 EI_REPLACE_METHOD(0x00669800, CPlayerClient::OnWorldPoint);
 EI_REPLACE_METHOD(0x0066A400, CPlayerClient::OnWorldStream);
-EI_REPLACE_METHOD(0x00667BA0, CPlayerClient::NotifyUnitChanged);
+EI_REWRITTEN(0x00667BA0, CPlayerClient::NotifyUnitChanged);
