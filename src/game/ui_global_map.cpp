@@ -493,15 +493,8 @@ void CGlobalMap::Create() {
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
     TheMusicSystem()->Stop();   // 006B4F70
-    {
-        auto* weather = gamecrt::operator_new_as<CCloudNoise>();
-        if (weather) {
-            weather->Construct(0x100);
-            ei::SetVtable(weather, CCloudNoise::MapVtable());
-        }
-        weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
-        weather->Start();
-    }
+    weather_ = new CGlobalMapClouds();
+    weather_->Start();
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
                                      0x77, 0xF8};
     for (int i = 0; i < 18; ++i) weatherTable_[i] = kWeather[i];
@@ -639,7 +632,7 @@ void CGlobalMap::Update() {
         SurfacePixels pixels;
         if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)
             float seconds = static_cast<float>(FrameTime());
-            reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(pixels.bits), seconds);
+            weather_->Draw(reinterpret_cast<std::uint16_t*>(pixels.bits), seconds);
         }
         gameapi::LeaveCriticalSection(lock);
     }

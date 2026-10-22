@@ -1,11 +1,9 @@
-// The camera object itself: construction and destruction, its small vtable slots (vtable
-// CCamera::Vtable(), game.exe's 0073B9E0), Init, and saving / loading its state with the world. The transform base's destructor
+// The camera object itself: construction and destruction, its small virtual slots, Init, and saving / loading its state with the world. The transform base's destructor
 // and the engine object's inlined constructor live here too.
 // See camera.h and docs/notes/core.md.
 #include "camera.h"
 
 #include "core_streams.h"
-#include "engine_object_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
@@ -62,11 +60,10 @@ EI_REWRITTEN(0x0040CB50, CTransformObject::DeleteScalar);
 // 0040C8B0: the constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
 // the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,
 // response rates 2/15 (pan) and 1/3, no target.
-CCamera* CCamera::Construct() {
-    EngineObjectConstruct(this);
+CCamera::CCamera() {
+    ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    ei::SetVtable(this, CTransformObject::BaseVtable());
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     shakes_.Construct();
     for (CameraView& view : views_) {
@@ -75,12 +72,10 @@ CCamera* CCamera::Construct() {
         view.pitch = DefaultPitch();
     }
     viewStack_.Construct(0);
-    new (&fileName_) mfc::CString;   // the empty string
     keys_.data = nullptr;
     keys_.growBy = 0;
     keys_.capacity = 0;
     keys_.size = 0;
-    ei::SetVtable(this, Vtable());
     std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
@@ -102,23 +97,19 @@ CCamera* CCamera::Construct() {
     nearDistance_ = 1.0f;
     farDistance_ = 2000.0f;
     fieldOfView_ = DefaultAngle();
-    return this;
 }
-EI_REPLACE_METHOD(0x0040C8B0, CCamera::Construct);
+EI_REWRITTEN_SPECIAL(0x0040C8B0, CCamera::CCamera);
 
-// 0040CE60: the destructor body: no target, the camera path keys and file name freed, the view
-// stack and shake list destroyed, then the transform base.
-void CCamera::Destruct() {
-    ei::SetVtable(this, Vtable());
+// 0040CE60: the destructor: no target, the camera path keys freed, the view stack and shake list
+// destroyed (the file name, a member, goes after them: the original freed it before the view stack).
+CCamera::~CCamera() {
     targetId_ = -1;
     if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
-    fileName_.~CString();
     viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
     shakes_.Destroy();      // the nodes, then the sentinel (00411B30)
-    ei::SetVtable(this, CTransformObject::BaseVtable());
-    DestructBase();
 }
-EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);
+EI_REWRITTEN_SPECIAL(0x0040CE60, CCamera::~CCamera);
+EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
 // The camera, zero at the start: built by the static initialiser 0040C880 in the list's order and destroyed by the
 // exit function it registers (0040C8A0); both ported on the name and registered at their addresses
@@ -128,9 +119,9 @@ static_assert(sizeof(CCamera) == 0x308);
 CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
-void __cdecl DestroyCamera() { g_camera->Destruct(); }   // 0040C8A0
+void __cdecl DestroyCamera() { g_camera.Destroy(); }     // 0040C8A0
 void __cdecl ConstructCamera() {                          // 0040C880
-    g_camera->Construct();
+    g_camera.Construct();
     GameAtExit(DestroyCamera);
 }
 } // namespace
@@ -138,51 +129,22 @@ void __cdecl ConstructCamera() {                          // 0040C880
 EI_REPLACE(0x0040C880, ConstructCamera);
 EI_REPLACE(0x0040C8A0, DestroyCamera);
 
-// 0040CE10 (slot 0): the deleting destructor.
-CCamera* CCamera::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0040CE10, CCamera::DeletingDestruct);
+const char* CCamera::GetClassName() { return "CCamera"; }
+EI_REWRITTEN(0x0040CDF0, CCamera::GetClassName);
+int CCamera::GetClassId() { return 0x43; }
+EI_REWRITTEN(0x0040CE00, CCamera::GetClassId);
+EI_REWRITTEN(0x0040E900, CCamera::RunTick);
 
-// Slots 11 / 12 (class name "CCamera", class id 0x43), slot 2 Create, slot 3 Destroy and the slot
-// that only returns 1 (0040E900).
-const char* __fastcall CameraClassName(const CCamera*) { return "CCamera"; }
-int __fastcall CameraClassId(const CCamera*) { return 0x43; }
-int __fastcall CameraReturnsOne(CCamera*) { return 1; }
-int __fastcall CameraCreate(CCamera* self) {
-    self->targetId_ = -1;
-    self->nearDistance_ = 1.0f;
-    self->farDistance_ = 2000.0f;
-    self->fieldOfView_ = DefaultAngle();
+int CCamera::Create() {
+    targetId_ = -1;
+    nearDistance_ = 1.0f;
+    farDistance_ = 2000.0f;
+    fieldOfView_ = DefaultAngle();
     return 1;
 }
-void __fastcall CameraDestroy(CCamera* self) { self->targetId_ = -1; }
-EI_REWRITTEN(0x0040CDF0, CameraClassName);
-EI_REWRITTEN(0x0040CE00, CameraClassId);
-EI_REWRITTEN(0x0040E900, CameraReturnsOne);
-EI_REWRITTEN(0x0040D190, CameraCreate);
-EI_REWRITTEN(0x0040D1D0, CameraDestroy);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create, 3 Destroy, 6 the tick (1), 9 / 10 the saved state, 11 / 12.
-class CameraClass final : public TransformObjectClass<CameraClass, CCamera> {
-public:
-    int Create() override { return CameraCreate(Camera()); }                     // 2: 0040D190
-    void Destroy() override { CameraDestroy(Camera()); }                         // 3: 0040D1D0
-    int RunTick() override { return CameraReturnsOne(Camera()); }                // 6: 0040E900
-    void Load(CStream* stream) override { Camera()->LoadState(stream); }         // 9: 00410AB0
-    void Save(CStream* stream) override { Camera()->SaveState(stream); }         // 10: 00410C10
-    const char* ClassName() override { return CameraClassName(Camera()); }      // 11: 0040CDF0
-    int ClassId() override { return CameraClassId(Camera()); }                  // 12: 0040CE00
-
-private:
-    CCamera* Camera() { return As<CCamera>(); }
-};
-} // namespace
-
-void* CCamera::Vtable() { return CameraClass::Vtable(); }
+EI_REWRITTEN(0x0040D190, CCamera::Create);
+void CCamera::Destroy() { targetId_ = -1; }
+EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 
 // 0040D0A0: Init(settings, near, far, fov). Takes the views and the start distance and focus from
 // the settings, keeps the three distances / angle (as the dword bit patterns of floats) at
@@ -306,9 +268,9 @@ int __fastcall CameraCloseFile(CCamera* self) {
 }
 EI_REWRITTEN(0x0040ECB0, CameraCloseFile);
 
-// 00410AB0: loads the camera state saved by SaveState. Saves before version 0x6F hold all eight
+// 00410AB0: loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
-void CCamera::LoadState(CStream* stream) {
+void CCamera::Load(CStream* stream) {
     stream->Read(&focus_, 12);
     stream->Read(&focusHeight_, 4);
     stream->Read(&viewRotation_, 16);
@@ -334,11 +296,11 @@ void CCamera::LoadState(CStream* stream) {
         std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
-EI_REWRITTEN(0x00410AB0, CCamera::LoadState);
+EI_REWRITTEN(0x00410AB0, CCamera::Load);
 
 // 00410C10: saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and
 // views 4..7).
-void CCamera::SaveState(CStream* stream) {
+void CCamera::Save(CStream* stream) {
     stream->Write(&focus_, 12);
     stream->Write(&focusHeight_, 4);
     stream->Write(&viewRotation_, 16);
@@ -352,4 +314,4 @@ void CCamera::SaveState(CStream* stream) {
     stream->Write(&targetId_, 4);
     stream->Write(&views_[4], 0x60);
 }
-EI_REWRITTEN(0x00410C10, CCamera::SaveState);
+EI_REWRITTEN(0x00410C10, CCamera::Save);

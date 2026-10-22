@@ -1,8 +1,6 @@
-// Small virtual slots of classes below 0x004C0000 (A-E1): CHoover, CLightning, its segments and its
-// manager, CFakeUnit, and the CUnit slots the fake unit shares. Each is a __fastcall shim on the
-// slot's address (this in ECX), as object.cpp's getters are: the classes' own virtual interfaces
-// are not declared in C++. Main thread. See docs/notes/objects.md ("A-E1: small slots").
-#include "engine_object_class.h"
+// Small virtual slots of classes below 0x004C0000 (A-E1): the lightning manager, CFakeUnit, and the
+// CUnit slots the fake unit shares. Each is a __fastcall shim on the slot's address (this in ECX), as
+// object.cpp's getters are. Main thread. See docs/notes/objects.md ("A-E1: small slots").
 #include "game_strings.h"
 #include "item.h"
 #include "lightning.h"
@@ -25,58 +23,14 @@
 
 namespace {
 
-const char* const kLightningName = "CLightning";
 const char* const kFakeUnitName = "CFakeUnit";
-
-constexpr int kClassLightning = 0x1E;
 
 // Set once the lightning noise table has been loaded (00468A00).
 int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace
 
-// ---- CLightning (LightningClass in place of game.exe's 0073C550) and its manager ---------------------
-
-// 004687F0, slot 0 (RET 4).
-CLightning* CLightning::DeletingDestruct(unsigned flags) {
-    LightningDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004687F0, CLightning::DeletingDestruct);
-
-// 004687D0 / 004687E0, slots 11 / 12.
-const char* __fastcall LightningGetClassName(const CLightning*) { return kLightningName; }
-EI_REWRITTEN(0x004687D0, LightningGetClassName);
-int __fastcall LightningGetClassId(const CLightning*) { return kClassLightning; }
-EI_REWRITTEN(0x004687E0, LightningGetClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Register, 3 Reset, 11 / 12.
-class LightningClass final : public EngineObjectClass<LightningClass, CLightning> {
-public:
-    int Create() override { return As<CLightning>()->Register(); }                      // 2: 00466EA0
-    void Destroy() override { As<CLightning>()->Reset(); }                              // 3: 00468790
-    const char* ClassName() override { return LightningGetClassName(As<CLightning>()); }   // 11: 004687D0
-    int ClassId() override { return LightningGetClassId(As<CLightning>()); }               // 12: 004687E0
-};
-} // namespace
-
-void* CLightning::Vtable() { return LightningClass::Vtable(); }
-
-LightningSegment* LightningSegment::Construct() {
-    points.data = nullptr;
-    points.size = 0;
-    points.capacity = 0;
-    points.growBy = 0;
-    return this;
-}
-EI_REWRITTEN(0x00468900, LightningSegment::Construct);
-
-void LightningSegment::Destruct() {
-    if (points.data) LightningPointArray::Free(points.data);
-}
-EI_REWRITTEN(0x00468920, LightningSegment::Destruct);
+// ---- The lightning manager --------------------------------------------------------------------------
 
 int CLightningManager::Create() {
     if (!g_lightningNoiseLoaded) {

@@ -252,7 +252,7 @@ EI_REWRITTEN(0x00466820, LightningSegment::Init);
 
 // --- CLightning --------------------------------------------------------------------------------
 
-void CLightning::Reset() {
+void CLightning::Destroy() {
     power_ = 1.0f;
     amplitude_ = FromBits(0x3DCCCCCD);   // 0.1f
     CTexture* texture = texture_;
@@ -262,16 +262,16 @@ void CLightning::Reset() {
     glowTexture_ = nullptr;
     if (glow) glow->Release();
 }
-EI_REWRITTEN(0x00468790, CLightning::Reset);
+EI_REWRITTEN(0x00468790, CLightning::Destroy);
 
-int CLightning::Register() {
-    Reset();
+int CLightning::Create() {
+    Destroy();
     auto* manager = static_cast<CLightningManager*>(owner_);
     manager->newBolts_.AddTail(this);
     ++refCount_;
     return 1;
 }
-EI_REWRITTEN(0x00466EA0, CLightning::Register);
+EI_REWRITTEN(0x00466EA0, CLightning::Create);
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < segment->points.size; ++i) {

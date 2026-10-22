@@ -238,7 +238,7 @@ int GameFlow::SaveGame(const char* slot) {
     TheInterface()->SaveWindowState();
     scenario.WriteSized(GameSaveStream());
     ScriptsReset(GameSaveStream());
-    TheCamera()->SaveState(&scenario);
+    TheCamera()->Save(&scenario);
     SaveFileWrite(&file, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
 
@@ -1180,7 +1180,7 @@ int __stdcall LoadMission(CStream* file) {
                       kSaveOldestVersion, file))
         return 0;
     int version = static_cast<int>(mission.version_);
-    if (version < kVersionGlobalsInMission) TheCamera()->LoadState(&mission);
+    if (version < kVersionGlobalsInMission) TheCamera()->Load(&mission);
     if (static_cast<int>(mission.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
@@ -1561,7 +1561,7 @@ int GameFlow::LoadGame(const char* slot) {
         version = static_cast<int>(scenario.version_);
         GameSaveStream()->version_ = static_cast<std::uint32_t>(version);
     }
-    if (version >= kScenarioGlobalsVersion) TheCamera()->LoadState(&scenario);
+    if (version >= kScenarioGlobalsVersion) TheCamera()->Load(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other

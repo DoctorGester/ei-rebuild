@@ -5,7 +5,7 @@ vtable,slots,class,file,note
 0073B984,2,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedException,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base; C25c: a class of ours, its table the compiler's)"
-0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
+0073B9E0,18,CCamera,src/game/camera.h,the camera (CCamera)
 0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
@@ -86,7 +86,7 @@ vtable,slots,class,file,note
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
 0073C434,13,CHoover,src/game/object.h,the loot hoover (CHoover)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
-0073C550,13,LightningClass,src/game/class_slots.cpp,a lightning bolt (CLightning)
+0073C550,13,CLightning,src/game/lightning.h,a lightning bolt (CLightning)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
 0073C5C4,11,SpecBaseClass,src/game/map_spec_class.h,the zone records' base record (mapspec::Spec)
 0073C5F0,12,ObjectSpecClass,src/game/map_spec_class.h,an object record (mapspec::ObjectSpec)
@@ -133,7 +133,7 @@ vtable,slots,class,file,note
 0073CFD0,18,CParticleSource,src/game/effects.h,a particle source (CParticleSource)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
-0073D030,3,CloudNoiseBaseClass,src/game/global_map_clouds.cpp,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
+0073D030,3,CCloudNoise,src/game/global_map_clouds.h,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
 0073D0C4,2,ClassTemplateClass,src/game/class_template_stock.cpp,a hero class template (ClassTemplate)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
@@ -435,7 +435,7 @@ vtable,slots,class,file,note
 00741DD8,42,MasterRequestBoxClass,src/game/ui_screen_tables.cpp,the master server request box (CMasterRequestBox)
 00741F78,13,OptionsInputClass,src/game/ui_screen_tables.cpp,the options window's input side
 00741FAC,42,OptionsClass,src/game/ui_screen_tables.cpp,the options window (COptionsWindow)
-007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)
+007420D4,3,CGlobalMapClouds,src/game/global_map_clouds.h,the global map's clouds (CCloudNoise)
 00742118,13,MpHeroScreenInputClass,src/game/ui_screen_tables.cpp,the hero screen's input side
 0074214C,55,MpHeroScreenClass,src/game/ui_screen_tables.cpp,the multiplayer hero screen (CMpHeroScreen)
 00742228,13,DifficultyBoxInputClass,src/game/ui_screen_tables.cpp,the difficulty question's input side

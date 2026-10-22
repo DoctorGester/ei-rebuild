@@ -5,6 +5,7 @@
 
 #include "console.h"
 #include "core_streams.h"
+#include "global_map_clouds.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "ui_widescreen.h"
@@ -197,7 +198,7 @@ void CGlobalMap::OnMessageResult(int) {
 }
 
 void CGlobalMap::Close() {
-    if (weather_) weather_->DeletingDestruct(1);
+    delete weather_;
     CUiSurface* backdrop = backdrop_;
     weather_ = nullptr;
     if (backdrop) {

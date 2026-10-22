@@ -1206,7 +1206,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
     of 0073C368, the renderer's, the figures' and the mouse's root.
   - **Small tags**: render_helper.cpp's RenderHelperClass (0073D840) and RenderPresetClass (0073D880); the cloud
-    noise's CloudNoiseBaseClass (0073D030, slots 0 / 1 `_purecall`) and GlobalMapCloudsClass (007420D4); the item
+    noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
     turn's ItemTurnClass (007403F8); link_loader_create.cpp's LinkFigureLoaderClass (0073D808) and its abstract base
     LinkFigureLoaderBaseClass (0073D824).
   - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
@@ -1218,8 +1218,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InertInputVtable()`). The window tables themselves stay game.exe's: the census (ui_census.cpp's
     `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
     windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
-  - **Engine objects** (engine_object_class.h): LightningClass (0073C550) in class_slots.cpp (CHoover, 0073C434,
-    is a real class since C28e), PlayerClass (00743104), SysInfoClass (0073D644) and CameraClass (0073B9E0, transform).
+  - **Engine objects** (engine_object_class.h): CHoover (0073C434) is a real class since C28e, CLightning (0073C550)
+    and CCamera (0073B9E0) since C28f; PlayerClass (00743104) and SysInfoClass (0073D644).
     The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's slot 0 names it). CParticleSource
     (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
     code's) are real classes since C28f.

@@ -5,9 +5,7 @@
 #include "random.h"
 
 #include "ei/hook.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
-#include "ei/vcall.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -36,29 +34,12 @@ int Octave(const std::uint8_t* layer, int x, int y, int scale, int shift) {
     return lower + upper;
 }
 
-extern "C" int __cdecl _purecall();
-
-// The compiled tables in place of game.exe's: the base's 0073D030 (0 / 1 pure, 2 the deleting destructor) and the
-// global map's 007420D4 (its layer and frame steps; slot 2 0062EDA0 is the base's 00499E30 again).
-struct CloudNoiseBaseClass : ei::CompiledTag<CloudNoiseBaseClass> {
-    CCloudNoise* Noise() { return ObjectAs<CCloudNoise>(); }
-    virtual void MakeLayer(std::uint8_t*) { _purecall(); }                                                  // 0
-    virtual void Generate(std::uint8_t*, int) { _purecall(); }                                              // 1
-    virtual CCloudNoise* DeletingDestruct(unsigned flags) { return Noise()->DeletingDestructImpl(flags); }   // 2
-};
-struct GlobalMapCloudsClass final : CloudNoiseBaseClass {
-    static void* Vtable() { return ei::CompiledVtable<GlobalMapCloudsClass>(); }
-    void MakeLayer(std::uint8_t* out) override { Noise()->MakeLayerImpl(out); }
-    void Generate(std::uint8_t* out, int step) override { Noise()->GenerateImpl(out, step); }
-};
-
 } // namespace
 
-void* CCloudNoise::BaseVtable() { return CloudNoiseBaseClass::Vtable(); }
-void* CCloudNoise::MapVtable() { return GlobalMapCloudsClass::Vtable(); }
+void* CCloudNoise::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CCloudNoise::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-CCloudNoise* CCloudNoise::Construct(int size) {
-    ei::SetVtable(this, BaseVtable());
+CCloudNoise::CCloudNoise(int size) {
     size_ = size;
     const auto layerBytes = static_cast<std::size_t>((size >> 3) * (size >> 3) * 4);
     noise_ = gamecrt::operator_new_bytes_as<std::int32_t>(layerBytes);
@@ -68,27 +49,21 @@ CCloudNoise* CCloudNoise::Construct(int size) {
     ramp_ = gamecrt::operator_new_array<std::uint16_t>(0x100);   // 0x200 bytes
     phase_ = 0.0f;
     step_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x00499DC0, CCloudNoise::Construct);
+EI_REWRITTEN_SPECIAL(0x00499DC0, CCloudNoise::CCloudNoise);
 
-void CCloudNoise::DestructBody() {
-    ei::SetVtable(this, BaseVtable());
+CCloudNoise::~CCloudNoise() {
     gamecrt::operator_delete(noise_);
     gamecrt::operator_delete(layers_);
     for (std::uint8_t* frame : frames_) gamecrt::operator_delete(frame);
     gamecrt::operator_delete(ramp_);
 }
-EI_REWRITTEN(0x0062EDC0, CCloudNoise::DestructBody);
-EI_REWRITTEN(0x00499E90, CCloudNoise::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00499E90, CCloudNoise::~CCloudNoise);
+EI_REWRITTEN_SPECIAL(0x00499E30, CCloudNoise::~CCloudNoise);
 
-// 00499E30 (base slot 2, RET 4): DestructBody, freed when bit 0 of `flags` is set. Returns this.
-CCloudNoise* CCloudNoise::DeletingDestructImpl(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00499E30, CCloudNoise::DeletingDestructImpl);
+CGlobalMapClouds::~CGlobalMapClouds() {}
+EI_REWRITTEN_SPECIAL(0x0062EDC0, CGlobalMapClouds::~CGlobalMapClouds);
+EI_REWRITTEN_SPECIAL(0x0062EDA0, CGlobalMapClouds::~CGlobalMapClouds);
 
 void CCloudNoise::Start() {
     for (int step = 0; step < kSteps; ++step) Generate(frames_[0], step);
@@ -134,7 +109,7 @@ void CCloudNoise::SetRamp(int start, int width, float speed) {
 }
 EI_REPLACE_METHOD(0x0049A010, CCloudNoise::SetRamp);
 
-void CCloudNoise::MakeLayerImpl(std::uint8_t* out) {
+void CGlobalMapClouds::MakeLayer(std::uint8_t* out) {
     IsaacRandom& random = IsaacRandom::Global();
     const std::uint32_t a = random.Next();
     const std::uint32_t b = random.Next();
@@ -156,7 +131,7 @@ void CCloudNoise::MakeLayerImpl(std::uint8_t* out) {
     }
 }
 
-void CCloudNoise::GenerateImpl(std::uint8_t* out, int step) {
+void CGlobalMapClouds::Generate(std::uint8_t* out, int step) {
     if (step >= 1 && step <= 4) {
         MakeLayer(layers_ + (step - 1) * kLayerCells);
         return;
@@ -179,5 +154,5 @@ void CCloudNoise::GenerateImpl(std::uint8_t* out, int step) {
 namespace {
 // The virtual slots are registered through shims (rewrite-guide rule 4).
 } // namespace
-EI_REWRITTEN(0x0049A090, CCloudNoise::MakeLayerImpl);
-EI_REWRITTEN(0x0049A220, CCloudNoise::GenerateImpl);
+EI_REWRITTEN(0x0049A090, CGlobalMapClouds::MakeLayer);
+EI_REWRITTEN(0x0049A220, CGlobalMapClouds::Generate);
