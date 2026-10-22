@@ -419,6 +419,7 @@ address,size,name,file
 007AFDC0,12,g_questFolders,src/game/world_briefing.cpp
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
+007AFDEC,4,g_lastResources,src/game/world_game.cpp
 007AFDF0,1,g_lastResourcesGuard,src/game/world_game.cpp
 007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
@@ -444,12 +445,16 @@ address,size,name,file
 007C2E58,1,g_movedPositionsGuard,src/game/figure_part_draw.cpp
 007C2E60,16,g_movedPositions,src/game/figure_part_draw_plain.cpp
 007C2E70,1,g_movedPositionsGuard,src/game/figure_part_draw_plain.cpp
+007C2EE0,20,g_blocks,src/game/ai_region_reach.cpp
 007C2EF4,1,g_blocksGuard,src/game/ai_region_reach.cpp
+007C2EF8,20,g_floodSecond,src/game/ai_region_reach.cpp
+007C2F10,20,g_floodQueue,src/game/ai_region_reach.cpp
 007C2F24,1,g_floodGuard,src/game/ai_region_reach.cpp
 007C2F48,8,g_findFreeSpiral,src/game/ai_map.cpp
 007C2F50,1,g_findFreeGuard,src/game/ai_map.cpp
 007C2F58,8,g_spiral,src/game/ai_plan.cpp
 007C2F60,1,g_spiralGuard,src/game/ai_plan.cpp
+007C2F64,4,g_patch,src/game/ai_water_patch.cpp
 007C2F68,1,g_guard,src/game/ai_water_patch.cpp
 007C2FC0,20,g_spiralLengths,src/game/sector_spiral.cpp
 007C2FD8,28,g_spiralRadii,src/game/sector_spiral.cpp
@@ -458,6 +463,7 @@ address,size,name,file
 007C3058,4860,g_smoothTables,src/game/ai_path_smooth.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
 007C53F8,204,g_logicSettings,src/game/logic_settings.h
+007C54C8,28,g_candidates,src/game/unit_ai_modes.cpp
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp

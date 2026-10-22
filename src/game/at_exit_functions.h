@@ -10,9 +10,6 @@
 namespace ei::static_init {
 void __cdecl Exit004E1C50();   // the dead fog cells (effects_weather.cpp)
 void __cdecl Exit004E2280();   // the weather draw's records (effects_weather_draw.cpp)
-void __cdecl Exit0057E6A0();   // the game flow's static (world_game.cpp)
-void __cdecl Exit005B80C0();   // the water patch's pseudo unit (ai_water_patch.cpp)
-void __cdecl Exit005D2570();   // Aggression::Evaluate's candidate list (unit_ai_modes.cpp)
 } // namespace ei::static_init
 
 namespace ei::short_functions {

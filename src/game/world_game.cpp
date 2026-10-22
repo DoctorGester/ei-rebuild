@@ -1449,7 +1449,11 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
 
-mfc::CString& LastResources() { return ei::GameData<mfc::CString>(0x007AFDEC); }
+// UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard), destroyed at exit
+// by 0057E6A0.
+constinit lib::StaticObject<mfc::CString> g_lastResources = /*007AFDEC*/ {};
+mfc::CString& LastResources() { return *g_lastResources; }
+void __cdecl DestroyLastResources() { g_lastResources.Destroy(); }   // 0057E6A0
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
@@ -1481,8 +1485,8 @@ EI_REWRITTEN(0x0057CB50, SwitchResourceDatabases);
 void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
-        new (&LastResources()) mfc::CString(kResourcesSingle);
-        GameAtExit(ei::static_init::Exit0057E6A0);
+        g_lastResources.Construct(kResourcesSingle);
+        GameAtExit(DestroyLastResources);
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
     if (gamecrt::mbscmp(wanted.GetString(),
@@ -2150,3 +2154,5 @@ EI_REPLACE_METHOD(0x0057ABA0, GameFlow::LoadGame);
 EI_REPLACE_METHOD(0x0057EB10, GameFlow::AfterServerStart);
 EI_REPLACE_METHOD(0x005800C0, GameFlow::UpdateFromServer);
 EI_REPLACE_METHOD(0x00662FB0, SavedParties::Reload);
+
+EI_REPLACE(0x0057E6A0, DestroyLastResources);

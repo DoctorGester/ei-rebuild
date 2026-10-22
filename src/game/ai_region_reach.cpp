@@ -22,6 +22,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "game_data.h"
+#include "lib/static_object.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,25 +30,30 @@
 
 namespace {
 
-// The function-local static CArray<{int x, y}> at 007C2EE0, guard bit 0 of 007C2EF4, constructed
-// by 00557230, destroyed at exit by 005B0AE0.
+// A function-local static CArray<{int x, y}> (constructed by 00557230, destroyed at exit by its exit function
+// through 00557250).
 using PointArray = BlockPointArray;
-PointArray& Blocks() { return ei::GameData<PointArray>(0x007C2EE0); }
+static_assert(sizeof(BlockPointArray) == 0x14);
+void DestroyPoints(BlockPointArray& points) { mfc::impl::DestructArrayOf<mfc::impl::PointArrayClass>(points); }
+
+// The blocks, guard bit 0 of g_blocksGuard.
+constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
+PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 std::uint8_t& BlocksGuard() { return g_blocksGuard; }
-using ExitFn = void(__cdecl*)();
-ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
+void __cdecl DestroyBlocks() { DestroyPoints(*g_blocks); }   // 005B0AE0
 
 // The local search at +0x98: reset.
 
-// LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
-// destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
-PointArray& FloodQueue() { return ei::GameData<PointArray>(0x007C2F10); }
-PointArray& FloodSecond() { return ei::GameData<PointArray>(0x007C2EF8); }
+// LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
+constinit lib::StaticObject<BlockPointArray> g_floodSecond = /*007C2EF8*/ {};
+constinit lib::StaticObject<BlockPointArray> g_floodQueue = /*007C2F10*/ {};
+PointArray& FloodQueue() { return *g_floodQueue; }
+PointArray& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
 std::uint8_t& FloodGuard() { return g_floodGuard; }
-ExitFn FloodQueueDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0360)); }
-ExitFn FloodSecondDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0350)); }
+void __cdecl DestroyFloodQueue() { DestroyPoints(*g_floodQueue); }   // 005B0360
+void __cdecl DestroyFloodSecond() { DestroyPoints(*g_floodSecond); }   // 005B0350
 
 
 constexpr int kUnreached = 0x7FFFFFFF;
@@ -140,7 +146,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
-        GameAtExit(BlocksDestructor());
+        GameAtExit(DestroyBlocks);
     }
     if (blocks.data) {
         gamecrt::operator_delete(blocks.data);
@@ -207,12 +213,12 @@ void CRegionMap::LabelRegions() {
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
-        GameAtExit(FloodQueueDestructor());
+        GameAtExit(DestroyFloodQueue);
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
-        GameAtExit(FloodSecondDestructor());
+        GameAtExit(DestroyFloodSecond);
     }
     queue.SetSize(0, -1);
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
@@ -684,3 +690,7 @@ EI_REWRITTEN(0x005B1180, CRegionMap::LoadBlocks);
 EI_REWRITTEN(0x005B0F70, CRegionMap::ClampEdgeCosts);
 EI_REWRITTEN(0x005B0370, CRegionMap::NearbyBlocks);
 EI_REWRITTEN(0x005B0050, CRegionMap::LabelRegions);
+
+EI_REPLACE(0x005B0AE0, DestroyBlocks);
+EI_REPLACE(0x005B0360, DestroyFloodQueue);
+EI_REPLACE(0x005B0350, DestroyFloodSecond);
