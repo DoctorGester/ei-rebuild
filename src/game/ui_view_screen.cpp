@@ -123,8 +123,8 @@ EI_REPLACE_METHOD(0x005EB8F0, UnitPickInput::DeleteThis);
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = TheClientWorld();
-    const int point[2] = {x, y};
-    CEngineObject* unit = world->UnitAt2(reinterpret_cast<const long*>(point));
+    const POINT point = {x, y};
+    CEngineObject* unit = world->UnitAt2(&point);
     if (!static_cast<CInterface3D*>(owner_)->ctrlDown_) {
         if (unit) {
             int n = picked_.size;

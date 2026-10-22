@@ -717,8 +717,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
-        int point[2] = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(reinterpret_cast<const long*>(point)));
+        POINT point = {x, y};
+        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };

@@ -451,10 +451,10 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     CWorldClient* world = TheClientWorld();
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
-        long point[2] = {x, y};
-        CUnit* unit = world->UnitAt(point);   // 00565E40
+        POINT point = {x, y};
+        CUnit* unit = world->UnitAt(&point);   // 00565E40
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
-        SelectUnitAt(this, nullptr, unit, static_cast<int>(point[0]), static_cast<int>(point[1]));
+        SelectUnitAt(this, nullptr, unit, point.x, point.y);
         return;
     }
 

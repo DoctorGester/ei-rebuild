@@ -73,8 +73,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
-        int point[2] = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(reinterpret_cast<const long*>(point)));
+        POINT point = {x, y};
+        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;

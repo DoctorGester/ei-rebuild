@@ -1402,15 +1402,15 @@ public:
     // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
     // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
-    CEngineObject* PickAt(const long* point);
-    CEngineObject* PickAt2(const long* point);
+    CEngineObject* PickAt(const struct tagPOINT* point);
+    CEngineObject* PickAt2(const struct tagPOINT* point);
     // 00565E40 (RET 4; the battle screen's clicks and hover). The unit at screen point `point`:
     // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
     // the others and those whose object is gone); failing that the same from PickAt's. Null if
     // none.
-    CUnit* UnitAt(const long* point);
+    CUnit* UnitAt(const struct tagPOINT* point);
     // 00565D00 (RET 4). The same from PickAt2's object only (no second pick).
-    CUnit* UnitAt2(const long* point);
+    CUnit* UnitAt2(const struct tagPOINT* point);
     // 005656A0 (RET 8; the battle screen's selection box). Every object of the frame's window list
     // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
     // `rect` (slot 23) is appended to `out`.

@@ -586,13 +586,13 @@ namespace {
 
 using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNode*, ScreenHits*, long, long,
                                                 CBaseManager*);
-CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
+CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.Finish() = hits.Start();   // erase(begin, end): __copy of nothing
     CBaseManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
-    (functor.*collect)(screen.head->next, screen.head, &hits, point[0], point[1], manager);
+    (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
     if (hits.begin() == hits.end()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
@@ -623,8 +623,8 @@ CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
 
 } // namespace
 
-CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, &HitCollector::CollectParts); }
+CEngineObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CEngineObject* CWorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
 namespace {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
@@ -640,7 +640,7 @@ CUnit* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
 }
 } // namespace
 
-CUnit* CWorldClient::UnitAt(const long* point) {
+CUnit* CWorldClient::UnitAt(const POINT* point) {
     if (CEngineObject* picked = PickAt2(point)) {
         if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
@@ -648,7 +648,7 @@ CUnit* CWorldClient::UnitAt(const long* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CUnit* CWorldClient::UnitAt2(const long* point) {
+CUnit* CWorldClient::UnitAt2(const POINT* point) {
     CEngineObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
