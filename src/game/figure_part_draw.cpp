@@ -123,7 +123,7 @@ void FlatColours(Part& part) {
 }
 
 // The part's light for the GPU (R16i, render::MeshLighting), every draw of a mesh that is not flat: the
-// model matrix (stack 3), the scene's sun (SceneSun), the ambient colour the transform object was given
+// model matrix (below), the scene's sun (SceneSun), the ambient colour the transform object was given
 // (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the
 // crown, and the lights within the object's reach (its draw's list; their positions in the landscape's
 // space). What 005A7A70 handed 3DfpFPU's LightMesh, which no longer runs.
@@ -133,7 +133,15 @@ render::MeshLighting g_partLighting;
 const render::MeshLighting* PartLighting(const Part& part) {
     render::MeshLighting& l = g_partLighting;
     l = render::MeshLighting{};
-    l.model = *part.device->pipeline_->Top(3);
+    // The world stack's top is the scene's camera times the part's placement for every part; the object
+    // stack (3) has the placement alone only for a part about to be lit on the CPU (a lit static part is
+    // not pushed there). Outside the world's draw (the interface's figures) only stack 3.
+    if (const Matrix4* camera = worlddata::SceneCamera()) {
+        l.model = *part.device->pipeline_->Top(1);
+        l.camera = camera;
+    } else {
+        l.model = *part.device->pipeline_->Top(3);
+    }
     if (const CLight* sun = worlddata::SceneSun()) {
         l.sun = true;
         l.sunDirection = sun->direction_;

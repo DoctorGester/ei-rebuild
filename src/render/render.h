@@ -531,7 +531,9 @@ struct MeshLightSource {
     float colour[3];
 };
 struct MeshLighting {
-    Matrix4 model;                 // the part's model space to the landscape's (row-major)
+    Matrix4 model;                 // the part's model space to the landscape's (row-major); with
+                                   // `camera`, the camera times that
+    const Matrix4* camera;         // the scene's camera (worlddata::SceneCamera), else null
     bool sun;                      // a sun (else no sun light)
     Vector3 sunDirection;          // the direction its light travels
     float sunColour[3];

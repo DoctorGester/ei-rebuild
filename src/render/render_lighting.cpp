@@ -73,9 +73,11 @@ void LightUniforms(LightParams* params) {
 
 void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     MeshLightParams p{};
+    Matrix4 model = l.model;
+    if (l.camera && !UnderCamera(*l.camera, l.model, &model)) model = Matrix4{};
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
     // over the determinant); the translation `at` taken off first.
-    const float* m = l.model.m;
+    const float* m = model.m;
     const Vector3 ax{m[0], m[4], m[8]}, ay{m[1], m[5], m[9]}, az{m[2], m[6], m[10]};
     const Vector3 at{m[3], m[7], m[11]};
     Vector3 r0 = Cross(ay, az), r1 = Cross(az, ax), r2 = Cross(ax, ay);

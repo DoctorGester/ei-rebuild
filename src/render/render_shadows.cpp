@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <unordered_map>
 #include <optional>
 #include <unordered_set>
@@ -686,6 +687,20 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel) {
     double length = std::sqrt(LengthSquared2DUnrounded<double>(horizontal, down));
     *travel = Vector3{static_cast<float>(sun.x / length), static_cast<float>(sun.y / length),
                       static_cast<float>(-down / length)};
+    return true;
+}
+
+bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
+    // The inverse is kept for the camera last asked (one per frame in the world's draw).
+    static Matrix4 lastCamera{};
+    static M4 lastInverse{};
+    static bool haveLast = false;
+    if (!haveLast || std::memcmp(&lastCamera, &camera, sizeof(Matrix4)) != 0) {
+        haveLast = Invert(FromMatrix(camera), &lastInverse);
+        lastCamera = camera;
+        if (!haveLast) return false;
+    }
+    *model = ToMatrix(Multiply(lastInverse, FromMatrix(placed)));
     return true;
 }
 

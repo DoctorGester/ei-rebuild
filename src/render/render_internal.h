@@ -212,6 +212,9 @@ Vector3 SceneSunDirection();
 // 20 degrees above the horizon, unit (render_shadows.cpp). False without a direction. The receivers lit on
 // the GPU weigh the map's darkening by their facing to it (the map's sun is what casts).
 bool MapLightDirection(const Vector3& sun, Vector3* travel);
+// `placed` (camera x model, row-major) without the camera: the model matrix (render_shadows.cpp). False
+// when the camera has no inverse.
+bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
 // A figure part lit on the GPU (R16i, render::MeshLighting; shaders/mesh.hlsl), as part of the mesh
 // shader's fragment uniforms: the sun and the lights in the part's model space, their colours times the
 // material's diffuse colour and the coefficient. MeshLightUniforms makes them (render_lighting.cpp); the

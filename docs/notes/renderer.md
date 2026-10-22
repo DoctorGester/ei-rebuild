@@ -1074,7 +1074,8 @@ across runs; the goldens check the game state.
      ambient and the sun's colour times N.L in the model's space, the larger of that and each point light's colour
      times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
      the sphere. The part draw (`figure_part_draw.cpp`) now hands that over (`render::MeshLighting`: the model
-     matrix, the sun, the ambient SetBaseColour last gave the transform object (`TransformAmbientColour`), the
+     matrix (the world stack's top with the scene's camera taken off, `worlddata::SceneCamera`: a static part
+     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient SetBaseColour last gave the transform object (`TransformAmbientColour`), the
      material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
      and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
      colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
