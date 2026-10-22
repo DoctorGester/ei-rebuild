@@ -2823,6 +2823,13 @@ group = "cleanup"
 depends = ["C23"]
 note = "User 2026-10-22: no icon for now (C23); make our own later. Rebirth's EIRIcon.ico (F:\\games\\Evil Islands (Rebirth)) is not ours to commit: its license.txt grants no redistribution. Sizes 16-256 px in one .ico, icon id 105 (app_main.cpp kIcon) in host.rc, and RouteImageCalls' check back."
 
+[[ticket]]
+id = "C25"
+title = "Build without game.exe: the zero-filled trial, the dispatch-only bytes, the checks"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the goal is a build that does not read game.exe. What the build still takes (CMakeLists.txt): the .rdata/.data bytes (gen_image_cells.py --bytes; C18 names what code reaches, C20 the code cells), the 8 dispatch-only functions' bytes (--dispatch, InstallHooks' EI_REPLACE_DISPATCH check), the resources (C23), and build.cmd's checks that compare with game.exe (named_data, rdata_literals, gen_image_cells --check, gen_iat --check, check_short_functions, check_static_init ...). This ticket: (1) a trial build whose unnamed bytes are zero (a gen_image_cells option), run on the suites to list exactly what still reads game.exe's bytes, the list in the note; (2) the dispatch-only functions without game.exe's bytes; (3) the checks skip with a note when no game.exe is configured, so the build runs without one."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
