@@ -172,6 +172,25 @@ using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
 // CSoundManager (0x8C0 bytes, class id 0xE). Only the fields used by the rewritten code are
 // named. A real virtual class: the compiler makes its vtable (C19; game.exe's 007440F0 is retired).
+// Miles' ASISTAGE (mss.h), the codec stage of a sample's pipeline as the stream uses it: the ASI
+// codec's stream functions (all __stdcall) and the handles of the attributes it reports.
+struct AsiStage {
+    void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
+    int(__stdcall* process)(void* stream, void* buffer, int bytes); // ASI_stream_process: bytes decoded
+    void(__stdcall* seek)(void* stream, int position);              // ASI_stream_seek
+    void(__stdcall* close)(void* stream);                           // ASI_stream_close
+    int(__stdcall* attribute)(void* stream, void* attribute);       // ASI_stream_attribute
+    void* setPreference;                                            // ASI_stream_set_preference
+    void* inputBitRate;
+    void* inputSampleRate;
+    void* inputBits;
+    void* inputChannels;
+    void* outputBitRate;
+    void* outputSampleRate;
+    void* outputBits;
+    void* outputChannels;
+};
+
 struct CSoundManager : CEngineObject {
     // 006B6040 (sound_manager_lifetime.cpp). CEngineObject's fields, the sub-objects (stream reader,
     // registries, archive, wave source list, the MP3 stream's strings, faders (volume 100), arrays
@@ -205,7 +224,7 @@ struct CSoundManager : CEngineObject {
     volatile std::int32_t streamState;  // +0x100 0 idle, 1 playing, 2 switching to nextName
     void* streamSample;                 // +0x104 HSAMPLE
     void* streamFile;                   // +0x108 ASI stream
-    void** streamCodec;                 // +0x10C ASI codec functions (slot 3: close)
+    AsiStage* streamCodec;              // +0x10C the decoder sample's codec stage
     void* streamBuffers[3];             // +0x110 Miles memory, streamBufferSize bytes each (OpenStream)
     std::int32_t streamBufferSize;      // +0x11C twice Miles' minimum buffer; -1 after ResetStream
     std::int32_t streamBufferFrames;    // +0x120 frames in one buffer: streamBufferSize / streamFrameBytes

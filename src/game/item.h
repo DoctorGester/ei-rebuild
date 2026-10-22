@@ -9,6 +9,7 @@
 #include "engine_object.h"
 #include "manager_context.h"
 #include "item_db.h"
+#include "lock_key.h"   // LockKey (slot 21)
 #include "resource_manager.h"
 #include "../lib/mfc.h"
 #include "game_data.h"
@@ -34,13 +35,6 @@ enum ItemKind : int {
 
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
-
-// What an item's slot 21 fills in (three dwords; no caller is rewritten yet).
-struct ItemUse {
-    std::uint32_t kind;
-    std::uint32_t value;
-    std::uint32_t extra;
-};
 
 // Base of every item (game.exe's vtable 00743DA4, 22 slots; slots 11 and 12 pure). The six item
 // classes override the slots (each calls CItem's first).
@@ -92,9 +86,9 @@ public:
     virtual mfc::CString FirstListName();
     virtual mfc::CString FigureName();
     virtual mfc::CString PictureName();
-    // 004623C0 (slot 21; class_slots.cpp). Fills `out` (zeros; the quest item's has its id) and
-    // returns it.
-    virtual ItemUse* GetUse(ItemUse* out);
+    // 004623C0 (slot 21; class_slots.cpp). The key the item works as on a lock (map object slot 42
+    // AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest item's has its id.
+    virtual LockKey GetUse();
     // The first name of slot 14, still used by ui_screens.cpp (another ticket's file).
     BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
@@ -297,7 +291,7 @@ public:
     void Save(CStream* stream) override;
     // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
     // returns it; the other classes share 004623C0, which writes three zeros.
-    ItemUse* GetUse(ItemUse* out) override;
+    LockKey GetUse() override;
 
     // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.

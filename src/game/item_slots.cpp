@@ -23,10 +23,7 @@ float FloatOf(std::uint32_t bits) {
 
 // --- Slot 21 -----------------------------------------------------------------------------------
 
-ItemUse* CItemQuest::GetUse(ItemUse* out) {
-    *out = ItemUse{8, questItemId_, 0};
-    return out;
-}
+LockKey CItemQuest::GetUse() { return LockKey{8, questItemId_, 0}; }
 
 // --- Slot 14 -----------------------------------------------------------------------------------
 

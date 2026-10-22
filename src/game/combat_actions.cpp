@@ -458,19 +458,12 @@ void CUnitServer::UseSkill(CMapObject* target) {
     int message;
     switch (skill) {
     case 0: {
-        ItemUse record = {1, 0, 0};
+        LockKey record = {1, 0, 0};
         auto* items = world->ItemFactory();
         CItem* studied = FindItem(items, action.param);
         record = {1, 0, 0};
-        if (studied) {
-            ItemUse scratch;
-            if (studied->GetUse(&scratch)->kind != 0) {
-                ItemUse scratch2;
-                const ItemUse* found = studied->GetUse(&scratch2);
-                record = *found;
-            }
-        }
-        record.extra += x87::fistp(mine);
+        if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
+        record.level += x87::fistp(mine);
         // Slot 41 (declared with two ints) takes the use record and the unit.
         if (target->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
         if (!unit->player) return;

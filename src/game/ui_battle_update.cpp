@@ -59,7 +59,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     if (!unit_) return;
 
     // The entry of the sprite just added.
-    auto finish = [&](CEngineObject* item, bool own) {
+    auto finish = [&](CItem* item, bool own) {
         entries_.SetSize(shownCount_, -1);
         Entry& entry = entries_[shownCount_ - 1];
         entry.own = own;
@@ -347,11 +347,7 @@ void CBattleScreen::Update() {
                 List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
             }
         }
-        using MarkFn = void(__thiscall*)(void*, int);
-        auto mark = [](CUnit* unit, int on) {
-            void* figure = unit->Object3D()->attached;
-            ei::ObjectSlot<MarkFn>(figure, 26)(figure, on);
-        };
+        auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
         for (int i = 0; i < party->size; ++i) {
             auto* unit = party->data[i];
             std::uint32_t flags = unit->flags_;
@@ -446,7 +442,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         }
         if (first >= 0) {
             world->Deselect(nullptr);
-            using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return portraits_->SceneMesh(i * 5 + 4); };
             auto slot = [&](int i) -> HudPortraitSlot& { return portraits_->slots_[i]; };
@@ -455,8 +450,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 std::uint32_t flags = unit->flags_;
                 if (!(flags & 0x10) && (flags & 0x100)) {
                     unit->flags_ = flags & ~0x100u;
-                    void* figure = unit->Object3D()->attached;
-                    ei::ObjectSlot<MarkFn>(figure, 26)(figure, 0);
+                    unit->Object3D()->attached->SetLit(0);
                 }
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = kHudRestRotation;

@@ -122,12 +122,6 @@ EI_REWRITTEN(0x00462330, CItem::FirstListName);
 EI_REWRITTEN(0x00462360, CItem::FigureName);
 EI_REWRITTEN(0x00462390, CItem::PictureName);
 
-// 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
-// zeroed and returned.
-ItemUse* CItem::GetUse(ItemUse* out) {
-    out->kind = 0;
-    out->value = 0;
-    out->extra = 0;
-    return out;
-}
+// 004623C0 (RET 4: the caller's result), slot 21, which every class but the quest item keeps: no key.
+LockKey CItem::GetUse() { return LockKey{0, 0, 0}; }
 EI_REWRITTEN(0x004623C0, CItem::GetUse);

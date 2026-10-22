@@ -143,11 +143,9 @@ int CParticleSource::Draw(void* renderer) {
             ++vertex;
         } while (cursor);
     }
-    using DrawFn = int(__fastcall*)(void*, void*, int, ParticleVertexArray*, ParticleSpriteArray*);
-    DrawFn draw = ei::ObjectSlot<DrawFn>(renderer, 17);
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
-    return draw(renderer, nullptr, blend != 0, &Vertices(), &Sprites());
+    return static_cast<CSceneRenderer*>(renderer)->DrawSprites(blend != 0, &Vertices(), &Sprites());
 }
 EI_REWRITTEN(0x004976B0, CParticleSource::Draw);
 EI_REPLACE(0x00497D10, FreeVertices);

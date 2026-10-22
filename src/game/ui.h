@@ -42,13 +42,6 @@ class CParty;
 class CUnit;
 namespace mfc::impl { class CFont; class CDC; }   // lib/mfc_gdi.h
 
-// A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
-struct ReturnedString {
-    mfc::CString data{mfc::CString::kUnset};   // constructed by the callee
-    mfc::CString* Slot() { return &data; }
-};
-static_assert(sizeof(ReturnedString) == 4);
-
 class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;
@@ -1135,7 +1128,7 @@ public:
         bool own;                    // +0 one of the unit's quick items (else the player's)
         std::uint8_t unused_1[3];
         int id;                      // +4 the item's +0xC
-        CEngineObject* item;         // +8
+        CItem* item;                 // +8
     };
 
     // 0063CA70 (ui_hud_destroy.cpp; deleting 0063CA50, the input side's 0064BD00): the labels, the

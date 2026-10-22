@@ -36,12 +36,6 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 }
 
 
-// The spell's slot 19 (the picture's name) and 20 (the model's name).
-void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {
-    using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    ei::ObjectSlot<Fn>(spell, slot)(spell, out->Slot());
-}
-
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
@@ -61,11 +55,9 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         CItem* spell = unit_->GetSpell(i);
         if (!spell) continue;
         {
-            ReturnedString image;
-            SpellName(spell, 19, &image);
-            ReturnedString model;
-            SpellName(spell, 20, &model);
-            AddSpell(model.data, image.data);
+            mfc::CString image = spell->FigureName();   // slot 19
+            mfc::CString model = spell->PictureName();  // slot 20
+            AddSpell(model, image);
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 

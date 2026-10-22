@@ -1024,9 +1024,7 @@ EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 void CItemInfoPanel::Describe(CItem* item) {
     // Nothing to do when the described item is the same (its virtual slot 14, IsSameAs).
     if (itemCount_ && items_[0] && item) {
-        using SameFn = BOOL(__thiscall*)(CItem*, CItem*);
-        CItem* shown = items_[0];
-        if (ei::ObjectSlot<SameFn>(shown, 14)(shown, item)) return;
+        if (items_[0]->IsSameAs(item)) return;
     }
     reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
     if (item) ItemParty()->AddItem(item, 0, 1);
@@ -1081,8 +1079,6 @@ void CItemInfoPanel::Build(int x, int y) {
         texts->GetString(key, &text);
         skillTexts->SetAtGrow(skillTexts->GetSize(), text);
     }
-    void* list = itemList_;
-    using EmptyFn = void(__thiscall*)(void*);
-    ei::ObjectSlot<EmptyFn>(list, 2)(list);
+    ItemParty()->Create();
 }
 EI_REWRITTEN(0x005EE440, CItemInfoPanel::Build);

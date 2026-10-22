@@ -27,12 +27,6 @@ namespace {
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
 // `image`), counted in +0x14C.
 
-// The item's slot 19 (the picture's name) and 20 (the model's name).
-void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
-    using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
-    ei::ObjectSlot<Fn>(item, slot)(item, out->Slot());
-}
-
 // The original truncates through _ftol.
 int Truncate(float value) { return static_cast<int>(value); }
 
@@ -60,11 +54,9 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
-            ReturnedString image;
-            ItemName(weapon, 19, &image);
-            ReturnedString model;
-            ItemName(weapon, 20, &model);
-            AddWeapon(model.data, image.data);
+            mfc::CString image = weapon->FigureName();   // slot 19
+            mfc::CString model = weapon->PictureName();  // slot 20
+            AddWeapon(model, image);
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
         tip += "\n";   // "\n"

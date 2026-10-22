@@ -37,8 +37,6 @@ struct SpriteBuild {
 void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 
-// 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
-std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }
 
 } // namespace
 
@@ -124,17 +122,8 @@ void CItemScreen::CreateBase() {
     iconWindow_->Build();
     LoadTexture("modifiers2", 3, 0);
     LoadTexture("campslots", 3, 0);
-    std::uint32_t zero = 0;
-    std::memcpy(Display() + 0x14, &zero, 4);
-    {
-        std::uint8_t* display = Display();
-        std::uint8_t* inner;
-        std::memcpy(&inner, display + 8, 4);
-        void* target;
-        std::memcpy(&target, inner + 0xC, 4);
-        using SetFn = void(__thiscall*)(void*, float, float);
-        ei::ObjectSlot<SetFn>(target, 5)(target, 99.0f, 100.0f);
-    }
+    SceneRenderer()->fogColour_ = 0;
+    SceneRenderer()->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (20 with little texture memory).
     if (app::g_littleTextureMemory != 0) {
         textures_.limit = 20;

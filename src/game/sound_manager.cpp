@@ -865,7 +865,7 @@ void CSoundManager::StopStream(int mode) {
     if (streamState != 0) {
         if (mode == 4) {
             if (streamFile != nullptr) {
-                ei::VirtualSlot<void(__stdcall*)(void*)>(streamCodec, 3)(streamFile);   // the ASI codec's close
+                streamCodec->close(streamFile);
                 streamFile = nullptr;
             }
             streamState = 0;

@@ -924,18 +924,6 @@ EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 
 // --- 0063DB20: the quick item panel's button release -------------------------------------------
 
-namespace {
-// Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): its key (the one map object
-// slot 42 AcceptsKey tests) into `buffer`, returns it. CItem declares only slots 13-15 (item.h),
-// so the slot is reached through the vtable here until the item classes declare 16-21 (16, 19
-// and 20 are known: GetPrice, FigureName, PictureName).
-const LockKey* ItemUseKey(CEngineObject* item, LockKey* buffer) {
-    using Fn = const LockKey*(__thiscall*)(CEngineObject*, LockKey*);
-    constexpr int kSlot = 21;
-    return ei::ObjectSlot<Fn>(item, kSlot)(item, buffer);
-}
-} // namespace
-
 void CHudQuickItems::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
@@ -966,8 +954,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         // One of the player's items (top row): "use on an object" (mode 6) with the item's
         // key (slot 21) in the screen's itemUseKey_ and its id in pendingItem_.
         interface_->PlaySound(kSoundClick, 0);
-        LockKey buffer;
-        screen->itemUseKey_ = *ItemUseKey(entries_[entry].item, &buffer);
+        screen->itemUseKey_ = entries_[entry].item->GetUse();
         screen->pendingItem_ = entries_[entry].id;
         screen->pendingSlot_ = region;
         screen->pendingAction_ = 6;

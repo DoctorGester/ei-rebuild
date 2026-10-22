@@ -364,12 +364,12 @@ SampleIntFn AilSetSampleVolume() { return ei::ImportAs<SampleIntFn>(ei::Imports(
 SampleIntFn AilSetSamplePan() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_pan); }
 SampleProcessorFn AilSetSampleProcessor() { return ei::ImportAs<SampleProcessorFn>(ei::Imports().AIL_set_sample_processor); }
 
-// Miles' sample (HSAMPLE), as far as the stream reads it: the functions of its codec stage.
+// Miles' sample (HSAMPLE), as far as the stream reads it: its codec stage.
 struct MilesSample {
     std::uint8_t unused_000[0x144];
-    void* codecFunctions[4];   // +0x144; slot 3 closes a stream
+    AsiStage codec;   // +0x144
 };
-static_assert(offsetof(MilesSample, codecFunctions) == 0x144);
+static_assert(offsetof(MilesSample, codec) == 0x144);
 
 constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
@@ -404,8 +404,7 @@ void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleO
 } // namespace
 
 int CSoundManager::CloseStream() {
-    using CloseFn = void(__stdcall*)(void*);
-    if (streamFile != nullptr && streamCodec != nullptr) ei::VirtualSlot<CloseFn>(streamCodec, 3)(streamFile);
+    if (streamFile != nullptr && streamCodec != nullptr) streamCodec->close(streamFile);
     if (streamSample != nullptr) AilReleaseSample()(streamSample);
     if (streamDecoder != nullptr) AilReleaseSample()(streamDecoder);
     for (void* buffer : streamBuffers)
@@ -431,7 +430,7 @@ int CSoundManager::OpenStream(void* driver) {
     AilSetSampleProcessor()(streamDecoder, 0, codec);
     AilInitSample()(streamDecoder);
     // (The original also closes the stream when this address is null, which it cannot be.)
-    streamCodec = static_cast<MilesSample*>(streamDecoder)->codecFunctions;
+    streamCodec = &static_cast<MilesSample*>(streamDecoder)->codec;
     streamHalfBuffer[0] = 0;
     streamHalfBuffer[1] = 1;
     streamSpareBuffer = 2;
@@ -494,24 +493,6 @@ EI_REPLACE(0x006B68A0, AddSoundDevice);
 
 namespace {
 
-// The ASI codec's functions (Miles' ASI_stream_*; all __stdcall) and, after them, its attribute
-// names: what it decodes to.
-enum CodecSlot {
-    kCodecOpen = 0,
-    kCodecRead = 1,
-    kCodecSeek = 2,
-    kCodecClose = 3,
-    kCodecAttribute = 4,
-    kCodecOutputRate = 11,
-    kCodecOutputBits = 12,
-    kCodecOutputChannels = 13,
-};
-using CodecOpenFn = void*(__stdcall*)(void* /*user*/, void* /*read*/, int /*size*/);
-using CodecReadFn = int(__stdcall*)(void* /*file*/, void* /*buffer*/, int /*bytes*/);
-using CodecSeekFn = void(__stdcall*)(void* /*file*/, int /*position*/);
-using CodecCloseFn = void(__stdcall*)(void* /*file*/);
-using CodecAttributeFn = int(__stdcall*)(void* /*file*/, void* /*attribute*/);
-
 // The decoder's read callback, by its address (SoundStreamRead, hooked).
 constexpr std::uintptr_t kStreamReadCallback = std::uintptr_t(0x006BA950);
 constexpr std::uint32_t kSwitchHoldMs = 4000;
@@ -527,18 +508,15 @@ constexpr int kSwitchAfterFade = 2;
 const char* const kLoopMarkers = "Markers2";
 const char* const kSwitchMarkers = "Markers1";
 
-int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) {
-    return ei::VirtualSlot<CodecReadFn>(m->streamCodec, kCodecRead)(m->streamFile, to, bytes);
-}
-void CodecSeek(CSoundManager* m, int position) {
-    ei::VirtualSlot<CodecSeekFn>(m->streamCodec, kCodecSeek)(m->streamFile, position);
-}
-int CodecAttribute(CSoundManager* m, CodecSlot name) {
-    return ei::VirtualSlot<CodecAttributeFn>(m->streamCodec, kCodecAttribute)(m->streamFile, m->streamCodec[name]);
+int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) { return m->streamCodec->process(m->streamFile, to, bytes); }
+void CodecSeek(CSoundManager* m, int position) { m->streamCodec->seek(m->streamFile, position); }
+// The codec's attribute `name` (one of its handles) of the open file.
+int CodecAttribute(CSoundManager* m, void* AsiStage::*name) {
+    return m->streamCodec->attribute(m->streamFile, m->streamCodec->*name);
 }
 void CodecClose(CSoundManager* m) {
     if (m->streamFile == nullptr) return;
-    ei::VirtualSlot<CodecCloseFn>(m->streamCodec, kCodecClose)(m->streamFile);
+    m->streamCodec->close(m->streamFile);
     m->streamFile = nullptr;
 }
 void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
@@ -576,10 +554,10 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
-    m->streamFile = ei::VirtualSlot<CodecOpenFn>(m->streamCodec, kCodecOpen)(m, ei::Code<void*>(kStreamReadCallback), 0);
-    int rate = CodecAttribute(m, kCodecOutputRate);
-    int channels = CodecAttribute(m, kCodecOutputChannels);
-    int bits = CodecAttribute(m, kCodecOutputBits);
+    m->streamFile = m->streamCodec->open(m, ei::Code<void*>(kStreamReadCallback), 0);
+    int rate = CodecAttribute(m, &AsiStage::outputSampleRate);
+    int channels = CodecAttribute(m, &AsiStage::outputChannels);
+    int bits = CodecAttribute(m, &AsiStage::outputBits);
     // DIG_F_16BITS_MASK with DIG_PCM_SIGN, or unsigned 8 bits; DIG_F_STEREO_MASK.
     int format = 0;
     int flags = 0;

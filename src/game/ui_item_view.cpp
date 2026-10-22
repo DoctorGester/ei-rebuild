@@ -58,12 +58,6 @@ CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
 
-// The item's names (virtual slots 19 and 20; return a CString through the hidden pointer).
-void ItemName(CItem* item, int slot, mfc::CString* out) {
-    using NameFn = mfc::CString*(__thiscall*)(CItem*, mfc::CString*);
-    ei::ObjectSlot<NameFn>(item, slot)(item, out);
-}
-
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
 // 005F3730 / 005F3B50, operator[] 005F3000 / 005F3170), which then drops its least recently used
 // entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.
@@ -207,14 +201,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        mfc::CString name;
-        ItemName(item, 20, &name);
+        mfc::CString name = item->PictureName();   // slot 20
         model = AsUiMesh(CachedObject(&models_, name, false));
     }
     CEngineObject* texture;
     {
-        mfc::CString name;
-        ItemName(item, 19, &name);
+        mfc::CString name = item->FigureName();   // slot 19
         texture = CachedObject(&textures_, name, true);
     }
     if (!model || !texture) return;
