@@ -218,7 +218,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() > 1) {
         writing = file.Open((*args)[1], CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr);
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[1]) << " for writing");
+            EndLine(Out() << "Cannot open file " << ((*args)[1]).GetString() << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
@@ -245,7 +245,7 @@ void __fastcall LoadVar(CStringArray* args) {
     CStringArray parts;
     CStdioFile file;
     if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[1]) << " for reading");
+        EndLine(Out() << "Cannot open file " << ((*args)[1]).GetString() << " for reading");
         return;
     }
     while (file.ReadString(line)) {
@@ -281,7 +281,7 @@ void __fastcall Exec(CStringArray* args) {
     Ops(name).TrimRight('"');
     CStdioFile file;
     if (!file.Open(name, CStdioFile::typeText, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << "Cannot open file " << static_cast<const char*>((*args)[0]) << " for reading");
+        EndLine(Out() << "Cannot open file " << ((*args)[0]).GetString() << " for reading");
         return;
     }
     while (file.ReadString(line)) ExecuteAt(line);
@@ -457,7 +457,7 @@ EI_REWRITTEN(0x005DFDA0, GenerateAcks);
 void __fastcall Days(CStringArray* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
-            signed char c = static_cast<const char*>((*args)[i])[k];
+            signed char c = ((*args)[i]).GetString()[k];
             if (c < '0' || c > '9') return false;
         }
         return true;

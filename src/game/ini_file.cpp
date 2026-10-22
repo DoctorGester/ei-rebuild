@@ -207,7 +207,7 @@ EI_REWRITTEN(0x00696030, CIniFile::GetString);
 BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArray* out, char separator) {
     mfc::CString value = ReadString(this, section, key, game::EmptyText());
     mfc::CString item;
-    if (console::Length(value) == 0) return 0;
+    if (value.GetLength() == 0) return 0;
     Ops(value).AppendChar(separator);
     int start = 0;
     for (int end = Ops(value).Find(separator); end != -1; end = Ops(value).Find(separator, start)) {

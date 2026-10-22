@@ -41,7 +41,7 @@ const mfc::CString& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i
 std::string Joined(Call* call) {
     std::string text;
     const mfc::CArray<mfc::CString>& strings = call->cmd->stringArgs;
-    for (int i = 0; i < strings.size; ++i) text.append(static_cast<const char*>(strings.data[i]), strings.data[i].GetLength());
+    for (int i = 0; i < strings.size; ++i) text.append(strings.data[i].GetString(), strings.data[i].GetLength());
     return text;
 }
 
@@ -109,7 +109,7 @@ bool StrLen(Call* call) {
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
     std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
-    *StringResult(call) = static_cast<const char*>(Arg(call, static_cast<int>(index)));
+    *StringResult(call) = Arg(call, static_cast<int>(index)).GetString();
     return true;
 }
 

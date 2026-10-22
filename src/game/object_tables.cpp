@@ -104,7 +104,7 @@ void NamedFloatTable::Save(CStream* stream) {
         stream->Write(&value, 4);
     }
     mfc::CString end;
-    stream->Write(static_cast<const char*>(end), static_cast<std::uint32_t>(std::strlen(end) + 1));
+    stream->Write(end.GetString(), static_cast<std::uint32_t>(std::strlen(end) + 1));
 }
 EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 

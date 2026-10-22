@@ -534,11 +534,11 @@ void Loader::LoadHelper(CMaterial* helper) {
     std::memcpy(&helper->colors.diffuse.w, &h.diffuseAlpha, 4);
     std::memcpy(&helper->colors.power, &h.power, 4);
     Read(file_, text.GetBufferSetLength(h.nameLength), h.nameLength);
-    helper->name = static_cast<const char*>(text);
+    helper->name = text.GetString();
     Read(file_, text.GetBufferSetLength(h.name2Length), h.name2Length);
-    helper->name2 = static_cast<const char*>(text);
+    helper->name2 = text.GetString();
     Read(file_, text.GetBufferSetLength(h.name3Length), h.name3Length);
-    helper->name3 = static_cast<const char*>(text);
+    helper->name3 = text.GetString();
 }
 
 } // namespace
@@ -703,8 +703,6 @@ void __fastcall ComputeMeshNormals(VtArray*);
 void __fastcall IndexMeshCorners(VtArray*);
 namespace {
 
-int (const mfc::CString& s).GetLength() { return s.GetLength(); }
-
 // The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
 using FigureRecordArray = recordarrays::FigureParts::Array;
 // Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each, sized by 00450F20 as
@@ -852,7 +850,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         for (int n = 0; n < s.nodes.size; ++n) {
             const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
-            if (gamecrt::mbscmp(static_cast<const char*>(nd.name),
+            if (gamecrt::mbscmp(nd.name.GetString(),
                                 name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];
@@ -891,13 +889,13 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         // (0051B470) for each link of the id.
         auto* owner = u->Object3D()->ClientSpecific();
         mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
-        bool bmp = gamecrt::mbsicmp(static_cast<const char*>(s.textureNames.Name(t).Right(4)),
+        bool bmp = gamecrt::mbsicmp(s.textureNames.Name(t).Right(4).GetString(),
                                    scenedata::BmpExtText()) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
-            texture = static_cast<const char*>(name.Left(name.GetLength() - 4));
+            texture = name.Left(name.GetLength() - 4).GetString();
         } else {
-            texture = static_cast<const char*>(s.textureNames.Name(t));
+            texture = s.textureNames.Name(t).GetString();
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
@@ -905,7 +903,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
-            linked->name = static_cast<const char*>(s.textureNames.Name(t));
+            linked->name = s.textureNames.Name(t).GetString();
             static_cast<CMaterialManager*>(manager)->FillMaterial(linked, s.textureLinks.Record(l).value);
         }
     }

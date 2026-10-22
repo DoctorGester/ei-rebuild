@@ -125,7 +125,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request->layers[i];
                 if (!level) continue;
-                name.Format(kWoundTexture, static_cast<const char*>(unit->name), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name.Format(kWoundTexture, unit->name.GetString(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
@@ -227,8 +227,8 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
-    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, static_cast<const char*>(unit->name), prototype->skin);
-    else gamecrt::sprintf(name, kFace, static_cast<const char*>(unit->name));
+    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name.GetString(), prototype->skin);
+    else gamecrt::sprintf(name, kFace, unit->name.GetString());
     CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;
     faceTexture = texture;
@@ -257,7 +257,7 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
-    const FigureBone* found = unit->Object3D()->animation->FindBone(static_cast<const char*>(node));
+    const FigureBone* found = unit->Object3D()->animation->FindBone(node.GetString());
     if (!found) return false;
     // The bone's position in figure space.
     const Vector3& position = found->position;

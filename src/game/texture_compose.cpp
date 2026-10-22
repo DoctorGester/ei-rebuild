@@ -159,11 +159,11 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
     for (int i = 0; i < names->GetSize(); ++i) {
         const auto* data = static_cast<const MmpHeader*>(GetFile((*names)[i], nullptr));
         if (!data) {
-            game::DebugLog(kCantFindLayer, static_cast<const char*>((*names)[i]));
+            game::DebugLog(kCantFindLayer, ((*names)[i]).GetString());
             continue;
         }
         if (data->width != static_cast<std::uint32_t>(width) || data->height != static_cast<std::uint32_t>(width))
-            return game::FatalError(kWrongLayerSize, static_cast<const char*>((*names)[i]));
+            return game::FatalError(kWrongLayerSize, ((*names)[i]).GetString());
         const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
         converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
         ++drawn;
@@ -190,8 +190,8 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(static_cast<const char*>(*name),
-                               static_cast<const char*>(*fallback)) != 0) {
+    } else if (gamecrt::mbscmp(name->GetString(),
+                               fallback->GetString()) != 0) {
         *out = *fallback;
         path = CachePath(*fallback);
         if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
@@ -220,7 +220,7 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(request->layerBytes);
     int kind = ConversionKind(format);
-    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, static_cast<const char*>(path));
+    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.GetString());
     file.Write(&header, sizeof(MmpHeader));
     if (header.extraSize != 0) file.Write(request->layers, header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);

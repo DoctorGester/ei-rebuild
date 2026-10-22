@@ -22,7 +22,7 @@ void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
 
 // The string with its terminator.
-void WriteString(ScriptStream* stream, const mfc::CString& s) { stream->Write(static_cast<const char*>(s), s.GetLength() + 1); }
+void WriteString(ScriptStream* stream, const mfc::CString& s) { stream->Write(s.GetString(), s.GetLength() + 1); }
 
 // Variable i's name, or a single zero byte when the name array is shorter.
 void WriteName(ScriptStream* stream, const mfc::CArray<mfc::CString>& names, int i) {

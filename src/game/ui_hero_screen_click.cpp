@@ -143,7 +143,7 @@ void CMpHeroScreen::BackToNewHero() {
     static_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    EditSetText(nameEdit_, nullptr, static_cast<const char*>(Hero()->texts[0]));
+    EditSetText(nameEdit_, nullptr, Hero()->texts[0].GetString());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -403,7 +403,7 @@ void CMpHeroScreen::Rename() {
     } else {
         mfc::CString typed = console::Ops(name).Mid(bar + 1);
         typed.TrimLeft();
-        EditSetText(renameEdit_, nullptr, static_cast<const char*>(typed));
+        EditSetText(renameEdit_, nullptr, typed.GetString());
         name = name.Left(bar);
         name.TrimRight();
     }
@@ -434,13 +434,13 @@ void CMpHeroScreen::PlayVoice() {
     auto* hero = Hero();
     UnitPrototypeRecord* prototype;
     {
-        stlp::string key(static_cast<const char*>(hero->texts[6]));
+        stlp::string key(hero->texts[6].GetString());
         prototype = unitdb::PrototypeTable().byName.Subscript(key);
     }
     if (!prototype) return;
     UnitSoundBank* set;
     {
-        stlp::string key(static_cast<const char*>(prototype->name));
+        stlp::string key(prototype->name.GetString());
         // The sound sets (the units' acks) by name: operator[] (00619FB0) inserts a null entry for an unknown name.
         set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }
@@ -554,7 +554,7 @@ void CMpHeroScreen::CreateHero() {
     spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
-    statsPanel_->SetHero(0, const_cast<char*>(static_cast<const char*>(name)));
+    statsPanel_->SetHero(0, const_cast<char*>(name.GetString()));
     Refresh();
     SetMode(this, nullptr, kModeStats);
 }
@@ -727,7 +727,7 @@ void CMpHeroScreen::AddNewHero() {
     MpHeroRecord* record = MpHeroesBegin() + heroIndex_;
 
     mfc::CString pattern;
-    pattern.Format(HeroFilePattern(), static_cast<const char*>(MpHeroesFolder()));
+    pattern.Format(HeroFilePattern(), MpHeroesFolder().GetString());
     int highest = HighestFileNumber(pattern);
     record->file.Format(HeroFileFormat(), highest + 1);
     record->Party()->Assign(LocalPlayerData());

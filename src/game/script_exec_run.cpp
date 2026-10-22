@@ -199,19 +199,19 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
     if (call->floatArgs.size - 1 != vars.floats.size) {
-        game::FatalError(kWrongFloatCount, static_cast<const char*>(name));
+        game::FatalError(kWrongFloatCount, name.GetString());
         return;
     }
     if (call->stringArgs.size - 1 != vars.strings.size) {
-        game::FatalError(kWrongStringCount, static_cast<const char*>(name));
+        game::FatalError(kWrongStringCount, name.GetString());
         return;
     }
     if (call->objectArgs.size != vars.objects.size) {
-        game::FatalError(kWrongObjectCount, static_cast<const char*>(name));
+        game::FatalError(kWrongObjectCount, name.GetString());
         return;
     }
     if (call->groupArgs.size != vars.groups.size) {
-        game::FatalError(kWrongGroupCount, static_cast<const char*>(name));
+        game::FatalError(kWrongGroupCount, name.GetString());
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.

@@ -44,8 +44,6 @@ stlp::NameMap& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.N
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 
-int (const mfc::CString& s).GetLength() { return console::Length(s); }
-
 } // namespace
 
 int TextOps::Find(char c) const { return mfc::CString::Find(c); }
@@ -93,11 +91,11 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     itemdb::SpellRecord* prototype;
     {
-        stlp::string key(static_cast<const char*>(text));
+        stlp::string key(text.GetString());
         prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
     if (!constructor->CallBeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(text));
+        return game::FatalErrorAs<CSpell>(kCantBegin, text.GetString());
 
     for (int i = 0; i < codes.GetSize(); ++i) {
         const mfc::CString& code = codes[i];

@@ -210,9 +210,9 @@ void CHudPortraits::Rebuild(int wide) {
         else if (figureBuild > Fat())
             build = "fa";
         const char* figure = unit->name;
-        model.Format("infa%s%s%dface", figure, static_cast<const char*>(build),
+        model.Format("infa%s%s%dface", figure, build.GetString(),
                      unit->GetPrototype()->hair + 1);
-        picture.Format("face%s%02d", static_cast<const char*>(sex), skin);
+        picture.Format("face%s%02d", sex.GetString(), skin);
         AddPortraitAt(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
@@ -224,7 +224,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format("infa%s", static_cast<const char*>(unit->name));
+        slots_[i].ModelPrefix().Format("infa%s", unit->name.GetString());
         const int hair = unit->GetPrototype()->hair;
         slots_[i].ModelSuffix().Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
@@ -251,12 +251,12 @@ void CHudPortraits::Rebuild(int wide) {
         FigurePrototypeRecord* figure;
         {
             figure = reinterpret_cast<FigurePrototypeRecord*>(
-                unitdb::ModelNamed(stlp::string(static_cast<const char*>(prototype->modelName))));
+                unitdb::ModelNamed(stlp::string(prototype->modelName.GetString())));
         }
         SexOf(figure->model, sex);
         build = "me";
-        model.Format("infa%s%s%dface", static_cast<const char*>(figure->model), static_cast<const char*>(build), prototype->hair + 1);
-        picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
+        model.Format("infa%s%s%dface", figure->model.GetString(), build.GetString(), prototype->hair + 1);
+        picture.Format("face%s%02d", sex.GetString(), prototype->skin);
         AddPortraitAt(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;

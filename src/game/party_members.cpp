@@ -49,7 +49,7 @@ CItem* MakeItem(CParty* party, const char* name) {
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
 bool Named(const mfc::CString& name) {
     return name.GetLength() != 0 &&
-           gamecrt::mbsicmp(static_cast<const char*>(name),
+           gamecrt::mbsicmp(name.GetString(),
                            game::NoneText()) != 0;
 }
 
@@ -235,7 +235,7 @@ void CParty::OpenEdgeExits() {
     for (int i = 0; i < zone->exits.size; ++i) {
         MapRecord* target = TheMapDatabase()->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable.Format(ZoneVariableFormat(), static_cast<const char*>(target->name));
+        variable.Format(ZoneVariableFormat(), target->name.GetString());
         float value = variables.Get(variable);
         EI_NAN_AUDIT(value);
         if (value == 0.0f) variables.Set(variable, kOpened);

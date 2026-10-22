@@ -227,7 +227,7 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
         int code = CharCode(p);
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
-            if (console::Length(word) != 0) {
+            if (word.GetLength() != 0) {
                 words->SetAtGrow(words->size, word);
                 word.Empty();
             }
@@ -236,7 +236,7 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
         if (code == 0x20 || code == 9) {
             if (inWord) {
                 inWord = false;
-                if (console::Length(word) != 0) {
+                if (word.GetLength() != 0) {
                     words->SetAtGrow(words->size, word);
                     word.Empty();
                 }

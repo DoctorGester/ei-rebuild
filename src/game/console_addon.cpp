@@ -96,7 +96,7 @@ void __fastcall Help(CStringArray* args) {
 }
 
 void AddonDebug(CStringArray* args) {
-    std::string type = args->GetSize() >= 1 ? static_cast<const char*>((*args)[0]) : "";
+    std::string type = args->GetSize() >= 1 ? ((*args)[0]).GetString() : "";
     int level = args->GetSize() >= 2 ? libcrt::Atoi((*args)[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
@@ -130,7 +130,7 @@ void __fastcall Addon(CStringArray* args) {
         args->RemoveAt(0, 1);
         AddonDebug(args);
     } else {
-        SayFormat("Unknown command: %s", static_cast<const char*>((*args)[0]));
+        SayFormat("Unknown command: %s", ((*args)[0]).GetString());
     }
 }
 
@@ -140,13 +140,13 @@ void __fastcall Execs(CStringArray* args) {
         ScriptTick(TheMissionScript());
         return;
     }
-    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, static_cast<const char*>(TheMissionScript()->errorText_));
+    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_.GetString());
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
 void __fastcall ListGlobals(CStringArray*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
-    auto name = [](const mfc::CArray<mfc::CString>& names, int i) { return static_cast<const char*>(names.data[i]); };
+    auto name = [](const mfc::CArray<mfc::CString>& names, int i) { return names.data[i].GetString(); };
     for (int i = 0; i < globals.floats.size; ++i)
         SayFormat("%s : float = %f", name(globals.floatNames, i), static_cast<double>(globals.floats.data[i]));
     for (int i = 0; i < globals.strings.size; ++i)

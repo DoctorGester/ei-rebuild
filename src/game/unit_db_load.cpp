@@ -40,7 +40,7 @@ using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*)
 template <typename Record, typename Index>
 void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
-        stlp::string key(static_cast<const char*>(record->name));
+        stlp::string key(record->name.GetString());
         auto& slot = index->Subscript(key);
         slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
     }
@@ -89,7 +89,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFileImpl("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
@@ -132,7 +132,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFileImpl("perks.pdb", &size);
     if (!data) return game::FatalError("Can't open perks database\n");

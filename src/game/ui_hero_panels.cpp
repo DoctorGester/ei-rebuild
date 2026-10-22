@@ -221,12 +221,12 @@ void CHeroStatsPanel::DrawStats() {
             void* inner = Read<void*>(unit, 0x240);
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
             ei::ObjectSlot<InfoFn>(inner, 50)(inner, &info);
-            line.Format("     %s", static_cast<const char*>(texts_[0]));
+            line.Format("     %s", texts_[0].GetString());
             draw->Text(line, &rect, 0, kBright, 0, 1);
             line.Format("%d", info.value18);
             draw->Text(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line.Format("     %s", static_cast<const char*>(texts_[1]));
+            line.Format("     %s", texts_[1].GetString());
             draw->Text(line, &rect, 0, kBright, 0, 1);
             line.Format("%d", info.value1C);
             draw->Text(line, &rect, 0, kBright, 2, 1);
@@ -235,7 +235,7 @@ void CHeroStatsPanel::DrawStats() {
                 line.Format("damage_%d", info.damageKind);
                 texts->GetString(line, &text);
             }
-            line.Format("     %s %s", static_cast<const char*>(texts_[2]), static_cast<const char*>(text));
+            line.Format("     %s %s", texts_[2].GetString(), text.GetString());
             draw->Text(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));

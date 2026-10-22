@@ -35,7 +35,7 @@ std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const mfc::CString& name) {
-    return gamecrt::mbscmp(static_cast<const char*>(name),
+    return gamecrt::mbscmp(name.GetString(),
                            game::NoneText()) != 0 &&
            name.GetLength() != 0;
 }
@@ -43,7 +43,7 @@ bool Named(const mfc::CString& name) {
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CItem* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
     CItem* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
-    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), static_cast<const char*>(name), prototype);
+    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.GetString(), prototype);
     return weapon;
 }
 } // namespace
@@ -62,7 +62,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CItem* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
-            else game::FatalError(game::equipmenttexts::NoArmour(), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
+            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].GetString(), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -75,7 +75,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CItem* spell = static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
         if (spell) unit->AddSpell(spell);
-        else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
+        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].GetString(), name);
     }
     return 1;
 }

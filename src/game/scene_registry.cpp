@@ -173,7 +173,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
         m.h = static_cast<float>(reg.GetInt2(s.mapping, "Height", -1));
         if (IsMinusOne(m.x) || IsMinusOne(m.y) || IsMinusOne(m.w) || IsMinusOne(m.h)) {
             mfc::CString message;
-            message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));
+            message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
             game::DebugLog(message);
             if (ei::GameData<const std::uint32_t>(0x007AF5C0) & 0x10000) {
                 ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
@@ -230,8 +230,8 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
     int j = 0;
     for (; j < names->size; ++j) {
         const NamedType& n = reinterpret_cast<const NamedType*>(names->data)[j];
-        if (gamecrt::mbscmp(static_cast<const char*>(n.name),
-                            static_cast<const char*>(texture)) == 0 &&
+        if (gamecrt::mbscmp(n.name.GetString(),
+                            texture.GetString()) == 0 &&
             n.type == textureType) {
             break;
         }
@@ -258,7 +258,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
     Registry reg;
     reg.Construct();
     if (!reg.Open(*path)) {
-        int result = game::FatalError("Can't open .reg file \"%s\".\n", static_cast<const char*>(*path));   // Can't open .reg file
+        int result = game::FatalError("Can't open .reg file \"%s\".\n", path->GetString());   // Can't open .reg file
         reg.Destroy();
         return result;
     }
@@ -274,8 +274,8 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
-                if (gamecrt::mbscmp(static_cast<const char*>(helperRecord.name),
-                                    static_cast<const char*>(groupName)) != 0) {
+                if (gamecrt::mbscmp(helperRecord.name.GetString(),
+                                    groupName.GetString()) != 0) {
                     continue;
                 }
                 MapGroup(unit, reg, sections, strings, m, g, h, seen);

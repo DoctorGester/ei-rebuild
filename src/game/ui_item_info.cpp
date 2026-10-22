@@ -122,8 +122,6 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-int (const mfc::CString& s).GetLength() { return s.GetLength(); }
-
 // Items and spells through their addresses (thiscall): the prototype record (006A0110), the
 // category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
 // (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
@@ -210,13 +208,13 @@ public:
         Title(name);
         Down();
         Down();
-        line.Format("%s %s", static_cast<const char*>(T(37)), kind);
+        line.Format("%s %s", T(37).GetString(), kind);
         Text(line);
         Down();
     }
     // "%s %d" with item text `label`, then the next line.
     void Number(int label, int value) {
-        line.Format("%s %d", static_cast<const char*>(T(label)), value);
+        line.Format("%s %d", T(label).GetString(), value);
         Text(line);
         Down();
     }
@@ -281,9 +279,9 @@ unsigned FirstDamageKind(const float* weights) {
 // "%s %s" / "%s %d" lines that pick their format by a value.
 void SpellLevelLine(Writer& w, bool known, int level) {
     if (!known)
-        w.line.Format("%s %s", static_cast<const char*>(w.T(8)), static_cast<const char*>(w.T(28)));
+        w.line.Format("%s %s", w.T(8).GetString(), w.T(28).GetString());
     else
-        w.line.Format("%s %d", static_cast<const char*>(w.T(8)), level);
+        w.line.Format("%s %d", w.T(8).GetString(), level);
     w.Text(w.line);
     w.Down();
 }
@@ -291,10 +289,10 @@ void SpellLevelLine(Writer& w, bool known, int level) {
 // times 0.0666667f) with infoitem_27.
 void DurationLine(Writer& w, std::uint32_t ticks) {
     if (ticks < 2)
-        w.line.Format("%s %s", static_cast<const char*>(w.T(12)), static_cast<const char*>(w.T(21)));
+        w.line.Format("%s %s", w.T(12).GetString(), w.T(21).GetString());
     else
-        w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(12)),
-                      x87::FromUnsigned(ticks) * D(0.06666667f /*00740544*/), static_cast<const char*>(w.T(27)));
+        w.line.Format("%s %.1f%s", w.T(12).GetString(),
+                      x87::FromUnsigned(ticks) * D(0.06666667f /*00740544*/), w.T(27).GetString());
     w.Text(w.line);
     w.Down();
 }
@@ -359,7 +357,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
-        materialLine = !prototype || MbsICmp(static_cast<const char*>(prototype->materialClass), "none") != 0;
+        materialLine = !prototype || MbsICmp(prototype->materialClass.GetString(), "none") != 0;
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -368,7 +366,7 @@ void CItemInfoPanel::DescribeItem() {
         mfc::CString key("matshort ");
         key += material;
         if (texts->Open(key)) texts->ReadLine(&text, 1);
-        w.line.Format("%s %s x %d", static_cast<const char*>(w.T(1)), static_cast<const char*>(text),
+        w.line.Format("%s %s x %d", w.T(1).GetString(), text.GetString(),
                       static_cast<int>(PrototypeOf(item)->materialUnits));   // "%s %s x %d"
         w.Text(w.line);
         w.Down();
@@ -380,7 +378,7 @@ void CItemInfoPanel::DescribeItem() {
         CSpell* spell = SpellOf(item);
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
-        w.line.Format("%s %d/%d", static_cast<const char*>(w.T(14)), spellValue, static_cast<int>(item->magicLevel_));
+        w.line.Format("%s %d/%d", w.T(14).GetString(), spellValue, static_cast<int>(item->magicLevel_));
         w.Text(w.line);
         w.Down();
     } else if (kind == kQuick) {
@@ -392,7 +390,7 @@ void CItemInfoPanel::DescribeItem() {
         float current = FloatOf(item->condition_);
         int condition = current > 0.0f ? FtolOf(current) : 0;
         int maximum = FtolOf(FloatOf(item->conditionMax_));
-        w.line.Format("%s %d/%d", static_cast<const char*>(w.T(3)), condition, maximum);
+        w.line.Format("%s %d/%d", w.T(3).GetString(), condition, maximum);
         w.Text(w.line);
         w.Down();
         if (kind == kWeapon) {
@@ -410,8 +408,8 @@ void CItemInfoPanel::DescribeItem() {
             float spread = weapon->damageSpread_;
             int high = SumFtol(low, spread);
             int lowValue = FtolOf(low);
-            w.line.Format("%s %d-%d %s", static_cast<const char*>(w.T(15)), lowValue, high,
-                          static_cast<const char*>(text));   // "%s %d-%d %s"
+            w.line.Format("%s %d-%d %s", w.T(15).GetString(), lowValue, high,
+                          text.GetString());   // "%s %d-%d %s"
             w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
@@ -451,7 +449,7 @@ tail:
             mfc::CString key("spell ");
             key += SpellPrototypeOf(spell)->code;
             if (texts->Open(key)) texts->ReadLine(&text, 1);
-            w.line.Format("%s %s", static_cast<const char*>(w.T(5)), static_cast<const char*>(text));
+            w.line.Format("%s %s", w.T(5).GetString(), text.GetString());
             w.Text(w.line);
             w.Down();
             w.Text(w.T(6));
@@ -490,7 +488,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Number(2, FtolOf(material->magicPower));
     w.Number(14, static_cast<int>(material->magicLevel));
     w.Number(3, FtolOf(material->conditionFactor));
-    w.line.Format("%s %.1f", static_cast<const char*>(w.T(15)), D(material->damageFactor));
+    w.line.Format("%s %.1f", w.T(15).GetString(), D(material->damageFactor));
     w.Text(w.line);
     w.Down();
     float values[7];
@@ -537,7 +535,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     }
     texts->GetString(text, &w.line);
     text = w.line;
-    w.line.Format("%s %s x %d", static_cast<const char*>(w.T(1)), static_cast<const char*>(text),
+    w.line.Format("%s %s x %d", w.T(1).GetString(), text.GetString(),
                   static_cast<int>(head->materialUnits));   // "%s %s x %d"
     w.Text(w.line);
     w.Down();
@@ -556,8 +554,8 @@ void CItemInfoPanel::DescribeBlueprint() {
         }
         int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f /*0073BAAC*/);
         int low = ScaledFtol(weapon->damage, 10.0f /*0073BAAC*/);
-        w.line.Format("%s %d-%d %s", static_cast<const char*>(w.T(15)), low, high,
-                      static_cast<const char*>(text));   // "%s %d-%d %s"
+        w.line.Format("%s %d-%d %s", w.T(15).GetString(), low, high,
+                      text.GetString());   // "%s %d-%d %s"
         w.Text(w.line);
         w.Down();
         w.Number(20, static_cast<int>(head->category));
@@ -599,22 +597,22 @@ void CItemInfoPanel::DescribeSpellRecord() {
     float power = record->speed;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
-        w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
+        w.line.Format("%s %s", w.T(9).GetString(), w.T(21).GetString());
     else
-        w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));
+        w.line.Format("%s %d", w.T(9).GetString(), FtolOf(power));
     w.Text(w.line);
     w.Down();
-    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(record->range),
-                  static_cast<const char*>(w.T(26)));   // "%s %d%s"
+    w.line.Format("%s %d%s", w.T(10).GetString(), FtolOf(record->range),
+                  w.T(26).GetString());   // "%s %d%s"
     w.Text(w.line);
     w.Down();
     float radius = record->area;
     EI_NAN_AUDIT(radius);
     if (radius < 1.0f)
-        w.line.Format("%s %s", static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
+        w.line.Format("%s %s", w.T(11).GetString(), w.T(22).GetString());
     else
-        w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(11)), D(radius),
-                      static_cast<const char*>(w.T(26)));   // "%s %.1f%s"
+        w.line.Format("%s %.1f%s", w.T(11).GetString(), D(radius),
+                      w.T(26).GetString());   // "%s %.1f%s"
     w.Text(w.line);
     w.Down();
     DurationLine(w, record->duration);
@@ -697,22 +695,22 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     float power = spell->speed_;
     EI_NAN_AUDIT(power);
     if (power < 1.0f)
-        w.line.Format("%s %s", static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
+        w.line.Format("%s %s", w.T(9).GetString(), w.T(21).GetString());
     else
-        w.line.Format("%s %d", static_cast<const char*>(w.T(9)), FtolOf(power));
+        w.line.Format("%s %d", w.T(9).GetString(), FtolOf(power));
     w.Text(w.line);
     w.Down();
-    w.line.Format("%s %d%s", static_cast<const char*>(w.T(10)), FtolOf(spell->range_),
-                  static_cast<const char*>(w.T(26)));   // "%s %d%s"
+    w.line.Format("%s %d%s", w.T(10).GetString(), FtolOf(spell->range_),
+                  w.T(26).GetString());   // "%s %d%s"
     w.Text(w.line);
     w.Down();
     if (spell->targetFlags_ & 0x10000000) {
-        w.line.Format("%s %s", static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
+        w.line.Format("%s %s", w.T(11).GetString(), w.T(22).GetString());
     } else {
         // The area: pi * r * r in that order (FLD r; FLD pi; FMUL ST1; FMUL ST1).
         double radius = D(spell->radius_);
         double area = D(3.1415927f /*007402C0*/) * radius * radius;
-        w.line.Format("%s %.1f%s", static_cast<const char*>(w.T(11)), area, static_cast<const char*>(w.T(26)));
+        w.line.Format("%s %.1f%s", w.T(11).GetString(), area, w.T(26).GetString());
     }
     w.Text(w.line);
     w.Down();
@@ -759,7 +757,7 @@ namespace {
 // Kind 0, an attribute: two of its derived values (UnitStats methods), percentages where scaled.
 void AttributeLines(Writer& w, UnitStats* stats, int index) {
     auto line = [&](const char* format, int label, int value) {
-        w.line.Format(format, static_cast<const char*>(w.Skill(label)), value);
+        w.line.Format(format, w.Skill(label).GetString(), value);
         w.Text(w.line);
         w.Down();
     };
@@ -808,23 +806,23 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         bool drawn = true;
         switch (group) {
         case 0: case 1: case 2: case 3: case 4: case 5: case 6:
-            w.line.Format(plain, static_cast<const char*>(w.Skill(10)), value);
+            w.line.Format(plain, w.Skill(10).GetString(), value);
             break;
         case 7: case 8: case 9: case 10: case 11: case 12: case 13: case 14:
-            w.line.Format(plain, static_cast<const char*>(w.Skill(11)), value);
+            w.line.Format(plain, w.Skill(11).GetString(), value);
             break;
         case 15:
-            w.line.Format(percent, static_cast<const char*>(w.Skill(12)), static_cast<std::uint32_t>(value + 100) >> 1);
+            w.line.Format(percent, w.Skill(12).GetString(), static_cast<std::uint32_t>(value + 100) >> 1);
             break;
-        case 16: w.line.Format(percent, static_cast<const char*>(w.Skill(14)), value + 100); break;
-        case 17: w.line.Format(percent, static_cast<const char*>(w.Skill(15)), value + 100); break;
-        case 18: w.line.Format(percent, static_cast<const char*>(w.Skill(16)), value + 100); break;
-        case 19: w.line.Format(percent, static_cast<const char*>(w.Skill(17)), value + 100); break;
-        case 20: w.line.Format(percent, static_cast<const char*>(w.Skill(3)), value + 100); break;
-        case 21: w.line.Format(percent, static_cast<const char*>(w.Skill(1)), value + 100); break;
-        case 22: w.line.Format(percent, static_cast<const char*>(w.Skill(22)), value + 300); break;
+        case 16: w.line.Format(percent, w.Skill(14).GetString(), value + 100); break;
+        case 17: w.line.Format(percent, w.Skill(15).GetString(), value + 100); break;
+        case 18: w.line.Format(percent, w.Skill(16).GetString(), value + 100); break;
+        case 19: w.line.Format(percent, w.Skill(17).GetString(), value + 100); break;
+        case 20: w.line.Format(percent, w.Skill(3).GetString(), value + 100); break;
+        case 21: w.line.Format(percent, w.Skill(1).GetString(), value + 100); break;
+        case 22: w.line.Format(percent, w.Skill(22).GetString(), value + 300); break;
         case 23: case 24: case 25:
-            w.line.Format(plain, static_cast<const char*>(w.Skill(23)), value);
+            w.line.Format(plain, w.Skill(23).GetString(), value);
             break;
         default:
             drawn = false;
@@ -836,7 +834,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
         w.Rect()->right += 15;
         int cost = info->stats->SkillPrice(level);
         if (cost < 0) cost = 0x7FFFFFFF;
-        w.line.Format(plain, static_cast<const char*>(w.Skill(18)), cost);
+        w.line.Format(plain, w.Skill(18).GetString(), cost);
         w.Text(w.line);
         w.Rect()->right -= 15;
         w.Down();
@@ -855,7 +853,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
         return;
     }
     auto part = [&](int label, int value) {
-        w.line.Format("     %s", static_cast<const char*>(w.T(label)));
+        w.line.Format("     %s", w.T(label).GetString());
         w.Text(w.line);
         w.line.Format("%d", value);
         w.Value(w.line);
@@ -872,7 +870,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     part(31, level);
     sum += level;
     w.Down();
-    w.line.Format("     %s", static_cast<const char*>(w.T(32)));
+    w.line.Format("     %s", w.T(32).GetString());
     w.Text(w.line);
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
     if (MbsCmp(info->text, "defense") == 0)
@@ -922,16 +920,16 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     case 1: {
         // A skill: its level and, for the first three, a derived value.
         int index = info->index;
-        w.line.Format("%s %d", static_cast<const char*>(w.Skill(5)), Ftol(stats->SkillBase(index)));
+        w.line.Format("%s %d", w.Skill(5).GetString(), Ftol(stats->SkillBase(index)));
         w.Text(w.line);
         w.Down();
         if (index >= 0) {
             bool drawn = true;
             if (index <= 1)
-                w.line.Format("%s %d", static_cast<const char*>(w.Skill(6)),
+                w.line.Format("%s %d", w.Skill(6).GetString(),
                               Ftol(stats->SkillWithBonus(static_cast<std::uint32_t>(index))));
             else if (index == 2)
-                w.line.Format("%s %d%%", static_cast<const char*>(w.Skill(7)),
+                w.line.Format("%s %d%%", w.Skill(7).GetString(),
                               Ftol(stats->Value6E9() * kPercentScale));
             else
                 drawn = false;
@@ -946,12 +944,12 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     }
     case 2:
         // A skill school: its level and, for school 0, a second value.
-        w.line.Format("%s %d", static_cast<const char*>(w.Skill(5)),
+        w.line.Format("%s %d", w.Skill(5).GetString(),
                       Ftol(stats->AttributeBase(info->index)));
         w.Text(w.line);
         w.Down();
         if (info->index == 0) {
-            w.line.Format("%s %d", static_cast<const char*>(w.Skill(9)), Ftol(stats->AttributeWithBonus(0)));
+            w.line.Format("%s %d", w.Skill(9).GetString(), Ftol(stats->AttributeWithBonus(0)));
             w.Text(w.line);
             w.Down();
         }
@@ -973,7 +971,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         for (int i = 0; i < 6; ++i) {
             w.line.Format("damage_%d", i);
             texts->GetString(w.line, &text);
-            w.line.Format("     %s:", static_cast<const char*>(text));
+            w.line.Format("     %s:", text.GetString());
             w.Text(w.line);
             w.line.Format("%.1f", D(sums[i]));
             w.Value(w.line);
@@ -994,7 +992,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         int label = 40;
         for (int school = 0; school < 8; ++school) {
             if (school == 4 || school == 6 || school == 7) continue;
-            w.line.Format("     %s", static_cast<const char*>(w.T(label++)));
+            w.line.Format("     %s", w.T(label++).GetString());
             w.Text(w.line);
             w.line.Format("%d", Ftol(stats->SpellSchoolSkill(school)));
             w.Value(w.line);

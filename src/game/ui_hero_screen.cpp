@@ -99,7 +99,7 @@ void CMpHeroScreen::DrawExperience() {
     RECT cost = {0, 150, 200, 170};
     SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
     TextsGetString(TheTextManager(), nullptr, kCurrentExpKey, &text);
-    line.Format(kLabelFormat, static_cast<const char*>(text), tradePanel_->Experience());
+    line.Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);

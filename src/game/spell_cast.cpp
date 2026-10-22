@@ -285,7 +285,7 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
     if (!constructor->CallBeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(prototype->code));
+        return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.GetString());
     int added = 0;
     for (SpellModifierNode* node = modifiers->First(); node != modifiers->End(); node = node->next) {
         if (added >= 8) break;

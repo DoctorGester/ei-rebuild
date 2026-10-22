@@ -183,7 +183,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (words.GetSize() > 2 && (number = libcrt::Atoi(words[2])) > 0) {
                 mfc::CString file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
-                file.Format(VoiceFormat(), VoiceFolders()[folder], static_cast<const char*>(topic_), number);
+                file.Format(VoiceFormat(), VoiceFolders()[folder], topic_.GetString(), number);
                 voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(
@@ -219,7 +219,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
-                    line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
+                    line.Format(NameLine(), label.GetString(), name.GetString());
                     add();
                     item->Release();
                 }
@@ -230,18 +230,18 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);
-                    line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
+                    line.Format(NameLine(), label.GetString(), name.GetString());
                     add();
                 }
             };
             if (record->experience > 0.0f) {
                 texts->GetString(ExperienceLabel(), &label);
-                line.Format(NumberLine(), static_cast<const char*>(label), static_cast<int>(record->experience));
+                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->experience));
                 add();
             }
             if (record->gold > 0.0f) {
                 texts->GetString(GoldLabel(), &label);
-                line.Format(NumberLine(), static_cast<const char*>(label), static_cast<int>(record->gold));
+                line.Format(NumberLine(), label.GetString(), static_cast<int>(record->gold));
                 add();
             }
             texts->GetString(ItemLabel(), &label);
@@ -254,7 +254,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                         CItem* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
                         texts->FormatItemName(item, &name);
-                        line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
+                        line.Format(NameLine(), label.GetString(), name.GetString());
                         add();
                     }
                 }
@@ -267,7 +267,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             if (record->specials > 0) {
                 label.Format(SpecialsLabel(), record->specials);
                 texts->GetString(label, &label);
-                line.Format(TextLine(), static_cast<const char*>(label));
+                line.Format(TextLine(), label.GetString());
                 add();
             }
         }
@@ -275,7 +275,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
 
     // The phrase's speaker: the last line's second word (read unchecked, as the original does,
     // only while comparing with a speaker).
-    auto named = [&words] { return static_cast<const char*>(words.data[1]); };
+    auto named = [&words] { return words.data[1].GetString(); };
     if (!skip || last) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);

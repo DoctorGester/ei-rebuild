@@ -699,7 +699,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(static_cast<const char*>(record->texts[5])));
+                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(record->texts[5].GetString()));
                 int number = prototype->hair;
                 if (number != -1) {
                     hair.Format(worlddata::HairFormat(), number);
@@ -1581,7 +1581,7 @@ MapRecord* LocalZoneRecord() {
 // Whether the local player is in the last zone ("gz20g", compared as it is).
 bool InFinalZone() {
     mfc::CString zone(mfc::CString::kUnset);
-    return gamecrt::mbscmp(static_cast<const char*>(*LocalPlayerName(&zone)), worlddata::FinalZoneText()) == 0;
+    return gamecrt::mbscmp((*LocalPlayerName(&zone)).GetString(), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace
@@ -1638,7 +1638,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (zone) allod = zone->allod;
     allod.MakeLower();
     if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
-        return game::FatalError(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));
+        return game::FatalError(worlddata::CantLoadTerrainFormat(), map.GetString());
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);

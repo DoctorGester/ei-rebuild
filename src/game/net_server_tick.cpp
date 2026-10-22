@@ -22,7 +22,7 @@ namespace {
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
-const char* MasterHost() { return static_cast<const char*>(options::TheOptions()->masterServerName_); }   // the master server's host name
+const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }   // the master server's host name
 
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);

@@ -199,7 +199,7 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, c
         database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
     }
     if (!database) {
-        game::DebugLog("Can't find animation database file for \"%s\".\n", static_cast<const char*>(figure));
+        game::DebugLog("Can't find animation database file for \"%s\".\n", figure.GetString());
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)

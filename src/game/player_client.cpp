@@ -615,7 +615,7 @@ int CPlayerClient::OnNewObject() {
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
     object->ApplyBaseScale();
-    object->name2 = static_cast<const char*>(secondName);   // 0050F150
+    object->name2 = secondName.GetString();   // 0050F150
     if (isUnit) {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);

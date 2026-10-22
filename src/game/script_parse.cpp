@@ -326,7 +326,7 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     mfc::CString text(token.text);
     int found;
     ClassifyAt(text, &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
+    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.GetString());
     return 1;
 }
 EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
@@ -339,7 +339,7 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) 
         return out;
     }
     mfc::CString qualified;
-    qualified.Format("!%i!%s", FileCount(), static_cast<const char*>(name));
+    qualified.Format("!%i!%s", FileCount(), name.GetString());
     new (out) mfc::CString(qualified);
     return out;
 }

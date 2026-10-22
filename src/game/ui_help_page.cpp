@@ -105,7 +105,7 @@ bool Listed(const std::string& page, const char* const* names, std::size_t count
 
 int TutorialFrameShift(const CHelpWindow* window) {
     if (!widescreen::Active() || !window->message_) return 0;
-    const std::string page = std::string(static_cast<const char*>(window->text_)) + ':' + std::to_string(window->page_);
+    const std::string page = std::string(window->text_.GetString()) + ':' + std::to_string(window->page_);
     if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
     if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();
     return 0;
@@ -187,7 +187,7 @@ void CHelpWindow::ShowPageVanilla() {
     RECT line{0, 8, width, 30};
     SurfaceDrawText(header, nullptr, lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text.Format(kTitleFormat, static_cast<const char*>(title_), page_ + 1, lines_.size);
+    text.Format(kTitleFormat, title_.GetString(), page_ + 1, lines_.size);
     SurfaceDrawText(header, nullptr, text, &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 

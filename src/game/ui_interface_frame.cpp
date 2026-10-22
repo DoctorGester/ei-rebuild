@@ -142,7 +142,7 @@ namespace {
 // the interface's ShowWindow (005F7350: window, 1, 1).
 
 int Compare(const mfc::CString& word, const char* text) {
-    return gamecrt::mbscmp(static_cast<const char*>(word),
+    return gamecrt::mbscmp(word.GetString(),
                            text);
 }
 
@@ -162,8 +162,8 @@ void CInterface3D::OnStringEvent(const char* event) {
         GameStopSounds(1);
         GameStopAmbience();
         PlaySound("buttons\\gameover.wav", 0);
-        const char* title = words.size > 1 ? static_cast<const char*>(words.data[1]) : "game_over";
-        const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
+        const char* title = words.size > 1 ? words.data[1].GetString() : "game_over";
+        const char* message = words.size > 2 ? words.data[2].GetString() : "game_over_msg";
         CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
         CMessageBox* window = memory ? memory->Construct(this, title, message, 0x20000, 3, 1) : nullptr;
         PushWindow(window, 1, 1);
@@ -176,13 +176,13 @@ void CInterface3D::OnStringEvent(const char* event) {
         int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
         int kind = Compare(words.data[0], "say_block") != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
-            top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(static_cast<const char*>(words.data[1])));
+            top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
     } else if (Compare(words.data[0], "tutorial") == 0) {   // queued
         if (words.size < 2) return;
         stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
     } else if (Compare(words.data[0], "briefing") == 0) {
         if (words.size < 2 || stackBegin_ == stackEnd_) return;
-        top()->VirtualShowBriefing(static_cast<const char*>(words.data[1]));
+        top()->VirtualShowBriefing(words.data[1].GetString());
     } else if (Compare(words.data[0], "autosave") == 0) {
         pollTop_ = true;
     } else if (Compare(words.data[0], "endofgame") == 0) {

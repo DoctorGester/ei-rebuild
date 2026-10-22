@@ -262,7 +262,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         } else {
             mfc::CString name;
-            name.Format("z.%s", static_cast<const char*>(source.target));
+            name.Format("z.%s", source.target.GetString());
             float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -327,7 +327,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix.Format("q.%s", static_cast<const char*>(shownZone_));
+        prefix.Format("q.%s", shownZone_.GetString());
         table->Fill(prefix);
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
@@ -345,10 +345,10 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             SortStrings(found.begin(), found.end());
             for (mfc::CString* s = found.begin(); s != found.end(); ++s) {
                 quests->SetAtGrow(quests->GetSize(), *s);
-                const char* current = listZones_ == 0 ? static_cast<const char*>(LastQuest())
-                                                      : static_cast<const char*>(interface_->savedText_);
+                const char* current = listZones_ == 0 ? LastQuest().GetString()
+                                                      : interface_->savedText_.GetString();
                 if (gamecrt::mbsicmp(current,
-                                    static_cast<const char*>(*s)) == 0)
+                                    s->GetString()) == 0)
                     selectedQuest_ = quests->GetSize() - 1;
             }
             LastQuest() = (*quests)[selectedQuest_];
@@ -455,12 +455,12 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {   // 0073B858
-            part.Format("%s %d\n ", static_cast<const char*>(costExp), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
+            part.Format("%s %d\n ", costExp.GetString(), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part.Format("%s %d\n ", static_cast<const char*>(costMoney), static_cast<int>(gamecrt::Ftol(D(money))));
+            part.Format("%s %d\n ", costMoney.GetString(), static_cast<int>(gamecrt::Ftol(D(money))));
             text += part;
         }
     }
@@ -469,8 +469,8 @@ void CObjectivesWindow::ShowQuest() {
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable.Format("q.%s.%s.%s", static_cast<const char*>(shownZone_), static_cast<const char*>((*quests)[selectedQuest_]),
-                        static_cast<const char*>(fields[1]));   // "q.%s.%s.%s"
+        variable.Format("q.%s.%s.%s", shownZone_.GetString(), ((*quests)[selectedQuest_]).GetString(),
+                        fields[1].GetString());   // "q.%s.%s.%s"
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
@@ -641,7 +641,7 @@ void CObjectivesWindow::Build() {
             text::Split(node->value.key, &parts, '.');
             if (parts.GetSize() != 3) continue;
             if (gamecrt::mbsicmp(interfaceQuest,
-                                static_cast<const char*>(parts[2])) == 0)
+                                parts[2].GetString()) == 0)
                 current = parts[1];
             std::uint32_t one;
             std::memcpy(&one, &node->value.mapped, 4);
@@ -655,7 +655,7 @@ void CObjectivesWindow::Build() {
             bool listed = false;
             for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
                 if (gamecrt::mbscmp(zone->name,
-                                    static_cast<const char*>(*z)) == 0) {
+                                    z->GetString()) == 0) {
                     listed = true;
                     break;
                 }
@@ -670,8 +670,8 @@ void CObjectivesWindow::Build() {
         }
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
-            if (gamecrt::mbsicmp(static_cast<const char*>(current),
-                                static_cast<const char*>(zones->begin()[i])) ==
+            if (gamecrt::mbsicmp(current.GetString(),
+                                zones->begin()[i].GetString()) ==
                 0) {
                 zoneIndex_ = i;
                 break;
@@ -711,7 +711,7 @@ void CObjectivesWindow::DrawQuestList() {
         }
         if (found) texts->ReadLine(&title, 1);
         else title = (*quests)[row];
-        variable.Format("q.%s.%s", static_cast<const char*>(shownZone_), static_cast<const char*>((*quests)[row]));
+        variable.Format("q.%s.%s", shownZone_.GetString(), ((*quests)[row]).GetString());
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

@@ -113,7 +113,7 @@ int CWorldServer::Update() {
         {
             alignas(4) unsigned char storage[sizeof(mfc::CString)];
             mfc::CString* name = names.CopyAt(reinterpret_cast<mfc::CString*>(storage), i);
-            found = gamecrt::mbscmp(static_cast<const char*>(*name),
+            found = gamecrt::mbscmp(name->GetString(),
                                     worlddata::HeroesGroupText()) == 0;
             name->~CString();
         }

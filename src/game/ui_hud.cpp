@@ -1030,7 +1030,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         mfc::CString name(GameExitTarget(exit));
-        if (gamecrt::mbsicmp(static_cast<const char*>(name),
+        if (gamecrt::mbsicmp(name.GetString(),
                             game::NoneText()) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name);

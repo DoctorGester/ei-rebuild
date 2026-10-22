@@ -107,7 +107,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         mfc::CString name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText()));
-        briefing->name.Assign(static_cast<const char*>(name));
+        briefing->name.Assign(name.GetString());
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));

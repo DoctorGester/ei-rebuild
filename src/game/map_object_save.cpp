@@ -35,7 +35,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     stream->Read(&localRotation_, sizeof(localRotation_));
     {
         ReadText text(stream);
-        name = static_cast<const char*>(*text.text);
+        name = text.text->GetString();
     }
     stream->Read(&scale, sizeof(scale));
     // The original reads the count into its argument's stack slot: a failed read leaves the stream

@@ -567,7 +567,7 @@ void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, RecordName
         ReadName(stream, name);
         Record* record;
         {
-            stlp::string key(static_cast<const char*>(name));
+            stlp::string key(name.GetString());
             record = stlp::NamedSlot<Record>(map, key);
         }
         if (record) AddUnique(list, record);

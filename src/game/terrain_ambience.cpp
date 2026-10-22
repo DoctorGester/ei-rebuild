@@ -228,7 +228,7 @@ void Terrain::PlayAmbience() {
         {
             mfc::CString time;   // the empty string, replaced (the original passes raw stack storage)
             TheClientWorld()->AmbienceTimeOfDay(&time);
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", static_cast<const char*>(textAE0), kind.name, static_cast<const char*>(time),
+            gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0.GetString(), kind.name, time.GetString(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
@@ -250,7 +250,7 @@ void Terrain::PlayAmbience() {
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
             char name[256];
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\circle.wav", static_cast<const char*>(textAE0), classes[vote.soundClass].name);
+            gamecrt::sprintf(name, "ambient\\%s\\%s\\circle.wav", textAE0.GetString(), classes[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }

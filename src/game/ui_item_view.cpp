@@ -420,7 +420,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     UnitModelRecord* figure;
     {
-        stlp::string key(static_cast<const char*>(unit->modelName));
+        stlp::string key(unit->modelName.GetString());
         figure = unitdb::ModelNamed(key);
     }
     mfc::CString sex;
@@ -431,7 +431,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
     model->Format("infa%sme%dface", figureModel, unit->hair + 1);
-    texture->Format("face%s%02d", static_cast<const char*>(sex), unit->skin);
+    texture->Format("face%s%02d", sex.GetString(), unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {

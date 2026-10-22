@@ -588,7 +588,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
-                           static_cast<const char*>(stringArgs.data[0]), "GetObjectByName");
+                           stringArgs.data[0].GetString(), "GetObjectByName");
         Store(*result, o);
         return;
     }
@@ -596,7 +596,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CEngineObject* o = TheServerWorld()->FindObject(libcrt::Atoi(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
-                           static_cast<const char*>(stringArgs.data[0]), "GetObjectByID");
+                           stringArgs.data[0].GetString(), "GetObjectByID");
         Store(*result, o);
         return;
     }

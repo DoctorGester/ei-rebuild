@@ -238,7 +238,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
     auto* part = static_cast<CFigureMesh*>(static_cast<CFigureManager*>(manager)->NewPart(name, partName, static_cast<FigureModel*>(model), std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
-        game::DebugLog(kCantLoadPart, partName, static_cast<const char*>(name));
+        game::DebugLog(kCantLoadPart, partName, name.GetString());
         return nullptr;
     }
     if (CLinkMesh* current = figure) {
@@ -296,7 +296,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     if (!manager) return game::FatalError(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
-        if (!LoadPart(static_cast<const char*>((*names)[i]), cached, arg)) game::DebugLog(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
+        if (!LoadPart(((*names)[i]).GetString(), cached, arg)) game::DebugLog(kCantCreatePart, model, ((*names)[i]).GetString());
     }
     return 1;
 }
@@ -317,7 +317,7 @@ void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* nam
         auto* start = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
         pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
-            const char* text = static_cast<const char*>((*names)[i]);
+            const char* text = ((*names)[i]).GetString();
             new (&start[i]) stlp::string(text, text + std::strlen(text));
         }
         pieces.Finish() = start + count;

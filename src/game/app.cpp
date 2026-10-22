@@ -272,7 +272,7 @@ int __cdecl StartFirstMap() {
     const auto& cmdScript = CommandLineScript();
     mfc::CString map;
     map = cmdMap.GetLength() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
-    if (gamecrt::mbscmp(static_cast<const char*>(cmdMode),
+    if (gamecrt::mbscmp(cmdMode.GetString(),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());
@@ -280,7 +280,7 @@ int __cdecl StartFirstMap() {
     }
     CWorldServer* world = TheServerWorld();
     if (!WorldNewZoneOriginal(world, nullptr, map, cmdMode, (const char*)0))
-        return game::FatalError("Can't load map \"%s\".\n", static_cast<const char*>(map));
+        return game::FatalError("Can't load map \"%s\".\n", map.GetString());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
     client->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
@@ -298,7 +298,7 @@ int __cdecl StartFirstMap() {
     if (loaded) return 1;
     ScriptErrorInfo error;   // GetError constructs the text over the empty one
     static_cast<CScript*>(script)->GetError(&error);
-    return game::FatalError("%s, line %i", static_cast<const char*>(error.text), error.line);
+    return game::FatalError("%s, line %i", error.text.GetString(), error.line);
 }
 EI_REWRITTEN(0x00456140, StartFirstMap);
 
