@@ -38,7 +38,7 @@ CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(obje
 // ---- Sorting predicates --------------------------------------------------------------------------
 
 bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
-    auto* registry = static_cast<CBaseManager*>(manager);
+    CBaseManager* registry = manager;
     CEngineObject* first = registry->FindObject(a->objectId);
     CEngineObject* second = registry->FindObject(b->objectId);
     if (!first || !second) return false;

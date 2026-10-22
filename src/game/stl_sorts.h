@@ -39,10 +39,10 @@ void __fastcall ReplicatedFinalSort(net::Replicated* first, net::Replicated* las
 // 00576D40 (RET 0xC) __unguarded_insertion_sort. The original inlines the comparison in some
 // scans; its depth sums are the same (only the first two terms trade places).
 void __fastcall ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void* tag, int depth, const float* plane,
-                                void* manager);
-void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, void* manager);
+                                CBaseManager* manager);
+void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CBaseManager* manager);
 void __fastcall ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void* tag, const float* plane,
-                                             void* manager);
+                                             CBaseManager* manager);
 
 // The battle screen's party ids (ui_battle_update.cpp), less<int>. 0060B1E0 (RET 8)
 // __introsort_loop (no comparison object), 0064B750 (plain RET) __final_insertion_sort.

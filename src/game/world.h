@@ -1674,7 +1674,7 @@ static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) 
 struct DepthLess {
     float* view;                          // +0 the view matrix (row-major 4x4): row 2 (+0x20) the depth
                                           //    axis, its translation (+0x2C) the offset
-    void* manager;                        // +4 CBaseManager holding the objects
+    CBaseManager* manager;                // +4 the manager holding the objects
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then

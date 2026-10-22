@@ -591,7 +591,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     // inlined in the original (the same steps as the out-of-line loop).
     MatrixDevice* device = TheMatrixDevice();
     const float* plane = device->viewStack + (device->viewDepth - 1) * 16;
-    void* objects = client->MapObjectManager();
+    CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
     ScreenEntry* last = hits.end();
     if (first != last) {
