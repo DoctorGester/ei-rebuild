@@ -127,16 +127,6 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 class CParty;
 class CItemScreen;
 struct PartyUnitRecord;
-// 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
-// 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
-// CArray at +0x19C): both caches' objects released and their maps destroyed, then the container
-// base (ui_item_screen.cpp).
-void __fastcall ItemScreenDestroy(CItemScreen* self);
-void __fastcall CampScreenDestroy(CItemScreen* self);
-// 005F7010 (__fastcall). Destructor body of screen 9 (vtable 00740D18): its vector of CStrings at
-// +0x1AC, then both caches as above (ui_item_screen.cpp).
-void __fastcall Screen9Destroy(CItemScreen* self);
-
 // The item screens' icon window (0x148 bytes, game.exe's tables 00740444 / 00740410; made by 005EDD80). Its
 // destructors are the window's (005EE020).
 class CItemIconWindow final : public CUiWindow {
@@ -155,19 +145,32 @@ public:
 // caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
 class CItemScreen : public CUiContainer {
 public:
-    // 005F6FF0 (slot 0, the deleting destructor; ui_window_delete.cpp). Screen9Destroy, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CItemScreen* Screen9Delete(unsigned flags);
-    // 005F6600 (slot 0, the deleting destructor; ui_window_delete.cpp). CampScreenDestroy, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CItemScreen* CampScreenDelete(unsigned flags);
-    // 005F6450 (slot 0, the deleting destructor; ui_window_delete.cpp). ItemScreenDestroy, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CItemScreen* ItemScreenDelete(unsigned flags);
-    // The plain item screen's compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740A2C / 007409F8,
-    // which the screens' constructors store first (not Vtable(): the screens have their own).
-    static void** ItemScreenVtable();
-    static void** ItemScreenInputVtable();
+    // 005F6470 (ui_item_screen.cpp; deleting 005F6450, the input side's 005FC0C0): both caches'
+    // objects released and their maps destroyed, then the container's.
+    ~CItemScreen() override;
+
+    // The item screens' slots over the container's (game.exe's plain item screen 00740A2C / 007409F8,
+    // whose 25 / 26 are pure; the camp, the exchange and the hero screen override them): what the
+    // item strips and panels call on their owner. The plain item screen's answers (ui_small_members.cpp)
+    // and empty stubs.
+    virtual void TakeItem(CItem*, int) {}                                   // 42: 005F6370 (RET 8)
+    // 005F6380 (slot 43, RET 8): no item may be moved (AL 0).
+    virtual bool CanEquip(CItem* item, int mode);
+    virtual void TopicClicked(int, int) {}                                  // 44: 005F6390 (RET 8)
+    // 005F63A0 (slot 45, RET 0xC): no skill and no mana.
+    virtual void BestPartySkill(int school, int* skill, int* mana);
+    virtual void RefreshWeapons() {}                                        // 46: 005F63C0
+    virtual void RefreshStats() {}                                          // 47: 005F63D0
+    virtual void NextHero() {}                                              // 48: 005F63E0
+    virtual void PreviousHero() {}                                          // 49: 005F63F0
+    // 005F6400 (slot 50, RET 4): no hero unit.
+    virtual CUnit* HeroUnit(int index);
+    virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // 51: 005F6410 (the shown hero)
+    virtual void ChooseFigure(const char*) {}                               // 52: 005F6420 (RET 4)
+    // 005F6430 (slot 53): no weight (0.0 from 0073B858, in ST0).
+    virtual double Weight();
+    // 005F6440 (slot 54, RET 8): no price.
+    virtual int Price(CItem* item, int kind);
     // 005ECA10 (RET 8). Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
     // texture (cached, 005EC020) turning while the mouse is on it, a glow in the colour of the
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
@@ -194,75 +197,22 @@ public:
     // 005EE2C0 (RET 8; ui_item_screen.cpp). Moves every item of `from` into `to` (whole stacks,
     // merged); returns the last item `to` took, or null when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
-    // The plain item screen's answers (vtable 00740A2C; the exchange 00740D18 and the hero screen
-    // 0074214C keep some of them; ui_small_members.cpp): 005F6380 (slot 43, RET 8) no item may
-    // be moved (AL 0); 005F63A0 (slot 45, RET 0xC) no skill and no mana; 005F6400 (slot 50, RET 4)
-    // no hero unit; 005F6430 (slot 53) no weight (0.0 from 0073B858, in ST0); 005F6440 (slot 54,
-    // RET 8) no price.
-    bool CanEquipDefault(CItem* item, int mode);
-    void BestPartySkillDefault(int school, int* skill, int* mana);
-    CUnit* HeroUnitDefault(int index);
-    float WeightDefault();
-    int PriceDefault(CItem* item, int kind);
-
-    // The item screens' slots 42-54 through the vtable (ItemScreenClass, ui_container_class.h, names them): what
-    // the item strips and panels call on their owner, as the original does.
-    void VirtualTakeItem(CItem* item, int mode) {                                   // 42 (+0xA8)
-        using Fn = void(__thiscall*)(CItemScreen*, CItem*, int);
-        ei::VirtualSlot<Fn>(TagTable(), 42)(this, item, mode);
-    }
-    bool VirtualCanEquip(CItem* item, int mode) {                                   // 43 (+0xAC, AL)
-        using Fn = bool(__thiscall*)(CItemScreen*, CItem*, int);
-        return ei::VirtualSlot<Fn>(TagTable(), 43)(this, item, mode);
-    }
-    void VirtualTopicClicked(int topic, int mode) {                                 // 44 (+0xB0)
-        using Fn = void(__thiscall*)(CItemScreen*, int, int);
-        ei::VirtualSlot<Fn>(TagTable(), 44)(this, topic, mode);
-    }
-    void VirtualBestPartySkill(int school, int* skill, int* mana) {                 // 45 (+0xB4)
-        using Fn = void(__thiscall*)(CItemScreen*, int, int*, int*);
-        ei::VirtualSlot<Fn>(TagTable(), 45)(this, school, skill, mana);
-    }
-    void VirtualRefreshWeapons() { CallSlot(46); }                                  // 46 (+0xB8)
-    void VirtualRefreshStats() { CallSlot(47); }                                    // 47 (+0xBC)
-    void VirtualNextHero() { CallSlot(48); }                                        // 48 (+0xC0)
-    void VirtualPreviousHero() { CallSlot(49); }                                    // 49 (+0xC4)
-    void CallSlot(int slot) {
-        using Fn = void(__thiscall*)(CItemScreen*);
-        ei::VirtualSlot<Fn>(TagTable(), slot)(this);
-    }
-    CUnit* VirtualHeroUnit(int index) {                                             // 50 (+0xC8)
-        using Fn = CUnit*(__thiscall*)(CItemScreen*, int);
-        return ei::VirtualSlot<Fn>(TagTable(), 50)(this, index);
-    }
-    PartyUnitRecord* VirtualHeroRecord() {                                          // 51 (+0xCC) the shown hero
-        using Fn = PartyUnitRecord*(__thiscall*)(CItemScreen*);
-        return ei::VirtualSlot<Fn>(TagTable(), 51)(this);
-    }
-    void VirtualChooseFigure(const char* prototype) {                               // 52 (+0xD0)
-        using Fn = void(__thiscall*)(CItemScreen*, const char*);
-        ei::VirtualSlot<Fn>(TagTable(), 52)(this, prototype);
-    }
-    double VirtualWeight() {                                                        // 53 (+0xD4, ST0)
-        using Fn = double(__thiscall*)(CItemScreen*);
-        return ei::VirtualSlot<Fn>(TagTable(), 53)(this);
-    }
-    int VirtualPrice(CItem* item, int kind) {                                       // 54 (+0xD8)
-        using Fn = int(__thiscall*)(CItemScreen*, CItem*, int);
-        return ei::VirtualSlot<Fn>(TagTable(), 54)(this, item, kind);
-    }
-
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
     CItemIconWindow* iconWindow_;    // +0x16C (005EDD80)
     ItemObjectCache models_;         // +0x170
     ItemObjectCache textures_;       // +0x180
+
+protected:
+    // Each screen's constructor starts with the container and no item under the mouse; the caches
+    // are its own to set up.
+    explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui), hoveredItem_(nullptr) {}
 };
 static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
 static_assert(sizeof(CItemIconWindow) == 0x148);
 
-inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->VirtualTakeItem(item, mode_); }
-inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->VirtualTopicClicked(topic, mode_); }
+inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
+inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic, mode_); }
 static_assert(offsetof(CItemScreen, models_) == 0x170);
 static_assert(offsetof(CItemScreen, textures_) == 0x180);
 

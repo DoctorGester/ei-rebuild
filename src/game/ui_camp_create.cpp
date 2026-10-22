@@ -386,7 +386,7 @@ void CCampPages::BuildPages() {
     for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     hero_ = -1;
-    VirtualNextHero();
+    NextHero();
 
     // The pages' titles.
     CTextManager* texts = GameClientTexts();

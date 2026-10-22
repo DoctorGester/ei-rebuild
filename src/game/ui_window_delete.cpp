@@ -296,21 +296,6 @@ EI_REWRITTEN(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
 
 // 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
 // (00740D18).
-CItemScreen* CItemScreen::ItemScreenDelete(unsigned flags) {
-    ItemScreenDestroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6450, CItemScreen::ItemScreenDelete);
-CItemScreen* CItemScreen::CampScreenDelete(unsigned flags) {
-    CampScreenDestroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6600, CItemScreen::CampScreenDelete);
-CItemScreen* CItemScreen::Screen9Delete(unsigned flags) {
-    Screen9Destroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6FF0, CItemScreen::Screen9Delete);
 
 // 0060E290: the forwarding item strip (0074197C).
 CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
@@ -340,13 +325,6 @@ CSpellMakerPage* CSpellMakerPage::SpellMakerDelete(unsigned flags) {
 }
 EI_REWRITTEN(0x0060E5E0, CSpellMakerPage::SpellMakerDelete);
 
-// 00633240: the multiplayer hero screen (0074214C).
-CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00633240, CMpHeroScreen::HeroScreenDelete);
-
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
 // Each is UiInput::DeleteWindow of the window class's own deleting destructor.
@@ -366,12 +344,8 @@ EI_REWRITTEN_SPECIAL(0x005FC140, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005FC120, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x0060C7E0, CUiContainer::~CUiContainer);
 EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
-EI_REWRITTEN(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
-EI_REWRITTEN(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
-EI_REWRITTEN(0x005FC110, UiInput::DeleteWindow<&CItemScreen::Screen9Delete>);
 EI_REWRITTEN(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
 EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
 EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
-EI_REWRITTEN(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
 EI_REWRITTEN_SPECIAL(0x0064BD60, CUiWindow::~CUiWindow);   // the game clock
 EI_REWRITTEN_SPECIAL(0x0064BD70, CUiWindow::~CUiWindow);   // the movement panel

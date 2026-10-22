@@ -2251,7 +2251,7 @@ const std::vector<KnownWindow>& KnownWindows() {
         {"battle", &ei::OriginalGameData<const std::uint8_t>(0x00740764)},       // the in-game screen (CreateScreen 1)
         {"briefing", &ei::OriginalGameData<const std::uint8_t>(0x007405AC)},     // the base / briefing screen (CreateScreen 3)
         {"map", &ei::OriginalGameData<const std::uint8_t>(0x00740B3C)},          // the island map (CreateScreen 4)
-        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CCampScreen (CreateScreen 5)
+        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CCampPages (CreateScreen 5)
         {"view", &ei::OriginalGameData<const std::uint8_t>(0x00740840)},         // CViewScreen (CreateScreen 7)
         {"trade", &ei::OriginalGameData<const std::uint8_t>(0x00740D18)},        // trading between players (CreateScreen 9)
         {"escmenu", &ei::OriginalGameData<const std::uint8_t>(0x007412A4)},      // CEscMenu

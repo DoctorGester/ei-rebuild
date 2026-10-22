@@ -7,6 +7,7 @@
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "library_trees.h"
 
 #include "core_maths.h"
 #include "item_db_text.h"
@@ -73,7 +74,7 @@ int CTradePanel::Experience() const {
 EI_REWRITTEN(0x00625530, CTradePanel::Experience);
 
 int CTradePanel::PurchaseCost() {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
 }
 EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
@@ -161,7 +162,7 @@ void CMpHeroScreen::Update() {
     if (mode_ != kModeNewHero) return;
 
     mfc::CString name(nameEdit_->text_);
-    const UnitStats* stats = StatsOf(VirtualHeroRecord());
+    const UnitStats* stats = StatsOf(HeroRecord());
     double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     // FCOMP; TEST AH,0x40: equal.
     float target = NewHeroPoints();
@@ -227,25 +228,25 @@ void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
 }
 } // namespace
 
-void CMpHeroScreen::DestroyBody() {
+// Built inline by the main menu's Multiplayer click (00632D70): the item screen, both caches
+// (00633F50 / 00633FF0), the name vectors, the text and the voice lists empty.
+CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
+    lib_trees::ConstructHeroItemCache(&models_);
+    lib_trees::ConstructHeroItemCache(&textures_);
+}
+
+CMpHeroScreen::~CMpHeroScreen() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
-    text_.~CString();
     DestroyStrings(names_.begin(), names_.end());
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
     DestroyStrings(defaults_.begin(), defaults_.end());
     stlp::deallocate(defaults_.begin(),   // 00520F20
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
-    ReleaseCachedObjects(&textures_);
-    textures_.map.Destroy();   // 00634200
-    ReleaseCachedObjects(&models_);
-    models_.map.Destroy();     // 00634160
-    DestroyContainer();
 }
-namespace {
-void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->DestroyBody(); }
-} // namespace
-EI_REWRITTEN(0x00633260, HeroScreenDestroy);
+EI_REWRITTEN_SPECIAL(0x00633260, CMpHeroScreen::~CMpHeroScreen);
+EI_REWRITTEN_SPECIAL(0x00633240, CMpHeroScreen::~CMpHeroScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x006345F0, CMpHeroScreen::~CMpHeroScreen);   // the input side's
 
 // --- 006167C0 / 00616560: the hero list and the voices drawn -----------------------------------------
 
@@ -384,7 +385,7 @@ void CMpHeroScreen::ShowHero(int index) {
         MpHeroesObject()->Select(SavedHero(static_cast<int>(index)));
     }
     MakePreview(1);
-    auto* hero = VirtualHeroRecord();
+    auto* hero = HeroRecord();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) unit->AddWeapon(hero->weapons[i]);

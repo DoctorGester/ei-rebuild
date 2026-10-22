@@ -265,28 +265,7 @@ static_assert(offsetof(CUiItemStrip, list_) == 0x198);
 static_assert(offsetof(CUiItemStrip, source_) == 0x1AC);
 static_assert(offsetof(CUiItemStrip, slots_) == 0x1B0);
 
-// --- Camp screen ------------------------------------------------------------------------------
-//
-// The camp (vtables 007408E8/0074091C, 0x260 bytes; Create 0060C870, which Rebirth patches): the
-// party's equipment, trade, repair and the item and spell constructors, with three item strips.
-// Also opened by the multiplayer hero screen (region 8) for a hero's inventory.
-class CCampScreen {
-public:
-    // 00610020. Virtual slot 45: over the party's heroes, the best skill in spell school `school`
-    // (rounded to nearest) and the most mana units (maximum mana / period, truncated).
-    void BestPartySkill(int school, int* skill, int* mana);
-    // 006110F0. Virtual slot 44: shows the strip tabs that go with camp page `page` (1-21).
-    void ShowPageTabs(int page, int unused);
-
-    CUiWindow window;
-    std::uint8_t unused_148[0x1E0 - 0x148];
-    CUiItemStrip* itemStrip_;   // +0x1E0
-    std::uint8_t unused_1E4[0x1EC - 0x1E4];
-    CUiItemStrip* spellStrip_;  // +0x1EC
-    CUiItemStrip* partStrip_;   // +0x1F0
-};
-static_assert(offsetof(CCampScreen, itemStrip_) == 0x1E0);
-static_assert(offsetof(CCampScreen, partStrip_) == 0x1F0);
+// --- Camp screen: CCampPages (ui_camp.h) --------------------------------------------------------
 
 // A party hero's statistics (UnitStats at +0x20 of a 0x784-byte hero record) as the camp reads
 // them: the skill in a spell school rounded like FISTP, and the whole "mana units" (the mana
@@ -314,6 +293,21 @@ using MpVoiceVector = stlp::vector<MpVoiceEntry>;
 // voice), 11 new hero's statistics. The heroes are records of 0x74 bytes in the vector at 007C82A4.
 class CMpHeroScreen : public CItemScreen {
 public:
+    explicit CMpHeroScreen(CInterface3D* ui);   // ui_hero_screen.cpp
+    // 00633260 (ui_hero_screen.cpp; deleting 00633240, the input side's 006345F0): the two voice
+    // lists' entries and storage, the CString +0x1F4, the two string vectors, then the item
+    // screen's.
+    ~CMpHeroScreen() override;
+    // The slots of its own in game.exe's tables 0074214C / 00742118.
+    void CloseScreen() override { Close(); }                                               // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                  // 27
+    void TakeItem(CItem* item, int mode) override { OnItemChosen(item, mode); }           // 42
+    void RefreshStats() override { RefreshHero(); }                                       // 47
+    PartyUnitRecord* HeroRecord() override { return GetHero(); }                          // 51
+    double Weight() override { return EquipmentWeight(); }                                // 53
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }     // 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }         // 3
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // 9
     // 00618FF0. Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
     // 00619090. The same for the voice list (eleven rows), then shows the voice's name.
@@ -328,7 +322,7 @@ public:
     PartyUnitRecord* GetHero();
     // 006188E0. Virtual slot 43: whether the hero can take `item`; spell containers need the
     // spell's skill and mana (the camp's own version is 006100E0, not rewritten).
-    bool CanEquip(CItem* item, int mode);
+    bool CanEquip(CItem* item, int mode) override;
 
     void OnLButtonUp(int flags, int x, int y);   // 006177D0
     // 00617050 (input slot 2; ui_hero_screen_click.cpp). Nothing while a hero is being renamed;
@@ -355,8 +349,7 @@ public:
     void BackToNewHero();
 
     // Slots 51 (the hero), 47 (Refresh, 00618850 here) and 52 (ChooseFigure) are called through
-    // the vtable, as the original does: CItemScreen's VirtualHeroRecord / VirtualRefreshStats /
-    // VirtualChooseFigure.
+    // the vtable, as the original does.
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
     // world; hero `index` (when in the list; else none, -1) copied into the local party and made
     // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots
@@ -382,7 +375,7 @@ public:
     // that lists it (voiceLists_[1] for names_, else [0]) from row 0, its first file the hero's
     // voice (text 6); the voice scroll bar's range and position 0; on the new hero page the
     // voices drawn.
-    void ChooseFigure(const char* prototype);
+    void ChooseFigure(const char* prototype) override;
     // 00616560. The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_,
     // the selection frame (scene object 2) on the chosen one.
     void DrawVoices();
@@ -398,25 +391,15 @@ public:
     // panels' item or help topic, the trade panel's or the statistics' entry, on the new hero's
     // page the voice rows' "lmp_select_voice"), the children drawn and the hero previewed (list
     // with a hero selected at depth 553, new hero at 400). Returns 1.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 00617820 (slot 24). The children's update; a held rotate arrow turns the preview by twice the
     // frame time (modulo 2 pi); the two scroll bars' moves redraw the hero list and the voices;
     // on the new hero's page the create button (scene object 9) is bright only when the three
     // attributes add up to 00741C98's points and the name is not empty.
-    void Update();
+    void Update() override;
     // 00615850 (slot 26). The heroes saved (006632B0 on 007C82A0), the local player's unit records
     // handed to 005789E0, the preview cleared and the description panel emptied.
     void Close();
-    // 00633260 (the destructor body; slot 0 00633240 deletes): the two voice lists' entries and
-    // storage, the CString +0x1F4, the two string vectors, the texture and model caches (objects
-    // released, nodes erased), then the container's body (00600BA0).
-    void DestroyBody();
-    // 00633240 (slot 0, the deleting destructor; ui_window_delete.cpp). Destroy, then the memory
-    // freed when bit 0 of `flags` is set; returns this.
-    CMpHeroScreen* HeroScreenDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074214C / 00742118.
-    static void** Vtable();
-    static void** InputVtable();
     // The level-up and experience lines of the statistics page (inlined by Draw).
     void DrawExperience();
     // 00618060 (ui_hero_screen_click.cpp). Region 6 of the list: the rename edit window enabled and
@@ -1026,12 +1009,22 @@ class CParty;
 class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
-    // 005F6F30 (RET 4; ui_create_screen.cpp; screen 9 of CInterface3D::CreateScreen). The
-    // container, the two item caches; vtables 00740D18 / 00740CE4. Returns this.
-    CExchangeScreen* Construct(CInterface3D* ui);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740D18 / 00740CE4.
-    static void** Vtable();
-    static void** InputVtable();
+    // 005F6F30 (ui_create_screen.cpp; screen 9 of CInterface3D::CreateScreen): the item screen, the
+    // two item caches (limit 50), no names.
+    explicit CExchangeScreen(CInterface3D* ui);
+    // 005F7010 (ui_item_screen.cpp; deleting 005F6FF0, the input side's 005FC110): the figure
+    // names, then the item screen's.
+    ~CExchangeScreen() override;
+    // The slots of its own in game.exe's tables 00740D18 / 00740CE4.
+    void CloseScreen() override { Close(); }                                               // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                  // 27
+    void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override {         // 37
+        OnExchangeDone(partyB, partyA, partyC);
+    }
+    void TakeItem(CItem* item, int mode) override { MoveOffered(item, mode); }            // 42
+    bool CanEquip(CItem* item, int mode) override { return CanMove(item, mode); }         // 43
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }     // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // 9
     // 0062C250 (slot 25; ui_exchange.cpp). Builds the window: texture "campinfo", regions 0 accept,
     // 1 take back, 2 leave (tips 0xA028, 0xA029, 0xA02B), their four button sprites (the third
     // hidden, the leave button shaded 0.5), the item screens' base (005EDD80) with the icon
@@ -1048,7 +1041,7 @@ public:
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are
     // shaded by our offer's acceptance and the third button by the partner's; then the children.
     // Returns 1.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     void OnKeyDown(int key, int repeat, int flags);   // 0062D090
     // 0062D210 (slot 37, RET 0xC; ui_exchange.cpp; CInterface3D::OnExchangeDone). The exchange
     // went through: the local party's items are released (00661FE0), every item of `partyC`, then
@@ -1064,7 +1057,7 @@ public:
     // or detached, our offer's items go back to the local party and the client returns to the
     // world; else a changed money field (its changed_ cleared) becomes our offer's money (atoi)
     // and the offer is published (0041DA50).
-    void Update();
+    void Update() override;
     // 0062CF70 (input slot 2, RET 0xC). The container's handler, then by region: 0 accept (the buy
     // sound and the trade recorded with the local party, 0041E0A0, when our offer is live and not
     // accepted and its money is within the local party's; else the cancel sound), 1 take the

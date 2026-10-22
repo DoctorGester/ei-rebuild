@@ -273,17 +273,6 @@ EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
 // --- Esc menu clicks (0062AE90) -------------------------------------------------------------------
 
-namespace {
-// Not rewritten: the container window constructor, the STLport vector constructors of the two
-// windows' members, the message box constructor and the interface's window activation. Thiscall
-// methods are declared __fastcall with the unused EDX.
-
-void SetVtables(CUiWindow* window, void** main, void** input) {
-    window->SetTagTables(main, input);
-}
-
-} // namespace
-
 void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
@@ -391,21 +380,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         TheInterface()->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
-        auto* w = gamecrt::operator_new_as<CMpHeroScreen>();
-        if (w) {
-            w->Construct(ui);
-            w->hoveredItem_ = nullptr;
-            lib_trees::ConstructHeroItemCache(&w->models_);
-            lib_trees::ConstructHeroItemCache(&w->textures_);
-            SetVtables(w, CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());   // the item screens' base
-            w->defaults_.ConstructEmpty();   // vector<CString>() (0053F4F0)
-            w->names_.ConstructEmpty();
-            ::new (&w->text_) mfc::CString;
-            w->voiceLists_[0].ConstructEmpty();   // 006342A0
-            w->voiceLists_[1].ConstructEmpty();
-            SetVtables(w, CMpHeroScreen::Vtable(), CMpHeroScreen::InputVtable());
-        }
-        ui->PushWindow(w, 1, 1);
+        ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
         break;
     }
     default:

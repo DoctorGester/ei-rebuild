@@ -68,24 +68,6 @@ CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
     return static_cast<int>(count) > 0 ? *data : nullptr;
 }
 
-// `flags` is the handler's first argument: the original hands its stack slot to the model cache
-// as the allocator and keeps its low byte as the trees' (empty) compare objects.
-CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
-    auto* camp = gamecrt::operator_new_as<CCampPages>();
-    if (!camp) return nullptr;
-    camp->CUiContainer::Construct(ui);
-    camp->hoveredItem_ = nullptr;
-    std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
-    camp->models_.Construct(compare);
-    camp->textures_.Construct(compare);
-    camp->SetTagTables(CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());
-    camp->fromHeroScreen_ = true;   // opened from the hero screen
-    camp->heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
-    camp->pageTitles_.Construct();
-    camp->SetTagTables(CCampPages::Vtable(), CCampPages::InputVtable());
-    return camp;
-}
-
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
@@ -129,7 +111,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    nameEdit_->SetText(VirtualHeroRecord()->texts[0].GetString());
+    nameEdit_->SetText(HeroRecord()->texts[0].GetString());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -252,8 +234,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            VirtualChooseFigure(defaults_[0]);
-            PartyUnitRecord* hero = VirtualHeroRecord();
+            ChooseFigure(defaults_[0]);
+            PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
             stats->stat10 = 25.0f;
@@ -264,7 +246,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             hero->height = 0.7f;
             nameEdit_->SetText(game::EmptyText());
             statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-            VirtualRefreshStats();
+            RefreshStats();
             return;
         }
         default:
@@ -279,7 +261,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
         const mfc::CString& file = voices.begin()[index].file;
-        VirtualHeroRecord()->texts[6] = file;
+        HeroRecord()->texts[6] = file;
         MpHeroPlayVoice(this);
         DrawVoices();
         return;
@@ -295,7 +277,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             tradePanel_->Settle(0, 0);
-            PartyUnitRecord* hero = VirtualHeroRecord();
+            PartyUnitRecord* hero = HeroRecord();
             weapon_ = FirstOf(hero->weapons, hero->weaponCount);
             weaponPanel_->ShowWeapon(weapon_);
             armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
@@ -326,7 +308,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        VirtualChooseFigure(defaults_[0]);
+        ChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
         surfaces_.data[0]->GetDC();
         surfaces_.data[0]->Clear();
@@ -351,8 +333,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // The hero's inventory: the camp screen.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
-        CCampPages* camp = BuildCamp(interface_, &flags);
-        interface_->PushWindow(camp, 0, 1);
+        interface_->PushWindow(new CCampPages(interface_, true), 0, 1);
         return;
     }
     default:
@@ -416,7 +397,7 @@ bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) =
 void CMpHeroScreen::PlayVoice() {
     interface_->StopSound(voiceSound_);
     voiceSound_ = -1;
-    auto* hero = VirtualHeroRecord();
+    auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
     {
         stlp::string key(hero->texts[6].GetString());
@@ -486,14 +467,14 @@ float AttributePoints() { return 75.0f /*00741C98*/; }
 
 void CMpHeroScreen::RefreshHero() {
     if (previewModel_) {
-        auto* hero = VirtualHeroRecord();
+        auto* hero = HeroRecord();
         auto* stats = &hero->stats;
         stats->RestoreSlots();
         // The third argument (the height's address) is not read.
         stats->GetFactors(&hero->scaleX, &hero->scaleY, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
         previewModel_->SetFigureScale(&hero->scaleX);
         CUnit* unit = previewModel_;
-        unit->SetFromStats(&VirtualHeroRecord()->stats);
+        unit->SetFromStats(&HeroRecord()->stats);
 
         unit->Controller()->RefreshWounds();
     }
@@ -506,7 +487,7 @@ EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     mfc::CString name(nameEdit_->text_);
-    auto* hero = VirtualHeroRecord();
+    auto* hero = HeroRecord();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float points = AttributePoints();
@@ -524,7 +505,7 @@ void CMpHeroScreen::CreateHero() {
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
     statsPanel_->SetHero(0, const_cast<char*>(name.GetString()));
-    VirtualRefreshStats();
+    RefreshStats();
     SetMode(this, nullptr, kModeStats);
 }
 namespace {
@@ -661,7 +642,7 @@ int HighestFileNumber(const char* pattern) {
 
 void CMpHeroScreen::AddNewHero() {
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    auto* hero = VirtualHeroRecord();
+    auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)

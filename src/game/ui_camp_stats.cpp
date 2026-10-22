@@ -49,7 +49,7 @@ constexpr int kPartLegs = 4;
 constexpr int kTipPreviousHero = 0x4F4C;
 constexpr int kTipNextHero = 0x4F4D;
 
-UnitStats* HeroStats(CItemScreen* owner) { return &owner->VirtualHeroRecord()->stats; }
+UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 } // namespace
 
@@ -98,7 +98,7 @@ EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 // --- 00624CB0: the statistics column -----------------------------------------------------------
 
 void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     info->kind = kNone;
     info->stats = &hero->stats;
     int row = RegionAt(x, y);
@@ -176,7 +176,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     regions_.data[1]->SetTip(party ? kTipNextHero : 0, 1, 0);
     heroIndex_ = heroIndex;
     if (title) title_ = title;
-    points_ = static_cast<int>(owner_->VirtualHeroRecord()->height * 100.0f);
+    points_ = static_cast<int>(owner_->HeroRecord()->height * 100.0f);
     DrawStats();
 }
 EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);

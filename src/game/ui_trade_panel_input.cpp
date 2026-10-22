@@ -69,7 +69,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     default: break;
     }
     if (region >= kFirstSchool) interface_->PlaySound(kPerkSound, 0);
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     auto* stats = &hero->stats;
     TradeRecord& record = records_[recordIndex_];
 
@@ -138,7 +138,7 @@ void CTradePanel::UpdateHeld() {
     EI_NAN_AUDIT(held);
     if (held < kHoldRepeat) return;
     int region = heldRegion_;
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     auto* stats = &hero->stats;
     const TradeRow* row;
     std::uint8_t* level;

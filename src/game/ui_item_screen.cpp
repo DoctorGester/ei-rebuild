@@ -162,39 +162,35 @@ void DestroyCache(ItemObjectCache& cache) {
 }
 } // namespace
 
-// 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
-void __fastcall ItemScreenDestroy(CItemScreen* self) {
-    DestroyCache(self->textures_);
-    DestroyCache(self->models_);
-    static_cast<CUiContainer*>(self)->DestroyContainer();
+CItemScreen::~CItemScreen() {
+    DestroyCache(textures_);
+    DestroyCache(models_);
 }
-EI_REWRITTEN(0x005F6470, ItemScreenDestroy);
+EI_REWRITTEN_SPECIAL(0x005F6470, CItemScreen::~CItemScreen);
+EI_REWRITTEN_SPECIAL(0x005F6450, CItemScreen::~CItemScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);   // the input side's
 
-void __fastcall CampScreenDestroy(CItemScreen* self) {
-    auto* camp = static_cast<CCampPages*>(self);
-    camp->pageTitles_.Destruct();
-    // The heroes CArray (vtable 007402AC).
-    camp->heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
-    DestroyCache(self->textures_);
-    DestroyCache(self->models_);
-    static_cast<CUiContainer*>(self)->DestroyContainer();
+// 005F6620: the page titles, the heroes CArray (vtable 007402AC), then the item screen's.
+CCampPages::~CCampPages() {
+    pageTitles_.Destruct();
+    heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
+    if (heroes_.data) gamecrt::operator_delete(heroes_.data);
 }
-EI_REWRITTEN(0x005F6620, CampScreenDestroy);
+EI_REWRITTEN_SPECIAL(0x005F6620, CCampPages::~CCampPages);
+EI_REWRITTEN_SPECIAL(0x005F6600, CCampPages::~CCampPages);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);   // the input side's
 
-// --- 005F7010: screen 9's destructor body (vtable 00740D18) ---------------------------------------
+// --- 005F7010: screen 9's destructor (vtable 00740D18) ------------------------------------------
 
-void __fastcall Screen9Destroy(CItemScreen* self) {
-    // The exchange window's figure names (vector<CString> at +0x1AC): the strings, then the
-    // storage through STLport's node allocator (00404D70, inlined by the original).
-    MpStringVector& names = static_cast<CExchangeScreen*>(self)->names_;
-    for (mfc::CString* at = names.begin(); at != names.end(); ++at) at->~CString();
-    stlp::deallocate(names.begin(), static_cast<std::size_t>(names.EndOfStorage() - names.begin()) * sizeof(mfc::CString));
-    DestroyCache(self->textures_);
-    DestroyCache(self->models_);
-    static_cast<CUiContainer*>(self)->DestroyContainer();
+// The figure names (vector<CString> at +0x1AC): the strings, then the storage through STLport's
+// node allocator (00404D70, inlined by the original); then the item screen's.
+CExchangeScreen::~CExchangeScreen() {
+    for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) at->~CString();
+    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
 }
-EI_REWRITTEN(0x005F7010, Screen9Destroy);
+EI_REWRITTEN_SPECIAL(0x005F7010, CExchangeScreen::~CExchangeScreen);
+EI_REWRITTEN_SPECIAL(0x005F6FF0, CExchangeScreen::~CExchangeScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC110, CExchangeScreen::~CExchangeScreen);   // the input side's
 
 // --- 005EE1B0 / 005EE2C0: moving items between lists ----------------------------------------------
 

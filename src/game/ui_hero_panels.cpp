@@ -112,9 +112,9 @@ void CHeroStatsPanel::DrawStats() {
     RECT title = {0, 0x1B, 0xC8, 0x2B};
     draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
 
-    auto hero = [this]() { return owner_->VirtualHeroRecord(); };
+    auto hero = [this]() { return owner_->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
-    CUnit* unit = owner_->VirtualHeroUnit(heroIndex_);
+    CUnit* unit = owner_->HeroUnit(heroIndex_);
     mfc::CString line;
     mfc::CString text;
     CTextManager* texts = TheTextManager();
@@ -242,7 +242,7 @@ void CHeroStatsPanel::DrawStats() {
         Down(&rect);
         double carried;
         if (page_ == 11) {
-            carried = owner_->VirtualWeight();
+            carried = owner_->Weight();
         } else {
             carried = hero()->CarriedWeight();
         }

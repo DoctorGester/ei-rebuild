@@ -124,6 +124,6 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
-    owner_->VirtualChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
+    owner_->ChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }
 EI_REWRITTEN(0x00629DB0, CUiItemStrip::OnFigureClick);

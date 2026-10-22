@@ -71,23 +71,23 @@ void* CUiWindow::NoItemAt(int, int, int* topic) {
 }
 EI_REWRITTEN(0x005EE400, CUiWindow::NoItemAt);
 
-bool CItemScreen::CanEquipDefault(CItem*, int) { return false; }
-EI_REWRITTEN(0x005F6380, CItemScreen::CanEquipDefault);
+bool CItemScreen::CanEquip(CItem*, int) { return false; }
+EI_REWRITTEN(0x005F6380, CItemScreen::CanEquip);
 
-void CItemScreen::BestPartySkillDefault(int, int* skill, int* mana) {
+void CItemScreen::BestPartySkill(int, int* skill, int* mana) {
     *skill = 0;
     *mana = 0;
 }
-EI_REWRITTEN(0x005F63A0, CItemScreen::BestPartySkillDefault);
+EI_REWRITTEN(0x005F63A0, CItemScreen::BestPartySkill);
 
-CUnit* CItemScreen::HeroUnitDefault(int) { return nullptr; }
-EI_REWRITTEN(0x005F6400, CItemScreen::HeroUnitDefault);
+CUnit* CItemScreen::HeroUnit(int) { return nullptr; }
+EI_REWRITTEN(0x005F6400, CItemScreen::HeroUnit);
 
-float CItemScreen::WeightDefault() { return 0.0f /*0073B858*/; }
-EI_REWRITTEN(0x005F6430, CItemScreen::WeightDefault);
+double CItemScreen::Weight() { return 0.0 /*0073B858*/; }
+EI_REWRITTEN(0x005F6430, CItemScreen::Weight);
 
-int CItemScreen::PriceDefault(CItem*, int) { return 0; }
-EI_REWRITTEN(0x005F6440, CItemScreen::PriceDefault);
+int CItemScreen::Price(CItem*, int) { return 0; }
+EI_REWRITTEN(0x005F6440, CItemScreen::Price);
 
 void* CUiItemStrip::FigureItemAt(int, int, int*) { return nullptr; }
 EI_REWRITTEN(0x006157C0, CUiItemStrip::FigureItemAt);

@@ -30,14 +30,14 @@ int IndexIn(CItem* const* list, int count, const CItem* item) {
 }
 
 // The owner's slot 46 (+0xB8): the shown weapons refreshed.
-void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->VirtualRefreshWeapons(); }
+void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->RefreshWeapons(); }
 
 } // namespace
 
 // --- 006229E0 / 00622A30 / 00622BC0: the shown entries ---------------------------------------------
 
 void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     hero->weaponIndex = static_cast<std::uint32_t>(-1);
     int index = IndexIn(hero->weapons, static_cast<int>(hero->weaponCount), weapon);
     if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
@@ -45,7 +45,7 @@ void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
 EI_REWRITTEN(0x006229E0, CHeroEquipPanel::ShowWeapon);
 
 void CHeroEquipPanel::ShowArmour(CItem* item) {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     selected_ = -1;
     int index = IndexIn(hero->quickItems, static_cast<int>(hero->quickItemCount), item);
     if (index >= 0) selected_ = index;
@@ -53,7 +53,7 @@ void CHeroEquipPanel::ShowArmour(CItem* item) {
 EI_REWRITTEN(0x00622A30, CHeroEquipPanel::ShowArmour);
 
 void CHeroQuickStrip::ShowEntry(CItem* item) {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     selected_ = -1;
     int index = IndexIn(hero->spells, static_cast<int>(hero->spellCount), item);
     if (index >= 0) selected_ = index;
@@ -66,7 +66,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     if (!body_ || !enabled_) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < static_cast<int>(hero->weaponCount) && region < kWeaponSlots) {
         interface_->PlaySound(ChangeSound(), 0);
         hero->weaponIndex = static_cast<std::uint32_t>(region);
@@ -82,7 +82,7 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     if (!enabled_) return nullptr;
     int region = RegionAt(x, y);
     if (region < 0) return nullptr;
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < kWeaponSlots) {
         *topic = kTopicWeapon;
         if (region < static_cast<int>(hero->weaponCount)) return hero->weapons[region];
@@ -105,7 +105,7 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     *topic = 0;
     if (!enabled_) return nullptr;
     int region = RegionAt(x, y);
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < 0 || region >= kQuickSlots) return nullptr;
     *topic = kTopicEntry;
     if (region >= static_cast<int>(hero->spellCount)) return nullptr;

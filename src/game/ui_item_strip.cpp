@@ -176,8 +176,8 @@ BOOL CUiItemStrip::Draw(int pass) {
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
-        if (!owner_->VirtualCanEquip(item, mode_)) continue;     // whether the strip's mode takes the item
-        text.Format(kNumber, owner_->VirtualPrice(item, slots_));   // the number shown under it
+        if (!owner_->CanEquip(item, mode_)) continue;     // whether the strip's mode takes the item
+        text.Format(kNumber, owner_->Price(item, slots_));   // the number shown under it
         RECT rect = cellRect(i);
         numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
     }

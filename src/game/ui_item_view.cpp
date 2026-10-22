@@ -346,7 +346,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     }
 
     // Items the strip's mode cannot take get a dark square in front.
-    if (cell->mode != 9 && !VirtualCanEquip(item, cell->mode)) {
+    if (cell->mode != 9 && !CanEquip(item, cell->mode)) {
         float depth = static_cast<float>(D(cell->depth) * D(1.25f /*0073CF50*/));
         if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
         CUiMesh* shade = AddSprite(0);

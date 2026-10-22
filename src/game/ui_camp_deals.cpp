@@ -260,7 +260,7 @@ void CCampPages::DoAction() {
     switch (page_) {
     case kEquipment:
         if (itemConstructor_ && !noConstructor_) {
-            PartyUnitRecord* hero = VirtualHeroRecord();
+            PartyUnitRecord* hero = HeroRecord();
             for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) hero->weapons[i]->Repair();
             for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) hero->armor[i]->Repair();
         }

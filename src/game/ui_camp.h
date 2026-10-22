@@ -487,15 +487,35 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
 //
-// The camp (CCampScreen in ui_screens.h, vtables 007408E8 / 0074091C, 0x260 bytes) with the
-// fields its page switch uses (ui_camp.cpp). Its child panels are created by Create (0060C870).
+// The camp (vtables 007408E8 / 0074091C, 0x260 bytes; Create 0060C870, which Rebirth patches): the
+// party's equipment, trade, repair and the item and spell constructors, with three item strips;
+// also opened by the multiplayer hero screen (region 8) for a hero's inventory (ui_camp.cpp). Its child panels are created by Create (0060C870).
 // Pages: 0 equipment, 1 trade, 2 spell constructor, 3 its second page, 4 item constructor, 5 and 6
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074091C / 007408E8.
-    static void** Vtable();
-    static void** InputVtable();
+    // 005F6240 (ui_camp.cpp; CreateScreen 5, and the hero screen's inventory with
+    // `fromHeroScreen`): the item screen, both item caches, the heroes array (vtable 007402AC),
+    // the page titles' CStringArray.
+    CCampPages(CInterface3D* ui, bool fromHeroScreen);
+    // 005F6620 (ui_item_screen.cpp; deleting 005F6600, the input side's 005FC100): the page titles,
+    // the heroes array, then the item screen's.
+    ~CCampPages() override;
+    // The slots of its own in game.exe's tables 0074091C / 007408E8.
+    void CloseScreen() override { Close(); }                                               // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                  // 27
+    void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }               // 42
+    void TopicClicked(int page, int unused) override { ShowPageTabs(page, unused); }      // 44
+    CUnit* HeroUnit(int index) override { return HeroAt(index); }                         // 50
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }     // 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }         // 3
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // 9
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }              // 11
+    // 00610020 (slot 45; ui_screens.cpp). Over the party's heroes, the best skill in spell school
+    // `school` (rounded to nearest) and the most mana units (maximum mana / period, truncated).
+    void BestPartySkill(int school, int* skill, int* mana) override;
+    // 006110F0 (slot 44; ui_screens.cpp). Shows the strip tabs that go with camp page `page` (1-21).
+    void ShowPageTabs(int page, int unused);
     // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
@@ -522,12 +542,12 @@ public:
     void ShowPage(int page);
     // 0060FA80 (virtual slot 64; ui_camp_stats.cpp). The local player's record of the hero shown
     // (LocalPlayerData +0x30, 0x784 bytes each; not checked).
-    PartyUnitRecord* HeroRecord();
+    PartyUnitRecord* HeroRecord() override;
     // 006100E0 (virtual slot 43). Whether `item` may go where the strip with action `mode` puts
     // it on the current page: weapons and armour on the equipment page, spells the party can cast,
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
     // eight modifiers, matching blueprints). Returns AL.
-    bool CanEquip(CItem* item, int mode);
+    bool CanEquip(CItem* item, int mode) override;
     // 00611930 (every frame from the camp's draw, and on the hero arrows). Works out the page's
     // action (repair all, level up, trade, construct, take apart, repair), its cost against the
     // money (or experience on the trade page) and draws them on surface 0; shades the two action
@@ -543,11 +563,11 @@ public:
     // armour also lose the repair cost of their wear (1 - durability / maximum). A repair costs at
     // least 1, or 0 for an unworn item. Rebirth's FixRepairPrice clamps the wear to [0, 1] and adds
     // the repair cost instead of subtracting it when an item is taken apart (kind 7).
-    int Price(CItem* item, int kind);
+    int Price(CItem* item, int kind) override;
     // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 0060E6B0 (slot 26, leaving the camp). Clears the server flag (00578D10) and render state 2;
     // hands the local player's unit records to 005789E0 with +0x1C raised by 100000000 for the
     // call; frees the heroes array, releases the constructed item and spell, empties both
@@ -581,27 +601,22 @@ public:
     // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
     // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
     // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
-    void RefreshWeapons();
+    void RefreshWeapons() override;
     // 0060F980 (slot 47). The current hero's unit (if any) takes the record's statistics
     // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
-    void RefreshStats();
+    void RefreshStats() override;
     // 0060F6B0 (slot 24). The children's update, then the hero preview turns while a turn button
     // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 2 pi.
-    void Update();
+    void Update() override;
     // 0060F710 / 0060F7A0 (slots 48 / 49). The next / previous hero of the party (wrapping; the
     // first record whose prototype is of class 0x32; fatal after a full round without one); a
     // different hero is shown (0060F830) and re-armed (slot 46).
-    void NextHero();
-    void PreviousHero();
+    void NextHero() override;
+    void PreviousHero() override;
     // 0060F830. The current hero's name for the panels: the unit's own name, else the text of
     // "pers <record name>" when the text table has it; to the stats panel (006232D0) and the trade
     // panel (00625860).
     void ShowHero();
-    // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
-    // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
-    // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the
-    // camp's vtables 0074091C / 007408E8. Returns this.
-    CCampPages* Construct(CInterface3D* ui, int fromHeroScreen);
     // Input side (ui_camp_input.cpp; `this` the window). 0060F470 (slot 2, RET 0xC): the
     // container's handler first; region 0 / 1 work out the action (UpdateAction) and carry out
     // the first (00611220, when actionEnabled_) or second (00611760, when actionShown_) button's
@@ -626,7 +641,7 @@ public:
     // 0060E980 (slot 41). The help topic of the page: "camp_weapons", "camp_skills",
     // "camp_spell_trade", "camp_spell_constr", "camp_item_trade", "camp_item_constr",
     // "camp_repair"; none for other pages.
-    const char* HelpTopic();
+    const char* HelpTopic() override;
     // 00611220 (ui_camp_deals.cpp; the first action button). The buy sound, then by page: 0 (with the
     // item constructor offered and shown) every weapon and armour of the hero repaired; 1 the trade
     // settled (SettleTrade(1, 0); the money is left alone); 2 / 4 the spell / item constructor buys
@@ -658,7 +673,7 @@ public:
     // and armour of each matching material (the material's +0x04 against the record's +0x10,
     // _mbsicmp) and twenty of each "Material.<name>"; spellParts_[0] cleared and given ten of each
     // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
-    void DebugFill();
+    void DebugFill() override;
 
     // The rewritten members above through their addresses, so their hooks and wrappers see the
     // calls the original makes (ui_camp.cpp).

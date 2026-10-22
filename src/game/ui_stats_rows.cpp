@@ -29,7 +29,7 @@ constexpr int kDamageTypes = 7;
 constexpr int kShownTypes = 6;               // the seventh is summed but not compared
 constexpr int kLayers = 3;
 
-UnitStats* HeroStats(CItemScreen* owner) { return &owner->VirtualHeroRecord()->stats; }
+UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 } // namespace
 

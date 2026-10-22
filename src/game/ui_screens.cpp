@@ -406,9 +406,9 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
     return ok;
 }
 
-// --- CCampScreen ------------------------------------------------------------------------------
+// --- CCampPages -------------------------------------------------------------------------------
 
-void CCampScreen::BestPartySkill(int school, int* skill, int* mana) {
+void CCampPages::BestPartySkill(int school, int* skill, int* mana) {
     int bestSkill = 0;
     int bestMana = 0;
     for (int i = 0; i < LocalPlayerData()->members_.size; ++i) {
@@ -421,9 +421,9 @@ void CCampScreen::BestPartySkill(int school, int* skill, int* mana) {
     *skill = bestSkill;
     *mana = bestMana;
 }
-EI_REWRITTEN(0x00610020, CCampScreen::BestPartySkill);
+EI_REWRITTEN(0x00610020, CCampPages::BestPartySkill);
 
-void CCampScreen::ShowPageTabs(int page, int) {
+void CCampPages::ShowPageTabs(int page, int) {
     switch (page) {
     case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 16:
         itemStrip_->SelectTab(2);
@@ -454,7 +454,7 @@ void CCampScreen::ShowPageTabs(int page, int) {
         break;
     }
 }
-EI_REWRITTEN(0x006110F0, CCampScreen::ShowPageTabs);
+EI_REWRITTEN(0x006110F0, CCampPages::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
@@ -486,13 +486,13 @@ void CMpHeroScreen::ClampVoiceSelection() {
     TakeScrollPos(voiceScroll_, nullptr, &voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const mfc::CString& file = voices_->begin()[voiceIndex_].file;
-    VirtualHeroRecord()->texts[6] = file;
+    HeroRecord()->texts[6] = file;
     DrawVoices();
 }
 EI_REWRITTEN(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 
 double CMpHeroScreen::EquipmentWeight() {
-    PartyUnitRecord* hero = VirtualHeroRecord();
+    PartyUnitRecord* hero = HeroRecord();
     double weight = 0.0;
     if (weapon_) weight = weapon_->Weight();
     if (armor_) weight += armor_->Weight();
@@ -508,7 +508,7 @@ double CMpHeroScreen::EquipmentWeight() {
 EI_REWRITTEN(0x006193C0, CMpHeroScreen::EquipmentWeight);
 
 void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
-    VirtualHeroRecord();   // called for nothing, as in the original
+    HeroRecord();   // called for nothing, as in the original
     if (mode == 0) {
         bool equipped = true;
         switch (item->type_) {
@@ -530,7 +530,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
         }
         if (equipped) uiorig::PlayUiSound(interface_, kSoundMessageOk, 0);
     }
-    VirtualRefreshStats();
+    RefreshStats();
 }
 EI_REWRITTEN(0x00618980, CMpHeroScreen::OnItemChosen);
 
@@ -538,7 +538,7 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
     if (item->type_ != kTypeSpellContainer) return true;
     CSpell* spell = item->spell_;
     if (!spell) return true;
-    return HeroCanUseSpell(&VirtualHeroRecord()->stats, spell);
+    return HeroCanUseSpell(&HeroRecord()->stats, spell);
 
 }
 EI_REWRITTEN(0x006188E0, CMpHeroScreen::CanEquip);

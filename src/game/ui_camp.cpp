@@ -322,7 +322,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (mode != 1) return true;
         if (!IsSpellContainer(item)) return false;
         CSpell* spell = item->spell_;
-        PartyUnitRecord* hero = VirtualHeroRecord();
+        PartyUnitRecord* hero = HeroRecord();
         return HeroCanUseSpell(&hero->stats, spell);
 
     }
@@ -335,7 +335,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (CountOf(spellResults_) > 0) return false;
             const itemdb::SpellRecord* record = SpellRecordOf(item);
             int skill = 0, mana = 0;
-            VirtualBestPartySkill(record->school, &skill, &mana);
+            BestPartySkill(record->school, &skill, &mana);
             if (mana < static_cast<int>(gamecrt::Ftol(D(record->mana)))) return false;
             return skill >= record->skill;
         }
@@ -367,7 +367,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         float manaTotal = static_cast<float>(D(manaSum) + D(modifier->mana));
         int skillTotal = skillSum + modifier->skill;
         int skill = 0, mana = 0;
-        VirtualBestPartySkill(school, &skill, &mana);
+        BestPartySkill(school, &skill, &mana);
         if (skill < skillTotal) return false;
         return mana >= static_cast<int>(gamecrt::Ftol(D(manaTotal)));
     }
@@ -445,7 +445,7 @@ void CCampPages::UpdateAction() {
     actionEnabled_ = false;
     actionShown_ = false;
     // Slot 54 (Rebirth-patched 0060FAB0): the price of `item` for deal `kind`.
-    auto price = [this](CItem* item, int kind) { return VirtualPrice(item, kind); };
+    auto price = [this](CItem* item, int kind) { return Price(item, kind); };
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
     auto trade = [&](CParty* bought, int buyKind, CParty* sold, int sellKind, const char* text) {
@@ -506,7 +506,7 @@ void CCampPages::UpdateAction() {
     case 0:
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor_ && !noConstructor_) {
-            PartyUnitRecord* hero = VirtualHeroRecord();
+            PartyUnitRecord* hero = HeroRecord();
             for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) cost_ += price(hero->weapons[i], 8);
             for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) cost_ += price(hero->armor[i], 8);
             actionEnabled_ = cost_ > 0;
@@ -712,7 +712,7 @@ bool CCampPages::CanMakeSpell() {
     if (!container) return false;
     ++container->refCount_;
     int skill = 0, mana = 0;
-    VirtualBestPartySkill(spell->school, &skill, &mana);
+    BestPartySkill(spell->school, &skill, &mana);
     if (mana < static_cast<int>(gamecrt::Ftol(D(made->manaCost_)))) return false;
     return skill >= static_cast<int>(made->skillNeeded_);
 }
@@ -878,7 +878,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
     interface_->PlaySound(game::PutOffSoundText(), 0);
     int kind = ItemType(item);
     if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) return nullptr;
-    PartyUnitRecord* hero = VirtualHeroRecord();
+    PartyUnitRecord* hero = HeroRecord();
     // 00661DB0: the item among the player's items.
     CItem* result = PlayerParty()->AddItem(item, 0, 1);
     switch (ItemType(item)) {
@@ -893,7 +893,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
         }
         hero->RemoveWeapon(item);   // 00660A50
         if (hero->weaponIndex >= hero->weaponCount) hero->weaponIndex = hero->weaponCount - 1;
-        VirtualRefreshWeapons();
+        RefreshWeapons();
         break;
     }
     case 0x3005: {
@@ -926,13 +926,13 @@ EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
 
 void CCampPages::PutOn(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
-    PartyUnitRecord* hero = VirtualHeroRecord();
+    PartyUnitRecord* hero = HeroRecord();
     switch (ItemType(item)) {
     case 0x3004:
         if (hero->weaponCount >= 4) return;
         hero->AddWeapon(item);   // 006608D0
         if (hero->weaponCount == 1) hero->weaponIndex = 0;
-        VirtualRefreshWeapons();
+        RefreshWeapons();
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
@@ -998,7 +998,7 @@ void CCampPages::PutOnFromStrip(CItem* item) {
         if (IsKindOne(item) && ShiftHeld(interface_)) {
             // With Shift the whole stack (+0x48), one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
-                if (!VirtualCanEquip(item, 1)) break;
+                if (!CanEquip(item, 1)) break;
                 MoveBetween(this, item, itemResults_, LocalPlayerData(), 0, 0, 0);
             }
         } else {
@@ -1016,7 +1016,7 @@ void CCampPages::PutOnFromStrip(CItem* item) {
 EI_REWRITTEN(0x00610920, CCampPages::PutOnFromStrip);
 
 void CCampPages::MoveItem(CItem* item, int mode) {
-    if (!VirtualCanEquip(item, mode)) {
+    if (!CanEquip(item, mode)) {
         interface_->PlaySound(game::CancelSoundText(), 0);
         return;
     }
@@ -1051,7 +1051,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
         } else if (page_ == 5) {
             if (IsKindOne(item) && ShiftHeld(interface_)) {
                 for (int n = Count(item); n > 0; --n) {
-                    if (!VirtualCanEquip(item, 3)) break;
+                    if (!CanEquip(item, 3)) break;
                     MoveBetween(this, item, itemResults_, itemParts_[0], 0, 0, 1);
                 }
             } else {
@@ -1122,7 +1122,7 @@ EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
 void CCampPages::RefreshWeapons() {
-    PartyUnitRecord* hero = VirtualHeroRecord();
+    PartyUnitRecord* hero = HeroRecord();
     CUnit* unit = heroes_[hero_];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);   // 005310D0
@@ -1131,13 +1131,13 @@ void CCampPages::RefreshWeapons() {
     unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
-    VirtualRefreshStats();
+    RefreshStats();
 }
 EI_REWRITTEN(0x0060F9E0, CCampPages::RefreshWeapons);
 
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
-        PartyUnitRecord* hero = VirtualHeroRecord();
+        PartyUnitRecord* hero = HeroRecord();
         heroes_[hero_]->SetFromStats(StatsOf(hero));
         heroes_[hero_]->Controller()->RefreshWounds();
     }
@@ -1204,14 +1204,14 @@ void CCampPages::NextHero() {
     if (i == hero_) return;
     hero_ = i;
     ShowHero();
-    VirtualRefreshWeapons();
+    RefreshWeapons();
 }
 void CCampPages::PreviousHero() {
     int i = FindHero(hero_, [](int at, int count) { return at - 1 < 0 ? count - 1 : at - 1; });
     if (i == hero_) return;
     hero_ = i;
     ShowHero();
-    VirtualRefreshWeapons();
+    RefreshWeapons();
 }
 EI_REWRITTEN(0x0060F710, CCampPages::NextHero);
 EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
@@ -1224,7 +1224,7 @@ void CCampPages::ShowHero() {
     mfc::CString name;
     mfc::CString own(unit->GetName());
     if (own.GetLength() == 0) {
-        PartyUnitRecord* hero = VirtualHeroRecord();
+        PartyUnitRecord* hero = HeroRecord();
         own = hero->texts[1];
         int found;
         {
@@ -1243,18 +1243,13 @@ EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
-CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
-    CUiContainer::Construct(ui);
-    hoveredItem_ = nullptr;
-    // The caches' compare byte is the flag's low byte.
-    std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
+CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
+    // The caches' (empty) compare objects keep the flag's byte.
+    const auto compare = static_cast<std::uint8_t>(fromHeroScreen);
     models_.Construct(compare);
     textures_.Construct(compare);
-    SetTagTables(ItemScreenVtable(), ItemScreenInputVtable());
-    std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
+    fromHeroScreen_ = fromHeroScreen;
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     pageTitles_.Construct();
-    SetTagTables(Vtable(), InputVtable());
-    return this;
 }
-EI_REWRITTEN(0x005F6240, CCampPages::Construct);
+EI_REWRITTEN_SPECIAL(0x005F6240, CCampPages::CCampPages);

@@ -58,7 +58,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface
             surface->DrawLine(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
-            int price = static_cast<CCampPages*>(grid->owner_)->VirtualPrice(cell.item, kind);   // the camp
+            int price = static_cast<CCampPages*>(grid->owner_)->Price(cell.item, kind);   // the camp
             text.Format("%d", price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->DrawLine(text, &r, 1, kTextColour, 1, 1);

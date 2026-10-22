@@ -40,7 +40,7 @@ void SetAttribute(float& base, float& current, float value) {
 } // namespace
 
 bool CHeroStatsPanel::StepPoint(int region) {
-    PartyUnitRecord* hero = owner_->VirtualHeroRecord();
+    PartyUnitRecord* hero = owner_->HeroRecord();
     UnitStats* stats = StatsOf(hero);
     int total = static_cast<int>(stats->stat10Base) + static_cast<int>(stats->stat20Base) +
                 static_cast<int>(stats->stat18Base);
@@ -96,7 +96,7 @@ void CHeroStatsPanel::Update() {
     holdTime_ = static_cast<float>(held);
     if (held < kRepeatDelay) return;   // TEST AH,1: less (a NaN goes on)
     bool stepped = StepPoint(heldRegion_);
-    owner_->VirtualRefreshStats();
+    owner_->RefreshStats();
     if (!stepped) {
         UiCapture(interface_) = nullptr;
         heldRegion_ = -1;
@@ -114,7 +114,7 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         if (StepPoint(region)) heldRegion_ = region;
         if (region >= kFirstButton && region < kButtonEnd) {
             interface_->PlaySound(kPerkSound, 0);
-            owner_->VirtualRefreshStats();
+            owner_->RefreshStats();
         }
         if (heldRegion_ > 0) {
             holdTime_ = kFirstHold;
@@ -124,10 +124,10 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
     }
     if (region == kPreviousHero) {
         interface_->PlaySound(kHeroSound, 0);
-        owner_->VirtualPreviousHero();
+        owner_->PreviousHero();
     } else if (region == kNextHero) {
         interface_->PlaySound(kHeroSound, 0);
-        owner_->VirtualNextHero();
+        owner_->NextHero();
     }
 }
 EI_REWRITTEN(0x00624790, CHeroStatsPanel::OnLButtonDown);

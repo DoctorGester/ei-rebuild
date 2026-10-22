@@ -42,11 +42,6 @@ Node* EmptyList() {
     return head;
 }
 
-// The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
-void SetVtables(CUiWindow* w, void** vtable, void** inputVtable) {
-    w->SetTagTables(vtable, inputVtable);
-}
-
 } // namespace
 
 // The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
@@ -86,24 +81,18 @@ void CInterface3D::CreateScreen(int id) {
     case 4:
         screen = new CGlobalMap(this);
         break;
-    case 5: {
-        auto* camp = gamecrt::operator_new_as<CCampPages>();
-        if (camp) camp->Construct(this, 0);
-        screen = camp;
+    case 5:
+        screen = new CCampPages(this, false);
         break;
-    }
     case 7:
         screen = new CViewScreen(this);
         break;
     case 8:   // the titles (CCreditsScreen, ui_screens.h)
         screen = new CCreditsScreen(this, false, "Crdt");
         break;
-    case 9: {
-        auto* exchange = gamecrt::operator_new_as<CExchangeScreen>();
-        if (exchange) exchange->Construct(this);
-        screen = exchange;
+    case 9:
+        screen = new CExchangeScreen(this);
         break;
-    }
     default:   // 6 and above 9: the id itself
         screen = reinterpret_cast<CUiWindow*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
         break;
@@ -295,27 +284,17 @@ using ItemCache = lib_trees::ItemCache;
 
 } // namespace
 
-// 005F6F30 (RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
-CExchangeScreen* CExchangeScreen::Construct(CInterface3D* ui) {
-    CExchangeScreen* self = this;
-    self->CUiContainer::Construct(ui);
-    self->hoveredItem_ = nullptr;
+// 005F6F30. Screen 9's constructor.
+CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
-    static_cast<ItemCache*>(&self->models_.map)->ConstructWith(&junk, &slot);
-    self->models_.limit = 50;
-    ItemCache::Construct(&self->textures_.map);
-    self->textures_.limit = 50;
-    // The names' vector empty (its allocator byte, the slot's low byte, is overwritten by the end
-    // of storage).
-    self->names_.Start() = nullptr;
-    self->names_.Finish() = nullptr;
-    self->names_.EndOfStorage() = nullptr;
-    SetVtables(self, Vtable(), InputVtable());
-    return self;
+    static_cast<ItemCache*>(&models_.map)->ConstructWith(&junk, &slot);
+    models_.limit = 50;
+    ItemCache::Construct(&textures_.map);
+    textures_.limit = 50;
 }
-EI_REWRITTEN(0x005F6F30, CExchangeScreen::Construct);
+EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 
 // 005F6D50. Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
 // the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.

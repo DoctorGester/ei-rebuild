@@ -350,7 +350,7 @@ bool CExchangeScreen::CanMove(CItem*, int) { return true; }
 EI_REWRITTEN(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
-    if (!VirtualCanEquip(item, mode)) {   // slot 43 (CanMove here)
+    if (!CanEquip(item, mode)) {   // slot 43 (CanMove here)
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
         return;
     }
