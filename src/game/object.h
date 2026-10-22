@@ -31,9 +31,6 @@ inline CBaseManager* WorldObjectManager() { return ei::GameData<CBaseManager*>(0
 namespace unitfield {
 constexpr std::size_t kName = 0x238;          // char* (CString): slot 7 returns it
 constexpr std::size_t kController = 0x240;    // object most unit virtuals forward to
-constexpr std::size_t kHostileMask = 0x244;   // bit p: hostile to player p
-constexpr std::size_t kParty = 0x24C;         // group the unit belongs to, or null
-constexpr std::size_t kPlayer = 0x250;        // owning player 0..31
 constexpr std::size_t kFlag274 = 0x274;       // slot 55 (AI map: non-zero skips the unit layers)
 constexpr std::size_t kFlag278 = 0x278;       // slot 54 (AI map: large unit)
 constexpr std::size_t kValue328 = 0x328;      // slot 60, float
