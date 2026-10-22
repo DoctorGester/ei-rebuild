@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
@@ -199,19 +200,19 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
     if (call->floatArgs.size - 1 != vars.floats.size) {
-        game::FatalError(kWrongFloatCount, static_cast<const char*>(name));
+        game::FatalError(kWrongFloatCount, name.GetString());
         return;
     }
     if (call->stringArgs.size - 1 != vars.strings.size) {
-        game::FatalError(kWrongStringCount, static_cast<const char*>(name));
+        game::FatalError(kWrongStringCount, name.GetString());
         return;
     }
     if (call->objectArgs.size != vars.objects.size) {
-        game::FatalError(kWrongObjectCount, static_cast<const char*>(name));
+        game::FatalError(kWrongObjectCount, name.GetString());
         return;
     }
     if (call->groupArgs.size != vars.groups.size) {
-        game::FatalError(kWrongGroupCount, static_cast<const char*>(name));
+        game::FatalError(kWrongGroupCount, name.GetString());
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
@@ -241,8 +242,8 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
 EI_REWRITTEN(0x004BB520, ScriptIfThen::Run);
 
 void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
-    alignas(4) unsigned char storage[sizeof(ScriptRun)];
-    auto* run = reinterpret_cast<ScriptRun*>(storage);
+    lib::InPlace<ScriptRun> storage;
+    auto* run = storage.Get();
     run->block = nullptr;
     run->index = 0;
     run->ticks = 0;
@@ -278,8 +279,8 @@ EI_REWRITTEN(0x004BC420, CScript::RunCommands);
 
 void CScript::RunWorldScript(ScriptDecl* block) {
     CScript* script = this;
-    alignas(4) unsigned char storage[sizeof(ScriptRun)];
-    auto* run = reinterpret_cast<ScriptRun*>(storage);
+    lib::InPlace<ScriptRun> storage;
+    auto* run = storage.Get();
     run->block = nullptr;
     run->index = 0;
     run->ticks = 0;

@@ -669,7 +669,7 @@ CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or null past the end (the original's `position != -1 ? word : 0`).
-    const char* WordOrNull() const { return position != -1 ? static_cast<const char*>(word) : nullptr; }
+    const char* WordOrNull() const { return position != -1 ? word.GetString() : nullptr; }
 };
 
 } // namespace
@@ -706,14 +706,14 @@ void CCreditsScreen::Build() {
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, "\n"}};   // "\n"
         lines.Start();
-        while (lines.position != -1 && static_cast<const char*>(lines.word) != nullptr) {
-            mfc::CString line(static_cast<const char*>(lines.word));
+        while (lines.position != -1 && lines.word.GetString() != nullptr) {
+            mfc::CString line(lines.word.GetString());
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record{};
             {
                 mfc::CString first(words.WordOrNull());
-                record.scroll = gamecrt::mbsicmp(static_cast<const char*>(first),
+                record.scroll = gamecrt::mbsicmp(first.GetString(),
                                                 "#scroll") ==
                                 0;   // "#scroll"
             }

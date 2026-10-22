@@ -40,8 +40,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     }
 
     BufferUpdateHigh(data);
-    std::int32_t size = data->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->begin)) +
-                        static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->high));
+    std::int32_t size = data->PositionOf(data->high);
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
     if (name != &file->name_) file->name_.AssignFrom(*name);
     file->size_ = size;

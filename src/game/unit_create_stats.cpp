@@ -169,7 +169,7 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
-        void* skill = FindSkill(SkillDb(), nullptr, static_cast<const char*>(*name));
+        void* skill = FindSkill(SkillDb(), nullptr, name->GetString());
         if (skill) LearnSkillAt(stats, nullptr, SkillDb(), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
@@ -527,7 +527,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
-        char stat = static_cast<const char*>(record->statNames.begin()[0])[0];   // its first stat's letter
+        char stat = record->statNames.begin()[0].GetString()[0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
         else if (stat == 'i') base = static_cast<double>(stat20) - kStatBase;
@@ -549,7 +549,7 @@ namespace {
 // A CString field of a record: is it set, and not "none"?
 bool NamesRequirement(const mfc::CString& text) {
     if (text.GetLength() == 0) return false;
-    return gamecrt::mbscmp(static_cast<const char*>(text),
+    return gamecrt::mbscmp(text.GetString(),
                            "none") != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }

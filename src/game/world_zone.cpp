@@ -159,7 +159,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (int i = 0; i < mobFiles_.size; ++i) {
-        if (gamecrt::mbscmp(static_cast<const char*>(mobFiles_[i]),
+        if (gamecrt::mbscmp(mobFiles_[i].GetString(),
                             file) == 0)
             return 1;
     }
@@ -221,7 +221,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         int id = object->id_;
         out->Write(&id, 4u);
         CUnit* unit = UnitOrNull(object);
-        const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : static_cast<const char*>(object->name);
+        const char* prototype = unit ? unit->GetPrototype()->name.GetString() : object->name.GetString();
         out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).

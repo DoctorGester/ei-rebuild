@@ -210,7 +210,7 @@ void CChatWindow::ShowPlayers() {
         }
         FigurePrototypeRecord* figure;
         {
-            stlp::string key(static_cast<const char*>(prototype->modelName));
+            stlp::string key(prototype->modelName.GetString());
             figure = reinterpret_cast<FigurePrototypeRecord*>(unitdb::ModelNamed(key));
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (00609427): the model's fifth character
@@ -219,8 +219,8 @@ void CChatWindow::ShowPlayers() {
         else if (fixes || SameText(figure->model, "unhufe"))
             sex = "f";
         build = "me";
-        model.Format("infa%s%s%dface", static_cast<const char*>(figure->model), static_cast<const char*>(build), prototype->hair + 1);
-        picture.Format("face%s%02d", static_cast<const char*>(sex), prototype->skin);
+        model.Format("infa%s%s%dface", figure->model.GetString(), build.GetString(), prototype->hair + 1);
+        picture.Format("face%s%02d", sex.GetString(), prototype->skin);
         AddPortrait(model, picture);
         regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }

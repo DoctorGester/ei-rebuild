@@ -83,7 +83,7 @@ void SearchWays(CGlobalMap* map, const mfc::CString& target) {
 }
 
 bool MayTravelTo(CGlobalMap* map) {
-    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(static_cast<const char*>(map->target_))));
+    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_.GetString())));
 }
 
 } // namespace
@@ -121,7 +121,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (onWay) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
-            variable.Format(kZoneVariable, static_cast<const char*>(zone->name));
+            variable.Format(kZoneVariable, zone->name.GetString());
             int state = static_cast<int>(LocalPlayerVariable(variable));   // _ftol: truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }

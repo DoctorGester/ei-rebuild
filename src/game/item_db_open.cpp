@@ -65,7 +65,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFileImpl("spells.sdb", &size);
     if (!data) return game::FatalError("Can't open spells database\n");
@@ -100,7 +100,7 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFileImpl("items.idb", &size);
     if (!data) return game::FatalError("Can't open items database\n");

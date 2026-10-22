@@ -9,6 +9,7 @@
 #include "unit_client_models.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -40,12 +41,9 @@ const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n"
 // A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
 template <typename T>
 T* NewAligned(std::size_t bytes) {
-    char* raw = static_cast<char*>(gamecrt::operator_new(bytes + 0x24));
-    char* data = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<char**>(data)[-1] = raw;
-    return reinterpret_cast<T*>(data);
+    return static_cast<T*>(lib::AllocAligned32(bytes));
 }
-void DeleteAligned(void* data) { gamecrt::operator_delete(static_cast<void**>(data)[-1]); }
+void DeleteAligned(void* data) { lib::FreeAligned32(data); }
 
 // The cached file's extra block (the original keeps it as an aligned byte array).
 struct ReadBuffer {
@@ -159,11 +157,11 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* n
     for (int i = 0; i < names->GetSize(); ++i) {
         const auto* data = static_cast<const MmpHeader*>(GetFile((*names)[i], nullptr));
         if (!data) {
-            game::DebugLog(kCantFindLayer, static_cast<const char*>((*names)[i]));
+            game::DebugLog(kCantFindLayer, ((*names)[i]).GetString());
             continue;
         }
         if (data->width != static_cast<std::uint32_t>(width) || data->height != static_cast<std::uint32_t>(width))
-            return game::FatalError(kWrongLayerSize, static_cast<const char*>((*names)[i]));
+            return game::FatalError(kWrongLayerSize, ((*names)[i]).GetString());
         const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
         converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
         ++drawn;
@@ -190,8 +188,8 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     *out = *name;
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
-    } else if (gamecrt::mbscmp(static_cast<const char*>(*name),
-                               static_cast<const char*>(*fallback)) != 0) {
+    } else if (gamecrt::mbscmp(name->GetString(),
+                               fallback->GetString()) != 0) {
         *out = *fallback;
         path = CachePath(*fallback);
         if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
@@ -220,7 +218,7 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(request->layerBytes);
     int kind = ConversionKind(format);
-    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, static_cast<const char*>(path));
+    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.GetString());
     file.Write(&header, sizeof(MmpHeader));
     if (header.extraSize != 0) file.Write(request->layers, header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);

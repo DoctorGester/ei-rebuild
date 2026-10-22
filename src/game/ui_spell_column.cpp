@@ -81,7 +81,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             const mfc::CStringArray& labels = labels_;
             mfc::CString line;
             tip += " \n";   // " \n"
-            line.Format("%s %d  ", static_cast<const char*>(labels[0]), Truncate(Get<float>(data, 0x40)));
+            line.Format("%s %d  ", labels[0].GetString(), Truncate(Get<float>(data, 0x40)));
             tip += line;
             line = "Unknown";
             description.Format("school_%d", SpellPrototypeOf(data)->castType);
@@ -92,39 +92,39 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
                                   " \n");
             tip += line;
             if (SpellPrototypeOf(data)->bytes78[3] == 0)
-                line.Format("%s %s  ", static_cast<const char*>(labels[2]), static_cast<const char*>(labels[12]));
+                line.Format("%s %s  ", labels[2].GetString(), labels[12].GetString());
             else
-                line.Format("%s %d  ", static_cast<const char*>(labels[2]), Truncate(Get<float>(data, 0x24)));
+                line.Format("%s %d  ", labels[2].GetString(), Truncate(Get<float>(data, 0x24)));
             tip += line;
             const float one = 1.0f /*0073B84C*/;
             float duration = Get<float>(data, 0x30);
             EI_NAN_AUDIT(duration);
             if (duration < one)
-                line.Format("%s %s \n", static_cast<const char*>(labels[3]), static_cast<const char*>(labels[8]));   // "%s %s \n"
+                line.Format("%s %s \n", labels[3].GetString(), labels[8].GetString());   // "%s %s \n"
             else
-                line.Format("%s %d \n", static_cast<const char*>(labels[3]), Truncate(duration));   // "%s %d \n"
+                line.Format("%s %d \n", labels[3].GetString(), Truncate(duration));   // "%s %d \n"
             tip += line;
-            line.Format("%s %d%s  ", static_cast<const char*>(labels[4]), Truncate(Get<float>(data, 0x34)), static_cast<const char*>(labels[10]));
+            line.Format("%s %d%s  ", labels[4].GetString(), Truncate(Get<float>(data, 0x34)), labels[10].GetString());
             tip += line;
             if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-                line.Format("%s %s \n", static_cast<const char*>(labels[5]), static_cast<const char*>(labels[9]));
+                line.Format("%s %s \n", labels[5].GetString(), labels[9].GetString());
             } else {
                 // The area: radius squared times pi (007423F8, a float).
                 float radius = Get<float>(data, 0x28);
                 double area = static_cast<double>(radius) * radius * 3.1415927f /*007423F8*/;
-                line.Format("%s %.1f%s \n", static_cast<const char*>(labels[5]), area, static_cast<const char*>(labels[10]));   // "%s %.1f%s \n"
+                line.Format("%s %.1f%s \n", labels[5].GetString(), area, labels[10].GetString());   // "%s %.1f%s \n"
             }
             tip += line;
             std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
             if (ticks < 2) {
-                line.Format("%s %s  ", static_cast<const char*>(labels[6]), static_cast<const char*>(labels[8]));
+                line.Format("%s %s  ", labels[6].GetString(), labels[8].GetString());
             } else {
                 // Ticks to seconds (00740544, 1/15).
                 double seconds = x87::FromUnsigned(ticks) * 0.06666667f /*00740544*/;
-                line.Format("%s %.1f%s  ", static_cast<const char*>(labels[6]), seconds, static_cast<const char*>(labels[11]));
+                line.Format("%s %.1f%s  ", labels[6].GetString(), seconds, labels[11].GetString());
             }
             tip += line;
-            line.Format("%s %d \n", static_cast<const char*>(labels[7]), Get<int>(data, 0x38));
+            line.Format("%s %d \n", labels[7].GetString(), Get<int>(data, 0x38));
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).

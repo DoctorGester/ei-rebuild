@@ -52,7 +52,7 @@ inline bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
 }
 // Their report of a failed open. The original names "databases.res" here.
 inline int ReportNoDatabase(const mfc::CString& folder) {
-    return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
+    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res").GetString());
 }
 
 // One table's pass over the stream: an archive of its own (the out-of-line constructor 0053A7B0)

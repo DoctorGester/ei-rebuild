@@ -312,7 +312,7 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (gamecrt::mbsicmp(static_cast<const char*>(arguments[i]),
+            if (gamecrt::mbsicmp(arguments[i].GetString(),
                                 "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
@@ -455,11 +455,11 @@ void CreateMouse() {
 
 // The folders the game writes to.
 void CreateFolders(mfc::CString& path) {
-    path.Format("%ssaves\\", static_cast<const char*>(TheDataFolder()));
+    path.Format("%ssaves\\", TheDataFolder().GetString());
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%smp\\", static_cast<const char*>(TheDataFolder()));
+    path.Format("%smp\\", TheDataFolder().GetString());
     gameapi::CreateDirectoryA(path, nullptr);
-    path.Format("%stextures\\", static_cast<const char*>(TheDataFolder()));
+    path.Format("%stextures\\", TheDataFolder().GetString());
     gameapi::CreateDirectoryA(path, nullptr);
 }
 
@@ -519,7 +519,7 @@ std::uintptr_t OpenSound() {
     TheSoundManager()->SetSpeechVolume(options->audioSpeech_);
     TheSoundManager()->SetMusicVolume(options->audioStreaming_);
     TheSoundManager()->panDirect = options->reverseStereo_ != 0;
-    return reinterpret_cast<std::uintptr_t>(static_cast<const char*>(discFolder));
+    return reinterpret_cast<std::uintptr_t>(discFolder.GetString());
 }
 
 void LoadDatabases() {

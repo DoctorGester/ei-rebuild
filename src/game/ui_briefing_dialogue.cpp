@@ -297,7 +297,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(static_cast<const char*>(node->name),
+            if (gamecrt::mbsicmp(node->name.GetString(),
                                 name) != 0)
                 continue;
             if (node->item) {

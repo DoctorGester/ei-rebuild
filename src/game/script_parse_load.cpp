@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc_string.h"
 #include "lib/mfc_array.h"
@@ -194,23 +195,23 @@ void DeleteCmd(SSCCmd* cmd) {
 
 // An SSCCmd on the stack (the loaders keep one and copy it into their result arrays).
 struct LocalCmd {
-    alignas(4) unsigned char storage[sizeof(SSCCmd)];
+    lib::InPlace<SSCCmd> storage;
     LocalCmd() { Get()->Construct(); }
     ~LocalCmd() { Get()->Destruct(); }
-    SSCCmd* Get() { return reinterpret_cast<SSCCmd*>(storage); }
+    SSCCmd* Get() { return storage.Get(); }
 };
 
 // A ScriptVars on the stack.
 struct LocalVars {
-    alignas(4) unsigned char storage[sizeof(ScriptVars)];
+    lib::InPlace<ScriptVars> storage;
     LocalVars() { Get()->ScriptVarsConstruct(); }
     ~LocalVars() { ScriptVarsDestruct(Get()); }
-    ScriptVars* Get() { return reinterpret_cast<ScriptVars*>(storage); }
+    ScriptVars* Get() { return storage.Get(); }
 };
 
 // The ScriptDefinition Load keeps on its stack.
 struct LocalDefinition {
-    alignas(4) unsigned char storage[sizeof(ScriptDefinition)];
+    lib::InPlace<ScriptDefinition> storage;
     LocalDefinition() {
         ScriptDefinition* d = Get();
         new (&d->name) mfc::CString;
@@ -224,7 +225,7 @@ struct LocalDefinition {
         d->index = 0;
     }
     ~LocalDefinition() { ScriptDefinitionDestruct(Get()); }
-    ScriptDefinition* Get() { return reinterpret_cast<ScriptDefinition*>(storage); }
+    ScriptDefinition* Get() { return storage.Get(); }
 };
 
 // What DeclareScript and GlobalVars do to Load's definition before parsing (inline in the game).
@@ -381,7 +382,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
-                cmd->stringArgs.data[stringCount] = Ops(text).Mid(1, Length(text) - 2);
+                cmd->stringArgs.data[stringCount] = Ops(text).Mid(1, text.GetLength() - 2);
                 bind = false;
             }
             ++stringCount;
@@ -444,7 +445,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                 sub.type = local.type;
                 const char* nested = SignatureAt(tokenId, local.type);
                 if (!nested) {
-                    result = Error(this, token.line, 7, "Parameter of type %s expected", static_cast<const char*>(typeName));
+                    result = Error(this, token.line, 7, "Parameter of type %s expected", typeName.GetString());
                     DeleteCmd(sub.cmd);
                     return result;
                 }
@@ -506,7 +507,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         ClassifyAt(text, &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.size == 0)   // "In script %s should be at least one condtion"
-                return Error(this, token.line, 11, "In script %s should be at least one condtion", static_cast<const char*>(script->name));
+                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name.GetString());
             return 1;
         }
         if (id != kLexIf) {
@@ -559,7 +560,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
         mfc::CString text(token.text);
         int id;
         ClassifyAt(text, &id, nullptr);
-        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
+        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text.GetString());
     }
     if (!ok) return 0;
 
@@ -606,7 +607,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
             mfc::CString text(colon.text);
             int id;
             ClassifyAt(text, &id, nullptr);
-            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", static_cast<const char*>(text));
+            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text.GetString());
         }
         if (!ok) return 0;
         if (qualify) {
@@ -623,7 +624,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, "Unknown parameter type");
         if (!script->AddParameterImpl(&name, type))   // "Duplicate variable name %s"
-            return Error(this, token.line, 13, "Duplicate variable name %s", static_cast<const char*>(name));
+            return Error(this, token.line, 13, "Duplicate variable name %s", name.GetString());
         first = false;
     }
     return result;
@@ -671,7 +672,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
                     mfc::CString nextText(next.text);
                     int nextId;
                     ClassifyAt(nextText, &nextId, nullptr);
-                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
+                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
                 }
                 if (!open) return 0;
                 ScriptDecl* body = NewCommandList();
@@ -704,7 +705,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
             } else if (Globals()->HasVariable(qualified)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
-                return Error(this, token.line, 3, "Unexpected token '%s'", static_cast<const char*>(text));
+                return Error(this, token.line, 3, "Unexpected token '%s'", text.GetString());
             }
         }
         if (!ok) return 0;
@@ -787,7 +788,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 mfc::CString nextText(next.text);
                 int nextId;
                 ClassifyAt(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
             }
             if (!ok) return fail(0);
             if (worldScript) return fail(Error(this, token.line, 14, "Only one WorldScript() per file allowed"));
@@ -815,7 +816,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
-                    return fail(Error(this, token.line, 16, "Multiple declaration of script %s", static_cast<const char*>(declared->name)));
+                    return fail(Error(this, token.line, 16, "Multiple declaration of script %s", declared->name.GetString()));
                 if (!LoadScriptBody(declared, &pos, &tokens)) return fail(0);
             }
             break;
@@ -830,7 +831,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (FindScript(decl->name) != -1)   // "Duplicate script %s"
-                return fail(Error(this, token.line, 15, "Duplicate script %s", static_cast<const char*>(word)));
+                return fail(Error(this, token.line, 15, "Duplicate script %s", word.GetString()));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
             Scripts().Add(*decl);
@@ -847,7 +848,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 mfc::CString nextText(next.text);
                 int nextId;
                 ClassifyAt(nextText, &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", static_cast<const char*>(nextText));
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.GetString());
             }
             if (!ok) return fail(0);
             // Declared with qualified names, then added to the global variables.
@@ -857,7 +858,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             break;
         }
         default:   // "Unexpected '%s'"
-            return fail(Error(this, token.line, 3, "Unexpected '%s'", static_cast<const char*>(word)));
+            return fail(Error(this, token.line, 3, "Unexpected '%s'", word.GetString()));
         }
     }
 

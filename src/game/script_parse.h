@@ -26,9 +26,6 @@ struct StringOps : mfc::CString {
 inline const StringOps& Ops(const mfc::CString& s) { return reinterpret_cast<const StringOps&>(s); }
 inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s); }
 
-// CString length (stored before the characters).
-inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
-
 
 // 004CF470: formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error forwards to the original address.)

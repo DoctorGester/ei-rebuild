@@ -39,7 +39,7 @@ constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); } // a CString
+const char* FiguresResource() { return options::TheOptions()->resourcesPath_.GetString(); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
 
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the

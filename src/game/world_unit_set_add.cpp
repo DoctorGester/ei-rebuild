@@ -128,7 +128,7 @@ void UnitSet::Add(CUnit* unit) {
             // The texts the server companion holds (CMapObjectServer's string array).
             const CMapObjectServer* server = static_cast<const CMapObjectServer*>(unit->companion);
             for (int i = 0; i < server->strings.size; ++i) {
-                mfc::CString name(static_cast<const char*>(server->strings[i]));
+                mfc::CString name(server->strings[i].GetString());
                 FiguredUnitElement::NamesOf(record).PushBack<NameElement>(name);
             }
         }

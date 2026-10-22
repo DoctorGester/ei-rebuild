@@ -299,7 +299,7 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
         empty = "";
         int n = cmd->stringArgs.size;
         ArgumentsSetSize(cmd->stringArgs, n + 1);
-        cmd->stringArgs.data[n] = static_cast<const char*>(empty);
+        cmd->stringArgs.data[n] = empty.GetString();
         break;
     }
     case 'o': {

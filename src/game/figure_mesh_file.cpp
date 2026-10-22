@@ -32,7 +32,7 @@ int ReadCount(mfc::CFileVirtuals* file) {
 void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
     int length = name_.GetLength();
     WriteCount(file, length);
-    Write(file, static_cast<const char*>(name_), length);
+    Write(file, name_.GetString(), length);
     WriteCount(file, buffers_.vertexCount);
     Write(file, buffers_.vertices, buffers_.vertexCount * 0x40);
     WriteCount(file, buffers_.normalCount);

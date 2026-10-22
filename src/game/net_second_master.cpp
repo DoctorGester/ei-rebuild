@@ -153,8 +153,7 @@ void OnMultiplayerClick() {
 
 void CopyAnnouncement(std::uint32_t socket, const GameBuffer& sent) {
     if (g_address.ip == kUnknown) return;
-    const std::int32_t length = sent.base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(sent.begin)) +
-                                static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(sent.high));
+    const std::int32_t length = sent.PositionOf(sent.high);
     std::uint8_t count;
     std::string names = Names(&count);
     std::string packet(reinterpret_cast<const char*>(sent.begin), static_cast<std::size_t>(length));

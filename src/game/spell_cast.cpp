@@ -55,11 +55,11 @@ void AddScaledPositive(float& field, float strength, float base) {
     if (field <= 0.0f) field = 0.0f;
 }
 
-// Returns every node of the list (sentinel `*list`) to the node allocator's free list and leaves
-// it empty. The sentinel is re-read on every step, as the original does.
-void FreeModifierNodes(SpellModifierNode* const* list) {
-    SpellModifierNode* node = (*list)->next;
-    if (node != *list) {
+// Returns every node of the list to the node allocator's free list and leaves it empty. The
+// sentinel is re-read on every step, as the original does.
+void FreeModifierNodes(SpellModifierList& list) {
+    SpellModifierNode* node = list.head->next;
+    if (node != list.head) {
         do {
             SpellModifierNode* current = node;
             node = node->next;
@@ -67,10 +67,10 @@ void FreeModifierNodes(SpellModifierNode* const* list) {
                 current->next = NodeFreeList16();
                 NodeFreeList16() = current;
             }
-        } while (node != *list);
+        } while (node != list.head);
     }
-    (*list)->next = *list;
-    (*list)->prev = *list;
+    list.head->next = list.head;
+    list.head->prev = list.head;
 }
 
 // The code letters of a modifier record.
@@ -109,7 +109,7 @@ EI_REWRITTEN(0x0068B410, CSpell::Clone);
 
 BOOL CSpellContainer::Reset() {
     prototype_ = nullptr;
-    FreeModifierNodes(&modifiers_);
+    FreeModifierNodes(modifiers_);
     Spell()->Create();
     return 1;
 }
@@ -118,7 +118,7 @@ EI_REWRITTEN(0x0068BD80, CSpellContainer::Reset);
 void CSpellContainer::Shutdown() {
     ClearState();
     prototype_ = nullptr;
-    FreeModifierNodes(&modifiers_);
+    FreeModifierNodes(modifiers_);
     Spell()->Destroy();
 }
 EI_REWRITTEN(0x0068BDD0, CSpellContainer::Shutdown);
@@ -128,8 +128,7 @@ EI_REWRITTEN(0x0068BC00, CSpellContainer::NameField);
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
-    using ModifierList = stlp::list<itemdb::SpellModifierRecord*>;
-    ModifierList::Insert(stlp::AsNode<itemdb::SpellModifierRecord*>(modifiers_), modifier);   // 0068C560
+    SpellModifierList::Insert(modifiers_.End(), modifier);   // 0068C560
     return 1;
 }
 EI_REWRITTEN(0x0068BE30, CSpellContainer::AddModifier);
@@ -179,8 +178,8 @@ BOOL CSpellContainer::Build() {
         codesEnd_ = codes_;
     }
 
-    for (SpellModifierNode* node = modifiers_->next; node != modifiers_; node = node->next) {
-        const itemdb::SpellModifierRecord* modifier = node->modifier;
+    for (SpellModifierNode* node = modifiers_.First(); node != modifiers_.End(); node = node->next) {
+        const itemdb::SpellModifierRecord* modifier = node->data;
         float strength = modifier->strength;
         switch (Letter(modifier, 0)) {
         case 'a':   // area
@@ -281,16 +280,16 @@ CSpellContainer* CSpellManager::NewContainer() {
 }
 EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 
-CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, SpellModifierNode** modifiers) {
+CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers) {
     CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
     if (!constructor->CallBeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, static_cast<const char*>(prototype->code));
+        return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.GetString());
     int added = 0;
-    for (SpellModifierNode* node = (*modifiers)->next; node != *modifiers; node = node->next) {
+    for (SpellModifierNode* node = modifiers->First(); node != modifiers->End(); node = node->next) {
         if (added >= 8) break;
-        constructor->CallAddModifier(node->modifier);
+        constructor->CallAddModifier(node->data);
         ++added;
     }
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);

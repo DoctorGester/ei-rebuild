@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -107,7 +108,7 @@ EI_REPLACE_METHOD(0x0040C8B0, CCamera::Construct);
 void CCamera::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     targetId_ = -1;
-    if (keys_) gamecrt::operator_delete(reinterpret_cast<void**>(keys_)[-1]);   // block start kept before the keys
+    if (keys_) lib::FreeAligned32(keys_);   // block start kept before the keys
     fileName_.~CString();
     viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
     shakes_.Destroy();      // the nodes, then the sentinel (00411B30)

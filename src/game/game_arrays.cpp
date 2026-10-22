@@ -1,5 +1,6 @@
 // The CArray<T> instantiations that destroy game elements (game_arrays.h), registered at their
 // library addresses (ticket S6; the plain ones are in lib/mfc_array.cpp).
+#include "lib/static_object.h"
 #include "game/game_arrays.h"
 #include "game/record_arrays.h"
 #include "game/item.h"
@@ -98,8 +99,8 @@ EI_REWRITTEN(0x004C3B00, ScriptGroups::CopyAt);
 void ScriptGroups::CopyFrom(const ScriptGroups& source) {
     mfc::impl::ArrayAs<gamearrays::Groups>(*this).SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) {
-        alignas(ScriptGroup) std::uint8_t storage[sizeof(ScriptGroup)];
-        auto* copy = reinterpret_cast<ScriptGroup*>(storage);
+        lib::InPlace<ScriptGroup> storage;
+        auto* copy = storage.Get();
         source.CopyAt(copy, i);
         data[i].CopyFrom(*copy);
         copy->DestructBody();

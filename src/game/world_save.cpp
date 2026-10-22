@@ -231,7 +231,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
-            object->TakePrototype(static_cast<const char*>(name));
+            object->TakePrototype(name.GetString());
         }
         object->WriteFullState();
         object->Load(stream);

@@ -29,6 +29,7 @@
 #include "unit_db.h"
 #include "world_effect.h"
 
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -185,8 +186,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     // Destroyed after the two strings (declared after it), as the original does. Plain storage:
     // the original's constructor (0046C010) and inlined destructor build and tear it down.
     struct Message {
-        alignas(4) std::uint8_t bytes[sizeof(UnitSpec)];
-        UnitSpec* Get() { return reinterpret_cast<UnitSpec*>(bytes); }
+        lib::InPlace<UnitSpec> bytes;
+        UnitSpec* Get() { return bytes.Get(); }
         Message() { mapspec::UnitSpecConstruct(Get()); }   // 0046C010
         ~Message() { DestroyMessage(Get()); }
     } holder;
@@ -337,8 +338,8 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
 } // namespace
 
 void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
-    alignas(4) std::uint8_t storage[sizeof(ObjectSpec)];
-    auto* message = reinterpret_cast<ObjectSpec*>(storage);
+    lib::InPlace<ObjectSpec> storage;
+    auto* message = storage.Get();
     message->ObjectSpecConstruct();
     ei::SetVtable(message, worlddata::kQuickEffectSpecVtable);
     message->base.kind = kQuickEffectType;
@@ -408,8 +409,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->base.kind == 5 ? static_cast<const char*>(reinterpret_cast<UnitSpec*>(spec)->prototype)
-                                                     : static_cast<const char*>(spec->primaryTexture);
+        const char* prototype = spec->base.kind == 5 ? (reinterpret_cast<UnitSpec*>(spec)->prototype).GetString()
+                                                     : spec->primaryTexture.GetString();
         ObjectSlots(object)->TakePrototype(prototype);
         object->WriteFullState();
     };
@@ -513,7 +514,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 9: {   // map objects, units (5) and levers (8)
         CMapObject* object = created();
         if (spec->shadow) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(static_cast<const char*>(spec->model),
+        if (gamecrt::mbscmp(spec->model.GetString(),
                             game::EmptyText()) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);

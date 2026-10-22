@@ -211,7 +211,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
             DrawPiece(surface, piece, x, colour);
             drawn += piece;
             x = TextWidth(interface_, drawn, kLineFont);
-            colour = MarkColour(static_cast<const char*>(codes)[at + 1]);
+            colour = MarkColour(codes.GetString()[at + 1]);
             start = at + 2;
         }
         piece = console::Ops(codes).Mid(start);

@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "originals_engine.h"
@@ -57,7 +58,7 @@ void SetElementCount(CParticleSource* s, int n) {
         if (!(capacity > n)) capacity = n;
         ParticleElement* data = AllocateElements(capacity);
         std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
+        lib::FreeAligned32(s->elements);
         s->elements = data;
         s->elementCount = n;
         s->elementCapacity = capacity;
@@ -346,10 +347,7 @@ void PlaceModifierPoints(CParticleSource* s) {
 // 00497EB0. Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
 // just below the returned pointer (for operator_delete). __fastcall.
 ParticleElement* __fastcall AllocateElements(int count) {
-    auto* raw = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 0x38 + 0x24));
-    auto* aligned = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<void**>(aligned)[-1] = raw;
-    return reinterpret_cast<ParticleElement*>(aligned);
+    return static_cast<ParticleElement*>(lib::AllocAligned32(static_cast<std::size_t>(count) * 0x38));
 }
 EI_REWRITTEN(0x00497EB0, AllocateElements);
 

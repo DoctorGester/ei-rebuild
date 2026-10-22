@@ -94,7 +94,7 @@ void __cdecl StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     mfc::CString text(folder);
-    StartFolder() = static_cast<const char*>(mfc::operator+(text, '\\'));
+    StartFolder() = (mfc::operator+(text, '\\')).GetString();
 }
 EI_REWRITTEN(0x0055EA10, StoreStartFolder);
 
@@ -107,7 +107,7 @@ const char kConstructionVariable[] = "constr.current";   // 00790384
 // input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-const char* DefaultMusic() { return static_cast<const char*>(options::TheOptions()->defaultStreamingSound_); }
+const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.GetString(); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }

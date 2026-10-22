@@ -188,21 +188,12 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
 }
 EI_REWRITTEN(0x004C0020, ScriptVarsClear);
 
-namespace {
-// One type's values and names (ScriptNamedValues<T>, the value array and the name array after it).
-template <typename T>
-ScriptNamedValues<T>* Named(mfc::CArray<T>* values) { return reinterpret_cast<ScriptNamedValues<T>*>(values); }
-template <typename T>
-const ScriptNamedValues<T>* Named(const mfc::CArray<T>* values) {
-    return reinterpret_cast<const ScriptNamedValues<T>*>(values);
-}
-} // namespace
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
 void ScriptVars::AppendFrom(const ScriptVars* other) {
-    Named(&floats)->Append(Named(&other->floats));      // 004C2B70
-    Named(&strings)->Append(Named(&other->strings));    // 004C2FE0
-    Named(&objects)->Append(Named(&other->objects));    // 004C3450
-    Named(&groups)->Append(Named(&other->groups));      // 004C3DC0
+    NamedValues(&floats)->Append(NamedValues(&other->floats));      // 004C2B70
+    NamedValues(&strings)->Append(NamedValues(&other->strings));    // 004C2FE0
+    NamedValues(&objects)->Append(NamedValues(&other->objects));    // 004C3450
+    NamedValues(&groups)->Append(NamedValues(&other->groups));      // 004C3DC0
 }
 EI_REWRITTEN(0x004B3900, ScriptVars::AppendFrom);

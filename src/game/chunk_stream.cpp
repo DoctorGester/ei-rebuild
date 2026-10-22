@@ -355,7 +355,7 @@ EI_REWRITTEN(0x0042CB80, Chunk::WriteStringArray);
 // --- The root chunk ------------------------------------------------------------------------------
 
 int RootChunk::Open(mfc::CString path, unsigned flags) {
-    return AsFile(&file_)->Open(static_cast<const char*>(path), flags & 0xFFFF, nullptr);
+    return AsFile(&file_)->Open(path.GetString(), flags & 0xFFFF, nullptr);
 }
 EI_REWRITTEN(0x0042D160, RootChunk::Open);
 

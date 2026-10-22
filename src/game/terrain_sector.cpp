@@ -124,7 +124,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     auto fail = [&](const char* text) {
         mfc::CString n(name);
         mfc::CString message = mfc::operator+(text, n);
-        return game::FatalError(static_cast<const char*>(message));
+        return game::FatalError(message.GetString());
     };
     if (!file) return fail(unableToLocate);
     if (size < 5) return fail(wrongFormat);

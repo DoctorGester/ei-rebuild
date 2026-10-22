@@ -491,8 +491,7 @@ struct NamedRecordTable {
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range (out of line for the armour, quick item,
     // quest item and loot tables: 006A5950 / 006A5990 / 006A59D0 / 006A5A10, RET 4; only the quick
-    // item's figure name 006A3CD0 called them; the materials' and weapons' 0056E400 / 0056E440 are
-    // world.h's RecordBytes).
+    // item's figure name 006A3CD0 called them; the materials' and weapons' 0056E400 / 0056E440).
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record` as the original computes it: the byte offset from the first record
     // divided by the record size, signed (a null record gives the index the original computes too).

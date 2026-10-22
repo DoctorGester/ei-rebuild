@@ -113,9 +113,9 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 // text pointers).
 inline void* TextFolderString() { return &TheTextFolder(); }
 inline void* BaseFolderString() { return &TheDiscFolder(); }
-inline const char* ConfiguredDataPath() { return static_cast<const char*>(options::TheOptions()->workPath_); }
-inline const char* ConfiguredTextPath() { return static_cast<const char*>(options::TheOptions()->resourcesPath_); }
-inline const char* ConfiguredBasePath() { return static_cast<const char*>(options::TheOptions()->cdRomPath_); }
+inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
+inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
+inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }
 
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 

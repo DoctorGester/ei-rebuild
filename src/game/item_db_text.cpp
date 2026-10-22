@@ -82,7 +82,7 @@ BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
     }
     if (!found) {
         // `name` may be out's own buffer (callers pass a CString's text and the CString).
-        if (static_cast<const char*>(*out) != name) *out = name;
+        if (out->GetString() != name) *out = name;
         text_ = nullptr;
         cursor_ = nullptr;
         return 0;
@@ -222,10 +222,10 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name), item->count_);
+        out->Format(format, kind.GetString(), name.GetString(), item->count_);
     } else {
         GetString("format_item1", &format);
-        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name));
+        out->Format(format, kind.GetString(), name.GetString());
     }
     return 1;
 }

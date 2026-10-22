@@ -45,8 +45,8 @@ struct IntLess {
 using IdSort = stlp::Sort<int, IntLess>;
 
 int CompareNames(const mfc::CString& a, const mfc::CString& b) {
-    return gamecrt::mbscmp(static_cast<const char*>(a),
-                           static_cast<const char*>(b));
+    return gamecrt::mbscmp(a.GetString(),
+                           b.GetString());
 }
 
 struct ByColumn {

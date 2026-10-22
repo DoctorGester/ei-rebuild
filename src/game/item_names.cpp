@@ -55,7 +55,7 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
     mfc::CString name;
     if (prototype && material)
         name.Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
-                    static_cast<const char*>(material->name), prototype->variant);
+                    material->name.GetString(), prototype->variant);
     return name;
 }
 
@@ -155,10 +155,10 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureNameImpl() {
     mfc::CString name;
     const ItemRecordHead* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(static_cast<const char*>(prototype->materialClass),
+    if (prototype && gamecrt::mbsicmp(prototype->materialClass.GetString(),
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
-        const char* materialName = material ? static_cast<const char*>(material->name) : kUnknownMaterial;
+        const char* materialName = material ? material->name.GetString() : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }
@@ -211,7 +211,7 @@ mfc::CString CItemLoot::FigureNameImpl() {
             mfc::CString code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name.Format(kRecordModelFormat, static_cast<const char*>(code), record->number, record->variant);
+            name.Format(kRecordModelFormat, code.GetString(), record->number, record->variant);
             break;
         }
         case kRecordQuick:
@@ -246,7 +246,7 @@ mfc::CString CItemLoot::PictureNameImpl() {
             mfc::CString code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name.Format(weapon ? kWeaponPicture : kArmorPicture, static_cast<const char*>(code), record->number);
+            name.Format(weapon ? kWeaponPicture : kArmorPicture, code.GetString(), record->number);
             break;
         }
         case kRecordQuick:

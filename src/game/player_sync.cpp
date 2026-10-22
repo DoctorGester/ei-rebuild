@@ -4,6 +4,7 @@
 
 #include "player_messages.h"
 #include "game_strings.h"
+#include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
 #include "base_manager.h"
@@ -124,8 +125,8 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         GatherItem(&gathered, &spells, node->data);   // 0069FB60
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
-    auto* states = reinterpret_cast<CMemoryStream*>(bytes);
+    lib::InPlace<CMemoryStream> bytes;
+    auto* states = bytes.Get();
     states->Construct();
     SaveListed(&spells, states);
     SaveListed(&gathered, states);
@@ -350,8 +351,8 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
 BOOL CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Contains(object) != 0; }
 
 void CPlayerServer::SendParty() {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
-    auto* party = reinterpret_cast<CMemoryStream*>(bytes);
+    lib::InPlace<CMemoryStream> bytes;
+    auto* party = bytes.Get();
     party->Construct();
     Owner()->Party()->SaveParty(party, 1);
     WriteByte(&out_, kMessageParty);

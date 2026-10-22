@@ -414,11 +414,6 @@ extern lib::StaticObject<CInterface3D> g_interface;
 template <typename T>
 using UiPtrArray = lib::AlignedArray<T*>;
 
-// Allocates storage for `bytes` with the interface arrays' 32-byte alignment (00600A80 for 4-byte
-// elements, 004F65B0 for 8-byte ones); FreeAligned releases it.
-void* AllocAligned(std::size_t bytes);
-void FreeAligned(void* data);
-
 // The tooltip attached to a region (CUiWindow, below).
 class CUiRegion;
 struct CUiTooltip;
@@ -1128,7 +1123,9 @@ struct UiD3DDevice {
 struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
-    std::uint8_t unused_0C[0x54 - 0x0C];
+    std::uint8_t unused_0C[0x4C - 0x0C];
+    void* decoder_;                  // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];
     std::uint32_t caps_;             // +0x90 (0x4000 with stencil_: the depth buffer has a stencil)

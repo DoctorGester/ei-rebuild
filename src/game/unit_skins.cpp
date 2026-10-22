@@ -21,6 +21,7 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
+#include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/stlp_string.h"
 #include "originals_units.h"
@@ -69,9 +70,8 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
-// out, weapon record; material record]; the weapon and material records are RecordAtB4 (0056E440,
-// on 007C86F8) and RecordAt50 (0056E400, on 007C86D8; world.h), on the tables' vectors: WeaponAt /
-// MaterialAt.
+// out, weapon record; material record]; the weapon and material records are the tables' At
+// (0056E440 on 007C86F8, 0056E400 on 007C86D8): WeaponAt / MaterialAt.
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
@@ -185,11 +185,11 @@ void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    alignas(4) char listStorage[sizeof(RecordList)];
-    RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
+    lib::InPlace<RecordList> listStorage;
+    RecordList& list = *listStorage.Get();
     list.ConstructEmpty();   // 0056F570
-    alignas(4) char setStorage[sizeof(SkinComposition)];
-    SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
+    lib::InPlace<SkinComposition> setStorage;
+    SkinComposition& set = *setStorage.Get();
     set.bytes.Construct();
     new (&set.names) console::CStringArray;
 
@@ -264,9 +264,9 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     alignas(4) char firstStorage[sizeof(StringList)];
-    alignas(4) char secondStorage[sizeof(StringList)];
+    lib::InPlace<StringList> secondStorage;
     StringList& first = *reinterpret_cast<StringList*>(firstStorage);
-    StringList& second = *reinterpret_cast<StringList*>(secondStorage);
+    StringList& second = *secondStorage.Get();
     first.ConstructEmpty();   // 0053BB80
     second.ConstructEmpty();
 

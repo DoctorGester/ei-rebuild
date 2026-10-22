@@ -133,10 +133,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const SaveEntry& entry = entriesBegin_[selected_];
     RECT detailRect{340, 260, 590, 284};
     mfc::CString line;
-    line.Format(kPlainFormat, static_cast<const char*>(entry.AllodTitle()));
+    line.Format(kPlainFormat, entry.AllodTitle().GetString());
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line.Format(kPlainFormat, static_cast<const char*>(entry.ZoneTitle()));
+    line.Format(kPlainFormat, entry.ZoneTitle().GetString());
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
@@ -147,7 +147,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int minute = minuteOfDay - hour * 60;
     mfc::CString dayText;
     reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(kDayText, &dayText);
-    line.Format(kGameTimeFormat, static_cast<const char*>(dayText), day + 1, hour, minute);
+    line.Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};

@@ -19,6 +19,7 @@
 #include "originals_script.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
+#include "lib/static_object.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -351,10 +352,10 @@ void ConstructGroup(ScriptGroup& group) {
 
 // A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
 struct LocalDeltaField {
-    alignas(4) unsigned char bytes[sizeof(DeltaField)];
+    lib::InPlace<DeltaField> bytes;
     LocalDeltaField() { Get()->Construct(); }
     ~LocalDeltaField() { Get()->Destruct(); }
-    DeltaField* Get() { return reinterpret_cast<DeltaField*>(bytes); }
+    DeltaField* Get() { return bytes.Get(); }
 };
 constexpr std::uint8_t kPathMessage = 0x0E;
 constexpr int kPathKindNoPath = 3;

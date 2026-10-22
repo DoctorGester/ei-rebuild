@@ -68,7 +68,7 @@ void CEffectSoundSeq::Start(int update) {
     console::CStringArray list;
     mfc::CString& first = name_;
     const mfc::CStringArray& others = names_;
-    bool withFirst = gamecrt::mbscmp(static_cast<const char*>(first),
+    bool withFirst = gamecrt::mbscmp(first.GetString(),
                                      "") != 0;
     if (withFirst) list.SetAtGrow(list.GetSize(), first);
     Chooser chooser = ChooserFor(others.GetSize(), withFirst);

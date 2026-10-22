@@ -32,15 +32,15 @@ StringPair* StringPair::Construct(const string& firstValue, const string& second
 }
 
 StringListPair* StringListPair::Construct(const string& firstValue, const list<void*>& secondValue) {
-    new (&first) string(firstValue);
-    second.Construct();
-    list<void*>::InsertRange(second.End(), secondValue.First(), secondValue.End());
+    new (&key) string(firstValue);
+    mapped.Construct();
+    list<void*>::InsertRange(mapped.End(), secondValue.First(), secondValue.End());
     return this;
 }
 
 void StringListPair::Destruct() {
-    second.Destroy();
-    first.~string();
+    mapped.Destroy();
+    key.~string();
 }
 
 void StringPair::Destruct() {

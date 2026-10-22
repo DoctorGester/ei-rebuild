@@ -220,7 +220,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         float x = static_cast<float>(boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
         float digitsBottom = static_cast<float>(y0 + kDigitHeight);
         for (int i = 0; i < length; ++i) {
-            int value = static_cast<signed char>(static_cast<const char*>(text)[i]) - '0';
+            int value = static_cast<signed char>(text.GetString()[i]) - '0';
             float u0 = static_cast<float>(value & 3) * kDigitU;
             float top = static_cast<float>(1.0f - static_cast<float>(value >> 2) * kDigitV);
             float next = static_cast<float>(x + kDigitWidth);

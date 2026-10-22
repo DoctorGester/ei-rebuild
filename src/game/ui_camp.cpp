@@ -583,7 +583,7 @@ void CCampPages::UpdateAction() {
         DrawLine(draw, text, &value);
     }
     texts->GetString(label, &text);
-    line.Format("%s %d", static_cast<const char*>(text), amount);
+    line.Format("%s %d", text.GetString(), amount);
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line, &top);
     UiSurfaceReleaseDC(draw);

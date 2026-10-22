@@ -83,7 +83,7 @@ static float* ActionPoint(CUnit* unit, float* out) {
     Vector3 offset = {0.0f, 0.0f, 0.0f};
     const FigureAnimation* entry = unit->AnimationAt(index);
     if (!entry) {
-        game::DebugLog(kNoEntry, static_cast<unsigned>(index), static_cast<const char*>(unit->name));
+        game::DebugLog(kNoEntry, static_cast<unsigned>(index), unit->name.GetString());
     } else if ((entry->key & 0x3C0000) == 0x1C0000) {
         std::uint32_t side = entry->flags & 0x1C00000;
         Vector3 axis;

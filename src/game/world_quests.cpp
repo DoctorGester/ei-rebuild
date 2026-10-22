@@ -74,13 +74,13 @@ void CWorldServer::UpdateMercBriefings() {
             bool briefedHere = gamecrt::mbsicmp(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
-            b.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(merc), slot);
-            b.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(merc), slot);
-            b.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(merc), slot);
-            b.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(merc), slot);
-            b.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(merc), slot);
-            b.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(merc), slot);
-            b.n11.Format(worlddata::MercVariableN11Format(), static_cast<const char*>(merc), slot);
+            b.n8.Format(worlddata::MercVariableN8Format(), merc.GetString(), slot);
+            b.n1.Format(worlddata::MercVariableN1Format(), merc.GetString(), slot);
+            b.n2.Format(worlddata::MercVariableN2Format(), merc.GetString(), slot);
+            b.n3.Format(worlddata::MercVariableN3Format(), merc.GetString(), slot);
+            b.n9.Format(worlddata::MercVariableN9Format(), merc.GetString(), slot);
+            b.n10.Format(worlddata::MercVariableN10Format(), merc.GetString(), slot);
+            b.n11.Format(worlddata::MercVariableN11Format(), merc.GetString(), slot);
             b.hired.Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 
@@ -297,19 +297,19 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const mfc::CString& variable) {
-        return gamecrt::mbsicmp(static_cast<const char*>(variable),
+        return gamecrt::mbsicmp(variable.GetString(),
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
         v.merc.Format(worlddata::MercNameFormat(), slot);
         unsigned key = TextKeyFromName(v.merc);
-        v.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(v.merc), slot);
-        v.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(v.merc), slot);
-        v.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(v.merc), slot);
-        v.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(v.merc), slot);
-        v.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(v.merc), slot);
-        v.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(v.merc), slot);
+        v.n8.Format(worlddata::MercVariableN8Format(), v.merc.GetString(), slot);
+        v.n1.Format(worlddata::MercVariableN1Format(), v.merc.GetString(), slot);
+        v.n2.Format(worlddata::MercVariableN2Format(), v.merc.GetString(), slot);
+        v.n3.Format(worlddata::MercVariableN3Format(), v.merc.GetString(), slot);
+        v.n9.Format(worlddata::MercVariableN9Format(), v.merc.GetString(), slot);
+        v.n10.Format(worlddata::MercVariableN10Format(), v.merc.GetString(), slot);
         v.hired.Format(worlddata::MercHiredFormat(), slot);
         CUnit* unit = WorldFindUnit(this, nullptr, key);
 
@@ -323,7 +323,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
-            const char* prototype = unit ? static_cast<const char*>(unit->GetPrototype()->name) : worlddata::HumanHeroText();
+            const char* prototype = unit ? unit->GetPrototype()->name.GetString() : worlddata::HumanHeroText();
             party->AddMember(v.merc, prototype, game::EmptyText());
         }
     }

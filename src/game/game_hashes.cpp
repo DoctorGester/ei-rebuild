@@ -1,4 +1,5 @@
 // The STLport hashtable instantiations whose values are game objects (game_hashes.h).
+#include "lib/static_object.h"
 #include "game_hashes.h"
 
 #include "ei/hook.h"
@@ -24,8 +25,8 @@ PartyInPlace* PartyTable::At(const int* key) {
 
 RefPtr* ShapeTable::At(const ShapeCacheHandle* handle) {
     RefPtr none{nullptr};
-    alignas(ShapePair) unsigned char storage[sizeof(ShapePair)];
-    ShapePair* pair = reinterpret_cast<ShapePair*>(storage);
+    lib::InPlace<ShapePair> storage;
+    ShapePair* pair = storage.Get();
     pair->Construct(handle, &none);
     RefPtr* result = &FindOrInsert(*pair).value;
     DestroyShapePair(pair);

@@ -41,9 +41,6 @@ void ConstructList(mfc::CList<T>* list, void* vtable) {
     list->blockSize = 10;
 }
 
-template <typename T>
-ScriptNamedValues<T>* Named(mfc::CArray<T>* values) { return reinterpret_cast<ScriptNamedValues<T>*>(values); }
-
 } // namespace
 
 CScript* CScript::Construct() {
@@ -53,10 +50,10 @@ CScript* CScript::Construct() {
     ConstructList(&lightning_, gameslots::LightningListClass::Vtable());
     ConstructList(&blocks_, gameslots::DeclListClass::Vtable());
     ConstructArray(&definitions_, recordarrays::DefinitionArrayClass::Vtable());
-    ScriptFloatsConstruct(Named(&globals_.floats));
-    ScriptStringsConstruct(Named(&globals_.strings));
-    ScriptObjectsConstruct(Named(&globals_.objects));
-    ScriptGroupsConstruct(Named(&globals_.groups));
+    ScriptFloatsConstruct(NamedValues(&globals_.floats));
+    ScriptStringsConstruct(NamedValues(&globals_.strings));
+    ScriptObjectsConstruct(NamedValues(&globals_.objects));
+    ScriptGroupsConstruct(NamedValues(&globals_.groups));
     ConstructList(&instances_, gameslots::DefinitionListClass::Vtable());
     ConstructList(&runs_, gameslots::RunListClass::Vtable());
     ConstructList(&worldBlocks_, gameslots::DeclListClass::Vtable());

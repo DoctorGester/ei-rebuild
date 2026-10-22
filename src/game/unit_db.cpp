@@ -261,7 +261,7 @@ constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
 bool SameName(const mfc::CString& name, const char* other) {
-    return gamecrt::mbsicmp(static_cast<const char*>(name),
+    return gamecrt::mbsicmp(name.GetString(),
                            other) == 0;
 }
 } // namespace

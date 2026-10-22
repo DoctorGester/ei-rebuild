@@ -183,7 +183,7 @@ void AIBrain::Think() {
             mfc::CString text;
             mfc::CString name;
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
-            text.Format(MotivationFormat(), owner->unit->id_, static_cast<const char*>(name),
+            text.Format(MotivationFormat(), owner->unit->id_, name.GetString(),
                         bestPriority);
             GameOstream* console = ConsoleStream();
             console->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);

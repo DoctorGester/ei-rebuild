@@ -75,7 +75,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
         --reinterpret_cast<CEngineObject*>(lights.manager)->refCount_;
         lights.manager = nullptr;
     }
-    if (list.data) gamecrt::operator_delete(reinterpret_cast<void**>(list.data)[-1]);
+    if (list.data) lib::FreeAligned32(list.data);
 }
 } // namespace
 

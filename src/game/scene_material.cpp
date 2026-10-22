@@ -17,7 +17,7 @@ namespace {
 
 
 bool Is(const mfc::CString& s, const char* text) {
-    return gamecrt::mbscmp(static_cast<const char*>(s),
+    return gamecrt::mbscmp(s.GetString(),
                            text) == 0;
 }
 
@@ -65,7 +65,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError("ParseMaterialName.\n Unknown texture type \"%s\" in material \"%s\"\n", static_cast<const char*>(parts.data[1]), name);   // unknown texture type
+            game::FatalError("ParseMaterialName.\n Unknown texture type \"%s\" in material \"%s\"\n", parts.data[1].GetString(), name);   // unknown texture type
             *texture = 1;
         }
         parts.data[2].MakeLower();
@@ -78,7 +78,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError("ParseMaterialName.\n Unknown material type \"%s\" in material \"%s\"\n", static_cast<const char*>(parts.data[2]), name);   // unknown material
+            game::FatalError("ParseMaterialName.\n Unknown material type \"%s\" in material \"%s\"\n", parts.data[2].GetString(), name);   // unknown material
             *material = 0x15;
         }
     }

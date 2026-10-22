@@ -222,8 +222,8 @@ bool GSListPlayerVars(Call* call) {
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         mfc::CString line;
-        line.Format("%s = %f", static_cast<const char*>(node->value.key), static_cast<double>(node->value.mapped));
-        (console::Out() << static_cast<const char*>(line) << "\n").Flush();
+        line.Format("%s = %f", node->value.key.GetString(), static_cast<double>(node->value.mapped));
+        (console::Out() << line.GetString() << "\n").Flush();
     }
     return true;
 }
@@ -358,7 +358,7 @@ bool AddMobEx(Call* call) {
     LoadingMovieOff() = 1;
     int loaded = TheServerWorld()->LoadMapObjects(file, keepIds ? 1 : 0);
     LoadingMovieOff() = 0;
-    if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", static_cast<const char*>(file));
+    if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.GetString());
     return true;
 }
 

@@ -287,7 +287,7 @@ void CGlobalMap::Create() {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
-        variable.Format("z.%s", static_cast<const char*>(zone->name));
+        variable.Format("z.%s", zone->name.GetString());
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         zones_.data[zoneCount_].name = zone->name;
@@ -303,7 +303,7 @@ void CGlobalMap::Create() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable.Format("q.%s", static_cast<const char*>(zones_.data[i].name));
+        variable.Format("q.%s", zones_.data[i].name.GetString());
         GameLocalPlayerVariables(variable, vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
@@ -348,7 +348,7 @@ void CGlobalMap::Create() {
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
-            variable.Format("z.%s", static_cast<const char*>(way->name));
+            variable.Format("z.%s", way->name.GetString());
             if (way->kind != 2) continue;
             // Only at state 2.
             double state = D(LocalPlayerVariable(variable));
@@ -443,7 +443,7 @@ void CGlobalMap::Create() {
     mfc::CString clock;
     mfc::CString dayText;
     TheTextManager()->GetString("save_day", &dayText);
-    clock.Format("%s  %d,  %d:%02d", static_cast<const char*>(dayText), day + 1, hour, minutes);
+    clock.Format("%s  %d,  %d:%02d", dayText.GetString(), day + 1, hour, minutes);
     {
         CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
         CUiSurface* text = memory ? memory->Construct(interface_, 20, 20, 170, 70, 5, 1)

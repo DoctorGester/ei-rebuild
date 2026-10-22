@@ -40,8 +40,7 @@ void Set(double* d, double v) { std::memcpy(d, &v, 8); }
 // The reliable stream's size (the buffer's high mark follows its position first).
 std::int32_t ReliableSize(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
-    return b->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->begin)) +
-           static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(b->high));
+    return b->PositionOf(b->high);
 }
 
 } // namespace

@@ -16,6 +16,7 @@
 #include "originals_render.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -52,7 +53,7 @@ const BlankFormat* FormatOfKind(int kind) {
 // --- 0068F6C0 ----------------------------------------------------------------------------------------
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
-    if (block_) gamecrt::operator_delete(reinterpret_cast<void**>(block_)[-1]);
+    if (block_) lib::FreeAligned32(block_);
     block_ = nullptr;
     // A square of header->width (the height is not read). The holder: only the new renderer's memory,
     // one level (the original: 004EFA60's DirectDraw texture with header->mipCount levels and caps by

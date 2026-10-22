@@ -112,7 +112,7 @@ int CMusicSystem::LoadThemes() {
             mfc::CString file(kMusicReg);
             mfc::CString message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
             mfc::CString full = message + "\"";    // "\""
-            result = game::FatalError(static_cast<const char*>(full));
+            result = game::FatalError(full.GetString());
         }
         reg.Destroy();
         return result;
@@ -164,7 +164,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     mfc::CString name(allod);
     mfc::CString message = "CMusicSystem::SetZoneMode()\nUnable to find sound theme for allod \"" + name;
     mfc::CString full = message + "\"";
-    game::FatalError(static_cast<const char*>(full));
+    game::FatalError(full.GetString());
 }
 EI_REWRITTEN(0x006B4E30, CMusicSystem::SetZoneMode);
 
