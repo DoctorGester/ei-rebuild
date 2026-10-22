@@ -215,7 +215,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     return kNoPriority;
 }
 
-EI_REPLACE_METHOD(0x005D2960, FearMode::Evaluate);
+EI_REWRITTEN(0x005D2960, FearMode::Evaluate);
 
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
@@ -320,7 +320,7 @@ void FearMode::Execute(AIBrain* brain) {
     LooksDestroyAt(&order.looks);
 }
 
-EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
+EI_REWRITTEN(0x005D30A0, FearMode::Execute);
 
 void AIAttention::ApplyAttack(AIBrain* brain, const AITargetChoice* choice) {
     CUnit* object = choice->object;

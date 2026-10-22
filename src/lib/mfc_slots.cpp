@@ -335,7 +335,7 @@ EI_REWRITTEN(0x0045DC60, OwnedPatrols::Serialize);   // PatrolArrayClass
 EI_REWRITTEN(0x0045FCB0, OwnedAllods::Serialize);   // AllodArrayClass
 EI_REWRITTEN(0x004C88E0, ScriptAreas::Serialize);   // ScriptAreaArrayClass
 EI_REWRITTEN(0x006C4A40, ByteArrays::Serialize);   // TerrainByteArraysClass
-EI_REPLACE_METHOD(0x005D9610, AiLookRecords::Serialize);   // vtable 0073FF74
+EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);   // vtable 0073FF74
 EI_REWRITTEN(0x00450D40, AlignedAt4Records::Serialize);   // AlignedAt4ArrayClass
 EI_REWRITTEN(0x0050A210, AlignedAt8Records::Serialize);   // AlignedAt8ArrayClass
 EI_REWRITTEN(0x00450570, OwnedBoneLinkArrays::Serialize);   // FakeUnitBoneArraysClass

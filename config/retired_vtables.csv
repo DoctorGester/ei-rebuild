@@ -99,6 +99,14 @@ vtable,slots,class,file,note
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
+0073D128,13,GuardClass,src/game/ai_mode_class.h,the Guard AI mode
+0073D15C,13,ModeBaseClass,src/game/ai_mode_class.h,the AI modes' abstract base (CAIMode)
+0073D190,13,SentryClass,src/game/ai_mode_class.h,the Sentry AI mode
+0073D1C4,13,FollowClass,src/game/ai_mode_class.h,the Follow AI mode
+0073D1F8,13,SuspectionClass,src/game/ai_mode_class.h,the Suspection AI mode
+0073D22C,13,ActionBaseClass,src/game/ai_mode_class.h,the acting AI modes' abstract base
+0073D260,13,AggressionClass,src/game/ai_mode_class.h,the Aggression AI mode
+0073D294,13,CorpseWatcherClass,src/game/ai_mode_class.h,the CorpseWatcher AI mode
 0073D2C8,3,PartySlotArrayClass,src/lib/mfc_slots.h,CArray (the script's party slots)
 0073D2D4,3,ScriptStringValuesClass,src/game/game_arrays.h,CArray<CString> (the script variables' string values and names; destructor 004BC810)
 0073D2E0,3,ScriptFloatValuesClass,src/lib/mfc_slots.h,CArray (the script variables' float values; derived from ScriptFloatsClass)
@@ -210,6 +218,8 @@ vtable,slots,class,file,note
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
 0073F070,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
+0073F0C4,13,TamedClass,src/game/ai_mode_class.h,the Tamed AI mode (the Player mode's slots but 2-4 and 8)
+0073F0F8,13,PlayerClass,src/game/ai_mode_class.h,the Player AI mode
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
 0073F140,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
 0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
@@ -277,6 +287,10 @@ vtable,slots,class,file,note
 0073FE34,3,SmoothNodeArrayClass,src/game/game_arrays.h,CArray (the path smoother's node pool 007C3038)
 0073FEB4,3,StaticListClass,src/lib/mfc_slots.h,CList (the list a static initialiser builds (005CDAD0))
 0073FF34,3,AttentionListClass,src/lib/mfc_slots.h,CList (AIAttention::Choose's list)
+0073FF40,13,PatrolClass,src/game/ai_mode_class.h,the Patrol AI mode
+0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
+0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
+0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
