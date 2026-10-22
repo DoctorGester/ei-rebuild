@@ -56,44 +56,67 @@ struct UnitPlacement {
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
-// A world player's connection to its client (CPlayer::connection_): CPlayerServer or CPlayerClient, both
-// derived from it. It names the slots after CEngineObject's that the player calls; the subclasses' slot bodies are
-// non-virtual members under other names (rewrite guide rule 4), and their objects carry the compiled tables
-// (player_connection_class.h; Construct stores them) in place of game.exe's 007431E0 (its own), 00743280 (the
-// server's) and 00743180 (the client's).
+// A world player's connection to its client (CPlayer::connection_; game.exe's vtable 007431E0): CPlayerServer
+// or CPlayerClient, both derived from it. It names the slots after CEngineObject's that the player calls; the
+// base's bodies are empty (00666EE0 ... 00666F60), 13 and 23 pure.
 class CPlayerConnection : public CEngineObject {
 public:
-    // The compiled table (C19, player_client.cpp's PlayerConnectionClass).
-    static void* Vtable();
-    // 00666F70 (slot 0, RET 4; player_client.cpp): ConnectionDestructBody, then operator delete when bit 0 of `flags`
-    // is set.
-    CPlayerConnection* DeletingDestruct(unsigned flags);
-    virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
-    virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
-    virtual void ResetState();              // 15: server 0066CF20, client 00667600
-    virtual void Leave();                   // 16: server 0066D020 (state 3, flushed); client empty
+    // 00666EC0 (deleting: 00666F70; player_client.cpp): no player, then CEngineObject's.
+    ~CPlayerConnection() override;
+
+    virtual void ForgetSentObjects() = 0;   // 13: server 0066CE50 (sent objects, party units); client empty
+    virtual void UnitChanged(CUnit*) {}     // 14: client 00667BA0 (the unit's controller); server empty
+    virtual void ResetState() {}            // 15: server 0066CF20, client 00667600
+    virtual void Leave() {}                 // 16: server 0066D020 (state 3, flushed); client empty
     // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
-    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
-    virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
-    virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
+    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>*, int) {}
+    virtual void ItemsTaken() {}            // 18: server 0066EA10 (message 0x17); client empty
+    virtual void ItemTaken(CEngineObject*) {}   // 19: server 0066EA30 (message 0x0A); client empty
     // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
     // the dying unit is the player's leader); client empty.
-    virtual void LeaderDied();
-    virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty
-    virtual void ItemUsed(CEngineObject* item);    // 22: server 0066EB40 (message 0x14); client empty
-    virtual int Receive();                  // 23: server 0066D270, client 00667A30
+    virtual void LeaderDied() {}
+    virtual void TickDone() {}              // 21: server 0066D090 (empties +0x50F8); client empty
+    virtual void ItemUsed(CEngineObject*) {}    // 22: server 0066EB40 (message 0x14); client empty
+    virtual int Receive() = 0;              // 23: server 0066D270, client 00667A30
 
     CPlayer* Owner() const { return player_; }
 
     CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
-    int state_;         // +0x20 both classes' state (1: joined / logged in; see each class)
-};
-static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
-static_assert(offsetof(CPlayerConnection, state_) == 0x20);
-static_assert(sizeof(CPlayerConnection) == 0x24);
+    int state_;         // +0x20 both classes' state (1: joined / logged in; see each class); the harness reads it
 
-class CPlayerServer : public CPlayerConnection {
+protected:
+    // The subclasses' constructors start with it: CEngineObject's fields, no player.
+    CPlayerConnection();
+};
+static_assert(offsetof(CPlayerConnection, state_) == 0x20);   // the harness's ConnectionState
+
+// A player's server side (game.exe's vtable 00743280, 0x5128 bytes, made by the server's specific manager).
+class CPlayerServer final : public CPlayerConnection {
 public:
+    // 0066C540 (player_messages.cpp): the engine object's fields, an empty handler table, the outgoing stream,
+    // the placements, both coders, the sent arrays and groups, then ClearServerState.
+    CPlayerServer();
+    // 0066C770 (deleting: 0066C750): ClearServerState (an ISAAC draw, as the original), the groups destroyed, the
+    // sent arrays' blocks freed, both coders' output ended, the placements' storage, the handler table's block and
+    // the stream's storage freed, then CPlayerConnection's.
+    ~CPlayerServer() override;
+
+    int Create() override { return CreateServer(); }                       // 2: 0066C9A0
+    void Destroy() override { ClearServerState(); }                        // 3: 0066CC50
+    const char* GetClassName() override;                                   // 11: 0066C730 "CPlayerServer"
+    int GetClassId() override;                                             // 12: 0066C740 0x3B
+    void ForgetSentObjects() override { ReleaseSentObjects(); }            // 13: 0066CE50
+    // 14: 0066D0F0 (empty; CPlayerConnection's).
+    void ResetState() override { ClearServerState(); }                     // 15: 0066CF20
+    void Leave() override { LeaveAndFlush(); }                             // 16: 0066D020
+    void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag) override { SendItemsGiven(items, flag); }   // 17: 0066E7D0
+    void ItemsTaken() override { Send17(); }                               // 18: 0066EA10
+    void ItemTaken(CEngineObject* item) override { SendObject0A(item); }   // 19: 0066EA30
+    void LeaderDied() override { OnLeaderDied(); }                         // 20: 0066F4C0
+    void TickDone() override { ClearGroup50F8(); }                         // 21: 0066D090
+    void ItemUsed(CEngineObject* item) override { SendObject14(item); }    // 22: 0066EB40
+    int Receive() override { return ReceiveMessages(); }                   // 23: 0066D270
+
     // Variables and state.
     void SetVariable(const char* name, std::uint32_t value);        // 0066EE10: message 0x81
     void SetVariableMax(const char* name, float value);             // 0066EE80: raises a variable, 0x81
@@ -267,19 +290,7 @@ public:
     // 0066F840 (RET 8; the briefing screen). Message 0x19: a byte and a dword.
     void SendPair19(std::uint8_t a, std::uint32_t b);
 
-    // A-H15: the lifetime and the connection slots (player_messages.cpp unless noted).
-    // The compiled table (C19, player_messages.cpp's PlayerServerClass).
-    static void* Vtable();
-    // 0066C540. Constructor body (0x5128 bytes, made by the server's specific manager): the
-    // engine object's fields, an empty handler table, the outgoing stream (a queue stream), the
-    // placements, both coders, the sent arrays and groups, then ClearServerState. Returns this.
-    CPlayerServer* Construct();
-    // 0066C770. Destructor body: ClearServerState (an ISAAC draw, as the original), the groups
-    // destroyed, the sent arrays' blocks freed, both coders' output ended, the placements' and
-    // the stream's storage freed, the handler table's block freed, then CEngineObject's.
-    void DestructBody();
-    // 0066C750 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
-    CPlayerServer* DeletingDestruct(unsigned flags);
+    // A-H15: the connection slots' bodies (player_messages.cpp unless noted).
     // 0066CC50 (slot 3) and 0066CF20 (slot 15), and CreateServer's first part: the outgoing
     // messages emptied, both sent arrays released and freed, state 0, the last position 0 and
     // +0x44 -1, both groups emptied, +0x24 -1, no refresh pending, flag70_ 0, the placements
@@ -329,17 +340,6 @@ public:
     int refreshPending_;            // +0x5120 0, 1 or 2 (SendPartyState)
     int refreshTimer_;              // +0x5124 updates until the party is sent again
 };
-static_assert(offsetof(CPlayerServer, sentObjects_) == 0x50D8);
-static_assert(offsetof(CPlayerServer, partyUnits_) == 0x510C);
-static_assert(offsetof(CPlayerServer, refreshTimer_) == 0x5124);
-static_assert(sizeof(CPlayerServer) == 0x5128);
-static_assert(offsetof(CPlayerServer, compressor_) == 0x88);
-static_assert(offsetof(CPlayerServer, decompressor_) == 0x28B0);
-static_assert(offsetof(CPlayerServer, lastPosition_) == 0x38);
-static_assert(offsetof(CPlayerServer, out_) == 0x48);
-static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
-static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
-static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
 // The client's login message to the world server (not net::LoginMessage; 0x88 bytes, read whole by CPlayerServer::OnLogin).
 struct PlayerLoginMessage {
@@ -365,28 +365,29 @@ double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 
-// A world player (vtable Vtable() in place of game.exe's 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by
-// 0066C110).
-// player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
-class CPlayer : public CEngineObject {
+// A world player (game.exe's vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
+// player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists. The harness's digest reads
+// its fields (tests/verify/harness_digest.cpp), hence the layout asserts.
+class CPlayer final : public CEngineObject {
 public:
-    // The compiled table (C19, player.cpp's PlayerClass).
-    static void* Vtable();
     // The world objects the player knows, by id, each counted once (player_sync.cpp): the map
     // objects and the timed objects (effects).
     using MapObjectMap = stlp::hash_map<int, CMapObject*, stlp::IntHash>;
     using TimedObjectMap = stlp::hash_map<int, CEffect*, stlp::IntHash>;
     using UnitMap = stlp::hash_map<int, CUnit*, stlp::IntHash>;
 
-    // 00664BF0. Constructor body: the maps (NextPrime(100) buckets each; their functor bytes are
-    // left as they are), the party (constructed, then created), the lists (block size 10), then
-    // what DestroyPlayer leaves. Returns this.
-    CPlayer* Construct();
-    // 00664E20. Destructor body: DestroyPlayer, the party destroyed (slot 3), the lists emptied,
-    // the party destructed, the maps freed, the link released; CEngineObject's last.
-    void DestructBody();
-    // 00664E00 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
-    CPlayer* DeletingDestruct(unsigned flags);
+    // 00664BF0. The maps (NextPrime(100) buckets each; their functor bytes are left as they are), the party
+    // (constructed, then created), the lists (block size 10), then what DestroyPlayer leaves.
+    CPlayer();
+    // 00664E20 (deleting: 00664E00). DestroyPlayer, the party destroyed (slot 3), the lists emptied, the party
+    // destructed, the maps freed, the link released; CEngineObject's last.
+    ~CPlayer() override;
+
+    int Create() override { return CreatePlayer(); }   // 2: 00665010
+    void Destroy() override { DestroyPlayer(); }       // 3: 006650E0
+    const char* GetClassName() override;               // 11: 00664DE0 "CPlayer"
+    int GetClassId() override;                         // 12: 00664DF0 0xF
+
     // 00665010 (slot 2). DestroyPlayer; returns 1.
     BOOL CreatePlayer();
     // 006650E0 (slot 3) and 00665380 (the destructor's copy). The recharge list emptied, Clear,

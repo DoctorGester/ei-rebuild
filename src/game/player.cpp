@@ -8,7 +8,6 @@
 #include "party.h"
 #include "unit.h"
 
-#include "engine_object_class.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
@@ -32,9 +31,8 @@ void InitList(mfc::CList<T>& list, void* vtable) {
 
 } // namespace
 
-CPlayer* CPlayer::Construct() {
+CPlayer::CPlayer() {
     ClearFields();
-    ei::SetVtable(this, CEngineObject::BaseVtable());
     link_ = nullptr;
     knownObjects_.InitBuckets(100);
     maxObjectId_ = 0;
@@ -46,7 +44,6 @@ CPlayer* CPlayer::Construct() {
     InitList(items_, mfc::impl::ItemListClass::Vtable());
     partyId_ = 0;
     InitList(recharging_, mfc::impl::PlayerListClass::Vtable());   // an MFC CList instantiation
-    ei::SetVtable(this, Vtable());
     connection_ = nullptr;
     logTraffic_ = 0;
     Party()->Create();
@@ -64,12 +61,10 @@ CPlayer* CPlayer::Construct() {
     lastTick_ = -1;
     sessionKind100_ = 0;
     lastScreen_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x00664BF0, CPlayer::Construct);
+EI_REWRITTEN_SPECIAL(0x00664BF0, CPlayer::CPlayer);
 
-void CPlayer::DestructBody() {
-    ei::SetVtable(this, Vtable());
+CPlayer::~CPlayer() {
     DestroyPlayer();
     Party()->Destroy();
     recharging_.vtable = mfc::impl::PlayerListClass::Vtable();
@@ -81,16 +76,9 @@ void CPlayer::DestructBody() {
     units_.Destroy();
     knownObjects_.Destroy();
     if (link_ != nullptr) link_->Release();
-    DestructBase();
 }
-EI_REWRITTEN(0x00664E20, CPlayer::DestructBody);
-
-CPlayer* CPlayer::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00664E00, CPlayer::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00664E20, CPlayer::~CPlayer);
+EI_REWRITTEN_SPECIAL(0x00664E00, CPlayer::~CPlayer);
 
 // 00664B70 (__fastcall, RET 4). The message dispatchers' fatal error: `format` ("... prevID=%x
 // curID=%x") with the previous and the current message type (their low bytes; the callers set
@@ -102,11 +90,10 @@ int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, st
 }
 EI_REWRITTEN(0x00664B70, PlayerMessageError);
 
-// 00664DE0 / 00664DF0: slots 11 and 12.
-const char* __fastcall PlayerClassName(CPlayer*) { return "CPlayer"; }
-EI_REWRITTEN(0x00664DE0, PlayerClassName);
-int __fastcall PlayerClassId(CPlayer*) { return 0xF; }
-EI_REWRITTEN(0x00664DF0, PlayerClassId);
+const char* CPlayer::GetClassName() { return "CPlayer"; }   // 00664DE0
+EI_REWRITTEN(0x00664DE0, CPlayer::GetClassName);
+int CPlayer::GetClassId() { return 0xF; }   // 00664DF0
+EI_REWRITTEN(0x00664DF0, CPlayer::GetClassId);
 
 BOOL CPlayer::CreatePlayer() {
     DestroyPlayer();
@@ -137,18 +124,6 @@ void CPlayer::DestroyPlayer() {
 }
 EI_REWRITTEN(0x006650E0, CPlayer::DestroyPlayer);
 
-namespace {
-// The compiled table (C19, engine_object_class.h; game.exe's 00743104): 2 Create, 3 Destroy, 11 / 12.
-class PlayerClass final : public EngineObjectClass<PlayerClass, CPlayer> {
-public:
-    int Create() override { return As<CPlayer>()->CreatePlayer(); }               // 2: 00665010
-    void Destroy() override { As<CPlayer>()->DestroyPlayer(); }                   // 3: 006650E0
-    const char* ClassName() override { return PlayerClassName(As<CPlayer>()); }   // 11: 00664DE0
-    int ClassId() override { return PlayerClassId(As<CPlayer>()); }               // 12: 00664DF0
-};
-} // namespace
-
-void* CPlayer::Vtable() { return PlayerClass::Vtable(); }
 EI_REWRITTEN(0x00665380, CPlayer::DestroyPlayer);
 
 void CPlayer::Clear() {

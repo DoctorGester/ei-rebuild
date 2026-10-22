@@ -54,7 +54,7 @@ CEngineObject* CClientSpecificManager::NewObject(int type) {
     case 'F': return new CObject3DClientSpecific();
     case 'G': return new CMapObjectClientSpecific();
     case 'H': return new CUnitClientSpecific();
-    case 'I': return misc400::New(0x50F8, ConstructOn<CPlayerClient, &CPlayerClient::Construct>);
+    case 'I': return new CPlayerClient();
     case 'K': return misc400::New(0x64, ConstructOn<CTorchObjectClientSpec, &CTorchObjectClientSpec::Construct>);
     default: return nullptr;
     }

@@ -1251,10 +1251,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     and id and the item and spell getters. Its unit records' CArray is PartyMemberArrayClass (00742FF4), a
     CompiledCollection whose Serialize goes through a mfc::impl::CArchive member (mfc.h's CArray takes mfc.h's
     CArchive).
-  - **The player connections** (player_connection_class.h): ConnectionClass declares CPlayerConnection's slots 13-23
-    (13 / 23 pure, the others empty) over EngineObjectClass; PlayerConnectionClass (007431E0, player_client.cpp),
-    PlayerClientClass (00743180) and PlayerServerClass (00743280, player_messages.cpp) override the sides' bodies.
-    CPlayerConnection's `DeleteScalar` became `DeletingDestruct`.
+  - **The player connections** (player_messages.h, player_client.h): CPlayerConnection (007431E0; slots 13 / 23
+    pure, the others empty), CPlayerClient (00743180), CPlayerServer (00743280) and the world player CPlayer
+    (00743104) are real C++ classes since C28k; the sides' slots call their named bodies.
   - **UI_INPUT_HANDLER registrations** are not taken by `registration_readers.py --drop` (its default kinds): the top
     panel's four became EI_REWRITTEN of the window members by hand.
   - **Left**: the windows' main tables (harness id first), the scene renderer 0073D93C and its base 0073D8A0 (26 / 25

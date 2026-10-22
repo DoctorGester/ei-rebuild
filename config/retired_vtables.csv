@@ -485,11 +485,11 @@ vtable,slots,class,file,note
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
 00743000,27,CParty,src/game/party.h,the party (CParty)
 0074306C,27,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)
-00743104,13,PlayerClass,src/game/player.cpp,a world player (CPlayer)
+00743104,13,CPlayer,src/game/player_messages.h,a world player (CPlayer)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
-00743180,24,PlayerClientClass,src/game/player_client.cpp,a player's client side (CPlayerClient)
-007431E0,24,PlayerConnectionClass,src/game/player_client.cpp,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
-00743280,24,PlayerServerClass,src/game/player_messages.cpp,a player's server side (CPlayerServer)
+00743180,24,CPlayerClient,src/game/player_client.h,a player's client side (CPlayerClient)
+007431E0,24,CPlayerConnection,src/game/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
+00743280,24,CPlayerServer,src/game/player_messages.h,a player's server side (CPlayerServer)
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,1,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,CMMIOResource,src/game/resource.h,

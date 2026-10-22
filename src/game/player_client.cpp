@@ -6,7 +6,6 @@
 #include "map_object_shadow.h"
 #include "object_tables.h"
 #include "player_client.h"
-#include "player_connection_class.h"
 
 #include "app_helpers.h"
 #include "lib/crt_iostream.h"
@@ -736,96 +735,43 @@ void CPlayerClient::Clear() {
 
 // --- A-H21: constructor and destructor -----------------------------------------------------------
 
-namespace {
-constexpr const char* kClientClassName = "CPlayerClient";
-constexpr int kClientClassId = 0x3C;
-
-// CPlayerConnection's own table (game.exe's 007431E0): its deleting destructor (00666F70), the base's others.
-class PlayerConnectionClass final : public ConnectionClass<PlayerConnectionClass, CPlayerConnection> {};
-
-// The client's (game.exe's 00743180).
-class PlayerClientClass final : public ConnectionClass<PlayerClientClass, CPlayerClient> {
-public:
-    int Create() override { return Client()->CreateClient(); }    // 2: 00667230
-    void Destroy() override { Client()->Clear(); }                // 3: 00667510
-    int RunTick() override { return Client()->Pump(); }           // 6: 00667680
-    const char* ClassName() override { return PlayerClientClassName(Client()); }   // 11: 00666F90
-    int ClassId() override { return PlayerClientClassId(Client()); }               // 12: 00666FA0
-    void ForgetSentObjects() override {}                                             // 13: 006675F0 (empty)
-    void UnitChanged(CUnit* unit) override { Client()->NotifyUnitChanged(unit); }  // 14: 00667BA0
-    void ResetState() override { Client()->Clear(); }                               // 15: 00667600
-    void Leave() override {}                                                        // 16: 00667670 (empty)
-    int Receive() override { return Client()->ReceiveMessages(); }                 // 23: 00667A30
-
-private:
-    CPlayerClient* Client() { return As<CPlayerClient>(); }
-};
-} // namespace
-
-void* CPlayerConnection::Vtable() { return PlayerConnectionClass::Vtable(); }
-void* CPlayerClient::Vtable() { return PlayerClientClass::Vtable(); }
-
-CPlayerClient* CPlayerClient::Construct() {
+CPlayerConnection::CPlayerConnection() {
     ClearFields();
-    ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
+}
+
+// 00666EC0 (deleting: 00666F70).
+CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
+EI_REWRITTEN_SPECIAL(0x00666EC0, CPlayerConnection::~CPlayerConnection);
+EI_REWRITTEN_SPECIAL(0x00666F70, CPlayerConnection::~CPlayerConnection);
+
+// The streams are members (constructed before the body; the original builds them after the handler table).
+CPlayerClient::CPlayerClient() {
     handlers_.Construct();
-    new (&in_) CMemoryStream();
-    new (&out_) CMemoryStream();
     compressor_.Construct();
     decompressor_.Construct();
     partyUnitIds_.Construct();
     otherUnitIds_.Construct();
-    ei::SetVtable(this, Vtable());
     Clear();
-    return this;
 }
+EI_REWRITTEN_SPECIAL(0x00666D10, CPlayerClient::CPlayerClient);
 
-void CPlayerClient::DestructBody() {
-    ei::SetVtable(this, Vtable());
+// The streams are members, destroyed after the body (the original frees them before the handler table).
+CPlayerClient::~CPlayerClient() {
     Clear();
     otherUnitIds_.FreeData();
     partyUnitIds_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    out_.~CMemoryStream();
-    in_.~CMemoryStream();
     handlers_.FreeData();
-    ei::SetVtable(this, CPlayerConnection::Vtable());
-    player_ = nullptr;
-    DestructBase();
 }
+EI_REWRITTEN_SPECIAL(0x00666FD0, CPlayerClient::~CPlayerClient);
+EI_REWRITTEN_SPECIAL(0x00666FB0, CPlayerClient::~CPlayerClient);
 
-CPlayerClient* CPlayerClient::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-// 00666EC0 / 00666F70 (RET 4): CPlayerConnection's own destructor body (its vtable, no player,
-// CEngineObject's) and deleting destructor.
-void __fastcall ConnectionDestructBody(CPlayerConnection* self) {
-    ei::SetVtable(self, CPlayerConnection::Vtable());
-    self->player_ = nullptr;
-    self->DestructBase();
-}
-CPlayerConnection* CPlayerConnection::DeletingDestruct(unsigned flags) {
-    ConnectionDestructBody(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-// 00666F90 / 00666FA0 (slots of CEngineObject): "CPlayerClient", class id 0x3C.
-const char* __fastcall PlayerClientClassName(CPlayerClient*) { return kClientClassName; }
-int __fastcall PlayerClientClassId(CPlayerClient*) { return kClientClassId; }
-
-EI_REWRITTEN(0x00666D10, CPlayerClient::Construct);
-EI_REWRITTEN(0x00666FD0, CPlayerClient::DestructBody);
-EI_REWRITTEN(0x00666FB0, CPlayerClient::DeletingDestruct);
-EI_REWRITTEN(0x00666EC0, ConnectionDestructBody);
-EI_REWRITTEN(0x00666F70, CPlayerConnection::DeletingDestruct);
-EI_REWRITTEN(0x00666F90, PlayerClientClassName);
-EI_REWRITTEN(0x00666FA0, PlayerClientClassId);
+const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }   // 00666F90
+EI_REWRITTEN(0x00666F90, CPlayerClient::GetClassName);
+int CPlayerClient::GetClassId() { return 0x3C; }   // 00666FA0
+EI_REWRITTEN(0x00666FA0, CPlayerClient::GetClassId);
 
 EI_REWRITTEN(0x006671A0, CoderState::Reset);
 EI_REWRITTEN(0x00667510, CPlayerClient::Clear);

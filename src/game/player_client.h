@@ -11,8 +11,26 @@
 #include <cstddef>
 #include <cstdint>
 
-class CPlayerClient : public CPlayerConnection {
+class CPlayerClient final : public CPlayerConnection {
 public:
+    // 00666D10 (player_client.cpp): the members constructed (the streams with the queue's vtable 0073C960),
+    // then Clear inlined.
+    CPlayerClient();
+    // 00666FD0 (deleting: 00666FB0): Clear inlined, both id arrays freed, the coders' outputs ended, the handler
+    // table and the streams freed, then CPlayerConnection's.
+    ~CPlayerClient() override;
+
+    int Create() override { return CreateClient(); }                  // 2: 00667230
+    void Destroy() override { Clear(); }                              // 3: 00667510
+    int RunTick() override { return Pump(); }                         // 6: 00667680
+    const char* GetClassName() override;                              // 11: 00666F90 "CPlayerClient"
+    int GetClassId() override;                                        // 12: 00666FA0 0x3C
+    void ForgetSentObjects() override {}                              // 13: 006675F0 (empty)
+    void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }   // 14: 00667BA0
+    void ResetState() override { Clear(); }                           // 15: 00667600
+    // 16: 00667670 (empty; CPlayerConnection's).
+    int Receive() override { return ReceiveMessages(); }              // 23: 00667A30
+
     // player_client_orders.cpp (A-H14): the local view's orders, queued for the server (out_), each
     // a type byte and a payload; all return 1. Units go as their ids (-1 for a null entry).
     // 0066A7D0 / 0066A720 (RET 0xC). 0x30 walk / 0x3A go to: the units, `run`, the point.
@@ -168,20 +186,6 @@ public:
     void StartRecording(const char* path);
     void StopRecording();
 
-    // A-H21 (player_client.cpp).
-    // The compiled table (C19, player_client.cpp's PlayerClientClass).
-    static void* Vtable();
-    // 00666D10. Constructor body: CEngineObject's fields, the connection's vtable (Vtable()) and no
-    // player, the members constructed (the streams with the queue's vtable 0073C960), then the
-    // client's vtable and Clear inlined. Returns this.
-    CPlayerClient* Construct();
-    // 00666FD0. Destructor body: the client's vtable, Clear inlined, both id arrays freed, the
-    // coders' outputs ended, the streams and the handler table freed, the connection's vtable and no
-    // player, then CEngineObject's (00455930).
-    void DestructBody();
-    // 00666FB0 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
-    CPlayerClient* DeletingDestruct(unsigned flags);
-
     // A-H23 (player_client_handlers.cpp): the other message handlers (docs/notes/objects.md, "Client"
     // table). Each returns 1 unless noted.
     // 00667DA0 (0x00). Login accepted: a dword, state 2, the player manager (the player's owner_)
@@ -271,18 +275,4 @@ public:
     // +0x50E8 the ids of the other players' units the map shows (message 0x60)
     lib::AlignedArray<int> otherUnitIds_;
 };
-static_assert(offsetof(CPlayerClient, partyUnitIds_) == 0x50D8);
-static_assert(offsetof(CPlayerClient, otherUnitIds_) == 0x50E8);
-static_assert(offsetof(CPlayerClient, handlers_) == 0x24);
-static_assert(offsetof(CPlayerClient, in_) == 0x34);
-static_assert(offsetof(CPlayerClient, out_) == 0x5C);
-static_assert(offsetof(CPlayerClient, sendParty_) == 0x85);
-static_assert(offsetof(CPlayerClient, decompressor_) == 0x28B0);
-static_assert(offsetof(CPlayerClient, localSession_) == 0x84);
-static_assert(sizeof(CPlayerClient) == 0x50F8);
 
-// 00666EC0 / 00666F70 (RET 4) and 00666F90 / 00666FA0 (player_client.cpp, A-H21): CPlayerConnection's
-// own destructor body and deleting destructor; CPlayerClient's class name and id.
-void __fastcall ConnectionDestructBody(CPlayerConnection* self);
-const char* __fastcall PlayerClientClassName(CPlayerClient*);
-int __fastcall PlayerClientClassId(CPlayerClient*);

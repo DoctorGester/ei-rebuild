@@ -61,7 +61,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CUnitServer))) return new (p) CUnitServer();
         return nullptr;
     case kPlayerServer:
-        if (auto* p = gamecrt::operator_new_zeroed_as<CPlayerServer>()) return p->Construct();   // 0066C540
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CPlayerServer))) return new (p) CPlayerServer();
         return nullptr;
     case kTorchObjectSpec:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec))) return new (p) CTorchObjectSpec();

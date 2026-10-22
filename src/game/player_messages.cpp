@@ -5,7 +5,6 @@
 #include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
-#include "player_connection_class.h"
 #include "item.h"
 #include "game_singletons.h"
 #include "party.h"
@@ -334,9 +333,6 @@ BOOL CPlayerServer::CreateServer() {
 
 namespace {
 
-constexpr const char* kClassNameAddress = "CPlayerServer";
-constexpr int kClassId = 0x3B;
-
 void ConstructGroup(ScriptGroup& group) {
     group.data = nullptr;
     group.size = 0;
@@ -350,12 +346,9 @@ constexpr int kPathKindNoPath = 3;
 
 } // namespace
 
-CPlayerServer* CPlayerServer::Construct() {
-    ClearFields();
-    ei::SetVtable(this, CPlayerConnection::Vtable());
-    player_ = nullptr;
+// The stream is a member (constructed before the body; the original builds it after the handler table).
+CPlayerServer::CPlayerServer() {
     handlers_.Construct();
-    new (&out_) CMemoryStream();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     placements_.data = nullptr;
     placements_.size = 0;
@@ -368,13 +361,12 @@ CPlayerServer* CPlayerServer::Construct() {
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
-    ei::SetVtable(this, Vtable());
     ClearServerState();
-    return this;
 }
+EI_REWRITTEN_SPECIAL(0x0066C540, CPlayerServer::CPlayerServer);
 
-void CPlayerServer::DestructBody() {
-    ei::SetVtable(this, Vtable());
+// The stream is a member, destroyed after the body (the original frees it before the handler table).
+CPlayerServer::~CPlayerServer() {
     ClearServerState();
     static_cast<ScriptGroup*>(&partyUnits_)->DestructBody();
     static_cast<ScriptGroup*>(&group50F8_)->DestructBody();
@@ -384,50 +376,13 @@ void CPlayerServer::DestructBody() {
     compressor_.out.End();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     if (placements_.data) gamecrt::operator_delete(placements_.data);
-    out_.~CMemoryStream();
     handlers_.FreeData();
-    ei::SetVtable(this, CPlayerConnection::Vtable());
-    player_ = nullptr;
-    DestructBase();
 }
+EI_REWRITTEN_SPECIAL(0x0066C770, CPlayerServer::~CPlayerServer);
+EI_REWRITTEN_SPECIAL(0x0066C750, CPlayerServer::~CPlayerServer);
 
-CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-const char* __fastcall PlayerServerClassName(CPlayerServer*) { return kClassNameAddress; }
-int __fastcall PlayerServerClassId(CPlayerServer*) { return kClassId; }
-
-namespace {
-// The server's table (game.exe's 00743280).
-class PlayerServerClass final : public ConnectionClass<PlayerServerClass, CPlayerServer> {
-public:
-    int Create() override { return Server()->CreateServer(); }   // 2: 0066C9A0
-    void Destroy() override { Server()->ClearServerState(); }    // 3: 0066CC50
-    const char* ClassName() override { return PlayerServerClassName(Server()); }   // 11: 0066C730
-    int ClassId() override { return PlayerServerClassId(Server()); }               // 12: 0066C740
-    void ForgetSentObjects() override { Server()->ReleaseSentObjects(); }          // 13: 0066CE50
-    void UnitChanged(CUnit*) override {}                                            // 14: 0066D0F0 (RET 4)
-    void ResetState() override { Server()->ClearServerState(); }                    // 15: 0066CF20
-    void Leave() override { Server()->LeaveAndFlush(); }                            // 16: 0066D020
-    void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag) override {    // 17: 0066E7D0
-        Server()->SendItemsGiven(items, flag);
-    }
-    void ItemsTaken() override { Server()->Send17(); }                              // 18: 0066EA10
-    void ItemTaken(CEngineObject* item) override { Server()->SendObject0A(item); }  // 19: 0066EA30
-    void LeaderDied() override { Server()->OnLeaderDied(); }                        // 20: 0066F4C0
-    void TickDone() override { Server()->ClearGroup50F8(); }                        // 21: 0066D090
-    void ItemUsed(CEngineObject* item) override { Server()->SendObject14(item); }   // 22: 0066EB40
-    int Receive() override { return Server()->ReceiveMessages(); }                 // 23: 0066D270
-
-private:
-    CPlayerServer* Server() { return As<CPlayerServer>(); }
-};
-} // namespace
-
-void* CPlayerServer::Vtable() { return PlayerServerClass::Vtable(); }
+const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }   // 0066C730
+int CPlayerServer::GetClassId() { return 0x3B; }                          // 0066C740
 
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);
@@ -467,11 +422,8 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
 
 // --- Hooks ---------------------------------------------------------------------------------------
 
-EI_REWRITTEN(0x0066C540, CPlayerServer::Construct);
-EI_REWRITTEN(0x0066C770, CPlayerServer::DestructBody);
-EI_REWRITTEN(0x0066C750, CPlayerServer::DeletingDestruct);
-EI_REWRITTEN(0x0066C730, PlayerServerClassName);
-EI_REWRITTEN(0x0066C740, PlayerServerClassId);
+EI_REWRITTEN(0x0066C730, CPlayerServer::GetClassName);
+EI_REWRITTEN(0x0066C740, CPlayerServer::GetClassId);
 EI_REWRITTEN(0x0066CC50, CPlayerServer::ClearServerState);
 EI_REWRITTEN(0x0066CF20, CPlayerServer::ClearServerState);
 EI_REWRITTEN(0x0066CE50, CPlayerServer::ReleaseSentObjects);
