@@ -2958,6 +2958,14 @@ group = "cleanup"
 model = "opus"
 note = "After C18t/C25c: 56 game data addresses left; 11 are reached only from generated static init / exit, and 175 generated d.Once tests use the guard 007CAEE4. Name the guard in gen_static_init's output, then the objects as lib::StaticObject or plain globals. Also: drop the stale 'vtable 007472B0' line in config/standalone_unreachable.csv and the outdated ostream vbtable sentence in docs/notes/standalone.md (both from C25c's report)."
 
+[[ticket]]
+id = "C25d"
+title = "Delete check_against_exe.cmd and the tools only it runs"
+group = "cleanup"
+model = "sonnet"
+depends = ["C28"]
+note = "User 2026-10-22: keep tools/check_against_exe.cmd until the naming tickets (C18u, C18r, C26's CRT objects) and C28 finish, then delete it and the game.exe-comparing modes only it uses (check_fp_fold, rdata_literals, named_data --check, check_short_functions, check_static_init, gen_image_cells --check/scan, gen_iat --check) where nothing else needs them; drop exe_path.py if only they read it. The harness keeps its game.exe paths."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
