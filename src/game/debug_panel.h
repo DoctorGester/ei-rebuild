@@ -22,17 +22,18 @@ namespace strmap {
 
 using StringMap = stlp::map<stlp::string, stlp::string>;
 
+// game.exe's table 0073BFA4 (two slots, no destructor), over the abstract 0073BFAC.
 class CDebugPanel {
 public:
-    // 004447E0 (RET 8; the panel's slot 0). panel[key] = value (a missing key is inserted first).
-    void Set(const char* key, const char* value);
+    // 00444740 (static initialiser 00444660 runs it before WinMain): the empty map.
+    CDebugPanel();
+    // 00444690 (at exit): every node destroyed and freed, then the header. Not virtual: game.exe's table has no
+    // destructor.
+    ~CDebugPanel();
+    // 004447E0 (RET 8; slot 0). panel[key] = value (a missing key is inserted first).
+    virtual void Set(const char* key, const char* value);
     // 004449A0 (RET 4; slot 1). Removes `key`.
-    void Remove(const char* key);
-    // 00444690 (plain RET). The destructor (at exit): every node destroyed and freed, then the header.
-    void Destruct();
-    // 00444740 (plain RET; static initialiser 00444660 runs it before WinMain). The constructor:
-    // the empty map, the panel's vtable. Returns this.
-    CDebugPanel* Construct();
+    virtual void Remove(const char* key);
     // 00444A70 (RET 4). Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
     void Init(CInterface3D* ui);
     // 00444BD0 (plain RET). Frees the panel surface and the font.
@@ -47,7 +48,6 @@ public:
     // 00444F50 (RET 4). Shows the panel (its surface made when missing, drawn at once) or hides it.
     void Show(std::uint8_t show);
 
-    void* vtable_;
     StringMap entries_;          // +0x04 key -> value
     CInterface3D* ui_;           // +0x10
     CUiSurface* surface_;        // +0x14 the panel surface (0x38 bytes), while shown

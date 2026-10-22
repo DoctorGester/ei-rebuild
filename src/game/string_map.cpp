@@ -1,5 +1,4 @@
-// The debug information panel at 0079B930 (the compiler's vtable in place of 0073BFA4, on the
-// abstract 0073BFAC): an STLport map<string, string> at +4 with a setter (slot 0) and a remover
+// The debug information panel at 0079B930 (game.exe's table 0073BFA4, on the abstract 0073BFAC): an STLport map<string, string> at +4 with a setter (slot 0) and a remover
 // (slot 1), drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the
 // interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
@@ -69,32 +68,18 @@ void CDebugPanel::Remove(const char* key) {
 }
 EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
-// 00444690: the table's destructor (at exit): every node destroyed and freed (the original
-// inlines _M_erase's loop: the right subtree, the pair's deleting destructor with 0, the node back
-// to the pool 004452D0), then the header pushed on the 0x28-byte nodes' free list (0079B234) as
-// the pool's deallocate does.
-void CDebugPanel::Destruct() { entries_.Destroy<Pair>(); }
-EI_REWRITTEN(0x00444690, CDebugPanel::Destruct);
+// 00444690: the destructor (at exit): every node destroyed and freed (the original inlines _M_erase's loop: the
+// right subtree, the pair's deleting destructor with 0, the node back to the pool 004452D0), then the header pushed
+// on the 0x28-byte nodes' free list (0079B234) as the pool's deallocate does.
+CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
+EI_REWRITTEN_SPECIAL(0x00444690, CDebugPanel::~CDebugPanel);
 
-// 00444740 (A-E2; thiscall, returns the panel): the constructor. The static initialiser 00444660
-// runs it on the global before WinMain and registers the destructor above with atexit. The base's
-// vtable (0073BFAC, abstract) first, the empty map (its header node from the node pool), then the
-// panel's vtable; the interface, surface and font are PanelInit's. The map's compare byte is an
-// uninitialised stack byte in the original and is left as it is here.
-namespace {
-// The panel's table: the compiler's (C19; game.exe's 0073BFA4, the same slots): 0 Set, 1 Remove.
-struct DebugPanelClass final : ei::CompiledTag<DebugPanelClass> {
-    virtual void Set(const char* key, const char* value) { ObjectAs<CDebugPanel>()->Set(key, value); }   // 0
-    virtual void Remove(const char* key) { ObjectAs<CDebugPanel>()->Remove(key); }                       // 1
-};
-} // namespace
-
-CDebugPanel* CDebugPanel::Construct() {
-    entries_.Construct();
-    vtable_ = DebugPanelClass::Vtable();
-    return this;
-}
-EI_REWRITTEN(0x00444740, CDebugPanel::Construct);
+// 00444740 (A-E2): the constructor. The static initialiser 00444660 runs it on the global before WinMain and
+// registers the destructor above with atexit. The empty map (its header node from the node pool); the interface,
+// surface and font are Init's. The map's compare byte is an uninitialised stack byte in the original and is left as
+// it is here.
+CDebugPanel::CDebugPanel() { entries_.Construct(); }
+EI_REWRITTEN_SPECIAL(0x00444740, CDebugPanel::CDebugPanel);
 
 // The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
 // function it registers (00444680); both ported on the name and registered at their addresses
@@ -103,9 +88,9 @@ constinit lib::StaticObject<CDebugPanel> g_debugPanel = /*0079B930*/ {};
 static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
-void __cdecl DestroyDebugPanel() { g_debugPanel->Destruct(); }   // 00444680
-void __cdecl ConstructDebugPanel() {                             // 00444660
-    g_debugPanel->Construct();
+void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }   // 00444680
+void __cdecl ConstructDebugPanel() {                           // 00444660
+    g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }
 } // namespace
