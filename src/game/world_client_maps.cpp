@@ -1253,7 +1253,7 @@ int CWorldClient::Setup() {
     manager44_->Init(this);
     textureManager_ = MakeCounted<CTextureManager>(0xF0, ConstructOn<CTextureManager, &CTextureManager::Construct>);
     textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
-    manager188_ = MakeCounted<CBaseManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
+    manager188_ = MakeCounted<CMaterialManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
     manager188_->Init(this);
     manager190_ = MakeCounted<CBaseManager>(0xD8, ConstructOn<CLightFactory, &CLightFactory::Construct>);
     manager190_->Init(this);

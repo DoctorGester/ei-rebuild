@@ -899,12 +899,12 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
-            void* manager = fakeUnit->WorldContext()->MaterialManager();
+            CMaterialManager* manager = fakeUnit->WorldContext()->MaterialManager();
             std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
             linked->name = s.textureNames.Name(t).GetString();
-            static_cast<CMaterialManager*>(manager)->FillMaterial(linked, s.textureLinks.Record(l).value);
+            manager->FillMaterial(linked, s.textureLinks.Record(l).value);
         }
     }
 

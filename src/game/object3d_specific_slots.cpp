@@ -24,11 +24,11 @@ void CObject3DClientSpecific::ExtraScale(float* x, float* y, float* z) {
 EI_REWRITTEN(0x0051AD20, CObject3DClientSpecific::ExtraScale);
 
 void CObject3DClientSpecific::RegisterPartMaterials() {
-    void* manager = WorldContext()->MaterialManager();
+    CMaterialManager* manager = WorldContext()->MaterialManager();
     if (materials.size <= 0) return;
     materialCursor = 0;
     for (CMaterial* material = materials[0]; material;) {
-        static_cast<CMaterialManager*>(manager)->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
+        manager->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
         ++materialCursor;
         if (materials.size <= materialCursor) break;
         material = materials[materialCursor];
