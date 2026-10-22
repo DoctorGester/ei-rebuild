@@ -181,7 +181,7 @@ int __stdcall PartyNextId(int* out) {
 }
 EI_REWRITTEN(0x004A8910, PartyNextId);
 
-bool PartyManager::LoadParty(int, int, const int* key, CParty* target) const {
+bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* target) const {
     if (*key == 0) {
         PartyResetOriginal((void*)target, nullptr, 1, 0);
         return true;

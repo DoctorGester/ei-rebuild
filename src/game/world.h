@@ -1472,7 +1472,7 @@ public:
     // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
     // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
     // The original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const float* point, float radius, void* out);
+    void ObjectsInRange(const Vector3* point, float radius, void* out);
     // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
     // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
     // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,

@@ -510,7 +510,7 @@ int CPlayerServer::OnNewParty() {
     CParty* party = local.Get();
     party->LoadParty(&ReceivedMessages(), 1);
     if (party->members_.size != 1) return 0;
-    int* key = reinterpret_cast<int*>(&Owner()->partyId_);
+    int* key = &Owner()->partyId_;
     PartyNextId(key);
     int& next = NextRecordObjectId();
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
@@ -625,9 +625,7 @@ int CPlayerServer::OnLogin() {
     case 2:
     case 3:
         // The two strings are passed but not read.
-        if (!ThePartyManager()->LoadParty(static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
-                          static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
-                          reinterpret_cast<const int*>(&player->partyId_), party))
+        if (!ThePartyManager()->LoadParty(login.name, login.password, &player->partyId_, party))
             return 0;
         break;
     case 4:
