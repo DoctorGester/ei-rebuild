@@ -284,7 +284,7 @@ vtable,slots,class,file,note
 0073F41C,43,CWorldClient,src/game/world.h,the client world
 0073F4C8,8,CRainSnow,src/game/effects.h,the rain and snow layer (CRainSnow)
 0073F4E8,5,CRainSnow,src/game/effects.h,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
-0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
+0073F4FC,13,PlatformSet,src/game/world.h,the client world's platform set (CBridgeManager)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
 0073F548,3,PlatformListClass,src/lib/mfc_slots.h,CList (the client maps' platform lists)

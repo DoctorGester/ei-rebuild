@@ -1167,7 +1167,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     the terrain (terrain.h, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2), the text manager
     (item_db_text.h), the player sources' base 0073F38C (slots 2-4 and 6 pure), the server's counted helper 0073F240,
     the client's source 0073F628 and the network session 0073F3A8 (world.h, net_link.h) are real classes since C28g;
-    the bridge manager 0073F4FC (world_construct.cpp). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
+    the bridge manager 0073F4FC (PlatformSet, world.h; since C28g). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
   - **Trap: `python tools/find_vtables.py --help` runs the tool** and rewrites config/vtables.csv; restore it with git.
   - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
     0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness

@@ -177,7 +177,6 @@ CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
     list7BC_.Destroy();
     RainSnow()->~CRainSnow();
-    platforms_.DestructBody();
     handle_.Destroy();
     scorchMarks_.Release<PrintElement>();
     footprints_.Release<PrintElement>();

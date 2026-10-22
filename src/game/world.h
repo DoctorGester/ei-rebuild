@@ -855,11 +855,25 @@ using PlatformList = mfc::CList<Platform>;
 using PlatformNode = PlatformList::Node;
 static_assert(sizeof(PlatformNode) == 0x54);   // 00573000 carves nodes of 0x54 bytes
 
-// The client world's platform set (CWorldClient + 0x1D4, 0x38 bytes): an engine object (its
-// vtable at +0; Setup calls slot 2, Teardown slot 3) and the CList of the platform faces at +0x1C
-// (AddFace adds at the head; the list's own NewNode 00573000, RemoveAt 0056FDD0, RemoveAll
-// 0056FDA0).
-struct PlatformSet {
+// The client world's platform set (CWorldClient + 0x1D4, 0x38 bytes): the engine's CBridgeManager
+// (class 0x34; game.exe's vtable 0073F4FC; the client's Create calls its Create, Destroy its Destroy)
+// with the CList of the platform faces at +0x1C (AddFace adds at the head; the list's own NewNode
+// 00573000, RemoveAt 0056FDD0, RemoveAll 0056FDA0).
+class PlatformSet final : public CEngineObject {
+public:
+    // world_construct.cpp (inlined in the client's constructor): the engine object's fields and the
+    // empty face list.
+    PlatformSet();
+    // 00561A60 (deleting: 00561AE0; world_client_maps.cpp): the face list emptied (its vtable 0073F548
+    // back).
+    ~PlatformSet() override;
+    // 00561800 (slot 2; the client's Create). The face list emptied (its blocks freed); returns 1.
+    int Create() override;
+    // 00561840 (slot 3; the client's Destroy): the face list emptied.
+    void Destroy() override;
+    const char* GetClassName() override;   // 11: 00561870 "CBridgeManager" (world_class_slots.cpp)
+    int GetClassId() override;             // 12: 00561880 (0x34)
+
     // 00560F00. max(height, z of every platform surface whose area contains the point); the
     // point is projected onto each platform plane along z.
     float SurfaceHeight(const Vector3* point, float height);
@@ -881,19 +895,6 @@ struct PlatformSet {
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
 
-    // 00561800 (slot 2, the engine object's Create; the client's Setup). The face list emptied (its
-    // blocks freed); returns 1. The set is the engine's CBridgeManager (vtable 0073F4FC, class 0x34).
-    int Clear();
-    // 00561A60. The destructor's body: the face list emptied (its vtable 0073F548 back), then the
-    // engine object's body.
-    void DestructBody();
-    // 00561AE0 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
-    PlatformSet* DeletingDestruct(unsigned flags);
-
-    // The set as the engine object it starts with (its vtable is not declared here).
-    CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
-
-    std::uint8_t engineObject_[0x1C];     // +0x00 CEngineObject
     PlatformList list;                    // +0x1C the faces, the newest first
 };
 static_assert(offsetof(PlatformSet, list) == 0x1C);

@@ -57,10 +57,10 @@ int CWorldServer::GetClassId() { return kWorldServerId; }
 EI_REWRITTEN(0x0058A410, CWorldServer::GetClassName);
 EI_REWRITTEN(0x0058A420, CWorldServer::GetClassId);
 
-const char* __fastcall BridgeManagerClassName(PlatformSet*) { return kBridgeManagerName; }
-int __fastcall BridgeManagerClassId(PlatformSet*) { return kBridgeManagerId; }
-EI_REWRITTEN(0x00561870, BridgeManagerClassName);
-EI_REWRITTEN(0x00561880, BridgeManagerClassId);
+const char* PlatformSet::GetClassName() { return kBridgeManagerName; }
+int PlatformSet::GetClassId() { return kBridgeManagerId; }
+EI_REWRITTEN(0x00561870, PlatformSet::GetClassName);
+EI_REWRITTEN(0x00561880, PlatformSet::GetClassId);
 
 const char* CParticleManager::GetClassName() { return kParticleManagerName; }
 int CParticleManager::GetClassId() { return kParticleManagerId; }

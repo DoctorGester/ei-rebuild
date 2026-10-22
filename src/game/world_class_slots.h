@@ -15,11 +15,8 @@ class CLightningManager;
 struct CItemManager;
 class CParticleManager;
 class CTextureManager;
-struct PlatformSet;
 
 // Slot 11 / 12 of the vtable named in the comment.
-const char* __fastcall BridgeManagerClassName(PlatformSet*);         // 00561870 (0073F4FC) "CBridgeManager"
-int __fastcall BridgeManagerClassId(PlatformSet*);                   // 00561880: 0x34
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // 005AACC0 (0073FC48) "CI3DFigure"
 int __fastcall I3DFigureClassId(CEngineObject*);                     // 005AACD0: 0x46
 const char* __fastcall FigureClientSpecificClassName(CEngineObject*);   // 005A7040 (0073FB10) "CFigureClientSpecific"

@@ -50,25 +50,6 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
 template <typename T>
 void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) { ConstructList(list, ei::GamePointer<void>(vtableAddress)); }
 
-// An engine object's fields as its (inlined) constructor sets them, with the class's vtable.
-void ConstructEngineObject(CEngineObject* object, std::uintptr_t vtable) {
-    object->ClearFields();
-    ei::SetVtable(object, vtable);
-}
-void ConstructEngineObject(CEngineObject* object, void* vtable) {
-    object->ClearFields();
-    ei::SetVtable(object, vtable);
-}
-
-// The client world's platform set as the engine's CBridgeManager (game.exe's 0073F4FC).
-class BridgeManagerClass final : public EngineObjectClass<BridgeManagerClass, PlatformSet> {
-public:
-    int Create() override { return As<PlatformSet>()->Clear(); }                         // 2: 00561800
-    void Destroy() override { gameslots::BridgeManagerDestroy(As<PlatformSet>()); }      // 3: 00561840
-    const char* ClassName() override { return BridgeManagerClassName(As<PlatformSet>()); }   // 11: 00561870
-    int ClassId() override { return BridgeManagerClassId(As<PlatformSet>()); }               // 12: 00561880
-};
-
 // The ground print lists' sentinels come from operator new (their nodes are larger than the node
 // allocator's 128 bytes): 0xA4, 0x9C and 0x94 bytes.
 static_assert(sizeof(stlp::list<BloodPrint>::Node) == 0xA4);
@@ -80,6 +61,11 @@ static_assert(sizeof(stlp::list<GroundPrint>::Node) == 0x94);
 void ObjectIdMap::Construct() {
     map.InitBuckets(100);
     maxId = 0;
+}
+
+PlatformSet::PlatformSet() {
+    ClearFields();
+    ConstructList(list, mfc::impl::PlatformListClass::Vtable());
 }
 
 // ---- CWorldServer (00589ED0) ------------------------------------------------------------------------
@@ -129,8 +115,6 @@ CWorldClient::CWorldClient() {
     scorchMarks_.Construct();
     handle_.ptr = nullptr;
 
-    ConstructEngineObject(platforms_.Engine(), BridgeManagerClass::Vtable());
-    ConstructList(platforms_.list, mfc::impl::PlatformListClass::Vtable());
 
     new (RainSnow()) CRainSnow();
 

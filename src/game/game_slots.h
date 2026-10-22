@@ -13,12 +13,7 @@
 #include <cstring>
 #include <new>
 
-struct PlatformSet;   // game/world.h
-
 namespace gameslots {
-
-// 00561840: CBridgeManager's slot 3 (Destroy): the face list emptied (Clear's body without its 1).
-void __fastcall BridgeManagerDestroy(PlatformSet* set);
 
 // ---- Elements -------------------------------------------------------------------------------------
 

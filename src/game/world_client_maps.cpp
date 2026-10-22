@@ -956,7 +956,7 @@ void CWorldClient::Destroy() {
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     RainSnow()->Destroy();
-    platforms_.Engine()->Destroy();
+    platforms_.Destroy();
     platforms_.list.RemoveAll();
     SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
@@ -1246,7 +1246,7 @@ int CWorldClient::Create() {
 
     RainSnow()->PrepareBuffers();
     RainSnow()->world = this;
-    platforms_.Engine()->Create();
+    platforms_.Create();
     if (worlddata::ShadowSetting() > 0)
         flags_ |= 0x200;
     else
@@ -1368,25 +1368,21 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
 }
 EI_REWRITTEN(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
-int PlatformSet::Clear() {
+int PlatformSet::Create() {
     list.RemoveAll();
     return 1;
 }
-EI_REWRITTEN(0x00561800, PlatformSet::Clear);
+EI_REWRITTEN(0x00561800, PlatformSet::Create);
 
-void PlatformSet::DestructBody() {
+void PlatformSet::Destroy() { list.RemoveAll(); }
+EI_REWRITTEN(0x00561840, PlatformSet::Destroy);
+
+PlatformSet::~PlatformSet() {
     list.vtable = mfc::impl::PlatformListClass::Vtable();
     list.RemoveAll();
-    Engine()->DestructBase();
 }
-EI_REWRITTEN(0x00561A60, PlatformSet::DestructBody);
-
-PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00561AE0, PlatformSet::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00561A60, PlatformSet::~PlatformSet);
+EI_REWRITTEN_SPECIAL(0x00561AE0, PlatformSet::~PlatformSet);
 
 // 0055E8A0 (ECX the list, EDX the stream; the items a player is given, CPlayerServer::SendItemsGiven).
 // What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;
