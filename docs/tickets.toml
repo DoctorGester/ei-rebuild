@@ -3149,6 +3149,13 @@ group = "cleanup"
 model = "opus"
 note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
 
+[[ticket]]
+id = "C30"
+title = "Drawing-only code free of the original's floating point (SSE2, no fp/signature pairing)"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: exact float behaviour matters only where results reach game state, so do non-gameplay code on that front. Today the whole project builds /arch:IA32 /fp:precise (CMakeLists.txt:38) and check_fp_fold / check_signatures pair every function with game.exe's original through EI_REWRITTEN. Find the drawing-only code (src/render, the draw paths in src/game: terrain / mesh / effect / UI drawing, sound levels) whose results never reach a digest field, a save, a net packet or the random stream, build it with /arch:SSE2 /fp:fast (its own target or per-file options), leave it out of check_fp_fold, and let its float code be plain float. Careful with code that looks visual but feeds state: picking (screen ray -> selected unit), visibility tests the game logic reads (CastsShadow, view tests), the camera when sound or AI read it. Prove: image goldens unchanged, frames compared before/after (render_stats, a few captures). Not scheduled (user 2026-10-22 15:26: no new work today)."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
