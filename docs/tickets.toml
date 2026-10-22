@@ -3154,7 +3154,7 @@ id = "C30"
 title = "Drawing-only code free of the original's floating point (SSE2, no fp/signature pairing)"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22 19:34: picking is a UI path and UI is presentation only: what it changes is which input the player gave (a click a hair to the side), and the command it produces is what the game state and net packets carry, so peers still agree. Include picking and the UI in the switch. The one cost: scenarios click by screen position, so a ground point picked a last bit differently changes a move target and so a golden; re-record those goldens with the reason, as an input change."
+note = "Two steps (2026-10-22): first only the compiler flags for the drawing/UI file list, code untouched (the casts are valid C++ and round the same under SSE2). Then a scripted rewrite on those files only, like C14: static_cast<float> of an int or float dropped where plain; static_cast<float>(static_cast<double>(a) / b * k) as float math; x87::fsin / fcos / fpatan -> std::sin / cos / atan2; x87::fistp -> std::lround (nearest, not truncation). Counts in src/: static_cast<float> 4,150 (about 2,500 in drawing/UI files), static_cast<double> 1,051, x87:: helpers about 550. Anything off-pattern left for hand review."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
