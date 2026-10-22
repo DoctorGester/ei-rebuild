@@ -435,7 +435,7 @@ int CLightningManager::DrawAll(void* device) {
     while (node) {
         ObjectList::Node* current = node;
         node = node->next;
-        static_cast<CLightning*>(current->data)->DrawImpl(device);
+        static_cast<CLightning*>(current->data)->Draw(device);
     }
     for (auto* n = newBolts_.head; n; n = n->next) {
         if (n->data) n->data->Release();

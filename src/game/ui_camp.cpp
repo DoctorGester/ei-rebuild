@@ -645,7 +645,7 @@ BOOL CCampPages::Draw(int pass) {
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
     UpdateAction();
-    CUiContainer::DrawContainer(pass);
+    CUiContainer::Draw(pass);
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);

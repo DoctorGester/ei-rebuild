@@ -3,7 +3,7 @@
 # the peer (peer/net_pair_master.txt), whose broadcasts are lost ("nolan": the lobby's ping never finds this
 # game), asks the master three times from its connection screen (region 2, CMpConnectScreen::MasterRequest
 # 0061D0D0: a TCP link, MasterLink 00440C60 / 00440DE0, which the harness answers):
-# - a reply whose size is one more than sent: ClientSession::ReadServerListImpl 0041D600 reads nothing;
+# - a reply whose size is one more than sent: ClientSession::ReadServerList 0041D600 reads nothing;
 # - a reply whose record is cut short: GameInfoRecord::Read 00401170 runs out, no entry is added;
 # - the list: this game's address and announcement, the entry in row 1, which the peer joins.
 # On the base the peer's next update carries a record of an unknown type ("badupdate"): this game's server

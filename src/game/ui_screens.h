@@ -912,14 +912,12 @@ public:
     // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 2): only the container.
     explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
     // The slots of its own in game.exe's tables 00740688 / 00740654.
-    BOOL Draw(int pass) override { return DrawImpl(pass); }                              // 20
+    BOOL Draw(int pass) override;   // 20: 00632A90 (ui_container_draws.cpp)
     void CloseScreen() override { Close(); }                                             // 26
     void MessageResult(int result) override { OnMessageResult(result); }                 // 27
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }     // input 2
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }      // input 4
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // input 9
-    // Body of the slot at 00632A90 (registered by member pointer).
-    int DrawImpl(int pass);
     // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
     // box, vtables 0074225C / 00742228), 1 load (the save/load window), 2 the exit movie and quit,
     // 3 options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status

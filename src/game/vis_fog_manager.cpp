@@ -103,7 +103,7 @@ EI_REWRITTEN(0x004E28D0, VisFogManagerAdd);
 
 // 004E2700 (RET 4; the world's draw 00569E40). Nothing listed: 1. Otherwise the texture is made
 // sure of and bound to stage 0 (a failed bind: 0), then every fog draws; 1.
-int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
+int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     if (list.count == 0) return 1;
     TextureHolderEnsureLoaded(TextureHolder(this));
     if (!renderer->SetTexture(0, current)) return 0;
@@ -114,4 +114,4 @@ int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004E2700, ClientArrayManager::DrawImpl);
+EI_REWRITTEN(0x004E2700, ClientArrayManager::Draw);

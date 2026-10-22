@@ -296,7 +296,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     bool partnerAccepted = partner && !(partner->flags7_ & CRefObject::kDetached) && net::ClientFindParty(client)->accepted_;
     SetTint(Sprite(sceneObjects_.data[2]), partnerAccepted ? 0.5f : 1.0f);
 
-    AsContainer(this)->DrawContainer(pass);
+    AsContainer(this)->CUiContainer::Draw(pass);
     return 1;
 }
 EI_REWRITTEN(0x0062C9C0, CExchangeScreen::Draw);

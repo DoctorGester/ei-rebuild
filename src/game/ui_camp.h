@@ -128,7 +128,7 @@ public:
     // container's.
     ~CGlobalMap() override;
     // The slots of its own in game.exe's tables 00740B3C / 00740B08.
-    BOOL Draw(int pass) override { return DrawBlendedImpl(pass); }                           // 20: 0062EFC0
+    BOOL Draw(int pass) override;   // 20: 0062EFC0 (ui_alpha_draws.cpp): the container's, blended
     void CloseScreen() override { Close(); }                                                 // 26
     void MessageResult(int result) override { OnMessageResult(result); }                    // 27
     void Deactivate() override { OnDeactivate(); }                                           // 1
@@ -799,10 +799,8 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 class CHeroEquipPanel : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(int pass) override { return DrawImpl(pass); }                             // 20
+    BOOL Draw(int pass) override;   // 20: 00622420 (RET 4; ui_container_draws.cpp)
     int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }   // input 5
-    // 00622420 (slot 20, RET 4).
-    int DrawImpl(int pass);
     // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
     // regions and the four body pictures (textures camp1..camp4).

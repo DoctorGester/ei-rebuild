@@ -86,7 +86,7 @@ void Cut();
 // next announcement). Only this game's datagrams are answered. The master keeps the announcements in the
 // pair's shared state (either game's, to a master on the same port) and answers a TCP link to the port
 // (the connection screen's master request: MasterLink 00440C60 / 00440DE0) with the server list that
-// ClientSession::ReadServerListImpl 0041D600 reads: its size, then the LZ coder's stream (all literals) of
+// ClientSession::ReadServerList 0041D600 reads: its size, then the LZ coder's stream (all literals) of
 // {the announcer's address, its last announcement} per announcing port. `reply`: list (the servers),
 // badsize (the size one more than sent: nothing is read) or short (the last record's last three bytes cut:
 // GameInfoRecord::Read 00401170 runs short, no entry). False for another word.

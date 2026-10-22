@@ -159,7 +159,7 @@ public:
     // the people and no speakers.
     explicit CBriefingScreen(CInterface3D* ui);
     // The slots of its own in game.exe's tables 007405AC / 00740578.
-    BOOL Draw(int pass) override { return DrawImpl(pass); }                                       // 20
+    BOOL Draw(int pass) override;   // 20: 00602BF0 (ui_container_draws.cpp)
     void CloseScreen() override { Close(); }                                                      // 26
     void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }   // 27
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }                                 // 29
@@ -173,8 +173,6 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }               // input 4
     int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }             // input 7
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                   // input 9
-    // Body of the slot at 00602BF0 (registered by member pointer).
-    int DrawImpl(int pass);
     // Main vtable slots (ui_briefing.cpp).
     // 00602BB0 (slot 26). The screen closes: the map edge fade (0079BD34) back to the value
     // Create saved, the client glue's 00578920(1) / 00578940, the camera free again (flag 0x40,

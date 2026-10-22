@@ -9,20 +9,19 @@
 #include "lib/crt.h"
 
 // 00402D40 (slot 1).
-void CEngineObject::CopyFromImpl(const CEngineObject& other) {
+void CEngineObject::CopyFrom(const CEngineObject& other) {
     flags_ = other.flags_;
     type_ = other.type_;
     prototypeId_ = other.prototypeId_;
 }
 
-// The default slots: the destructor lets go of the owner; 1 is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0 (00402CC0,
+// The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0 (00402CC0,
 // 00402CD0, 00402D00, 00402D10).
 CEngineObject::~CEngineObject() { owner_ = nullptr; }
 EI_REWRITTEN_SPECIAL(0x00455930, CEngineObject::~CEngineObject);
 EI_REWRITTEN_SPECIAL(0x0055ED90, CEngineObject::~CEngineObject);   // a jump to 00455930 (CParty's base)
 EI_REWRITTEN_SPECIAL(0x00402D20, CEngineObject::~CEngineObject);   // deleting
 EI_REWRITTEN_SPECIAL(0x006611B0, CEngineObject::~CEngineObject);   // deleting (S13: CParty's base, 0074306C slot 0)
-void CEngineObject::CopyFrom(const CEngineObject& other) { CopyFromImpl(other); }
 void CEngineObject::ClearState() {}
 int CEngineObject::RunTick() { return 0; }
 void CEngineObject::Load(CStream*) {}
@@ -47,7 +46,7 @@ int __fastcall ReleaseHook(CEngineObject* self) {
 const char* __fastcall GetNameHook(CEngineObject* self) { return self->CEngineObject::GetName(); }
 const char* __fastcall GetDescriptionHook(CEngineObject* self) { return self->CEngineObject::GetDescription(); }
 } // namespace
-EI_REWRITTEN(0x00402D40, CEngineObject::CopyFromImpl);
+EI_REWRITTEN(0x00402D40, CEngineObject::CopyFrom);
 EI_REWRITTEN(0x00455980, ReleaseHook);
 EI_REWRITTEN(0x00402CE0, GetNameHook);
 EI_REWRITTEN(0x00402CF0, GetDescriptionHook);

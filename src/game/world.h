@@ -1124,8 +1124,8 @@ struct ClientArrayManager : CBaseManager {
     // 13: 00562DA0, CBaseManager's Init (the same code at its own address).
     CEngineObject* NewObject(int type) override;   // 14: 004E2290
 
-    // Body of the slot at 004E2700 (registered by member pointer).
-    int DrawImpl(CSceneRenderer* renderer);
+    // 004E2700 (vis_fog_manager.cpp). Every fog drawn.
+    int Draw(CSceneRenderer* renderer);
 
     CEngineObject* current;               // +0xB0 counted
     mfc::CList<CEngineObject*> list;      // +0xB4 counted (vtable 0073F73C)

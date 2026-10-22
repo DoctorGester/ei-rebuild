@@ -58,13 +58,13 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
-    return static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
+    return static_cast<CUiContainer*>(self)->CUiContainer::Draw(pass);
 }
 
 } // namespace
 
 // 00600EF0. Nothing when the interface's +0x30 is clear. Returns 1.
-int CUiContainer::DrawContainerImpl(int pass) {
+BOOL CUiContainer::Draw(int pass) {
     if (!interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(this);
     std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
@@ -78,21 +78,21 @@ int CUiContainer::DrawContainerImpl(int pass) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00600EF0, CUiContainer::DrawContainerImpl);
+EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
 // 00602BF0 (screen 3, the base / briefing screen). Returns 00600EF0's result.
-int CBriefingScreen::DrawImpl(int pass) { return ScreenDraw(this, pass, true); }
-EI_REWRITTEN(0x00602BF0, CBriefingScreen::DrawImpl);
+int CBriefingScreen::Draw(int pass) { return ScreenDraw(this, pass, true); }
+EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
 // 00632A90 (screen 2). Returns 00600EF0's result.
-int CMainMenu::DrawImpl(int pass) { return ScreenDraw(this, pass, false); }
-EI_REWRITTEN(0x00632A90, CMainMenu::DrawImpl);
+int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
+EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
 // 00622420. The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
-int CHeroEquipPanel::DrawImpl(int pass) {
+int CHeroEquipPanel::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
@@ -145,7 +145,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00622420, CHeroEquipPanel::DrawImpl);
+EI_REWRITTEN(0x00622420, CHeroEquipPanel::Draw);
 
 long CObjectivesWindow::RestoreAlphaRef() {
     std::uint32_t value = savedAlphaRef_;

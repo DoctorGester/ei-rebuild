@@ -857,7 +857,9 @@ struct ScriptDefinition {
     // 004BB6A0. Copies a script call's arguments (all but the first float and string, which name the
     // script) into the instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
-    BOOL AddParameterImpl(const mfc::CString* name, int type);   // body of the slot above (registered by member pointer)
+    // 004BB800 (RET 8; script_vars.cpp). Adds the parameter `name` of `type` to the variables' names; FALSE
+    // when the name is taken.
+    BOOL AddParameter(const mfc::CString* name, int type);
     // 004CB460 (RET 4; script_copy.cpp). Assignment, returns this: index, name and parameters, the if-then
     // pairs (SetSize 004C59C0, copied as words), the variables as ScriptVars::operator= copies them.
     ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);

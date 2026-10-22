@@ -95,7 +95,7 @@ public:
 
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
     // 00467AD0 (lightning_draw.cpp). Draws the bolt (render device virtuals, glow sprites).
-    int DrawImpl(void* device);
+    int Draw(void* device);
     // 00466FD0. Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
     // 00467150. Bounding box and sphere of all segments (centre, box relative to it, radius).

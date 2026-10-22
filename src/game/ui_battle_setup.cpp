@@ -227,7 +227,7 @@ BOOL CBattleScreen::Draw(int pass) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    DrawContainerImpl(pass);   // 00600EF0: CUiContainer::DrawContainer
+    CUiContainer::Draw(pass);   // 00600EF0
     return 1;
 }
 

@@ -105,7 +105,7 @@ EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 // both as signed integers; 0 for fewer than 4 bytes. Reading the dword moves the read position to
 // 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it). Returned unrounded: the
 // caller multiplies ST0. Plain C++ division (rewrite-guide rule 7).
-double ClientSession::BufferRatioImpl(GameBuffer* buffer) {
+double ClientSession::BufferRatio(GameBuffer* buffer) {
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
         return static_cast<std::int32_t>(buffer->base - reinterpret_cast<std::intptr_t>(buffer->begin) +
@@ -120,6 +120,6 @@ double ClientSession::BufferRatioImpl(GameBuffer* buffer) {
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
     return static_cast<double>(streamSize()) / static_cast<double>(divisor);
 }
-EI_REWRITTEN(0x0041D9A0, ClientSession::BufferRatioImpl);
+EI_REWRITTEN(0x0041D9A0, ClientSession::BufferRatio);
 
 } // namespace net

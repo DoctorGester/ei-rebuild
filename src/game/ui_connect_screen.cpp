@@ -803,10 +803,10 @@ CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, con
 EI_REWRITTEN_SPECIAL(0x0061E2F0, CMasterRequestBox::CMasterRequestBox);
 
 void CMasterRequestBox::Update() {
-    double share = net::GameClient()->BufferRatioImpl(&link_.in);
+    double share = net::GameClient()->BufferRatio(&link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerList(&link_.in);
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }

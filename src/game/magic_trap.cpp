@@ -332,7 +332,6 @@ EI_REWRITTEN_SPECIAL(0x00529F90, MagicTrap::~MagicTrap);
 
 void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
 void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
-int MagicTrap::ForgetObject(CEngineObject* object) { return ForgetObjectImpl(object); }
 
 void MagicTrap::SaveTrap(CStream* stream) {
     SaveMapObject(stream);
@@ -452,7 +451,7 @@ void MagicTrap::FireAtOccupants() {
 }
 EI_REWRITTEN(0x0052AB30, MagicTrap::FireAtOccupants);
 
-int MagicTrap::ForgetObjectImpl(CEngineObject* object) {
+int MagicTrap::ForgetObject(CEngineObject* object) {
     for (UnitList::Node* node = inside.head; node;) {
         UnitList::Node* next = node->next;
         if (node->data == object) {
@@ -472,4 +471,4 @@ int MagicTrap::ForgetObjectImpl(CEngineObject* object) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0052AC90, MagicTrap::ForgetObjectImpl);
+EI_REWRITTEN(0x0052AC90, MagicTrap::ForgetObject);

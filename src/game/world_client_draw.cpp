@@ -329,7 +329,7 @@ int CWorldClient::Render() {
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        arrayManager_->DrawImpl(TheSceneRenderer());
+        arrayManager_->Draw(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         SetRenderState(renderer, 14, 0);
@@ -340,7 +340,7 @@ int CWorldClient::Render() {
         static_cast<CLightningManager*>(listManager_)->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        RainSnow()->DrawImpl(TheSceneRenderer());
+        RainSnow()->Draw(TheSceneRenderer());
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);

@@ -51,7 +51,6 @@ double Ease(float slide) {
 
 // --- Helpers -----------------------------------------------------------------------------------
 
-BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -116,7 +115,7 @@ BOOL CSaveLoadWindow::Draw(int pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
-        DrawContainer(pass);
+        CUiContainer::Draw(pass);
         return 1;
     }
     surfaces_.data[0]->Freeze(0, 0);
@@ -245,7 +244,7 @@ BOOL COptionsWindow::Draw(int pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
-        DrawContainer(pass);
+        CUiContainer::Draw(pass);
         return 1;
     }
     surfaces_.data[0]->Freeze(0, 0);

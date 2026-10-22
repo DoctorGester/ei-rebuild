@@ -83,7 +83,7 @@ BOOL CCreditsScreen::Draw(int pass) {
         Close();
         return 1;
     }
-    return DrawContainer(pass);
+    return CUiContainer::Draw(pass);
 }
 EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 

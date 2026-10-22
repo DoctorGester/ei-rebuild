@@ -6,6 +6,7 @@
 // 0065A6D0 (alpha reference 1 around the container draw). See docs/notes/renderer.md ("Pass
 // state").
 #include "ui.h"
+#include "ui_camp.h"
 
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -32,7 +33,7 @@ std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
 } // namespace
 
 // 00600F70 (a container's). The children, each drawn (slot 21) when enabled.
-void CUiContainer::DrawChildrenImpl(int pass) {
+void CUiContainer::DrawChild(int pass) {
     if (!interface_->drawing_) return;
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
@@ -45,26 +46,26 @@ void CUiContainer::DrawChildrenImpl(int pass) {
     }
     SetState(this, kAlphaRef, savedRef);
 }
-EI_REWRITTEN(0x00600F70, CUiContainer::DrawChildrenImpl);
+EI_REWRITTEN(0x00600F70, CUiContainer::DrawChild);
 
 // 0062EFC0. Returns 1.
-int CUiContainer::DrawBlendedImpl(int pass) {
+BOOL CGlobalMap::Draw(int pass) {
     SetState(this, kAlphaBlend, 1);
     SetState(this, kAlphaTest, 0);
     SetState(this, kSourceBlend, 5);
     SetState(this, kDestBlend, 6);
     SetState(this, kAlphaRef, 1);
-    DrawContainerImpl(pass);
+    CUiContainer::Draw(pass);
     return 1;
 }
-EI_REWRITTEN(0x0062EFC0, CUiContainer::DrawBlendedImpl);
+EI_REWRITTEN(0x0062EFC0, CGlobalMap::Draw);
 
 // 0065A6D0. Returns 1.
-int CUiContainer::DrawAlphaRefImpl(int pass) {
+BOOL CHelpWindow::Draw(int pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
-    DrawContainerImpl(pass);
+    CUiContainer::Draw(pass);
     SetState(this, kAlphaRef, savedRef);
     return 1;
 }
-EI_REWRITTEN(0x0065A6D0, CUiContainer::DrawAlphaRefImpl);
+EI_REWRITTEN(0x0065A6D0, CHelpWindow::Draw);

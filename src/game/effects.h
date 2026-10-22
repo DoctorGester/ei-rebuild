@@ -656,8 +656,8 @@ public:
     const char* GetClassName() override;            // 11: 005617C0 "CWeather" (nothing asks)
     int GetClassId() override;                      // 12: 005617D0 (0x1D)
 
-    // Body of the slot at 004E5680 (registered by member pointer).
-    int DrawImpl(CSceneRenderer* renderer);
+    // 004E5680 (weather_draw.cpp). The rain or snow drawn.
+    int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);                     // 004E40B0
     void FinishFade();                              // 004E4050
     void SetWind(const Vector3& direction, float strength);    // 004E41F0

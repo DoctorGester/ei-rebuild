@@ -29,7 +29,7 @@ void HandOver(CRainSnow* weather, CSceneRenderer* renderer) {
 
 // 004E5680. Returns what the rain / snow draw returned, 1 when there is nothing to draw, 0 without
 // a world or with an unknown mode.
-int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
+int CRainSnow::Draw(CSceneRenderer* renderer) {
     CWorld* currentWorld = world;
     if (!currentWorld) return 0;
     if (this->mode == 0) return 1;
@@ -45,4 +45,4 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     HandOver(this, renderer);
     return result;
 }
-EI_REWRITTEN(0x004E5680, CRainSnow::DrawImpl);
+EI_REWRITTEN(0x004E5680, CRainSnow::Draw);

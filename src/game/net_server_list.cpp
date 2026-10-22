@@ -35,7 +35,7 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
 // player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).
-void ClientSession::ReadServerListImpl(GameBuffer* in) {
+void ClientSession::ReadServerList(GameBuffer* in) {
     GameInfoRecord read;   // its strings freed at the end (description first)
     GameInfoRecord* record = &read;
     stlp::StringElement::Default(&record->name);
@@ -76,6 +76,6 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     }
     coder.out.End();
 }
-EI_REWRITTEN(0x0041D600, ClientSession::ReadServerListImpl);
+EI_REWRITTEN(0x0041D600, ClientSession::ReadServerList);
 
 } // namespace net

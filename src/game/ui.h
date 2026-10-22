@@ -1867,8 +1867,12 @@ public:
     ~CUiContainer() override;
 
     void Show(int show) override { ShowChildren(show); }              // 19
-    BOOL Draw(int pass) override { return DrawContainerImpl(pass); }   // 20
-    void DrawChild(int pass) override { DrawChildrenImpl(pass); }     // 21
+    // 20: 00600EF0 (ui_container_draws.cpp). Nothing when the interface's +0x30 is clear; else the pass state
+    // block, the window's own draw, then every enabled child's slot 20. Returns 1.
+    BOOL Draw(int pass) override;
+    // 21: 00600F70 (ui_alpha_draws.cpp). Alpha reference 1 around the region tips and every enabled child's
+    // slot 21, while the interface draws.
+    void DrawChild(int pass) override;
     void Redraw() override { RedrawContainer(); }                     // 22
     void RedrawTips() override { RedrawChildTips(); }                 // 23
     void Update() override { UpdateBase(); }                          // 24
@@ -1905,21 +1909,11 @@ public:
     int KeyUp(int key, int repeat, int flags) override;                // 006019A0
     int Wheel(int flags, int delta, int x, int y) override;            // 00601730 (returns 1)
 
-    // Body of the slot at 00600F70 (registered by member pointer).
-    void DrawChildrenImpl(int pass);
     // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
     // seconds: the display object's (00500960) slot 6 milliseconds * 0.001f, left unrounded in ST0.
     static double FrameTime();
     // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
-    // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this calls it).
-    // Base drawing (slot 20); returns 1.
-    BOOL DrawContainer(int pass);
-    int DrawContainerImpl(int pass);   // body of the slot above (registered by member pointer)
-    // 0062EFC0 / 0065A6D0 (ui_alpha_draws.cpp; slot 20 of windows that only set alpha states around
-    // DrawContainerImpl). Blending on with alpha reference 1; alpha reference 1 for the draw. Return 1.
-    int DrawBlendedImpl(int pass);
-    int DrawAlphaRefImpl(int pass);
     // 00601040 (ui_container.cpp). Base slot 22, only while the interface draws (+0x30): the
     // window's own (005FECC0), then every enabled child's slot 22.
     void RedrawContainer();
@@ -3171,7 +3165,7 @@ public:
     // (nodes, then the sentinel), the text array, the two strings, then the container's.
     ~CHelpWindow() override;
     // The slots of its own in game.exe's tables 00740E28 / 00740DF4.
-    BOOL Draw(int pass) override { return DrawAlphaRefImpl(pass); }                  // 20: 0065A6D0
+    BOOL Draw(int pass) override;   // 20: 0065A6D0 (ui_alpha_draws.cpp): the container's, alpha reference 1
     void CloseScreen() override { Close(); }                                         // 26
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }    // 2
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }      // 9

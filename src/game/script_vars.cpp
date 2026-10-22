@@ -93,7 +93,7 @@ mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, c
 
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
 // strings and objects; for groups the names are grown with SetSize and the slot assigned.
-BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int type) {
+BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type) {
     mfc::CString letter;
     BOOL result;
     const char* text = *parameterName;
@@ -156,7 +156,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
     }
     return result;
 }
-EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameterImpl);
+EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameter);
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 

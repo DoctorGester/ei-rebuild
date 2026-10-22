@@ -606,7 +606,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         else if (Mbscmp(typeName, "object") == 0) type = kScriptObject;
         else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, "Unknown parameter type");
-        if (!script->AddParameterImpl(&name, type))   // "Duplicate variable name %s"
+        if (!script->AddParameter(&name, type))   // "Duplicate variable name %s"
             return Error(this, token.line, 13, "Duplicate variable name %s", name.GetString());
         first = false;
     }
