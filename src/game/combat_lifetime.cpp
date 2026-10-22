@@ -32,9 +32,9 @@ static_assert(offsetof(AIBrain, looks) == offsetof(AIBrain, actionPoint) + offse
 // after it): no steps; `extra` is left as it was.
 void InitSteps(AnimationSteps& steps) {
     steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-    steps.steps = nullptr;
-    steps.count = 0;
-    steps.capacity = 0;
+    steps.data = nullptr;
+    steps.size = 0;
+    steps.maxSize = 0;
     steps.growBy = 0;
 }
 
@@ -143,12 +143,12 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     notSkill = 0;
     castKind = 8;
     endTime = start + duration;
-    animation.SetSize(steps.count, -1);
-    for (int i = 0; i < steps.count; ++i) animation.steps[i] = steps.steps[i];
+    animation.SetSize(steps.size, -1);
+    for (int i = 0; i < steps.size; ++i) animation.data[i] = steps.data[i];
     animation.extra = steps.extra;
     isCast = 0;
     // The by-value list's destructor: only its data is freed.
-    if (steps.steps) gamecrt::operator_delete(steps.steps);
+    if (steps.data) gamecrt::operator_delete(steps.data);
 }
 EI_REWRITTEN(0x00545110, OrderPlan::TakeSteps);
 

@@ -276,7 +276,7 @@ void LeaveMoveMode(CUnitServer* self) {
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
-        if (self->queue.count == 0 && self->queue.extra == -1) {
+        if (self->queue.size == 0 && self->queue.extra == -1) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         }

@@ -14,7 +14,6 @@ class CMapObject;
 class CUnit;
 class CUnitServer;
 class CWorldServer;
-struct AnimationStep;
 struct AnimationSteps;
 struct AttackParams;
 struct OrderPlan;

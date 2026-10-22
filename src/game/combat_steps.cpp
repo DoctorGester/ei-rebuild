@@ -150,9 +150,9 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
 
 // Appends the first step of `steps` (as the original copies it) to `out`.
 void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
-    int index = out->count;
+    int index = out->size;
     out->SetSize(index + 1, -1);
-    out->steps[index] = steps->steps[0];
+    out->data[index] = steps->data[0];
 }
 
 // An AnimationSteps on the stack (00557B60 with the derived vtable; destroyed through 00557E70).
@@ -164,7 +164,7 @@ struct ScratchSteps {
     }
     ~ScratchSteps() {
         steps.vtable = mfc::impl::AnimationStepsClass::Vtable();
-        if (steps.steps) gamecrt::operator_delete(steps.steps);
+        if (steps.data) gamecrt::operator_delete(steps.data);
     }
 };
 } // namespace
@@ -214,12 +214,12 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     if (!animation) return false;
     std::uint8_t index = animation->index;
     int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-    int last = steps->count;
+    int last = steps->size;
     steps->SetSize(last + 1, -1);
     AnimationStep step = BlankStep();
     step.kind = 0;
-    steps->steps[last] = step;
-    AnimationStep& added = steps->steps[steps->count - 1];
+    steps->data[last] = step;
+    AnimationStep& added = steps->data[steps->size - 1];
     added.animation = index;
     added.duration = duration;
     return true;
@@ -295,14 +295,14 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         to.mode = 1;
         if (BuildTransition(&out.steps, &moveMode, &to)) {
             AppendFirst(steps, &out.steps);
-            *duration += out.steps.steps[0].duration;
+            *duration += out.steps.data[0].duration;
         }
     }
     std::uint8_t index = animation->index;
     int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
     AnimationStep blank = BlankStep();
     steps->Add(blank);
-    AnimationStep& added = steps->steps[steps->count - 1];
+    AnimationStep& added = steps->data[steps->size - 1];
     added.animation = animation->index;
     added.duration = length;
     *duration += EntryTicks(unit, animation->index, &FigureAnimation::moment);
@@ -351,14 +351,14 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, &FigureAnimation::moment);
         int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
-        steps->SetAtGrow(steps->count, blank);
-        AnimationStep& first = steps->steps[steps->count - 1];
+        steps->SetAtGrow(steps->size, blank);
+        AnimationStep& first = steps->data[steps->size - 1];
         first.animation = 0xFF;
         first.duration = pause;
         int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
         blank = BlankStep();
         steps->Add(blank);
-        AnimationStep& second = steps->steps[steps->count - 1];
+        AnimationStep& second = steps->data[steps->size - 1];
         second.animation = index;
         second.duration = length;
         *duration = *duration + pause;
@@ -370,22 +370,22 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     *duration = moment;
     int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
     steps->Add(blank);
-    AnimationStep& first = steps->steps[steps->count - 1];
+    AnimationStep& first = steps->data[steps->size - 1];
     first.animation = index;
     first.duration = moment;
     blank = BlankStep();
     steps->Add(blank);
-    AnimationStep& second = steps->steps[steps->count - 1];
+    AnimationStep& second = steps->data[steps->size - 1];
     second.animation = 0xFF;
     second.duration = pause;
     int rest = EntryTicks(unit, index, &FigureAnimation::frameCount) - *duration;
     blank = BlankStep();
     steps->Add(blank);
-    AnimationStep& third = steps->steps[steps->count - 1];
+    AnimationStep& third = steps->data[steps->size - 1];
     third.animation = 0xFF;
     third.duration = rest;
     steps->SetStepFlags(0);
-    steps->steps[1].kind = 1;
+    steps->data[1].kind = 1;
     *duration = *duration + pause;
 }
 EI_REWRITTEN(0x00550620, CUnitServer::BuildCastSteps);
@@ -629,16 +629,16 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     if (add) {
         std::uint8_t index = animation->index;
         int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
-        int last = steps->count;
+        int last = steps->size;
         steps->SetSize(last + 1, -1);
         AnimationStep step = BlankStep();
         step.kind = 0;
-        steps->steps[last] = step;
-        AnimationStep& added = steps->steps[steps->count - 1];
+        steps->data[last] = step;
+        AnimationStep& added = steps->data[steps->size - 1];
         added.animation = animation->index;
         added.duration = duration;
     }
     if (isFall)
-        for (int i = 0; i < steps->count; ++i) steps->steps[i].kind = kStepLying;
+        for (int i = 0; i < steps->size; ++i) steps->data[i].kind = kStepLying;
 }
 EI_REWRITTEN(0x00550A80, CUnitServer::BuildDeathAnimation);

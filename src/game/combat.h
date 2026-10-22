@@ -9,6 +9,7 @@
 #include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"    // AIBrain, AIAlarm (unit_ai.h does not include this header)
+#include "lib/mfc_array.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,32 +57,23 @@ static_assert(sizeof(UnitAction) == 0x24);
 // first 0x1C bytes of a UnitAction) on the stack and pass it as the order, as the original does.
 inline const UnitAction* AsUnitAction(const AIOrder* order) { return reinterpret_cast<const UnitAction*>(order); }
 
-// One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620). 00550A60
-// constructs a blank one: animation 0xFF, +1 0xFF, +2 0, duration -1, +8 0. It never sets byte 3,
-// nor do the builders' inline stack steps, so the original's steps carried a stack byte there;
-// ours carry 0, and so does the original in harness runs (SV7b2a, harness_save_leftovers.cpp).
-struct AnimationStep {
-    std::uint8_t animation;     // +0x00 index of the unit's animation entry (0xFF: a pause)
-    std::uint8_t variant;       // +0x01 the emote / animation variant (0xFF: none; UnitSetAnimation)
-    std::uint8_t flags;         // +0x02 UnitSetAnimation's flags (StartAction's stepFlags)
-    std::uint8_t padding;       // +0x03 0 (not initialised by the original)
-    int duration;               // +0x04 game ticks
-    int kind;                   // +0x08 1 holds the queue time, 2 lying (a fall); passed to the unit (CUnit::SetMotionMode)
-
-    // 00550A60 (combat_server_slots.cpp): the blank step above. Returns this.
-    AnimationStep* Construct();
-};
-static_assert(sizeof(AnimationStep) == 0xC);
+// One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620): the
+// library's element (lib/mfc_array.h, mfc::impl::AnimationStep12). animation +0x00 is the index of
+// the unit's animation entry (0xFF: a pause), variant +0x01 the emote / animation variant (0xFF:
+// none; UnitSetAnimation), flags +0x02 UnitSetAnimation's flags (StartAction's stepFlags), padding
+// +0x03, duration +0x04 in game ticks, kind +0x08 (1 holds the queue time, 2 lying, a fall; passed
+// to the unit, CUnit::SetMotionMode). 00550A60 constructs a blank one: animation 0xFF, +1 0xFF, +2
+// 0, duration -1, +8 0. It never sets byte 3, nor do the builders' inline stack steps, so the
+// original's steps carried a stack byte there; ours carry 0, and so does the original in harness
+// runs (SV7b2a, harness_save_leftovers.cpp).
+using AnimationStep = mfc::impl::AnimationStep12;
+// 00550A60 (combat_server_slots.cpp): `step` made the blank step above. Returns it.
+AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step);
 
 // An animation list: an MFC CArray of AnimationStep (vtable 0073F01C over the base 0073EF2C;
-// 00557B80 is its SetSize) and a dword after it.
-struct AnimationSteps {
-    void* vtable;
-    AnimationStep* steps;   // +0x04
-    int count;              // +0x08
-    int capacity;           // +0x0C
-    int growBy;             // +0x10
-    int extra;              // +0x14 copied along with the steps
+// 00557B80 is its SetSize; data, size, maxSize, growBy) and a dword after it (extra, copied along
+// with the steps): the library's list (mfc::impl::AnimationStepList).
+struct AnimationSteps : mfc::impl::AnimationStepListAbi {
 
     // combat_step_lists.cpp (A-U5). New steps are blank (00550A60's values: 0xFF, 0xFF, 0,
     // duration -1, +8 0; byte 3 is the original's stack byte, ours 0); the list grows by

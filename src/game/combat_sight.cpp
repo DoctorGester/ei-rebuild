@@ -267,7 +267,7 @@ void InitSteps(AnimationSteps* steps) {
 
 void DestroySteps(AnimationSteps* steps) {
     steps->vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (steps->steps) gamecrt::operator_delete(steps->steps);
+    if (steps->data) gamecrt::operator_delete(steps->data);
 }
 
 // The quick item or spell value the cast animation is built with: the spell's +0x4C scaled by
@@ -454,8 +454,8 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 plan->targetId = order->target ? order->target->id_ : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
-                plan->animation.SetSize(steps.count, -1);
-                for (int i = 0; i < steps.count; ++i) plan->animation.steps[i] = steps.steps[i];
+                plan->animation.SetSize(steps.size, -1);
+                for (int i = 0; i < steps.size; ++i) plan->animation.data[i] = steps.data[i];
                 plan->animation.extra = steps.extra;
                 plan->notSkill = order->source != kSkillSource;
                 plan->direction.x = delta.x;

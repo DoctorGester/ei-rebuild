@@ -11,43 +11,30 @@
 #include <bit>
 #include <cstdint>
 
-// The library's list ABI (lib/mfc_array.h) has this layout.
 AnimationSteps* AnimationSteps::CopyConstruct(const AnimationSteps& source) {
-    static_cast<mfc::impl::AnimationStepListAbi*>(reinterpret_cast<mfc::impl::AnimationStepList*>(this))
-        ->CopyConstruct(reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
+    AnimationStepListAbi::CopyConstruct(&source);
     return this;
 }
-void AnimationSteps::Assign(const AnimationSteps& source) {
-    static_cast<mfc::impl::AnimationStepListAbi*>(reinterpret_cast<mfc::impl::AnimationStepList*>(this))
-        ->Assign(reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
-}
-namespace {
-using StepArray = mfc::impl::AnimationSteps::Array;
-StepArray* Array(AnimationSteps* list) { return reinterpret_cast<StepArray*>(list); }
-const StepArray* Array(const AnimationSteps* list) { return reinterpret_cast<const StepArray*>(list); }
-const mfc::impl::AnimationStep12& Step(const AnimationStep& step) {
-    return reinterpret_cast<const mfc::impl::AnimationStep12&>(step);
-}
-} // namespace
+void AnimationSteps::Assign(const AnimationSteps& source) { AnimationStepListAbi::Assign(&source); }
 
-void AnimationSteps::SetSize(int newCount, int newGrowBy) { Array(this)->SetSize(newCount, newGrowBy); }
-int AnimationSteps::Add(const AnimationStep& step) { return Array(this)->Add(Step(step)); }
-void AnimationSteps::SetAtGrow(int index, const AnimationStep& step) { Array(this)->SetAtGrow(index, Step(step)); }
-void AnimationSteps::RemoveAt(int index, int removed) { Array(this)->RemoveAt(index, removed); }
-void AnimationSteps::CopySteps(const AnimationSteps& source) { Array(this)->Copy(*Array(&source)); }
+void AnimationSteps::SetSize(int newCount, int newGrowBy) { Array::SetSize(newCount, newGrowBy); }
+int AnimationSteps::Add(const AnimationStep& step) { return Array::Add(step); }
+void AnimationSteps::SetAtGrow(int index, const AnimationStep& step) { Array::SetAtGrow(index, step); }
+void AnimationSteps::RemoveAt(int index, int removed) { Array::RemoveAt(index, removed); }
+void AnimationSteps::CopySteps(const AnimationSteps& source) { Array::Copy(source); }
 AnimationSteps* AnimationSteps::ConstructBase() {
-    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this));
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsClass>(*this);
     return this;
 }
 AnimationSteps* AnimationSteps::ConstructOwn() {
-    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsCopyClass>(*Array(this));
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsCopyClass>(*this);
     return this;
 }
 AnimationSteps* AnimationSteps::CopyConstructSteps(const AnimationSteps& source) {
-    static_cast<mfc::impl::AnimationStepListAbi*>(static_cast<mfc::impl::AnimationStepList*>(Array(this)))->CopyConstructSteps(Array(&source));
+    AnimationStepListAbi::CopyConstructSteps(&source);
     return this;
 }
-void AnimationSteps::DestructSteps() { mfc::impl::DestructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this)); }
+void AnimationSteps::DestructSteps() { mfc::impl::DestructArrayOf<mfc::impl::AnimationStepsClass>(*this); }
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
@@ -55,9 +42,9 @@ constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of
 
 // Appends a blank step (00550A60's values) and returns it.
 AnimationStep& AppendBlank(AnimationSteps* list) {
-    int index = list->count;
+    int index = list->size;
     list->SetSize(index + 1, -1);
-    AnimationStep& step = list->steps[index];
+    AnimationStep& step = list->data[index];
     step.animation = kNone;
     step.variant = kNone;
     step.flags = 0;
@@ -70,40 +57,40 @@ AnimationStep& AppendBlank(AnimationSteps* list) {
 
 void AnimationSteps::AddStep(int animation, int duration) {
     AppendBlank(this);
-    AnimationStep& last = steps[count - 1];
+    AnimationStep& last = data[size - 1];
     last.animation = static_cast<std::uint8_t>(animation);
     last.duration = duration;
 }
 EI_REWRITTEN(0x00544CE0, AnimationSteps::AddStep);
 
 void AnimationSteps::AddEmote(int emote) {
-    if (count == 0 || steps[count - 1].variant != kNone) AppendBlank(this);
-    AnimationStep& last = steps[count - 1];
+    if (size == 0 || data[size - 1].variant != kNone) AppendBlank(this);
+    AnimationStep& last = data[size - 1];
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;
 }
 EI_REWRITTEN(0x00544D50, AnimationSteps::AddEmote);
 
 void AnimationSteps::SetStepFlags(int value) {
-    for (int i = 0; i < count; ++i) steps[i].kind = value;
+    for (int i = 0; i < size; ++i) data[i].kind = value;
 }
 EI_REWRITTEN(0x00544DD0, AnimationSteps::SetStepFlags);
 
 int AnimationSteps::Duration() const {
     int total = 0;
-    for (int i = 0; i < count; ++i) {
-        if (steps[i].duration < 0) return -1;
-        total += steps[i].duration;
+    for (int i = 0; i < size; ++i) {
+        if (data[i].duration < 0) return -1;
+        total += data[i].duration;
     }
     return total;
 }
 EI_REWRITTEN(0x00544E40, AnimationSteps::Duration);
 
 bool AnimationSteps::SameAs(const AnimationSteps* other) const {
-    if (count != other->count) return false;
-    for (int i = 0; i < count; ++i) {
-        const AnimationStep& a = steps[i];
-        const AnimationStep& b = other->steps[i];
+    if (size != other->size) return false;
+    for (int i = 0; i < size; ++i) {
+        const AnimationStep& a = data[i];
+        const AnimationStep& b = other->data[i];
         if (a.animation != b.animation || a.variant != b.variant || a.duration != b.duration ||
             a.kind != b.kind || a.flags != b.flags)
             return false;
@@ -117,15 +104,15 @@ void AnimationSteps::Load(CStream* stream) {
     int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&newCount, sizeof(newCount));
     SetSize(newCount, -1);
-    for (int i = 0; i < count; ++i) stream->Read(&steps[i], sizeof(AnimationStep));
+    for (int i = 0; i < size; ++i) stream->Read(&data[i], sizeof(AnimationStep));
     stream->Read(&extra, sizeof(extra));
 }
 EI_REPLACE_METHOD(0x00544EF0, AnimationSteps::Load);
 
 void AnimationSteps::Save(CStream* stream) {
-    int written = count;
+    int written = size;
     stream->Write(&written, sizeof(written));
-    for (int i = 0; i < count; ++i) stream->Write(&steps[i], sizeof(AnimationStep));
+    for (int i = 0; i < size; ++i) stream->Write(&data[i], sizeof(AnimationStep));
     int last = extra;
     stream->Write(&last, sizeof(last));
 }
@@ -133,12 +120,12 @@ EI_REPLACE_METHOD(0x00544F60, AnimationSteps::Save);
 
 void __fastcall OrderPlanReset(OrderPlan* plan) {
     AnimationSteps& list = plan->animation;
-    if (list.steps) {
-        gamecrt::operator_delete(list.steps);
-        list.steps = nullptr;
+    if (list.data) {
+        gamecrt::operator_delete(list.data);
+        list.data = nullptr;
     }
-    list.capacity = 0;
-    list.count = 0;
+    list.maxSize = 0;
+    list.size = 0;
     list.extra = -1;
     plan->targetId = -1;
     plan->endTime = 0;

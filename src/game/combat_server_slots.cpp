@@ -42,13 +42,9 @@ UnitAction* UnitAction::Construct() {
 }
 EI_REWRITTEN(0x00545F70, UnitAction::Construct);
 
-AnimationStep* AnimationStep::Construct() {
-    variant = 0xFF;
-    animation = 0xFF;
-    duration = -1;
-    kind = 0;
-    flags = 0;
-    padding = 0;   // SV7b2a: the original leaves it (a stack byte); the harness zeroes it there too
-    return this;
+AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step) {
+    mfc::impl::InitAnimationStep12(step);
+    step->padding = 0;   // SV7b2a: the original leaves it (a stack byte); the harness zeroes it there too
+    return step;
 }
-EI_REWRITTEN(0x00550A60, AnimationStep::Construct);
+EI_REWRITTEN(0x00550A60, ConstructAnimationStep);

@@ -192,17 +192,17 @@ void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
 
 // Whether a step is open-ended (a negative duration).
 bool HasOpenStep(const AnimationSteps& steps) {
-    for (int i = 0; i < steps.count; ++i)
-        if (steps.steps[i].duration < 0) return true;
+    for (int i = 0; i < steps.size; ++i)
+        if (steps.data[i].duration < 0) return true;
     return false;
 }
 
 // The sum of the steps' durations, -1 when one is open-ended (negative).
 int TotalDuration(const AnimationSteps& steps) {
     int total = 0;
-    for (int i = 0; i < steps.count; ++i) {
-        if (steps.steps[i].duration < 0) return -1;
-        total += steps.steps[i].duration;
+    for (int i = 0; i < steps.size; ++i) {
+        if (steps.data[i].duration < 0) return -1;
+        total += steps.data[i].duration;
     }
     return total;
 }
@@ -275,7 +275,7 @@ int CUnitServer::UpdateServer() {
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
-    if (reported == 0 && Queue(this).count == 0) {
+    if (reported == 0 && Queue(this).size == 0) {
         reported = 1;
         world->TellPartiesGone(unit);
         CPlayer* player = unit->player;
@@ -307,7 +307,7 @@ void CUnitServer::UpdateState() {
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
-        if (Queue(this).count != 0) {
+        if (Queue(this).size != 0) {
             animationHeld = 1;
             hitDirection = 0xFFFFFFFFu;
             return;
@@ -339,7 +339,7 @@ void CUnitServer::UpdateState() {
         if (hitDirection != 0xFFFFFFFFu) PlayHitReaction();
         break;
     case kStateRecovering:
-        if (Queue(this).count == 0) {
+        if (Queue(this).size == 0) {
             state = kStateChasing;
             unit->UpdateSizeClass();
             DropEffectObject(this);
@@ -384,22 +384,22 @@ void CUnitServer::AdvanceAnimation() {
     }
     unit->SetPathTimeShift(held ? 1 : 0);
     if (PopFinishedSteps()) {
-        if (queue.count == 0) {
+        if (queue.size == 0) {
             unit->SetMotionMode(0);
             return;
         }
-        const AnimationStep& head = queue.steps[0];
+        const AnimationStep& head = queue.data[0];
         if (head.animation != 0xFF || head.variant != 0xFF)
             unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
     }
-    if (queue.count == 0) {
+    if (queue.size == 0) {
         unit->SetMotionMode(0);
         return;
     }
-    int kind = queue.steps[0].kind;
+    int kind = queue.data[0].kind;
     if (kind == 1) {
         ++QueueTime(this);
-        if (queue.count != 0) --queue.steps[0].duration;
+        if (queue.size != 0) --queue.data[0].duration;
     }
     unit->SetMotionMode(kind);
 }
@@ -408,19 +408,19 @@ EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
     int now = WorldTime(this);
-    while (queue.count != 0) {
-        AnimationStep* steps = queue.steps;
+    while (queue.size != 0) {
+        AnimationStep* steps = queue.data;
         int duration = steps[0].duration;
         if (duration == -1) break;
         int end = QueueTime(this) + duration;
         if (end > now) break;
         popped = true;
-        if (queue.count > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
+        if (queue.size > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
             // The pause after it goes on with this step's animation, and lasts as long more.
             steps[1].animation = steps[0].animation;
-            queue.steps[1].variant = queue.steps[0].variant;
-            queue.steps[1].duration += steps[0].duration;
-            if (queue.steps[1].kind == 1) {
+            queue.data[1].variant = queue.data[0].variant;
+            queue.data[1].duration += steps[0].duration;
+            if (queue.data[1].kind == 1) {
                 int late = now - QueueTime(this) - steps[0].duration;
                 if (late > steps[0].duration) late = steps[0].duration;
                 if (late > 0) QueueTime(this) += late;
@@ -428,17 +428,17 @@ bool CUnitServer::PopFinishedSteps() {
         } else {
             QueueTime(this) = end;
         }
-        if (queue.count - 1 != 0)
-            std::memmove(queue.steps, queue.steps + 1, static_cast<std::size_t>(queue.count - 1) * sizeof(AnimationStep));
-        --queue.count;
+        if (queue.size - 1 != 0)
+            std::memmove(queue.data, queue.data + 1, static_cast<std::size_t>(queue.size - 1) * sizeof(AnimationStep));
+        --queue.size;
     }
     return popped;
 }
 EI_REWRITTEN(0x00546B40, CUnitServer::PopFinishedSteps);
 
 void CUnitServer::ShowCurrentStep() {
-    if (queue.count == 0) return;
-    const AnimationStep& head = queue.steps[0];
+    if (queue.size == 0) return;
+    const AnimationStep& head = queue.data[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
@@ -447,14 +447,14 @@ EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), as the original does.
     for (int pass = 0; pass < 2; ++pass) {
-        queue.SetSize(steps->count, -1);
-        for (int i = 0; i < steps->count; ++i) queue.steps[i] = steps->steps[i];
+        queue.SetSize(steps->size, -1);
+        for (int i = 0; i < steps->size; ++i) queue.data[i] = steps->data[i];
         QueueTime(this) = steps->extra;
     }
     StartQueueIfUnset(this);
     PopFinishedSteps();
-    if (queue.count == 0) return;
-    const AnimationStep& head = queue.steps[0];
+    if (queue.size == 0) return;
+    const AnimationStep& head = queue.data[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
@@ -519,19 +519,19 @@ void CUnitServer::EndOrder(char abort) {
         SetState(kStateChasing);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
-        if (Plan(this).animation.count == 3) {
-            if (Queue(this).count == 2) {
+        if (Plan(this).animation.size == 3) {
+            if (Queue(this).size == 2) {
                 PlanCopy rest(Plan(this).animation);
-                AnimationStep* steps = rest.steps.steps;
+                AnimationStep* steps = rest.steps.data;
                 if (steps[1].kind == 1) {
                     rest.steps.extra = now - steps[0].duration;
                     steps[0].duration += steps[2].duration;
                     rest.steps.SetSize(1, -1);
                     TakeQueue(this, &rest.steps);
                 }
-            } else if (Queue(this).count == 3) {
+            } else if (Queue(this).size == 3) {
                 PlanCopy rest(Plan(this).animation);
-                AnimationStep* steps = rest.steps.steps;
+                AnimationStep* steps = rest.steps.data;
                 if (steps[1].kind == 1) {
                     steps[0].duration += steps[2].duration;
                     rest.steps.extra = QueueTime(this);

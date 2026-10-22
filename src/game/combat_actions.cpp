@@ -416,7 +416,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (animation.steps) gamecrt::operator_delete(animation.steps);
+    if (animation.data) gamecrt::operator_delete(animation.data);
 }
 EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 

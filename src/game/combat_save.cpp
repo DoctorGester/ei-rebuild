@@ -135,13 +135,13 @@ void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
     steps->SetSize(count, -1);
-    for (int i = 0; i < steps->count; ++i) stream->Read(&steps->steps[i], sizeof(AnimationStep));
+    for (int i = 0; i < steps->size; ++i) stream->Read(&steps->data[i], sizeof(AnimationStep));
 }
 EI_REWRITTEN(0x005582A0, LoadStepList);
 
 void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream) {
-    WriteCopy(stream, steps->count);
-    for (int i = 0; i < steps->count; ++i) stream->Write(&steps->steps[i], sizeof(AnimationStep));
+    WriteCopy(stream, steps->size);
+    for (int i = 0; i < steps->size; ++i) stream->Write(&steps->data[i], sizeof(AnimationStep));
 }
 EI_REWRITTEN(0x00558420, SaveStepList);
 

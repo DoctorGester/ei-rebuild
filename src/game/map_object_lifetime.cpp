@@ -103,7 +103,7 @@ void DestroyArray(Array& array, void* vtable) {
 }
 void DestroyArray(AnimationSteps& array, void* vtable) {
     SetVtable(&array, vtable);
-    if (array.steps) gamecrt::operator_delete(array.steps);
+    if (array.data) gamecrt::operator_delete(array.data);
 }
 } // namespace
 
