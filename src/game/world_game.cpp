@@ -869,7 +869,7 @@ constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk 
 
 } // namespace
 
-int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
+int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     LocalFileStream mobFile;
     int found = 0;
     if (mob) {
@@ -880,7 +880,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
-        if (mobFile.stream.FindTagged(kGraphChunk, static_cast<CStream*>(out))) found = 1;
+        if (mobFile.stream.FindTagged(kGraphChunk, out)) found = 1;
         mobFile.Close();
         if (found) return found;
     }
@@ -900,7 +900,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
-            static_cast<CStream*>(out)->CopyFrom(&graph.stream);
+            out->CopyFrom(&graph.stream);
             found = 1;
             graph.Close();
         }

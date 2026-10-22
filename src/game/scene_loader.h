@@ -280,8 +280,8 @@ struct SceneMesh : CTransformObject {
     const char* GetName() override;        // 7: 004547C0 (name)
     const char* GetClassName() override;   // 11: 004547F0 "CFakeFigure"
     int GetClassId() override;             // 12: 00454800 (0x47)
-    void SaveTransform(void* file) override;   // 16: 004547D0 (nothing)
-    void LoadTransform(void* file) override;   // 17: 004547E0 (nothing)
+    void SaveTransform(mfc::CFileVirtuals* file) override;   // 16: 004547D0 (nothing)
+    void LoadTransform(mfc::CFileVirtuals* file) override;   // 17: 004547E0 (nothing)
 
     // The registrations (C20 retires them): 00454830 the destructor, 00454810 (slot 0) the
     // destructor, then operator delete when bit 0 of `flags` is set (returns this).

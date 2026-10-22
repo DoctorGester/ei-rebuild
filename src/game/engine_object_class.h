@@ -94,8 +94,8 @@ public:
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {   // 15: 0040CC30
         Transform()->UpdateWorldImpl(parentRotation, parentPosition);
     }
-    virtual void SaveTransform(void* file) { Transform()->SaveTransformImpl(file); }   // 16: 00401510
-    virtual void LoadTransform(void* file) { Transform()->LoadTransformImpl(file); }   // 17: 00401540
+    virtual void SaveTransform(mfc::CFileVirtuals* file) { Transform()->SaveTransformImpl(file); }   // 16: 00401510
+    virtual void LoadTransform(mfc::CFileVirtuals* file) { Transform()->LoadTransformImpl(file); }   // 17: 00401540
 
 protected:
     CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }

@@ -519,7 +519,7 @@ public:
     // 00596140 (RET 0xC; world_game.cpp). Reads the zone's AI graph into the memory stream `out`:
     // the 0x31415926 chunk of the .mob file when there is one, else the whole <map>.grp file.
     // 1 when found.
-    int ReadAIGraph(const char* map, const char* mob, void* out);
+    int ReadAIGraph(const char* map, const char* mob, CStream* out);
     // 00596350 (RET 4; world_game.cpp). The zone's scripts from the .mob file's 0xA000 chunk (its
     // 0xACCEECCB text packed and XORed, decoded by 004D8E10, or the plain 0xACCEECCA text) become
     // the only line of the first command queue.

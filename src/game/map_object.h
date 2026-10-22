@@ -329,8 +329,8 @@ public:
     mfc::CString* SetSecondName(const char* text);
     // 00516350 / 00516360 (slots 16 / 17, RET 4; CObject3D's too). The transform written to /
     // read from the MFC file (CTransformObject 00401510 / 00401540, called directly).
-    void SaveTransformSlot(void* file);
-    void LoadTransformSlot(void* file);
+    void SaveTransformSlot(mfc::CFileVirtuals* file);
+    void LoadTransformSlot(mfc::CFileVirtuals* file);
 
     // The object as its CObject3D base (map_object_figures.h).
     CObject3D* Object3D() { return this; }
