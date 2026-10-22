@@ -9,6 +9,7 @@
 #include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
+#include "ui_input_class.h"
 
 #include "camera.h"
 #include "core_maths.h"
@@ -46,7 +47,6 @@ namespace {
 
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
-void** ScreenInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 const char* SaveLoadTexture() { return "saveload"; }
@@ -250,7 +250,7 @@ void CBriefingScreen::Create() {
     // The screen's own input side (its third dword is left as allocated) and the view's.
     auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
     if (input) {
-        input->vtable_ = ScreenInputVtable();
+        input->vtable_ = InertInputVtable();
         input->owner_ = interface_;
     }
     AddInput(input);

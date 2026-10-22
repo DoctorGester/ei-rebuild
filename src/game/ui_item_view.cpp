@@ -229,7 +229,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         // checking the allocation.
         auto* turn = gamecrt::operator_new_as<ItemTurn>();
         reinterpret_cast<volatile int*>(turn)[1] = 0;
-        if (turn) turn->vtable = ei::GamePointer<void>(0x007403F8);
+        if (turn) turn->vtable = ItemTurn::Vtable();
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;

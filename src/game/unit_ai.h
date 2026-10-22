@@ -252,8 +252,6 @@ namespace aimode {
 // 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
 int __fastcall PatrolType(AIMode* self);
 int __fastcall FearType(AIMode* self);
-// The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
-inline void* const kRootVtable = ei::GamePointer<void>(0x0073BB68);
 // Tamed (type 8): a Player mode (PlayerMode::Construct) given its own vtable (00552150: GetType 8).
 // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
 // 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).

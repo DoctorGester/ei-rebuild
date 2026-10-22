@@ -56,6 +56,7 @@ class CSpellManager;   // spell.h
 class CLinkFigureLoader;   // model.h
 class CTexture;   // texture.h
 class CTextureManager;   // texture.h
+class CMaterialManager;   // material.h
 class Terrain;
 class CCamera;   // camera.h
 class CMaterial;   // material.h
@@ -196,7 +197,7 @@ public:
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
     void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
-    virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
+    virtual CMaterialManager* MaterialManager();   // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
     virtual CBaseManager* ClientLightManager();
@@ -364,6 +365,12 @@ static_assert(sizeof(SharedObject) == 0x20);
 using SharedObjectList = mfc::CList<SharedObject>;
 
 // The game rules side (game.exe's vtable 0073F928; world_class.h's CWorldServerClass).
+// The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
+// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
+// SetAtGrow 0059D2E0: the plain CArray members).
+struct PartyUnitRecord;   // unit.h
+using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
+
 class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
@@ -707,7 +714,7 @@ public:
     // `position` along `rotation`, moved to a free cell, under `player`'s control, with its items,
     // spells and AI; heroes get their figure parts. Followers are given their leaders; with a
     // player the units are added to the "Heroes" script group.
-    void CreateUnits(void* player, void* records, const Vector3* position, Quaternion rotation, void* placements);
+    void CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation, void* placements);
     // 0058ECE0 (RET 8). A quick item (potion) is used by `unit`: the effect object "st.tr.130"
     // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
     // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
@@ -1027,12 +1034,6 @@ struct PendingIndex : stlp::hash_map<std::uint32_t, void*, stlp::IntHash> {
     int Lookup(const std::uint32_t* key, void** value) const;
 };
 using PendingMap = PendingIndex;
-// The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
-// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
-// SetAtGrow 0059D2E0: the plain CArray members).
-struct PartyUnitRecord;   // unit.h
-using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
-
 // A list element whose layout is not needed here (only its size, for the node's).
 template <std::size_t N>
 struct OpaqueRecord {
@@ -1565,7 +1566,7 @@ public:
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
     // texture pages, the lights table and the music theme.
     mfc::CString zoneName_;
-    CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
+    CMaterialManager* manager188_;        // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
     CEngineObject* manager194_;           // +0x194 (slot 37 returns it; not identified)

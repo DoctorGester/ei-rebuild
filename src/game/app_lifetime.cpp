@@ -31,8 +31,6 @@
 
 namespace {
 
-void* const kCountedRootVtable = ei::GamePointer<void>(0x0073BB68);
-void* const kMouseRootVtable = ei::GamePointer<void>(0x0073C368);
 
 CParty* PartyOf(PartyRecord* record) { return record->Party(); }
 
@@ -59,7 +57,7 @@ PartyRecord* __cdecl CreatePartyRecord() {
     record->refCount = 0;
     record->refsHigh = 0;
     if (!record) return nullptr;
-    record->vtable = kCountedRootVtable;
+    record->vtable = CRefCounted::RootVtable();
     PartyOf(record)->Construct();
     new (&record->name) mfc::CString();
     record->vtable = PartyRecord::Vtable();
@@ -88,7 +86,7 @@ void PartyRecord::Destruct() {
     PartyOf(this)->Destroy();
     name.~CString();
     PartyOf(this)->DestructBody();
-    vtable = kCountedRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x004577E0, PartyRecord::Destruct);
 
@@ -107,7 +105,7 @@ void CDirectInputMouse::Destruct() {
     // The two counted pointers' own destructors (Shutdown has cleared both).
     if (device_) device_->Release();
     if (input_) input_->Release();
-    vtable_ = kMouseRootVtable;
+    vtable_ = PlainRootVtable();
 }
 EI_REWRITTEN(0x004578D0, CDirectInputMouse::Destruct);
 
@@ -119,11 +117,11 @@ CDirectInputMouse* CDirectInputMouse::DeletingDestruct(unsigned flags) {
 EI_REWRITTEN(0x004578B0, CDirectInputMouse::DeletingDestruct);
 
 CDirectInputMouse* CDirectInputMouse::RootDeletingDestruct(unsigned flags) {
-    vtable_ = kMouseRootVtable;
+    vtable_ = PlainRootVtable();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00457950, CDirectInputMouse::RootDeletingDestruct);
+EI_REWRITTEN(0x00457950, CDirectInputMouse::RootDeletingDestruct);
 
 // ---- The party manager ----------------------------------------------------------------------------
 

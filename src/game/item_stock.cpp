@@ -182,10 +182,10 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
     unsigned index = count > 1 ? IsaacRandom::Global().Next() % count : 0;
     StockListNode* node = spells.head->next;
     for (unsigned i = 0; i < index; ++i) node = node->next;
-    void* spell = node->data;
-    float spellPower = static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_;
+    auto* spell = static_cast<CSpell*>(node->data);   // GenerateSpells lists spells
+    float spellPower = spell->manaCost_;
     EI_NAN_AUDIT(spellPower, power);
-    if (spellPower <= power) ctor->SetSpellObject(static_cast<CSpell*>(spell));
+    if (spellPower <= power) ctor->SetSpellObject(spell);
 }
 
 } // namespace

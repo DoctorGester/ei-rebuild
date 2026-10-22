@@ -251,11 +251,10 @@ static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof
 bool ShadowCastStrength(CObject3D* object, float* strength);
 
 // The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes; the
-// compiler's vtable in place of game.exe's 0073DF68 (C19), over the counted root 0073C368; 0051C3D0
+// compiler's vtable in place of game.exe's 0073DF68 (C19), over the plain counted root (PlainRootVtable); 0051C3D0
 // makes it, slot 0 0051C710 deletes it): blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6
 // (D3DBLEND_INVSRCALPHA), the renderer helper's preset 4, two stages.
 struct WoundsMaterial final : CDeviceMaterial {
-    static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);
     // The constructor 0051C3D0 inlines (unit_client_wounds.cpp).
     WoundsMaterial();
     // Slot 0: DeleteScalar, called without dispatch.

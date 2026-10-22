@@ -1,4 +1,4 @@
-// The renderer's helper object (CRenderHelper, model.h; vtable 0073D840: the Direct3D state blocks
+// The renderer's helper object (CRenderHelper, model.h; RenderHelperClass's table: the Direct3D state blocks
 // behind the material presets) and the old renderer's other scalar deleting destructors (A-S11).
 // Rewritten here: the helper (its constructor with the nine built-in presets' state lists, the
 // destructor, the state blocks' recording and release, and the slots that read its tables), its
@@ -7,6 +7,7 @@
 // with its matrix stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
 // here. See docs/notes/renderer.md (section 12).
 #include "app.h"
+#include "core_refcount.h"
 #include "device.h"   // the old device's calls
 #include "dx_errors.h"
 #include "model.h"
@@ -120,7 +121,26 @@ void AssignStates(StateVector* out, const StateVector& source) {
 constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for (0x400 bytes)
 constexpr int kMatrixStacks = 16;
 
-void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
+void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
+
+// The compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's: the preset's 0073D880 (0 the deleting
+// destructor, 1 Index) and the helper's 0073D840 (its eight slots, model.h).
+struct RenderPresetClass final : ei::CompiledDeleter<RenderPresetClass, &CRenderPreset::DeleteScalar> {
+    virtual unsigned Index() { return static_cast<unsigned>(reinterpret_cast<CRenderPreset*>(this)->index_); }   // 1
+};
+struct RenderHelperClass final : ei::CompiledTag<RenderHelperClass> {
+    CRenderHelper* Helper() { return reinterpret_cast<CRenderHelper*>(this); }
+    virtual void* DeleteThis(unsigned flags) { return Helper()->DeleteScalar(flags); }   // 0
+    virtual CRenderPreset* Record(const StateVector* states, int index, bool singleStage) {   // 1
+        return Helper()->RecordImpl(states, index, singleStage);
+    }
+    virtual void ReleasePreset(CRenderPreset* preset) { Helper()->ReleasePresetRecord(preset); }   // 2
+    virtual void ReleaseBlock(CRenderPreset* preset) { Helper()->ReleaseBlockImpl(preset); }       // 3
+    virtual void* PresetBlock(CRenderPreset* preset) { return Helper()->PresetBlockOf(preset); }   // 4
+    virtual CRenderPreset* Preset(unsigned index) { return Helper()->PresetAt(index); }            // 5
+    virtual bool PresetStates(CRenderPreset* preset, StateVector* out) { return Helper()->PresetStatesOf(preset, out); }   // 6
+    virtual bool BuiltInStates(unsigned index, StateVector* out) { return Helper()->BuiltInStatesOf(index, out); }        // 7
+};
 
 // The Direct3D driver list (an STLport list; 004EE4A0 fills it).
 stlp::list<DirectDrawDriver>::Node* DriverListEnd() {
@@ -288,7 +308,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
     CopyConstruct(&preset->blocks_, blocks);
     preset->stages_ = stages;
     preset->index_ = index;
-    ei::SetVtable(preset, 0x0073D880);
+    ei::SetVtable(preset, RenderPresetClass::Vtable());
 
     if (index < static_cast<int>(kPresetCount)) {   // signed, as the original compares
         if (presets_[index] == nullptr) presets_[index] = preset;
@@ -310,7 +330,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
     return preset;
 }
 
-EI_REPLACE_METHOD(0x004FD2A0, CRenderHelper::RecordImpl);
+EI_REWRITTEN(0x004FD2A0, CRenderHelper::RecordImpl);
 
 // 004FD9D0 (slot 3, RET 4). The preset's state blocks deleted, its place among the built-in presets
 // cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
@@ -340,7 +360,7 @@ void CRenderHelper::ReleaseBlockImpl(CRenderPreset* preset) {
     }
 }
 
-EI_REPLACE_METHOD(0x004FD9D0, CRenderHelper::ReleaseBlockImpl);
+EI_REWRITTEN(0x004FD9D0, CRenderHelper::ReleaseBlockImpl);
 
 // ---- The helper's lifetime ----------------------------------------------------------------------------
 
@@ -351,7 +371,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     device_ = nullptr;
     records_.InitBuckets(100);
     presets_.Start() = presets_.Finish() = presets_.EndOfStorage() = nullptr;
-    ei::SetVtable(this, 0x0073D840);
+    ei::SetVtable(this, RenderHelperClass::Vtable());
 
     device_ = device;
     if (device) device::AddRef(device);
@@ -381,7 +401,7 @@ EI_REWRITTEN(0x004FCA60, CRenderHelper::RenderHelperConstruct);
 // Those are destroyed with the table (their presets deleted, but not their state blocks).
 void __fastcall RenderHelperDestruct(CRenderHelper* self) {
     using Node = decltype(self->records_)::Node;
-    ei::SetVtable(self, 0x0073D840);
+    ei::SetVtable(self, RenderHelperClass::Vtable());
     for (Node* node = self->records_.First(); node; node = self->records_.After(node)) {
         if (Node* found = self->records_.Find(node->key)) self->ReleaseBlock(found->value.preset);
     }
@@ -402,20 +422,20 @@ EI_REWRITTEN(0x004FCD50, RenderHelperDestruct);
 void CRenderHelper::ReleasePresetRecord(CRenderPreset* preset) {
     if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
 }
-EI_REPLACE_METHOD(0x004FDB00, CRenderHelper::ReleasePresetRecord);
+EI_REWRITTEN(0x004FDB00, CRenderHelper::ReleasePresetRecord);
 
 // 004FDB50 (slot 4, RET 4).
 void* CRenderHelper::PresetBlockOf(CRenderPreset* preset) {
     auto* node = records_.Find(preset);
     return node ? node->value.preset : nullptr;
 }
-EI_REPLACE_METHOD(0x004FDB50, CRenderHelper::PresetBlockOf);
+EI_REWRITTEN(0x004FDB50, CRenderHelper::PresetBlockOf);
 
 // 004FDBA0 (slot 5, RET 4).
 CRenderPreset* CRenderHelper::PresetAt(unsigned index) {
     return index < CRenderHelper::kPresetCount ? presets_[index] : nullptr;
 }
-EI_REPLACE_METHOD(0x004FDBA0, CRenderHelper::PresetAt);
+EI_REWRITTEN(0x004FDBA0, CRenderHelper::PresetAt);
 
 // 004FDBC0 (slot 6, RET 8). Only AL is the result.
 bool CRenderHelper::PresetStatesOf(CRenderPreset* preset, StateVector* out) {
@@ -424,14 +444,14 @@ bool CRenderHelper::PresetStatesOf(CRenderPreset* preset, StateVector* out) {
     AssignStates(out, node->value.states);
     return true;
 }
-EI_REPLACE_METHOD(0x004FDBC0, CRenderHelper::PresetStatesOf);
+EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStatesOf);
 
 // 004FDD80 (slot 7, RET 8). Only AL is the result.
 bool CRenderHelper::BuiltInStatesOf(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);
 }
-EI_REPLACE_METHOD(0x004FDD80, CRenderHelper::BuiltInStatesOf);
+EI_REWRITTEN(0x004FDD80, CRenderHelper::BuiltInStatesOf);
 
 // ---- The preset -------------------------------------------------------------------------------------
 
@@ -447,7 +467,7 @@ void* CRenderPreset::DeleteScalar(unsigned flags) {
     RenderPresetDestruct(this);
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004FD880, CRenderPreset::DeleteScalar);
+EI_REWRITTEN(0x004FD880, CRenderPreset::DeleteScalar);
 
 // ---- Deleting destructors (slot 0, RET 4) -------------------------------------------------------------
 
@@ -483,7 +503,7 @@ void* CRenderHelper::DeleteScalar(unsigned flags) {
     RenderHelperDestruct(this);
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x004FCC20, CRenderHelper::DeleteScalar);
+EI_REWRITTEN(0x004FCC20, CRenderHelper::DeleteScalar);
 
 // ---- The transform pipeline (CTransformPipeline, TransformPipelineClass) -----------------------------------------
 

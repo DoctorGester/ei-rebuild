@@ -125,7 +125,7 @@ T* DeleteIf(T* mode, int flags) {
 
 } // namespace
 
-void AIMode::DestructToRoot() { vtable = aimode::kRootVtable; }
+void AIMode::DestructToRoot() { vtable = CRefCounted::RootVtable(); }
 
 AIMode* AIMode::DeletingDestructBase(int flags) {
     DestructToRoot();
@@ -197,7 +197,7 @@ FollowMode* FollowMode::FollowDeletingDestruct(int flags) {
 void FollowMode::FollowDestruct() {
     vtable = aimode::FollowClass::Vtable();
     leader.Reset();
-    vtable = aimode::kRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 
 SuspectionMode* SuspectionMode::SuspectionClone() const {
@@ -247,7 +247,7 @@ AggressionMode* AggressionMode::AggressionDeletingDestruct(int flags) {
 void AggressionMode::AggressionDestruct() {
     vtable = aimode::AggressionClass::Vtable();
     enemy.Reset();
-    vtable = aimode::kRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 
 CorpseWatcherMode* CorpseWatcherMode::CorpseWatcherClone() const {

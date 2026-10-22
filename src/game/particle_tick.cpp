@@ -284,4 +284,4 @@ int CParticleSource::Tick() {
     if (flags_ & 1) return 1;
     return particles.count != 0;
 }
-EI_REPLACE_METHOD(0x00496EB0, CParticleSource::Tick);
+EI_REWRITTEN(0x00496EB0, CParticleSource::Tick);

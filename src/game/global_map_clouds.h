@@ -1,8 +1,8 @@
 #pragma once
 
 // The global map's moving cloud layer (A-S4; global_map_clouds.cpp): an abstract noise texture
-// (base vtable 0073D030: two pure slots and its deleting destructor 00499E30) whose only class is
-// the global map's (vtable 007420D4: 0049A090, 0049A220, 0062EDA0). Three greyscale frames of
+// (BaseVtable(), in place of game.exe's 0073D030: two pure slots and its deleting destructor 00499E30) whose only
+// class is the global map's (MapVtable(), in place of 007420D4: 0049A090, 0049A220, 0062EDA0). Three greyscale frames of
 // `size` x `size` (the map uses 256) are kept: the one shown fades from the first into the second
 // while the third is built a slice per step from four layers of value noise; every 16 steps they
 // rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
@@ -14,7 +14,9 @@
 
 class __declspec(novtable) CCloudNoise {
 public:
-    static const void* BaseVtable() { return ei::GamePointer<const void>(0x0073D030); }
+    // The compiled tables (C19, global_map_clouds.cpp): the base's (slots 0 / 1 _purecall) and the global map's.
+    static void* BaseVtable();
+    static void* MapVtable();
 
     // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
     // three ISAAC words; the raw values go through `noise_`.

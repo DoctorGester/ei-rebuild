@@ -1,5 +1,6 @@
 // The link figure loader's .lnk reading and mesh cache (A-S7): 004DB9C0, 004F7020-004F7D20. See
 // link_figure.h and CLinkFigureLoader in model.h.
+#include "core_refcount.h"
 #include "link_figure.h"
 
 #include "model.h"
@@ -301,7 +302,7 @@ void ClearArchives(LinkArchiveNode* head) {
 } // namespace
 
 void CLinkFigureLoader::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next) {
         n->resource->CloseResource();
         if (n->resource) delete n->resource;
@@ -323,7 +324,7 @@ void CLinkFigureLoader::Destruct() {
     figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));
-    ei::SetVtable(this, CLinkMesh::kRootVtableAddress);
+    ei::SetVtable(this, PlainRootVtable());
 }
 
 void* CLinkFigureLoader::DeleteThisImpl(unsigned flags) {
@@ -367,9 +368,9 @@ namespace {
 void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }
 int __fastcall CacheBytesHook(CLinkFigureLoader* self) { return self->CLinkFigureLoader::CacheBytes(); }
 } // namespace
-EI_REPLACE_METHOD(0x004F7150, CLinkFigureLoader::LoadFigureImpl);
-EI_REPLACE_METHOD(0x004F7080, CLinkFigureLoader::LoadLinkImpl);
-EI_REPLACE(0x004F7020, ClearCacheHook);
-EI_REPLACE(0x004FAAA0, CacheBytesHook);
-EI_REPLACE_METHOD(0x004F6A30, CLinkFigureLoader::DeleteThisImpl);
-EI_REPLACE_METHOD(0x004F75E0, CLinkFigureLoader::RemorphImpl);
+EI_REWRITTEN(0x004F7150, CLinkFigureLoader::LoadFigureImpl);
+EI_REWRITTEN(0x004F7080, CLinkFigureLoader::LoadLinkImpl);
+EI_REWRITTEN(0x004F7020, ClearCacheHook);
+EI_REWRITTEN(0x004FAAA0, CacheBytesHook);
+EI_REWRITTEN(0x004F6A30, CLinkFigureLoader::DeleteThisImpl);
+EI_REWRITTEN(0x004F75E0, CLinkFigureLoader::RemorphImpl);

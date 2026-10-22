@@ -165,6 +165,14 @@ struct ObjectListIterator {
 };
 static_assert(sizeof(ObjectListIterator) == 8);
 
+// The same walk over a manager whose objects are all of class T (the light factory's lights, an
+// item manager's items): First and Next hand them out typed. The user drops the manager's count.
+template <typename T>
+struct ObjectListIteratorOf : ObjectListIterator {
+    T* First(CBaseManager* list) { return static_cast<T*>(ObjectListIterator::First(list)); }
+    T* Next() { return static_cast<T*>(ObjectListIterator::Next()); }
+};
+
 // The client-specific manager (class id 0x30; misc_400.cpp; a real virtual class: the compiler makes
 // its vtable, C19, game.exe's 0073BECC with its tail 0073BF08 is retired).
 class CClientSpecificManager : public CBaseManager {

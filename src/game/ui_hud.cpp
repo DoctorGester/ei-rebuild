@@ -610,7 +610,7 @@ void CHudTopPanel::OnMouseDown(int, int x, int y) {
     inputHandled_ = true;
     CaptureMouse();
 }
-UI_INPUT_HANDLER(0x0064A1C0, CHudTopPanel, OnMouseDown);
+EI_REWRITTEN(0x0064A1C0, CHudTopPanel::OnMouseDown);
 
 void CHudTopPanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -634,18 +634,18 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-UI_INPUT_HANDLER(0x0064A200, CHudTopPanel, OnMouseUp);
+EI_REWRITTEN(0x0064A200, CHudTopPanel::OnMouseUp);
 
 void CHudTopPanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
 }
-UI_INPUT_HANDLER(0x0064A2C0, CHudTopPanel, OnMouseMove);
+EI_REWRITTEN(0x0064A2C0, CHudTopPanel::OnMouseMove);
 
 BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
     return 1;
 }
-UI_WHEEL_HANDLER(0x0064A2F0, CHudTopPanel, OnWheel);
+EI_REWRITTEN(0x0064A2F0, CHudTopPanel::OnWheel);
 
 // --- CBattleScreen::SelectUnit (00638EF0) --------------------------------------------------------
 

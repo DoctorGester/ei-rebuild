@@ -78,7 +78,7 @@ Spec* NewRecord(std::uint32_t id) {
         return nullptr;
     case 0xBBBB0000:
         if (void* p = gamecrt::operator_new(0x324))
-            return reinterpret_cast<Spec*>(UnitSpecConstruct(static_cast<UnitSpec*>(p)));
+            return &static_cast<UnitSpec*>(p)->UnitSpecConstruct()->object.base;
         return nullptr;
     case 0xBBBF0000:
         if (void* p = gamecrt::operator_new(sizeof(FlameSpec)))

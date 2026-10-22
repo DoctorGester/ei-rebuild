@@ -48,7 +48,7 @@ PartyRecord* NewRecord() {
     record->refCount = 0;   // the reference dword, both halves
     record->refsHigh = 0;
     if (!record) return nullptr;
-    record->vtable = ei::GamePointer<void>(0x0073BB68);
+    record->vtable = CRefCounted::RootVtable();
     record->Party()->Construct();
     ::new (&record->name) mfc::CString;   // afxEmptyString
     record->vtable = PartyRecord::Vtable();

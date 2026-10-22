@@ -39,7 +39,7 @@ const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748); }
 CParticleManager* Particles() { return ParticleManagerObject(); }
 
-// The sources are engine objects (vtable 0073CFD0): slot 4 releases a reference.
+// The sources are engine objects (CParticleSource::Vtable()): slot 4 releases a reference.
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.

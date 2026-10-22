@@ -486,9 +486,8 @@ int CWorldClient::Segment() {
                 for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
                     BloodPrint& effect = node->data;
                     float level = sun->GetIntensityAt(static_cast<const Vector3*>(worlddata::LightReferencePoint()));
-                    ObjectListIterator lights{nullptr, nullptr};   // [ebp-0x60]
-                    for (auto* light = static_cast<CLight*>(lights.First(ClientLightManager())); light;
-                         light = static_cast<CLight*>(lights.Next())) {
+                    ObjectListIteratorOf<CLight> lights{};   // [ebp-0x60]
+                    for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags_ & 0x80)) continue;
                         float nodeX = effect.position_.x, nodeY = effect.position_.y;
                         double dy = static_cast<double>(light->localPosition_.y) - nodeY;

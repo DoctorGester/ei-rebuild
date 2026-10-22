@@ -5,6 +5,7 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "ei/vcall.h"
 #include "lib/nan_audit.h"
@@ -35,7 +36,26 @@ int Octave(const std::uint8_t* layer, int x, int y, int scale, int shift) {
     return lower + upper;
 }
 
+extern "C" int __cdecl _purecall();
+
+// The compiled tables in place of game.exe's: the base's 0073D030 (0 / 1 pure, 2 the deleting destructor) and the
+// global map's 007420D4 (its layer and frame steps; slot 2 0062EDA0 is the base's 00499E30 again).
+struct CloudNoiseBaseClass : ei::CompiledTag<CloudNoiseBaseClass> {
+    CCloudNoise* Noise() { return reinterpret_cast<CCloudNoise*>(this); }
+    virtual void MakeLayer(std::uint8_t*) { _purecall(); }                                                  // 0
+    virtual void Generate(std::uint8_t*, int) { _purecall(); }                                              // 1
+    virtual CCloudNoise* DeletingDestruct(unsigned flags) { return Noise()->DeletingDestructImpl(flags); }   // 2
+};
+struct GlobalMapCloudsClass final : CloudNoiseBaseClass {
+    static void* Vtable() { return ei::CompiledVtable<GlobalMapCloudsClass>(); }
+    void MakeLayer(std::uint8_t* out) override { Noise()->MakeLayerImpl(out); }
+    void Generate(std::uint8_t* out, int step) override { Noise()->GenerateImpl(out, step); }
+};
+
 } // namespace
+
+void* CCloudNoise::BaseVtable() { return CloudNoiseBaseClass::Vtable(); }
+void* CCloudNoise::MapVtable() { return GlobalMapCloudsClass::Vtable(); }
 
 CCloudNoise* CCloudNoise::Construct(int size) {
     ei::SetVtable(this, BaseVtable());
@@ -68,7 +88,7 @@ CCloudNoise* CCloudNoise::DeletingDestructImpl(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00499E30, CCloudNoise::DeletingDestructImpl);
+EI_REWRITTEN(0x00499E30, CCloudNoise::DeletingDestructImpl);
 
 void CCloudNoise::Start() {
     for (int step = 0; step < kSteps; ++step) Generate(frames_[0], step);
@@ -159,5 +179,5 @@ void CCloudNoise::GenerateImpl(std::uint8_t* out, int step) {
 namespace {
 // The virtual slots are registered through shims (rewrite-guide rule 4).
 } // namespace
-EI_REPLACE_METHOD(0x0049A090, CCloudNoise::MakeLayerImpl);
-EI_REPLACE_METHOD(0x0049A220, CCloudNoise::GenerateImpl);
+EI_REWRITTEN(0x0049A090, CCloudNoise::MakeLayerImpl);
+EI_REWRITTEN(0x0049A220, CCloudNoise::GenerateImpl);

@@ -179,16 +179,15 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
 
 } // namespace
 
-void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* position, Quaternion rotation,
+void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
                                void* placementsArg) {
-    auto* records = static_cast<RecordPtrArray*>(recordsArg);
     auto* placements = static_cast<PlacementArray*>(placementsArg);
     // Destroyed after the two strings (declared after it), as the original does. Plain storage:
     // the original's constructor (0046C010) and inlined destructor build and tear it down.
     struct Message {
         lib::InPlace<UnitSpec> bytes;
         UnitSpec* Get() { return bytes.Get(); }
-        Message() { mapspec::UnitSpecConstruct(Get()); }   // 0046C010
+        Message() { Get()->UnitSpecConstruct(); }   // 0046C010
         ~Message() { DestroyMessage(Get()); }
     } holder;
     UnitSpec* message = holder.Get();
@@ -267,7 +266,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
-        unit->SetPlayer(static_cast<CPlayer*>(player));
+        unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0]);
         unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();

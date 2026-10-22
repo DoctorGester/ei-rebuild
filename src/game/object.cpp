@@ -12,13 +12,13 @@
 
 CHoover* CHoover::Construct() {
     ClearFields();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     return this;
 }
 EI_REWRITTEN(0x00461C10, CHoover::Construct);
 
 void CHoover::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     DestructBase();
 }
 EI_REWRITTEN(0x00461C80, CHoover::Destruct);

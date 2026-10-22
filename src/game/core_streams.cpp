@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -35,7 +36,28 @@ void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream
 
 // --- CRefObject root / reference-counted value -------------------------------------------------
 
-void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::kVtableAddress); }
+namespace {
+// The root's compiled table (C19; game.exe's 0073BB68): 0 the deleting destructor, 1 Serialize (empty, RET 4).
+struct CountedRootClass final : ei::CompiledDeleter<CountedRootClass, &CRefCounted::RootDeletingDestruct> {
+    virtual void Serialize(ChunkArchive*) {}   // 1
+};
+} // namespace
+
+void* CRefCounted::RootVtable() { return CountedRootClass::Vtable(); }
+
+namespace {
+// The plain counted root's compiled table (C19; game.exe's 0073C368): 0 the deleting destructor.
+struct PlainRootClass final : ei::CompiledTag<PlainRootClass> {
+    virtual void* DeleteScalar(unsigned flags) {   // 0: 00457950
+        SetVtable(this, PlainRootVtable());
+        return DeleteIf(this, flags);
+    }
+};
+} // namespace
+
+void* PlainRootVtable() { return PlainRootClass::Vtable(); }
+
+void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::RootVtable()); }
 EI_REWRITTEN(0x00412720, RefObjectDestructBase);
 EI_REWRITTEN(0x00413430, RefObjectDestructBase);
 EI_REWRITTEN(0x005ED7A0, RefObjectDestructBase);
@@ -46,11 +68,11 @@ EI_REWRITTEN(0x0058FBE0, RefObjectDestructBase);
 EI_REWRITTEN(0x005B3590, RefObjectDestructBase);
 
 CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, RootVtable());
     DeleteIf(this, flags);
     return this;
 }
-EI_REPLACE_METHOD(0x00412730, CRefCounted::RootDeletingDestruct);
+EI_REWRITTEN(0x00412730, CRefCounted::RootDeletingDestruct);
 EI_REWRITTEN(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {

@@ -170,7 +170,7 @@ void NetLink::ConstructCopyOf(const NetLink* source) {
 
 void NetLink::Destruct() {   // 00478050
     record_.Destruct();
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00478050, NetLink::Destruct);
 
@@ -271,7 +271,7 @@ void LoopbackLink::Destruct() {   // 004787A0
     ReleaseCounted(peer_);
     DestroyQueue();
     record_.Destruct();
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x004787A0, LoopbackLink::Destruct);
 
@@ -290,7 +290,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     Queue::Clear(AsQueue(&queue_));
     stlp::deallocate(queue_, 48);   // 00479530
     record_.Destruct();
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
     NetLink::Construct();
     static_cast<Queue*>(AsQueue(&queue_))->Construct(nullptr);
     peer_ = nullptr;
@@ -407,7 +407,7 @@ void ReplayLink::Destruct() {   // 00478CC0
     ei::SetVtable(this, Vtable());
     replay_.Destruct();
     record_.Destruct();
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00478CC0, ReplayLink::Destruct);
 
@@ -476,7 +476,7 @@ void FramedLink::Destruct() {   // 00479B90
     if (inbox_.data_) gamecrt::operator_delete(inbox_.data_);
     ei::SetVtable(&inbox_, kStreamVtable);
     record_.Destruct();
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00479B90, FramedLink::Destruct);
 

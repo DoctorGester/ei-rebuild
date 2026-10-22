@@ -282,7 +282,7 @@ int CPlayerServer::OnUseOrder() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0066F4C0, CPlayerServer::OnLeaderDied);
+EI_REWRITTEN(0x0066F4C0, CPlayerServer::OnLeaderDied);
 EI_REWRITTEN(0x00670670, UseOrderDistanceSquared);
 EI_REWRITTEN(0x006706A0, AIPath::Construct);
 EI_REWRITTEN(0x00670730, AIPath::TargetPoint);
@@ -451,7 +451,7 @@ void CPlayerServer::LeaveAndFlush() {
     }
     Flush();
 }
-EI_REPLACE_METHOD(0x0066D020, CPlayerServer::LeaveAndFlush);
+EI_REWRITTEN(0x0066D020, CPlayerServer::LeaveAndFlush);
 
 int CPlayerServer::OnRefreshParty() {
     Owner()->ForgetKnownObjects();
