@@ -43,7 +43,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
     slot->object = object;
 }
 
-bool g_byId = false;   // ScriptGroup::OrderById
 
 // 004B2D80 (the game's: by object address, unsigned; ours: ScriptGroup::After).
 int __cdecl CompareMembers(const void* a, const void* b) {
@@ -63,11 +62,9 @@ bool ScriptGroup::IdAfter(const CEngineObject* x, const CEngineObject* y) {
 }
 
 bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
-    if (g_byId || ei::Standalone()) return IdAfter(x, y);
+    if (ei::Standalone()) return IdAfter(x, y);
     return Address(x) > Address(y);
 }
-
-void ScriptGroup::OrderById() { g_byId = true; }
 
 // ---- ScriptObjectRef ----------------------------------------------------------------------------
 

@@ -1,0 +1,65 @@
+// The draw lists' order without addresses (address_order.h, DrawBefore). Shared with the harness's
+// game.exe side (tests/verify/harness_address_order.cpp sorts the original's draw lists with it), so
+// run_all's reference key lists this file (tools/run_all.py, reference_key): it uses only headers.
+#include "address_order.h"
+
+#include "engine_object.h"
+#include "link_figure.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "map_object_shadow.h"
+#include "texture.h"
+
+#include "lib/nan_audit.h"
+
+#include <bit>
+#include <cstdint>
+#include <cstring>
+
+namespace {
+
+CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
+
+// The first part set's texture of a drawn object's model, null without one.
+const CTexture* RankTexture(CObject3DClientSpecific* model) {
+    const TextureParts* rank = model->partSets[0];
+    return rank ? rank->texture : nullptr;
+}
+
+// The texture's and the figure's order without their addresses: null first, then by name, a figure
+// then by its morph weights (their bits); 0 for the same keys.
+int CompareTextures(const CTexture* a, const CTexture* b) {
+    if (!a || !b) return (a != nullptr) - (b != nullptr);
+    const char* aName = a->name_;
+    const char* bName = b->name_;
+    return std::strcmp(aName ? aName : "", bName ? bName : "");
+}
+
+int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
+    if (!a || !b) return (a != nullptr) - (b != nullptr);
+    if (a->name_ < b->name_) return -1;
+    if (b->name_ < a->name_) return 1;
+    for (int i = 0; i < 3; ++i) {
+        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights_[i]);
+        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights_[i]);
+        if (wa != wb) return wa < wb ? -1 : 1;
+    }
+    return 0;
+}
+
+bool DepthBefore(CEngineObject* a, CEngineObject* b) {
+    EI_NAN_AUDIT(Object3D(a)->worldPosition_.z, Object3D(b)->worldPosition_.z);
+    return Object3D(a)->worldPosition_.z < Object3D(b)->worldPosition_.z;
+}
+
+} // namespace
+
+bool address_order::DrawBefore(CEngineObject* a, CEngineObject* b) {
+    if (!a || !b) return false;
+    auto* groupA = Object3D(a)->ClientSpecific();
+    auto* groupB = Object3D(b)->ClientSpecific();
+    if (!groupA || !groupB) return false;
+    if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
+    if (int c = CompareFigures(Object3D(a)->figure, Object3D(b)->figure)) return c < 0;
+    return DepthBefore(a, b);
+}

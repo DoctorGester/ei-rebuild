@@ -96,17 +96,16 @@ std::vector<std::uintptr_t*> g_notedPointers;   // FixUpCodePointer's before the
 
 std::uintptr_t CodeAddress(std::uintptr_t address) {
     ++g_lookups;
-    if (!Standalone() || !InGameText(address)) return address;
+    if (!InGameText(address)) return address;
     if (void* replacement = Registered(address)) return reinterpret_cast<std::uintptr_t>(replacement);
     return reinterpret_cast<std::uintptr_t>(Stub(address));
 }
 
 std::uint64_t CodeLookups() { return g_lookups; }
 
-bool HasCode(std::uintptr_t address) { return !Standalone() || !InGameText(address) || Registered(address); }
+bool HasCode(std::uintptr_t address) { return !InGameText(address) || Registered(address); }
 
 void FixUpCodePointer(std::uintptr_t* pointer) {
-    if (!Standalone()) return;
     if (g_cellsFixed.load(std::memory_order_acquire)) *pointer = CodeAddress(*pointer);
     else g_notedPointers.push_back(pointer);
 }

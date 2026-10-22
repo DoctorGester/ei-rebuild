@@ -328,9 +328,8 @@ What C25a named or dropped of its list, still the code's form:
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
 - **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
-  PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
-  game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
-  the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+  PchNil() read `g_dataNil` (ours; nothing of ours makes a string in game.exe's runs, H30). game.exe's cells 00796E48 /
+  00796E4C stay in image_cells.inc, unread.
 - **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
   header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
   (counted, left out of the cells like LEFT_STRUCTURES): zero in the image.
@@ -783,12 +782,9 @@ kinds given.
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate) and `_pnhHeap`
       (`g_heapNewHandler` 007CAAD8); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
-      `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). In game.exe's runs the harness's
-      containers take nodes from our pool, whose chunks come from game.exe's operator new there, so a block may go
-      back to either pool. MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
+      `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
       function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the four string allocators
-      (mfc_string.h `g_stringAlloc64` .. `512`, 007C8B80 .. 007C8B08; in game.exe's runs harness_startup.cpp builds
-      them, beside pointing g_dataNil at game.exe's, because our CString code there allocates from them), the
+      (mfc_string.h `g_stringAlloc64` .. `512`, 007C8B80 .. 007C8B08), the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
       (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
       (`g_afxLockInit` 007C8E80, `g_afxLockInitLock` 007C8EC8, `g_afxResourceLocks` 007C8EE0, `g_afxCriticalWin32s` /

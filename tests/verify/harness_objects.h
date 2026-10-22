@@ -4,13 +4,18 @@
 // the scene renderer and its lock, the map database), as the harness reads them. In the image they are our named globals; in --no-hooks runs the harness runs inside game.exe's own code, which
 // never touches ours, so it reads game.exe's copy at the original's address (ei::OriginalGameData; docs/notes/
 // standalone.md, "Named data (C18)"). Include the objects' headers (ui_cursor.h, ui.h, world.h, options.h) first.
+// The same for the game's functions more than one harness file calls: ours in the image, game.exe's own in its runs
+// (harness_original.h).
 
 #include "../../src/game/game_data.h"
 #include "../../src/game/game_singletons.h"
 #include "../../src/game/options.h"
+#include "../../src/game/ui.h"   // CInterface3D::GetActiveWindow
 #include "../../src/game/world.h"   // CWorldServer::sessionKind_
 #include "../../src/game/app.h"
+#include "../../src/render/render.h"
 #include "ei/hook.h"
+#include "harness_original.h"
 
 // The application's globals (app.h).
 inline const char* HarnessWindowTitle() {
@@ -66,4 +71,15 @@ inline CMapDatabase* HarnessMapDatabase() {
 // The campaign mode: the server world's session kind (007C2CC4), which GameFlow::StartZone sets.
 inline int HarnessCampaignMode() {
     return HarnessServerWorld()->sessionKind_;
+}
+
+// The window on top (CInterface3D::GetActiveWindow 005F7590, thiscall).
+inline CUiWindow* HarnessActiveWindow(CInterface3D* ui) {
+    return ei::Standalone() ? ui->GetActiveWindow()
+                            : ei::verify::OriginalCode<CUiWindow*(__thiscall*)(CInterface3D*)>(0x005F7590)(ui);
+}
+
+// Whether the image's renderer draws (render::Active): never in game.exe's runs, which draw with the original code.
+inline bool HarnessRenderActive() {
+    return ei::Standalone() && render::Active();
 }

@@ -174,8 +174,8 @@ struct ScriptDefinitions : mfc::CArray<ScriptDefinition> {
 // Script group: CArray<ScriptObjectRef, ScriptObjectRef&> (vtable 0073D110) kept sorted, without
 // duplicates. The set operations build the result in `this`. The game sorts by object address
 // (unsigned), so which unit a script's "n-th of group" gets follows the heap layout (SV7a); ours sorts
-// by object id instead once OrderById is called (harness runs, whose patch makes the original do the
-// same: tests/verify/harness_script_order.cpp) and always in the standalone (SV7b1).
+// by object id instead (the standalone; SV7b1), and the harness patches the original to do the same
+// (tests/verify/harness_script_order.cpp).
 struct ScriptGroup : ScriptObjectRefs {
     // Whether `x` sorts after `y` (two different objects) in the order this run uses: by address, or
     // by id with null first (IdAfter).
@@ -184,8 +184,6 @@ struct ScriptGroup : ScriptObjectRefs {
     // unique and never handed out again while an object lives (CBaseManager::NextFreeId counts up from
     // the highest id), so two members never tie.
     static bool IdAfter(const CEngineObject* x, const CEngineObject* y);
-    // From now on ours orders by id (the harness, before the game starts).
-    static void OrderById();
 
     // 004CE210 (RET 4; script_destroy.cpp). The element destructor: the body (DestructBody), then freed
     // when bit 0 of `flags` is set. Returns this.

@@ -78,9 +78,9 @@ puns the forwarders hid are `reinterpret_cast`s at the call, and the harness cha
 with them. What is left calls game.exe's own code in its runs: tests/verify (`harness_original.h`; each forwarder sits behind
 `ei::Standalone()` with our function on the other side) and record_crt.cpp's recorders. ei_vectors links the callers without
 some targets: `tests/vectors/replay_unlinked.cpp` stops each one the replay never reaches (`EI_UNLINKED`) or stands in for it.
-crt.h's `gamecrt::GameThreadData` (006F00D1) stays for the game.exe side of rand's seed and the CRT's errno, and
-crt.cpp's `gamecrt::operator_new` / `operator_delete` / `malloc` / `free` call game.exe's own heap outside the image
-(the harness frees blocks the game allocated; the host heap there crashed 104 of the original's runs).
+Since H30 nothing of ours runs in game.exe's runs (the harness calls game.exe's own heap, rand seed and functions there;
+the host heap once crashed 104 of the original's runs when the harness freed blocks the game allocated), so crt.cpp's
+heap and rand seed are the image's only.
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
