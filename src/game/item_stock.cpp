@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_pair.h"
+#include "lib/static_object.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -390,9 +391,9 @@ float ModifierCost(const Modifier* m) { return m->mana; }
 float ModifierFactor(const Modifier* m) { return m->strength; }
 int ModifierLevel(const Modifier* m) { return m->skill; }
 
-void AppendModifier(StockList& list, Modifier* modifier) { StockList::Insert(list.End(), static_cast<void*>(modifier)); }
+void AppendModifier(SpellModifierList& list, Modifier* modifier) { SpellModifierList::Insert(list.End(), modifier); }
 
-void ClearModifierList(StockList& list) { list.ClearWith([](void**) {}); }
+void ClearModifierList(SpellModifierList& list) { list.ClearWith([](Modifier**) {}); }
 
 } // namespace
 
@@ -415,11 +416,10 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         if (!offered) continue;
         StockList list;
         list.Construct();
-        alignas(StockRecipeMap::Value) std::uint8_t storage[sizeof(StockRecipeMap::Value)];
-        auto* pair = reinterpret_cast<StockRecipeMap::Value*>(storage);
-        reinterpret_cast<stlp::StringListPair*>(pair)->Construct(recipe->spell, list);
-        StockList* entries = &spellMap.FindOrInsert(*pair).mapped;
-        reinterpret_cast<stlp::StringListPair*>(pair)->Destruct();
+        lib::InPlace<StockRecipeMap::Value> pair;
+        pair->Construct(recipe->spell, list);
+        StockList* entries = &spellMap.FindOrInsert(pair.object).mapped;
+        pair->Destruct();
         list.Release();
         StockList::Insert(entries->End(), static_cast<void*>(recipe));   // the recipe lists hold raw record pointers
     }
@@ -450,7 +450,7 @@ EI_REWRITTEN(0x0069A480, ItemStock::FillSpellMaps);
 
 void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned threshold) {
     void* spellManager = PartyOf(this)->SpellManager();
-    StockList chosen;
+    SpellModifierList chosen;
     chosen.Construct();
     for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
         StockListNode* head = recipes->value.mapped.head;
@@ -501,14 +501,14 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                 }
             }
             CEngineObject* spell = static_cast<CSpellManager*>(spellManager)
-                                       ->CreateSpell(prototype, reinterpret_cast<SpellModifierNode**>(&chosen));
+                                       ->CreateSpell(prototype, &chosen);
             if (spell) ++spell->refCount_;
             StockList::Insert<HeldSpell>(out->End(), static_cast<void*>(spell));
             if (spell) spell->Release();   // slot 4
         }
     }
     ClearModifierList(chosen);
-    if (chosen.head) stlp::deallocate(chosen.head, sizeof(StockListNode));
+    if (chosen.head) stlp::deallocate(chosen.head, sizeof(SpellModifierNode));
 }
 EI_REWRITTEN(0x0069A780, ItemStock::GenerateSpells);
 

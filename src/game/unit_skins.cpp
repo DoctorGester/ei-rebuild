@@ -69,9 +69,8 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
-// out, weapon record; material record]; the weapon and material records are RecordAtB4 (0056E440,
-// on 007C86F8) and RecordAt50 (0056E400, on 007C86D8; world.h), on the tables' vectors: WeaponAt /
-// MaterialAt.
+// out, weapon record; material record]; the weapon and material records are the tables' At
+// (0056E440 on 007C86F8, 0056E400 on 007C86D8): WeaponAt / MaterialAt.
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].

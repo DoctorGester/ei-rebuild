@@ -271,6 +271,10 @@ void SpellListRecord::ConstructDefault() {
     stlp::StringElement::Default(&text24);
 }
 
+// 0056E400 / 0056E440: the material and weapon tables' At, as the unit skins and the client's
+// maps read them (the 0x50- / 0xB4-byte records of 007C86D8 / 007C86F8).
+EI_REPLACE_METHOD(0x0056E400, itemdb::MaterialTable::At);
+EI_REPLACE_METHOD(0x0056E440, itemdb::WeaponTable::At);
 EI_REPLACE_METHOD(0x006A5950, itemdb::ArmorTable::At);
 EI_REPLACE_METHOD(0x006A5990, itemdb::QuickItemTable::At);
 EI_REPLACE_METHOD(0x006A59D0, itemdb::QuestItemTable::At);

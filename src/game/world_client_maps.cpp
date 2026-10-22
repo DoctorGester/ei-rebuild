@@ -231,19 +231,6 @@ int PendingIndex::Lookup(const std::uint32_t* key, void** value) const {
 }
 EI_REWRITTEN(0x0056FC60, PendingIndex::Lookup);
 
-const std::uint8_t* RecordBytes::At50(std::uint32_t index) const {
-    int count = static_cast<int>(size() / 0x50);
-    if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0x50;
-    return nullptr;
-}
-EI_REWRITTEN(0x0056E400, RecordBytes::At50);
-
-const std::uint8_t* RecordBytes::AtB4(std::uint32_t index) const {
-    int count = static_cast<int>(size() / 0xB4);
-    if (index < static_cast<std::uint32_t>(count)) return begin() + index * 0xB4;
-    return nullptr;
-}
-EI_REWRITTEN(0x0056E440, RecordBytes::AtB4);
 
 // ---- The client's object maps --------------------------------------------------------------------
 

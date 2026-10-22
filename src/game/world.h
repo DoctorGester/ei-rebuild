@@ -1094,19 +1094,11 @@ struct PendingIndex : stlp::hash_map<std::uint32_t, void*, stlp::IntHash> {
     int Lookup(const std::uint32_t* key, void** value) const;
 };
 using PendingMap = PendingIndex;
-// 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
 // CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
 // SetAtGrow 0059D2E0: the plain CArray members).
 struct PartyUnitRecord;   // unit.h
 using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
-struct RecordBytes : stlp::vector<std::uint8_t> {
-    // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
-    const std::uint8_t* At50(std::uint32_t index) const;
-    const std::uint8_t* AtB4(std::uint32_t index) const;
-};
-using RecordVector = RecordBytes;
-static_assert(sizeof(RecordVector) == 12);
 
 // A list element whose layout is not needed here (only its size, for the node's).
 template <std::size_t N>

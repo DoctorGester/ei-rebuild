@@ -18,6 +18,7 @@
 #include "mfc.h"
 #include "stlp.h"
 #include "stlp_alloc.h"
+#include "stlp_pair.h"
 #include "stlp_vector.h"
 
 #include <cstddef>
@@ -142,12 +143,8 @@ struct CStringFloatTraits {
 // pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as
 // StringKeyTraits. The node copies the string, then the list (its sentinel, then each element in
 // order); deleting it frees the list's nodes, its sentinel, then the string.
-struct StringList {
-    string key;
-    list<void*> mapped;
-};
 struct StringListTraits {
-    using Value = StringList;
+    using Value = StringListPair;
     using Key = string;
     static const Key& KeyOf(const Value& v) { return v.key; }
     static std::uint32_t Hash(const Key& k) { return k.Hash(); }

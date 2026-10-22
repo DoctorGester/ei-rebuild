@@ -264,12 +264,10 @@ static_assert(sizeof(CSpellEffect) == 0xA8);
 // those whose prototype's +0x24 is below 0.5 (or NaN). Returns 0/1 in EAX.
 int __fastcall IsSpellTarget(CUnit* unit);
 
-// A node of the STLport list<char*> of modifier records a container collects.
-struct SpellModifierNode {
-    SpellModifierNode* next;
-    SpellModifierNode* prev;
-    itemdb::SpellModifierRecord* modifier;
-};
+// The STLport list<SpellModifierRecord*> of modifier records a container collects (the list
+// object is the pointer to its sentinel) and its node (next, prev, the record).
+using SpellModifierList = stlp::list<itemdb::SpellModifierRecord*>;
+using SpellModifierNode = SpellModifierList::Node;
 
 // A spell under construction (GetClassName "CSpellContainer", game.exe's vtable 00743AC8, 0x90 bytes,
 // created by the spell manager as class 0x3003): a prototype, the modifiers added so far, and the
@@ -314,7 +312,7 @@ public:
     static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743AC8 and its tails 00743ADC / 00743AE8)
 
     const itemdb::SpellRecord* prototype_;   // +0x1C
-    SpellModifierNode* modifiers_;  // +0x20 list sentinel
+    SpellModifierList modifiers_;   // +0x20
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
     char* codesCapacity_;           // +0x2C
@@ -389,7 +387,7 @@ public:
     // 00689310. Builds a spell from `prototype` and up to 8 modifier records of `modifiers` (an
     // STLport list<char*>, passed as a pointer to its sentinel pointer) through the context's
     // spell constructor. Returns the new spell, or a fatal error's result.
-    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, SpellModifierNode** modifiers);
+    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers);
 
     // 00689030. Builds a spell from text such as "healing{e2;e2}": the trimmed text before '{' is
     // the prototype name, the ';'-separated names inside the braces are modifiers (empty ones
