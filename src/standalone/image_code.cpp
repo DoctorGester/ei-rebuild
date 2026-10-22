@@ -26,9 +26,6 @@
 
 namespace ei {
 
-// "no code at <address> (...), [esp] <caller>": reported and the process ends (hook/standalone.cpp).
-[[noreturn]] void ReportNoCode(std::uintptr_t address, std::uintptr_t caller);
-
 namespace {
 
 

@@ -46,7 +46,7 @@ using GamePen = mfc::impl::CPen;
 // a brush attached (CGdiObject::Attach), destroyed as the game inlines it (CGdiObject::Destruct).
 struct GameBrush : mfc::impl::CGdiObject {
     void Construct() {
-        vtable = ei::GamePointer<void>(0x007463C4);
+        vtable = mfc::impl::CBrush::Vtable();
         handle = nullptr;
     }
     // operator HBRUSH (GetSafeHandle; a local is never null).

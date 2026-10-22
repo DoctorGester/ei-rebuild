@@ -125,6 +125,10 @@ bool Standalone();
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (a stub of
 // CodeAddress, or the guarded code section), before the process ends: the harness (verify build) puts it in its report.
 void SetMissingCodeHandler(void (*handler)(const char* what));
+// The image reached game.exe's code at `address` with no code of ours for it (a stub, the guarded code section, a
+// compiled table's unported slot: compiled_vtable.h's UnportedSlot): "no code at <address> (...), [esp] <caller>"
+// reported (the handler above, tools/resolve_crash.py), then the process ends. hook/standalone.cpp.
+[[noreturn]] void ReportNoCode(std::uintptr_t address, std::uintptr_t caller);
 
 // Code that runs once in the standalone image, right before the registrations are taken: the Rebirth flags
 // are known, nothing is hooked yet. For data a Rebirth patch rewrites before WinMain (the widescreen

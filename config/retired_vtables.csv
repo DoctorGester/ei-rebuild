@@ -507,8 +507,18 @@ vtable,slots,class,file,note
 00744288,3,DibClass,src/game/dib.cpp,CDib
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+007461B0,29,PlainDCTable,src/lib/mfc_gdi.cpp,CDC
+0074624C,29,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
+007462C4,29,CWindowDC,-,"stored only by game.exe's constructor / destructor 00709E81 / 00709EF3, which no code of ours calls"
+0074633C,29,CPaintDC,-,"stored only by game.exe's constructor / destructor 00709F35 / 00709FA7, which no code of ours calls"
+007463B4,3,PenTable,src/lib/mfc_gdi.cpp,CPen
+007463C4,3,BrushTable,src/lib/mfc_gdi.cpp,CBrush (the interface's brushes)
+007463D4,3,PlainGdiObjectTable,src/lib/mfc_gdi.cpp,CGdiObject
+007463E4,29,TempDCTable,src/lib/mfc_gdi.cpp,CTempDC (the interface's surface DCs)
+0074645C,3,TempGdiObjectTable,src/lib/mfc_gdi.cpp,CTempGdiObject
 0074646C,5,ResourceExceptionTable,src/lib/mfc_exception.cpp,CResourceException (_simpleResourceException)
 00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
+0074649C,3,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
 00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
 007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)

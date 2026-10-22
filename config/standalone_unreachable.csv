@@ -25,12 +25,6 @@ address,what,reason
 007467A0,vtable,"CUIntArray: slot 0 GetRuntimeClass only"
 0074689C,vtable,"CMapPtrToPtr: slot 0 GetRuntimeClass only"
 0073BFB4,vtable,"CFont: slot 0 GetRuntimeClass only (the interface deletes its fonts through slot 1, ours)"
-007463C4,vtable,"CBrush: slot 0 GetRuntimeClass only (brushes are locals, ui_gdi.h GameBrush)"
-007463D4,vtable,"CGdiObject: slot 0 GetRuntimeClass only"
-007463B4,vtable,"CPen: GetRuntimeClass and the deleting destructor; the interface's pens are members destroyed inline (ui_gdi.h GamePen::Destruct), never deleted through the vtable"
-007461B0,vtable,"CDC: a plain CDC is made only inside CreateTempDC, which stores CTempDC's vtable at once (mfc_gdi.cpp); the interface calls slots 10 12 26 of CTempDCs (ours)"
-007463E4,vtable,"CTempDC: GetRuntimeClass, and the destructor that only CHandleMap::DeleteTemp runs (MFC's idle processing; the image has none: its temporary DCs live until the process ends)"
-0074645C,vtable,"CTempGdiObject: GetRuntimeClass, and the destructor that only CHandleMap::DeleteTemp runs (not in the image)"
 0074685C,vtable,"CHandleMap: the deleting destructor; the image's maps (mfc_gdi.cpp MapHDC / MapHGDIOBJ) live until the process ends"
 0074646C,vtable,"CResourceException: MFC's one static object, not auto-deleted (Delete never frees it through slot 1); handlers catch by C++ type, not IsKindOf (slot 0)"
 00746484,vtable,"CUserException: MFC's one static object, not auto-deleted; no IsKindOf"
@@ -40,10 +34,6 @@ address,what,reason
 00746DA8,vtable,"CWnd: only MFC's four static windows (wndTop ...) are made, with no handle, and destroyed without a virtual call; the game's windows are its own classes"
 #
 # --- MFC classes the image never makes (their constructors have no code in it) ---
-0074624C,vtable,"CClientDC: never made (the interface draws through its surfaces' DCs)"
-007462C4,vtable,"CWindowDC: never made"
-0074633C,vtable,"CPaintDC: never made (no MFC window procedure)"
-0074649C,vtable,"CRgn: never made"
 00746650,vtable,"CMemFile: never made"
 00746FB0,vtable,"CPtrArray: never made (the game's arrays have their own vtables)"
 00746FE8,vtable,"CPtrList: never made (the game's lists have their own vtables)"
@@ -78,3 +68,4 @@ address,what,reason
 007474B8,data,"strftime's string ""a/p"" (bytes 61 2F 70 00) read as a pointer to 00702F61, which is inside a function, not a function start (the false vtables.csv row is dropped)"
 00780E08,data,"the import name table's text (bytes 00 00 57 00 after ""...CurrentDirectoryA""), not a pointer: it reads as CArray::SetSize 00570000, whose registration nothing else needed (C20c)"
 007D4030,data,"a dialog resource's UTF-16 text in .rsrc (20 00 4C 00: the "" L"" of ""Save Log and Abort""), not a pointer: it reads as ScriptVarsClear 004C0020, whose registration only check_fp_fold needed (C20d)"
+"00708E98 00708EC9 00708F1E 00709093 007091A9 007091D7 00709223 0070926F 007092BB 007093AB 007093F7 0070944F 006E697F 006E6993 006E69A3 006E69BF 006E69E4 006E6A38 006E6A68",address,"CDC's unported slots 7-9, 11, 13-25, 27, 28 (mfc_gdi.cpp DCTable, C19): a plain CDC is made only inside CreateTempDC, which stores CTempDC's table at once; the interface calls slots 10 12 26 of its CTempDCs, CHandleMap::DeleteTemp slot 1, CDC::Detach slot 5 (all ported)"
