@@ -67,7 +67,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - 0045EA00 `CMapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
   own check is no longer reached from it; `verify_map_database.cpp` runs the original's two loads on the shadow database
   and compares the databases in depth after `LoadAll`.
-- 004645A0 `ChunkArchive::Destruct` (the out-of-line destructor the database loaders call; `DestructLocal`'s steps):
+- 004645A0 `ChunkArchive::~ChunkArchive` (the out-of-line destructor the database loaders call):
   ours only, both streams must carry the stream base's vtable afterwards.
 - app_lifetime.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
   releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the

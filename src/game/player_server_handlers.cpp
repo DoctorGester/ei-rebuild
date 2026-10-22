@@ -87,10 +87,10 @@ void __cdecl DestroyReceivedMessages() {   // 0066C520
     std::uint8_t flags = g_receivedMessagesDestroyed;
     if (flags & 1) return;
     g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
-    g_receivedMessages->Destruct();
+    g_receivedMessages->~CMemoryStream();
 }
 void __cdecl ConstructReceivedMessages() {   // 0066C4D0
-    g_receivedMessages->ConstructQueueStream();
+    new (&*g_receivedMessages) CMemoryStream();
     libcrt::AtExit(DestroyReceivedMessages);
 }
 } // namespace
@@ -370,21 +370,6 @@ int MoveUnits(MoveCommand command) {
     return 1;
 }
 
-// A memory stream on the stack, as the original builds and destroys it inline.
-struct LocalStream {
-    lib::InPlace<CMemoryStream> bytes;
-    LocalStream() { Get()->Construct(); }
-    ~LocalStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return bytes.Get(); }
-};
-// A party on the stack (constructor 00661050, destructor body 006611D0).
-struct LocalParty {
-    PartyStorage storage;
-    LocalParty() { Get()->Construct(); }
-    ~LocalParty() { Get()->DestructBody(); }
-    CParty* Get() { return storage.Party(); }
-};
-
 } // namespace
 
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
@@ -526,8 +511,8 @@ int CPlayerServer::OnBriefingDone() {
 }
 
 int CPlayerServer::OnNewParty() {
-    LocalParty local;
-    CParty* party = local.Get();
+    CParty local;
+    CParty* party = &local;
     party->LoadParty(&ReceivedMessages(), 1);
     if (party->members_.size != 1) return 0;
     int* key = &Owner()->partyId_;
@@ -573,11 +558,11 @@ int CPlayerServer::OnAttack() {
 }
 
 int CPlayerServer::OnPartyUpdate() {
-    LocalStream block;
+    CMemoryStream block;
     CMemoryStream& in = ReceivedMessages();
-    in.ReadSized(block.Get());
-    block.Get()->CMemoryStream::SeekImpl(0);
-    if (in.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
+    in.ReadSized(&block);
+    block.CMemoryStream::Seek(0);
+    if (in.ok_) Owner()->Party()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -686,11 +671,11 @@ libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {
-    LocalStream block;
-    Owner()->Party()->SaveParty(block.Get(), 0);
+    CMemoryStream block;
+    Owner()->Party()->SaveParty(&block, 0);
     std::uint8_t type = kMessagePartyUpdate;
     out_.Write(&type, 1);
-    out_.WriteSized(block.Get());
+    out_.WriteSized(&block);
 }
 EI_REWRITTEN(0x0066F0C0, CPlayerServer::SendPartyUpdate);
 

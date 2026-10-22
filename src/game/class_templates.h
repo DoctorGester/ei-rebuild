@@ -18,7 +18,7 @@ class ChunkArchive;
 
 struct ClassTemplate {
     // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
-    // vtable, the two parties (CParty::Construct), the stocks (ItemStock::Construct on the items /
+    // vtable, the two parties (CParty's constructor), the stocks (ItemStock::Construct on the items /
     // spells party; the first one inlined in the original), the vtable, both parties created (slot
     // 2), class -1, both flags 0, flag38 1. Returns this.
     ClassTemplate* Construct();
@@ -37,8 +37,8 @@ struct ClassTemplate {
     // levels (ItemStock::SetLevels).
     void SetLevels(const float* base, const float* scroll);
 
-    CParty* ItemsParty() { return items.Party(); }
-    CParty* SpellsParty() { return spells.Party(); }
+    CParty* ItemsParty() { return items.Get(); }
+    CParty* SpellsParty() { return spells.Get(); }
 
     void* vtable;                   // ClassTemplateClass (game.exe: 0073D0C4; base CRefCounted::RootVtable())
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)

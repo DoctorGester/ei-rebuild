@@ -21,20 +21,11 @@ struct LocalResource {
     lib::InPlace<CMappedResource> storage;
 };
 
-// The memory stream a file is copied into (or an archive is read from or written to), built and
-// destroyed as the loaders inline it.
-struct LocalStream {
-    LocalStream() { stream.Construct(); }
-    ~LocalStream() { stream.Destruct(); }
-    LocalStream(const LocalStream&) = delete;
-    LocalStream& operator=(const LocalStream&) = delete;
-    // The file's bytes into the stream, which is left at its start for reading.
-    void Fill(const void* data, std::uint32_t size) {
-        stream.reading_ = 0;
-        stream.Write(data, size);
-        stream.CMemoryStream::SeekImpl(0);
-        stream.reading_ = 1;
-    }
-    CMemoryStream stream;
-};
-static_assert(sizeof(LocalStream) == sizeof(CMemoryStream) && sizeof(LocalResource) == sizeof(CMappedResource));
+// A file's bytes into `stream` (a memory stream a loader copies a file into), left at its start for
+// reading.
+inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
+    stream.reading_ = 0;
+    stream.Write(data, size);
+    stream.Seek(0);
+    stream.reading_ = 1;
+}

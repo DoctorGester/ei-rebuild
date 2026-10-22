@@ -71,7 +71,7 @@ EI_REWRITTEN(0x00429FC0, FindSameMessage);
 // one of the previous messages is replaced by that one (so unchanged members keep their object).
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
 void __fastcall ClientPublishParty(ClientSession* self) {
-    CParty* party = self->parties_[0].Party();
+    CParty* party = self->parties_[0].Get();
     // Read again at each use, as the original does.
     auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
@@ -88,7 +88,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         auto* message = NewMessageMemory<PartyMemberMessage>();
         if (message) {
             MessageConstructBase(message);
-            message->stream_.Construct();
+            new (&message->stream_) CMemoryStream();
             ei::SetVtable(message, PartyMemberMessage::Vtable());
         }
         RefPtr ref;
@@ -170,8 +170,8 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         if (StreamOf(message)->Size() == 0) return;
     }
 
-    CParty* party = self->parties_[1].Party();
-    static_cast<CParty*>((void*)party)->Clear(1, 0);
+    CParty* party = self->parties_[1].Get();
+    party->Clear(1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
     items.ConstructEmpty();   // 00424B40

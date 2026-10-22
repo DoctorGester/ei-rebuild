@@ -477,7 +477,6 @@ void SpreadCountdownsById() {
         FlushInstructionCache(GetCurrentProcess(), code, sizeof(byId));
         ++patched;
     }
-    CWorldServer::SpreadUpdateCountdownsById();
     Log("harness: update countdowns from object ids (%d of %d original sites)", patched,
         int(sizeof(kCountdownSites) / sizeof(kCountdownSites[0])));
 }

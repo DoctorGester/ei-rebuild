@@ -195,12 +195,13 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
 CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, CEngineObject** out) {
     for (auto* node = world->timedObjects_.map.First(); node && node->value; node = world->timedObjects_.map.After(node)) {
         CEngineObject* object = node->value;
-        const Vector3* position = TimedSlots(object)->Position(&state->partyUnits_);
+        auto* timed = static_cast<CEffect*>(object);
+        const Vector3* position = timed->Position(&state->partyUnits_);
         double dx = static_cast<double>(position->x) - state->lastPosition_.x;
         double dy = static_cast<double>(position->y) - state->lastPosition_.y;
         float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
-        float reach = static_cast<float>(TimedSlots(object)->Radius());
-        double reach2 = TimedSlots(object)->Radius() * reach;
+        float reach = static_cast<float>(timed->Radius());
+        double reach2 = timed->Radius() * reach;
         if (reach2 > distance) *out++ = object;
     }
     return out;
@@ -282,12 +283,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
 int CWorldServer::SendZone(CPlayer* player) {
     CMemoryStream message;
-    std::memset(&message, 0, sizeof(message));
-    message.version_ = 2000000000;
-    message.ok_ = 1;
-    ei::SetVtable(&message, CMemoryStream::MemoryStreamVtable());
-    message.data_ = nullptr;
-    message.Reset();
 
     CPlayerServer* state = player->Server();
     int result;
@@ -330,8 +325,6 @@ int CWorldServer::SendZone(CPlayer* player) {
         }
         if (result != 0) player->connection_->ItemsGiven(&player->items_, 0);
     }
-    ei::SetVtable(&message, CMemoryStream::MemoryStreamVtable());
-    if (message.data_) gamecrt::operator_delete(message.data_);
     return result;
 }
 

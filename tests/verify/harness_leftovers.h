@@ -22,7 +22,7 @@
 // 00515610..005157E0); their objects start zeroed instead (below).
 //
 // Heap blocks whose constructors leave fields (SV7b2, SV7d3, SV7d4): the objects of the two factories
-// (CServerSpecificManager::NewObjectImpl 004D6970: CUnitServer's waitFrame, which ResolveBlocker
+// (CServerSpecificManager::NewObject 004D6970: CUnitServer's waitFrame, which ResolveBlocker
 // reads; CMapObjectManager::CreateObject 00512730: a unit's levels4C8 and motion turn fields) are
 // allocated zeroed (each operator new call redirected), and so are the Suspection and Fear modes
 // (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /

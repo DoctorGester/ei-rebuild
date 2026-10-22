@@ -4,7 +4,6 @@
 #include "hash_tables_400.h"
 
 #include "core_streams.h"
-#include "engine_object_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
@@ -127,24 +126,13 @@ void ForgetPosition(CBaseManager* m, int id) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
-// The containers have no destructors (the bodies free them), and their default constructors only
-// null the hash maps' bucket vectors, which SetUpBaseManager builds anyway: the C++ constructor and
-// destructor below build and free them as the bodies do.
+// The containers have no destructors (the destructor frees them), and their default constructors only
+// null the hash maps' bucket vectors, which the constructor builds anyway.
 static_assert(std::is_trivially_destructible_v<ObjectMap> && std::is_trivially_destructible_v<PositionMap> &&
               std::is_trivially_destructible_v<SpareMap> && std::is_trivially_destructible_v<SpareCountMap>);
 static_assert(std::is_trivially_default_constructible_v<ObjectList> && std::is_trivially_destructible_v<ObjectList>);
 
-CBaseManager* CBaseManager::ConstructBase() {
-    ei::SetVtable(this, CEngineObject::BaseVtable());   // the inlined CEngineObject constructor
-    SetUpBaseManager();
-    ei::SetVtable(this, BaseVtable());
-    return this;
-}
-EI_REWRITTEN(0x00402B20, CBaseManager::ConstructBase);
-
-CBaseManager::CBaseManager() { SetUpBaseManager(); }
-
-void CBaseManager::SetUpBaseManager() {
+CBaseManager::CBaseManager() {
     ClearFields();
     objects_.Construct(100);
     maxId_ = 0;
@@ -166,17 +154,9 @@ void CBaseManager::SetUpBaseManager() {
     reservedB_ = -1;
     lastId_ = -1;
 }
+EI_REWRITTEN_SPECIAL(0x00402B20, CBaseManager::CBaseManager);
 
-void CBaseManager::DestructBody() {
-    ei::SetVtable(this, BaseVtable());
-    TearDownBaseManager();
-    DestructBase();
-}
-EI_REWRITTEN(0x00402DF0, CBaseManager::DestructBody);
-
-CBaseManager::~CBaseManager() { TearDownBaseManager(); }
-
-void CBaseManager::TearDownBaseManager() {
+CBaseManager::~CBaseManager() {
     CBaseManager::Destroy();
     spareCounts_.Destroy();
     spares_.Destroy();
@@ -185,13 +165,8 @@ void CBaseManager::TearDownBaseManager() {
     objectList_.RemoveAll();
     objects_.Destroy();
 }
-
-CBaseManager* CBaseManager::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00402DD0, CBaseManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00402DF0, CBaseManager::~CBaseManager);
+EI_REWRITTEN_SPECIAL(0x00402DD0, CBaseManager::~CBaseManager);
 
 // --- Slots 2, 3, 13, 15 -------------------------------------------------------------------------
 
@@ -237,7 +212,7 @@ void CBaseManager::Destroy() {
     ids.Release();
 }
 
-BOOL CBaseManager::InitImpl(CManagerContext* context) {
+BOOL CBaseManager::Init(CManagerContext* context) {
     context_ = context;
     if (Create()) return 1;
     context_ = nullptr;
@@ -261,17 +236,17 @@ void CBaseManager::DestroyAll() {
 // --- Slots 16-22: no archives -------------------------------------------------------------------
 // 18 (00402D80) and 22 (00402DC0) are shorter than the hook's jump and stay original.
 
-BOOL CBaseManager::AddArchiveImpl(const char*) { return 0; }
-BOOL CBaseManager::RemoveArchiveImpl(const char*) { return 0; }
+BOOL CBaseManager::AddArchive(const char*) { return 0; }
+BOOL CBaseManager::RemoveArchive(const char*) { return 0; }
 BOOL CBaseManager::RemoveAllArchives() { return 0; }
-void* CBaseManager::GetFileImpl(const char*, std::uint32_t*) { return nullptr; }
-bool CBaseManager::CloseFileImpl(void*) { return false; }
-BOOL CBaseManager::HasFileImpl(const char*) { return 0; }
+void* CBaseManager::GetFile(const char*, std::uint32_t*) { return nullptr; }
+bool CBaseManager::CloseFile(void*) { return false; }
+BOOL CBaseManager::HasFile(const char*) { return 0; }
 void CBaseManager::FreeAllFiles() {}
 
 // --- Slots 23, 24: objects in and out -----------------------------------------------------------
 
-CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
+CEngineObject* CBaseManager::CreateObject(int type, int id) {
     CEngineObject* object = nullptr;
     if (InsertKey(spareCounts_, maxSpareCountType_, type)->value > 0) {
         if (SpareMap::Node* found = spares_.Find(type)) {
@@ -310,7 +285,7 @@ CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
     return object;
 }
 
-int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
+int CBaseManager::ReleaseObject(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
     ForgetPosition(this, object->id_);
     object->Destroy();
@@ -318,48 +293,22 @@ int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
     return RemoveObject(object);
 }
 
-// The slots whose bodies are registered by member pointer.
-void CBaseManager::Load(CStream* stream) { LoadImpl(stream); }
-void CBaseManager::Save(CStream* stream) { SaveImpl(stream); }
-BOOL CBaseManager::Init(CManagerContext* context) { return InitImpl(context); }
-BOOL CBaseManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
-BOOL CBaseManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
-void* CBaseManager::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
-bool CBaseManager::CloseFile(void* data) { return CloseFileImpl(data); }
-BOOL CBaseManager::HasFile(const char* name) { return HasFileImpl(name); }
-CEngineObject* CBaseManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
-int CBaseManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }
-
-namespace {
-// The virtual slots' entry points (rewrite-guide rule 4).
-int __fastcall CreateHook(CBaseManager* self) { return self->CBaseManager::Create(); }
-void __fastcall DestroyHook(CBaseManager* self) { self->CBaseManager::Destroy(); }
-void __fastcall DestroyAllHook(CBaseManager* self) { self->CBaseManager::DestroyAll(); }
-} // namespace
-EI_REWRITTEN(0x00403020, CreateHook);
-EI_REWRITTEN(0x004031E0, DestroyHook);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REWRITTEN(0x0066C100, DestroyHook);
-EI_REWRITTEN(0x0067E160, DestroyHook);
-EI_REWRITTEN(0x004046E0, CBaseManager::LoadImpl);
-EI_REWRITTEN(0x00404760, CBaseManager::SaveImpl);
-EI_REWRITTEN(0x004031B0, CBaseManager::InitImpl);
-EI_REWRITTEN(0x004034E0, DestroyAllHook);
-EI_REWRITTEN(0x00402D60, CBaseManager::AddArchiveImpl);
-EI_REWRITTEN(0x00402D70, CBaseManager::RemoveArchiveImpl);
-EI_REWRITTEN(0x00402D90, CBaseManager::GetFileImpl);
-EI_REWRITTEN(0x00402DA0, CBaseManager::CloseFileImpl);
-EI_REWRITTEN(0x00402DB0, CBaseManager::HasFileImpl);
-EI_REWRITTEN(0x00403730, CBaseManager::CreateObjectImpl);
-EI_REWRITTEN(0x00403AE0, CBaseManager::ReleaseObjectImpl);
-
-namespace {
-// game.exe's 0073B870 compiled (C19; engine_object_class.h's ManagerClass: 11, 12 and 14 _purecall).
-class BaseManagerClass final : public ManagerClass<BaseManagerClass, CBaseManager> {};
-} // namespace
-
-void* CBaseManager::BaseVtable() { return BaseManagerClass::Vtable(); }
+EI_REWRITTEN(0x00403020, CBaseManager::Create);
+EI_REWRITTEN(0x004031E0, CBaseManager::Destroy);
+// The compiler's jump thunks to it (functions.csv "thunk" rows).
+EI_REWRITTEN(0x0066C100, CBaseManager::Destroy);
+EI_REWRITTEN(0x0067E160, CBaseManager::Destroy);
+EI_REWRITTEN(0x004046E0, CBaseManager::Load);
+EI_REWRITTEN(0x00404760, CBaseManager::Save);
+EI_REWRITTEN(0x004031B0, CBaseManager::Init);
+EI_REWRITTEN(0x004034E0, CBaseManager::DestroyAll);
+EI_REWRITTEN(0x00402D60, CBaseManager::AddArchive);
+EI_REWRITTEN(0x00402D70, CBaseManager::RemoveArchive);
+EI_REWRITTEN(0x00402D90, CBaseManager::GetFile);
+EI_REWRITTEN(0x00402DA0, CBaseManager::CloseFile);
+EI_REWRITTEN(0x00402DB0, CBaseManager::HasFile);
+EI_REWRITTEN(0x00403730, CBaseManager::CreateObject);
+EI_REWRITTEN(0x00403AE0, CBaseManager::ReleaseObject);
 
 // --- Registration (non-virtual) -----------------------------------------------------------------
 
@@ -466,7 +415,7 @@ EI_REWRITTEN(0x00404410, CBaseManager::FreeSpares);
 // --- Saving and loading -------------------------------------------------------------------------
 
 // The spares are freed; then `count` records {id, type, prototypeId_} each create an object (slot 23).
-void CBaseManager::LoadImpl(CStream* in) {
+void CBaseManager::Load(CStream* in) {
     FreeSpares();
     int count;
     in->Read(&count, 4);
@@ -481,7 +430,7 @@ void CBaseManager::LoadImpl(CStream* in) {
 }
 
 // The object list's count, then {id, type, prototypeId_} per object.
-void CBaseManager::SaveImpl(CStream* out) {
+void CBaseManager::Save(CStream* out) {
     int count = objectList_.count;
     out->Write(&count, 4);
     for (ObjectNode* node = objectList_.head; node;) {

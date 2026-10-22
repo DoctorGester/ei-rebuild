@@ -43,8 +43,7 @@ CTextureManager::CTextureManager() {
     limitTo512_ = 0;
 }
 
-CTextureManager* CTextureManager::Construct() { return new (this) CTextureManager(); }
-EI_REWRITTEN(0x00691140, CTextureManager::Construct);
+EI_REWRITTEN_SPECIAL(0x00691140, CTextureManager::CTextureManager);
 
 // The part Destroy and the destructor share: the shadow surface, the cache, the composed textures
 // and the device.
@@ -75,7 +74,7 @@ int CTextureManager::Create() {
     if (!AddArchive(folder + "menus.res") || !opened) return 0;
     // Rebirth's ResOverride (006915EF): when all three opened, the mod's texture archives follow.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        for (const std::string& path : modfolders::TextureArchives()) AddArchiveImpl(path.c_str());
+        for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path.c_str());
     }
     return 1;
 }
@@ -94,33 +93,20 @@ CTextureManager::~CTextureManager() {
     cache_.RemoveAll();
 }
 
-void CTextureManager::Destruct() { this->CTextureManager::~CTextureManager(); }
-EI_REWRITTEN(0x00691250, CTextureManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x00691250, CTextureManager::~CTextureManager);
 
-CTextureManager* CTextureManager::DeletingDestruct(unsigned flags) {
-    this->CTextureManager::~CTextureManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00691230, CTextureManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00691230, CTextureManager::~CTextureManager);
 
-CEngineObject* CTextureManager::CreateObjectImpl(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
+CEngineObject* CTextureManager::CreateObject(int type, int id) {
+    CEngineObject* object = CBaseManager::CreateObject(type, id);
     object->flags_ |= CreateFlag(type);
     return object;
 }
 
-namespace {
-int __fastcall TextureManagerCreateHook(CTextureManager* self) { return self->CTextureManager::Create(); }
-void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextureManager::Destroy(); }
-} // namespace
-EI_REWRITTEN(0x00691500, TextureManagerCreateHook);
-EI_REWRITTEN(0x00691630, TextureManagerDestroyHook);
-EI_REWRITTEN(0x00691AA0, CTextureManager::CreateObjectImpl);
+EI_REWRITTEN(0x00691500, CTextureManager::Create);
+EI_REWRITTEN(0x00691630, CTextureManager::Destroy);
+EI_REWRITTEN(0x00691AA0, CTextureManager::CreateObject);
 
-CEngineObject* CTextureManager::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
-int CTextureManager::ReleaseObject(CEngineObject* object) { return ReleaseObjectImpl(object); }
-CEngineObject* CTextureManager::NewObject(int type) { return NewObjectImpl(type); }
 const char* CTextureManager::GetClassName() { return kClassName; }
 int CTextureManager::GetClassId() { return 0x26; }
 const char* CTextureManager::GetFolderName() { return kFolder; }

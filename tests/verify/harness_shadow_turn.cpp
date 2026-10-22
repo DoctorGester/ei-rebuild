@@ -3,6 +3,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "harness_original.h"
 #include "lib/vecmath.h"
 
 #include <windows.h>
@@ -22,17 +23,22 @@ constexpr std::uintptr_t kBackCall = 0x0051D4E0;   // DrawShadow: back, by the c
 Quaternion* g_turned = nullptr;
 Quaternion g_kept{};
 
+// game.exe's Quaternion::PreMultiply (thiscall).
+void PreMultiply(Quaternion* q, const Quaternion* r) {
+    ei::verify::OriginalCode<void(__thiscall*)(Quaternion*, const Quaternion*)>(kPreMultiply)(q, r);
+}
+
 void __fastcall KeepAndTurn(Quaternion* q, void*, const Quaternion* r) {
     g_turned = q;
     g_kept = *q;
-    q->PreMultiply(*r);
+    PreMultiply(q, r);
 }
 
 void __fastcall PutBack(Quaternion* q, void*, const Quaternion* r) {
     if (q == g_turned) {
         *q = g_kept;
     } else {
-        q->PreMultiply(*r);   // not the turned object: the original's turn back
+        PreMultiply(q, r);   // not the turned object: the original's turn back
     }
     g_turned = nullptr;
 }

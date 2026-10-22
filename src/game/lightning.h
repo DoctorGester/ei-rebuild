@@ -1,6 +1,6 @@
 #pragma once
 
-// Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, vtable CLightning::Vtable() in place of game.exe's 0073C550, 0x514 bytes) and
+// Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, a real virtual class since C28f; game.exe's 0073C550 is retired) and
 // the manager that owns and draws them (CLightningManager; a real virtual class: the compiler makes
 // its vtable, C19, game.exe's 0073F5B8 is retired). A bolt is a main
 // segment from one end point to the other plus six branches that start at points along it; every
@@ -69,29 +69,31 @@ struct LightningSegment {
     // 00466CE0. Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
-    // 00468900 (no Ghidra function; S16a, class_slots.cpp). The constructor (the bolt's vector
-    // constructor iterator runs it on the branches): the points empty. Returns this.
-    LightningSegment* Construct();
-    // 00468920 (A-E1; class_slots.cpp). The destructor (the bolt's vector destructor iterator runs
-    // it on the branches): the points' block freed.
-    void Destruct();
+    // 00468900 (no Ghidra function; lightning_start.cpp): the points empty.
+    LightningSegment();
+    // 00468920 (lightning_start.cpp): the points' block freed.
+    ~LightningSegment();
+    LightningSegment(const LightningSegment&) = delete;
+    LightningSegment& operator=(const LightningSegment&) = delete;
 };
-static_assert(offsetof(LightningSegment, sideKeys) == 0x30);
-static_assert(offsetof(LightningSegment, noiseTime) == 0x90);
-static_assert(offsetof(LightningSegment, points) == 0x94);
-static_assert(sizeof(LightningSegment) == 0xA8);
 
-class CLightning : public CEngineObject {
+class CLightning final : public CEngineObject {
 public:
-    // The compiled table (C19, class_slots.cpp's LightningClass; game.exe's 0073C550).
-    static void* Vtable();
-    CLightning* DeletingDestruct(unsigned flags);
-    void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
+    // 00468680's inline construction (lightning_start.cpp): the engine object's fields cleared, no
+    // textures, the bounds cleared, the segments empty, then reset like slot 3.
+    CLightning();
+    // 00468810 (deleting: 004687F0; lightning_start.cpp): reset like slot 3, then the segments.
+    ~CLightning() override;
+
     // Slot 2 (00466EA0): resets the bolt like slot 3, then adds it to the manager's list of new
     // bolts, which holds a reference until the next DrawAll. Returns 1.
-    int Register();
+    int Create() override;
     // Slot 3 (00468790): power 1, amplitude 0.1, releases both textures.
-    void Reset();
+    void Destroy() override;
+    const char* GetClassName() override;    // 11: 004687D0 "CLightning"
+    int GetClassId() override;              // 12: 004687E0 (0x1E)
+
+    void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
     // 00467AD0 (lightning_draw.cpp). Draws the bolt (render device virtuals, glow sprites).
     int DrawImpl(void* device);
     // 00466FD0. Grows the bounding box by the points of one segment.
@@ -119,15 +121,6 @@ public:
     float power_;                       // +0x50C sign selects the look (0: parallel bolts)
     float amplitude_;                   // +0x510 noise amplitude of the branch sway
 };
-static_assert(offsetof(CLightning, texture_) == 0x1C);
-static_assert(offsetof(CLightning, bounds_) == 0x24);
-static_assert(offsetof(CLightning, main_) == 0x5C);
-static_assert(offsetof(CLightning, branches_) == 0x104);
-static_assert(offsetof(CLightning, branchPos_) == 0x4F4);
-static_assert(offsetof(CLightning, power_) == 0x50C);
-static_assert(sizeof(CLightning) == 0x514);
-// 00468810 (lightning_start.cpp). The bolt's destructor body.
-void __fastcall LightningDestruct(CLightning* self);
 
 // 0079CE78: the noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
 // key drawn for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
@@ -152,12 +145,6 @@ public:
     // 13: 00562D70, CBaseManager's Init (the same code at its own address).
     // 14: 00468680. A new bolt.
     CEngineObject* NewObject(int type) override;
-    // The registrations (C20 retires them): 00562EC0 the destructor, 00562EA0 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CLightningManager* DeletingDestruct(unsigned flags);
-    // Body of the slot at 00468680 (registered by member pointer).
-    CLightning* NewObjectImpl(int /*type*/);
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);

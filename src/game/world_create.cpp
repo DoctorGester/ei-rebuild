@@ -35,21 +35,12 @@ namespace {
 
 // 006D43E0 the world's +0x70 set up.
 
-using Construct = void* (__fastcall*)(void*);
-
-// operator new, the constructor (null without memory), an optional vtable, the reference.
-template <typename R = CEngineObject>
-R* Make(std::size_t size, Construct construct, const void* vtable) {
-    void* memory = gamecrt::operator_new(size);
-    R* object = nullptr;
-    if (memory) {
-        object = static_cast<R*>(construct(memory));
-        if (vtable) {
-            object = static_cast<R*>(memory);
-            ei::SetVtable(object, vtable);
-        }
-    }
-    ++object->refCount_;   // the original counts the reference without testing the pointer
+// A new object (its class's operator new and constructor), counted once: the original counts the reference
+// without testing the pointer.
+template <class T>
+T* MakeNew() {
+    T* object = new T();
+    ++object->refCount_;
     return object;
 }
 
@@ -70,33 +61,25 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make<CPlayerManager>(sizeof(CPlayerManager), ConstructOn<CPlayerManager, &CPlayerManager::Construct>, nullptr);
+    world->players_ = MakeNew<CPlayerManager>();
     Attach(world->players_, world);
-    world->manager40_ = Make<CMapObjectManager>(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, nullptr);   // 005125E0
+    world->manager40_ = MakeNew<CMapObjectManager>();   // 005125E0
     Attach(world->manager40_, world);
-    world->manager3C_ = Make<CBaseManager>(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, nullptr);   // 005AA070
+    world->manager3C_ = MakeNew<CFigureManager>();   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make<CBaseManager>(sizeof(CEffectManager), ConstructOn<CEffectManager, &CEffectManager::Construct>, nullptr);
+    world->manager48_ = MakeNew<CEffectManager>();
     Attach(world->manager48_, world);
-    world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
+    world->manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
     world->manager50_->Create();
-    world->manager4C_ = Make<CSpellManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
+    world->manager4C_ = MakeNew<CSpellManager>();   // 00688840
     Attach(world->manager4C_, world);
-    world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
+    world->manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
     world->manager58_->Create();
-    world->itemManager_ = Make<CItemManager>(CItemManager::kSize, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr);
+    world->itemManager_ = MakeNew<CItemManager>();
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    auto* helper = gamecrt::operator_new_as<CWorldHandle>();
-    // The count and both flag bytes as one dword, written before the test as the original does.
-    const std::uint32_t noReferences = 0;
-    std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));
-    if (helper) {
-        helper->pendingLink_ = nullptr;
-        ei::SetVtable(helper, CWorldHandle::Vtable());
-    }
-    world->shared5C_.ShareAssign(helper);
+    world->shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
     world->countdowns_.RemoveAll();
     return 1;

@@ -66,9 +66,6 @@ public:
     // entry cannot be read.
     int LoadMenuRects(RECT* rects);
 
-    // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor in place (a registration); returns
-    // this.
-    CFigureManager* Construct();
     // 005AAE00 (slot 23, RET 8; figure_mesh_life.cpp). CBaseManager::CreateObject; a new figure
     // (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1) of the context's
     // specific manager (its slot 21).

@@ -120,8 +120,8 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   reference and takes it back.
 - `CoderState` (0x2828) and the LZ coder are in `network.md` (compression).
 
-Rewritten (grep the address): `CMemoryStream` Construct 0041DD70, Destruct 004173D0 / 004790A0 (two copies), DeletingDestruct 004173B0 /
-004790D0, Clear 00417350; `CStream` ConstructBase 0047A200, DestructBase 004174E0, DeletingDestruct 00417400; `CRefObject` / `RefValue` base
+Rewritten (grep the address): `CMemoryStream` (a real class since C28e) constructor 0041DD70 / 0066C4F0, destructor 004173D0 / 004790A0
+(two copies) and the deleting copies 004173B0 / 004790D0, Clear 00417350; `CStream` constructor 0047A200, destructor 004174E0 / 00417400; `CRefObject` / `RefValue` base
 destructors and deleting destructors 00412720 / 00413430, 00412730, 00419720, 00412700; `AlignedPointerArrayAlloc` 0047B940 and
 `AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); `CoderState::Construct` 0042FCA0; the `Chunk`
 family 0042BEC0-0042D0E0 (Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write
@@ -137,7 +137,7 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
   vtables; other stream classes run ours only.
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
   through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
-  the parent without a null check; `CMemoryStream::Destruct` leaves the freed pointer;
+  the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
   `SaveObjectRef` registers the object while loading and then searches the field without using it;
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
   `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.

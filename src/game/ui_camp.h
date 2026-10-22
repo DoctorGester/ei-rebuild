@@ -24,6 +24,7 @@ class CItem;
 class CParty;
 class CUnit;
 class CConstructorPage;
+class CGlobalMapClouds;   // global_map_clouds.h
 class CHeroEquipPanel;
 class CHeroQuickStrip;
 class CHeroStatsPanel;
@@ -130,19 +131,6 @@ struct GlobalMapPlace {
 };
 static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, position) == 0x04 && offsetof(GlobalMapPlace, name) == 0x10 &&
               offsetof(GlobalMapPlace, title) == 0x14);
-
-// The global map's weather (vtable 007420D4, 0x34 bytes; 00499F10 draws it into the map's texture).
-class __declspec(novtable) GlobalMapWeather {
-public:
-    // 0: 0049A090 (RET 4). One 32 x 32 octave of value noise (three random words seed it) into the
-    // object's +0x14 table, then smoothed into 1024 bytes at `out`.
-    virtual void NoiseOctave(std::uint8_t* out) = 0;
-    // 1: 0049A220 (RET 8). One step of building the weather image: steps 1-4 make an octave
-    // (slot 0) into the tables at +0x18 (+0x400 each), steps 7-14 blend the four octaves into 32
-    // rows of 256 bytes of `image` each.
-    virtual void BuildStep(std::uint8_t* image, int step) = 0;
-    virtual GlobalMapWeather* DeletingDestruct(int flags) = 0;  // 2: 0062EDA0 (00499E90, then delete)
-};
 
 // A zone on the way of the global map's way search: the map entry and the exit taken (8 bytes).
 struct GlobalMapStep {
@@ -297,7 +285,7 @@ public:
     float centreY_;                  // +0x208 280
     int selectPending_;              // +0x20C 1: the zone selection is refreshed (00630670) on the next update
     CUiSurface* backdrop_;           // +0x210 a full-screen surface (not in the surface list)
-    GlobalMapWeather* weather_;      // +0x214
+    CGlobalMapClouds* weather_;      // +0x214 (global_map_clouds.h)
     int weatherTable_[18];           // +0x218 .. +0x25C
     int weatherIndex_;               // +0x260
     bool dragging_;                  // +0x264 the map is turned with the mouse

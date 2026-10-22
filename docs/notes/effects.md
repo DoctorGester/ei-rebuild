@@ -15,12 +15,12 @@ count; Tick / Pack / Unpack go through the vtables. CWorld has slots 28 (RawSurf
 CMapObject +0x144 is the extent.
 
 Rewritten (grep the address): `Steer` 0067AAB0, SetTarget 0067AC70, Tick 0067AC90, Reset 0067AD10, MoveParts 0067B450, Start 0067B4E0, Unpack 0067B690,
-Pack 0067B800, SaveState 0067B9A0, LoadState 0067B8E0, Construct 0067AE30, Destruct 0067B1C0, DeletingDestruct 0067B1A0; CEffectSoundSeq Start
-00676C00 and Unpack 00676FD0 (+ ten pickers 00676DD0..00676F90; world_effect_sequence.cpp); CEffectAmbientSound Construct 00677510, Destruct
-006776E0 (Reset inline, then again), DeletingDestruct 006776C0; effect factory EffectNewObject 0067E170 (manager slot 14, RET 4;
-world_effect_lifetime.cpp). Also 0067AA00 (CEffectMissile::ResetMissile, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it),
-00675FB0 / 0067B390 (CEffect::DestructEffect, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
-(CEffect::Construct out of line), 00676900 (TickDefault: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
+Pack 0067B800, Save 0067B9A0, Load 0067B8E0, constructor 0067AE30, destructor 0067B1C0, deleting destructor 0067B1A0; CEffectSoundSeq Start
+00676C00 and Unpack 00676FD0 (+ ten pickers 00676DD0..00676F90; world_effect_sequence.cpp); CEffectAmbientSound constructor 00677510,
+destructor 006776E0 (Reset inline, then again), deleting destructor 006776C0; effect factory EffectNewObject 0067E170 (manager slot 14, RET 4;
+world_effect_lifetime.cpp). Also 0067AA00 (CEffectMissile::Reset, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it),
+00675FB0 / 0067B390 (CEffect's destructor, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
+(CEffect's constructor out of line), 00676900 (CEffect::RunTick: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
 reaches the first five.
 Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
 

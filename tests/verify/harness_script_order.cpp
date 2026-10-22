@@ -25,7 +25,8 @@ static int __stdcall IdAfterForOriginal(const CEngineObject* x, const CEngineObj
         g_tieLogged = true;
         ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id_);
     }
-    return ScriptGroup::IdAfter(x, y) ? 1 : 0;
+    if (!x || !y) return x != nullptr ? 1 : 0;   // as ScriptGroup::IdAfter
+    return x->id_ > y->id_ ? 1 : 0;
 }
 
 // 004B2D80, the comparator of Sort and Load (cdecl, two ScriptObjectRef*): -1 / 0 / 1 by id.
@@ -179,10 +180,7 @@ const Site kSites[] = {
 
 } // namespace
 
-void Install() {
-    ScriptGroup::OrderById();
-    g_wanted = true;
-}
+void Install() { g_wanted = true; }
 
 void PatchOriginal() {
     if (!g_wanted || g_patched) return;

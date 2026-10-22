@@ -14,6 +14,8 @@
 #include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 #include "../../src/lib/containers.h"
+#include "../../src/lib/stlp_algo.h"
+#include "harness_original.h"
 #include "ei/hook.h"
 
 #include <windows.h>
@@ -50,7 +52,7 @@ void __fastcall SortForOriginal(ObjectSet* self) {
     for (std::uint32_t* p = self->data + 1; p < end; ++p)
         if (*p != p[-1]) *out++ = *p;
     using ResizeFn = void(__fastcall*)(ObjectSet*, void*, int, int);
-    ei::Code<ResizeFn>(0x0047B880)(self, nullptr, static_cast<int>(out - self->data), -1);
+    ei::verify::OriginalCode<ResizeFn>(0x0047B880)(self, nullptr, static_cast<int>(out - self->data), -1);
 }
 
 // 006C8E90 (cdecl, two slots of SetSun's sector array): by (sy, sx) of the sectors in the slots.
@@ -101,7 +103,24 @@ void __fastcall OnBindingForOriginal(net::ClientSession* self, net::BindingMessa
     if (previous && --previous->refs_ == 0) delete previous;
     if (self->players_.Empty()) return;
     using RefreshFn = void(__thiscall*)(CInterface3D*, int);
-    ei::Code<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<CInterface3D>(0x007C7D50), 1);
+    ei::verify::OriginalCode<RefreshFn>(0x005F82D0)(&ei::OriginalGameData<CInterface3D>(0x007C7D50), 1);
+}
+
+// The draw lists' order by name (address_order::DrawBefore, src/game/address_order.cpp, which the reference key
+// lists), sorted with STLport's sort as the original (lib/stlp_algo.h).
+struct DrawLess {
+    bool operator()(CEngineObject* a, CEngineObject* b) const { return ::address_order::DrawBefore(a, b); }
+};
+using DrawSort = stlp::Sort<CEngineObject*, DrawLess>;
+
+// 005740D0 (ECX first, EDX last; the value type, the depth limit and the comparator on the stack, RET 0xC).
+void __fastcall IntroSortForOriginal(CEngineObject** first, CEngineObject** last, void*, int depthLimit, int) {
+    DrawSort::IntroLoop(first, last, depthLimit, DrawLess());
+}
+
+// 00574390 (ECX first, EDX last, the comparator on the stack, RET 4).
+void __fastcall FinalSortForOriginal(CEngineObject** first, CEngineObject** last, int) {
+    DrawSort::FinalInsertionSort(first, last, DrawLess());
 }
 
 struct Site {
@@ -119,11 +138,11 @@ const Site kSites[] = {
      reinterpret_cast<void*>(&MergeStep), "DiffObjectSets' merge 0047B1F0"},
     {0x006C8E90, {0x8B, 0x54, 0x24, 0x08, 0x56}, 5, reinterpret_cast<void*>(&CompareSectorsForOriginal),
      "SetSun's comparator 006C8E90"},
-    // The draw lists' sorts: ours, by name with ById (SV7b6). Their insertion sort compares with the
+    // The draw lists' sorts, by name (SV7b6). Their insertion sort compares with the
     // first element by address inline, so the comparator 00574300 alone cannot be replaced.
-    {0x005740D0, {0x83, 0xEC, 0x18, 0x53, 0x55}, 5, reinterpret_cast<void*>(&IntroSortByModel),
+    {0x005740D0, {0x83, 0xEC, 0x18, 0x53, 0x55}, 5, reinterpret_cast<void*>(&IntroSortForOriginal),
      "the draw lists' sort 005740D0"},
-    {0x00574390, {0x83, 0xEC, 0x14, 0x8B, 0xC2}, 5, reinterpret_cast<void*>(&FinalSortByModel),
+    {0x00574390, {0x83, 0xEC, 0x14, 0x8B, 0xC2}, 5, reinterpret_cast<void*>(&FinalSortForOriginal),
      "the draw lists' final sort 00574390"},
     // The client's player list when the update brings the players before the binding (UB1).
     {0x0041E430, {0x8B, 0x81, 0xF0, 0x25, 0x00, 0x00}, 6, reinterpret_cast<void*>(&OnBindingForOriginal),
@@ -134,10 +153,7 @@ const Site kSites[] = {
 
 namespace ei::verify::address_order {
 
-void Install() {
-    ::address_order::UseIds();
-    g_wanted = true;
-}
+void Install() { g_wanted = true; }
 
 void PatchOriginal() {
     if (!g_wanted || g_patched) return;
@@ -166,7 +182,7 @@ void PatchOriginal() {
 }
 
 bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {
-    CUiWindow* top = HarnessInterface()->GetActiveWindow();
+    CUiWindow* top = HarnessActiveWindow(HarnessInterface());
     const std::uintptr_t vtable = top ? RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top)) : 0;
     auto* client = ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
     char line[200];

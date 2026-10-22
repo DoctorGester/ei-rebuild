@@ -36,28 +36,20 @@ enum ServerObjectType {
 
 CServerSpecificManager::CServerSpecificManager() {}
 
-CServerSpecificManager* CServerSpecificManager::Construct() { return new (this) CServerSpecificManager(); }
-EI_REWRITTEN(0x004D6900, CServerSpecificManager::Construct);
+EI_REWRITTEN_SPECIAL(0x004D6900, CServerSpecificManager::CServerSpecificManager);
 
 CServerSpecificManager::~CServerSpecificManager() {}
 
-void CServerSpecificManager::Destruct() { this->CServerSpecificManager::~CServerSpecificManager(); }
-EI_REWRITTEN(0x004D6960, CServerSpecificManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x004D6960, CServerSpecificManager::~CServerSpecificManager);
 
-CServerSpecificManager* CServerSpecificManager::DeletingDestruct(unsigned flags) {
-    this->CServerSpecificManager::~CServerSpecificManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004D6940, CServerSpecificManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004D6940, CServerSpecificManager::~CServerSpecificManager);
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
-CEngineObject* CServerSpecificManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
 // which ResolveBlocker reads, and others the saves write (SV7d3, SV7b2).
-CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
+CEngineObject* CServerSpecificManager::NewObject(int type) {
     switch (type) {
     case kObject3DServer:
         if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(static_cast<CObject3DSpecific*>(p));
@@ -79,15 +71,9 @@ CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
     }
 }
 
-namespace {
-const char* __fastcall ManagerClassNameHook(CServerSpecificManager* self) {
-    return self->CServerSpecificManager::GetClassName();
-}
-int __fastcall ManagerClassIdHook(CServerSpecificManager* self) { return self->CServerSpecificManager::GetClassId(); }
-} // namespace
-EI_REWRITTEN(0x004D6920, ManagerClassNameHook);
-EI_REWRITTEN(0x004D6930, ManagerClassIdHook);
-EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObjectImpl);
+EI_REWRITTEN(0x004D6920, CServerSpecificManager::GetClassName);
+EI_REWRITTEN(0x004D6930, CServerSpecificManager::GetClassId);
+EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObject);
 
 // --- CTorchObjectSpec ---------------------------------------------------------------------------
 
@@ -113,13 +99,6 @@ const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }
 int CTorchObjectSpec::RunTick() { return 1; }
 
-namespace {
-const char* __fastcall TorchSpecClassNameHook(CTorchObjectSpec* self) { return self->CTorchObjectSpec::GetClassName(); }
-int __fastcall TorchSpecClassIdHook(CTorchObjectSpec* self) { return self->CTorchObjectSpec::GetClassId(); }
-// 004D6B50: slot 6 (the per-tick update of world objects) returns 1. Slots 13-15 (004D6B20 / 30 / 40)
-// are a bare RET (too short to hook).
-int __fastcall TorchSpecUpdate(CTorchObjectSpec* self) { return self->CTorchObjectSpec::RunTick(); }
-} // namespace
-EI_REWRITTEN(0x004D6B60, TorchSpecClassNameHook);
-EI_REWRITTEN(0x004D6B70, TorchSpecClassIdHook);
-EI_REWRITTEN(0x004D6B50, TorchSpecUpdate);
+EI_REWRITTEN(0x004D6B60, CTorchObjectSpec::GetClassName);
+EI_REWRITTEN(0x004D6B70, CTorchObjectSpec::GetClassId);
+EI_REWRITTEN(0x004D6B50, CTorchObjectSpec::RunTick);

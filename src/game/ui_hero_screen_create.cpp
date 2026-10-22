@@ -213,7 +213,7 @@ void CMpHeroScreen::Create() {
     // The description panel on the right (its item list and text arrays constructed in place).
     auto* info = NewItemPanel<CItemInfoPanel>(interface_, this, ItemPanelVtables());
     if (info) {
-        info->ItemParty()->Construct();
+        new (info->ItemParty()) CParty();
         info->itemTexts_.Construct();
         info->skillTexts_.Construct();
         SetVtables(info, InfoPanelVtables());

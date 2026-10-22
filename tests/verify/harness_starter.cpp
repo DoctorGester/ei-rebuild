@@ -174,12 +174,13 @@ std::string ModFileStep(const std::string& argument) {
     // runs its own folder: our named copy (C18) is never set there.
     const mfc::CString& folder = ei::Standalone() ? TheTextFolder()
                                                   : ei::OriginalGameData<mfc::CString>(0x007AF45C);
-    const mfc::CString path = folder + archive;
+    const std::string path = std::string(static_cast<const char*>(folder)) + archive;   // host strings only (H30)
     void* memory = ::operator new(sizeof(CMappedResource));
     std::memset(memory, 0, sizeof(CMappedResource));
     CMappedResource* res = HarnessMappedResourceConstruct(memory);
     long got = -2;   // the archive did not open
-    if (ei::Standalone() ? res->CMappedResource::OpenResourceImpl(path, 0) : OriginalMappedResourceOpen(res, nullptr, path, 0)) {
+    if (ei::Standalone() ? res->CMappedResource::OpenResourceImpl(path.c_str(), 0)
+                            : OriginalMappedResourceOpen(res, nullptr, path.c_str(), 0)) {
         std::uint32_t size = 0;
         void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
         got = data ? static_cast<long>(size) : 0;
@@ -187,7 +188,7 @@ std::string ModFileStep(const std::string& argument) {
     }
     ei::Standalone() ? res->CMappedResource::Destroy() : OriginalMappedResourceDestroy(res);
     ::operator delete(memory);
-    Log("harness: modfile %s %s: %ld bytes (expected %ld)", static_cast<const char*>(path), name, got, expected);
+    Log("harness: modfile %s %s: %ld bytes (expected %ld)", path.c_str(), name, got, expected);
     if (got == expected) return std::string();
     char error[2 * MAX_PATH + 64];
     std::snprintf(error, sizeof(error), "modfile %s %s: %ld bytes, expected %ld", archive, name, got, expected);

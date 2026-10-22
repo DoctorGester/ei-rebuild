@@ -40,7 +40,6 @@ struct AnimationTrack : CEngineObject {
     // 0044F1D0), their blocks freed, then the engine object's.
     ~AnimationTrack() override;
     // The deleting destructor (slot 0, 0050A700) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
     int Create() override;                 // 2: 0050A810 CreateTrack

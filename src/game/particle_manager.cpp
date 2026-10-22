@@ -98,13 +98,8 @@ void CParticleManager::ReleaseUnheld() {
     ReleaseHeld(this, [](CEngineObject* object) { return object->refCount_ == 1; });
 }
 
-namespace {
-// The virtual slots' entry points (rewrite-guide rule 4).
-int __fastcall ParticleManagerCreateHook(CParticleManager* self) { return self->CParticleManager::Create(); }
-void __fastcall ParticleManagerDestroyHook(CParticleManager* self) { self->CParticleManager::Destroy(); }
-} // namespace
-EI_REWRITTEN(0x00497FC0, ParticleManagerCreateHook);
-EI_REWRITTEN(0x00497FE0, ParticleManagerDestroyHook);
+EI_REWRITTEN(0x00497FC0, CParticleManager::Create);
+EI_REWRITTEN(0x00497FE0, CParticleManager::Destroy);
 EI_REWRITTEN(0x00498400, CParticleManager::CreateSource);
 EI_REWRITTEN(0x00498480, CParticleManager::TickSources);
 EI_REWRITTEN(0x00498630, CParticleManager::ReleaseUnheld);

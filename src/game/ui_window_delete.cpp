@@ -86,7 +86,7 @@ void CItemInfoPanel::DestroyBody() {
     inputVtable_ = InputVtable();
     skillTexts_.Destruct();
     itemTexts_.Destruct();
-    reinterpret_cast<CParty*>(itemList_)->DestructBody();
+    ItemParty()->CParty::~CParty();
     DestroyBase();
 }
 EI_REWRITTEN(0x005EE380, CItemInfoPanel::DestroyBody);
@@ -438,9 +438,6 @@ COptionsWindow* COptionsWindow::OptionsWindowDelete(unsigned flags) {
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x0062B160, COptionsWindow::OptionsWindowDelete);
-
-// 0062EDA0: the global map's clouds (slot 2 of 007420D4): the base's own (00499E30) does the same.
-EI_REWRITTEN(0x0062EDA0, CCloudNoise::DeletingDestructImpl);
 
 // 00633240: the multiplayer hero screen (0074214C).
 CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {

@@ -10,7 +10,7 @@
 #include "ei/hook.h"
 #include "game/unit.h"
 #include "game/unit_create.h"
-#include "lib/crt.h"
+#include "harness_original.h"
 
 #include <windows.h>
 
@@ -21,6 +21,8 @@
 namespace ei::verify::leftovers {
 
 namespace {
+
+// game.exe only: the blocks zeroed, then the original's own function (H30).
 
 constexpr std::uintptr_t kVitalsReset = 0x00523370;
 constexpr std::uintptr_t kStatsReset = 0x005233E0;
@@ -34,12 +36,12 @@ constexpr std::uintptr_t kObject3DConstruct = 0x00515BD0;     // CObject3D::Cons
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
-    return vitals->Reset();
+    return OriginalCode<void*(__thiscall*)(UnitVitals*)>(kVitalsReset)(vitals);
 }
 
 int __fastcall ZeroedStatsReset(UnitStats* stats) {
     std::memset(stats, 0, sizeof(UnitStats));
-    return static_cast<UnitStats*>(stats)->Reset();
+    return OriginalCode<int(__thiscall*)(UnitStats*)>(kStatsReset)(stats);
 }
 
 // CMapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
@@ -47,18 +49,19 @@ int __fastcall ZeroedStatsReset(UnitStats* stats) {
 int __fastcall ZeroedVitalsBuild(CMapObjectManager* builder, void*, UnitVitals* vitals, UnitStats* stats,
                                  const char* name) {
     if (vitals) std::memset(vitals, 0, sizeof(UnitVitals));
-    return builder->BuildFromPrototype(vitals, stats, name);
+    using BuildFn = int(__thiscall*)(CMapObjectManager*, UnitVitals*, UnitStats*, const char*);
+    return OriginalCode<BuildFn>(kBuildFromPrototype)(builder, vitals, stats, name);
 }
 
 // CParty::AddMember's stack record, whose statistics BuildNpcStats fills (its reset leaves some).
 PartyUnitRecord* __fastcall ZeroedRecordConstruct(PartyUnitRecord* record) {
     std::memset(record, 0, sizeof(PartyUnitRecord));
-    return record->Construct();
+    return OriginalCode<PartyUnitRecord*(__thiscall*)(PartyUnitRecord*)>(kPartyRecordConstruct)(record);
 }
 
 // A server or map object, or an AI mode the original constructs inline: the block zeroed when allocated.
 void* __cdecl ZeroedNew(std::size_t size) {
-    void* block = gamecrt::operator_new(size);
+    void* block = OriginalCode<void*(__cdecl*)(std::size_t)>(kOperatorNew)(size);
     if (block) std::memset(block, 0, size);
     return block;
 }
@@ -68,26 +71,26 @@ void* __cdecl ZeroedNew(std::size_t size) {
 using SuspectionConstructFn = SuspectionMode*(__fastcall*)(SuspectionMode*);
 SuspectionMode* __fastcall ZeroedSuspectionConstruct(SuspectionMode* mode) {
     mode->ClearFields();
-    return ei::Code<SuspectionConstructFn>(kSuspectionConstruct)(mode);
+    return OriginalCode<SuspectionConstructFn>(kSuspectionConstruct)(mode);
 }
 using FearConstructFn = FearMode*(__fastcall*)(FearMode*, void*, int);
 FearMode* __fastcall ZeroedFearConstruct(FearMode* mode, void*, int flag) {
     mode->ClearFields();
-    return ei::Code<FearConstructFn>(kFearConstruct)(mode, nullptr, flag);
+    return OriginalCode<FearConstructFn>(kFearConstruct)(mode, nullptr, flag);
 }
 
 // A class template: the dword after its nine weights (+0x34, archived with them) zeroed first.
 using TemplateConstructFn = ClassTemplate*(__fastcall*)(ClassTemplate*);
 ClassTemplate* __fastcall ZeroedTemplateConstruct(ClassTemplate* t) {
     std::memset(t->weightsTail, 0, sizeof(t->weightsTail));
-    return ei::Code<TemplateConstructFn>(kTemplateConstruct)(t);
+    return OriginalCode<TemplateConstructFn>(kTemplateConstruct)(t);
 }
 
 // CMapObject::Construct's call of CObject3D::Construct: the view position, which the constructor
 // leaves and the draw sorts read for objects listed only for their shadow, starts at zero as in ours
 // (S17a; zeroed after the construction).
 CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
-    CObject3D* result = reinterpret_cast<CObject3D*(__fastcall*)(CObject3D*)>(kObject3DConstruct)(object);
+    CObject3D* result = OriginalCode<CObject3D*(__fastcall*)(CObject3D*)>(kObject3DConstruct)(object);
     std::memset(&object->worldPosition_, 0, sizeof(object->worldPosition_));
     return result;
 }
@@ -138,7 +141,7 @@ const Site kSites[] = {
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset), kStatsCopies},
     {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild), kStatsCopies},   // CMapObject::TakePrototype
     {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct), kStatsCopies},   // CParty::AddMember
-    // CServerSpecificManager::NewObjectImpl 004D6970: the player server, the 3D object server,
+    // CServerSpecificManager::NewObject 004D6970: the player server, the 3D object server,
     // CMapObjectServer, CUnitServer (its waitFrame +0x93C, which ResolveBlocker reads) and the torch spec.
     {0x004D69A2, kOperatorNew, kNew, kServerObjects},
     {0x004D69D7, kOperatorNew, kNew, kServerObjects},

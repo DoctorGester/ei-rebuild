@@ -1,7 +1,7 @@
 #pragma once
 
-// The camera (CCamera, class id 0x43, vtable CCamera::Vtable() in place of game.exe's 0073B9E0), the settings record it reads, its saved
-// views, shakes and recorded paths, and the engine globals and containers its code uses.
+// The camera (CCamera, class id 0x43, a real virtual class since C28f; game.exe's 0073B9E0 is retired), the settings record it
+// reads, its saved views, shakes and recorded paths, and the engine globals and containers its code uses.
 // camera.cpp: update, view placement, focus, zoom, saved views, shakes, recorded-path playback.
 // camera_motion.cpp: aiming, turning upright, keeping above objects. camera_object.cpp: the
 // object's construction, vtable slots, camera files and saving. Names are provisional.
@@ -118,19 +118,32 @@ static_assert(sizeof(ViewStack) == 0x28);
 void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
-// The camera ("CCamera", vtable Vtable() in place of game.exe's 0073B9E0). Flags (+0x08): 0x8 following the target, 0x10 a camera
+// The camera ("CCamera"). Flags (+0x08): 0x8 following the target, 0x10 a camera
 // file is open, 0x20 playing a camera file, 0x40 free (scripted) placement, 0x100 focus kept
 // inside a circle, 0x200 the alternate limits.
-class CCamera : public CTransformObject {
+class CCamera final : public CTransformObject {
 public:
-    CCamera* DeletingDestruct(unsigned flags);
+    // 0040C8B0 (camera_object.cpp). Identity rotations, eight saved views (distance 30, pitch 45
+    // degrees), the shake list and view stack, no camera file, the focus at (10, 10, 2), the
+    // response rates, no target.
+    CCamera();
+    // 0040CE60 (deleting: 0040CE10). No target, the path keys freed, the view stack and shake list
+    // destroyed.
+    ~CCamera() override;
+
+    int Create() override;                  // 2: 0040D190 no target, the default distances and angle; 1
+    void Destroy() override;                // 3: 0040D1D0 no target
+    int RunTick() override { return 1; }    // 6: 0040E900
+    void Load(CStream* stream) override;    // 9: 00410AB0
+    void Save(CStream* stream) override;    // 10: 00410C10
+    const char* GetClassName() override;    // 11: 0040CDF0 "CCamera"
+    int GetClassId() override;              // 12: 0040CE00 (0x43)
+
     void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
     // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
     // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);
     int RecordFrame(std::uint32_t time);
-    // The compiled table (C19, camera_object.cpp's CameraClass; game.exe's 0073B9E0).
-    static void* Vtable();
 
     static constexpr std::uint32_t kFollowing = 0x8;
     static constexpr std::uint32_t kRecording = 0x10;
@@ -180,13 +193,9 @@ public:
     int PlaybackStep(float time);
 
     // camera_object.cpp
-    CCamera* Construct();                   // 0040C8B0: constructor body; returns this
-    void Destruct();                        // 0040CE60: destructor body
     // 0040D0A0. Views and start placement from the settings; the near / far distances and the
     // field of view (floats passed as their dword bit patterns) kept at +0x2E0..+0x2E8.
     int Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
-    void LoadState(CStream* stream);        // 00410AB0
-    void SaveState(CStream* stream);        // 00410C10
 
     // camera_motion.cpp
     // 0040E4C0. Lifts the camera over the terrain and the objects within 16 of it.

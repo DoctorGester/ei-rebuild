@@ -57,10 +57,10 @@ constexpr std::uintptr_t kGameWinMain = 0x00456440;
 // image needs code there (src/standalone/static_init.h's Targets).
 constexpr std::uintptr_t kGameAtExit = 0x006E727B;
 
-// What runs for game.exe's function at `address` (S18i, src/standalone/image_code.cpp): in game.exe the
-// address itself (the original); in the standalone image, whose code section is guarded, the replacement
-// registered for it (from InstallHooks on), else a stub that reports there is no code at the address. An address
-// outside game.exe's code section is its own code.
+// What runs for game.exe's function at `address` in the standalone image (S18i, src/standalone/image_code.cpp),
+// whose code section is guarded: the replacement registered for it (from InstallHooks on), else a stub that reports
+// there is no code at the address. An address outside game.exe's code section is its own code. Not for game.exe's
+// runs, where nothing of ours runs: the harness calls the original there (tests/verify/harness_original.h; H30).
 std::uintptr_t CodeAddress(std::uintptr_t address);
 template <typename F>
 F Code(std::uintptr_t address) {
@@ -68,7 +68,7 @@ F Code(std::uintptr_t address) {
 }
 // The harness: how often CodeAddress was asked.
 std::uint64_t CodeLookups();
-// Whether CodeAddress has code for `address` other than the stub (always in game.exe).
+// Whether CodeAddress has code for `address` other than the stub.
 bool HasCode(std::uintptr_t address);
 // The image: a code pointer the harness took out of game.exe's data before the code cells were pointed at our
 // code (a vtable slot it replaces at start-up) is resolved with them (at once when they are already).
@@ -189,6 +189,12 @@ struct OriginRecord {
 #define EI_REWRITTEN(addr, fn) \
     __declspec(allocate(".eiorg")) static ::ei::OriginRecord<decltype(&fn)> EI_CAT(ei_rewritten_, __LINE__) = \
         {addr, &fn, __FILE__, __LINE__}
+// The same for a constructor or destructor, which has no address to take (C28): `EI_REWRITTEN_SPECIAL(0x...,
+// CItem::CItem);`, `(0x..., CItem::~CItem);` (also for the original's scalar deleting destructor). The record holds
+// the name; the tools read the line like an EI_REWRITTEN one.
+#define EI_REWRITTEN_SPECIAL(addr, name) \
+    __declspec(allocate(".eiorg")) static ::ei::OriginRecord<const char*> EI_CAT(ei_rewritten_, __LINE__) = \
+        {addr, #name, __FILE__, __LINE__}
 
 // Run `fn` (void()) once in the standalone image before the registrations are taken (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)

@@ -658,7 +658,7 @@ EI_REWRITTEN(0x00552B90, CUnitServer::TickItemSpells);
 namespace {
 // The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
 // and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, ArmourSpellList).
-using ItemList = mfc::CTypedPtrList<CItem>;
+using UnitItems = mfc::CTypedPtrList<CItem>;
 using SpellList = mfc::CTypedPtrList<CSpell>;
 using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
@@ -669,12 +669,12 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
-    ItemList items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitItems items{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     SpellList others{mfc::impl::LootListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     unit->CollectItems(&items, &others);
     // Weapons other than the one in use do not count.
-    for (ItemList::Node* node = items.head; node;) {
-        ItemList::Node* current = node;
+    for (UnitItems::Node* node = items.head; node;) {
+        UnitItems::Node* current = node;
         node = node->next;
         CItem* item = current->data;
         if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
@@ -691,7 +691,7 @@ void CUnitServer::RefreshItemSpells() {
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the
     // previous item's spell (as the original does).
     CSpell* spell = nullptr;
-    for (ItemList::Node* node = items.head; node;) {
+    for (UnitItems::Node* node = items.head; node;) {
         CItem* item = node->data;
         node = node->next;
         if (item) spell = item->spell_;

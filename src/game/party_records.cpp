@@ -44,7 +44,7 @@ PartyRecord* NewRecord() {
     record->refsHigh = 0;
     if (!record) return nullptr;
     record->vtable = CRefCounted::RootVtable();
-    record->Party()->Construct();
+    new (record->Party()) CParty();
     ::new (&record->name) mfc::CString;   // afxEmptyString
     record->vtable = PartyRecord::Vtable();
     record->Party()->Create();   // slot 2

@@ -24,7 +24,6 @@ public:
     // 0052BF60. The spec released (the pointer kept), then the map object's destructor.
     ~CTorchObject() override;
     // The deleting destructor (slot 0, 0052BF40) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateTorch(); }        // 2: 0052BFC0
     void Destroy() override { DestroyTorch(); }            // 3: 0052C150

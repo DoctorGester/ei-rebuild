@@ -13,27 +13,24 @@
 #include <cstddef>
 #include <cstdint>
 
-// A unit's footprint on the layers (0x10C bytes; the compiled CUnitShapeClass, ai_unit_shape.cpp): 16 x 16 cell levels around the
-// unit, shared by radius through the shape cache (007C2F70, ai_shape_cache.cpp; its handles are
-// UnitShapeHandle). Methods in ai_unit_shape.cpp. Names provisional.
-class __declspec(novtable) CUnitShape : public CRefObject {
+// A unit's footprint on the layers: 16 x 16 cell levels around the unit, shared by radius through
+// the shape cache (007C2F70, ai_shape_cache.cpp; its handles are UnitShapeHandle). Methods in
+// ai_unit_shape.cpp. Names provisional.
+class CUnitShape final : public CRefObject {
 public:
-    // 005B3440 (RET 4; the constructor). The levels of a disc: per cell (2 + radius - half its
-    // distance from the middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0.
-    // Returns this.
-    CUnitShape* Construct(float radius);
-    // 005B3540 (slot 2, OnShutdown). Constructed again empty: no levels, radius -1. Returns 0.
-    int Empty();
-    // 005B34F0 (slot 3, Clone). A new shape with the same levels and radius (no references yet).
-    CUnitShape* Copy();
-    // The compiled table (CUnitShapeClass, ai_unit_shape.cpp; game.exe's 0073FD5C).
-    static void* Vtable();
+    // 005B3440 (RET 4). The levels of a disc: per cell (2 + radius - half its distance from the
+    // middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0. No references.
+    explicit CUnitShape(float radius);
+    // An empty shape, as OnShutdown leaves one (the water patch, ai_water_patch.cpp). No references.
+    CUnitShape();
+    // 005B3540. Constructed again empty: no levels, radius -1. Returns 0.
+    int OnShutdown() override;
+    // 005B34F0. A new shape with the same levels and radius (no references yet).
+    CUnitShape* Clone() override;
 
     std::uint8_t levels[16][16];    // +0x008 rows of 16
     float radius;                   // +0x108
 };
-static_assert(offsetof(CUnitShape, levels) == 8);
-static_assert(sizeof(CUnitShape) == 0x10C);
 
 // The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
 using UnitShapeHandle = ShapeCacheHandle;

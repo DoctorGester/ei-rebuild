@@ -28,7 +28,7 @@ def read_fixed_string(r, name, size):
 # ---- timed objects (world_effect*.cpp) ------------------------------------------------------------------
 
 def read_sound(r):
-    """CEffectSound::SaveState (006766D0)."""
+    """CEffectSound::Save (006766D0)."""
     r.vec('position')
     read_fixed_string(r, 'name', 0x100)   # SV7b2a: Reset zeroes all of name_ (the original only name_[0])
     r.f32('volume')
@@ -45,7 +45,7 @@ def read_names(r, name):
 
 
 def read_sound_seq(r):
-    """CEffectSoundSeq::SaveState (00677430)."""
+    """CEffectSoundSeq::Save (00677430)."""
     r.vec('position')
     r.vec('velocity')
     r.string('name')
@@ -56,7 +56,7 @@ def read_sound_seq(r):
 
 
 def read_ambient_sound(r):
-    """CEffectAmbientSound::SaveState (00677C60)."""
+    """CEffectAmbientSound::Save (00677C60)."""
     r.vec('position')
     read_names(r, 'names')
     r.f32('volume')
@@ -66,7 +66,7 @@ def read_ambient_sound(r):
 
 
 def read_point_light(r):
-    """CEffectPointLight::SaveState (00678740)."""
+    """CEffectPointLight::Save (00678740)."""
     r.vec('position')
     r.vec('color')
     r.f32('range')
@@ -75,7 +75,7 @@ def read_point_light(r):
 
 
 def read_particle(r):
-    """CEffectParticle::SaveState (006794E0)."""
+    """CEffectParticle::Save (006794E0)."""
     r.vec('position')
     r.x32('particleType')
     r.f32('size')
@@ -89,13 +89,13 @@ def read_particle(r):
 
 
 def read_wall(r):
-    """CEffectWall::SaveState (00679ED0): the particle's, then the direction."""
+    """CEffectWall::Save (00679ED0): the particle's, then the direction."""
     read_particle(r)
     r.vec('direction')
 
 
 def read_lightning(r):
-    """CEffectLightning::SaveState (0067A7F0)."""
+    """CEffectLightning::Save (0067A7F0)."""
     r.vec('position')
     r.vec('from')
     r.vec('to')
@@ -106,7 +106,7 @@ def read_lightning(r):
 
 
 def read_arrow(r):
-    """CEffectArrow::SaveState (0067B9A0)."""
+    """CEffectArrow::Save (0067B9A0)."""
     r.vec('position')
     r.id('targetId')
     r.vec('velocity')
@@ -137,7 +137,7 @@ def read_damage(r, name):
 
 
 def read_arrow_figure(r):
-    """CEffectArrowFigure::SaveState (0067C290); the figure through AIRef::Save (0050E290)."""
+    """CEffectArrowFigure::Save (0067C290); the figure through AIRef::Save (0050E290)."""
     r.vec('position')
     r.id('targetId')
     r.id('casterId')
@@ -149,13 +149,13 @@ def read_arrow_figure(r):
 
 
 def read_show_visibility(r):
-    """CEffectShowVisibility::SaveState (0067C910)."""
+    """CEffectShowVisibility::Save (0067C910)."""
     r.id('observerId')
     r.id('seerId')
 
 
 def read_tornado(r):
-    """CEffectTornado::SaveState (0067E070)."""
+    """CEffectTornado::Save (0067E070)."""
     r.vec('position')
     r.vec('velocity')
     r.i32('framesLeft')

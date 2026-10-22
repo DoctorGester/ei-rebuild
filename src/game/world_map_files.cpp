@@ -20,15 +20,6 @@ const char* MapsFolderName() { return "maps\\"; }
 // Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
 bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 
-// A file stream on the stack, as the original inlines its constructor and destructor.
-struct LocalFileStream {
-    LocalFileStream() { stream.Construct(); }
-    ~LocalFileStream() { stream.Destruct(); }
-    LocalFileStream(const LocalFileStream&) = delete;
-    LocalFileStream& operator=(const LocalFileStream&) = delete;
-    netlink::FileStream stream;
-};
-
 } // namespace
 
 mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
@@ -63,16 +54,16 @@ bool __stdcall MapFileExists(const char* name) {
 EI_REWRITTEN(0x005812F0, MapFileExists);
 
 void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
-    LocalFileStream file;
+    netlink::FileStream file;
     {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
         MapsFolder(&folder);
         mfc::CString path = folder + name;
-        file.stream.Open(path, netlink::FileStream::kOpenWrite, 0);
+        file.Open(path, netlink::FileStream::kOpenWrite, 0);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    file.stream.WriteImpl(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
-    file.stream.Close();
+    file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
+    file.Close();
 }
 EI_REWRITTEN(0x005813A0, WriteMapFile);

@@ -154,27 +154,37 @@ std::uint32_t HashWords(const std::uint32_t* words, int count) {
 const char* Text(const char* s) { return s ? s : ""; }
 
 // The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold):
-// game.exe's modes keep that table, the image's the compiled tag's (ai_mode_class.h) in its place.
+// game.exe's modes keep that table, the image's the compiled tag's (ai_mode_class.h, CompiledModeTables) in its place.
 struct ModeKind {
     const void* original;   // game.exe's table: the id
-    const void* compiled;   // the image's
     const char* name;
 };
 
 const std::vector<ModeKind>& ModeKinds() {
     static const std::vector<ModeKind> kinds = {
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D128), aimode::GuardClass::Vtable(), "guard"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF40), aimode::PatrolClass::Vtable(), "patrol"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D190), aimode::SentryClass::Vtable(), "sentry"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1F8), aimode::SuspectionClass::Vtable(), "suspection"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D260), aimode::AggressionClass::Vtable(), "aggression"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D294), aimode::CorpseWatcherClass::Vtable(), "corpsewatcher"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0F8), aimode::PlayerClass::Vtable(), "player"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF8C), aimode::FearClass::Vtable(), "fear"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0C4), aimode::TamedClass::Vtable(), "tamed"},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1C4), aimode::FollowClass::Vtable(), "follow"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D128), "guard"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF40), "patrol"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D190), "sentry"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1F8), "suspection"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D260), "aggression"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D294), "corpsewatcher"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0F8), "player"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF8C), "fear"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0C4), "tamed"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1C4), "follow"},
     };
     return kinds;
+}
+
+// The image's tables of the kinds above, in their order (the image only).
+const std::vector<const void*>& CompiledModeTables() {
+    static const std::vector<const void*> tables = {
+        aimode::GuardClass::Vtable(),      aimode::PatrolClass::Vtable(),         aimode::SentryClass::Vtable(),
+        aimode::SuspectionClass::Vtable(), aimode::AggressionClass::Vtable(),     aimode::CorpseWatcherClass::Vtable(),
+        aimode::PlayerClass::Vtable(),     aimode::FearClass::Vtable(),           aimode::TamedClass::Vtable(),
+        aimode::FollowClass::Vtable(),
+    };
+    return tables;
 }
 
 // A mode's id: its kind's (above), else its table's address (none: 0).
@@ -182,9 +192,10 @@ std::uint32_t ModeId(const AIMode* mode) {
     if (!mode) return 0;
     const void* table = mode->vtable;
     if (ei::Standalone()) {
-        for (const ModeKind& kind : ModeKinds()) {
-            if (kind.compiled == table) {
-                table = kind.original;
+        const std::vector<const void*>& compiled = CompiledModeTables();
+        for (std::size_t i = 0; i < compiled.size(); ++i) {
+            if (compiled[i] == table) {
+                table = ModeKinds()[i].original;
                 break;
             }
         }
@@ -197,6 +208,13 @@ const char* ModeName(const void* id) {
     for (const ModeKind& kind : ModeKinds())
         if (kind.original == id) return kind.name;
     return nullptr;
+}
+
+// The players of a player list in its order: a plain walk of its nodes (in game.exe nothing of ours runs; H30).
+std::vector<CPlayer*> PlayersOf(CPlayerManager* list) {
+    std::vector<CPlayer*> players;
+    for (auto* node = list->objectList_.head; node; node = node->next) players.push_back(static_cast<CPlayer*>(node->data));
+    return players;
 }
 
 // --- Reading the state ---
@@ -261,7 +279,7 @@ void ReadRandom(Builder& b) {
     b.Bits("isaac.memory", HashWords(r.memory_, 256));
     // rand()'s state (the CRT's _holdrand, _getptd 006F00D1 +0x14 in game.exe; ours in the
     // image). The game's main thread is the only one that draws.
-    b.Bits("crt.rand", libcrt::RandState());
+    b.Bits("crt.rand", ei::Standalone() ? libcrt::RandState() : ei::verify::OriginalRandState());
 }
 
 void ReadPlayer(CPlayer* p, Builder& b) {
@@ -818,8 +836,7 @@ void Read(CWorldServer* w, Snapshot& s) {
 
     std::map<const void*, int> players;
     if (w->players_) {
-        PlayerIterator it;
-        for (CPlayer* p = it.First(w->players_); p; p = it.Next()) {
+        for (CPlayer* p : PlayersOf(w->players_)) {
             players[p] = p->playerId_;
             b.entity = &Slot(s.state, {kPlayer, p->playerId_});
             b.entity->description = "player";
@@ -1134,8 +1151,7 @@ UnitNow Unit(int id) {
 
 int LocalLeader(unsigned* money) {
     if (!g_server || !g_server->players_) return -1;
-    PlayerIterator it;
-    for (CPlayer* p = it.First(g_server->players_); p; p = it.Next()) {
+    for (CPlayer* p : PlayersOf(g_server->players_)) {
         if (p->playerId_ != 0) continue;
         CParty* party = p->Party();
         if (money) *money = party->money_;

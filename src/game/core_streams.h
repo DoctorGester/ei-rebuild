@@ -4,21 +4,15 @@
 // reference-counted base classes, and two small allocation helpers (00410000-00430000,
 // 00470000-00480000). See docs/notes/core.md. Names are provisional.
 //
-// Class map (vtables):
+// Class map (game.exe's vtables):
 //   0073BB68  CRefObject root: slot 0 deleting destructor, slot 1 empty (RET 4). Its destructor
 //             body only restores this vtable (two identical copies, 00412720 and 00413430).
 //   0073BB58  abstract reference-counted value (adds pure slots 2 and 3, see core_refcount.h);
 //             constructor body 00419720, deleting destructor 00412700.
 //   0073BDB0  CStream (below): abstract byte stream (slots 1-6 pure).
-//   0073BD90  CMemoryStream (below). 0073C960 is a second vtable with the same slots 1-7 and
-//             another copy of the deleting destructor (004790D0); the network queue's streams use it.
-//
-// Streams are built and torn down by the constructor and destructor bodies below (called
-// explicitly where the original inlines them), which store the compiled tables in place of
-// game.exe's three (C19, core_streams.cpp: CStream::StreamVtable(), CMemoryStream::
-// MemoryStreamVtable() / QueueStreamVtable()). The classes are __declspec(novtable) and their C++
-// destructors are empty, so C++ never stores a vtable of its own: a CMemoryStream local or member
-// is plain storage until one of those bodies runs, as in the original.
+//   0073BD90  CMemoryStream (below). 0073C960 is a second table with the same slots 1-7 and
+//             another copy of the deleting destructor (004790D0); the network queue's streams use
+//             it. Here they are all CMemoryStream.
 
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -37,12 +31,13 @@ class CString;
 // The engine's abstract byte stream (vtable 0073BDB0). The save game, the network messages and the
 // chunk archives are memory streams behind it; the message recordings are file streams
 // (net_link.h).
-class __declspec(novtable) CStream {
+class CStream {
 public:
-    // The compiled table (C19) in place of game.exe's 0073BDB0.
-    static void* StreamVtable();
-
-    virtual ~CStream() {}                                               // 0: 00417400 (deleting destructor)
+    // 0047A200: version_ 2000000000, ok_ set.
+    CStream();
+    CStream(const CStream&) = delete;
+    CStream& operator=(const CStream&) = delete;
+    virtual ~CStream() {}                                               // 0: 004174E0 (deleting: 00417400)
     virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
     virtual void Write(const void* buffer, std::uint32_t size) = 0;     // 2
     virtual void Seek(std::uint32_t position) = 0;                      // 3
@@ -50,14 +45,12 @@ public:
     virtual std::uint32_t Position() = 0;                               // 5
     virtual void Clear() = 0;                                           // 6: memory streams empty, file streams rewind
     virtual void CopyFrom(CStream* source);                             // 7: 004A4D40 (all of `source`, 1 KB at a time)
-    void CopyFromImpl(CStream* source);   // body of the slot above (registered by member pointer)
 
-    // 0047A200. Constructor body: the vtable, version_ = 2000000000, ok_ = 1. Returns this.
-    CStream* ConstructBase();
-    // 004174E0. Destructor body: restores the vtable.
-    void DestructBase();
-    // 00417400 (slot 0). DestructBase, then operator delete when bit 0 of `flags` is set.
-    CStream* DeletingDestruct(unsigned flags);
+    // Streams live on the game's heap (core_streams.cpp: gamecrt::operator_new / delete).
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
     // 00461190. Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
@@ -112,52 +105,30 @@ public:
         reading_ = 1;
     }
 
-    std::uint8_t reading_;          // +0x04 1 reading, 0 writing (CopyFrom clears it)
-    std::uint8_t ok_;               // +0x05 cleared when a read runs past the end
-    std::uint8_t unused_6[2];
-    std::uint32_t version_;         // +0x08 format version (the save game's); 2000000000 when constructed
+    std::uint8_t reading_ = 0;      // 1 reading, 0 writing (CopyFrom clears it; never read)
+    std::uint8_t ok_;               // cleared when a read runs past the end
+    std::uint32_t version_;         // format version (the save game's); 2000000000 when constructed
 };
-static_assert(offsetof(CStream, reading_) == 0x04);
-static_assert(offsetof(CStream, ok_) == 0x05);
-static_assert(offsetof(CStream, version_) == 0x08);
-static_assert(sizeof(CStream) == 0x0C);
 
 // A growable memory stream that can also pack bits (vtable 0073BD90). The bit writer (net_delta.h)
 // assembles bits in bits_ and stores the byte at data_[bitsIndex_] when a new one starts; Seek,
 // Resize and SetSize flush and reset that state.
-class __declspec(novtable) CMemoryStream : public CStream {
+class CMemoryStream : public CStream {
 public:
-    // The compiled tables (C19) in place of game.exe's 0073BD90 and the second one, 0073C960 (same
-    // slots 1-7), the network queue's streams (ConstructQueueStream).
-    static void* MemoryStreamVtable();
-    static void* QueueStreamVtable();
-
-    ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
+    // 0041DD70 (and the queue streams' 0066C4F0): an empty stream (Reset's fields).
+    CMemoryStream();
+    // 004173D0, 004790A0 (deleting: 004173B0, 004790D0): the buffer freed.
+    ~CMemoryStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
-    std::uint32_t ReadImpl(void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
-    void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to (capacity + size) * 2)
-    // The slot above as registered: the slot is void, but 004A53F0 leaves the new position in EAX
-    // and callers return it (CPlayerClient::SendResume, TakeExit, ...).
-    std::uint32_t WriteImpl(const void* buffer, std::uint32_t size);
+    // 2: 004A53F0 (grows to (capacity + size) * 2). The harness's observer (verify builds) is told
+    // first.
+    void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // 3: 004A5490 (then EndBits)
-    void SeekImpl(std::uint32_t position);   // body of the slot above (registered by member pointer)
-    std::uint32_t Size() override;                                     // 4: 00417390 (size_)
-    std::uint32_t Position() override;                                 // 5: 004173A0 (position_)
+    std::uint32_t Size() override { return size_; }                    // 4: 00417390
+    std::uint32_t Position() override { return position_; }           // 5: 004173A0
     void Clear() override;                                             // 6: 00417350
     void CopyFrom(CStream* source) override;                           // 7: 004A55D0 (one Read into a resized buffer)
-    void CopyFromImpl(CStream* source);   // body of the slot above (registered by member pointer)
 
-    // 0041DD70. Constructor body: CStream's fields, the vtable, an empty stream (Reset's fields).
-    // Fields +4, +6, +7 and +0xC are left as they are. Returns this.
-    CMemoryStream* Construct();
-    // 0066C4F0 (world_effect_lifetime.cpp). Construct with the second vtable (0073C960, the
-    // network queue's streams). Returns this.
-    CMemoryStream* ConstructQueueStream();
-    // 004173D0, 004790A0. Destructor body: frees the buffer (the pointer is left dangling), then
-    // CStream's vtable.
-    void Destruct();
-    // 004173B0, 004790D0 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    CMemoryStream* DeletingDestruct(unsigned flags);
     // 00468C20. Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
     // buffer (Clear, slot 6, is the same with the free).
     void Reset();
@@ -194,29 +165,14 @@ public:
     void CompressTo(CoderState* coder, CMemoryStream* out);
     void DecompressTo(CoderState* coder, CMemoryStream* out);
 
-    std::uint8_t bits_;             // +0x0C byte being assembled by the bit writer (+0x0D..0x0F unused)
-    std::int32_t bitMask_;          // +0x10 bit of the last bit written (0x80: start a new byte)
-    std::int32_t bitsIndex_;        // +0x14 where bits_ goes in the data (-1: nowhere yet)
-    std::uint8_t* data_;            // +0x18
-    std::uint32_t capacity_;        // +0x1C bytes allocated
-    std::uint32_t position_;        // +0x20 read / write position
-    std::uint32_t size_;            // +0x24 end of the data
+    std::uint8_t bits_ = 0;         // byte being assembled by the bit writer
+    std::int32_t bitMask_;          // bit of the last bit written (0x80: start a new byte)
+    std::int32_t bitsIndex_;        // where bits_ goes in the data (-1: nowhere yet)
+    std::uint8_t* data_;
+    std::uint32_t capacity_;        // bytes allocated
+    std::uint32_t position_;        // read / write position
+    std::uint32_t size_;            // end of the data
 };
-static_assert(offsetof(CMemoryStream, bits_) == 0x0C);
-static_assert(offsetof(CMemoryStream, bitMask_) == 0x10);
-static_assert(offsetof(CMemoryStream, data_) == 0x18);
-static_assert(offsetof(CMemoryStream, size_) == 0x24);
-static_assert(sizeof(CMemoryStream) == 0x28);
-
-// A memory stream on the stack with the network queue's vtable, as the original builds and
-// destroys it inline.
-struct QueueStream {
-    lib::InPlace<CMemoryStream> bytes;
-    QueueStream() { Get()->ConstructQueueStream(); }
-    ~QueueStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return bytes.Get(); }
-};
-static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 
 // The game's save stream: the global CMemoryStream g_saveStream 007AFDF8 (world_game.cpp).
 CMemoryStream* GameSaveStream();

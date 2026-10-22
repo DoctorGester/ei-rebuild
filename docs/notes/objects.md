@@ -308,9 +308,9 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
 
 - CHoover (0073C434): slot 0 00461C60 (deleting destructor), slot 2 00461C90 (Create: 1), slots 11 / 12
   00461C40 / 00461C50 ("CHoover", class 0x1F).
-- CLightning (0073C550): slot 0 004687F0, slots 11 / 12 004687D0 / 004687E0 ("CLightning", 0x1E).
-  `LightningSegment::Destruct` (00468920, the element destructor of the bolt's branches): the points' block
-  freed. `CLightningManager::Create` (004689D0, slot 2): the noise table loaded on the first call (flag
+- CLightning (lightning.h; a real class since C28f): deleting destructor 004687F0, slots 11 / 12 004687D0 /
+  004687E0 ("CLightning", 0x1E). LightningSegment's destructor (00468920): the points' block freed.
+  `CLightningManager::Create` (004689D0, slot 2): the noise table loaded on the first call (flag
   007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningNoiseOriginal`), then
   the base manager's Create.
 - CFakeUnit (0073BFE8): slot 2 00446AF0 (the skin created and given the unit, then `CUnit::CreateUnit`), slot

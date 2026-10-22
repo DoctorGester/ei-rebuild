@@ -36,14 +36,7 @@ public:
     // object (0x5128, 0066C540), 0x4B CTorchObjectSpec (constructed inline, then its Create);
     // null for any other type (0x4A too) or when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
 
-    // The registrations (C20 retires them): 004D6900 the constructor in place (returns this),
-    // 004D6960 the destructor, 004D6940 (slot 0) the destructor, then operator delete when bit 0 of
-    // `flags` is set (returns this).
-    CServerSpecificManager* Construct();
-    void Destruct();
-    CServerSpecificManager* DeletingDestruct(unsigned flags);
 };
 static_assert(sizeof(CServerSpecificManager) == 0xB0);
 
@@ -56,7 +49,6 @@ public:
     // 004D6BA0. DestroySpec (the original's Destroy through the vtable), the name, the engine object.
     ~CTorchObjectSpec() override;
     // The deleting destructor (slot 0, 004D6B80) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateSpec(); }   // 2: 0052C610
     void Destroy() override { DestroySpec(); }       // 3: 0052C680

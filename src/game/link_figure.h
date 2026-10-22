@@ -25,7 +25,6 @@ class CLight;        // spell.h
 // engine object with the mesh it draws. No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
     // The deleting destructors (slot 0) free into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The registrations (C20 retires them): 005A70C0 the destructor, 005A70A0 (slot 0 of the base,
     // RET 4) the destructor, then operator delete when bit 0 of `flags` is set (returns this).

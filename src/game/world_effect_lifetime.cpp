@@ -1,7 +1,6 @@
 // The effects' constructor and destructor bodies, their slot 0 (deleting destructor) and the state
 // field's constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
 #include "world_effect.h"
-#include "world_effect_class.h"
 
 #include "console.h"
 #include "net_link.h"
@@ -11,10 +10,10 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "record_arrays.h"
 
 #include <new>
 
-using ei::SetVtable;
 
 namespace {
 
@@ -23,34 +22,13 @@ void ReleaseIfSet(void* object) {
     if (object != nullptr) static_cast<CEngineObject*>(object)->Release();
 }
 
-// Slot 0: the destructor body, then operator delete when bit 0 of `flags` is set.
-template <typename T>
-T* DeleteAfter(T* object, unsigned flags) {
-    object->Destruct();
-    if (flags & 1) gamecrt::operator_delete(object);
-    return object;
-}
-
 } // namespace
 
 // --- Streams and the state field -----------------------------------------------------------------
 
-CMemoryStream* CMemoryStream::ConstructQueueStream() {
-    Construct();
-    SetVtable(this, CMemoryStream::QueueStreamVtable());
-    return this;
-}
-EI_REWRITTEN(0x0066C4F0, CMemoryStream::ConstructQueueStream);
-
-DeltaField* DeltaField::Construct() {
-    snapshot[0].Construct();
-    snapshot[1].Construct();
-    out[0].ConstructQueueStream();
-    out[1].ConstructQueueStream();
-    return this;
-}
-EI_REWRITTEN(0x00677EC0, DeltaField::Construct);
-EI_REWRITTEN(0x0066A300, DeltaField::Construct);
+EI_REWRITTEN_SPECIAL(0x00677EC0, DeltaField::DeltaField);
+EI_REWRITTEN_SPECIAL(0x0066A300, DeltaField::DeltaField);
+EI_REWRITTEN_SPECIAL(0x00510340, DeltaField::~DeltaField);
 
 void DeltaField::Empty() {
     snapshot[0].Resize(0);
@@ -60,249 +38,209 @@ void DeltaField::Empty() {
 }
 EI_REWRITTEN(0x00675F70, DeltaField::Empty);
 
-void DeltaField::Destruct() {
-    out[1].Destruct();
-    out[0].Destruct();
-    snapshot[1].Destruct();
-    snapshot[0].Destruct();
-}
-
 // --- The effect base -----------------------------------------------------------------------------
 
-void CEffect::ConstructEffect() {
-    ConstructBase();
+CEffect::CEffect() {
+    ClearFields();
+    // Identity rotations (w first); the positions are not initialised (00453400).
+    localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    state_.Construct();
     startTick_ = 0;
     moving_ = 0;
-    SetVtable(this, BaseVtable());
 }
+EI_REWRITTEN_SPECIAL(0x0067B050, CEffect::CEffect);
 
-void CEffect::DestructEffect() {
-    state_.Destruct();
-    SetVtable(this, CTransformObject::BaseVtable());
-    DestructBase();
-}
-EI_REWRITTEN(0x00675FB0, CEffect::DestructEffect);
-EI_REWRITTEN(0x0067B390, CEffect::DestructEffect);
+CEffect::~CEffect() = default;
+EI_REWRITTEN_SPECIAL(0x00675FB0, CEffect::~CEffect);
+EI_REWRITTEN_SPECIAL(0x0067B390, CEffect::~CEffect);
+EI_REWRITTEN_SPECIAL(0x00676910, CEffect::~CEffect);
+EI_REWRITTEN_SPECIAL(0x0067B430, CEffect::~CEffect);
 
-CEffect* CEffect::Construct() {
-    ConstructEffect();
-    return this;
-}
-EI_REWRITTEN(0x0067B050, CEffect::Construct);
+int CEffect::RunTick() { return 1; }
+EI_REWRITTEN(0x00676900, CEffect::RunTick);
 
-CEffect* CEffect::DeletingDestruct(unsigned flags) {
-    DestructEffect();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00676910, CEffect::DeletingDestruct);
-EI_REWRITTEN(0x0067B430, CEffect::DeletingDestruct);
+// --- The class names and ids (slots 11 / 12; the exe's strings) ------------------------------------
 
-int CEffect::TickDefault() { return 1; }
-EI_REWRITTEN(0x00676900, CEffect::TickDefault);
+const char* CEffectSound::GetClassName() { return "CEffectSound"; }
+int CEffectSound::GetClassId() { return 0x48; }
+EI_REWRITTEN(0x00676060, CEffectSound::GetClassName);
+EI_REWRITTEN(0x00676070, CEffectSound::GetClassId);
+const char* CEffectSoundSeq::GetClassName() { return "CEffectSoundSeq"; }
+int CEffectSoundSeq::GetClassId() { return 0x63; }
+EI_REWRITTEN(0x00676940, CEffectSoundSeq::GetClassName);
+EI_REWRITTEN(0x00676950, CEffectSoundSeq::GetClassId);
+const char* CEffectAmbientSound::GetClassName() { return "CEffectAmbientSound"; }
+int CEffectAmbientSound::GetClassId() { return 0x49; }
+EI_REWRITTEN(0x006776A0, CEffectAmbientSound::GetClassName);
+EI_REWRITTEN(0x006776B0, CEffectAmbientSound::GetClassId);
+const char* CEffectPointLight::GetClassName() { return "CEffectPointLight"; }
+int CEffectPointLight::GetClassId() { return 0x4B; }
+EI_REWRITTEN(0x00677F80, CEffectPointLight::GetClassName);
+EI_REWRITTEN(0x00677F90, CEffectPointLight::GetClassId);
+const char* CEffectParticle::GetClassName() { return "CEffectParticle"; }
+int CEffectParticle::GetClassId() { return 0x4A; }
+EI_REWRITTEN(0x00678950, CEffectParticle::GetClassName);
+EI_REWRITTEN(0x00678960, CEffectParticle::GetClassId);
+const char* CEffectWall::GetClassName() { return "CEffectWall"; }
+int CEffectWall::GetClassId() { return 0x5A; }
+EI_REWRITTEN(0x006799A0, CEffectWall::GetClassName);
+EI_REWRITTEN(0x006799B0, CEffectWall::GetClassId);
+const char* CEffectLightning::GetClassName() { return "CEffectLightning"; }
+int CEffectLightning::GetClassId() { return 0x4D; }
+EI_REWRITTEN(0x0067A070, CEffectLightning::GetClassName);
+EI_REWRITTEN(0x0067A080, CEffectLightning::GetClassId);
+const char* CEffectArrow::GetClassName() { return "CEffectArrow"; }
+int CEffectArrow::GetClassId() { return 0x4E; }
+EI_REWRITTEN(0x0067B180, CEffectArrow::GetClassName);
+EI_REWRITTEN(0x0067B190, CEffectArrow::GetClassId);
+const char* CEffectArrowFigure::GetClassName() { return "CEffectArrowFigure"; }
+int CEffectArrowFigure::GetClassId() { return 0x5B; }
+EI_REWRITTEN(0x0067BC90, CEffectArrowFigure::GetClassName);
+EI_REWRITTEN(0x0067BCA0, CEffectArrowFigure::GetClassId);
+const char* CEffectShowVisibility::GetClassName() { return "CEffectShowVisibility"; }
+int CEffectShowVisibility::GetClassId() { return 0x5E; }
+EI_REWRITTEN(0x0067C450, CEffectShowVisibility::GetClassName);
+EI_REWRITTEN(0x0067C460, CEffectShowVisibility::GetClassId);
+const char* CEffectMoshka::GetClassName() { return "CEffectMoshka"; }
+int CEffectMoshka::GetClassId() { return 0x64; }
+EI_REWRITTEN(0x0067CAB0, CEffectMoshka::GetClassName);
+EI_REWRITTEN(0x0067CAC0, CEffectMoshka::GetClassId);
+const char* CEffectTornado::GetClassName() { return "CEffectTornado"; }
+int CEffectTornado::GetClassId() { return 0x65; }
+EI_REWRITTEN(0x0067D7C0, CEffectTornado::GetClassName);
+EI_REWRITTEN(0x0067D7D0, CEffectTornado::GetClassId);
 
 // --- CEffectSound --------------------------------------------------------------------------------
 
-
-CEffectSound* CEffectSound::Construct() {
-    ConstructEffect();
-    SetVtable(this, Vtable());
+CEffectSound::CEffectSound() {
     sound_ = -1;
     Reset();
-    return this;
 }
-EI_REWRITTEN(0x00675DD0, CEffectSound::Construct);
+EI_REWRITTEN_SPECIAL(0x00675DD0, CEffectSound::CEffectSound);
 
-void CEffectSound::Destruct() {
-    SetVtable(this, Vtable());
+CEffectSound::~CEffectSound() {
     Reset();
     Reset();   // again through slot 18
-    DestructEffect();
 }
-EI_REWRITTEN(0x006760A0, CEffectSound::Destruct);
-
-CEffectSound* CEffectSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x00676080, CEffectSound::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x006760A0, CEffectSound::~CEffectSound);
+EI_REWRITTEN_SPECIAL(0x00676080, CEffectSound::~CEffectSound);
 
 // --- CEffectSoundSeq -----------------------------------------------------------------------------
 
-
-CEffectSoundSeq* CEffectSoundSeq::Construct() {
-    ConstructEffect();
-    new (&name_) mfc::CString;
+CEffectSoundSeq::CEffectSoundSeq() {
     names_.Construct();
-    SetVtable(this, Vtable());
     sound_ = -1;
     Reset();
-    return this;
 }
-EI_REWRITTEN(0x00676760, CEffectSoundSeq::Construct);
+EI_REWRITTEN_SPECIAL(0x00676760, CEffectSoundSeq::CEffectSoundSeq);
 
-void CEffectSoundSeq::Destruct() {
-    SetVtable(this, Vtable());
+CEffectSoundSeq::~CEffectSoundSeq() {
     Reset();
     Reset();   // again through slot 18
     names_.Destruct();
-    name_.~CString();
-    DestructEffect();
 }
-EI_REWRITTEN(0x00676980, CEffectSoundSeq::Destruct);
-
-CEffectSoundSeq* CEffectSoundSeq::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x00676960, CEffectSoundSeq::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00676980, CEffectSoundSeq::~CEffectSoundSeq);
+EI_REWRITTEN_SPECIAL(0x00676960, CEffectSoundSeq::~CEffectSoundSeq);
 
 // --- CEffectAmbientSound -------------------------------------------------------------------------
 
-
-CEffectAmbientSound* CEffectAmbientSound::Construct() {
-    ConstructEffect();
+CEffectAmbientSound::CEffectAmbientSound() {
     names_.Construct();
-    SetVtable(this, Vtable());
     sound_ = -1;
     Reset();
-    return this;
 }
-EI_REWRITTEN(0x00677510, CEffectAmbientSound::Construct);
+EI_REWRITTEN_SPECIAL(0x00677510, CEffectAmbientSound::CEffectAmbientSound);
 
-void CEffectAmbientSound::Destruct() {
-    SetVtable(this, Vtable());
+CEffectAmbientSound::~CEffectAmbientSound() {
     Reset();
     Reset();   // again through slot 18
     names_.Destruct();
-    DestructEffect();
 }
-EI_REWRITTEN(0x006776E0, CEffectAmbientSound::Destruct);
-
-CEffectAmbientSound* CEffectAmbientSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x006776C0, CEffectAmbientSound::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x006776E0, CEffectAmbientSound::~CEffectAmbientSound);
+EI_REWRITTEN_SPECIAL(0x006776C0, CEffectAmbientSound::~CEffectAmbientSound);
 
 // --- CEffectPointLight ---------------------------------------------------------------------------
 
-
-CEffectPointLight* CEffectPointLight::Construct() {
-    ConstructEffect();
+CEffectPointLight::CEffectPointLight() {
     light_ = nullptr;
-    SetVtable(this, Vtable());
     Reset();
-    return this;
 }
-EI_REWRITTEN(0x00677D30, CEffectPointLight::Construct);
+EI_REWRITTEN_SPECIAL(0x00677D30, CEffectPointLight::CEffectPointLight);
 
-void CEffectPointLight::Destruct() {
-    SetVtable(this, Vtable());
+CEffectPointLight::~CEffectPointLight() {
     Reset();
     ReleaseIfSet(light_);
-    DestructEffect();
 }
-EI_REWRITTEN(0x00677FC0, CEffectPointLight::Destruct);
-
-CEffectPointLight* CEffectPointLight::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x00677FA0, CEffectPointLight::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00677FC0, CEffectPointLight::~CEffectPointLight);
+EI_REWRITTEN_SPECIAL(0x00677FA0, CEffectPointLight::~CEffectPointLight);
 
 // --- CEffectParticle and CEffectWall -------------------------------------------------------------
 
-
-CEffectParticle* CEffectParticle::Construct() {
-    ConstructEffect();
+CEffectParticle::CEffectParticle() {
     source_ = nullptr;
-    SetVtable(this, Vtable());
     Reset();
-    return this;
 }
-EI_REWRITTEN(0x006787B0, CEffectParticle::Construct);
+EI_REWRITTEN_SPECIAL(0x006787B0, CEffectParticle::CEffectParticle);
 
-void CEffectParticle::Destruct() {
-    SetVtable(this, Vtable());
+CEffectParticle::~CEffectParticle() {
     Reset();
     ReleaseIfSet(source_);
-    DestructEffect();
 }
-EI_REWRITTEN(0x00678990, CEffectParticle::Destruct);
+EI_REWRITTEN_SPECIAL(0x00678990, CEffectParticle::~CEffectParticle);
+EI_REWRITTEN_SPECIAL(0x00678970, CEffectParticle::~CEffectParticle);
 
-CEffectParticle* CEffectParticle::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x00678970, CEffectParticle::DeletingDestruct);
+// The particle's constructor resets as the particle, then the wall resets as itself; the
+// destructors the other way round.
+CEffectWall::CEffectWall() { Reset(); }
+EI_REWRITTEN_SPECIAL(0x006797E0, CEffectWall::CEffectWall);
 
-
-CEffectWall* CEffectWall::Construct() {
-    ConstructEffect();
-    source_ = nullptr;
-    SetVtable(this, CEffectParticle::Vtable());
-    CEffectParticle::Reset();
-    SetVtable(this, Vtable());
-    Reset();
-    return this;
-}
-EI_REWRITTEN(0x006797E0, CEffectWall::Construct);
-
-void CEffectWall::Destruct() {
-    SetVtable(this, Vtable());
-    Reset();
-    SetVtable(this, CEffectParticle::Vtable());
-    CEffectParticle::Reset();
-    ReleaseIfSet(source_);
-    DestructEffect();
-}
-EI_REWRITTEN(0x006799E0, CEffectWall::Destruct);
-
-CEffectWall* CEffectWall::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x006799C0, CEffectWall::DeletingDestruct);
+CEffectWall::~CEffectWall() { Reset(); }
+EI_REWRITTEN_SPECIAL(0x006799E0, CEffectWall::~CEffectWall);
+EI_REWRITTEN_SPECIAL(0x006799C0, CEffectWall::~CEffectWall);
 
 // --- CEffectLightning ----------------------------------------------------------------------------
 
-
-CEffectLightning* CEffectLightning::Construct() {
-    ConstructEffect();
+// No Reset: only the bolt, the width and the flag.
+CEffectLightning::CEffectLightning() {
     bolt_ = nullptr;
-    SetVtable(this, Vtable());
     width_ = 0.0f;
     flag_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x00679FC0, CEffectLightning::Construct);
+EI_REWRITTEN_SPECIAL(0x00679FC0, CEffectLightning::CEffectLightning);
 
-void CEffectLightning::Destruct() {
-    SetVtable(this, Vtable());
+CEffectLightning::~CEffectLightning() {
     Reset();
     ReleaseIfSet(bolt_);
-    DestructEffect();
 }
-EI_REWRITTEN(0x0067A0B0, CEffectLightning::Destruct);
-
-CEffectLightning* CEffectLightning::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
-EI_REWRITTEN(0x0067A090, CEffectLightning::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067A0B0, CEffectLightning::~CEffectLightning);
+EI_REWRITTEN_SPECIAL(0x0067A090, CEffectLightning::~CEffectLightning);
 
 // --- The effect manager's factory ----------------------------------------------------------------
 
-namespace {
-
-template <typename T>
-CEngineObject* NewEffect() {
-    T* memory = gamecrt::operator_new_as<T>();
-    return memory != nullptr ? memory->Construct() : nullptr;
-}
-
-} // namespace
-
-CEngineObject* CEffectManager::NewObjectImpl(int type) {
+CEngineObject* CEffectManager::NewObject(int type) {
     CEngineObject* object;
     switch (type) {
-    case 0x48: object = NewEffect<CEffectSound>(); break;
-    case 0x49: object = NewEffect<CEffectAmbientSound>(); break;
-    case 0x4A: object = NewEffect<CEffectParticle>(); break;
-    case 0x4B: object = NewEffect<CEffectPointLight>(); break;
-    case 0x4D: object = NewEffect<CEffectLightning>(); break;
-    case 0x4E: object = NewEffect<CEffectArrow>(); break;
-    case 0x5A: object = NewEffect<CEffectWall>(); break;
-    case 0x5B: object = NewEffect<CEffectArrowFigure>(); break;
-    case 0x5E: object = NewEffect<CEffectShowVisibility>(); break;
-    case 99: object = NewEffect<CEffectSoundSeq>(); break;
-    case 100: object = NewEffect<CEffectMoshka>(); break;
-    case 0x65: object = NewEffect<CEffectTornado>(); break;
+    case 0x48: object = new CEffectSound(); break;
+    case 0x49: object = new CEffectAmbientSound(); break;
+    case 0x4A: object = new CEffectParticle(); break;
+    case 0x4B: object = new CEffectPointLight(); break;
+    case 0x4D: object = new CEffectLightning(); break;
+    case 0x4E: object = new CEffectArrow(); break;
+    case 0x5A: object = new CEffectWall(); break;
+    case 0x5B: object = new CEffectArrowFigure(); break;
+    case 0x5E: object = new CEffectShowVisibility(); break;
+    case 99: object = new CEffectSoundSeq(); break;
+    case 100: object = new CEffectMoshka(); break;
+    case 0x65: object = new CEffectTornado(); break;
     default: return nullptr;
     }
     if (object != nullptr) object->type_ = type;
     return object;
 }
-EI_REWRITTEN(0x0067E170, CEffectManager::NewObjectImpl);
+EI_REWRITTEN(0x0067E170, CEffectManager::NewObject);
+
+namespace recordarrays {
+void InitDeltaField(DeltaField* p) { new (p) DeltaField(); }
+void DestroyDeltaField(DeltaField* p) { p->~DeltaField(); }
+} // namespace recordarrays

@@ -7,7 +7,6 @@
 #include "random.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -121,72 +120,40 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     }
 }
 
-namespace {
-// The segment's element constructor (00468900) and destructor (00468920) as the CRT's eh vector
-// constructor / destructor iterators call them (libcrt::ConstructElements / DestroyElements; ECX
-// the element).
-void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct(); }
-void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
-
-// A texture reference dropped: cleared, then released.
-void DropTexture(HeldTexture& slot) {
-    CTexture* old = slot;
-    slot = nullptr;
-    if (old) old->Release();
+LightningSegment::LightningSegment() {
+    points.data = nullptr;
+    points.size = 0;
+    points.capacity = 0;
+    points.growBy = 0;
 }
-} // namespace
+EI_REWRITTEN_SPECIAL(0x00468900, LightningSegment::LightningSegment);
 
-// 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt (the
-// engine object's constructor inlined, the bounds cleared, the main segment's points empty, the
-// branches constructed), reset like slot 3.
-CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
-    auto* bolt = gamecrt::operator_new_as<CLightning>();
-    if (!bolt) return nullptr;
-    ei::SetVtable(bolt, CEngineObject::BaseVtable());
-    bolt->refCount_ = 0;
-    bolt->id_ = -1;
-    bolt->prototypeId_ = 0;
-    bolt->type_ = 0;
-    bolt->flags_ = 0;
-    bolt->owner_ = nullptr;
-    bolt->texture_ = nullptr;
-    bolt->glowTexture_ = nullptr;
-    std::memset(static_cast<void*>(&bolt->bounds_), 0, sizeof(bolt->bounds_));
-    std::memset(&bolt->boundsSpare_, 0, sizeof(bolt->boundsSpare_));
-    bolt->main_.points.data = nullptr;
-    bolt->main_.points.growBy = 0;
-    bolt->main_.points.capacity = 0;
-    bolt->main_.points.size = 0;
-    libcrt::ConstructElements(bolt->branches_, sizeof(LightningSegment), 6, libcrt::Element<SegmentConstruct>,
-                              libcrt::Element<SegmentDestruct>);
-    ei::SetVtable(bolt, CLightning::Vtable());
-    std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
-    std::memcpy(&bolt->power_, &one, 4);
-    std::memcpy(&bolt->amplitude_, &tenth, 4);
-    DropTexture(bolt->texture_);
-    DropTexture(bolt->glowTexture_);
-    return bolt;
+LightningSegment::~LightningSegment() {
+    if (points.data) LightningPointArray::Free(points.data);
 }
-EI_REWRITTEN(0x00468680, CLightningManager::NewObjectImpl);
+EI_REWRITTEN_SPECIAL(0x00468920, LightningSegment::~LightningSegment);
 
-CEngineObject* CLightningManager::NewObject(int type) { return NewObjectImpl(type); }
-
-// 00468810: the destructor body: reset like slot 3, the branches destroyed, the main segment's
-// points freed, the texture references released again (both null by then), the engine object's
-// body.
-void __fastcall LightningDestruct(CLightning* self) {
-    ei::SetVtable(self, CLightning::Vtable());
-    std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
-    std::memcpy(&self->power_, &one, 4);
-    std::memcpy(&self->amplitude_, &tenth, 4);
-    DropTexture(self->texture_);
-    DropTexture(self->glowTexture_);
-    libcrt::DestroyElements(self->branches_, sizeof(LightningSegment), 6, libcrt::Element<SegmentDestruct>);
-    if (self->main_.points.data) lib::FreeAligned32(self->main_.points.data);
-    if (self->glowTexture_) self->glowTexture_->Release();
-    if (self->texture_) self->texture_->Release();
-    self->DestructBase();
+CLightning::CLightning() {
+    ClearFields();
+    texture_ = nullptr;
+    glowTexture_ = nullptr;
+    std::memset(static_cast<void*>(&bounds_), 0, sizeof(bounds_));
+    std::memset(&boundsSpare_, 0, sizeof(boundsSpare_));
+    CLightning::Destroy();
 }
-EI_REWRITTEN(0x00468810, LightningDestruct);
+
+// The texture references are null after the reset (the original releases them again, a no-op).
+CLightning::~CLightning() { CLightning::Destroy(); }
+EI_REWRITTEN_SPECIAL(0x00468810, CLightning::~CLightning);
+EI_REWRITTEN_SPECIAL(0x004687F0, CLightning::~CLightning);
+
+const char* CLightning::GetClassName() { return "CLightning"; }
+EI_REWRITTEN(0x004687D0, CLightning::GetClassName);
+int CLightning::GetClassId() { return 0x1E; }
+EI_REWRITTEN(0x004687E0, CLightning::GetClassId);
+
+// 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt.
+CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }
+EI_REWRITTEN(0x00468680, CLightningManager::NewObject);
 
 EI_REWRITTEN(0x004680D0, CLightning::Start);

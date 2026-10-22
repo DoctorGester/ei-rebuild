@@ -17,7 +17,6 @@ class CPlayerManager : public CBaseManager {
 public:
     // CBaseManager's constructor (inlined in WorldCreateManagers 0055EE40).
     CPlayerManager();
-    CPlayerManager* Construct();   // the constructor in place; returns this
     // 0055F350. CBaseManager's destructor.
     ~CPlayerManager() override;
     // 0055F330 (slot 0's registration): the destructor, then operator delete when bit 0 of

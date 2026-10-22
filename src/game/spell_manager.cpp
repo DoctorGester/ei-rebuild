@@ -2,7 +2,6 @@
 // factory (slot 14), Create / Destroy (slots 2 / 3), the destructor, and the "sequences" it keeps
 // (spell.h, SpellSequence). See docs/notes/items_spells.md.
 #include "spell.h"
-#include "spell_class.h"
 
 #include "item_db.h"
 
@@ -22,7 +21,6 @@ constexpr int kClassSpellContainer = 0x3003;
 constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create child spell.\n";
 constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
-constexpr const char* kSpellContainerClassName = "CSpellContainer";
 
 // Every container of a sequence loses a reference (slot 4), in iterator order; the walk stops at
 // the first entry without a container.
@@ -79,16 +77,15 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
 }
 EI_REWRITTEN(0x00688EC0, CSpellManager::CreateSpellObject);
 
-CEngineObject* CSpellManager::NewObjectImpl(int type) {
-    if (type == kClassSpell) {
-        if (auto* memory = gamecrt::operator_new_as<CSpell>()) return memory->Construct();
-    } else if (type == kClassSpellContainer) {
-        if (auto* memory = gamecrt::operator_new_as<CSpellContainer>()) return memory->Construct();
-    }
+CEngineObject* CSpellManager::NewObject(int type) {
+    if (type == kClassSpell) return new CSpell();
+    if (type == kClassSpellContainer) return new CSpellContainer();
     return nullptr;
 }
+EI_REWRITTEN(0x00688CD0, CSpellManager::NewObject);
 
 int CSpellManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
+EI_REWRITTEN(0x00688B30, CSpellManager::Create);
 
 void CSpellManager::Destroy() {
     for (auto* node = sequences_.First(); node && node->value; node = sequences_.After(node)) {
@@ -101,6 +98,7 @@ void CSpellManager::Destroy() {
     maxSequenceKey_ = 0;
     CResourceManager::Destroy();
 }
+EI_REWRITTEN(0x00688B40, CSpellManager::Destroy);
 
 CSpellManager::~CSpellManager() {
     for (auto* node = sequences_.First(); node && node->value; node = sequences_.After(node)) {
@@ -113,26 +111,9 @@ CSpellManager::~CSpellManager() {
     CResourceManager::Destroy();
     sequences_.Destroy();
 }
+EI_REWRITTEN_SPECIAL(0x00688990, CSpellManager::~CSpellManager);
+EI_REWRITTEN_SPECIAL(0x00688970, CSpellManager::~CSpellManager);
 
-void CSpellManager::Destruct() { this->CSpellManager::~CSpellManager(); }
-EI_REWRITTEN(0x00688990, CSpellManager::Destruct);
-
-CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
-    this->CSpellManager::~CSpellManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00688970, CSpellManager::DeletingDestruct);
-
-namespace {
-int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
-void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }
-} // namespace
-EI_REWRITTEN(0x00688B30, SpellManagerCreateHook);
-EI_REWRITTEN(0x00688B40, SpellManagerDestroyHook);
-EI_REWRITTEN(0x00688CD0, CSpellManager::NewObjectImpl);
-
-CEngineObject* CSpellManager::NewObject(int type) { return NewObjectImpl(type); }
 const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
 int CSpellManager::GetClassId() { return 0x33; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
@@ -155,47 +136,33 @@ EI_REWRITTEN(0x00689610, CSpellManager::ListModifierNames);
 
 // --- CSpellContainer -----------------------------------------------------------------------------
 
-CSpellContainer* CSpellContainer::Construct() {
+// The spell and the name are members, constructed before the body (the original builds them after the code string)
+// and destroyed after it (the original: the name and the spell before the string); neither allocates.
+CSpellContainer::CSpellContainer() {
     ClearFields();
     modifiers_.Construct();
     // The code string: empty, with room for 8 bytes (00424E40).
     codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
-    Spell()->Construct();
-    new (&name_) mfc::CString();
-    ei::SetVtable(this, Vtable());
-    Reset();   // inlined in the original
-    return this;
+    CSpellContainer::Create();   // inlined in the original
 }
-EI_REWRITTEN(0x0068BA80, CSpellContainer::Construct);
+EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);
 
-void CSpellContainer::Destruct() {
-    ei::SetVtable(this, Vtable());
+CSpellContainer::~CSpellContainer() {
     // (Slot 5, 0068BE20, called directly here, is empty.)
     prototype_ = nullptr;
     FreeModifierNodes(modifiers_.head);
-    Spell()->Destroy();   // slot 3: CSpell::ClearModifiers
-    name_.~CString();
-    Spell()->Destruct();
+    Spell()->Destroy();
     if (codes_) stlp::deallocate(codes_, static_cast<std::size_t>(codesCapacity_ - codes_));
     // The list's destructor: its (empty) clear, then the sentinel.
     FreeModifierNodes(modifiers_.head);
     stlp::deallocate(modifiers_.head, sizeof(SpellModifierNode));
-    DestructBase();
 }
-EI_REWRITTEN(0x0068BC50, CSpellContainer::Destruct);
+EI_REWRITTEN_SPECIAL(0x0068BC50, CSpellContainer::~CSpellContainer);
+EI_REWRITTEN_SPECIAL(0x0068BC30, CSpellContainer::~CSpellContainer);
 
-CSpellContainer* CSpellContainer::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0068BC30, CSpellContainer::DeletingDestruct);
-
-const char* __fastcall SpellContainerClassName(CSpellContainer*) {
-    return kSpellContainerClassName;
-}
-int __fastcall SpellContainerClassId(CSpellContainer*) { return 0x1A; }
-EI_REWRITTEN(0x0068BC10, SpellContainerClassName);
-EI_REWRITTEN(0x0068BC20, SpellContainerClassId);
+const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }
+int CSpellContainer::GetClassId() { return 0x1A; }
+EI_REWRITTEN(0x0068BC10, CSpellContainer::GetClassName);
+EI_REWRITTEN(0x0068BC20, CSpellContainer::GetClassId);

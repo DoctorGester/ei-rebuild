@@ -56,7 +56,7 @@ PartyRecord* __cdecl CreatePartyRecord() {
     record->refsHigh = 0;
     if (!record) return nullptr;
     record->vtable = CRefCounted::RootVtable();
-    PartyOf(record)->Construct();
+    new (PartyOf(record)) CParty();
     new (&record->name) mfc::CString();
     record->vtable = PartyRecord::Vtable();
     PartyOf(record)->Create();
@@ -83,7 +83,7 @@ void PartyRecord::Destruct() {
     vtable = PartyRecord::Vtable();
     PartyOf(this)->Destroy();
     name.~CString();
-    PartyOf(this)->DestructBody();
+    PartyOf(this)->~CParty();
     vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x004577E0, PartyRecord::Destruct);

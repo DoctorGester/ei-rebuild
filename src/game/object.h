@@ -28,23 +28,22 @@ float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60: 004468A
 const char* __fastcall FigureGetName(const CEngineObject* figure);       // 00453440
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 004547C0
 
-// "CHoover" (class id 0x1F, vtable Vtable() in place of game.exe's 0073C434): no fields of its own seen.
+// "CHoover" (class id 0x1F; game.exe's table 0073C434): no fields of its own seen. object.cpp.
 class CItem;    // item.h
 class CUnit;    // unit.h
 class CWorld;   // world.h
-class CHoover : public CEngineObject {
+class CHoover final : public CEngineObject {
 public:
+    CHoover();              // 00461C10: the engine object's fields cleared
+    ~CHoover() override;    // 00461C80 (deleting: 00461C60)
+
+    int Create() override;                  // 00461C90: 1
+    void Destroy() override {}              // 00461CA0 (empty)
+    const char* GetClassName() override;    // 00461C40: "CHoover"
+    int GetClassId() override;              // 00461C50: 0x1F
+
     // 00461CB0 (RET 0x18; hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
     int CollectLoot(CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
                     mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
-    CHoover* DeletingDestruct(unsigned flags);
-    // The compiled table (C19, class_slots.cpp's HooverClass).
-    static void* Vtable();
-
-    // 00461C10. Constructor body: the engine object's fields cleared, then its vtable. Returns
-    // this.
-    CHoover* Construct();
-    // 00461C80. Destructor body: restores its vtable, then CEngineObject::DestructBase.
-    void Destruct();
 };

@@ -7,6 +7,7 @@
 #include "../../src/game/random.h"
 #include "../../src/lib/crt.h"
 #include "game/game_data.h"
+#include "harness_original.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -755,6 +756,7 @@ void DumpTrace(const char* why) {
 namespace {
 
 constexpr std::uintptr_t kIsaacNext = 0x004667F0;
+constexpr std::uintptr_t kIsaacRefill = 0x0049EE70;
 const unsigned* g_traceFrames = nullptr;
 unsigned g_randomFrame = ~0u;
 CRITICAL_SECTION g_randomLock;
@@ -777,22 +779,23 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
     LeaveCriticalSection(&g_randomLock);
 }
 
-// game.exe: the generator's Next (004667F0), which jumps here.
+// game.exe: the generator's Next (004667F0), which jumps here; its refill is game.exe's own.
 std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
     if (self->count_-- == 0) {
-        self->Refill();
+        ei::verify::OriginalCode<void(__thiscall*)(IsaacRandom*)>(kIsaacRefill)(self);
         self->count_ = 255;
     }
     const std::uint32_t value = self->results_[self->count_];
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value,
-              self == &IsaacRandom::Global() ? "" : " (another generator)", self->c_ * 256u + 255u - self->count_);
+              self == &ei::OriginalGameData<IsaacRandom>(0x007A9D40) ? "" : " (another generator)",
+              self->c_ * 256u + 255u - self->count_);
     return value;
 }
 
-// game.exe: the game's CRT rand() (006E77F7; per thread: the seed libcrt::RandState has), which jumps here.
+// game.exe: the game's CRT rand() (006E77F7; its per-thread seed), which jumps here.
 constexpr std::uintptr_t kCrtRand = 0x006E77F7;
 int __cdecl TracedRand() {
-    unsigned& hold = libcrt::RandState();
+    unsigned& hold = ei::verify::OriginalRandState();
     hold = hold * 0x343FDu + 0x269EC3u;
     const int value = static_cast<int>((hold >> 16) & 0x7FFF);
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()", hold);

@@ -63,6 +63,11 @@ namespace ei::verify::census {
 
 namespace {
 
+// A holder's DIB section (ClientBitmap) and whether a DC is one 005FDC00 gave out (IsSurfaceMemoryDc): the image's
+// surfaces only. In game.exe the holders keep DirectDraw surfaces and nothing of ours runs (H30).
+HBITMAP CensusClientBitmap(const void* holder) { return ei::Standalone() ? ClientBitmap(holder) : nullptr; }
+bool CensusMemoryDc(HDC dc) { return ei::Standalone() && IsSurfaceMemoryDc(dc); }
+
 constexpr unsigned kMaxDetails = 8;                  // distinct details kept per row
 
 // --- code modules and call chains ----------------------------------------------------------------
@@ -214,8 +219,8 @@ bool InGameVtables(std::uintptr_t vtable) {
 
 // The surfaces' tables: game.exe's data, or the compiled CUiSurface (00740F28) and scrolling surface (00742FD8) ones.
 bool SurfaceVtable(std::uintptr_t vtable) {
-    return InGameVtables(vtable) || vtable == reinterpret_cast<std::uintptr_t>(UiSurfaceClass::Vtable()) ||
-           vtable == reinterpret_cast<std::uintptr_t>(CUiScrollingSurface::Vtable());
+    return InGameVtables(vtable) || (ei::Standalone() && (vtable == reinterpret_cast<std::uintptr_t>(UiSurfaceClass::Vtable()) ||
+                                                          vtable == reinterpret_cast<std::uintptr_t>(CUiScrollingSurface::Vtable())));
 }
 
 // The members of a CUiSurface the census reads; false when it cannot be read or is no surface.
@@ -631,7 +636,7 @@ void EndSession(State& s, HDC dc, HBITMAP replacement) {
     Dib& dib = found->second;
     // Counted at the end: 005FDC00 names its DC after the select, and some windows draw a surface
     // before AddSurface gives it an owner.
-    if (dib.owner == "unowned or dib") dib.owner = IsSurfaceMemoryDc(dc) ? "unowned" : "dib";
+    if (dib.owner == "unowned or dib") dib.owner = CensusMemoryDc(dc) ? "unowned" : "dib";
     ++s.stats[StatsKey(dib)].sessions;
     AddRow(s, "dc", dib.owner, Size(dib.width, dib.height), "GetDC(surface)", session.chain,
            session.draws ? std::string() : std::string("no drawing call"));
@@ -665,7 +670,7 @@ Target TargetOf(State& s, HDC dc) {
         auto found = s.dibs.find(it->second.bitmap);
         if (found != s.dibs.end()) {
             // 005FDC00 records its DC after selecting the DIB: by the first drawing call it is known.
-            if (found->second.owner == "unowned or dib") found->second.owner = IsSurfaceMemoryDc(dc) ? "unowned" : "dib";
+            if (found->second.owner == "unowned or dib") found->second.owner = CensusMemoryDc(dc) ? "unowned" : "dib";
             t.dib = &found->second;
             t.session = &it->second;
             t.owner = t.dib->owner;
@@ -1394,7 +1399,7 @@ void RefreshSurfaces(State& s) {
     for (const Candidate& c : Candidates(s)) {
         SurfaceView view;
         if (!ReadSurface(c.surface, &view) || !view.holder) continue;
-        HBITMAP bitmap = ClientBitmap(view.holder);
+        HBITMAP bitmap = CensusClientBitmap(view.holder);
         void* dd = nullptr;
         SafeRead(&view.holder->surface, &dd, sizeof(dd));
         if (!bitmap) continue;
@@ -1425,7 +1430,7 @@ void OnPixels(const CUiSurface* surface, const char* what, bool writes, void* co
     bool known = ReadSurface(surface, &view);
     std::string size = known ? Size(view.width, view.height) : "?";
     if (writes && known && view.holder) {
-        auto it = s.dibs.find(ClientBitmap(view.holder));
+        auto it = s.dibs.find(CensusClientBitmap(view.holder));
         if (it != s.dibs.end()) MarkDrawn(s, it->second);
     }
     AddRow(s, writes ? "write" : "read", owner, size, what, Chain(s, frame), {});
@@ -1468,8 +1473,10 @@ void Install() {
     AddCodeRanges(s, GetModuleHandleA(nullptr), 'G', "game.exe");
     if (self) AddCodeRanges(s, self, 'E', "ei_hook.dll");
     int count = PatchModule(s, GetModuleHandleA(nullptr));
-    g_uiSurfaceOwnerObserver = &OnOwner;
-    g_uiSurfacePixelObserver = &OnPixels;
+    if (ei::Standalone()) {   // ours draws the interface only in the image
+        g_uiSurfaceOwnerObserver = &OnOwner;
+        g_uiSurfacePixelObserver = &OnPixels;
+    }
     ei::Log("census: interface drawing census on (ui_census.csv); game.exe: %d gdi32 / user32 import slots hooked", count);
 }
 
@@ -1479,7 +1486,7 @@ void Frame() {
     if (!s.installed) return;
     ++s.frame;
     if (!s.modulesHooked || s.frame % 600 == 0) {
-        if (!s.modulesHooked && !render::Active())
+        if (!s.modulesHooked && !HarnessRenderActive())
             ei::Log("census: the window surfaces are not in memory DCs (game.exe: the original's drawing): "
                     "no checksums, calls placed by the surface's DirectDraw DC only");
         s.modulesHooked = true;
@@ -1530,7 +1537,7 @@ void Write() {
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
     std::fprintf(f, "# ui_census install=%s frames=%u cpuwindows=%d\n", verify::starter::RebirthInstall() ? "rebirth" : "vanilla",
-                 s.frame, render::Active() ? 1 : 0);
+                 s.frame, HarnessRenderActive() ? 1 : 0);
     std::fprintf(f, "kind,owner,size,primitive,chain,count,frames,detail\n");
     for (const auto& [key, row] : s.rows) {
         std::size_t a = key.find('\t'), b = key.find('\t', a + 1), c = key.find('\t', b + 1);

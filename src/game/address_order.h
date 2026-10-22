@@ -1,10 +1,10 @@
 #pragma once
 
 // Orders the game takes from heap addresses, settled without them in harness runs and in the
-// standalone (ticket T2f; ScriptGroup::OrderById, script.h, is the same for script groups, SV7b1).
+// standalone (ticket T2f; ScriptGroup::After, script.h, is the same for script groups, SV7b1).
 // Which address a block gets follows the heap's history, so these orders differ between the original
-// and ours, and between two runs of ours. With ById on, ours uses the order given here, and the
-// harness patches the original's sites to do the same (tests/verify/harness_address_order.cpp):
+// and ours, and between two runs of ours. Ours uses the order given here, and the harness patches the
+// original's sites to do the same (tests/verify/harness_address_order.cpp):
 //
 //   - the object sets a player is sent (world_object_sets.cpp, 0047ADF0 / 0047B1F0): by object id,
 //     then address, instead of address; the order the client gets new objects in (message 0x40);
@@ -24,18 +24,16 @@ class CEngineObject;
 
 namespace address_order {
 
-// From now on ours settles the orders above (the harness, before the game starts).
-void UseIds();
-// Whether ours does (UseIds was called, or the standalone, which always does).
+// Whether ours settles the orders above: always in the standalone (ours runs nowhere else).
 bool ById();
 
 // Whether the object set element `a` sorts before `b` (two object pointers as the sets keep them):
 // the address, or with ById the object's id (signed), then the address.
 bool ObjectBefore(const CEngineObject* a, const CEngineObject* b);
 
-// The draw lists' order with ById (UnitOrderLess::Less): the first part set's texture (null first,
+// The draw lists' order (UnitOrderLess::Less; address_order.cpp): the first part set's texture (null first,
 // then by name), then the figure (null first, then by name and morph weights), then the view depth
-// as the original (world_rules.cpp). Objects with the same keys keep the sort's own order.
+// as the original. Objects with the same keys keep the sort's own order.
 bool DrawBefore(CEngineObject* a, CEngineObject* b);
 
 } // namespace address_order

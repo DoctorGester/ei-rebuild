@@ -180,7 +180,7 @@ def registrations():
         text = re.sub(r'//[^\n]*', blank, text)
         text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
-        for m in re.finditer(r'(?:EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN)\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
+        for m in re.finditer(r'(?:EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:~]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))
@@ -246,7 +246,9 @@ def main():
                 problems += 1
                 print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __cdecl but the original pops {sorted(pops)}')
             continue
-        if pops != {nbytes}:
+        # A destructor's tag (EI_REWRITTEN_SPECIAL, C28) also names the original's scalar deleting destructor,
+        # which the compiler makes with the flags argument.
+        if pops != {nbytes} and not ('::~' in name and pops == {nbytes + 4}):
             problems += 1
             print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __{conv} with {nbytes} bytes of stack '
                   f'arguments, the original pops {sorted(pops)}')

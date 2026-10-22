@@ -25,24 +25,11 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-// In game.exe (the harness's runs of the original) the heap stays the game CRT's own code: the harness frees blocks
-// the game allocated and the other way round. In the image, ours.
-void* __cdecl operator_new(std::size_t size) {
-    if (ei::Standalone()) return libcrt::OperatorNew(size);
-    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x007005AF)(size);
-}
-void __cdecl operator_delete(void* p) {
-    if (ei::Standalone()) return libcrt::OperatorDelete(p);
-    reinterpret_cast<void(__cdecl*)(void*)>(0x007005D8)(p);
-}
-void* __cdecl malloc(std::size_t size) {
-    if (ei::Standalone()) return libcrt::Malloc(size);
-    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x006EABD1)(size);
-}
-void __cdecl free(void* p) {
-    if (ei::Standalone()) return libcrt::Free(p);
-    reinterpret_cast<void(__cdecl*)(void*)>(0x006EA8AD)(p);
-}
+// The image's heap (nothing of ours runs in game.exe; H30).
+void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
+void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
+void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
+void __cdecl free(void* p) { libcrt::Free(p); }
 #endif
 
 namespace {
@@ -385,27 +372,10 @@ EI_REWRITTEN(0x006EC8A8, libcrt::Mbslwr);
 // ---- rand / srand ----
 
 namespace {
-// The head of the CRT's per-thread block (_tiddata) up to the rand seed.
-struct CrtThreadData {
-    unsigned long threadId;
-    void* threadHandle;
-    int errnoValue;
-    unsigned long doserrnoValue;
-    void* floatingPointData;
-    unsigned randSeed;          // +0x14 (_holdrand)
-};
-
-bool InStandalone() {
-    static const bool standalone = ei::Standalone();
-    return standalone;
-}
-
-// The seed rand advances: the game CRT's own in the hook build (the harness reads and seeds it there),
-// one per thread in the image, where _getptd has no code.
+// The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
 unsigned& RandSeed() {
-    thread_local unsigned standaloneSeed = 1;
-    if (InStandalone()) return standaloneSeed;
-    return static_cast<CrtThreadData*>(gamecrt::GameThreadData())->randSeed;
+    thread_local unsigned seed = 1;
+    return seed;
 }
 } // namespace
 

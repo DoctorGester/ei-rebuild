@@ -7,6 +7,7 @@
 #include "../../src/game/ui_item_info.h"
 #include "../../src/game/ui_screens.h"
 #include "../../src/game/ui_view_screen.h"
+#include "ei/hook.h"
 #include "game/game_data.h"
 
 #include <vector>
@@ -86,6 +87,7 @@ const std::vector<WindowKind>& WindowKinds() {
 } // namespace
 
 std::uintptr_t RealWindowVtable(std::uintptr_t vtable) {
+    if (!ei::Standalone()) return vtable;   // game.exe's windows keep game.exe's tables
     for (const WindowKind& kind : WindowKinds())
         if (reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable) return reinterpret_cast<std::uintptr_t>(kind.original);
     return vtable;

@@ -30,7 +30,7 @@ EI_REWRITTEN(0x006885A0, MapEffect::Save);
 
 // flags_ is read through the stream argument's own stack slot: a read that writes nothing leaves
 // the stream's address there (kept).
-void CSpell::LoadSpell(CStream* stream) {
+void CSpell::Load(CStream* stream) {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     Effect().Load(stream);
     stream->Read(&speed_, 4);
@@ -47,9 +47,9 @@ void CSpell::LoadSpell(CStream* stream) {
     flags_ = flags;
     stream->Read(&skillNeeded_, 4);
 }
-EI_REWRITTEN(0x0068B860, CSpell::LoadSpell);
+EI_REWRITTEN(0x0068B860, CSpell::Load);
 
-void CSpell::SaveSpell(CStream* stream) {
+void CSpell::Save(CStream* stream) {
     Effect().Save(stream);
     stream->Write(&speed_, 4);
     stream->Write(&range_, 4);
@@ -63,4 +63,4 @@ void CSpell::SaveSpell(CStream* stream) {
     stream->Write(&flags_, 4);
     stream->Write(&skillNeeded_, 4);
 }
-EI_REWRITTEN(0x0068B920, CSpell::SaveSpell);
+EI_REWRITTEN(0x0068B920, CSpell::Save);

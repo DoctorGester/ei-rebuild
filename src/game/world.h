@@ -1029,45 +1029,34 @@ struct OpaqueRecord {
 };
 
 
-// The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240, 0xC bytes; the client's +0x1C8,
-// 0073F628): player sources (player_source.h; Query AL 0, the client's Segment calls Pump every
-// tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
-class CWorldHandle : public CPlayerSource {
+// The worlds' counted helpers (CWorld + 0x5C, 0xC bytes; the client's +0x1C8, 8 bytes): player
+// sources (player_source.h; Query AL 0, the client's Segment calls Pump every tick). The server's
+// hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
+class CWorldHandle final : public CPlayerSource {
 public:
-    // The compiled table (world_sessions.cpp; game.exe's 0073F240).
-    static void* Vtable();
+    CWorldHandle() : pendingLink_(nullptr) {}
+    ~CWorldHandle() override;           // 0055F280 (deleting: 0055F260): the link released
 
-    // 0: 0055F260 (DeletingDestruct)
-    int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
+    int OnShutdown() override;          // 2: 0055F1E0 (the link released, none pending)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
+    bool Query() override { return false; }   // 4: 0055F250
     void TakeNew(JoinedLinks* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
-    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
-
-    // 0055F280. The link released, the root vtable left.
-    void Destruct();
-    // 0055F260 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    CWorldHandle* DeletingDestruct(unsigned flags);
 
     netlink::NetLink* pendingLink_;     // +0x08 counted; handed over by slot 6
 };
-static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
 
-// The client world's player source (CWorldClient + 0x1C8, vtable 0073F628, 8 bytes; Setup makes
-// it): it has no state of its own. world_sessions.cpp.
-class CClientHandle : public CPlayerSource {
+// The client world's player source (CWorldClient + 0x1C8; Setup makes it): it has no state of its
+// own. world_sessions.cpp.
+class CClientHandle final : public CPlayerSource {
 public:
-    // The compiled table (world_sessions.cpp; game.exe's 0073F628).
-    static void* Vtable();
-
-    // 0: 00562750 (the counted value's deleting destructor); 4: 005626F0 (AL 0).
-    int OnShutdown() override;          // 2: 005626D0 (built again in place: the root vtable, then its own)
+    // (deleting destructor: 00562750, the counted value's)
+    int OnShutdown() override { return 0; }   // 2: 005626D0
     CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
+    bool Query() override { return false; }   // 4: 005626F0
     // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
     void TakeNew(JoinedLinks* joined) override;
-    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
 };
-static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
@@ -1140,12 +1129,6 @@ struct ClientArrayManager : CBaseManager {
 
     // Body of the slot at 004E2700 (registered by member pointer).
     int DrawImpl(CSceneRenderer* renderer);
-    // Body of the slot at 004E2290 (registered by member pointer).
-    CEngineObject* NewObjectImpl(int);
-    // The registrations (C20 retires them): 00562DF0 the destructor, 00562DD0 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void DestructBody();
-    ClientArrayManager* DeletingDestruct(unsigned flags);
 
     CEngineObject* current;               // +0xB0 counted
     mfc::CList<CEngineObject*> list;      // +0xB4 counted (vtable 0073F73C)
@@ -1593,8 +1576,8 @@ public:
     int constant6E8_;                     // +0x6E8 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
-    // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
-    // world keeps its bytes and RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
+    // +0x6F4 the rain / snow layer, built and destroyed in place with the world (world_construct.cpp,
+    // world_destructors.cpp); RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
     // 2 snow) picks the ground prints' wet look and an environment flag.
     alignas(4) std::uint8_t rainSnow_[0xC8];
     CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
@@ -1663,12 +1646,10 @@ struct DepthLess {
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then
-// the view depth (+0x30). The original compares the texture and the figure by address; with
-// address_order::ById (harness runs, the standalone) by name instead (address_order::DrawBefore).
+// the view depth (+0x30). The original compares the texture and the figure by address; ours by name
+// (address_order::DrawBefore).
 struct UnitOrderLess {
     bool Less(CEngineObject* a, CEngineObject* b);
-    // The original's order: texture and figure by address.
-    static bool LessByAddress(CEngineObject* a, CEngineObject* b);
 };
 // 00589580. Orders the client's variable nodes (ClientSession::variables_) by their stamp
 // (VariableMessage::serial_).
@@ -1833,7 +1814,7 @@ struct GameFlow {
     void UpdateFromServer();
 
     // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
-    class CParty* RequestParty() { return requestParty_.Party(); }
+    class CParty* RequestParty() { return requestParty_.Get(); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -1888,7 +1869,7 @@ struct MpHeroRecord {
     // the versions kSaveOldestVersion..kSaveVersion): false when the file does not read, else the party loaded
     // (with its variables) and the memory stream's ok flag.
     bool ReadFile(const char* folder);
-    CParty* Party() { return party.Party(); }
+    CParty* Party() { return party.Get(); }
 
     PartyStorage party;              // +0x00 CParty (party_storage.h)
     mfc::CString file;               // +0x70

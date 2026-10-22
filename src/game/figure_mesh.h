@@ -110,7 +110,6 @@ public:
     virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // 20: "FIG" data
     virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // 21: the older format
     // The deleting destructors (slot 0) free into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the

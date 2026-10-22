@@ -185,7 +185,6 @@ struct CSoundManager : CEngineObject {
     // then CEngineObject's.
     ~CSoundManager() override;
     // The deleting destructor (slot 0, 006B62B0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateBody(); }   // 2: 006B6D70
     void Destroy() override { Close(); }             // 3: 006B6D80
@@ -464,7 +463,6 @@ struct CMusicSystem : CEngineObject {
     // 006B44B0. ResetThemes, the theme array's destructor (006B56C0), the strings, CEngineObject's.
     ~CMusicSystem() override;
     // The deleting destructor (slot 0, 006B4490) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return LoadThemes(); }        // 2: 006B4710
     void Destroy() override { ResetThemes(); }           // 3: 006B4690
