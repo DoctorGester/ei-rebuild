@@ -646,7 +646,7 @@ struct UnitParams {
     // `weapon` (or null) given: types 0-4 skill 0 + the weapon's +0x7B, 5-6 skill 1 + +0x7C, each
     // plus (the stat named by the skill's first letter - 25) and the level value of skill `type`;
     // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned in ST0 unrounded.
-    double WeaponSkillBonus(int type, const char* weapon);
+    double WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
 
     std::uint8_t unused_00[4];
     int experience;                 // +0x04

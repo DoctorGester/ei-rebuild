@@ -40,7 +40,7 @@ void Lever::SetState(int wanted, float duration) {
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
         // The model's record by name: the table's operator[] (00464750; an unknown name gets a null entry).
-        const LeverRecord* record = static_cast<const LeverRecord*>((reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()))->Named(name));
+        const LeverRecord* record = TheLeverTable().Named(name);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;
@@ -113,15 +113,6 @@ void Lever::SetState(int wanted, float duration) {
 
 EI_REWRITTEN(0x0052B7A0, Lever::SetState);
 
-namespace {
-
-// The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
-// at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
-
-stlp::RecordsByName* LeverTableByName() { return reinterpret_cast<stlp::RecordsByName*>(&TheLeverTable()); }
-
-} // namespace
-
 void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     // CArray::RemoveAll, inlined.
     if (out->data) {
@@ -130,7 +121,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     }
     out->maxSize = 0;
     out->size = 0;
-    const LeverRecord* record = static_cast<const LeverRecord*>(LeverTableByName()->Named(name));
+    const LeverRecord* record = TheLeverTable().Named(name);
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).

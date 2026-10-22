@@ -59,6 +59,9 @@ struct LeverRecordTable {
     // buckets (the prime after 100). It runs from the static initialiser 004630F0 on the table at
     // 0079C1A0, before the hooks are installed, so the hook on it never fires. Returns this.
     LeverRecordTable* Construct();
+    // The record filed under `name`, null when there is none (the index's operator[], 0052CA40 /
+    // 0052CB40 / 00464750: a null record is filed under a new name).
+    LeverRecord* Named(const char* name) { return stlp::NamedSlot<LeverRecord>(byName, stlp::string(name)); }
 
     LeverRecord* begin;             // +0x00
     LeverRecord* end;               // +0x04

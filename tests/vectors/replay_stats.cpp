@@ -406,7 +406,7 @@ bool CheckWeaponSkillBonus(const WeaponBonusCall& v, char* d, std::size_t n) {
     std::memset(static_cast<void*>(weapon), 0, sizeof(*weapon));
     weapon->skillBonus[0] = v.bonus[0];
     weapon->skillBonus[1] = v.bonus[1];
-    double result = params.WeaponSkillBonus(v.type, v.weapon ? reinterpret_cast<const char*>(weapon) : nullptr);
+    double result = params.WeaponSkillBonus(v.type, v.weapon ? weapon : nullptr);
     if (Same(result, v.result)) return true;
     std::snprintf(d, n, "type %d level %u weapon %u: ours %.17g, original %.17g", v.type, v.level, v.weapon, result,
                   v.result);
