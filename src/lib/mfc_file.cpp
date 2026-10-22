@@ -249,8 +249,8 @@ struct FileTable : ei::CompiledTag<Self> {
     }
 
 protected:
-    File* This() { return reinterpret_cast<File*>(this); }
-    const File* This() const { return reinterpret_cast<const File*>(this); }
+    File* This() { return this->template ObjectAs<File>(); }
+    const File* This() const { return this->template ObjectAs<File>(); }
 };
 
 // game.exe's 00745DF4 (0: 0070BE58, 1: 00701050, 3-20: 007013B9 ... 0070150F).
@@ -288,8 +288,8 @@ struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual BOOL CloseContext() { return This()->CloseContext(); }                                // 18
 
 private:
-    CFileFind* This() { return reinterpret_cast<CFileFind*>(this); }
-    const CFileFind* This() const { return reinterpret_cast<const CFileFind*>(this); }
+    CFileFind* This() { return ObjectAs<CFileFind>(); }
+    const CFileFind* This() const { return ObjectAs<CFileFind>(); }
 };
 
 } // namespace

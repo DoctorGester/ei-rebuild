@@ -23,7 +23,7 @@ constexpr unsigned long kCxxMagic = 0x19930520;
 // std::exception's compiled table (C19) in place of game.exe's 00747290: 0 the scalar deleting destructor (006E7CE6),
 // 1 what (006E7DBE); and what()'s text without one ("Unknown exception", 00747298).
 struct ExceptionTable final : ei::CompiledDeleter<ExceptionTable, &Exception::DeletingDestruct> {
-    virtual const char* What() { return reinterpret_cast<const Exception*>(this)->What(); }   // 1
+    virtual const char* What() { return ObjectAs<Exception>()->What(); }   // 1
 };
 const void* ExceptionVtable() { return ExceptionTable::Vtable(); }
 const char* UnknownException() { return "Unknown exception"; }

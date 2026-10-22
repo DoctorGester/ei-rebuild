@@ -280,7 +280,7 @@ struct ArrayTable : ei::CompiledTag<Self> {
     }
 
 private:
-    Array* This() { return reinterpret_cast<Array*>(this); }
+    Array* This() { return this->template ObjectAs<Array>(); }
 };
 struct StringArrayTable final : ArrayTable<StringArrayTable, CStringArray, &g_classCStringArray> {};
 struct WordArrayTable final : ArrayTable<WordArrayTable, CWordArray, &g_classCWordArray> {};

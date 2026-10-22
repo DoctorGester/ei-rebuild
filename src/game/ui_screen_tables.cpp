@@ -272,7 +272,7 @@ struct CampClass final : ItemScreenClass<CampClass, &CItemScreen::CampScreenDele
 
 private:
     // The camp's slots 44 / 45 (006110F0, 00610020) are written over its window as CCampScreen (ui_screens.h).
-    CCampScreen* Camp() { return reinterpret_cast<CCampScreen*>(this); }
+    CCampScreen* Camp() { return ObjectAs<CCampScreen>(); }
 };
 struct CampInputClass final : ContainerInputClass<CampInputClass, &CItemScreen::CampScreenDelete, CCampPages> {
     int LeftDown(int b, int x, int y) override { return AsScreen()->OnLButtonDown(b, x, y), 0; }   // 2: 0060F470

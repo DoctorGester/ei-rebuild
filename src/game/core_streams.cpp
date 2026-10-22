@@ -122,7 +122,7 @@ struct StreamClass final : ei::CompiledDeleter<StreamClass, &CStream::DeletingDe
     virtual std::uint32_t Size() { return _purecall(); }                      // 4
     virtual std::uint32_t Position() { return _purecall(); }                  // 5
     virtual void Clear() { _purecall(); }                                     // 6
-    virtual void CopyFrom(CStream* source) { reinterpret_cast<CStream*>(this)->CopyFromImpl(source); }   // 7: 004A4D40
+    virtual void CopyFrom(CStream* source) { ObjectAs<CStream>()->CopyFromImpl(source); }   // 7: 004A4D40
 };
 
 // The memory streams' compiled tables (C19; game.exe's 0073BD90 and the queue streams' 0073C960, whose slot 0 is a
@@ -142,7 +142,7 @@ struct MemoryStreamSlots : ei::CompiledDeleter<Self, &CMemoryStream::DeletingDes
     virtual void CopyFrom(CStream* source) { Stream()->CopyFromImpl(source); }   // 7: 004A55D0
 
 private:
-    CMemoryStream* Stream() { return reinterpret_cast<CMemoryStream*>(this); }
+    CMemoryStream* Stream() { return this->template ObjectAs<CMemoryStream>(); }
 };
 struct MemoryStreamClass final : MemoryStreamSlots<MemoryStreamClass> {};
 struct QueueStreamClass final : MemoryStreamSlots<QueueStreamClass> {};

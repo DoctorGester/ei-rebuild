@@ -32,7 +32,7 @@ public:
     using DeleteClass = std::remove_pointer_t<decltype(UiWindowDeleteType(Delete))>;
     using Window = std::conditional_t<std::is_base_of_v<CUiWindow, DeleteClass>, DeleteClass, CUiWindow>;
 
-    virtual void* DeleteScalar(unsigned flags) { return (reinterpret_cast<DeleteClass*>(this)->*Delete)(flags); }   // 0
+    virtual void* DeleteScalar(unsigned flags) { return (this->template ObjectAs<DeleteClass>()->*Delete)(flags); }   // 0
     virtual void CopyFrom(const CEngineObject& other) { Object()->CopyFromImpl(other); }     // 1: 00402D40
     virtual int Create() { return UiObjectCreate(Object()); }                                // 2: 00579560 (1)
     virtual void Destroy() {}                                                                // 3: 00579570 (empty)
@@ -67,9 +67,9 @@ public:
     virtual void Update() {}                                                    // 24: 005EE010 (empty)
 
 protected:
-    Window* AsWindow() { return reinterpret_cast<Window*>(this); }
-    CEngineObject* Object() { return reinterpret_cast<CEngineObject*>(this); }
-    CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
+    Window* AsWindow() { return this->template ObjectAs<Window>(); }
+    CEngineObject* Object() { return this->template ObjectAs<CEngineObject>(); }
+    CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }
 };
 
 // The plain window's table (game.exe's 00740F60): the window base's constructor and destructor store it.

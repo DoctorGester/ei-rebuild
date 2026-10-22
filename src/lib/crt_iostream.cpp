@@ -40,7 +40,7 @@ struct StreambufTable final : ei::CompiledDeleter<StreambufTable, &Streambuf::De
     virtual int Doallocate() { return This()->DefaultDoallocate(); }                                       // 10
 
 private:
-    Streambuf* This() { return reinterpret_cast<Streambuf*>(this); }
+    Streambuf* This() { return ObjectAs<Streambuf>(); }
 };
 struct IosTable final : ei::CompiledDeleter<IosTable, &Ios::DeletingDestruct> {};
 struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::DeleteOstream> {};

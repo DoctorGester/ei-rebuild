@@ -32,7 +32,7 @@ template <typename Self, const CRuntimeClass* kClass>
 struct GdiObjectTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }   // 0
     virtual void* DeleteScalar(unsigned flags) {                              // 1
-        return reinterpret_cast<CGdiObject*>(this)->DeletingDestruct(flags);
+        return this->template ObjectAs<CGdiObject>()->DeletingDestruct(flags);
     }
     virtual void Serialize(void*) {}                                          // 2: 00444B00
 };
@@ -44,7 +44,7 @@ struct PenTable final : GdiObjectTable<PenTable, &kClassCPen> {};
 // CTempGdiObject (game.exe's 0074645C: 0070C08D, 0070C044): its memory goes back to the fixed allocator.
 struct TempGdiObjectTable final : GdiObjectTable<TempGdiObjectTable, &kClassCTempGdiObject> {
     void* DeleteScalar(unsigned flags) override {
-        auto* self = reinterpret_cast<CGdiObject*>(this);
+        auto* self = ObjectAs<CGdiObject>();
         self->Destruct();   // 0070C064
         if (flags & 1) TempGdiObjectAlloc().Free(self);
         return self;
@@ -91,7 +91,7 @@ struct DCTable : ei::CompiledTag<Self> {
     virtual int Escape(int, int, const char*, void*) { ei::UnportedSlot(0x006E6A68); }              // 28
 
 protected:
-    CDC* This() { return reinterpret_cast<CDC*>(this); }
+    CDC* This() { return this->template ObjectAs<CDC>(); }
 };
 // game.exe's 007461B0 (0: 0070BF7B, 1: 00708CEB).
 struct PlainDCTable final : DCTable<PlainDCTable, &kClassCDC> {

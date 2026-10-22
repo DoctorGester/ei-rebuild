@@ -180,7 +180,7 @@ static_assert(sizeof(OutOfRange) == 0x10C);
 // scalar deleting destructor (0040C480 / 0041F740: ~exception, then the memory freed), 1 what (0040C430: the name).
 template <typename Self>
 struct NamedExceptionTable : ei::CompiledDeleter<Self, &libcrt::Exception::DeletingDestruct> {
-    virtual const char* What() { return reinterpret_cast<const OutOfRange*>(this)->name; }   // 1
+    virtual const char* What() { return this->template ObjectAs<OutOfRange>()->name; }   // 1
 };
 struct NamedExceptionClass final : NamedExceptionTable<NamedExceptionClass> {};
 struct OutOfRangeClass final : NamedExceptionTable<OutOfRangeClass> {};
