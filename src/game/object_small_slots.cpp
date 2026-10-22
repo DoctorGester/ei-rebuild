@@ -17,9 +17,6 @@ namespace {
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 constexpr int kNoSound = -1;
-
-// The MFC CArray layout slot 44 empties.
-using RawArray = mfc::CArray<std::uint8_t>;
 } // namespace
 
 bool CMapObject::ApplyScienceImpl(int, int) {
@@ -28,14 +25,13 @@ bool CMapObject::ApplyScienceImpl(int, int) {
 }
 EI_REWRITTEN(0x0050F0F0, CMapObject::ApplyScienceImpl);
 
-void CMapObject::FreeArray(void* array, int) {
-    auto* raw = static_cast<RawArray*>(array);
-    if (raw->data) {
-        gamecrt::operator_delete(raw->data);
-        raw->data = nullptr;
+void CMapObject::FreeArray(UseSpotArray* array, int) {
+    if (array->data) {
+        gamecrt::operator_delete(array->data);
+        array->data = nullptr;
     }
-    raw->maxSize = 0;
-    raw->size = 0;
+    array->maxSize = 0;
+    array->size = 0;
 }
 EI_REWRITTEN(0x0050F120, CMapObject::FreeArray);
 

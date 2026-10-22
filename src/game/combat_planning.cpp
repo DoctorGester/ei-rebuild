@@ -147,8 +147,8 @@ struct LocalUnitMotion {
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
 };
 
-// A CArray<Vector3> (vtable 0073C120) of the spots a use order may go to.
-using SpotArray = mfc::CArray<float[3]>;
+// The spots a use order may go to (map_object.h).
+using SpotArray = UseSpotArray;
 
 // A CPtrList on the stack (vtable 0073D454, blocks of 10).
 using UnitPtrList = mfc::CTypedPtrList<CUnit>;
@@ -179,7 +179,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         Vector3 bestSpot = {0.0f, 0.0f, 0.0f};
         CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
-            std::memcpy(&spot, spots.data[i], sizeof(spot));
+            spot = spots.data[i];
             path.Path()->Clear();
             if (!MapFindPath(map, nullptr, unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.

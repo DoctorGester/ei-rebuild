@@ -19,10 +19,8 @@
 
 class CStream;   // core_streams.h
 
-// The spots a use order may go to (an MFC CArray<Vector3>, vtable 0073C120; its SetAtGrow is
-// 0052CC50). combat_planning.cpp's SpotArray is the same array.
-using LeverSpots = mfc::CArray<Vector3>;
-static_assert(sizeof(LeverSpots) == 0x14);
+// The spots a use order may go to (map_object.h's UseSpotArray).
+using LeverSpots = UseSpotArray;
 
 // A model's record in the lever table (0079C1A0: 0x2C bytes, read from Levers.ldb by 00463030,
 // whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
@@ -103,7 +101,7 @@ public:
     bool ApplyScience(int first, int second) override;
     int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }   // 42
     bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }    // 43
-    void UseSpots(void* out, float userRadius) override;           // 44: CollectUseSpots
+    void UseSpots(UseSpotArray* out, float userRadius) override;           // 44: CollectUseSpots
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }   // 49
     void WriteNetState() override { WriteLeverNetState(); }        // 50
     float Radius() override { return static_cast<float>(RadiusSlot()); }   // 60

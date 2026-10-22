@@ -136,7 +136,7 @@ void Lever::Save(CStream* stream) { SaveLever(stream); }
 bool Lever::ApplyScience(int first, int second) {
     return ApplyKey(reinterpret_cast<const LockKey*>(static_cast<std::intptr_t>(first)), second);
 }
-void Lever::UseSpots(void* out, float userRadius) { CollectUseSpots(static_cast<LeverSpots*>(out), userRadius); }
+void Lever::UseSpots(UseSpotArray* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
     stream->Read(&mask, 4);

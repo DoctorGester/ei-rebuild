@@ -165,7 +165,7 @@ std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }
 bool CMapObject::ApplyScience(int first, int second) { return ApplyScienceImpl(first, second); }
 int CMapObject::AcceptsKey(const LockKey* key) { return AcceptsNoKey(key); }
 bool CMapObject::KeepsMapFlag() { return true; }
-void CMapObject::UseSpots(void* out, float) { FreeArray(out, 0); }
+void CMapObject::UseSpots(UseSpotArray* out, float) { FreeArray(out, 0); }
 std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) { return AddEffectImpl(effect); }
 std::uint32_t CMapObject::SetStunned(int) { return 0; }
 int CMapObject::SetVisibilityMode(int mode) { return static_cast<int>(SetVisibilityModeImpl(mode)); }

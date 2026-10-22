@@ -69,7 +69,7 @@ public:
     virtual bool ApplyScience(int first, int second) { return Map()->CMapObject::ApplyScience(first, second); }   // 41
     virtual int AcceptsKey(const LockKey* key) { return Map()->CMapObject::AcceptsKey(key); }       // 42: 0050F110
     virtual bool KeepsMapFlag() { return Map()->CMapObject::KeepsMapFlag(); }                       // 43: 004467B0
-    virtual void UseSpots(void* out, float userRadius) { Map()->CMapObject::UseSpots(out, userRadius); }   // 44
+    virtual void UseSpots(UseSpotArray* out, float userRadius) { Map()->CMapObject::UseSpots(out, userRadius); }   // 44
     virtual std::uintptr_t AddEffect(const MapEffect* effect) { return Map()->CMapObject::AddEffect(effect); }   // 45
     virtual std::uint32_t SetStunned(int on) { return Map()->CMapObject::SetStunned(on); }         // 46: 0050E4A0
     virtual int SetVisibilityMode(int mode) { return Map()->CMapObject::SetVisibilityMode(mode); } // 47: 004467C0

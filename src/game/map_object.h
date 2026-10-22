@@ -89,6 +89,11 @@ struct AttackParams; // combat.h
 struct UnitStats;    // unit.h
 struct LockKey;      // unit.h
 
+// The spots a use order may go to (slot 44's `out`): an MFC CArray<Vector3>, vtable 0073C120; its
+// SetAtGrow is 0052CC50.
+using UseSpotArray = mfc::CArray<Vector3>;
+static_assert(sizeof(UseSpotArray) == 0x14);
+
 // The game builds most map objects with Construct (0050E2D0 stores the vtable 0073DAA0, 61 slots;
 // CUnit's 0073EA8C adds slot 61); a class whose constructor is C++ (C19: the torches, levers and
 // traps) gets the compiler's table, built from the same bodies: every slot is defined here (slots
@@ -169,7 +174,7 @@ public:
     virtual bool KeepsMapFlag();
     // 44 (0xB0, RET 8): the spots a user of radius `userRadius` may use the object from, into the
     // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 Lever::CollectUseSpots.
-    virtual void UseSpots(void* out, float userRadius);
+    virtual void UseSpots(UseSpotArray* out, float userRadius);
     // 45: 0050F1E0 (map_object.cpp): appends a copy of `effect` (the array grown by SetSize 0050FE70),
     // marks part 3 changed and the object dirty (stamped with the world's +0x68 when referenced),
     // then calls slot 33 with the argument's dword whose low byte says whether the effect scales
@@ -304,7 +309,7 @@ public:
     int CompanionQuery(int first, int second, int unused);
     // 0050F120. Virtual slot 44: frees the data of the MFC array `array` (operator delete) and
     // empties it (data, size, capacity). The second argument is unread.
-    void FreeArray(void* array, int unused);
+    void FreeArray(UseSpotArray* array, int unused);
 
     // unit_vision.cpp (A-U3). 0050F170 (RET 4): slot 47 with mode 0 for `level` 0 (or NaN), 1 for
     // 1, else 2. Returns slot 47's EAX.
