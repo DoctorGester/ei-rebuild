@@ -565,6 +565,7 @@ REVIEWED_NEAR = {
     0x0079B5E0: ('0079B5DC', 'counted pointer to the server (4 bytes: its constructor 0041FF50 stores one dword)'),
     0x0079B610: ('0079B60C', 'the player serial counter (dword read and written directly)'),
     0x0079B680: ('0079B66C', 'the clip work buffer: CWordArray 0079B668, 0x14 bytes, its data pointer'),
+    0x007C7E80: ('007C7E78', 'the window surfaces\' byte total (a lone dword, ui.h\'s g_uiSurfaceBytes)'),
     0x0079B690: ('0079B68C', 'the clip buffer count (dword)'),
     0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
@@ -1020,8 +1021,16 @@ def decode_exits(img, decoded):
             if kind == 'exit' and fn not in registered and a not in by.setdefault(fn, []):
                 by[fn].append(a)
     RUNTIME_SITES.clear()
+    dead_ranges = dead_code()
+    dead_starts = [b for b, _ in dead_ranges]
+
+    def dead(at):   # a registration inside code nothing runs (config/dead_code.csv) never runs
+        i = bisect.bisect_right(dead_starts, at) - 1
+        return i >= 0 and at < dead_ranges[i][1]
+
     for fn, sites in runtime_atexits(img, md).items():
-        if fn not in registered and fn not in by:
+        sites = [s for s in sites if not dead(s)]
+        if sites and fn not in registered and fn not in by:
             by[fn] = sites
             RUNTIME_SITES.update(sites)
     out, bad = [], []

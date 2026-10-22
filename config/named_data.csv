@@ -118,6 +118,7 @@ address,size,name,file
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
+0078FF34,4,g_updatePeriod,src/game/world_data.h
 0078FF38,4,g_lastLitHour,src/game/world_data.h
 00790260,4,kSaveVersion,src/game/world.h
 00790264,4,kSaveLastUncompressedVersion,src/game/world.h
@@ -228,6 +229,7 @@ address,size,name,file
 007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
 007AA608,20,g_scriptQuestObjectives,src/game/script_exec_helpers.cpp
 007AA61C,4,g_scriptQuestName,src/game/script_exec_helpers.cpp
+007AA620,4,g_streamedScript,src/game/script.h
 007AA890,16,kSkyDrawA,src/game/sky_object.cpp
 007AA8A0,12,kSkyDrawB,src/game/sky_object.cpp
 007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
@@ -259,6 +261,7 @@ address,size,name,file
 007AEE30,16,g_outcodes,src/game/device_buffers.cpp
 007AEE60,1,g_driversDestroyed,src/game/static_lists.cpp
 007AEE64,4,g_directDrawDrivers,src/game/static_lists.cpp
+007AEE94,4,g_holderCount,src/game/device.h
 007AEEB8,16,g_texturePixels,src/game/link_mesh_draw.cpp
 007AEED0,16,g_movedPackets,src/game/link_mesh_draw.cpp
 007AEF60,20,g_indices,src/game/renderer_sprites.cpp
@@ -317,6 +320,7 @@ address,size,name,file
 007AF598,12,g_visibleOther,src/game/world_client_view.cpp
 007AF5A8,12,g_visible54,src/game/world_client_view.cpp
 007AF5B4,4,g_deferredUnits,src/game/static_lists.cpp
+007AFDB0,12,kOrigin,src/game/world_data.h
 007AFDC0,12,g_questFolders,src/game/world_briefing.cpp
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
@@ -371,6 +375,8 @@ address,size,name,file
 007C7D50,176,g_interface,src/game/ui_small_members.cpp
 007C7E24,4,g_shotCounter,src/game/ui_interface_keys.cpp
 007C7E58,16,kIdentityRotation,src/game/ui_window.cpp
+007C7E74,4,g_uiSurfaceKeptBytes,src/game/ui.h
+007C7E78,4,g_uiSurfaceBytes,src/game/ui.h
 007C7EE8,4,kCampFullTurn,src/game/ui_camp.cpp
 007C7F10,4,kFullTurn,src/game/ui_hero_screen.cpp
 007C7F14,4,kMenuTilt,src/game/ui_hero_screen_create.cpp
