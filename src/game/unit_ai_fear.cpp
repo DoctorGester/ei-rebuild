@@ -312,9 +312,9 @@ void FearMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionMove;
             brain->actionTime = AIBrain::kNoTime;
             // 005D7970: the order assigned to the brain's action point and looks.
-            brain->actionPoint = order.point;
-            brain->looks.Copy(order.looks);
-            brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
+            brain->move.point = order.point;
+            brain->move.looks.Copy(order.looks);
+            brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
         }
     }
     LooksDestroyAt(&order.looks);
