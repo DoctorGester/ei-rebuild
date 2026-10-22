@@ -78,11 +78,11 @@ CMapObject* CMapObject::DeleteMapObject(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0050E560, CMapObject::DeleteMapObject);
 
-int CMapObject::CompanionIsDead() { return static_cast<CMapObjectCompanion*>(companion)->IsDead(); }
+int CMapObject::CompanionIsDead() { return companion->IsDead(); }
 EI_REPLACE_METHOD(0x0050E500, CMapObject::CompanionIsDead);
 
 int CMapObject::NotifyCompanion() {
-    static_cast<CMapObjectCompanion*>(companion)->Unused14();
+    companion->Unused14();
     return 1;
 }
 EI_REPLACE_METHOD(0x0050E930, CMapObject::NotifyCompanion);

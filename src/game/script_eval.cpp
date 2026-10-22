@@ -312,10 +312,10 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x63:   // IsAlive
     case 0x64: { // IsDead
         CEngineObject* o = objectArgs.data[0]->object;
-        CEngineObject* stats = o ? ObjectSlots(o)->companion : nullptr;
+        CMapObjectCompanion* stats = o ? ObjectSlots(o)->companion : nullptr;
         StoreBits(result, kZero);
         if (!stats) return;
-        int state = static_cast<CMapObjectCompanion*>(stats)->IsDead();
+        int state = stats->IsDead();
         *result = static_cast<float>(id == 0x63 ? (state == 0 ? 1 : 0) : state);
         return;
     }
