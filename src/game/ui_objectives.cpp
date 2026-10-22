@@ -661,7 +661,7 @@ void CObjectivesWindow::Build() {
                 }
             if (!listed) PushBack(zones, zone->name);
         }
-        if (SizeOf(*zones) == 0 && reinterpret_cast<const int*>(static_cast<const char*>(current))[-2] != 0)
+        if (SizeOf(*zones) == 0 && current.GetLength() != 0)
             PushBack(zones, current);
         if (SizeOf(*zones) == 0) {
             interface_->SetPendingValue(0);

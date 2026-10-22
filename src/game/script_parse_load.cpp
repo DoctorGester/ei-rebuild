@@ -381,7 +381,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
-                cmd->stringArgs.data[stringCount] = Ops(text).Mid(1, Length(text) - 2);
+                cmd->stringArgs.data[stringCount] = Ops(text).Mid(1, text.GetLength() - 2);
                 bind = false;
             }
             ++stringCount;

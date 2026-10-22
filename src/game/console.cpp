@@ -249,7 +249,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         if (c == ' ') {
             if (state == 1) {
                 state = 0;
-                if (Length(token) != 0) {
+                if (token.GetLength() != 0) {
                     out->SetAtGrow(out->GetSize(), token);
                     token.Empty();
                 }
@@ -274,7 +274,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         token += character;
         p = MbsInc(p);
     }
-    if (Length(token) != 0) {
+    if (token.GetLength() != 0) {
         out->SetAtGrow(out->GetSize(), token);
         token.Empty();
     }

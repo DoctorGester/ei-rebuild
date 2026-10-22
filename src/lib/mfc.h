@@ -60,6 +60,9 @@ public:
     int Find(char c, int start) const;            // 00700E9F
 
     operator const char*() const { return data_; }
+    // The characters (LPCTSTR), for printf-style arguments and other places the conversion is not
+    // implicit (MFC 7's name).
+    const char* GetString() const { return data_; }
 
     // Storage for a result built in place (mfc.cpp): the pointer is left unset.
     enum Unset { kUnset };

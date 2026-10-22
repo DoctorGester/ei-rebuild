@@ -95,7 +95,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
         mfc::CString zone(briefing);
         {
-            mfc::CString left = zone.Left(reinterpret_cast<const int*>(static_cast<const char*>(zone))[-2] - 2);
+            mfc::CString left = zone.Left(zone.GetLength() - 2);
             zone = left;
         }
         FlowLoadQuestsOriginal(zone);

@@ -48,7 +48,6 @@ void __fastcall BriefingDestroy(void* record) { static_cast<QuestBriefingRecord*
 // add-unless-present used for the later briefings 006B0600.
 
 CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
 // path when the vector is full.
@@ -123,7 +122,7 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
     v->EraseRange<ListElement>(v->begin(), v->end());   // erase(begin, end) or clear(): the same
     v->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (Length(strings[i]) != 0) v->PushBack<ListElement>(strings[i]);
+        if (strings[i].GetLength() != 0) v->PushBack<ListElement>(strings[i]);
     }
 }
 
@@ -204,7 +203,7 @@ void __fastcall ReadStringList(CFileRegistry* registry, const char* section, con
     list->EraseRange<ListElement>(list->begin(), list->end());
     list->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (Length(strings[i]) != 0) list->PushBack<ListElement>(strings[i]);
+        if (strings[i].GetLength() != 0) list->PushBack<ListElement>(strings[i]);
     }
 }
 EI_REWRITTEN(0x006AE740, ReadStringList);

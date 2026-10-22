@@ -36,13 +36,12 @@ namespace {
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 mfc::CString* StringResult(Call* call) { return static_cast<mfc::CString*>(call->result); }
 const mfc::CString& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // 10010D8F: every string argument appended in order (each by its CString length).
 std::string Joined(Call* call) {
     std::string text;
     const mfc::CArray<mfc::CString>& strings = call->cmd->stringArgs;
-    for (int i = 0; i < strings.size; ++i) text.append(static_cast<const char*>(strings.data[i]), Length(strings.data[i]));
+    for (int i = 0; i < strings.size; ++i) text.append(static_cast<const char*>(strings.data[i]), strings.data[i].GetLength());
     return text;
 }
 

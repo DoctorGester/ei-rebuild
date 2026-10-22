@@ -107,7 +107,6 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
     return true;
 }
 
-bool IsEmpty(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2] == 0; }
 
 } // namespace
 
@@ -172,7 +171,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     DescriptionLines(description, &lines, 1);
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
-        if (!IsEmpty(lines[1])) panel.DrawLabelled(11, lines[1]);
+        if (lines[1].GetLength() != 0) panel.DrawLabelled(11, lines[1]);
         auto* prototype = unitIn->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
@@ -192,7 +191,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             panel.text.Format(kTwoTexts, static_cast<const char*>(panel.labels[16]), static_cast<const char*>(suffix));
             panel.DrawLine();
         }
-    } else if (!IsEmpty(lines[2])) {
+    } else if (lines[2].GetLength() != 0) {
         panel.DrawLabelled(12, lines[2]);
     }
 

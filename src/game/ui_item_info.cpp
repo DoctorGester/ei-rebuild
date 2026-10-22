@@ -122,7 +122,7 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-int Length(const mfc::CString& s) { return s.GetLength(); }
+int (const mfc::CString& s).GetLength() { return s.GetLength(); }
 
 // Items and spells through their addresses (thiscall): the prototype record (006A0110), the
 // category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
@@ -234,7 +234,7 @@ public:
         CStringArray lists;
         DamageLists(values, &lists, 0);
         Joined(label, lists[0]);
-        if (Length(lists[2]) != 0) Joined(24, lists[2]);
+        if (lists[2].GetLength() != 0) Joined(24, lists[2]);
     }
     // The "school_<n>" text after infoitem_18.
     void School(int school) {

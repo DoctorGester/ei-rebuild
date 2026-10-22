@@ -463,7 +463,7 @@ void __fastcall Days(CStringArray* args) {
         return true;
     };
     auto number = [&](int i, int first, int count) { return libcrt::Atoi(Ops((*args)[i]).Mid(first, count)); };
-    if (args->GetSize() >= 2 && Length((*args)[0]) >= 8 && Length((*args)[1]) >= 8 && digits(0) && digits(1)) {
+    if (args->GetSize() >= 2 && ((*args)[0]).GetLength() >= 8 && ((*args)[1]).GetLength() >= 8 && digits(0) && digits(1)) {
         int year = number(0, 4, 4);
         if (year >= 1900) {
             int month = number(0, 2, 2);
@@ -526,7 +526,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
     if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
     mfc::CString name((*args)[0]);
     const char* text = name;
-    if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);
+    if (text[0] == '"' && text[name.GetLength() - 1] == '"') name = Ops(name).Mid(1, name.GetLength() - 2);
     if (ServerActive(Server())) Server()->SendCommand(command, name);
 }
 } // namespace

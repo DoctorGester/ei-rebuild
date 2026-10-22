@@ -20,10 +20,9 @@ CScript*& SavingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // The string with its terminator.
-void WriteString(ScriptStream* stream, const mfc::CString& s) { stream->Write(static_cast<const char*>(s), Length(s) + 1); }
+void WriteString(ScriptStream* stream, const mfc::CString& s) { stream->Write(static_cast<const char*>(s), s.GetLength() + 1); }
 
 // Variable i's name, or a single zero byte when the name array is shorter.
 void WriteName(ScriptStream* stream, const mfc::CArray<mfc::CString>& names, int i) {

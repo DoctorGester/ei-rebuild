@@ -367,10 +367,10 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
     using Node = ScriptDefineList::Node;
     if (defines->head) {
         // Before the first define with a shorter name; when there is none, before the last one.
-        const int length = Length(define->name);
+        const int length = define->name.GetLength();
         Node* before = defines->head;
         for (;;) {
-            if (Length(before->data.name) < length || !before->next) break;
+            if (before->data.name.GetLength() < length || !before->next) break;
             before = before->next;
         }
         Node* prev = before->prev;
@@ -413,7 +413,7 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
             const StringOps& text = Ops(*line);
             int at = text.Find(node->data.name);
             if (at < 0) break;
-            mfc::CString right = static_cast<const mfc::CString&>(text).Right(Length(*line) - Length(node->data.name) - at);
+            mfc::CString right = static_cast<const mfc::CString&>(text).Right(line->GetLength() - node->data.name.GetLength() - at);
             mfc::CString left = text.Left(at);
             *line = (left + node->data.value) + right;
         }

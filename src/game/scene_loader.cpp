@@ -703,7 +703,7 @@ void __fastcall ComputeMeshNormals(VtArray*);
 void __fastcall IndexMeshCorners(VtArray*);
 namespace {
 
-int Length(const mfc::CString& s) { return s.GetLength(); }
+int (const mfc::CString& s).GetLength() { return s.GetLength(); }
 
 // The figures (00453240 builds them, 00453210 destroys them; sized by 0044FCD0).
 using FigureRecordArray = recordarrays::FigureParts::Array;
@@ -801,7 +801,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     int tops = 0;
     for (int i = 0; i < s.nodes.size; ++i) {
         SceneNode& n = Typed<NodeArray>(s.nodes).data[i];
-        if (Length(n.parent) == 0) {
+        if (n.parent.GetLength() == 0) {
             ++tops;
             s.roots.SetAtGrow(s.roots.size, n.name);
         }
@@ -819,7 +819,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     if (ext != -1) {
         if (!registryName) {
             if (s.path.Find(scenedata::ScenesDirText()) == 0) {
-                s.path = scenedata::IniDirText() + s.path.Right(Length(s.path) - 7);
+                s.path = scenedata::IniDirText() + s.path.Right(s.path.GetLength() - 7);
                 --ext;
             }
             s.path = s.path.Left(ext) + scenedata::RegExtText();
@@ -895,7 +895,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
                                    scenedata::BmpExtText()) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
-            texture = static_cast<const char*>(name.Left(Length(name) - 4));
+            texture = static_cast<const char*>(name.Left(name.GetLength() - 4));
         } else {
             texture = static_cast<const char*>(s.textureNames.Name(t));
         }

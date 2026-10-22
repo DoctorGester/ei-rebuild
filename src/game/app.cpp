@@ -157,7 +157,6 @@ int TypedCharacter(WPARAM unit) {
 
 void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
 
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 } // namespace
 
@@ -272,7 +271,7 @@ int __cdecl StartFirstMap() {
     const auto& cmdMode = CommandLineMob();   // empty: main menu
     const auto& cmdScript = CommandLineScript();
     mfc::CString map;
-    map = Length(cmdMap) != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
+    map = cmdMap.GetLength() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
     if (gamecrt::mbscmp(static_cast<const char*>(cmdMode),
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
@@ -287,7 +286,7 @@ int __cdecl StartFirstMap() {
     client->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
-    if (Length(cmdScript) == 0) return 1;
+    if (cmdScript.GetLength() == 0) return 1;
     void* script = TheMissionScript();
     BOOL loaded;
     {
