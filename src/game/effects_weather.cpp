@@ -164,7 +164,7 @@ EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
 EI_REWRITTEN(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
-    HeldTexture::Of(&texture)->Load(kWeatherTextureKind, WeatherTextureName());
+    texture.Load(kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
         TheSoundManager()->StopSound(sound);
         sound = 0;

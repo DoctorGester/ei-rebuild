@@ -404,6 +404,26 @@ protected:
 // The scene renderer (the global at 007AF060, 26 slots; 00500960 returns it). C19: a real virtual class over
 // CVisualizator, the compiler's table in place of game.exe's 0073D93C; the static initialiser's constructor
 // (00500A70) and the exit's destructor (00500AC0) construct and destroy it in place.
+// A counted texture pointer as the original's helpers take it: by address, thiscall on the pointer
+// (the particle sources', the rain's, the sky's and the lightning's textures). Reads see the texture;
+// a plain store (`held = p`) counts nothing.
+struct HeldTexture {
+    // 00500A00 (RET 8; renderer_lifetime.cpp). Drops the texture (set to null, then released) and
+    // takes the texture manager's registered or cached texture of `kind` named `name`, or a new one of
+    // `kind` (CreateObject(kind, -1)), named `name` (one more reference).
+    void Load(int kind, const char* name);
+
+    operator CTexture*() const { return texture; }
+    CTexture* operator->() const { return texture; }
+    HeldTexture& operator=(CTexture* plain) {
+        texture = plain;
+        return *this;
+    }
+
+    CTexture* texture;
+};
+static_assert(sizeof(HeldTexture) == 4);
+
 // The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
 // left), 00504E20 (RET 4; renderer_lifetime.cpp) takes `device` (one more reference) and releases
 // the old one. Reads see the device; a plain store (`held = p`) counts nothing.
@@ -552,7 +572,7 @@ public:
 
     // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
     // (00500970) and binds it to `stage` through slot 11.
-    int BindHeldTexture(int stage, CTexture** holder);
+    int BindHeldTexture(int stage, HeldTexture* holder);
     // 00500A70. The static initialiser's constructor: the renderer constructed in place. Returns this.
     CSceneRenderer* ConstructRenderer();
     // 00500AC0. The exit's destructor: the renderer's destructor, called qualified.

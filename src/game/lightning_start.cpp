@@ -115,14 +115,12 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     bounds_.boxMax.y += 1.0f;
     bounds_.boxMax.z += 1.0f;
     bounds_.radius = bounds_.boxMax.Length();
-    CTexture** glow = &glowTexture_;
-    CTexture** main = &texture_;
     if (demon) {
-        HeldTexture::Of(glow)->Load(6, "DemonLight");
-        HeldTexture::Of(main)->Load(6, "DemonLightning");
+        glowTexture_.Load(6, "DemonLight");
+        texture_.Load(6, "DemonLightning");
     } else {
-        HeldTexture::Of(glow)->Load(6, "SmtgLight");
-        HeldTexture::Of(main)->Load(6, "Lightning");
+        glowTexture_.Load(6, "SmtgLight");
+        texture_.Load(6, "Lightning");
     }
 }
 
@@ -134,7 +132,7 @@ void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct
 void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
 
 // A texture reference dropped: cleared, then released.
-void DropTexture(CTexture*& slot) {
+void DropTexture(HeldTexture& slot) {
     CTexture* old = slot;
     slot = nullptr;
     if (old) old->Release();

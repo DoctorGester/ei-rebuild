@@ -249,7 +249,7 @@ EI_REWRITTEN(0x00504E20, HeldDevice::Assign);
 
 // --- Texture holders -----------------------------------------------------------------------------
 
-int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
+int __fastcall TextureHolderEnsureLoaded(HeldTexture* holder) {
     CTexture* texture = *holder;
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;

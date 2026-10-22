@@ -108,8 +108,8 @@ public:
     // textures ("Lightning" / "SmtgLight", or the "Demon" pair).
     void Start(const Vector3* from, const Vector3* to, float power, bool demon);
 
-    CTexture* texture_;                 // +0x1C
-    CTexture* glowTexture_;             // +0x20
+    HeldTexture texture_;               // +0x1C
+    HeldTexture glowTexture_;           // +0x20
     // +0x24 the bounds the renderer clips by: flags 3 once set, the box relative to the centre.
     ClipBounds bounds_;
     Vector3 boundsSpare_;               // +0x50 cleared with the bounds, never read

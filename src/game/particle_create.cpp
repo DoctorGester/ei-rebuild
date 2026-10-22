@@ -855,7 +855,7 @@ int CParticleSource::CreateForType() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    HeldTexture::Of(&texture)->Load(6, name);
+    texture.Load(6, name);
     BuildFrames(this);
     return 1;
 }
