@@ -2828,7 +2828,7 @@ id = "C25"
 title = "Build without game.exe: the zero-filled trial, the dispatch-only bytes, the checks"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22: the goal is a build that does not read game.exe. What the build still takes (CMakeLists.txt): the .rdata/.data bytes (gen_image_cells.py --bytes; C18 names what code reaches, C20 the code cells), the 8 dispatch-only functions' bytes (--dispatch, InstallHooks' EI_REPLACE_DISPATCH check), the resources (C23), and build.cmd's checks that compare with game.exe (named_data, rdata_literals, gen_image_cells --check, gen_iat --check, check_short_functions, check_static_init ...). This ticket: (1) a trial build whose unnamed bytes are zero (a gen_image_cells option), run on the suites to list exactly what still reads game.exe's bytes, the list in the note; (2) the dispatch-only functions without game.exe's bytes; (3) the checks skip with a note when no game.exe is configured, so the build runs without one."
+note = "Coordinator 2026-10-22: C18o named 72 unread .SEC copies (src/game/header_constant_copies.cpp) and two dead-code tables (dead_code_tables.cpp) only so their bytes come from the source. Once unread bytes may be zero (this ticket's trial), drop those definitions and their named_data rows."
 
 [[ticket]]
 id = "C18o"
