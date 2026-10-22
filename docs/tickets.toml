@@ -2569,7 +2569,7 @@ title = "Compiler-made vtables: real virtual classes instead of game.exe's table
 group = "cleanup"
 model = "opus"
 depends = ["C18"]
-note = "batch 22: the bases' own tables (0073B870, 0073B8E0, 0073BA38, 0073C224, 00743338), the cast spell 0074399C, the zone records and chunk readers (14), the item screens' panels (21), CFont 0073BFB4, the map objects 0073DAA0 / 0073DDD4: retired 560 -> 604, code cells 1,696 -> 974, game data addresses 918 -> 874; goldens 121 / 114 the same. Left: the item strips (C21), 00746E60 (false row, the 'ime' string), type_info 007472B0 (named_data refuses), the one-slot .data rows."
+note = "batch 23: the item strips (plain 00741A1C, forwarding 0074197C, figure 00741BF4 and their input sides), CVisibilityFog 0073D6B4, stlp's length_error 0073B984 and type_info 007472B0 (named_data.RETIRED_POINTED: the RTTI descriptors' vtable field) retired; six false rows dropped from config/vtables.csv (00746E60 the 'ime' text, five EH unwind entries; find_vtables.py skips them). Every vtables.csv row is retired: retired 604 -> 613, code cells 974 -> 832, game data addresses 874 -> 867; goldens 121 / 114 the same. Left: C20's registrations; a full find_vtables.py rerun finds five unchecked one-slot rows (0074676C, 0074718C, 007474B8, 00747E2C, 00747E30) and gives 00746768 two slots."
 
 [[ticket]]
 id = "C20"
