@@ -534,7 +534,7 @@ void AddMakerPictures(CConstructorPage* page) {
 }
 } // namespace
 
-void CConstructorPage::BuildSpellMaker(CParty* slots) {
+void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
@@ -553,7 +553,7 @@ void CConstructorPage::BuildSpellMaker(CParty* slots) {
     pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
     CTextManager* texts = TheTextManager();
-    mfc::CStringArray* array = &static_cast<CSpellMakerPage*>(this)->texts_;
+    mfc::CStringArray* array = &texts_;
     mfc::CString text;
     for (int key : {0x23, 0x24}) {
         text.Format("infoitem_%d", key);
@@ -561,7 +561,7 @@ void CConstructorPage::BuildSpellMaker(CParty* slots) {
         array->SetAtGrow(array->GetSize(), text);
     }
 }
-EI_REWRITTEN(0x006280C0, CConstructorPage::BuildSpellMaker);
+EI_REWRITTEN(0x006280C0, CSpellMakerPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};

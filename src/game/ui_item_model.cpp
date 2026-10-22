@@ -19,13 +19,14 @@ constexpr int kTexels = 0x80;
 
 // 005EBFB0 (__fastcall). The model manager's object `name`, else a new interface sprite standing in
 // for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
-CEngineObject* __fastcall ItemModel(const char* name) {
+CUiMesh* __fastcall ItemModel(const char* name) {
     CFigureManager* manager = UiModelManager();
-    CEngineObject* model = manager->NewFigure(name);
+    // The interface's model manager makes class 0x43 objects: interface sprites.
+    CUiMesh* model = AsUiMesh(manager->NewFigure(name));
     if (!model) {
-        model = manager->NewFigure(nullptr);
-        AsUiMesh(model)->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
-        static_cast<CFigureMesh*>(model)->FitVertexBounds();
+        model = AsUiMesh(manager->NewFigure(nullptr));
+        model->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
+        model->FitVertexBounds();
     }
     ++model->refCount_;
     return model;

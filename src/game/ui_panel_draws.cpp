@@ -166,8 +166,7 @@ CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
 
 } // namespace
 
-BOOL CConstructorPage::DrawSpellMaker(int pass) {
-    auto* self = static_cast<CSpellMakerPage*>(this);
+BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
     const PartyItemArray& slots = slots_->items_;
     int needed = 0;
     float manaSum = 0.0f;
@@ -220,19 +219,19 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     surface->Clear();
     if (hasSpell) {
         mfc::CString text;
-        text.Format(CostFormat(), self->texts_[0].GetString(), skill, needed);
+        text.Format(CostFormat(), texts_[0].GetString(), skill, needed);
         RECT first{10, 0, 200, 20};
         surface->Draw(text, &first, 1, 0);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
-        text.Format(CostFormat(), self->texts_[1].GetString(), mana, static_cast<int>(shown));
+        text.Format(CostFormat(), texts_[1].GetString(), mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
         surface->Draw(text, &second, 1, 0);
     } else {
         RECT first{10, 0, 200, 20};
-        surface->Draw(self->texts_[0], &first, 1, 0);
+        surface->Draw(texts_[0], &first, 1, 0);
         RECT second{10, 20, 200, 40};
-        surface->Draw(self->texts_[1], &second, 1, 0);
+        surface->Draw(texts_[1], &second, 1, 0);
     }
     surface->End();
     DrawBase(pass);
@@ -254,7 +253,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     highlight->visible_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x006284A0, CConstructorPage::DrawSpellMaker);
+EI_REPLACE_METHOD(0x006284A0, CSpellMakerPage::DrawSpellMaker);
 
 namespace {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the

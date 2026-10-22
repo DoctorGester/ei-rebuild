@@ -47,6 +47,7 @@ class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
 class CTextureDevice;   // texture.h
+class CPixelConverter;  // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
 
@@ -742,9 +743,6 @@ public:
     // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
-    // 0060E3C0 (slot 0 of the trade panel; ui_window_delete.cpp). TradePanelDestroy, then the memory
-    // freed when bit 0 of `flags` is set; returns this.
-    CUiWindow* TradePanelDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
@@ -1131,7 +1129,7 @@ struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x4C - 0x0C];
-    void* decoder_;                  // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    CPixelConverter* decoder_;       // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
     std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];

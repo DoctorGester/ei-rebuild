@@ -851,17 +851,16 @@ void DestroyRows(TradeRows& rows) {
 
 } // namespace
 
-void __fastcall TradePanelDestroy(CUiWindow* window) {
-    auto* self = static_cast<CTradePanel*>(window);
-    self->texts_.Destruct();
-    stlp::deallocate(self->records_.begin, static_cast<std::size_t>(self->records_.capacity - self->records_.begin) * 60);   // 00613630
-    DestroyRows(self->science_);
-    DestroyRows(self->schools_);
-    DestroyRows(self->perks_);
-    DestroyRows(self->learnable_);
-    self->DestroyBase();
+void CTradePanel::DestroyBody() {
+    texts_.Destruct();
+    stlp::deallocate(records_.begin, static_cast<std::size_t>(records_.capacity - records_.begin) * 60);   // 00613630
+    DestroyRows(science_);
+    DestroyRows(schools_);
+    DestroyRows(perks_);
+    DestroyRows(learnable_);
+    DestroyBase();
 }
-EI_REWRITTEN(0x0060E3E0, TradePanelDestroy);
+EI_REWRITTEN(0x0060E3E0, CTradePanel::DestroyBody);
 
 // --- 0060FE40: taking an item off the hero ---------------------------------------------------
 

@@ -71,7 +71,7 @@ void ItemName(CItem* item, int slot, mfc::CString* out) {
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
 // 005F3730 / 005F3B50, operator[] 005F3000 / 005F3170), which then drops its least recently used
 // entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.
-void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
+CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     ItemObjectCache::Node* node;
     {
         stlp::string key(name);
@@ -81,7 +81,11 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         node->second.lastUse = gameapi::timeGetTime();
         return node->second.object;
     }
-    void* object = textures ? ItemFigureTexture(name) : ItemModel(name);
+    CEngineObject* object;
+    if (textures)
+        object = ItemFigureTexture(name);
+    else
+        object = ItemModel(name);
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {
@@ -209,13 +213,13 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     {
         mfc::CString name;
         ItemName(item, 20, &name);
-        model = static_cast<CUiMesh*>(CachedObject(&models_, name, false));
+        model = AsUiMesh(CachedObject(&models_, name, false));
     }
     CEngineObject* texture;
     {
         mfc::CString name;
         ItemName(item, 19, &name);
-        texture = static_cast<CEngineObject*>(CachedObject(&textures_, name, true));
+        texture = CachedObject(&textures_, name, true);
     }
     if (!model || !texture) return;
 
@@ -422,8 +426,8 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     mfc::CString modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    auto* model = static_cast<CUiMesh*>(CachedObject(&models_, modelName, false));
-    auto* texture = static_cast<CEngineObject*>(CachedObject(&textures_, textureName, true));
+    CUiMesh* model = AsUiMesh(CachedObject(&models_, modelName, false));
+    CEngineObject* texture = CachedObject(&textures_, textureName, true);
     if (!model || !texture) return;
 
     model->texture_ = texture;
@@ -457,18 +461,7 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-void* PixelDecoder() { return ei::GameData<void* const>(0x007AF06C); }
-
-
-// 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
-
-template <typename... Args>
-void VirtualCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    reinterpret_cast<void(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
-
-constexpr std::uint32_t kPnt3 = 0x33544E50;   // "PNT3"
+constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // The texture's pixels for one fill: the texture manager's textures have only the new renderer's
 // memory (00691D80, ticket R8), written directly (DirectPixels; the original: a Lock with flags 0
@@ -480,7 +473,7 @@ long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
 
 } // namespace
 
-void* __fastcall ItemFigureTexture(const char* name) {
+CTexture* __fastcall ItemFigureTexture(const char* name) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
@@ -506,8 +499,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
-        void* decoder = PixelDecoder();
-        VirtualCall(decoder, 5, pixels, static_cast<const void*>(image + 1), count, image->format == kPnt3 ? 1 : 0);
+        PixelConverter()->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
@@ -539,7 +531,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(TheDeviceLock());
-    VirtualCall(manager, 22);
+    manager->FreeAllFiles();
     return texture;
 }
 EI_REWRITTEN(0x005EC020, ItemFigureTexture);
@@ -561,8 +553,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
         // The device's decoder, slot 5: out, image data, count, PNT3.
-        void* decoder = interface_->renderer_->decoder_;
-        VirtualCall(decoder, 5, pixels, static_cast<const void*>(image + 1), count, image->format == kPnt3 ? 1 : 0);
+        interface_->renderer_->decoder_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels target;
@@ -593,7 +584,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(TheDeviceLock());
-    VirtualCall(TheTextureManager(), 22);
+    TheTextureManager()->FreeAllFiles();
     return image != nullptr;
 }
 

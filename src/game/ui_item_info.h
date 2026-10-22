@@ -24,6 +24,7 @@
 
 class CItem;
 class CItemInfoPanel;
+class CTexture;   // texture.h
 struct UnitStats;
 namespace console {
 class CStringArray;
@@ -39,10 +40,10 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
 // 005EC020 (__fastcall). A new 256 x 256 texture (texture manager 007AF744, format 0x20, counted)
 // holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
 // or white when there is no such image; null when it cannot be made or locked.
-void* __fastcall ItemFigureTexture(const char* name);
+CTexture* __fastcall ItemFigureTexture(const char* name);
 // 005EBFB0 (__fastcall; ui_item_model.cpp). The model manager's object `name`, or a 100 x 100
 // interface sprite standing in for it; counted (one reference for the caller).
-CEngineObject* __fastcall ItemModel(const char* name);
+CUiMesh* __fastcall ItemModel(const char* name);
 
 // An item drawn as a turning model in a cell (005ECA10's argument, 0x18 bytes).
 struct ItemCell {
@@ -67,7 +68,7 @@ static_assert(sizeof(HeroFaceCell) == 0x14);
 
 // A cached object and when it was last used (timeGetTime).
 struct ItemCacheEntry {
-    void* object;
+    CEngineObject* object;   // a CUiMesh (models) or a CTexture (textures), counted
     std::uint32_t lastUse;
 };
 
