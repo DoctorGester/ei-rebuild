@@ -324,7 +324,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
     if (DeltaField* field = state->BeginField(9)) {
         {
             mfc::CString text(mfc::CString::kUnset);
-            unit->scriptName = *static_cast<mfc::CString*>(field->ReadString(&text));
+            unit->scriptName = *field->ReadString(&text);
         }
         complete &= SnapshotConsumed();
         field->EndField();
