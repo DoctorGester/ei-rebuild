@@ -38,22 +38,17 @@ struct DressedUnitRecord {
 static_assert(offsetof(DressedUnitRecord, extraWeapons) == 0x10);
 static_assert(sizeof(DressedUnitRecord) == 0x24);
 
-// Another unit of the zone (the first list read, 0x3C bytes): its prototype, armour and weapon
-// ids, the figure's morph coefficients and the texture names (none: from the prototype, 00535CB0).
-struct FiguredUnitRecord {
+// Another unit of the zone (the first list read, 0x3C bytes): a dressed record's head (its
+// prototype, the armour ids in `items`, the weapon ids in `extraWeapons`, the weapon in hand and
+// the model number; the dressed copy and Write take that head), the figure's morph coefficients and
+// the texture names (none: from the prototype, 00535CB0).
+struct FiguredUnitRecord : DressedUnitRecord {
     // Body of the slot at 0055A860 (registered by member pointer).
     FiguredUnitRecord* CopyConstruct(const FiguredUnitRecord* from);
-    std::uint16_t prototype;        // +0x00
-    std::uint16_t unused_02;
-    UnitIdList armourIds;           // +0x04
-    UnitIdList weaponIds;           // +0x10
-    std::uint8_t extraWeapon;        // +0x1C (DressedUnitRecord::extraWeapon's place)
-    std::uint8_t unused_1D[3];
-    std::uint32_t modelNumber;       // +0x20 (DressedUnitRecord::modelNumber's place)
     float morphS;                   // +0x24 the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;
-    stlp::vector<const char*> names;    // +0x30 CStrings
+    stlp::vector<mfc::CString> names;   // +0x30
 };
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);
@@ -71,11 +66,10 @@ struct UnitLooks {
         }
         dressed.FreeStorage();
         for (FiguredUnitRecord* r = figured.Start(); r != figured.Finish(); ++r) {
-            for (const char** name = r->names.Start(); name != r->names.Finish(); ++name)
-                reinterpret_cast<mfc::CString*>(name)->~CString();
+            for (mfc::CString* name = r->names.Start(); name != r->names.Finish(); ++name) name->~CString();
             r->names.FreeStorage();
-            r->weaponIds.FreeStorage();
-            r->armourIds.FreeStorage();
+            r->extraWeapons.FreeStorage();
+            r->items.FreeStorage();
         }
         figured.FreeStorage();
     }

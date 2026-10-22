@@ -32,14 +32,6 @@ using NameElement = stlp::ObjectElement<mfc::CString>;
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
 constexpr float kScaleSteps = 127.0f;   // 0073D06C
 
-// A figured record starts with a dressed record's fields (the dressed copy reads that head).
-static_assert(offsetof(FiguredUnitRecord, armourIds) == offsetof(DressedUnitRecord, items));
-static_assert(offsetof(FiguredUnitRecord, weaponIds) == offsetof(DressedUnitRecord, extraWeapons));
-static_assert(offsetof(FiguredUnitRecord, extraWeapon) == offsetof(DressedUnitRecord, extraWeapon));
-static_assert(offsetof(FiguredUnitRecord, modelNumber) == offsetof(DressedUnitRecord, modelNumber));
-
-const DressedUnitRecord& HeadOf(const FiguredUnitRecord& record) { return reinterpret_cast<const DressedUnitRecord&>(record); }
-
 // The figure's scale as a key: each component times 127, truncated (_ftol), 10 bits each, x highest.
 std::uint32_t ScaleKey(const Vector3& scale) {
     auto steps = [](float v) { return static_cast<std::uint32_t>(static_cast<int>(v * kScaleSteps)) & 0x3FF; };
@@ -96,12 +88,12 @@ void UnitSet::Add(CUnit* unit) {
 
     if (unit->type_ == kUnitTypeHero) {
         for (int slot = 0; slot < 7; ++slot)
-            record.armourIds.PushBack<IdElement>(ItemId(unit->WornItem(slot), KnownArmour));
+            record.items.PushBack<IdElement>(ItemId(unit->WornItem(slot), KnownArmour));
         for (std::uint32_t slot = 0; slot < 4; ++slot)
-            record.weaponIds.PushBack<IdElement>(ItemId(unit->GetWeapon(slot), KnownWeapon));
-        record.extraWeapon = static_cast<std::uint8_t>(unit->activeWeapon);
+            record.extraWeapons.PushBack<IdElement>(ItemId(unit->GetWeapon(slot), KnownWeapon));
+        record.extraWeapon = static_cast<std::int8_t>(unit->activeWeapon);
     } else {
-        record.extraWeapon = 0xFF;
+        record.extraWeapon = -1;
     }
 
     // The figured records: one of the same scale key and ids in the prototype's group is marked
@@ -113,8 +105,8 @@ void UnitSet::Add(CUnit* unit) {
     bool marked = false;
     for (FiguredTable::Node* node = first; node != last; node = group->Next(node)) {
         FiguredUnitRecord& other = node->value.mapped;
-        if (SameIds(other.armourIds, record.armourIds) && SameIds(other.weaponIds, record.weaponIds)) {
-            other.modelNumber = kNoItem;
+        if (SameIds(other.items, record.items) && SameIds(other.extraWeapons, record.extraWeapons)) {
+            other.modelNumber = static_cast<int>(kNoItem);
             marked = true;
             break;
         }
@@ -125,10 +117,10 @@ void UnitSet::Add(CUnit* unit) {
             const CMapObjectServer* server = static_cast<const CMapObjectServer*>(unit->companion);
             for (int i = 0; i < server->strings.size; ++i) {
                 mfc::CString name(server->strings[i].GetString());
-                FiguredUnitElement::NamesOf(record).PushBack<NameElement>(name);
+                record.names.PushBack<NameElement>(name);
             }
         }
-        record.modelNumber = static_cast<std::uint32_t>(unit->id_);
+        record.modelNumber = static_cast<int>(unit->id_);
         FiguredTable::Value entry;
         entry.key = scaleKey;
         FiguredUnitElement::Construct(&entry.mapped, record);    // 0055A860
@@ -146,7 +138,7 @@ void UnitSet::Add(CUnit* unit) {
     dressedRecords.EqualRange(prototype, from, to);
     for (DressedTable::Node* node = from; node != to; node = dressedRecords.Next(node)) {
         DressedUnitRecord& other = node->value.mapped;
-        if (SameIds(other.items, record.armourIds) && SameIds(other.extraWeapons, record.weaponIds)) {
+        if (SameIds(other.items, record.items) && SameIds(other.extraWeapons, record.extraWeapons)) {
             other.modelNumber = static_cast<int>(kNoItem);
             FiguredUnitElement::Destroy(&record);
             return;
@@ -155,7 +147,7 @@ void UnitSet::Add(CUnit* unit) {
     record.modelNumber = static_cast<std::uint32_t>(unit->id_);
     DressedTable::Value entry;
     entry.key = prototype;
-    DressedUnitElement::Construct(&entry.mapped, HeadOf(record));   // 0055A9F0
+    DressedUnitElement::Construct(&entry.mapped, record);   // 0055A9F0
     dressedRecords.Resize(dressedRecords.Count() + 1);                             // 0055BBF0
     dressedRecords.InsertEqualNoresize(entry);                              // 0055BAC0
     DressedUnitElement::Destroy(&entry.mapped);                      // 004FE420 twice

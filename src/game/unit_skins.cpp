@@ -270,15 +270,15 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     first.ConstructEmpty();   // 0053BB80
     second.ConstructEmpty();
 
-    const char* const* names = record->names.Start();
+    const mfc::CString* names = record->names.Start();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
-        CollectArmourPartNames(prototype, &record->armourIds, &record->weaponIds, &first,
+        CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
                                &second);   // 00535CB0
     } else {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
-        for (const char* const* p = record->names.Start(); p != record->names.Finish(); ++p) {
-            stlp::string string(*p);
+        for (const mfc::CString* p = record->names.Start(); p != record->names.Finish(); ++p) {
+            stlp::string string(p->GetString());
             if (first.Finish() != first.EndOfStorage()) {
                 stlp::StringAbi::ConstructAt(first.Finish(), &string);
                 ++first.Finish();

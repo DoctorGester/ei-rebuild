@@ -22,8 +22,6 @@ using DressedTable = UnitSet::DressedTable;
 // The maps are walked as their iterators do: begin() (0055AB50 the groups, 0055ADF0 a group's
 // figured map, 0055AE50 the dressed map), then ++ (the chain's next node, else the next bucket's
 // head: 0055B9D0 groups, 0055B500 figured, the dressed map's inline with its hash 0055C5C0).
-// A record's head written to the stream [00558FA0, on the record].
-__declspec(naked) void __fastcall WriteRecordHead(void* /*record*/, void*, CStream*) EI_ORIGINAL(0x00558FA0)
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
@@ -57,11 +55,11 @@ void UnitSet::Write(CStream* stream) {
         FiguredTable& units = group->value.mapped;
         for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) {
             FiguredUnitRecord& record = unit->value.mapped;
-            WriteRecordHead(&record, nullptr, stream);
+            record.Write(stream);
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphS));
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphT));
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphU));
-            auto names = [&record](std::uint32_t i) { return record.names[i]; };
+            auto names = [&record](std::uint32_t i) -> const char* { return record.names[i]; };
             auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
             PutWord(stream, nameCount());
             for (std::uint32_t i = 0; i < nameCount(); ++i) {
@@ -117,8 +115,8 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
     static_cast<recordvec::FiguredUnitVector*>(figured)->ResizeDefault(count);
     for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
         Get(stream, &record->prototype, 2);
-        GetIds(stream, record->armourIds);
-        GetIds(stream, record->weaponIds);
+        GetIds(stream, record->items);
+        GetIds(stream, record->extraWeapons);
         Get(stream, &record->extraWeapon, 1);
         Get(stream, &record->modelNumber, 4);
         Get(stream, &record->morphS, 4);
@@ -126,9 +124,9 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&recordvec::FiguredUnitElement::NamesOf(*record))->ResizeDefault(names);   // 0051F5B0
+        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&record->names)->ResizeDefault(names);   // 0051F5B0
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
-            stream->ReadInto(reinterpret_cast<mfc::CString*>(&record->names[i]));
+            stream->ReadInto(&record->names[i]);
     }
     Get(stream, &count, 4);
     static_cast<recordvec::DressedUnitVector*>(dressed)->ResizeDefault(count);
