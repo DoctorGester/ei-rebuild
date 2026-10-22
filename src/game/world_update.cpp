@@ -1,6 +1,7 @@
 // CWorldServer::Update (vtable slot 6, 0058DFF0): one world update. See world.h and
 // docs/notes/world.md.
 #include "world.h"
+#include "console.h"
 #include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
@@ -29,7 +30,7 @@
 
 namespace {
 
-libcrt::Ostream* NetworkLog() { return ei::GamePointer<libcrt::Ostream>(flowdata::kNetLogStream); }
+libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
 
 // CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }

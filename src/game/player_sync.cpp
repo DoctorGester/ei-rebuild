@@ -3,6 +3,7 @@
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "console.h"
 #include "game_strings.h"
 #include "lib/static_object.h"
 #include "lib/crt_iostream.h"
@@ -67,7 +68,7 @@ constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessed
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
-libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 // The empty string the original sends in place of a non-unit's name.

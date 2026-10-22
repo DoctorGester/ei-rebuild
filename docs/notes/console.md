@@ -13,13 +13,20 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
 
 - **Output.** `007C55A8` is an old (pre-standard) MSVC `ostream` on the console streambuf `007C5868` (vtable `00740034`); eight
   more streambuf / ostream pairs carry the filtered categories: 1 ai (`007C76D0`, ostream `007C5810`), 2 event, 4 graphics, 8
-  rpg, 0x10 unitacks, 0x20 net, -1 all (`007C5CC0`, ostream `007C5600`), all built in static init (`005DC1E0`-`005DC3F0`). A
+  rpg, 0x10 unitacks, 0x20 net, -1 all (`007C5CC0`, ostream `007C5600`), all built in static init (`005DC1E0`-`005DC3F0`, the
+  ostreams `005DC420`-`005DC5E0`). Ours are named (`console_streams.cpp`, C18s): `g_consoleBuf` / `g_aiLogBuf` ... and
+  `g_consoleOut` / `g_aiLogOut` ... (`OStreamObject`: the ostream and its ios), with their initialisers and exit functions
+  ported on the names. The logs that hold a stream's address: the hit log `007AF284` (rpg), the AI alarm `007C2EB8`
+  (unitacks), combat `007AF3E8`, the AI's perception `007C53C4` and its modes `007C54E8` (all ai); the network log, the
+  client speed and the session messages write to the net stream `007C56B0`, the battle screen's terrain coordinates and the
+  global map's drag to the graphics stream `007C5760`. A
   message is `os << text << '\n' << flush` (`flush` = `00435000` applied through `00434FE0`). Overflow (slot 7) moves the put
   area and the character into the line when the category is shown (category 0, or its bit in the mask `007C7B68`; a hidden
   category keeps its put area and later characters are dropped); sync (slot 1) hands the line to the console window through the
   interface manager `007C7D50` (`005F7EB0`, checks the window at `+0x14`) and empties it; underflow (slot 8, `005DC230`) returns EOF.
 - **Executor** `005DC620` (text in ECX; Rebirth patches it). Every call
-  re-registers all 27 commands in two STLport `map<CString, handler>`: `007C7B28` (public) and `007C7B38` (after the cheat word);
+  re-registers all 27 commands in two STLport `map<CString, handler>`: `007C7B28` (public) and `007C7B38` (after the cheat word;
+  `g_publicCommands` / `g_cheatCommands`, built by 005DC120 / 005DC050);
   `operator[]` is `005E0B20`. The line is split by the tokenizer (`004DC200`: quotes toggle and stay in the token, spaces end a token
   only outside quotes, double-byte lead bytes are taken with their trail byte); the first token is the command. `@x`, `#x`, `$x`
   (cheat word given, not a network game `0057F440`): `005DD800` loads `WorldScript(x args)`, `WorldScript( ConsoleFloat( ... ))`

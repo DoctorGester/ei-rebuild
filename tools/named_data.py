@@ -17,8 +17,8 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names what game.exe's pointer in its place points at,
-    and that is compared: a string literal the text at the target, the name of another named range its address (or
-    `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
+    and that is compared: a string literal the text at the target, the name of another named range its address
+    (qualified or not; or `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
     registration (EI_REPLACE*), nullptr a zero;
   * nothing else reaches a named range: no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked)
     inside it, no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it but at its
@@ -121,6 +121,7 @@ TYPES = {
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     'lib::StaticObject<mfc::CString>': 'I',
+    'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -168,6 +169,7 @@ STATIC_OBJECT_BYTES = {
     'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
     'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
     'mfc::CList<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
+    'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
 }
 
 
@@ -353,6 +355,8 @@ def _pack_pointers(self, fmt, img, targets):
         return
     out = bytearray()
     for i, (kind, v) in enumerate(values):
+        if kind == 'name' and v not in targets.ranges and v.rsplit('::', 1)[-1] in targets.ranges:
+            v = v.rsplit('::', 1)[-1]   # a named range in another namespace (`&console::g_aiLogOut`)
         code = fmt[i % len(fmt)]
         at = self.address + len(out)
         if code.endswith('s'):   # a char array field: a string literal, zero padded

@@ -90,7 +90,7 @@ bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
-libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
+libcrt::Ostream* const kConsole = &console::g_consoleOut;
 
 // The map database's zone records (MapRecord, object_tables.h).
 MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
@@ -1074,7 +1074,7 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     FlowBeforeServer(this, nullptr);
-    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     {
         auto* memory = net::NewRefObjectAs<net::ServerSession>();
         net::ServerSession* server = memory ? memory->Construct(gameType) : nullptr;
@@ -1109,7 +1109,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::g_netLog = ei::GamePointer<net::LogStream>(kNetLogStream);
+    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     auto* memory = net::NewRefObjectAs<net::ClientSession>();
     net::ClientSession* client = memory ? memory->Construct() : nullptr;
@@ -1133,7 +1133,7 @@ EI_REWRITTEN(0x0057E970, GameFlow::JoinServer);
 
 namespace {
 
-libcrt::Ostream* const kNetLog = ei::GamePointer<libcrt::Ostream>(0x007C56B0);   // the network log's ostream
+libcrt::Ostream* const kNetLog = &console::g_netLogOut;
 
 // 0066C180. The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
 

@@ -69,7 +69,7 @@ struct LoginRequest {
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
-libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return "client to server, size = "; }
 const char* TextSqueezedSize() { return " squeezed size = "; }

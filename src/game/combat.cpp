@@ -1,6 +1,7 @@
 // Combat: CUnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
 // roll and hit resolution. See combat.h and docs/notes/combat.md.
 #include "combat.h"
+#include "console.h"
 #include "options.h"
 #include "combat_internal.h"
 
@@ -35,6 +36,13 @@
 
 // Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory)
 // are float locals.
+
+namespace {
+// The combat log: the AI stream (its static initialiser 00544A70 stores the address).
+constexpr libcrt::Ostream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
+} // namespace
+
+GameOstream* GameLog() { return console::StreamAs<GameOstream>(*kCombatLog); }
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858

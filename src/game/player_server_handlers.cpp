@@ -3,6 +3,7 @@
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
+#include "console.h"
 #include "lib/static_object.h"
 #include "lib/crt_iostream.h"
 
@@ -662,7 +663,7 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";   // 00794F34
-libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
+libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {

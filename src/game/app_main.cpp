@@ -216,8 +216,8 @@ void* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
-// The game's log stream (the old iostream).
-console::GameOStream& SpeedLog() { return ei::GameData<console::GameOStream>(0x007C56B0); }
+// The network log's stream (the old iostream).
+console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- The callees -----------------------------------------------------------------------------------
 

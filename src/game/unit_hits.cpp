@@ -4,6 +4,7 @@
 // armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
 // docs/notes/units.md.
 #include "combat.h"
+#include "console.h"
 #include "options.h"
 #include "unit.h"
 
@@ -66,7 +67,7 @@ constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1,
 float Max0(float value) { return value <= kZero ? kZero : value; }   // the original's select
 } // namespace
 
-// The hit log stream (global 007AF284, a MSVC 6 ostream) and its inserters (library code).
+// The hit log stream (a MSVC 6 ostream) and its inserters (library code).
 struct UnitLogStream : libcrt::Ostream {
     UnitLogStream* Put(const char* text) { PutText(text); return this; }                             // 006FC31D
     UnitLogStream* Put(double value) { PutDouble(value); return this; }                              // 006FC7FA
@@ -78,7 +79,9 @@ struct UnitLogStream : libcrt::Ostream {
 };
 
 namespace {
-UnitLogStream* HitLog() { return ei::GameData<UnitLogStream*>(0x007AF284); }
+// The hit log: the rpg stream (its static initialiser 005229C0 stores the address).
+constexpr libcrt::Ostream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
+UnitLogStream* HitLog() { return console::StreamAs<UnitLogStream>(*kHitLog); }
 } // namespace
 
 // CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
