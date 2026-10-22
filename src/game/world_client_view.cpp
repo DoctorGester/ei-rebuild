@@ -93,16 +93,16 @@ CObject3DClientSpecific* ModelOf(CEngineObject* object) {
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
-                                 char withScripted) {
+int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+                                 char animateUnits, char withScripted) {
     MatrixDevice* device = Device();
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
     if (g_multiplayerView != 0 && Session()->sessionKind100_ == 1) drawAllUnits = false;
 
-    ObjectListNode* node = static_cast<ObjectList*>(list)->head->next;
-    if (node == static_cast<ObjectList*>(list)->head) return 0;
+    ObjectListNode* node = list->head->next;
+    if (node == list->head) return 0;
     do {
         CEngineObject* object = node->data;
         if (object && Object3D(object)->attached) {
@@ -189,7 +189,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
             }
         }
         node = node->next;
-    } while (node != static_cast<ObjectList*>(list)->head);
+    } while (node != list->head);
     return touched;
 }
 

@@ -27,6 +27,7 @@ class CPlayerClient;   // player_client.h
 class CUnit;    // unit.h
 class CMapObject;   // map_object.h
 class CEffect;      // world_effect.h
+struct WaterTweens;   // water_tweens.h
 namespace netlink {
 class NetLink;  // net_link.h
 }
@@ -101,21 +102,21 @@ public:
     int SendState70(std::uint8_t a, std::uint16_t b);               // 0066EC10: message 0x70
     int SendState71(std::uint32_t a, std::uint32_t b);              // 0066EC70: message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0066ECD0: 0x72
-    void SendState73(void* source);                                 // 0066F240: message 0x73 (006D4570 payload)
+    void SendState73(const WaterTweens* source);                    // 0066F240: message 0x73 (006D4570 payload)
     int SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b);   // 0066ED30: message 0x04
     std::uint32_t SendPosition0F(const Vector3* at, const Vector3* other, std::uint8_t flag);   // 0066EDA0: 0x0F
     // Simple messages.
     void Send17();                                                  // 0066EA10 (slot 18)
-    void SendObject0A(const void* object);                          // 0066EA30 (slot 19): id
+    void SendObject0A(const CEngineObject* object);                 // 0066EA30 (slot 19): id
     void SendPair16(std::uint32_t a, std::uint32_t b);              // 0066EA70
-    void SendObjects0C(const void* list);                           // 0066EAC0: ids and +0x28 of a list
-    void SendObject14(const void* object);                          // 0066EB40 (slot 22): id, +0x28
+    void SendObjects0C(const mfc::CTypedPtrList<CEngineObject>* list);   // 0066EAC0: ids and +0x28 of a list
+    void SendObject14(const CEngineObject* object);                 // 0066EB40 (slot 22): id, +0x28
     void SendText0D(const char* text);                              // 0066EB90
     void SendText08(const char* text, std::uint32_t value);         // 0066F1F0
     void SendValue15(std::uint32_t value);                          // 0066F280
     void SendPair18(std::uint32_t a, std::uint32_t b);              // 0066F2C0
-    void SendObject43(const void* object);                          // 0066D6A0: id, nothing without an object
-    void SendObject0B(const void* object, std::uint32_t value);     // 0066D6E0: id, value
+    void SendObject43(const CEngineObject* object);                 // 0066D6A0: id, nothing without an object
+    void SendObject0B(const CEngineObject* object, std::uint32_t value);   // 0066D6E0: id, value
     // 0066D730 (RET 8; A-Z1): message 0x12, a byte and `value` (the 2nd argument; the first is not
     // read). The original never writes the byte: whatever its stack holds goes out. Ours sends 0;
     // the client's handler (00667E20) skips the byte.

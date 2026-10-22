@@ -1287,8 +1287,8 @@ public:
     // With `animateUnits` 0 units are only queued on the deferred list; otherwise they are animated
     // (slot 25) and filed like other objects. `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list (007AF508).
-    int CollectVisible(void* list, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
-                       char withScripted);
+    int CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+                       char animateUnits, char withScripted);
     // 0056BF30 (RET 0xC). The ground point under screen pixel (x, y): inverts the current view
     // matrix and iterates on the terrain height (Terrain::HeightAt). Returns out (x, y, z).
     Vector3* PickGround(Vector3* out, int x, int y);
