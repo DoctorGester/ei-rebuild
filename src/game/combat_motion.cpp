@@ -690,9 +690,8 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
 }
 EI_REWRITTEN(0x005468D0, CUnitServer::LiftNearby);
 
-void CUnitServer::ReportPath(void* pathIn, char partial) {
+void CUnitServer::ReportPath(AIPath* path, char partial) {
     if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
-    auto* path = static_cast<AIPath*>(pathIn);
     CUnit* self = unit;
     const float* goal = &path->goal.x;
     // The path as a motion order for the message. The original leaves its header uninitialised
