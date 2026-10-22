@@ -85,9 +85,10 @@ float CWorldServer::GridHeight(float x, float y) {
     // Cell size 1.0 at half-cell offset: (1 / (1 * 0.5)) * v - 0.5, rounded through a float.
     int cx = x87::fistp(static_cast<float>(2.0f * x - 0.5f));
     int cy = x87::fistp(static_cast<float>(2.0f * y - 0.5f));
-    if (cx < 0 || cy < 0 || cx >= gridWidth_ || cy >= gridHeight_) return 0.0f;
-    int raw = *reinterpret_cast<const std::uint16_t*>(gridRows_[cy] + cx * 9 + 4);
-    return static_cast<float>(raw) / gridHeightScale_;
+    const CAIMap* map = AIMap();
+    if (cx < 0 || cy < 0 || cx >= map->cells.width || cy >= map->cells.height) return 0.0f;
+    int raw = map->cells[cy][cx].groundLevel;
+    return static_cast<float>(raw) / map->heightScale;
 }
 
 int CWorldServer::CountLivingMercs(int id) {
@@ -207,7 +208,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) SectorMapRemove(AsSectorMap(sectorMap_), nullptr, *slot);
+    if (object->GetClassId() != kClassNoSector) SectorMapRemove(Sectors(), nullptr, *slot);
 
     hash400::ObjectsRemoveKey(updateMap_.map, id);
     EraseId(objects_, id);

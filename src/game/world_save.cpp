@@ -470,7 +470,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             TimeWheelLoad(timeWheel_, nullptr, stream);
-            CommandQueueLoad(commandsA_, nullptr, stream);
+            CommandQueueLoad(MainScript(), nullptr, stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
@@ -657,7 +657,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     stream->Write(&sessionKind_, 4);
 
     ReadAIGraph(mapName_, mobName_, &base);
-    reinterpret_cast<CRegionMap*>(aiLayer_)->SaveBlocks(&current);
+    AIMap()->Regions()->SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
@@ -690,7 +690,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
     TimeWheelSave(timeWheel_, nullptr, stream);
-    CommandQueueSave(commandsA_, nullptr, stream);
+    CommandQueueSave(MainScript(), nullptr, stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);

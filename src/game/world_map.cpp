@@ -75,7 +75,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         mobName_ = game::EmptyText();
     }
     graph->Seek(0);
-    if (graph->Size() != 0 && !reinterpret_cast<CRegionMap*>(aiLayer_)->LoadBlocks(graph)) return 0;
+    if (graph->Size() != 0 && !AIMap()->Regions()->LoadBlocks(graph)) return 0;
 
     if (gamecrt::mbsicmp(mobName_, mob) == 0) {
         // The same zone again: start over.
@@ -87,7 +87,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         EndTimedObjects(this);
         keepsState_ = 0;
         loadedFresh_ = fromSave == 0;
-        occluderReplanTime_ = 0;
+        AIMap()->footprintTick = 0;
     } else {
         ResetZone();
         keepsState_ = 1;
@@ -212,7 +212,7 @@ void CWorldServer::TeardownZone() {
         mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(node->data.objects));
     shared.RemoveAll();
     mobFiles_.SetSize(0, -1);
-    aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
+    AIMap()->refreshUnits = false;   // refreshes off
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     diplomacy_.Reset();

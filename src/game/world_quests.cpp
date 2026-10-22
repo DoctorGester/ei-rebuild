@@ -273,7 +273,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
-    ScriptLoadLine(commandsA_, nullptr, &script, 1);
+    ScriptLoadLine(MainScript(), nullptr, &script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }

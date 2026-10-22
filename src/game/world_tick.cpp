@@ -157,7 +157,7 @@ void CWorldServer::Tick(char force) {
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
-    ScriptTick(reinterpret_cast<CScript*>(commandsB_));
+    ScriptTick(SecondScript());
     ServerUpdateUnits(this, nullptr);
 }
 
@@ -172,7 +172,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
     int sx = SectorOf(position->x);
     int sy = SectorOf(position->y);
-    auto* sectors = reinterpret_cast<CSectorMap*>(sectorMap_);
+    CSectorMap* sectors = Sectors();
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;

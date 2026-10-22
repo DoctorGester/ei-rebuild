@@ -259,12 +259,12 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
         brain->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
         brain->StopAction();
-        SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
+        SectorMapRemove(Sectors(), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
         AIMap()->FindFreeCellNear(unit, position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
-        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
+        SectorMapAdd(Sectors(), nullptr, unit);
 
         unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0]);
@@ -323,7 +323,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
     if (atStart && gameResult_ != kGameResultLost) script += worlddata::HeroArrivalText();
     script += worlddata::ScriptEndText();
-    if (player) ScriptLoadLine(commandsA_, nullptr, &script, 1);
+    if (player) ScriptLoadLine(MainScript(), nullptr, &script, 1);
 }
 
 // ---- UseQuickItem -------------------------------------------------------------------------------
@@ -479,7 +479,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
+        SectorMapAdd(Sectors(), nullptr, object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         return result;
@@ -582,7 +582,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
+        SectorMapAdd(Sectors(), nullptr, object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         if (type >= 8 && type <= 9) {

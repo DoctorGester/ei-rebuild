@@ -198,8 +198,8 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
     // `entrance_`), facing away from the map's centre unless the exit gives a heading.
     double cell = static_cast<double>(CellSize()) * Half();
-    float centreX = static_cast<float>(gridWidth_ * cell * Half());
-    float centreY = static_cast<float>(gridHeight_ * cell * Half());
+    float centreX = static_cast<float>(AIMap()->cells.width * cell * Half());
+    float centreY = static_cast<float>(AIMap()->cells.height * cell * Half());
     Quaternion rotation;
     std::memcpy(&rotation, NoRotation(), sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};

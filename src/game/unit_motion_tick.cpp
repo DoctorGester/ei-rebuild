@@ -443,7 +443,7 @@ void UpdateMotion(CUnitServer* c) {
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
-        OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
+        OrderOf(MotionPathOf(c))->startTime < world->AIMap()->footprintTick && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }

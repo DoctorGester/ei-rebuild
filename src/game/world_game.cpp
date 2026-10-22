@@ -969,7 +969,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         script = reinterpret_cast<const char*>(text.s.data_);
     }
     ScriptReset(MainScript());
-    ScriptLoadLine(commandsA_, nullptr, &script, 1);
+    ScriptLoadLine(MainScript(), nullptr, &script, 1);
     decoder.input.FreeStorage();
     decoder.text.FreeStorage();
 }
