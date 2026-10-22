@@ -80,7 +80,9 @@ public:
 
 protected:
     static Message* CreateAs(const void* vtable);
-    TextMessage* CloneAs(const void* vtable);
+    // A copy as a Self (a class over this one with only its own vtable), Self::Vtable() stored last.
+    template <class Self>
+    Self* CloneAs();
     void ResetAs(const void* vtable);
     void WriteText(BufferCursor* cursor);
     void ReadText(BufferCursor* cursor);
@@ -135,7 +137,9 @@ public:
 
 protected:
     static Message* CreateAs(const void* vtable);
-    PairMessage* CloneAs(const void* vtable);
+    // A copy as a Self (a class over this one with only its own vtable), Self::Vtable() stored last.
+    template <class Self>
+    Self* CloneAs();
     void ResetAs(const void* vtable);
     void WriteFirst(BufferCursor* cursor);
     void ReadFirst(BufferCursor* cursor);
