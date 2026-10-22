@@ -4,8 +4,6 @@
 // image_code.cpp points each at the code registered for its address once the registrations are in, or at
 // a stub that reports there is no code there. {cell, the code address it holds}, by group; each group's
 // review is in the tool.
-// a vtable's slots (config/vtables.csv)
-{DataId(0x007472B0), 0x006E7DF4},
 // C++ EH: ThrowInfo: the thrown object's destructor
 {DataId(0x00749CEC), 0x0040C500},
 {DataId(0x0074C644), 0x0041F760},

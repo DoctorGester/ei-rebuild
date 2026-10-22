@@ -142,7 +142,8 @@ STRUCTURES = [
 REVIEWED_RDATA = [
     (0x007468DC, 0x0074701C, 11, "MFC CCmdTarget's maps (message, dispatch, event sink, interface (IID_IDispatch), "
                                  "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
-    (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s', 0x007472B0),
+    (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s (retired: '
+                                 'nothing calls a descriptor\'s virtual; named_data.RETIRED_POINTED)', 0x007472B0),
     (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x00797CCC, 0x00797D94, 26, 'a table of (number, string) pairs read by 006F0FBF: the math functions\' names '
