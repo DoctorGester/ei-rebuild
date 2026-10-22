@@ -26,6 +26,8 @@ inline void* operator_new_zeroed(std::size_t size) {
 // operator_new for one T, the raw block typed as T: the caller runs the constructor body on it, as
 // the original does after its operator new (null when the allocation fails).
 template <class T> T* operator_new_as() { return static_cast<T*>(operator_new(sizeof(T))); }
+// operator_new_zeroed for one T, typed the same way.
+template <class T> T* operator_new_zeroed_as() { return static_cast<T*>(operator_new_zeroed(sizeof(T))); }
 // operator_new for `count` T, the raw block typed as T[count] (nothing constructed; null when the
 // allocation fails). The size is count * sizeof(T) in 32 bits, as the original computes it.
 template <class T> T* operator_new_array(std::size_t count) { return static_cast<T*>(operator_new(count * sizeof(T))); }
