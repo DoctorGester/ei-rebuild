@@ -33,13 +33,18 @@ the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
 whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
 
-usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT] [--dispatch OUT]
+The zero-filled trial (C25; build.cmd's `trial`, CMake's EI_IMAGE_ZERO_TRIAL): --bytes --zero writes every byte of the
+moved range zero except the cells (their values from the committed image_cells.inc / image_code_cells.inc, so
+image_data.cpp and image_code.cpp move them as usual) and the ranges of config/image_kept.csv, which are game.exe's
+bytes: what the image is still found to read of game.exe's data that no named global of ours holds yet (each row's
+owner, kind and reader). An empty list reads no game.exe. The suite on the trial is what proves the list.
+
+usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT [--zero]]
   (no option)  write src/standalone/image_cells.inc and image_code_cells.inc
   --check      exit 1 when the files differ from what the scan writes, or a cell has no review (build.cmd)
   --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table and the ranges
                our named globals hold zero: config/named_data.csv, C18) to OUT as a C++ initialiser (the build)
-  --dispatch OUT write the dispatch-only functions' bytes (MOV EAX,[ECX]; JMP [EAX+n]) to OUT (the build: InstallHooks
-               checks the EI_REPLACE_DISPATCH thunks against them, S18k)
+  --zero       with --bytes: the trial's bytes (zero but the cells and config/image_kept.csv's ranges)
 """
 import argparse, csv, os, re, struct, sys
 
@@ -54,6 +59,7 @@ FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
 LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
+KEPT = os.path.join(ROOT, 'config', 'image_kept.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -666,12 +672,65 @@ def check_retired(problems, img):
             problems.append(f'gen_image_cells: {where}: {path} declares no class {cls}')
 
 
-def write_bytes(img, path):
+def committed_cells():
+    """{cell: value} of the committed src/standalone/image_cells.inc (pointer cells, {DataId(cell), DataId(target)})
+    and image_code_cells.inc (code cells, {DataId(cell), target}): game.exe's dwords there, without reading it."""
+    cells = {}
+    for path in (OUT, CODE_OUT):
+        for m in re.finditer(r'^\{DataId\(0x([0-9A-F]{8})\), (?:DataId\()?0x([0-9A-F]{8})\)?\},$',
+                             open(path, encoding='utf-8').read(), re.M):
+            cells[int(m.group(1), 16)] = int(m.group(2), 16)
+    return cells
+
+
+def kept_ranges():
+    """config/image_kept.csv's rows (address, size, owner, kind, what): the trial's ranges of game.exe's bytes."""
+    if not os.path.exists(KEPT):
+        return []
+    with open(KEPT, newline='') as f:
+        return [(int(r['address'], 16), int(r['size']), r['owner'], r['kind'], r['what']) for r in csv.DictReader(f)]
+
+
+def check_kept(kept, named):
+    """Problems of config/image_kept.csv: a range outside the file's bytes past the import table, or overlapping a
+    named range or another kept one."""
+    problems = []
+    spans = sorted((a, a + n) for a, n, _, _, _ in kept)
+    for a, e in spans:
+        if a < IMPORTS[1] or e > SCANNED[-1][2] or e <= a:
+            problems.append(f"config/image_kept.csv: {a:08X}+{e - a} is not inside .rdata / .data's file bytes")
+        for b, n in named:
+            if a < b + n and b < e:
+                problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps the named range {b:08X}+{n}')
+    for (a, e), (b, _) in zip(spans, spans[1:]):
+        if b < e:
+            problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps {b:08X}')
+    return problems
+
+
+def write_bytes(img, path, zero=False):
+    """The moved range's initial bytes to `path`; `img` is None for a trial without kept ranges (no game.exe)."""
     lo = MOVED[0]
     end = SCANNED[-1][2]   # the file's bytes; the rest of the range is zero
-    data = bytearray(img[lo - BASE:end - BASE])
-    data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     named = named_ranges()
+    if zero:   # the trial: the cells and the kept ranges only
+        data = bytearray(end - lo)
+        cells = committed_cells()
+        for cell, value in cells.items():
+            struct.pack_into('<I', data, cell - lo, value)
+        kept = kept_ranges()
+        problems = check_kept(kept, named)
+        if problems:
+            sys.exit('\n'.join(problems))
+        for a, n, _, _, _ in kept:
+            data[a - lo:a - lo + n] = img[a - BASE:a - BASE + n]
+        what = (f'the trial (--zero): zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc '
+                f'and the {len(kept)} ranges of config/image_kept.csv')
+    else:
+        data = bytearray(img[lo - BASE:end - BASE])
+        what = (f"game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table and the "
+                f'{len(named)} ranges of config/named_data.csv and config/retired_vtables.csv zero)')
+    data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
         b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
         if b < e:
@@ -679,9 +738,8 @@ def write_bytes(img, path):
     while data.endswith(b'\0\0\0\0'):
         data = data[:-4]
     words = struct.unpack(f'<{len(data) // 4}I', data)
-    lines = ['// Generated by tools/gen_image_cells.py --bytes from game.exe at build time (not committed). Do not edit.',
-             f"// game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table and the {len(named)} "
-             f"ranges of config/named_data.csv and config/retired_vtables.csv zero), up to the last nonzero dword: {len(words)} dwords."]
+    lines = ['// Generated by tools/gen_image_cells.py --bytes at build time (not committed). Do not edit.',
+             f'// {what}, up to the last nonzero dword: {len(words)} dwords.']
     for i in range(0, len(words), 8):
         lines.append(','.join(f'0x{w:X}' for w in words[i:i + 8]) + ',')
     text = '\n'.join(lines) + '\n'
@@ -693,42 +751,21 @@ def write_bytes(img, path):
     return len(words)
 
 
-def write_dispatch(img, path):
-    """The dispatch-only functions (MOV EAX,[ECX]; JMP [EAX], [EAX+disp8] or [EAX+disp32]) among the function starts,
-    with their bytes: what InstallHooks compares an EI_REPLACE_DISPATCH thunk with (S18k: the image reads no
-    game.exe)."""
-    sizes = {0x20: 4, 0x60: 5, 0xA0: 8}
-    lines = ['// Generated by tools/gen_image_cells.py --dispatch from game.exe at build time (not committed). Do not edit.',
-             "// game.exe's dispatch-only functions (MOV EAX,[ECX]; JMP [EAX+n]): address, bytes (zero after the JMP)."]
-    for a in sorted(function_starts()):
-        b = img[a - BASE:a - BASE + 8]
-        if not in_code(a) or b[0] != 0x8B or b[1] != 0x01 or b[2] != 0xFF or b[3] not in sizes:
-            continue
-        code = list(b[:sizes[b[3]]]) + [0] * (8 - sizes[b[3]])
-        lines.append('{0x%08X, {%s}},' % (a, ', '.join('0x%02X' % x for x in code)))
-    text = '\n'.join(lines) + '\n'
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    if not (os.path.exists(path) and open(path, encoding='utf-8').read() == text):
-        with open(path, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(text)
-    return len(lines) - 2
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--bytes', metavar='OUT')
-    ap.add_argument('--dispatch', metavar='OUT')
+    ap.add_argument('--zero', action='store_true')
     a = ap.parse_args()
+    if a.zero and a.bytes and not kept_ranges():   # the trial with nothing kept reads no game.exe
+        n = write_bytes(None, a.bytes, zero=True)
+        print(f'gen_image_cells: {n} dwords of the trial written to {a.bytes} (no game.exe read)')
+        return 0
     img = image(exe_path.resolve(a.exe))
-    if a.bytes or a.dispatch:
-        if a.bytes:
-            n = write_bytes(img, a.bytes)
-            print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
-        if a.dispatch:
-            n = write_dispatch(img, a.dispatch)
-            print(f'gen_image_cells: {n} dispatch-only functions written to {a.dispatch}')
+    if a.bytes:
+        n = write_bytes(img, a.bytes, zero=a.zero)
+        print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
         return 0
     kinds = structures(img)
     cells = scan(img)

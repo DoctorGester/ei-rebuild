@@ -85,12 +85,13 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
   jumps through game.exe's code. `ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game args>]`, run from the game
   folder; without `--run` it builds the image, checks the code table and the cells and exits.
-- **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes and the dispatch-only
-  functions' bytes (`tools/gen_image_cells.py --bytes / --dispatch`, build/<cfg>/image/, which also checks the 1.06
-  timestamp), the resources (gen_resources.py); the section places are constants (game_data.h, image_code.cpp,
-  hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations' bounds). InstallHooks reads game.exe's file only in game.exe
-  itself (the recorders' stolen bytes). `EI_REPLACE_DISPATCH` thunks are compared with dispatch_bytes.inc (8
-  dispatch-only functions; 3 registered).
+- **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes
+  (`tools/gen_image_cells.py --bytes`, build/<cfg>/image/, which also checks the 1.06 timestamp; C25 measured which
+  of them the image reads: "The build without game.exe" below), the resources (gen_resources.py, until C23); the
+  section places are constants (game_data.h, image_code.cpp, hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations'
+  bounds). InstallHooks reads game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
+  dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: the four with a port are
+  EI_REWRITTEN (their callers call the virtual), `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
 - **Missing code.** Reaching an address without code (CodeAddress's stub, or a jump into the guarded .text) logs
@@ -1434,12 +1435,13 @@ the `--no-hooks` suite) keeps the registry.
   atexit registrations of function-local statics (PUSH fn, CALL 006E727B within 14 instructions). Their sizes go
   into config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
 - **Compiler jump thunks** (functions.csv kind "thunk") are registered with their target's replacement.
-- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0) use `EI_REPLACE_DISPATCH`;
-  the installer checks that our bytes are the same dispatch.
+- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30 ported) are
+  `EI_REWRITTEN`: the callers call the virtual. A registration of one would be a virtual-call thunk, which
+  InstallHooks refuses (C25 dropped `EI_REPLACE_DISPATCH`, whose check compared game.exe's bytes).
 
 ### Registration rules
 
-- `EI_REPLACE` / `_METHOD` / `_DISPATCH` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
+- `EI_REPLACE` / `_METHOD` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
