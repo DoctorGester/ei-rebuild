@@ -85,6 +85,10 @@ CItem* ReadItem(CUnit* unit, CStream* stream) {
 void ReadItems(CUnit* unit, CStream* stream, CItem** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
+// The worn armour: its ids name armour pieces.
+void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
+    for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
+}
 
 void ZeroSlots(CItem** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = nullptr;
@@ -131,8 +135,8 @@ void SetCarriedSize(CUnit* unit, int size) {
 }
 
 // The unit's new owner: on a server world, player `id` (null when there is none).
-void* PlayerById(CUnit* unit, int id) {
-    void* player = nullptr;
+CPlayer* PlayerById(CUnit* unit, int id) {
+    CPlayer* player = nullptr;
     if (ContextWorld(unit)->GetClassId() == kWorldServerClassId)
         player = unit->ServerWorld()->GetPlayer(id);
     return player;
@@ -147,7 +151,7 @@ void CUnit::LoadUnit(CStream* stream) {
     stream->Read(&relationsA, 4);
     int playerId;
     stream->Read(&playerId, 4);
-    void* newPlayer = PlayerById(this, playerId);
+    CPlayer* newPlayer = PlayerById(this, playerId);
 
     stream->Read(&side, 4);
     stream->Read(&animationEntry, 1);
@@ -174,7 +178,7 @@ void CUnit::LoadUnit(CStream* stream) {
     ReadItems(this, stream, armor, 7);
     stream->Read(levels4C8, sizeof(levels4C8));
     StatsChanged();
-    SetPlayer(static_cast<CPlayer*>(newPlayer));   // inlined by the original
+    SetPlayer(newPlayer);   // inlined by the original
 
     stream->Read(&relationsB, 4);
     int count;

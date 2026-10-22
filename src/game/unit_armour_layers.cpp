@@ -32,8 +32,7 @@ int CoveredSlot(int type, int which) { return kArmourCoverage[type][which]; }
 
 } // namespace
 
-void UnitStats::AddArmourLayer(CEngineObject* armour) {
-    auto* piece = static_cast<CItemArmor*>(armour);
+void UnitStats::AddArmourLayer(CItemArmor* piece) {
     for (int which = 0; which < 3; ++which) {
         int slotIndex = CoveredSlot(piece->GetType(), which);
         if (slotIndex == kNoSlot) continue;
@@ -51,7 +50,7 @@ EI_REWRITTEN(0x005230C0, UnitStats::AddArmourLayer);
 void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (UnitStatSlot& slot : slots) std::memset(&slot.layers[1], 0, 2 * sizeof(UnitStatLayer));
     for (int i = 0; i < kArmourSlots; ++i) {
-        CItem* piece = unit->armor[i];   // 00530830
+        CItemArmor* piece = unit->armor[i];   // 00530830
         if (!piece) continue;
         float condition = std::bit_cast<float>(piece->condition_);
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest

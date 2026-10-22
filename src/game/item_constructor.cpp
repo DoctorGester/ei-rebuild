@@ -526,7 +526,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         game::FatalError(kCantCreate, name);
     }
     constructor->SetManager(nullptr);
-    auto* loot = static_cast<CItemLoot*>(item);
+    auto* loot = AsLoot(item);
     if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size > 1) {
         int which = static_cast<int>(loot->recordType_);
         loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts.data[1]));

@@ -49,7 +49,7 @@ void AddCounted(CParty* list, CItem* item) {
 // An item named `name` from the list's item manager (not checked for null, as the original) with
 // record index `index` and count `count`, added.
 void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
-    auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(list->ItemManager(), nullptr, name));
+    auto* item = AsLoot(ItemManagerCreateItemOriginal(list->ItemManager(), nullptr, name));
     item->index_ = index;
     item->count_ = count;
     AddCounted(list, item);

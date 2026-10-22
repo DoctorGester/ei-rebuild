@@ -551,6 +551,15 @@ inline CItem* FindItem(const CBaseManager* items, unsigned id) { return static_c
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
 // weapon. The original calls the weapon's methods without a class test.
 inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
+// An item known to be armour as the CItemArmor it is: a hero record's armour (PartyUnitRecord::armor
+// holds armour only), an item of the armour kind, the copy or match of an armour piece, the item
+// put on as armour (CUnit::EquipArmour). The original calls the armour's methods without a class test.
+inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
+// An item known to be loot as the CItemLoot it is: an item of the loot kind (0x3007), one made by
+// name from a loot prototype (runes, materials, instructions), the copy or match of a loot item.
+// The original reads its fields without a class test.
+inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
+inline const CItemLoot* AsLoot(const CItem* item) { return static_cast<const CItemLoot*>(item); }
 
 // The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
 // class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions

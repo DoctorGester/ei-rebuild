@@ -36,8 +36,8 @@ const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 const CItem* AsItem(const char* item) { return reinterpret_cast<const CItem*>(item); }
 // Item fields read by the strips: the kind, a loot item's record type and record index.
 int ItemType(const char* item) { return AsItem(item)->type_; }
-int ItemSubKind(const char* item) { return static_cast<int>(static_cast<const CItemLoot*>(AsItem(item))->recordType_); }
-std::uint32_t ItemRecord(const char* item) { return static_cast<const CItemLoot*>(AsItem(item))->index_; }
+int ItemSubKind(const char* item) { return static_cast<int>(AsLoot(AsItem(item))->recordType_); }
+std::uint32_t ItemRecord(const char* item) { return AsLoot(AsItem(item))->index_; }
 
 constexpr int kTypeWeapon = 0x3004;
 constexpr int kTypeArmor = 0x3006;
@@ -75,21 +75,21 @@ void SetScrollPos(void* bar, int position) {
 
 namespace {
 // The item as loot (type 0x3007), or null.
-const CItemLoot* AsLoot(const CItem* item) {
-    return item->type_ == kTypeQuick ? static_cast<const CItemLoot*>(item) : nullptr;
+const CItemLoot* LootOrNull(const CItem* item) {
+    return item->type_ == kTypeQuick ? AsLoot(item) : nullptr;
 }
 } // namespace
 
 // The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
 // static __stdcall functions here (the same RET 4).
 bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
-    const CItemLoot* loot = AsLoot(item);
+    const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;
 }
 EI_REWRITTEN(0x005EE050, UiItemKinds::IsSpell);
 
 bool __stdcall UiItemKinds::IsModifier(const CItem* item) {
-    const CItemLoot* loot = AsLoot(item);
+    const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 4;
 }
 EI_REWRITTEN(0x005EE080, UiItemKinds::IsModifier);
@@ -100,13 +100,13 @@ BOOL __stdcall UiItemKinds::IsSpellContainer(const CItem* item) {
 EI_REWRITTEN(0x005EE0B0, UiItemKinds::IsSpellContainer);
 
 bool __stdcall UiItemKinds::IsPart(const CItem* item) {
-    const CItemLoot* loot = AsLoot(item);
+    const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
 }
 EI_REWRITTEN(0x005EE0D0, UiItemKinds::IsPart);
 
 bool __stdcall UiItemKinds::IsKindOne(const CItem* item) {
-    const CItemLoot* loot = AsLoot(item);
+    const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 1;
 }
 EI_REWRITTEN(0x005EE110, UiItemKinds::IsKindOne);
