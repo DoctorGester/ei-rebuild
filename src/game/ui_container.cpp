@@ -2,7 +2,6 @@
 // event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
 #include "model.h"
 #include "ui.h"
-#include "ui_input_class.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -13,28 +12,6 @@
 #include "game_data.h"
 
 namespace {
-// The container's vtables (main, input side).
-void** ContainerVtable() { return ei::GamePointer<void*>(0x00741008); }
-
-// The container's input side's compiled table (C19, ui_input_class.h; game.exe's 00740FD4 with its tail 00740FE8):
-// every handler passes the event on (UiContainerInput).
-struct ContainerInputClass final : InputSideClass<ContainerInputClass, &CUiContainer::UiContainerDelete> {
-    UiContainerInput* Input() { return reinterpret_cast<UiContainerInput*>(this); }
-    void Deactivate() override { Input()->OnDeactivate(); }                                       // 1
-    int LeftDown(int b, int x, int y) override { return Input()->OnLeftDown(b, x, y), 0; }         // 2
-    int LeftUp(int b, int x, int y) override { return Input()->OnLeftUp(b, x, y), 0; }             // 3
-    int MouseMove(int b, int x, int y) override { return Input()->OnMouseMove(b, x, y), 0; }       // 4
-    int RightDown(int b, int x, int y) override { return Input()->OnRightDown(b, x, y), 0; }       // 5
-    int RightUp(int b, int x, int y) override { return Input()->OnRightUp(b, x, y), 0; }           // 6
-    int LeftDouble(int b, int x, int y) override { return Input()->OnLeftDouble(b, x, y), 0; }     // 7
-    int RightDouble(int b, int x, int y) override { return Input()->OnRightDouble(b, x, y), 0; }   // 8
-    int KeyDown(int k, int r, int f) override { return Input()->OnKeyDown(k, r, f), 0; }           // 9
-    int Char(int k, int r, int f) override { return Input()->OnChar(k, r, f), 0; }                 // 10
-    int KeyUp(int k, int r, int f) override { return Input()->OnKeyUp(k, r, f), 0; }               // 11
-    int Wheel(int f, int d, int x, int y) override { return Input()->OnWheel(f, d, x, y); }        // 12
-};
-void** ContainerInputVtable() { return static_cast<void**>(ContainerInputClass::Vtable()); }
-
 // The display object (00500960): slot 6 gives the last frame's length in milliseconds.
 std::uint32_t FrameMilliseconds() {
     void* display = SceneRenderer();

@@ -52,8 +52,6 @@ constexpr int kScanCodeMask = 0x1FF;
 constexpr int kQuickSlots = 8;
 // The escape menu (0x168 bytes, built inline).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
-void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 
 // The key actions (the key table's values; the original's jump table at 0063B4DC).
 enum KeyAction {
@@ -155,8 +153,8 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         if (memory) {
             static_cast<CUiContainer*>(memory)->Construct(interface_);
             menu = static_cast<CUiWindow*>(memory);
-            menu->vtable_ = EscMenuVtable();
-            menu->inputVtable_ = EscMenuInputVtable();
+            menu->vtable_ = CEscMenu::Vtable();
+            menu->inputVtable_ = CEscMenu::InputVtable();
         }
         interface_->PushWindow(menu, 1, 1);
         inputHandled_ = true;

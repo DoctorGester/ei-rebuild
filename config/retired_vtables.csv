@@ -332,20 +332,59 @@ vtable,slots,class,file,note
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
 00740410,13,UiWindowInputClass,src/game/ui_input_class.h,the item screens' icon window's input side (the plain window's)
 00740444,25,IconWindowClass,src/game/ui_item_screen.cpp,the item screens' icon window (CItemIconWindow)
+00740578,13,BriefingScreenInputClass,src/game/ui_screen_tables.cpp,the briefing screen's input side
+007405AC,42,BriefingScreenClass,src/game/ui_screen_tables.cpp,the briefing screen (CBriefingScreen)
+00740654,13,MainMenuInputClass,src/game/ui_screen_tables.cpp,the main menu's input side
+00740688,42,MainMenuClass,src/game/ui_screen_tables.cpp,the main menu (CMainMenu)
+00740730,13,BattleScreenInputClass,src/game/ui_screen_tables.cpp,the battle screen's input side
+00740764,42,BattleScreenClass,src/game/ui_screen_tables.cpp,the battle screen (CBattleScreen)
+0074080C,13,ViewScreenInputClass,src/game/ui_screen_tables.cpp,the view screen's input side
+00740840,42,ViewScreenClass,src/game/ui_screen_tables.cpp,the view screen (CViewScreen)
+007408E8,13,CampInputClass,src/game/ui_screen_tables.cpp,the camp's input side
+0074091C,55,CampClass,src/game/ui_screen_tables.cpp,the camp (CCampPages)
+007409F8,13,ItemScreenBaseInputClass,src/game/ui_screen_tables.cpp,the plain item screen's input side
+00740A2C,55,ItemScreenBaseClass,src/game/ui_screen_tables.cpp,the plain item screen (CItemScreen)
+00740B08,13,GlobalMapInputClass,src/game/ui_screen_tables.cpp,the island map's input side
+00740B3C,42,GlobalMapClass,src/game/ui_screen_tables.cpp,the island map (CGlobalMap)
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
+00740C08,13,TitlesInputClass,src/game/ui_screen_tables.cpp,the titles' input side
+00740C3C,42,TitlesClass,src/game/ui_screen_tables.cpp,the titles (CCreditsScreen)
+00740CE4,13,ExchangeInputClass,src/game/ui_screen_tables.cpp,the exchange's input side
+00740D18,55,ExchangeClass,src/game/ui_screen_tables.cpp,the exchange between players (CExchangeScreen)
+00740DF4,13,HelpWindowInputClass,src/game/ui_screen_tables.cpp,the help window's input side
+00740E28,42,HelpWindowClass,src/game/ui_screen_tables.cpp,the help / message window (CHelpWindow)
 00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00740F2C,13,UiWindowInputClass,src/game/ui_input_class.h,the plain window's input side
 00740F60,25,UiWindowBaseClass,src/game/ui_window_class.h,the plain window (CUiWindow)
-00740FD4,5,ContainerInputClass,src/game/ui_container.cpp,a container's input side (UiContainerInput)
-00740FE8,8,ContainerInputClass,src/game/ui_container.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
+00740FD4,5,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,a container's input side (UiContainerInput)
+00740FE8,8,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
+00741008,42,ContainerBaseClass,src/game/ui_screen_tables.cpp,the container (CUiContainer)
 00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
+00741188,13,ObjectivesInputClass,src/game/ui_screen_tables.cpp,the objectives window's input side
+007411BC,42,ObjectivesClass,src/game/ui_screen_tables.cpp,the objectives window (CObjectivesWindow)
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
+00741270,13,EscMenuInputClass,src/game/ui_screen_tables.cpp,the Esc menu's input side
+007412A4,42,EscMenuClass,src/game/ui_screen_tables.cpp,the Esc menu (CEscMenu)
+00741354,13,SaveLoadInputClass,src/game/ui_screen_tables.cpp,the save / load window's input side
+00741388,42,SaveLoadClass,src/game/ui_screen_tables.cpp,the save / load window (CSaveLoadWindow)
 00741444,13,ChatWindowInputClass,src/game/ui_chat_window.cpp,the briefing's chat window's input side
 00741478,25,ChatWindowClass,src/game/ui_chat_window.cpp,the briefing's chat window (CChatWindow)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
+00741C9C,13,ConnectScreenInputClass,src/game/ui_screen_tables.cpp,the connection screen's input side
+00741CD0,42,ConnectScreenClass,src/game/ui_screen_tables.cpp,the multiplayer connection screen (CMpConnectScreen)
+00741DA4,13,MasterRequestBoxInputClass,src/game/ui_screen_tables.cpp,the master server request box's input side
+00741DD8,42,MasterRequestBoxClass,src/game/ui_screen_tables.cpp,the master server request box (CMasterRequestBox)
+00741F78,13,OptionsInputClass,src/game/ui_screen_tables.cpp,the options window's input side
+00741FAC,42,OptionsClass,src/game/ui_screen_tables.cpp,the options window (COptionsWindow)
 007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)
+00742118,13,MpHeroScreenInputClass,src/game/ui_screen_tables.cpp,the hero screen's input side
+0074214C,55,MpHeroScreenClass,src/game/ui_screen_tables.cpp,the multiplayer hero screen (CMpHeroScreen)
+00742228,13,DifficultyBoxInputClass,src/game/ui_screen_tables.cpp,the difficulty question's input side
+0074225C,42,DifficultyBoxClass,src/game/ui_screen_tables.cpp,the difficulty question (CDifficultyBox)
+00742314,13,MessageBoxInputClass,src/game/ui_screen_tables.cpp,the message box's input side
+00742348,42,MessageBoxClass,src/game/ui_screen_tables.cpp,the message box (CMessageBox)
 00742464,6,TopPanelInputClass,src/game/ui_battle_setup.cpp,the HUD top panel's input side
 0074247C,7,TopPanelInputClass,src/game/ui_battle_setup.cpp,the top panel input side's tail (a byte match in 005FE440 split it off)
 00742498,25,TopPanelClass,src/game/ui_battle_setup.cpp,the HUD top panel (CHudTopPanel)

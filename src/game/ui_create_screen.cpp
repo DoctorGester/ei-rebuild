@@ -47,7 +47,6 @@ Node* EmptyList() {
 }
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
-void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 void SetVtables(CUiWindow* w, void** vtable, void** inputVtable) {
     w->vtable_ = vtable;
     w->Input()->vtable_ = inputVtable;
@@ -70,7 +69,7 @@ void CInterface3D::CreateScreen(int id) {
         battle->personTexts_.Construct();          // 005F8F30
         battle->clientParty_.Construct();          // 005F6080
         battle->itemUseKey_.ConstructItemUseKey();  // 005F5F90
-        SetVtables(battle, Vtable(0x00740764), Vtable(0x00740730));
+        SetVtables(battle, CBattleScreen::Vtable(), CBattleScreen::InputVtable());
         break;
     }
     case 2: {   // the main menu
@@ -78,7 +77,7 @@ void CInterface3D::CreateScreen(int id) {
         screen = menu;
         if (!menu) break;
         menu->CUiContainer::Construct(this);
-        SetVtables(menu, Vtable(0x00740688), Vtable(0x00740654));
+        SetVtables(menu, CMainMenu::Vtable(), CMainMenu::InputVtable());
         break;
     }
     case 3: {   // the base / briefing screen
@@ -97,7 +96,7 @@ void CInterface3D::CreateScreen(int id) {
         briefing->speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
         briefing->speakersEnd_ = nullptr;
         briefing->speakersCapacity_ = nullptr;
-        SetVtables(briefing, Vtable(0x007405AC), Vtable(0x00740578));
+        SetVtables(briefing, CBriefingScreen::Vtable(), CBriefingScreen::InputVtable());
         break;
     }
     case 4: {
@@ -117,7 +116,7 @@ void CInterface3D::CreateScreen(int id) {
         screen = view;
         if (!view) break;
         view->CUiContainer::Construct(this);
-        SetVtables(view, Vtable(0x00740840), Vtable(0x0074080C));
+        SetVtables(view, CViewScreen::Vtable(), CViewScreen::InputVtable());
         break;
     }
     case 8: {   // the titles (CCreditsScreen, ui_screens.h)
@@ -297,7 +296,7 @@ void CInterface3D::ShowMessage(int force) {
         win->page_ = value;
         win->pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
         win->pictures_.Construct();
-        SetVtables(win, Vtable(0x00740E28), Vtable(0x00740DF4));
+        SetVtables(win, CHelpWindow::Vtable(), CHelpWindow::InputVtable());
         window = win;
     }
     PushWindow(window, 1, 0);
@@ -344,7 +343,7 @@ void CInterface3D::OpenHelp(int flag) {
         win->page_ = seen;
         win->pulsing_.Construct();    // 005F9A00
         win->pictures_.Construct();   // the allocator proxy (005FA340), then a sentinel
-        SetVtables(win, Vtable(0x00740E28), Vtable(0x00740DF4));
+        SetVtables(win, CHelpWindow::Vtable(), CHelpWindow::InputVtable());
         window = win;
     }
     PushWindow(window, 1, 0);
@@ -380,7 +379,7 @@ CExchangeScreen* CExchangeScreen::Construct(CInterface3D* ui) {
     self->names_.Start() = nullptr;
     self->names_.Finish() = nullptr;
     self->names_.EndOfStorage() = nullptr;
-    SetVtables(self, Vtable(0x00740D18), Vtable(0x00740CE4));
+    SetVtables(self, Vtable(), InputVtable());
     return self;
 }
 EI_REWRITTEN(0x005F6F30, CExchangeScreen::Construct);
@@ -395,10 +394,10 @@ CCreditsScreen* CCreditsScreen::Construct(CInterface3D* ui, int flag, const char
     self->lines_.Construct();   // the header from the node pool, linked to itself
     new (&self->name_) mfc::CString(text);
     Screen8Member1D8(&self->player_);
-    ei::SetVtable(self, 0x00740C3C);
+    vtable_ = Vtable();
     const auto low = static_cast<std::uint8_t>(flag);
     std::memcpy(&self->fromGame_, &low, 1);
-    self->Input()->vtable_ = Vtable(0x00740C08);
+    self->Input()->vtable_ = InputVtable();
     return self;
 }
 EI_REWRITTEN(0x005F6D50, CCreditsScreen::Construct);

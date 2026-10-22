@@ -155,11 +155,10 @@ int CHeroEquipPanel::DrawImpl(int pass) {
 }
 EI_REPLACE_METHOD(0x00622420, CHeroEquipPanel::DrawImpl);
 
-// 0064D970 (the objectives window's). Returns SetRenderState's result (not stored in the device object).
-long __fastcall WindowSetAlphaRef(CUiWindow* self) {
-    std::uint32_t value = static_cast<CObjectivesWindow*>(self)->savedAlphaRef_;
-    long hr = DeviceOf(self)->device_->SetRenderState(kAlphaRef, value);
+long CObjectivesWindow::RestoreAlphaRef() {
+    std::uint32_t value = savedAlphaRef_;
+    long hr = DeviceOf(this)->device_->SetRenderState(kAlphaRef, value);
     render::state::Render(kAlphaRef, value);
     return hr;
 }
-EI_REPLACE(0x0064D970, WindowSetAlphaRef);
+EI_REPLACE_METHOD(0x0064D970, CObjectivesWindow::RestoreAlphaRef);
