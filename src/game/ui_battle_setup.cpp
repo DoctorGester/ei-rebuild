@@ -36,6 +36,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
+#include "camera.h"
 
 using console::CStringArray;
 
@@ -79,10 +80,9 @@ struct MapInputClass final : PanelInputClass<MapInputClass, &CHudMap::HudMapDele
     int Wheel(int f, int d, int x, int y) override { return AsPanel()->OnWheel(f, d, x, y); }   // 12: 00645640
 };
 
-// The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
-// game being loaded (at 007AFE1C).
-int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
-bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
+// The game's save stream's version and a game being loaded (the save stream holds its data).
+int SaveVersion() { return static_cast<int>(GameSaveStream()->version_); }
+bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 
 // A panel constructed inline by Create: the window base (005FE700), the owner (the battle screen,
 // declared apart as CBattleScreen), the panel's two tables.
@@ -285,7 +285,7 @@ void CBattleScreen::Create() {
     CCameraInput* camera = gamecrt::operator_new_as<CCameraInput>();
     AddInput(camera ? reinterpret_cast<UiInputSide*>(camera->Construct(interface_)) : nullptr);
 
-    ei::GameData<std::uint32_t>(0x0079B2B0) &= ~0x40u;
+    TheCamera()->flags_ &= ~0x40u;
     pendingAction_ = 0;
     pendingSlot_ = -1;
     GameSetWeather(0, 0.0f);   // clear weather

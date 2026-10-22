@@ -119,6 +119,11 @@ public:
 
 // ---- The globals of the session code ------------------------------------------------------------
 
+// The send rates in bytes per second (the console's rate / localrate set them): to a remote address (2500;
+// Rebirth's SetDefaultRate, disabled here, writes Settings\Rate over it) and on the local network (12500).
+extern int g_remoteRate;
+extern int g_localRate;
+
 class SessionBase;
 class ServerSession;
 class ClientSession;
@@ -437,8 +442,7 @@ public:
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
     // 00436F60. Sends the buffer's contents to `address` through the socket.
     bool Send(const NetAddress* address, GameBuffer* buffer);
-    // 00436F80. The send rate for a peer: 12500 on the local network, else 2500 (read from the
-    // dwords at 00783E38 / 00783E34).
+    // 00436F80. The send rate for a peer: g_localRate on the local network, else g_remoteRate.
     std::uint32_t RateFor(const NetAddress* address);
     // 00436FA0. Sends a leave packet (kind 1, then the connection id) to `address`.
     void SendLeave(const NetAddress* address, std::uint32_t id);

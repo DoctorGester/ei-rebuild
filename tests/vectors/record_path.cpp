@@ -60,7 +60,7 @@ void OfferTables() {
     const Range ranges[kPlainTableRanges] = {
         {AddressOf(&ei::OriginalGameData<const int[9]>(0x00791108)), 36},
         {AddressOf(&ei::OriginalGameData<const int[9]>(0x0079112C)), 36},
-        {ei::DataId(0x00791978), 36},
+        {AddressOf(&ei::OriginalGameData<const int[9]>(0x00791978)), 36},
         {AddressOf(&ei::OriginalGameData<const float[8]>(0x0079169C)), 32},
         {ei::DataId(0x0073F0A8), 8},
         {ei::DataId(0x0073B86C), 4},

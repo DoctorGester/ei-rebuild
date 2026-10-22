@@ -149,7 +149,7 @@ void CBattleScreen::ToggleMember(int index) {
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
-    if (ei::GameData<const int>(0x007B0098) == 1) {
+    if (TheServerWorld()->gameResult_ == 1) {
         if (auto* player = TheServerWorld()->GetPlayer(0)) {
             for (int i = 0; i < player->Party()->members_.size; ++i) {
                 if (i >= party->size) continue;

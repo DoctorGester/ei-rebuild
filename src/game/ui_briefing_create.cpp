@@ -47,7 +47,7 @@
 namespace {
 
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
+bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 const char* SaveLoadTexture() { return "saveload"; }

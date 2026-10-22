@@ -25,7 +25,6 @@ constexpr std::uint32_t kLoaded = 0x20;            // CFigureMesh::flags_
 constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 constexpr const char* kFiguresArchive = "figures.res";
 constexpr const char* kMenusArchive = "menus.res";
-constexpr std::uintptr_t kMenuRects = std::uintptr_t(0x007C8048);        // the menus' rectangles (menu_rects.cpp)
 constexpr int kSharedPartClass = 0x41;             // a part whose buffers point into the file data; 0x42 owns them
 
 // Copies `text` with its terminator to `end`; returns the new end (at the terminator).
@@ -52,7 +51,7 @@ int CFigureManager::CreateWithArchives() {
     mfc::CString folder(TheTextFolder());
     AddArchive(folder + kFiguresArchive);
     AddArchive(folder + kMenusArchive);
-    LoadMenuRects(ei::GamePointer<std::uint8_t>(kMenuRects));
+    LoadMenuRects(g_menuRects);
     return 1;
 }
 EI_REWRITTEN(0x005AA510, CFigureManager::CreateWithArchives);

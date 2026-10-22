@@ -29,12 +29,9 @@ namespace effect {
 
 // --- Globals -------------------------------------------------------------------------------------
 
-// The light manager: ::LightManager (map_object.h).
-inline CLightFactory* LightFactory() { return ei::GameData<CLightFactory*>(0x007AF748); }   // CreateObject makes lights
-inline CParticleManager* ParticleManager() { return ei::GameData<CParticleManager*>(0x007AF754); }
-inline CLightningManager* BoltFactory() { return ei::GameData<CLightningManager*>(0x007AF758); }   // CreateObject makes bolts
-inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
-inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }
+// The light and particle managers are TheTerrain(), TheLightFactory() and TheParticleManager() (game_singletons.h).
+inline CLightningManager* BoltFactory() { return TheClientWorld()->listManager_; }   // CreateObject makes bolts
+inline int ChangeStamp() { return TheServerWorld()->updateCount_; }
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
 
 // Constants the original reads from memory (read the same way so nothing is folded).

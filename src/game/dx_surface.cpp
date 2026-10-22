@@ -36,7 +36,6 @@
 
 namespace {
 
-int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The holder's vtable and its base class's (compiled: texture.h).
 void SetHolderVtable(CDXSurface* holder) { ei::SetVtable(holder, DXSurfaceClass::Vtable()); }
 void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, RendererBaseClass::Vtable()); }
@@ -170,7 +169,7 @@ void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerP
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ++HolderCount();
+    ++device::HolderCount();
 }
 
 } // namespace
@@ -227,7 +226,7 @@ CDXSurface* CDXSurface::Construct(CTextureDevice* deviceIn, int widthIn, int hei
     width = widthIn;
     height = heightIn;
     bitsPerPixel = static_cast<int>(format.words[kBits]);
-    ++HolderCount();
+    ++device::HolderCount();
     return this;
 }
 EI_REWRITTEN(0x004EF7B0, CDXSurface::Construct);
@@ -359,7 +358,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
         throw static_cast<CDXException*>(object);
     }
     render::PictureFromMmp(this, picture);
-    ++HolderCount();
+    ++device::HolderCount();
     return this;
 }
 EI_REWRITTEN(0x004EFC60, CDXSurface::ConstructFromPicture);
@@ -370,7 +369,7 @@ void __fastcall DXSurfaceDestroy(CDXSurface* holder) {
     SetHolderVtable(holder);
     render::HolderGone(holder);   // its memory, and a picture kept for it
     holder->device = nullptr;
-    --HolderCount();
+    --device::HolderCount();
     SetBaseVtable(holder);
 }
 EI_REWRITTEN(0x004EFD20, DXSurfaceDestroy);

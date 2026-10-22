@@ -14,6 +14,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -240,7 +241,7 @@ int CCamera::OpenFile(const char* name) {
         path.Format(kNumberedRecord, last + 1);
         gameapi::MoveFileA(kCurrentRecord, path);
     }
-    camera::GlobalFlags() |= 0x10;
+    TheClientWorld()->flags_ |= 0x10;
     bool failed;
     {
         mfc::CString folder(kRecordFolder);

@@ -38,7 +38,6 @@
 namespace {
 
 // The constants the original reads at run time.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 0.0025: 1 / 400, half the layout's width
 float One() { return 1.0f /*0073B84C*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
@@ -49,9 +48,6 @@ float TurnAboutX() { return 1.15f /*00742AE8*/; }       // 1.15
 float SecondTurnAboutZ() { return 0.4f /*0073B868*/; } // 0.4
 float BarHeight() { return 15.0f /*00742430*/; }        // 15
 float PanelHeight() { return 220.0f /*00742AE4*/; }      // 220
-// The world time: whole ticks (007AF61C) plus the fraction of the current one (007AFCA8).
-float WorldTickFraction() { return GameFloat(0x007AFCA8); }
-
 constexpr int kBackground = 0;        // scene objects
 constexpr int kHeightBar = 8;
 constexpr int kMoreMark = 9;
@@ -147,7 +143,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
             savedPosition = model->localPosition_;
             savedOrientation = model->localRotation_;
-            ObjectSlots(unit)->AdvanceTime(static_cast<float>(CurrentClientTick()) + WorldTickFraction());
+            ObjectSlots(unit)->AdvanceTime(static_cast<float>(CurrentClientTick()) + ClientTickFraction());
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.

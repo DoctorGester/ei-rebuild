@@ -31,6 +31,8 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
+#include "model.h"
+#include "figure_manager.h"
 
 #include <cstdint>
 
@@ -42,9 +44,9 @@ namespace {
 // and set it). The menu shows its world with 6.
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 // The main menu's six rectangles of menus.reg (loaded by 005ACE80).
-const RECT* MenuRects() { return ei::GamePointer<const RECT>(0x007C8048); }
+const RECT* MenuRects() { return g_menuRects; }
 // Interface options (bit 0: the menu's lightning).
-std::uint32_t InterfaceOptions() { return ei::GameData<const volatile std::uint32_t>(0x007AF064); }
+std::uint32_t InterfaceOptions() { return TheSceneRenderer()->flags_; }
 // The tick count of the menu's next lightning chance.
 std::uint32_t g_nextLightningTick = /*007C811C*/ {};
 

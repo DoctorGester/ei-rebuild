@@ -113,6 +113,7 @@ TYPES = {
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
+    'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
@@ -165,7 +166,8 @@ STATIC_OBJECT_BYTES = {
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
     'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
-    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
+    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
+    'mfc::CList<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
 }
 
 
@@ -456,6 +458,12 @@ def addon_sites():
 # The addon.dll sites a retired vtable may hold (see check: the image's class reproduces the slot), and the
 # generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
+# The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
+# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write.
+# address -> why.
+NAMED_ADDON_SITES = {
+    0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session_tick.cpp)",
+}
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 
 # Retired vtables game.exe's pointer cells may still point at: type_info's 007472B0 (C19 batch 23), the vtable field
@@ -664,7 +672,7 @@ def check(img, update, img_path):
             problems.append(f'{d.where()}: {d.name} is not the bytes of game.exe: first difference at {lo + at:08X} '
                             f'(+{at}): ours {d.packed[at:at + 4].hex()}, game.exe {want[at:at + 4].hex()}')
         for a, b in addon_sites():
-            if a < hi and lo < b:
+            if a < hi and lo < b and a not in NAMED_ADDON_SITES:
                 problems.append(f'{d.where()}: {d.name} overlaps the addon.dll site {a:08X}: that cell is written')
     good = sorted((d for d in defs if d.size), key=lambda d: d.address)
     for x, y in zip(good, good[1:]):
@@ -731,7 +739,7 @@ def check(img, update, img_path):
             d = inside(a)
             # The harness reads game.exe's own copy in its --no-hooks runs through ei::OriginalGameData (game_data.h).
             original_read = rel.startswith('tests/') and ORIGINAL_READ.search(code, max(0, m.start() - 80), m.start())
-            if d and not original_read and not (rel == ADDON_SITES_INC and a in RETIRED_ADDON_SITES):
+            if d and not original_read and not (rel == ADDON_SITES_INC and (a in RETIRED_ADDON_SITES or a in NAMED_ADDON_SITES)):
                 line = raw.count('\n', 0, m.start()) + 1
                 problems.append(f'{rel}:{line}: names {a:08X}, inside {d.name} ({d.where()}): use the name')
     text = csv_text(good)

@@ -61,6 +61,7 @@
 #include "../hook/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 #include <ddraw.h>
 
@@ -206,7 +207,6 @@ constexpr DWORD kLittleMemory = 0x800000;
 
 // The objects.
 void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
-void* LogicSettingsObject() { return &ei::GameData<char>(0x007C53F8); }
 void* QuestDatabaseObject() { return &TheQuestDatabase(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -543,7 +543,7 @@ constexpr int kLongestPassTicks = 5;
 
 // The world tick's length in milliseconds (0078FF34) and the factor from milliseconds to the
 // camera's time (0073C348: 1 / 55).
-std::uint32_t TickLength() { return ei::GameData<std::uint32_t>(0x0078FF34); }
+std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) {
     return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }
@@ -801,7 +801,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     StoreStartFolder();
     {
         mfc::CString settings = StartFolder() + "config\\ai.reg";
-        static_cast<LogicSettings*>(LogicSettingsObject())->Load(settings);
+        g_logicSettings.Load(settings);
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =

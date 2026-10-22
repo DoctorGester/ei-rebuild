@@ -4,13 +4,12 @@
 #include "terrain.h"
 #include "torch_client_spec.h"
 
-#include "camera.h"        // TheTerrain (the light manager, 007AF738)
 #include "core_maths.h"
 #include "effects.h"       // CParticleSource, CParticleManager
 #include "map_object.h"    // CMapObject::position
 #include "sound.h"         // CSoundManager
 #include "spell.h"         // CLight, CLightFactory
-#include "originals_effects.h"   // ParticleManagerObject
+#include "originals_effects.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
@@ -36,8 +35,6 @@ constexpr int kTorchClassId = 0x41;
 // 0078F7BC: "CTorchObjectClientSpecific".
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
-CLightFactory* Lights() { return ei::GameData<CLightFactory* const>(0x007AF748); }
-CParticleManager* Particles() { return ParticleManagerObject(); }
 
 // The sources are engine objects (CParticleSource::Vtable()): slot 4 releases a reference.
 void ReleaseSource(CParticleSource* source) { source->Release(); }
@@ -116,7 +113,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
     if (light_ && (light_->flags_ & kLightHidden)) {
         light_->flags_ &= ~kLightHidden;
-        camera::TheTerrain()->AddLight(light_);
+        TheTerrain()->AddLight(light_);
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float farRadius = values_[1] * kShowFarFactor;
@@ -128,7 +125,7 @@ void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
     if (light_ && !(light_->flags_ & kLightHidden)) {
         light_->flags_ |= kLightHidden;
-        camera::TheTerrain()->RemoveLight(light_);
+        TheTerrain()->RemoveLight(light_);
     }
     if (sound_) {
         TheSoundManager()->StopSound(sound_);
@@ -152,7 +149,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offse
         particles_ = nullptr;
         if (old) ReleaseSource(old);
     }
-    CParticleSource* source = Particles()->CreateSource(static_cast<int>(type));
+    CParticleSource* source = TheParticleManager()->CreateSource(static_cast<int>(type));
     CParticleSource* old = particles_;
     particles_ = source;
     if (source) ++source->refCount_;
@@ -167,12 +164,12 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     SetFlame(offset, radius, colour);
     const Vector3 at = AtTorch(torch_, offset);
     if (light_) {
-        camera::TheTerrain()->RemoveLight(light_);
+        TheTerrain()->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old) old->Release();
     }
-    CLight* light = Lights()->CreateLight(kPointLightClass);
+    CLight* light = TheLightFactory()->CreateLight(kPointLightClass);
     CLight* old = light_;
     light_ = light;
     if (light) ++light->refCount_;
@@ -184,7 +181,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     const float squared = static_cast<float>(radius * radius);
     light_->rangeSquared_ = squared;
     light_->inverseRangeSquared_ = 1.0f / squared;
-    camera::TheTerrain()->AddLight(light_);
+    TheTerrain()->AddLight(light_);
 }
 EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 

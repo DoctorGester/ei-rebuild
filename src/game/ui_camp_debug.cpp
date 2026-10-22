@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "resource_manager.h"
 #include "game_data.h"
+#include "world.h"
 
 #include <cstdint>
 
@@ -30,9 +31,9 @@ const char* Dot() { return "."; }
 const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
-// The item and spell databases (their name lists, originals_gameplay.h).
-CItemManager* ItemDatabase() { return ei::GameData<CItemManager* const>(0x007AF60C); }
-void* SpellDatabase() { return ei::GameData<void* const>(0x007AF604); }
+// The item and spell managers (their name lists, originals_gameplay.h).
+CItemManager* ItemDatabase() { return TheClientWorld()->itemManager_; }
+CSpellManager* SpellDatabase() { return TheClientWorld()->manager4C_; }
 
 constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;
@@ -131,10 +132,10 @@ void CCampPages::DebugFill() {
 
     if (CParty* spells = spellParts_[0]) {
         PartyResetOriginal(spells, nullptr, 1, 0);
-        static_cast<CSpellManager*>(SpellDatabase())->ListModifierNames(&names);
+        SpellDatabase()->ListModifierNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
-        static_cast<CSpellManager*>(SpellDatabase())->ListSpellNames(&names);
+        SpellDatabase()->ListSpellNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }

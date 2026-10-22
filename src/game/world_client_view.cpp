@@ -23,6 +23,7 @@
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "world_data.h"
 
 namespace {
 
@@ -33,14 +34,15 @@ constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 
 } // namespace
 
-// The render device (MatrixDevice, world.h).
-int MatrixDevice::Classify(const void* bounds) {
-    return reinterpret_cast<CTransformPipeline*>(this)->ClipTest(static_cast<const ClipBounds*>(bounds));
-}
-
 namespace {
 
-MatrixDevice* Device() { return TheMatrixDevice(); }
+// The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
+// and the view stack.
+CTransformPipeline* Device() { return ScenePipeline(); }
+float* StackTop(CTransformPipeline* device, int index) {
+    MatrixStack& stack = device->stacks_[index];
+    return stack.matrices[stack.count - 1].m;
+}
 
 // 004D9880. out = a * b (4x4 float matrices; RET 8).
 void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
@@ -70,17 +72,16 @@ ObjectList* DeferredUnits() { return FrameDeferredUnits(); }
 
 const int& g_multiplayerView = options::TheOptions()->drawVisibleOnly_;
 const int& g_modelTouchDelay = options::TheOptions()->shadowLightingFreq_;
-// 007AFDB0: the point PickGround / PickSurface return without a view matrix.
-const float* NoPickPoint() { return ei::GamePointer<const float>(0x007AFDB0); }
 
-// Pushes the object's matrix on the device's object stack, as the original inlines it.
-void PushObjectMatrix(MatrixDevice* device, float* matrix) {
-    if (device->objectDepth == 0) {
-        device->objectDepth = 1;
-        std::memcpy(device->objectStack, matrix, 0x40);
+// Pushes `matrix` on the pipeline's stack `index` (multiplied onto its top), as the original inlines it.
+void PushStackMatrix(CTransformPipeline* device, int index, const float* matrix) {
+    MatrixStack& stack = device->stacks_[index];
+    if (stack.count == 0) {
+        stack.count = 1;
+        std::memcpy(stack.matrices[0].m, matrix, 0x40);
     } else {
-        int depth = ++device->objectDepth;
-        MatrixMultiply(device->objectStack + (depth - 1) * 16, device->objectStack + (depth - 2) * 16, matrix);
+        int depth = ++stack.count;
+        MatrixMultiply(stack.matrices[depth - 1].m, stack.matrices[depth - 2].m, matrix);
     }
 }
 
@@ -95,7 +96,7 @@ CObject3DClientSpecific* ModelOf(CEngineObject* object) {
 
 int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
-    MatrixDevice* device = Device();
+    CTransformPipeline* device = Device();
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
@@ -137,9 +138,9 @@ int CWorldClient::CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4
                 std::memcpy(&matrix[13], &zero, 4);
                 std::memcpy(&matrix[12], &zero, 4);
                 std::memcpy(&matrix[15], &one, 4);
-                PushObjectMatrix(device, matrix);
-                int where = Device()->Classify(&o3d->boundsFlags);
-                if (device->objectDepth != 0) --device->objectDepth;
+                PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
+                int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->boundsFlags));
+                device->PopMatrix(CTransformPipeline::kClipStack);
 
                 CEngineObject* const& entry = object;
                 if (where != 2) {
@@ -203,22 +204,14 @@ __forceinline float NonNegative(float v) { return v >= 0.0f ? v : 0.0f; }
 // 0056BF30 / 0056C350 share everything but the height function (which returns ST0 unrounded).
 template <typename Height>
 Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
-    MatrixDevice* device = Device();
-    if (device->viewDepth == 0) {
-        std::memcpy(out, NoPickPoint(), 12);
+    CTransformPipeline* device = Device();
+    if (device->stacks_[CTransformPipeline::kViewStack].count == 0) {
+        std::memcpy(out, &worlddata::kOrigin, 12);
         return out;
     }
     // Push the current view matrix on the picking stack (multiplied onto its top).
-    float* top = device->viewStack + (device->viewDepth - 1) * 16;
-    if (device->pickDepth == 0) {
-        device->pickDepth = 1;
-        std::memcpy(device->pickStack, top, 0x40);
-    } else {
-        int depth = ++device->pickDepth;
-        MatrixMultiply(device->pickStack + (depth - 1) * 16, device->pickStack + (depth - 2) * 16, top);
-    }
-    MatrixDevice* current = Device();
-    const float* m = current->pickStack + (current->pickDepth - 1) * 16;
+    PushStackMatrix(device, CTransformPipeline::kPickStack, StackTop(device, CTransformPipeline::kViewStack));
+    const float* m = StackTop(Device(), CTransformPipeline::kPickStack);
 
     // The values the original keeps on the FPU stack are doubles here (no rounding to float).
     double sx = screenX;
@@ -277,7 +270,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
             } while (steps < 100);
         }
     }
-    if (device->pickDepth != 0) --device->pickDepth;
+    device->PopMatrix(CTransformPipeline::kPickStack);
     out->x = outX;
     std::memcpy(&out->y, &outY, 4);
     std::memcpy(&out->z, &pz, 4);

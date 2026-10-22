@@ -27,6 +27,12 @@ void* __stdcall CreateFigureObject(int classId);
 // FigureModel, the cached model, is in model.h.
 
 // A real virtual class: the compiler makes its vtable (C19; game.exe's 0073FB88 is retired).
+// The menus' button rectangles (menus.reg; menu_rects.cpp): the main menu's six (new game, load, exit, options,
+// credits, multiplayer), then the Esc menu's five (save, load, resume, exit to the main menu, options).
+constexpr int kMainMenuRects = 6;
+constexpr int kMenuRects = 11;
+extern RECT g_menuRects[kMenuRects];
+
 class CFigureManager : public CResourceManager {
 public:
     // 005AA070 (figure_mesh_life.cpp). CResourceManager's constructor, an empty model map with
@@ -56,9 +62,9 @@ public:
     // the model `modelName` on `figure`; 0 when it cannot.
     int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // 005ACE80 (menu_rects.cpp; RET 4; CreateWithArchives): the main menu's and the escape menu's
-    // button rectangles from "menus.reg" into `rects`. 1; FatalError's result when the file or an
+    // button rectangles from "menus.reg" into `rects` (g_menuRects). 1; FatalError's result when the file or an
     // entry cannot be read.
-    int LoadMenuRects(std::uint8_t* rects);
+    int LoadMenuRects(RECT* rects);
 
     // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor in place (a registration); returns
     // this.

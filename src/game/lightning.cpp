@@ -32,7 +32,7 @@ double Unsigned(std::uint32_t value) {
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
-const float* NoiseTable() { return ei::GamePointer<const float>(0x0079CE78); }
+const float* NoiseTable() { return LightningNoiseTable(); }
 constexpr int kNoiseRowLength = 400;
 
 // Scratch curves written by LightningSegment::Animate (one float per point, at most 400).
@@ -41,9 +41,6 @@ float g_noiseUp[400] = /*0079C838*/ {};
 
 // Branch sway frequencies: six pairs (side, up) at 00787C8C.
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
-
-// World clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-float GameTickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr double kNoiseScale = 0x1.0000000100000p-31;   // 0073C508: about 2 / 2^32
 constexpr double kRandomScale = 0x1.0000000100000p-32;  // 0073C468: about 1 / 2^32
@@ -324,7 +321,7 @@ EI_REWRITTEN(0x00467150, CLightning::UpdateBounds);
 
 void CLightning::Animate() {
     float sway = amplitude_;
-    float time = static_cast<float>((static_cast<double>(CurrentClientTick()) + GameTickFraction()) / 4.0);
+    float time = static_cast<float>((static_cast<double>(CurrentClientTick()) + ClientTickFraction()) / 4.0);
     main_.Animate(time, NoiseAmplitude(power_));
     EI_NAN_AUDIT(power_);
     if (power_ != 0.0f) {

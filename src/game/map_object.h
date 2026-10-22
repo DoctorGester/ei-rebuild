@@ -392,10 +392,6 @@ static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
 static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
 static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
 
-// The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
-// hand it to the light calls (add, remove, aim, IsLit) as their `this`.
-inline Terrain* LightManager() { return ei::GameData<Terrain* const>(0x007AF738); }
-
 // The slot the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {
 constexpr int kResetScale = 30;           // 0x78

@@ -20,6 +20,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -153,7 +154,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
             mfc::CString message;
             message.Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
             game::DebugLog(message);
-            if (ei::GameData<const std::uint32_t>(0x007AF5C0) & 0x10000) {
+            if (TheClientWorld()->flags_ & 0x10000) {
                 ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message, 0x30, 0);
             }
             m.h = 0.0f;

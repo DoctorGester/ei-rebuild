@@ -40,9 +40,6 @@ constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr int kKeyEnter = 0xD;
 constexpr float kSpecialZoneDistance = 23.0f;
 
-int& WorldTick() { return ei::GameData<int>(0x007AF61C); }
-CBaseManager* ItemManager() { return ei::GameData<CBaseManager* const>(0x007AF60C); }
-void* Weather() { return ei::GamePointer<void>(0x007AFCAC); }   // "RainSnow"
 // The zone whose camera placement keeps a fixed view ("gz20g").
 const char* FixedViewZone() { return "gz20g"; }
 // 007C8388: an identity rotation (set by the static initialiser 00666CC0).
@@ -105,7 +102,7 @@ int CPlayerClient::OnGameState() {
     }
     player->sessionKind100_ = state;
     TheInterface()->CreateScreen(state);
-    WorldTick() = tick;
+    TheClientWorld()->tick_ = tick;
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
     for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         UnitChanged(node->value);
@@ -131,7 +128,7 @@ int CPlayerClient::OnObjectValues() {
         in_.Read(&id, 4);
         if (id == -1) return 1;
         if (!in_.ok_) return 0;
-        CItem* item = FindItem(ItemManager(), static_cast<unsigned>(id));
+        CItem* item = FindItem(TheClientWorld()->itemManager_, static_cast<unsigned>(id));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
         in_.Read(&value, 4);
@@ -290,7 +287,7 @@ int CPlayerClient::OnWeather() {
     std::uint8_t bytes[3];
     in_.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
-    static_cast<CRainSnow*>(Weather())->Start(bytes[0], static_cast<float>(strength));
+    TheClientWorld()->RainSnow()->Start(bytes[0], static_cast<float>(strength));
     return 1;
 }
 

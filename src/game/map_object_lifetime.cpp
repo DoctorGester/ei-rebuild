@@ -36,6 +36,7 @@
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 #include "game/game_slots.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <new>
@@ -433,7 +434,7 @@ void CMapObjectClientSpecific::DestructBody() {
         light->flags_ &= ~0x200u;
         if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            LightManager()->RemoveLight(light);
+            TheTerrain()->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
             }

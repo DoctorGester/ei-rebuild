@@ -299,12 +299,17 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
     cells.FreeData();
 }
 
-// 005BF8F0 (thiscall on the initialiser's own object at 007C2FB8, which has no fields; returns it).
+// 005BF8F0 (thiscall on its static initialiser's object, which has no fields; returns it).
 void* __fastcall BuildSectorSpiral(void* self) {
     BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
     return self;
 }
 EI_REPLACE(0x005BF8F0, BuildSectorSpiral);
+
+// 005BF8E0, the static initialiser (cdecl) that builds the spiral at its place in the list. The object it passes
+// (007C2FB8) has no fields and nothing reads it.
+void BuildSectorSpiralStatic() { BuildSectorSpiral(nullptr); }
+EI_REPLACE(0x005BF8E0, BuildSectorSpiralStatic);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];

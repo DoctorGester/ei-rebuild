@@ -1104,6 +1104,8 @@ inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_sc
 // The quest's name (script_exec_helpers.cpp): built by its static initialiser in the list's order, destroyed by the
 // exit function that registers.
 extern lib::StaticObject<mfc::CString> g_scriptQuestName;
+// The script being loaded or saved (LoadState / SaveState): the run loader and saver find a run's instance through it.
+inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
 inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
 // 004BAEB0 (__thiscall). An objective's destructor.
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);

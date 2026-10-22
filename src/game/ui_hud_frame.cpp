@@ -53,7 +53,7 @@ float BlinkBase() { return 1.4f /*0073CDF8*/; }   // 1.4
 float PulseAmplitude() { return 0.3f /*0073C54C*/; }   // 0.3
 float PulseMiddle() { return 0.7f /*0073C538*/; }   // 0.7
 float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
-bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
+bool GamePaused() { return TheClientWorld()->paused_ != 0; }   // 00578D50
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling

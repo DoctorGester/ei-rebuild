@@ -450,8 +450,6 @@ constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0
                                             1.0f, 1.0f};
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
-// 00561150 on the map object at 007AF78C: the ground plane at (x, y), as a normal and a distance.
-void* PlaneMap() { return ei::GamePointer<void>(0x007AF78C); }
 
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -533,7 +531,7 @@ EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
-        static_cast<PlatformSet*>(PlaneMap())->SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
+        TheClientWorld()->platforms_.SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
         if (plane.normal.z != 0.0f) plane.normal.z = static_cast<float>(D(EI_ONE) / D(plane.normal.z));   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags_ &= ~1u;

@@ -172,7 +172,7 @@ void CEffectTornado::Start(int update) {
     if (sound_ == -1) {
         sound_ = TheSoundManager()->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
-    CParticleSource* source = ParticleManagerObject()->CreateSource(kTornadoParticles);
+    CParticleSource* source = TheParticleManager()->CreateSource(kTornadoParticles);
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;
