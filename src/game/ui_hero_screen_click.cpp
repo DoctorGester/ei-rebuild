@@ -266,7 +266,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            VirtualChooseFigure(static_cast<const char*>(*defaults_));
+            VirtualChooseFigure(defaults_[0]);
             PartyUnitRecord* hero = Hero();
             auto* stats = &hero->stats;
             stats->stat10Base = 25.0f;
@@ -340,7 +340,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        VirtualChooseFigure(static_cast<const char*>(*defaults_));
+        VirtualChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
         static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
         static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();

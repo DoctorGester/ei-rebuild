@@ -228,8 +228,8 @@ void DestroyVoices(MpVoiceVector& voices) {
     for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
     stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));   // 006344C0
 }
-void DestroyStrings(const char** begin, const char** end) {
-    for (const char** at = begin; at != end; ++at) CStringDestroy(at);
+void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
+    for (mfc::CString* at = begin; at != end; ++at) CStringDestroy(at);
 }
 } // namespace
 
@@ -240,8 +240,9 @@ void CMpHeroScreen::Destroy() {
     CStringDestroy(&text_);
     DestroyStrings(names_.begin(), names_.end());
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));   // 00520F60
-    for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
-    stlp::deallocate(defaults_, static_cast<std::size_t>(defaultsCapacity_ - defaults_) * sizeof(void*));   // 00520F20
+    DestroyStrings(defaults_.begin(), defaults_.end());
+    stlp::deallocate(defaults_.begin(),   // 00520F20
+                     static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
     ReleaseCachedObjects(&screen->textures_);
     screen->textures_.map.Destroy();   // 00634200
     ReleaseCachedObjects(&screen->models_);
@@ -287,7 +288,7 @@ void CMpHeroScreen::DrawHeroList() {
             SelectionFrame(window)->visible_ = 1;
             SelectionFrame(window)->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
-        const char* name = *reinterpret_cast<const char* const*>(MpHero(index)->members_.data);
+        const char* name = MpHero(index)->members_.data[0].texts[0];
         SurfaceDrawText(surface, nullptr, name, &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }

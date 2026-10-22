@@ -82,9 +82,8 @@ __declspec(naked) void __fastcall ReloadHeroesAt(SavedParties*) EI_ORIGINAL(0x00
 SavedParties* Heroes() { return &TheSavedParties(); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices.
-using NameList = stlp::vector<mfc::CString>;
+using NameList = MpStringVector;
 using VoiceList = MpVoiceVector;
-static_assert(sizeof(NameList) == sizeof(MpStringVector));
 
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return &screen->window; }
 
@@ -307,8 +306,8 @@ void CMpHeroScreen::Create() {
     mfc::CString label;
     texts->GetString("lmp_male_voice", &male);
     texts->GetString("lmp_female_voice", &female);
-    NameList& men = *reinterpret_cast<NameList*>(&defaults_);
-    NameList& women = *reinterpret_cast<NameList*>(&names_);
+    NameList& men = defaults_;
+    NameList& women = names_;
     VoiceList& maleVoices = voiceLists_[0];
     VoiceList& femaleVoices = voiceLists_[1];
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
@@ -377,7 +376,7 @@ void CMpHeroScreen::Create() {
         }
         figureStrips_[index] = strip;
         AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
-        figureStrips_[index]->SetupFigures(reinterpret_cast<MpStringVector*>(&names), top, 0);
+        figureStrips_[index]->SetupFigures(&names, top, 0);
     };
     figureStrip(0, men, 1);
     figureStrip(1, women, 0);

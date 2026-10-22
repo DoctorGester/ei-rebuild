@@ -129,8 +129,8 @@ struct UiItemKinds {
 };
 
 // The fields of an item prototype record (006A0110's result) the predicates read.
-// An STLport vector<CString> (the figure names), its elements as their data pointers.
-using MpStringVector = stlp::vector<const char*>;
+// An STLport vector<CString> (the figure names).
+using MpStringVector = stlp::vector<mfc::CString>;
 
 // --- Camp item strip ------------------------------------------------------------------------
 //
@@ -517,10 +517,8 @@ public:
     CHeroQuickStrip* spellPanel_;   // +0x1B8
     CUiItemStrip* figureStrips_[2]; // +0x1BC the figures of defaults_ (voices voiceLists_[0]), +0x1C0 of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;   // +0x1C4 (006255A0)
-    void** defaults_;           // +0x1C8 STLport vector<CString>; its first entry goes to slot 52 for a new hero
-    void** defaultsEnd_;        // +0x1CC
-    void** defaultsCapacity_;   // +0x1D0 (also its allocator proxy)
-    MpStringVector names_;      // +0x1D4 STLport vector<CString>
+    MpStringVector defaults_;   // +0x1C8 the men's figures; its first entry goes to slot 52 for a new hero
+    MpStringVector names_;      // +0x1D4 the women's figures
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
     CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
