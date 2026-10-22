@@ -174,6 +174,8 @@ address,size,name,file
 00797140,24,g_classCDWordArray,src/lib/mfc_coll.cpp
 00797198,24,g_classCByteArray,src/lib/mfc_coll.cpp
 00797CC0,216,kMathFunctionNames,src/lib/crt_x87.cpp
+0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
+0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
 0079B224,64,g_nodeFreeLists,src/lib/crt.cpp
 0079B264,4,g_nodeHeapSize,src/lib/crt.cpp
@@ -520,6 +522,8 @@ address,size,name,file
 007C8BB8,1,g_gdiAllocExitGuards,src/lib/mfc_static_objects.cpp
 007C8BC0,152,g_simpleUserException,src/lib/mfc_static_objects.cpp
 007C8C58,152,g_simpleResourceException,src/lib/mfc_exception.cpp
+007C8CF0,40,g_tempGdiObjectAlloc,src/lib/mfc_gdi.cpp
+007C8D18,40,g_tempDCAlloc,src/lib/mfc_gdi.cpp
 007C8D40,4,g_afxHalftoneBrush,src/lib/mfc_state.cpp
 007C8D50,152,g_simpleNotSupportedException,src/lib/mfc_exception.cpp
 007C8DE8,152,g_simpleMemoryException,src/lib/mfc_exception.cpp
@@ -533,12 +537,19 @@ address,size,name,file
 007C90C0,4,g_threadStateLocal,src/lib/mfc_static_objects.cpp
 007C90C8,108,g_afxData,src/lib/mfc_state.cpp
 007C9138,1,g_tempWndAllocExitGuard,src/lib/mfc_static_objects.cpp
+007CA940,40,g_tempWndAlloc,src/lib/mfc_window.cpp
+007CA968,60,g_wndNoTopMost,src/lib/mfc_window.cpp
+007CA9A8,60,g_wndTopMost,src/lib/mfc_window.cpp
+007CA9E8,60,g_wndBottom,src/lib/mfc_window.cpp
 007CAA24,1,g_staticWindowsExitGuards,src/lib/mfc_static_objects.cpp
+007CAA28,60,g_wndTop,src/lib/mfc_window.cpp
+007CAA64,4,g_dragListMessage,src/lib/mfc_window.cpp
 007CAA84,4,g_ctl3dThreadLocal,src/lib/mfc_static_objects.cpp
 007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
 007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
 007CAA98,4,g_afxDbcs,src/lib/mfc_static_objects.cpp
 007CAAA0,1,g_tempMenuAllocExitGuard,src/lib/mfc_static_objects.cpp
+007CAAA8,40,g_tempMenuAlloc,src/lib/mfc_window.cpp
 007CAAD8,4,g_heapNewHandler,src/lib/crt.cpp
 007CAADC,4,kGameUmask,src/lib/crt_file.cpp
 007CAC80,4,kGameFileMode,src/lib/crt_file.cpp

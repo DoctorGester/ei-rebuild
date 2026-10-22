@@ -113,6 +113,7 @@ TYPES = {
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
     'std::size_t': 'I',
+    'Ld12': 'H' * 6,                         # crt_format.cpp: a 12-byte long double, six words
     'gamecrt::NewHandler': 'P',              # crt.h: a new handler (a function of ours, or nullptr)
     'HGDIOBJ': 'P',
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
@@ -180,7 +181,7 @@ STATIC_OBJECT_BYTES = {
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
-    'CFixedAlloc': 0x28, 'CSimpleException': 0x98, 'AuxData': 0x6C,   # lib/mfc_string.h, mfc_exception.h, mfc_state.h
+    'CFixedAlloc': 0x28, 'CSimpleException': 0x98, 'AuxData': 0x6C, 'CWnd': 0x3C,   # lib/mfc_string.h, mfc_exception.h, mfc_state.h, mfc_window.h
 }
 
 
@@ -498,6 +499,12 @@ ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 # virtual: the frame handlers compare descriptors by address and name, and no descriptor is ever destroyed (they are
 # static data with no destructor registered), so the table's zero bytes are never read.
 RETIRED_POINTED = {0x007472B0}
+# Cells of game.exe's data that may point into a named range because nothing in the image reads them: they lie in
+# data config/standalone_unreachable.csv lists (C18r). cell -> why.
+UNREACHABLE_CELLS = {
+    0x00746C80: "CWnd's message map entry for the DragList message (ON_REGISTERED_MESSAGE): its variable is "
+                "mfc::impl::g_dragListMessage; only CWnd::OnWndMsg dispatches the map, and no window of the image is a CWnd",
+}
 
 
 def other_files():
@@ -755,7 +762,7 @@ def check(img, update, img_path):
             if d is not None and cell - d.address not in getattr(d, 'pointers', ()):
                 problems.append(f'{d.where()}: {d.name} holds game.exe\'s {what} at {cell:08X} (-> {value:08X}) where '
                                 'it has no pointer element: game.exe\'s data reaches it; it is not ours alone')
-            t = inside(value) if what == 'pointer cell' and d is None else None
+            t = inside(value) if what == 'pointer cell' and d is None and cell not in UNREACHABLE_CELLS else None
             if t is not None and not (isinstance(t, Retired) and value in RETIRED_POINTED):
                 problems.append(f'{t.where()}: {t.name} is pointed at by game.exe\'s cell at {cell:08X}: game.exe\'s '
                                 'data reaches it; it is not ours alone')

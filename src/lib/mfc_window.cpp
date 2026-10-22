@@ -12,24 +12,30 @@
 
 namespace mfc::impl {
 
+constinit lib::StaticObject<CFixedAlloc> g_tempWndAlloc = /*007CA940*/ {};
+constinit lib::StaticObject<CWnd> g_wndNoTopMost = /*007CA968*/ {};
+constinit lib::StaticObject<CWnd> g_wndTopMost = /*007CA9A8*/ {};
+constinit lib::StaticObject<CWnd> g_wndBottom = /*007CA9E8*/ {};
+constinit lib::StaticObject<CWnd> g_wndTop = /*007CAA28*/ {};
+constinit lib::StaticObject<CFixedAlloc> g_tempMenuAlloc = /*007CAAA8*/ {};
+
 namespace {
 
-// MFC's four static windows (wndTop, wndBottom, wndTopMost, wndNoTopMost).
+// MFC's four static windows (mfc_window.h).
 bool IsStaticWindow(const CWnd* wnd) {
-    return wnd == ei::GamePointer<const CWnd>(0x007CAA28) || wnd == ei::GamePointer<const CWnd>(0x007CA9E8) ||
-           wnd == ei::GamePointer<const CWnd>(0x007CA9A8) || wnd == ei::GamePointer<const CWnd>(0x007CA968);
+    return wnd == &*g_wndTop || wnd == &*g_wndBottom || wnd == &*g_wndTopMost || wnd == &*g_wndNoTopMost;
 }
 
-// The fixed allocators of CTempWnd (0x3C bytes) and CTempMenu (8).
-CFixedAlloc& TempWndAlloc() { return ei::GameData<CFixedAlloc>(0x007CA940); }
-CFixedAlloc& TempMenuAlloc() { return ei::GameData<CFixedAlloc>(0x007CAAA8); }
+// The fixed allocators of CTempWnd and CTempMenu (mfc_window.h).
+CFixedAlloc& TempWndAlloc() { return *g_tempWndAlloc; }
+CFixedAlloc& TempMenuAlloc() { return *g_tempMenuAlloc; }
 
 // The DragList message's id (wincore.cpp's nMsgDragList): CWnd's message map entry for it (ON_REGISTERED_MESSAGE,
 // 00746C80) points at it.
-UINT& DragListMessage() { return ei::GameData<UINT>(0x007CAA64); }
+constinit unsigned g_dragListMessage = /*007CAA64*/ {};
 
 // 007043FA, a static initialiser (cdecl; the list holds a jump to its body 007043FF).
-void __cdecl RegisterDragListMessage() { DragListMessage() = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
+void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
 // CWnd's 46 slots (C19; MFC 4.2's CWnd virtuals in declaration order): CCmdTarget's 20, then the window's, all
 // unported but the destructor (config/standalone_unreachable.csv: the image makes MFC's four static windows only).

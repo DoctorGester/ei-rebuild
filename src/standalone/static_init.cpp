@@ -11,7 +11,9 @@
 // tools/check_static_init.py (build.cmd) checks this file against game.exe.
 #include "static_init.h"
 
+#include "lib/mfc_gdi.h"
 #include "lib/mfc_static_objects.h"
+#include "lib/mfc_window.h"
 #include "lib/static_object.h"
 
 namespace ei::static_init {
@@ -32,11 +34,11 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x007007AB);
     // 0070C093: constructor + atexit (inlined 0070C09D, 0070C0AC)
     d.Begin(0x0070C093);
-    d.Thiscall(0x006E6BCD, 0x007C8D18, 0x10, 0x40);
+    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempDCAlloc, 0x10, 0x40);
     d.AtExit(0x0070C0B8);
     // 0070C0D3: constructor + atexit (inlined 0070C0DD, 0070C0EC)
     d.Begin(0x0070C0D3);
-    d.Thiscall(0x006E6BCD, 0x007C8CF0, 8, 0x40);
+    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempGdiObjectAlloc, 8, 0x40);
     d.AtExit(0x0070C0F8);
     // 0070CC0C: atexit (inlined 0070CC16, 0070CC17)
     d.Begin(0x0070CC0C);
@@ -46,11 +48,11 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0070CE6D);
     // 0070D3CE: constructor + atexit (inlined 0070D3D8, 0070D3E7)
     d.Begin(0x0070D3CE);
-    d.Thiscall(0x006E6BCD, 0x007CA940, 0x3C, 0x40);
+    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempWndAlloc, 0x3C, 0x40);
     d.AtExit(0x0070D3F3);
     // 0070DD0B: constructor + atexit (inlined 0070DD15, 0070DD24)
     d.Begin(0x0070DD0B);
-    d.Thiscall(0x006E6BCD, 0x007CAAA8, 8, 0x40);
+    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempMenuAlloc, 8, 0x40);
     d.AtExit(0x0070DD30);
     // 0070D5D8: atexit (inlined 0070D5E2, 0070D5E3)
     d.Begin(0x0070D5D8);
@@ -2186,19 +2188,19 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x007043FA);
     // 00704410: constructor + atexit (inlined 0070441A, 00704427)
     d.Begin(0x00704410);
-    d.Thiscall(0x00704546, 0x007CAA28, 0);
+    d.Thiscall(0x00704546, &mfc::impl::g_wndTop, 0);
     d.AtExit(0x00704433);
     // 0070444E: constructor + atexit (inlined 00704458, 00704465)
     d.Begin(0x0070444E);
-    d.Thiscall(0x00704546, 0x007CA9E8, 1);
+    d.Thiscall(0x00704546, &mfc::impl::g_wndBottom, 1);
     d.AtExit(0x00704471);
     // 0070448C: constructor + atexit (inlined 00704496, 007044A3)
     d.Begin(0x0070448C);
-    d.Thiscall(0x00704546, 0x007CA9A8, 0xFFFFFFFF);
+    d.Thiscall(0x00704546, &mfc::impl::g_wndTopMost, 0xFFFFFFFF);
     d.AtExit(0x007044AF);
     // 007044CA: constructor + atexit (inlined 007044D4, 007044E1)
     d.Begin(0x007044CA);
-    d.Thiscall(0x00704546, 0x007CA968, 0xFFFFFFFE);
+    d.Thiscall(0x00704546, &mfc::impl::g_wndNoTopMost, 0xFFFFFFFE);
     d.AtExit(0x007044ED);
     // 0070DC70: other (inlined 0070DC75)
     d.Begin(0x0070DC70);

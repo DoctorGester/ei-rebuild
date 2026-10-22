@@ -11,7 +11,9 @@
 #include "static_init.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_gdi.h"
 #include "lib/mfc_static_objects.h"
+#include "lib/mfc_window.h"
 
 namespace ei::short_functions {
 void Ret();   // src/game/short_functions.cpp
@@ -23,10 +25,10 @@ template <class Do>
 bool ExitFunction(Do& d, std::uintptr_t fn) {
     switch (fn) {
     case 0x0070C0B8:   // guarded destructor, 27 byte(s); atexit by 0070C093
-        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 1)) d.Thiscall(0x006E6BF5, 0x007C8D18);
+        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempDCAlloc);
         return true;
     case 0x0070C0F8:   // guarded destructor, 27 byte(s); atexit by 0070C0D3
-        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 2)) d.Thiscall(0x006E6BF5, 0x007C8CF0);
+        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 2)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempGdiObjectAlloc);
         return true;
     case 0x0070CC23:   // destructor, 10 byte(s); atexit by 0070CC0C
         d.Thiscall(0x0070CC2D, &mfc::impl::g_threadStateLocal);
@@ -35,10 +37,10 @@ bool ExitFunction(Do& d, std::uintptr_t fn) {
         d.Thiscall(0x0070CE77, &mfc::impl::g_baseModuleStateLocal);
         return true;
     case 0x0070D3F3:   // guarded destructor, 27 byte(s); atexit by 0070D3CE
-        if (d.Once(mfc::impl::g_tempWndAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, 0x007CA940);
+        if (d.Once(mfc::impl::g_tempWndAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempWndAlloc);
         return true;
     case 0x0070DD30:   // guarded destructor, 27 byte(s); atexit by 0070DD0B
-        if (d.Once(mfc::impl::g_tempMenuAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, 0x007CAAA8);
+        if (d.Once(mfc::impl::g_tempMenuAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempMenuAlloc);
         return true;
     case 0x0070D5EF:   // destructor, 10 byte(s); atexit by 0070D5D8
         d.Thiscall(0x0070D5F9, &mfc::impl::g_ctl3dThreadLocal);
@@ -55,16 +57,16 @@ bool ExitFunction(Do& d, std::uintptr_t fn) {
         d.Thiscall(0x006E695C, &mfc::impl::g_simpleUserException);
         return true;
     case 0x00704433:   // guarded destructor, 27 byte(s); atexit by 00704410
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 1)) d.Thiscall(0x00704FE3, 0x007CAA28);
+        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 1)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndTop);
         return true;
     case 0x00704471:   // guarded destructor, 27 byte(s); atexit by 0070444E
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 2)) d.Thiscall(0x00704FE3, 0x007CA9E8);
+        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 2)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndBottom);
         return true;
     case 0x007044AF:   // guarded destructor, 27 byte(s); atexit by 0070448C
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 4)) d.Thiscall(0x00704FE3, 0x007CA9A8);
+        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 4)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndTopMost);
         return true;
     case 0x007044ED:   // guarded destructor, 27 byte(s); atexit by 007044CA
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 8)) d.Thiscall(0x00704FE3, 0x007CA968);
+        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 8)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndNoTopMost);
         return true;
     case 0x004D71C0:   // nothing, 1 byte(s); atexit at 004D6D7D, 004D7254, 004D737C and 4 more
         return true;
