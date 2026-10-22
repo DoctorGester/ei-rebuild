@@ -471,10 +471,10 @@ public:
     // key (005190C0), else one matching the key without its low 15 bits, else for movement bits
     // 0x8000 (alone among 0x38000) one without movement bits or with 0x10000 in place of 0x8000;
     // then, when `anyOfKind`, a random entry of the key's kind (00519380). Null when none.
-    char* FindAnimation(std::uint32_t key, bool anyOfKind);
+    FigureAnimation* FindAnimation(std::uint32_t key, bool anyOfKind);
     // 00530240. The figure's animation entry `key & 0xFF` (00518F80; the key is passed whole). When
     // there is none, logs "Can't find animation entry index" through the DebugLog stub. Null then.
-    char* AnimationEntry(std::uint32_t key);
+    FigureAnimation* AnimationEntry(std::uint32_t key);
     // 005304A0. The horizontal extent of the body: the box maximum's (x, y) length of the figure
     // part "bd" (else "chest"), doubled for the mosquito (type_ 0x33, prototype "unmosp"); 0 when
     // the figure has neither part. Returned in ST0 unrounded.

@@ -24,11 +24,6 @@
 namespace {
 
 
-template <typename T> T Get(const void* base, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(base) + offset, sizeof(T));
-    return v;
-}
 
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
@@ -142,7 +137,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.
         *text += " \n";   // " \n"
         float charges = item->chargeMax_;
-        float level = Get<float>(data, 0x40);
+        float level = data->manaCost_;
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
         line.Format("%s %d/%d (%d)\n", labels_[0].GetString(), Truncate(level), maximum, now);   // "%s %d/%d (%d)\n"
@@ -150,26 +145,26 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         if (SpellPrototype(data)->bytes78[3] == 0)
             line.Format("%s %s  ", labels_[1].GetString(), labels_[11].GetString());
         else
-            line.Format("%s %d  ", labels_[1].GetString(), Truncate(Get<float>(data, 0x24)));
+            line.Format("%s %d  ", labels_[1].GetString(), Truncate(data->damage_));
         *text += line;
-        float duration = Get<float>(data, 0x30);
+        float duration = data->speed_;
         EI_NAN_AUDIT(duration);
         if (duration < one)
             line.Format("%s %s \n", labels_[2].GetString(), labels_[7].GetString());   // "%s %s \n"
         else
             line.Format("%s %d \n", labels_[2].GetString(), Truncate(duration));   // "%s %d \n"
         *text += line;
-        line.Format("%s %d%s  ", labels_[3].GetString(), Truncate(Get<float>(data, 0x34)), labels_[9].GetString());
+        line.Format("%s %d%s  ", labels_[3].GetString(), Truncate(data->range_), labels_[9].GetString());
         *text += line;
-        if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
+        if (data->targetFlags_ & 0x10000000) {
             line.Format("%s %s \n", labels_[4].GetString(), labels_[8].GetString());
         } else {
-            float radius = Get<float>(data, 0x28);
+            float radius = data->radius_;
             double area = static_cast<double>(radius) * radius * pi;
             line.Format("%s %.1f%s \n", labels_[4].GetString(), area, labels_[9].GetString());   // "%s %.1f%s \n"
         }
         *text += line;
-        std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
+        std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
             line.Format("%s %s  ", labels_[5].GetString(), labels_[7].GetString());
         } else {
@@ -177,7 +172,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
             line.Format("%s %.1f%s  ", labels_[5].GetString(), seconds, labels_[10].GetString());
         }
         *text += line;
-        line.Format("%s %d \n", labels_[6].GetString(), Get<int>(data, 0x38));
+        line.Format("%s %d \n", labels_[6].GetString(), static_cast<int>(data->targetCount_));
         *text += line;
     }
     if (item->GetCategory() == 8) {
@@ -186,9 +181,9 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
         if (SpellPrototype(data)->bytes78[3] == 0)
             line.Format("%s %s\n", labels_[1].GetString(), labels_[11].GetString());   // "%s %s\n"
         else
-            line.Format("%s %d\n", labels_[1].GetString(), Truncate(Get<float>(data, 0x24)));   // "%s %d\n"
+            line.Format("%s %d\n", labels_[1].GetString(), Truncate(data->damage_));   // "%s %d\n"
         *text += line;
-        std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
+        std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
             line.Format("%s %s\n", labels_[5].GetString(), labels_[7].GetString());
         } else {
@@ -224,7 +219,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     title = "Science";
     int found = TextsOpenSection(TheTextManager(), nullptr, mfc::operator+(mfc::CString("perk "), title));
     if (found) TheTextManager()->ReadLine(&tip, 1);
-    title.Format("%s %d\n", labels_[0].GetString(), Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
+    title.Format("%s %d\n", labels_[0].GetString(), shown->Params()->attributes[0]);   // "%s %d\n"
     if (TextsOpenSection(TheTextManager(), nullptr, "tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
