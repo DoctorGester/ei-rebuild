@@ -122,6 +122,17 @@ def lit(v):
 DATA = (0x0073B000, 0x007D7000)
 
 
+_IMPORTS = {}
+
+
+def import_ref(slot):
+    """An import slot as the generated code names it: its member of lib/import_table.h's ImportTable."""
+    if not _IMPORTS:
+        import gen_iat
+        _IMPORTS.update({a: gen_iat.member(dll, fn, o) for a, dll, fn, o in gen_iat.imports(exe_path.resolve())})
+    return f'&ei::ImportTable::{_IMPORTS[slot]}'
+
+
 def arg_lit(v):
     v &= 0xFFFFFFFF
     return f'd.At({hexa(v)})' if DATA[0] <= v < DATA[1] else lit(v)
@@ -417,7 +428,7 @@ class Interpreter:
             self.targets.append(('exit', args[0][1]))
         else:
             if through == 'import':
-                conv, head = 'import', f'd.Import({hexa(target)}'
+                conv, head = 'import', f'd.Import({import_ref(target)}'
             elif cleanup or (tail and not ecx):
                 conv, head = 'cdecl', f'd.Cdecl({hexa(target)}'
             elif ecx and ecx[0] == 'imm':
@@ -961,6 +972,8 @@ def match_exit(img, address, md):
             if all(v == label(n) for n, v in found.items() if n.startswith('@')):
                 def value(m):
                     v = found[m.group(1)]
+                    if m.group(1) == 'S':
+                        return import_ref(v)   # CALL [slot]
                     if m.group(1).startswith('A') and DATA[0] <= v < DATA[1]:
                         return arg_lit(v)   # an argument: a data address goes through the seam
                     return hexa(v) if v >= 0x10000 else lit(v)

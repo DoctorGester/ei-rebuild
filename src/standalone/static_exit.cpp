@@ -69,14 +69,14 @@ bool ExitFunction(Do& d, std::uintptr_t fn) {
         d.Thiscall(0x0045E6F0, 0x0079BF00);
         return true;
     case 0x0047C330:   // wait, then call, 38 byte(s); atexit by 0047C300
-        while (d.Dword(0x007A9774)) d.Import(0x0073B1A4, 0x3E8);
+        while (d.Dword(0x007A9774)) d.Import(&ei::ImportTable::Sleep, 0x3E8);
         d.Cdecl(0x006E610C);
         return true;
     case 0x00498930:   // destructor, 10 byte(s); atexit by 00498910
         d.Thiscall(0x00498E80, 0x007A9C50);
         return true;
     case 0x004F0B30:   // import, 12 byte(s); atexit by 004F0B10
-        d.Import(0x0073B1D4, d.At(0x007AEE78));
+        d.Import(&ei::ImportTable::DeleteCriticalSection, d.At(0x007AEE78));
         return true;
     case 0x00500950:   // destructor, 10 byte(s); atexit by 00500930
         d.Thiscall(0x00500AC0, 0x007AF060);

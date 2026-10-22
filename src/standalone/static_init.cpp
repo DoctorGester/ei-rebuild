@@ -712,7 +712,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x004013D0);
     // 004F0B10: other
     d.Begin(0x004F0B10);
-    d.Import(0x0073B1C8, d.At(0x007AEE78));
+    d.Import(&ei::ImportTable::InitializeCriticalSection, d.At(0x007AEE78));
     d.AtExit(0x004F0B30);
     // 004F0B40: stores; 3 left out
     d.Begin(0x004F0B40);
@@ -2239,7 +2239,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0070D14E);
     // 007043FA: other (inlined 007043FF)
     d.Begin(0x007043FA);
-    d.Store(0x007CAA64, d.Import(0x0073B668, d.At(0x00746D8C)));
+    d.Store(0x007CAA64, d.Import(&ei::ImportTable::RegisterWindowMessageA, d.At(0x00746D8C)));
     // 00704410: constructor + atexit (inlined 0070441A, 00704427)
     d.Begin(0x00704410);
     d.Thiscall(0x00704546, 0x007CAA28, 0);

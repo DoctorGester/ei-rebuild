@@ -163,10 +163,10 @@ constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current positio
 constexpr int kEmitterCount = 16;
 constexpr int kSequenceCount = 8;
 
-// Miles (game.exe's imports 0073B7D4 / 0073B7D0).
+// Miles's startup and shutdown, through the import table.
 using AilVoidFn = void(__stdcall*)();
-AilVoidFn AilStartup() { return ei::GameData<AilVoidFn>(0x0073B7D4); }
-AilVoidFn AilShutdown() { return ei::GameData<AilVoidFn>(0x0073B7D0); }
+AilVoidFn AilStartup() { return ei::ImportAs<AilVoidFn>(ei::Imports().AIL_startup); }
+AilVoidFn AilShutdown() { return ei::ImportAs<AilVoidFn>(ei::Imports().AIL_shutdown); }
 
 template <typename T, typename E> void ConstructList(mfc::CList<T, E>& list, void* vtable) {
     list.vtable = vtable;
@@ -337,19 +337,19 @@ using DriverWindowFn = void(__stdcall*)(void*, void*);
 using AllocateSampleFn = void*(__stdcall*)(void*);
 using SampleUserDataFn = void(__stdcall*)(void*, unsigned, std::intptr_t);
 using HandleFn = void(__stdcall*)(void*);
-EnumerateFn DirectSoundEnumerate() { return ei::GameData<EnumerateFn>(0x0073B04C); }
-PreferenceFn AilSetPreference() { return ei::GameData<PreferenceFn>(0x0073B7A0); }
-WaveOutOpenFn AilWaveOutOpen() { return ei::GameData<WaveOutOpenFn>(0x0073B7A4); }
-LastErrorFn AilLastError() { return ei::GameData<LastErrorFn>(0x0073B7A8); }
-DriverWindowFn AilSetDirectSoundWindow() { return ei::GameData<DriverWindowFn>(0x0073B7AC); }
-AllocateSampleFn AilAllocateSample() { return ei::GameData<AllocateSampleFn>(0x0073B7B0); }
-SampleUserDataFn AilSetSampleUserData() { return ei::GameData<SampleUserDataFn>(0x0073B7C8); }
-HandleFn AilReleaseSample() { return ei::GameData<HandleFn>(0x0073B788); }
-HandleFn AilEndSequence() { return ei::GameData<HandleFn>(0x0073B800); }
-HandleFn AilReleaseSequence() { return ei::GameData<HandleFn>(0x0073B794); }
-HandleFn AilMemFree() { return ei::GameData<HandleFn>(0x0073B7FC); }
-HandleFn AilWaveOutClose() { return ei::GameData<HandleFn>(0x0073B798); }
-HandleFn AilMidiOutClose() { return ei::GameData<HandleFn>(0x0073B79C); }
+EnumerateFn DirectSoundEnumerate() { return ei::ImportAs<EnumerateFn>(ei::Imports().DirectSoundEnumerateA); }
+PreferenceFn AilSetPreference() { return ei::ImportAs<PreferenceFn>(ei::Imports().AIL_set_preference); }
+WaveOutOpenFn AilWaveOutOpen() { return ei::ImportAs<WaveOutOpenFn>(ei::Imports().AIL_waveOutOpen); }
+LastErrorFn AilLastError() { return ei::ImportAs<LastErrorFn>(ei::Imports().AIL_last_error); }
+DriverWindowFn AilSetDirectSoundWindow() { return ei::ImportAs<DriverWindowFn>(ei::Imports().AIL_set_DirectSound_HWND); }
+AllocateSampleFn AilAllocateSample() { return ei::ImportAs<AllocateSampleFn>(ei::Imports().AIL_allocate_sample_handle); }
+SampleUserDataFn AilSetSampleUserData() { return ei::ImportAs<SampleUserDataFn>(ei::Imports().AIL_set_sample_user_data); }
+HandleFn AilReleaseSample() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_release_sample_handle); }
+HandleFn AilEndSequence() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_end_sequence); }
+HandleFn AilReleaseSequence() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_release_sequence_handle); }
+HandleFn AilMemFree() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_mem_free_lock); }
+HandleFn AilWaveOutClose() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_waveOutClose); }
+HandleFn AilMidiOutClose() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_midiOutClose); }
 // The MP3 stream's (OpenStream).
 using FindProviderFn = void*(__stdcall*)(const char*, const char*, const char*);
 using BufferSizeFn = int(__stdcall*)(void*, int, int);
@@ -357,15 +357,15 @@ using MemAllocFn = void*(__stdcall*)(int);
 using SampleIntFn = void(__stdcall*)(void*, int);
 using SampleTypeFn = void(__stdcall*)(void*, int, int);
 using SampleProcessorFn = void*(__stdcall*)(void*, int, void*);
-FindProviderFn RibFindFileProvider() { return ei::GameData<FindProviderFn>(0x0073B7E4); }
-BufferSizeFn AilMinimumSampleBufferSize() { return ei::GameData<BufferSizeFn>(0x0073B7E0); }
-MemAllocFn AilMemAllocLock() { return ei::GameData<MemAllocFn>(0x0073B758); }
-HandleFn AilInitSample() { return ei::GameData<HandleFn>(0x0073B808); }
-SampleTypeFn AilSetSampleType() { return ei::GameData<SampleTypeFn>(0x0073B7DC); }
-SampleIntFn AilSetSamplePlaybackRate() { return ei::GameData<SampleIntFn>(0x0073B7B8); }
-SampleIntFn AilSetSampleVolume() { return ei::GameData<SampleIntFn>(0x0073B774); }
-SampleIntFn AilSetSamplePan() { return ei::GameData<SampleIntFn>(0x0073B77C); }
-SampleProcessorFn AilSetSampleProcessor() { return ei::GameData<SampleProcessorFn>(0x0073B78C); }
+FindProviderFn RibFindFileProvider() { return ei::ImportAs<FindProviderFn>(ei::Imports().RIB_find_file_provider); }
+BufferSizeFn AilMinimumSampleBufferSize() { return ei::ImportAs<BufferSizeFn>(ei::Imports().AIL_minimum_sample_buffer_size); }
+MemAllocFn AilMemAllocLock() { return ei::ImportAs<MemAllocFn>(ei::Imports().AIL_mem_alloc_lock); }
+HandleFn AilInitSample() { return ei::ImportAs<HandleFn>(ei::Imports().AIL_init_sample); }
+SampleTypeFn AilSetSampleType() { return ei::ImportAs<SampleTypeFn>(ei::Imports().AIL_set_sample_type); }
+SampleIntFn AilSetSamplePlaybackRate() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_playback_rate); }
+SampleIntFn AilSetSampleVolume() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_volume); }
+SampleIntFn AilSetSamplePan() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_pan); }
+SampleProcessorFn AilSetSampleProcessor() { return ei::ImportAs<SampleProcessorFn>(ei::Imports().AIL_set_sample_processor); }
 
 // Miles' sample (HSAMPLE), as far as the stream reads it: the functions of its codec stage.
 struct MilesSample {
@@ -383,9 +383,9 @@ constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
 using BufferReadyFn = int(__stdcall*)(void*);
 using LoadBufferFn = void(__stdcall*)(void*, int, void*, int);
 using UserDataFn = std::intptr_t(__stdcall*)(void*, unsigned);
-BufferReadyFn AilSampleBufferReady() { return ei::GameData<BufferReadyFn>(0x0073B7E8); }
-LoadBufferFn AilLoadSampleBuffer() { return ei::GameData<LoadBufferFn>(0x0073B7EC); }
-UserDataFn AilSampleUserData() { return ei::GameData<UserDataFn>(0x0073B7B4); }
+BufferReadyFn AilSampleBufferReady() { return ei::ImportAs<BufferReadyFn>(ei::Imports().AIL_sample_buffer_ready); }
+LoadBufferFn AilLoadSampleBuffer() { return ei::ImportAs<LoadBufferFn>(ei::Imports().AIL_load_sample_buffer); }
+UserDataFn AilSampleUserData() { return ei::ImportAs<UserDataFn>(ei::Imports().AIL_sample_user_data); }
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 __declspec(naked) void __fastcall ReadStreamOriginal(CSoundManager*, void*, void* /*stream*/) EI_ORIGINAL(0x006BB3A0)

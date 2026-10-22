@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "game/game_data.h"
+#include "lib/import_table.h"
 
 #include <cmath>
 #include <cstdint>
@@ -86,10 +87,10 @@ public:
         return {::ei::Code<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(GamePointer<void>(object),
                                                                                       static_cast<std::uint32_t>(args)...)};
     }
-    // CALL [slot]: a Win32 function through game.exe's import address table.
-    template <class... A>
-    static Result Import(std::uintptr_t slot, A... args) {
-        return Stdcall(GameData<const std::uintptr_t>(slot), args...);
+    // CALL [slot]: a Win32 function through the import table (lib/import_table.h), by its member.
+    template <class F, class... A>
+    static Result Import(F ImportTable::* slot, A... args) {
+        return Stdcall(reinterpret_cast<std::uintptr_t>(Imports().*slot), args...);
     }
 };
 
@@ -149,8 +150,8 @@ public:
     Result Stdcall(std::uintptr_t, A...) { return {0}; }
     template <class... A>
     Result Thiscall(std::uintptr_t, std::uintptr_t, A...) { return {0}; }
-    template <class... A>
-    Result Import(std::uintptr_t, A...) { return {0}; }
+    template <class F, class... A>
+    Result Import(F ImportTable::*, A...) { return {0}; }
     void AtExit(std::uintptr_t) {}
 
     std::map<std::uintptr_t, Value> values;
@@ -183,9 +184,9 @@ public:
     Result Stdcall(std::uintptr_t fn, A...) { return Call(fn); }
     template <class... A>
     Result Thiscall(std::uintptr_t fn, std::uintptr_t, A...) { return Call(fn); }
-    template <class... A>
-    Result Import(std::uintptr_t slot, A...) {
-        imports.push_back(slot);
+    template <class F, class... A>
+    Result Import(F ImportTable::* slot, A...) {
+        imports.push_back(&(Imports().*slot));
         return {0};
     }
     void AtExit(std::uintptr_t fn) {
@@ -193,7 +194,8 @@ public:
         calls.push_back(kGameAtExit);   // Run::AtExit's GameAtExit (ei/hook.h)
     }
 
-    std::vector<std::uintptr_t> calls, imports, exits;
+    std::vector<std::uintptr_t> calls, exits;
+    std::vector<const void*> imports;   // the slots the initialisers call through
 
 private:
     Result Call(std::uintptr_t fn) {

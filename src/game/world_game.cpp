@@ -1277,17 +1277,13 @@ int __stdcall LoadMission(CStream* file) {
 
 namespace {
 
-// MFC CFileFind (0x1C bytes) members, and the Win32 calls through game.exe's import slots (harness
-// runs redirect those to harness_saves).
-using CreateDirectoryFn = BOOL(__stdcall*)(const char*, void*);
-using DeleteFileFn = BOOL(__stdcall*)(const char*);
-CreateDirectoryFn ImportCreateDirectory() { return ei::GameData<CreateDirectoryFn const>(0x0073B1B8); }
-DeleteFileFn ImportDeleteFile() { return ei::GameData<DeleteFileFn const>(0x0073B20C); }
+// MFC CFileFind (0x1C bytes) members. CreateDirectoryA and DeleteFileA go through the import slots (gameapi.h):
+// harness runs redirect them to harness_saves.
 
 } // namespace
 
 void __fastcall ClearSaveFolder(const char* path) {
-    ImportCreateDirectory()(path, nullptr);
+    gameapi::CreateDirectoryA(path, nullptr);
     mfc::CFileFind finder;
     int found;
     {
@@ -1298,7 +1294,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     while (found) {
         found = finder.FindNext();
         mfc::CString file(finder.GetFilePath());
-        ImportDeleteFile()(file);
+        gameapi::DeleteFileA(file);
     }
     finder.Close();
 }

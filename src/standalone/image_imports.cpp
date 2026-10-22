@@ -1,9 +1,9 @@
 // game.exe's imports in ei_hook.dll's storage (S18f; docs/notes/standalone.md, "Own data"). The image's import
 // slots are a table of ours: every slot of game.exe's import address table (image_imports.inc, written by
-// tools/gen_iat.py from game.exe's import directory: slot, DLL, function or ordinal) is resolved here into the
-// storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that
-// calls through a slot by its address (gameapi.h, the static initialisers' Import, Bink's slots, the harness's
-// slot routes) reaches our table. The image's command-line import gets its wrapper in place of the export
+// tools/gen_iat.py from game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here
+// into the storage at the data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so
+// everything that calls through a slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink,
+// Winsock, the static initialisers' Import; the harness's slot routes by address) reaches our table. The image's command-line import gets its wrapper in place of the export
 // (ImageRoute, hook/standalone.cpp); the resource and module imports take the host's module as it is (S18j).
 //
 // Nothing is at game.exe's own table, as at the rest of the old .rdata (S18h, S18k; image_data.cpp): the image runs none of
@@ -16,9 +16,11 @@
 #include "ei/hook.h"
 #include "game/game_data.h"
 #include "hook/log.h"
+#include "lib/import_table.h"
 
 #include <windows.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -34,7 +36,7 @@ const void* ImageRoute(const char* dll, const char* function);   // hook/standal
 namespace {
 
 struct Import {
-    std::uintptr_t slot;   // game.exe's slot (an id of the seam)
+    std::size_t offset;   // its member's in ImportTable (lib/import_table.h)
     const char* dll;
     const char* function;   // nullptr: by ordinal
     unsigned ordinal;
@@ -50,7 +52,7 @@ int g_missing = -1;   // imports that did not resolve (-1: not the image)
 
 const Import* ImportAt(std::uintptr_t slot) {
     for (const Import& i : kImports)
-        if (i.slot == slot) return &i;
+        if (kImportsBegin + i.offset == slot) return &i;
     return nullptr;
 }
 
@@ -117,8 +119,8 @@ void ResolveImageImports() {
     const char* moduleName = nullptr;
     char what[320];
     for (const Import& i : kImports) {
-        const std::size_t index = (i.slot - kImportsBegin) / 4;
-        auto& ours = GameData<const void*>(i.slot);
+        const std::size_t index = i.offset / 4;
+        auto& ours = reinterpret_cast<const void**>(&Imports())[index];
         ours = g_traps ? g_traps + index : nullptr;
         if (!moduleName || _stricmp(moduleName, i.dll) != 0) {
             moduleName = i.dll;

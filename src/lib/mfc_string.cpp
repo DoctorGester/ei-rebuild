@@ -33,18 +33,10 @@ bool Contains(const char* set, char c) { return libcrt::Mbschr(U(set), static_ca
 bool IsSpace(char c) { return libcrt::Ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 bool IsDigit(char c) { return libcrt::Ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
-// The reference count updates and lstrlen go through the import table, as the library's do (ei_vectors
-// has no game image: the API itself).
-#ifdef EI_VECTORS_REPLAY
+// The reference count updates and lstrlen, the Windows functions (no route takes their import slots).
 LONG Increment(long* refs) { return ::InterlockedIncrement(refs); }
 LONG Decrement(long* refs) { return ::InterlockedDecrement(refs); }
-int StrLen(const char* text) { return ::lstrlenA(text); }
-#else
-using InterlockedFn = LONG(WINAPI*)(LONG volatile*);
-LONG Increment(long* refs) { return (ei::GameData<InterlockedFn>(0x0073B254))(refs); }
-LONG Decrement(long* refs) { return (ei::GameData<InterlockedFn>(0x0073B258))(refs); }
 int StrLen(const char* text) { return gameapi::lstrlenA(text); }
-#endif
 
 // SafeStrlen: lstrlen, 0 for null.
 int SafeLength(const char* text) { return text ? StrLen(text) : 0; }

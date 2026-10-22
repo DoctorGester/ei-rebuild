@@ -230,22 +230,40 @@ each step green on the goldens and removing a measured tie:
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
   the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
   unused until S18h), so `GameAddress` maps two ranges with one `g_dataShift`. `tools/gen_iat.py` writes the table
-  (src/standalone/image_imports.inc, committed, 504 slots: slot, DLL, function or ordinal; build.cmd runs it with
-  `--check`) and gameapi.h. Right after the move (same init_seg(compiler) object, before the harness's static
+  as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
+  -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
+  `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
+  ImportTable member, DLL, function or ordinal) and gameapi.h, all committed; build.cmd runs it with `--check`.
+  Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
   GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone.cpp; the resource, module and DirectInput
-  wrappers went with S18j). Everything that calls through a slot by its address reaches our table through the seam:
-  gameapi.h, the static initialisers' `Import`, Bink's slots, the harness's `PatchSlot` / `WatchWrites` (in game.exe
-  all of them are the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0; data_seam.py's
-  helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  wrappers went with S18j). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
+  routed imports, Miles, Bink, Winsock, DirectInput, the static initialisers' `Import(&ei::ImportTable::Sleep, ...)`)
+  or the Windows function itself (below); the harness's `PatchSlot` / `WatchWrites` still take slots by address
+  through the seam (tests/, in game.exe the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
+  data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
+  routes it (ImageRoute: GetCommandLineA; with EI_UTF8 the `EI_UTF8_ROUTE` list of game/system_text.cpp), the
+  harness takes it (any import slot address tests/ names: window focus, cursor, files and saves, profile, registry,
+  clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
+  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (67, with gen_iat's KEEP:
+  GetVersionExA, deprecated in the SDK: a direct call warns); the other 344 are `using ::X;`, the Windows function through ei_hook.dll's own imports
+  (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `--check` fail until gen_iat.py
+  is rerun, which moves that function back to the slot. In game.exe our code does not run (S21), except
+  hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
+  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink, Winsock, DirectInput,
+  DirectDraw and DirectSound stay table calls: the table loads them from the game folder (Miles, Bink, dgVoodoo's
+  DDraw) or the system (dinput), which ei_hook.dll's own imports would not. The table is still needed as it is:
+  the harness patches it and those families call through it; the slots of the direct functions are only resolved
+  (and could go once the harness names its routes by import).
   **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
   import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
   trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image has no .text (S18i,
   S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
-  only through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
+  only through `ei::Imports()` and the harness through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
   import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
