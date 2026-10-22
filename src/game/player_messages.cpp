@@ -448,7 +448,7 @@ void CPlayerServer::ReleaseSentObjects() {
 
 void CPlayerServer::ClearGroup50F8() { group50F8_.Resize(0); }
 
-void CPlayerServer::SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
+void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                                     std::uint32_t limitBits) {
     if (!unit) return;
     std::uint8_t type = kPathMessage;
