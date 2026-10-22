@@ -50,7 +50,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float hidden = 0.0;   // how much of the sun the map hides
     if (shadow_on.x > 0.5) {
         hidden = shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_linear, i.shadow.xyz, dsx, dsy, shadow_on,
-                               shadow_scale, shadow_soft, i.pos.xy);
+                               shadow_scale, shadow_soft, i.pos.xy, 2.0);
         if (shadow_on.z > 0.5) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
     }
     float len = length(i.normal);

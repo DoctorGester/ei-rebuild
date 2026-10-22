@@ -26,7 +26,8 @@ cbuffer fs_params : register(b0) {
     float4 shadow_scale;
     float4 shadow_camera;
     float4 shadow_soft;
-    float4 light_on;       // x: lit here, y: the crown's pull, z: the lights (render_internal.h, MeshLightParams)
+    float4 shadow_figure;  // x: a unit's mesh, y: its object's nearest depth in the map (R16i2)
+    float4 light_on;      // x: lit here, y: the crown's pull, z: the lights (render_internal.h, MeshLightParams)
     float4 light_sun;      // xyz: towards the sun in model space
     float4 light_sun_colour;
     float4 light_ambient;
@@ -142,15 +143,18 @@ bool passes(int func, float a, int reference) {
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     bool lit_here = light_on.x > 0.5;
-    // How much of the sun the shadow map hides, on faces turned to the sun only (by their face normal; the
-    // figure parts' smoothed vertex normals can lean far from their faces: a plank's top read sideways).
-    // Every mesh is darkened by it alike, the colour lit here or by the game, the lamps' light and the
-    // ambient light with the sun's (as before R16i: in the towns the ambient light is nearly the sun's).
+    // How much of the sun the shadow map hides. A unit's mesh (R16i2): the shadows other objects cast, on
+    // every face (none of its own: its sun side is shaded by the lighting's N.L; by face it flipped triangle
+    // by triangle on a low-poly creature). Any other mesh: on faces turned to the sun only, by their face
+    // normal (the smoothed vertex normals of many static meshes lean far from their faces: a plank's top read
+    // sideways). Every mesh is darkened by it alike, the colour lit here or by the game, the lamps' light and
+    // the ambient light with the sun's (as before R16i: in the towns the ambient light is nearly the sun's).
     float hidden = 0.0;
     if (shadow_on.x > 0.5) {
+        bool unit = shadow_figure.x > 0.5;
         hidden = shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_linear, i.shadow.xyz, dsx, dsy, shadow_on,
-                               shadow_scale, shadow_soft, i.pos.xy);
-        hidden *= shadow_facing(i.shadow.xyz, dsx, dsy, shadow_scale, shadow_camera);
+                               shadow_scale, shadow_soft, i.pos.xy, unit ? shadow_figure.y : 2.0);
+        if (!unit) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy, shadow_scale, shadow_camera);
     }
     float4 diffuse = i.col;
     if (lit_here) diffuse.rgb = figure_light(i.model, i.normal);

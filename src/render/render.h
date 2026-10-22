@@ -131,8 +131,10 @@ void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
 // draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
 // its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
-// than `strength` 0.5 not at all (a unit fading in).
-void BeginCaster(const void* object);
+// than `strength` 0.5 not at all (a unit fading in). `figure`: a unit's draw (0056AFE0's unit lists, R16i2):
+// its meshes take only the shadows other objects cast (never their own; the sun side is shaded by the
+// lighting's N.L), on every face; any other object's meshes are shadowed on the faces turned to the sun.
+void BeginCaster(const void* object, bool figure);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
 // R20: casters outside the view. The meshes the game draws cast (above); an object it does not draw

@@ -197,12 +197,12 @@ void DrawEach(FrameList list, Draw draw) {
 // the old notes) with the scene context; their results are ignored. The new renderer learns which
 // object the meshes of a figure draw belong to (its shadow map's casters, R16j).
 constexpr auto kDraw = [](CMapObjectVirtuals* object) {
-    render::BeginCaster(object);
+    render::BeginCaster(object, false);
     object->DrawFigure(TheSceneRenderer());
     render::EndCaster();
 };
 constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
-    render::BeginCaster(object);
+    render::BeginCaster(object, true);
     object->DrawCollectDirty(TheSceneRenderer());
     render::EndCaster();
 };

@@ -1093,6 +1093,25 @@ across runs; the goldens check the game state.
      caster ids are gone: a receiver darkens by its own facing like any other (the ids' R16UI image, the
      harness's `shadowfacing`). Checked against main in bz1g with four units by noon and at night: the mean
      shadowed / lit brightness under the shadow view's mask is within 0.01 of main's (units, the shop, the frame).
+   - **Units take no shadow of their own (R16i2; the user: a pig in town with hard dark triangles across its
+     back).** By face normal a low-poly creature flipped triangle by triangle between shadowed and lit, and it
+     shadowed itself in the map (its own depths, R22's ids gone), also at night under the moon's map (the hero's
+     and the townsfolk's chests and shoulders). Now the meshes of a unit's draw (0056AFE0's unit lists,
+     `kDrawUnit`: `render::BeginCaster(object, true)`) compare from the unit's nearest depth in the map
+     (`FigureFronts` in PrepareShadows: the least over its receiving meshes of their corners' model-space box,
+     `MeshBatch::box` taken at the hand-over, through their light matrices; `MeshBatch::front`), as a plane
+     facing the light (no receiver slope, no normal offset), on every face: nothing of the unit is nearer the
+     sun than that, so it never darkens itself, and every caster nearer the sun shadows all of it alike (a
+     unit inside the gate's shadow is evenly dark, its faces turned away no longer lit). Its sun side is
+     shaded by the lighting's smooth N.L alone (`figure_light`). What is lost: a caster whose nearest surface
+     lies within the unit's own depth (two units intertwined) does not shadow it; a part of a drawn unit
+     that only the R20 walk casts (the game's part view test left it out) could still shadow the rest when
+     nearer the sun than the drawn parts' box. Static objects (`kDraw`) keep the face-normal rule (bz1g's
+     shop and its plank table unchanged). Cost: a box over each unit part's positions at the hand-over and
+     one depth per unit part a frame. Side by side (before | after): build\R16i2\crop_*.png on E: (bz1g noon
+     and night: creatures, the hero, a townsman, the gate's shadow, the shop; zone1). The harness's spawned
+     creatures draw untextured (white), the town's people textured. The shadow view writes the mesh's own
+     alpha, so blended parts show flat grey triangles there that are not shadow.
    - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
      part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local
