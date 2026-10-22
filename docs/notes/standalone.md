@@ -366,14 +366,30 @@ directions, C18):
 - **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
   PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
   game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
-  the other releases must be the same). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+  the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
 - **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
   header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
   (counted, left out of the cells like LEFT_STRUCTURES): game.exe's bytes unshifted, zero in the trial.
 
+**The static proof** (C25a, `gen_image_cells.py --check`, build.cmd; the trace stays the cross-check): the runs only
+show what they reach, so the check takes every root our code can read from: each game data address src/ names in the
+moved range (the 231 of named_data.py --split's count there; game_data.h's / image_data.cpp's section bounds left out)
+and, transitively, the target of every pointer cell inside a root's object or a kept range. A root passes in the
+import table, in .data's zero-filled tail (from 0079C000: zero fill is exact), in a named range or in a kept range;
+otherwise its object, from the root to the next start (another root, a cell's target, a named or kept range, an
+absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
+may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 606 roots, 0 failing. The
+first run failed 14 that no suite reaches: out_of_range's throw information (its catchable types, the array, the
+type descriptors' names: our frame handler reads them for stlp_string.cpp's throw), `_iob[0..2]`'s flags (stdin /
+stdout / stderr), MFC's empty string through the game.exe-only literal 00796E4C (moved to the harness:
+tests/verify/harness_startup.cpp sets `g_dataNil` in game.exe), and _afxNewHandler's object running into an
+unreferenced GUID (ROOT_SIZES). The first two are five kept rows now. The harness's literals (tests/) are not roots:
+the product has no harness.
+
 **The switch** (C25a, ready): CMake's `EI_IMAGE_BYTES_FROM_EXE` (one `set` in CMakeLists.txt, ON). OFF makes the trial's
 form the product's: `--bytes --zero` always, no game.exe lookup (`--exe` passed only when EI_GAME_EXE is set), and
-gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty; then drop the
+gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty and
+`gen_image_cells.py --check` passes (the static proof above, which then also guards every later change); then drop the
 non-zero path of write_bytes and EI_IMAGE_ZERO_TRIAL / build.cmd's `trial`.
 
 Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)

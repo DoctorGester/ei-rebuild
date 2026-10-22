@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "game/game_data.h"
 #include "game/settings_file.h"
+#include "lib/mfc_string.h"
 
 #include <windows.h>
 
@@ -25,6 +26,15 @@ constexpr const char* kDiscLabel = "EICD2";   // config\harness\registry.reg's "
 int g_discPrompts = -1;        // "discprompt <n>": the boxes to answer; -1 without the line
 int g_discPromptsShown = 0;    // the second disc's boxes the game showed
 bool g_wrongLabelAnswered = false;   // the last GetVolumeInformationA answered kNoDiscLabel
+
+// In game.exe's runs our MFC code (the harness's, the vector recorders') handles game.exe's strings: its empty string
+// is game.exe's _afxDataNil there (mfc_string.h's g_dataNil). Set at static initialisation, before any CString is made
+// (none is a global the CRT constructs).
+struct GameEmptyString {
+    GameEmptyString() {
+        if (!ei::Standalone()) mfc::impl::g_dataNil = ei::OriginalGameData<mfc::impl::CStringData*>(0x00796E4C);
+    }
+} g_gameEmptyString;
 
 decltype(&::RegQueryValueExA) g_query;
 decltype(&::GetVolumeInformationA) g_volumeInformation;

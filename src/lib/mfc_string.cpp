@@ -26,14 +26,6 @@ struct NilString {
 };
 constinit NilString g_nilString = {{-1, 0, 0}, {}};
 
-// In game.exe the harness and the vector recorders run this code on game.exe's own strings: there the empty string
-// is game.exe's (its _afxDataNil, 00796E4C). No CString is made before this (none is a global the CRT constructs).
-struct UseGameNil {
-    UseGameNil() {
-        if (!ei::Standalone()) g_dataNil = ei::GameData<CStringData*>(0x00796E4C);
-    }
-} g_useGameNil;
-
 } // namespace
 
 constinit CStringData* g_dataNil = &g_nilString.data;

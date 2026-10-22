@@ -69,7 +69,8 @@ static_assert(sizeof(CStringData) == 12);
 CStringData* DataNil();
 char* PchNil();
 #else
-// Ours (mfc_string.cpp); game.exe's own when this code runs in game.exe (the harness, the vector recorders).
+// Ours (mfc_string.cpp); game.exe's own when this code runs in game.exe (the harness and the vector recorders handle
+// game.exe's strings there: tests/verify/harness_startup.cpp sets it at static initialisation).
 extern CStringData* g_dataNil;
 inline CStringData* DataNil() { return g_dataNil; }
 inline char* PchNil() { return g_dataNil->data(); }
