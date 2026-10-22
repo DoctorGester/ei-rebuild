@@ -230,7 +230,7 @@ struct CSoundManager : CEngineObject {
     lib::AlignedArray<std::int32_t> markers2;   // +0x178
     std::uint8_t nameLock[0x18];        // +0x188 CRITICAL_SECTION guarding streamName
     std::int32_t switchMode;            // +0x1A0 how nextName was requested (RequestStream mode)
-    std::int32_t streamFileSize;        // +0x1A4 bytes of the open stream file (StreamRead)
+    std::uint32_t streamFileSize;       // +0x1A4 bytes of the open stream file (StreamRead)
     std::int32_t streamReadPosition;    // +0x1A8
     void* streamDecoder;                // +0x1AC HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
