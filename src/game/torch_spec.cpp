@@ -94,10 +94,8 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     field->ReadDelta(colours_[0], 0xC);
     field->ReadDelta(colours_[1], 0xC);
     {
-        alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        auto* read = static_cast<mfc::CString*>(field->ReadString(raw));
-        name_ = *read;
-        read->~CString();
+        mfc::CString read(mfc::CString::kUnset);   // constructed by the read
+        name_ = *field->ReadString(&read);
     }
     SetLightSlot(lightKind_, colours_[0], values_[0]);
     SetFlameSlot(colours_[1], values_[1], &values_[2]);

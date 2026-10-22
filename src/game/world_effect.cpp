@@ -73,10 +73,8 @@ void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
-        alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-        mfc::CString* text = stream->ReadString(slot);
-        array->SetAtGrow(array->size, *text);
-        text->~CString();
+        mfc::CString text(mfc::CString::kUnset);   // constructed by the read
+        array->SetAtGrow(array->size, *stream->ReadString(&text));
     }
 }
 EI_REWRITTEN(0x006773A0, ReadSavedStrings);
@@ -287,10 +285,8 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&countSlot, 1);
     names_.SetSize(static_cast<int>(countSlot & 0xFF), -1);
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
-        alignas(4) unsigned char raw[sizeof(mfc::CString)];
-        auto* text = static_cast<mfc::CString*>(field->ReadString(raw));
-        names_[i] = *text;
-        text->~CString();
+        mfc::CString text(mfc::CString::kUnset);   // constructed by the read
+        names_[i] = *field->ReadString(&text);
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);
