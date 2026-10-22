@@ -726,23 +726,19 @@ struct Registry {
     Registry() { registry->Construct(); }
     ~Registry() { registry->Destroy(); }
 };
-struct TextureLinks : VtArray {
-    TextureLinks() : VtArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}
+struct TextureLinks : TextureLinkArray {
+    TextureLinks() : TextureLinkArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureLinks() {
         if (data) gamecrt::operator_delete(data);
     }
-    const TextureLinkRecord& Record(int i) const { return reinterpret_cast<const TextureLinkRecord*>(data)[i]; }
 };
-struct TextureNames : VtArray {
-    TextureNames() : VtArray{mfc::impl::TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
+struct TextureNames : TextureNameArray {
+    TextureNames() : TextureNameArray{mfc::impl::TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&Records()[i]));
+        TextureNameElements::Destruct(data, size);
         gamecrt::operator_delete(data);
     }
-    TextureNameRecord* Records() { return reinterpret_cast<TextureNameRecord*>(data); }
-    std::uint32_t Id(int i) { return Records()[i].id; }
-    mfc::CString& Name(int i) { return Records()[i].name; }
 };
 
 struct SceneLoad {
@@ -886,23 +882,23 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         // The unit's material holder: its texture of the id (0051B2F0) named, then a material
         // (0051B470) for each link of the id.
         auto* owner = u->Object3D()->ClientSpecific();
-        mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
-        bool bmp = gamecrt::mbsicmp(s.textureNames.Name(t).Right(4).GetString(),
+        mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->Name();
+        bool bmp = gamecrt::mbsicmp(s.textureNames[t].name.Right(4).GetString(),
                                    scenedata::BmpExtText()) == 0;
         if (bmp) {
-            const mfc::CString& name = s.textureNames.Name(t);
+            const mfc::CString& name = s.textureNames[t].name;
             texture = name.Left(name.GetLength() - 4).GetString();
         } else {
-            texture = s.textureNames.Name(t).GetString();
+            texture = s.textureNames[t].name.GetString();
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
             void* manager = fakeUnit->WorldContext()->MaterialManager();
-            std::uint32_t id = s.textureLinks.Record(l).id;
-            if (id != s.textureNames.Id(t)) continue;
-            CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
-            linked->name = s.textureNames.Name(t).GetString();
-            static_cast<CMaterialManager*>(manager)->FillMaterial(linked, s.textureLinks.Record(l).value);
+            std::uint32_t id = s.textureLinks[l].id;
+            if (id != s.textureNames[t].id) continue;
+            CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks[l].value));
+            linked->name = s.textureNames[t].name.GetString();
+            static_cast<CMaterialManager*>(manager)->FillMaterial(linked, s.textureLinks[l].value);
         }
     }
 

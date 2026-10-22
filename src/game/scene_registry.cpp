@@ -35,11 +35,6 @@ SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit
 // The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
 using Registry = CFileRegistry;
 
-// The caller's (type, value) array (SetSize 00453A30).
-using LinkArray = mfc::CArray<TextureLinkRecord>;
-// The (type, name) array's elements: construct `count` at `p` (004553F0, NamedDwords'), destroy one
-// (00454360, the deleting destructor with flags 0).
-constexpr auto ConstructNamed = mfc::impl::ConstructElementsAt<mfc::impl::NamedDwords>;
 
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
@@ -122,23 +117,6 @@ bool IsMinusOne(float v) {
 }
 
 
-// The (type, name) records of the caller's second array (8 bytes: the type, a CString).
-struct NamedType {
-    int type;
-    mfc::CString name;
-};
-static_assert(sizeof(NamedType) == 8);
-
-// CArray<NamedType> (elements constructed by 004553F0, destroyed one by one by 00454360).
-struct NamedElements {
-    static void Construct(NamedType* elements, int count) { ConstructNamed(elements, count); }
-    static void Destruct(NamedType* elements, int count) {
-        for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&elements[i]));   // 00454360
-    }
-};
-using NamedArray = mfc::CArray<NamedType, NamedElements>;
-void SetNamedSize(VtArray& a, int size) { Typed<NamedArray>(a).SetSize(size); }
-
 // The registry's values for one material group (the texture section and its mapping) and the
 // group's faces' texture coordinates moved into the mapping, once each.
 struct GroupStrings {
@@ -201,7 +179,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
 // The material type of the mesh's last group name (0044A2A0) into the mesh (+0x188 type, +0x184
 // value) and, once each, into `links` (type, value) and `names` (type, texture name).
 void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& groupName, const mfc::CString& mapping,
-                    VtArray* links, VtArray* names) {
+                    TextureLinkArray* links, TextureNameArray* names) {
     mfc::CString texture;
     int type;
     int value;
@@ -214,33 +192,34 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
     MeshAt(unit, meshIndex).materialType = type;
     MeshAt(unit, meshIndex).materialValue = value;
 
-    auto* pairs = reinterpret_cast<int*>(links->data);
+    const auto typeId = static_cast<std::uint32_t>(type);
+    const auto valueId = static_cast<std::uint32_t>(value);
     int count = links->size;
     int i = 0;
     for (; i < count; ++i) {
-        if (pairs[i * 2 + 1] == value && pairs[i * 2] == type) break;
+        if ((*links)[i].value == valueId && (*links)[i].id == typeId) break;
     }
     if (i == count) {
-        Typed<LinkArray>(*links).SetSize(count + 1, -1);
-        pairs = reinterpret_cast<int*>(links->data);
-        pairs[count * 2] = type;
-        pairs[count * 2 + 1] = value;
+        links->SetSize(count + 1, -1);
+        (*links)[count].id = typeId;
+        (*links)[count].value = valueId;
     }
 
+    const auto textureId = static_cast<std::uint32_t>(textureType);
     int j = 0;
     for (; j < names->size; ++j) {
-        const NamedType& n = reinterpret_cast<const NamedType*>(names->data)[j];
+        const TextureNameRecord& n = (*names)[j];
         if (gamecrt::mbscmp(n.name.GetString(),
                             texture.GetString()) == 0 &&
-            n.type == textureType) {
+            n.id == textureId) {
             break;
         }
     }
     if (j == names->size) {
         int old = names->size;
-        SetNamedSize(*names, old + 1);
-        NamedType& n = reinterpret_cast<NamedType*>(names->data)[old];
-        n.type = textureType;
+        names->SetSize(old + 1);
+        TextureNameRecord& n = (*names)[old];
+        n.id = textureId;
         n.name = texture;
     }
 }
@@ -250,7 +229,8 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
 // 0044B980 (__fastcall: the unit in ECX, the .reg path in EDX; RET 8). `links` collects (type,
 // value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when the file has
 // no sections, or what FatalError returns when it cannot be opened.
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, VtArray* links, VtArray* names) {
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+                                  TextureNameArray* names) {
     mfc::CString groupName;
     mfc::CString mapping;
     mfc::CString section;

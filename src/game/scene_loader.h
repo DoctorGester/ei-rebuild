@@ -19,6 +19,7 @@
 #include "../lib/containers.h"
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
+#include "../lib/mfc_array.h"
 #include "../lib/mfc_coll.h"
 #include "../lib/vecmath.h"
 #include "../lib/mfc_slots.h"
@@ -459,6 +460,20 @@ struct TextureLinkRecord {
     std::uint32_t id;
     std::uint32_t value;
 };
+// The loader's arrays of them (LoadFigureRegistry adds to both): the links plain (SetSize 00453A30;
+// vtable TextureLinkArrayClass), the names' strings set empty (004553F0) and each record destroyed
+// (00454360; vtable TextureNameArrayClass).
+using TextureLinkArray = mfc::CArray<TextureLinkRecord>;
+struct TextureNameElements {
+    static void Construct(TextureNameRecord* elements, int count) {
+        mfc::impl::ConstructElementsAt<mfc::impl::NamedDwords>(elements, count);
+    }
+    static void Destruct(TextureNameRecord* elements, int count) {
+        for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&elements[i]));
+    }
+};
+using TextureNameArray = mfc::CArray<TextureNameRecord, TextureNameElements>;
+static_assert(sizeof(TextureNameRecord) == 8 && sizeof(TextureLinkArray) == 0x14);
 
 constexpr std::uint32_t kVersionWithNormals = 0x1468FCCA;
 
@@ -473,7 +488,8 @@ public:
 };
 
 // 0044B980 (scene_registry.cpp): the figure's .reg file read into the texture links and names.
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, VtArray* links, VtArray* names);
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+                                  TextureNameArray* names);
 // 00448A40 (scene_skeleton.cpp): the skin's bones built from the scene nodes; 0 without a root node.
 int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames, SceneSkin* skin);
 // 0044C4A0 (scene_weld.cpp): the meshes' vertices welded to the registry's nodes.
