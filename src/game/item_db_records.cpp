@@ -26,19 +26,21 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 } // namespace
 
 // The records' slot 0 (A-H25): the item kind each record makes.
-int __fastcall itemdb::WeaponRecordKind(ItemRecordHead*) { return 0x3004; }
-int __fastcall itemdb::ArmorRecordKind(ItemRecordHead*) { return 0x3005; }
-int __fastcall itemdb::QuickItemRecordKind(ItemRecordHead*) { return 0x3006; }
-int __fastcall itemdb::QuestItemRecordKind(ItemRecordHead*) { return 0x3009; }
-int __fastcall itemdb::LootItemRecordKind(ItemRecordHead*) { return 0x3007; }
-EI_REWRITTEN(0x006A6430, itemdb::WeaponRecordKind);
-EI_REWRITTEN(0x006A6440, itemdb::ArmorRecordKind);
-EI_REWRITTEN(0x006A6450, itemdb::QuickItemRecordKind);
-EI_REWRITTEN(0x006A6460, itemdb::QuestItemRecordKind);
-EI_REWRITTEN(0x006A6470, itemdb::LootItemRecordKind);
-// The base record's slot (ItemRecordBaseClass): _purecall (006E73EB in game.exe, reached only by a bug).
-extern "C" int __cdecl _purecall();
-int __fastcall itemdb::PureRecordKind(ItemRecordHead*) { return _purecall(); }
+int WeaponRecord::Kind() { return 0x3004; }
+int ArmorRecord::Kind() { return 0x3005; }
+int QuickItemRecord::Kind() { return 0x3006; }
+int QuestItemRecord::Kind() { return 0x3009; }
+int LootItemRecord::Kind() { return 0x3007; }
+EI_REWRITTEN(0x006A6430, WeaponRecord::Kind);
+EI_REWRITTEN(0x006A6440, ArmorRecord::Kind);
+EI_REWRITTEN(0x006A6450, QuickItemRecord::Kind);
+EI_REWRITTEN(0x006A6460, QuestItemRecord::Kind);
+EI_REWRITTEN(0x006A6470, LootItemRecord::Kind);
+
+EI_REWRITTEN_SPECIAL(0x006A63B0, ItemRecordHead::ItemRecordHead);
+
+void* ItemRecordHead::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void ItemRecordHead::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
@@ -53,16 +55,6 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
 }
 EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);
 
-void ItemRecordHead::ConstructHead(void* table) {
-    new (&text04) mfc::CString();
-    new (&text08) mfc::CString();
-    new (&materialClass) mfc::CString();
-    new (&list20) console::CStringArray();
-    new (&list50) console::CStringArray();
-    buildable = 1;
-    vtable = table;
-}
-
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, category), 0x83);
     CopyBytes(this, source, offsetof(WeaponRecord, reach), sizeof(WeaponRecord));
@@ -74,12 +66,6 @@ WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
     return this;
 }
 EI_REWRITTEN(0x006A8FB0, WeaponRecord::AssignWeapon);
-
-ItemRecordHead* ItemRecordHead::ConstructBase() {
-    ConstructHead(BaseVtable());
-    return this;
-}
-EI_REWRITTEN(0x006A63B0, ItemRecordHead::ConstructBase);
 
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
@@ -138,29 +124,19 @@ void MaterialRecordHead::ConstructDefault() {
 
 // ---- S13: the records' destructors (the compiler's) ----------------------------------------------
 
-void ItemRecordHead::DestructHead() {
-    list50.Destruct();
-    list20.Destruct();
-    materialClass.~CString();
-    text08.~CString();
-    text04.~CString();
-}
-EI_REWRITTEN(0x006A8950, ItemRecordHead::DestructHead);   // weapons
-EI_REWRITTEN(0x006A89D0, ItemRecordHead::DestructHead);   // armours
-EI_REWRITTEN(0x006A8BD0, ItemRecordHead::DestructHead);   // loot
+ItemRecordHead::~ItemRecordHead() = default;
+EI_REWRITTEN_SPECIAL(0x006A8950, ItemRecordHead::~ItemRecordHead);   // weapons
+EI_REWRITTEN_SPECIAL(0x006A89D0, ItemRecordHead::~ItemRecordHead);   // armours
+EI_REWRITTEN_SPECIAL(0x006A8BD0, ItemRecordHead::~ItemRecordHead);   // loot
 
-void QuickItemRecord::Destruct() {
-    text7C.~CString();
-    DestructHead();
-}
-EI_REWRITTEN(0x006A8A50, QuickItemRecord::Destruct);
+QuickItemRecord::~QuickItemRecord() = default;
+EI_REWRITTEN_SPECIAL(0x006A8A50, QuickItemRecord::~QuickItemRecord);
 
-void QuestItemRecord::Destruct() {
+QuestItemRecord::~QuestItemRecord() {
     for (mfc::CString& zone : zones) zone.~CString();
     zones.FreeStorage();
-    DestructHead();
 }
-EI_REWRITTEN(0x006A8AE0, QuestItemRecord::Destruct);
+EI_REWRITTEN_SPECIAL(0x006A8AE0, QuestItemRecord::~QuestItemRecord);
 
 void MaterialRecordHead::Destruct() {
     name.~CString();
@@ -292,45 +268,38 @@ void LootItemRecord::CopyOwn(const LootItemRecord* source) {
     CopyBytes(this, source, offsetof(LootItemRecord, category), sizeof(LootItemRecord));
 }
 
-namespace itemdb {
+// The kinds' default and copy constructors (the extra members constructed between the head and the
+// Assign).
+WeaponRecord::WeaponRecord() { std::memset(field1B, 0, 0x83 - offsetof(WeaponRecord, field1B)); }
+QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus)); }
 
-// The kinds' extra members, constructed between the head and the Assign.
-template <typename R>
-void ConstructExtra(R*) {}
-template <>
-void ConstructExtra(QuickItemRecord* record) { new (&record->text7C) mfc::CString(); }
-template <>
-void ConstructExtra(QuestItemRecord* record) { record->zones.ConstructEmpty(); }
+WeaponRecord::WeaponRecord(const WeaponRecord& from) {
+    Assign(&from);
+    CopyOwn(&from);
+}
+ArmorRecord::ArmorRecord(const ArmorRecord& from) {
+    Assign(&from);
+    CopyOwn(&from);
+}
+QuickItemRecord::QuickItemRecord(const QuickItemRecord& from) {
+    Assign(&from);
+    CopyOwn(&from);
+}
+QuestItemRecord::QuestItemRecord(const QuestItemRecord& from) {
+    zones.ConstructEmpty();
+    Assign(&from);
+    CopyOwn(&from);
+}
+LootItemRecord::LootItemRecord(const LootItemRecord& from) {
+    Assign(&from);
+    CopyOwn(&from);
+}
+
+namespace itemdb {
 
 // uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
 // the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
 // the original's placement new. Both return the end of the destination.
-template <typename R>
-void CopyConstructRecord(R* to, const R* from) {
-    to->ConstructHead(R::Vtable());
-    ConstructExtra(to);
-    to->Assign(from);
-    to->CopyOwn(from);
-}
-
-// The resize(n) temporaries' fields beyond the members (zeroed bytes; S10a).
-template <typename R>
-void ZeroDefaultBytes(R*) {}
-template <>
-void ZeroDefaultBytes(WeaponRecord* record) {
-    std::memset(record->field1B, 0, 0x83 - offsetof(WeaponRecord, field1B));
-}
-template <>
-void ZeroDefaultBytes(QuickItemRecord* record) {
-    std::memset(record->attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus));
-}
-
-template <typename R>
-void DefaultConstructRecord(R* to) {
-    to->ConstructHead(R::Vtable());
-    ConstructExtra(to);
-    ZeroDefaultBytes(to);
-}
 
 // uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
 // the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
@@ -338,7 +307,7 @@ void DefaultConstructRecord(R* to) {
 template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
     for (; first != last; ++first, ++dest) {
-        if (dest) CopyConstructRecord(dest, first);
+        if (dest) new (dest) R(*first);
     }
     return dest;
 }
@@ -346,21 +315,10 @@ R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*
 template <typename R>
 R* __fastcall FillItemRecords(R* dest, int count, const R* value, int /*tag*/) {
     for (; count != 0; --count, ++dest) {
-        if (dest) CopyConstructRecord(dest, value);
+        if (dest) new (dest) R(*value);
     }
     return dest;
 }
-
-template void CopyConstructRecord(WeaponRecord*, const WeaponRecord*);
-template void CopyConstructRecord(ArmorRecord*, const ArmorRecord*);
-template void CopyConstructRecord(QuickItemRecord*, const QuickItemRecord*);
-template void CopyConstructRecord(QuestItemRecord*, const QuestItemRecord*);
-template void CopyConstructRecord(LootItemRecord*, const LootItemRecord*);
-template void DefaultConstructRecord(WeaponRecord*);
-template void DefaultConstructRecord(ArmorRecord*);
-template void DefaultConstructRecord(QuickItemRecord*);
-template void DefaultConstructRecord(QuestItemRecord*);
-template void DefaultConstructRecord(LootItemRecord*);
 
 template WeaponRecord* __fastcall CopyItemRecords(const WeaponRecord*, const WeaponRecord*, WeaponRecord*, int);
 template WeaponRecord* __fastcall FillItemRecords(WeaponRecord*, int, const WeaponRecord*, int);

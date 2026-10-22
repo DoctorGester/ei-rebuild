@@ -49,24 +49,18 @@ void ResizeUntyped(void* vector, unsigned count) {
     static_cast<typename Abi::Vector*>(vector)->template ResizeDefault<typename Abi::Element>(count);
 }
 
-// The item records' destructors (item_db_records.cpp): the head's members, plus the quick item's
-// string and the quest item's zone list.
-inline void DestroyItem(itemdb::ItemRecordHead* record) { record->DestructHead(); }
-inline void DestroyItem(itemdb::QuickItemRecord* record) { record->Destruct(); }
-inline void DestroyItem(itemdb::QuestItemRecord* record) { record->Destruct(); }
-
 // The weapon, armour, quick item, quest item and loot records: the kind's copy constructor, its
 // operator= (the head's Assign, then its own fields), its destructor; resize(n) appends copies of
 // the kind's default record.
 template <typename R>
 struct ItemElement {
-    static void Construct(R* to, const R& from) { itemdb::CopyConstructRecord(to, &from); }
+    static void Construct(R* to, const R& from) { new (to) R(from); }
     static void Assign(R& to, const R& from) {
         to.Assign(&from);
         to.CopyOwn(&from);
     }
-    static void Destroy(R* p) { DestroyItem(p); }
-    static void Default(R* p) { itemdb::DefaultConstructRecord(p); }
+    static void Destroy(R* p) { p->~R(); }
+    static void Default(R* p) { new (p) R(); }
 };
 
 // A record whose copy constructor, operator=, destructor and resize(n) temporary are its members.
@@ -230,26 +224,17 @@ using DressedUnitVector = stlp::VectorAbi<DressedUnitRecord, DressedUnitElement>
 
 // ---- prints.db (model.h; model_db.cpp's 006D26E0 / 006D2830) ------------------------------------
 
-// The prints' records: the copies and the defaults set the record's vtable; the name, then the
-// value triples (copied as they are, zero by default). The destructor (006D29A0 / 006D29E0) only
-// returns the name's storage; the vtable stays.
+// The prints' records (model.h): their copy and default constructors and destructor; operator=
+// assigns the name, then copies the value triples.
 template <typename R>
 struct PrintElement {
-    static void Construct(R* to, const R& from) {
-        ei::SetVtable(to, R::Vtable());
-        new (&to->name) stlp::string(from.name);
-        std::memcpy(Values(*to), Values(from), sizeof(R) - offsetof(R, look2));
-    }
+    static void Construct(R* to, const R& from) { new (to) R(from); }
     static void Assign(R& to, const R& from) {
         to.name.AssignFrom(from.name);
         std::memcpy(Values(to), Values(from), sizeof(R) - offsetof(R, look2));
     }
-    static void Default(R* p) {
-        stlp::StringElement::Default(&p->name);
-        std::memset(Values(*p), 0, sizeof(R) - offsetof(R, look2));
-        ei::SetVtable(p, R::Vtable());
-    }
-    static void Destroy(R* p) { p->name.~string(); }
+    static void Default(R* p) { new (p) R(); }
+    static void Destroy(R* p) { p->~R(); }
 
 private:
     static void* Values(R& r) { return &r.look2; }

@@ -86,25 +86,27 @@ EI_REWRITTEN(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
-void PrintRecord::SerializeImpl(ChunkArchive* ar) {
+PrintRecord::PrintRecord() : look2{}, look3{} { stlp::string::Reserve(name, 8); }
+PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), look2(from.look2), look3(from.look3) {}
+PrintRecord2::PrintRecord2() : look2{}, look3{}, values10{} { stlp::string::Reserve(name, 8); }
+PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), look2(from.look2), look3(from.look3) {
+    std::memcpy(values10, from.values10, sizeof(values10));
+}
+
+void PrintRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, &look2);
     TripleChunk(ar, 3, &look3);
 }
+EI_REWRITTEN(0x006D41D0, PrintRecord::Serialize);
 
-void PrintRecord2::SerializeImpl(ChunkArchive* ar) {
+void PrintRecord2::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, &look2);
     TripleChunk(ar, 3, &look3);
     TripleChunk(ar, 10, values10);
 }
-
-// Slot 0 of the compiled tables.
-void PrintRecord::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
-void PrintRecord2::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
-
-EI_REWRITTEN(0x006D41D0, PrintRecord::SerializeImpl);
-EI_REWRITTEN(0x006D4270, PrintRecord2::SerializeImpl);
+EI_REWRITTEN(0x006D4270, PrintRecord2::Serialize);
 
 // ---- WaterTweens --------------------------------------------------------------------------------
 

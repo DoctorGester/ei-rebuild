@@ -210,7 +210,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         itemdb::ItemRecordHead* prototype = *p;
         if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(itemdb::RecordSlots(prototype)->Kind(), -1);
+        ctor->BeginCreateItem(prototype->Kind(), -1);
         ctor->SetPrototype(prototype);
         candidates.Finish() = candidates.begin();   // erase(begin, end)
         if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {

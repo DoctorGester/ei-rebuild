@@ -539,12 +539,12 @@ vtable,slots,class,file,note
 00743F5C,22,CItemLoot,src/game/item.h,loot
 00743FB4,22,CItemSpell,src/game/item.h,scroll
 00744020,13,CItemConstructor,src/game/item.h,item constructor
-00744054,1,LootItemRecordClass,src/game/item_db.h,a loot item record (LootItemRecord)
-00744058,1,QuestItemRecordClass,src/game/item_db.h,a quest item record (QuestItemRecord)
-0074405C,1,QuickItemRecordClass,src/game/item_db.h,a quick item record (QuickItemRecord)
-00744060,1,ItemRecordBaseClass,src/game/item_db.h,the item records' base (ItemRecordHead; _purecall)
-00744064,1,ArmorRecordClass,src/game/item_db.h,an armour record (ArmorRecord)
-00744068,1,WeaponRecordClass,src/game/item_db.h,a weapon record (WeaponRecord)
+00744054,1,LootItemRecord,src/game/item_db.h,a loot item record
+00744058,1,QuestItemRecord,src/game/item_db.h,a quest item record
+0074405C,1,QuickItemRecord,src/game/item_db.h,a quick item record
+00744060,1,ItemRecordHead,src/game/item_db.h,the item records' base (_purecall)
+00744064,1,ArmorRecord,src/game/item_db.h,an armour record
+00744068,1,WeaponRecord,src/game/item_db.h,a weapon record
 00744098,13,CMusicSystem,src/game/sound.h,
 007440CC,3,ThemeArrayClass,src/game/record_arrays.h,CArray<MusicTheme> (the music system's themes)
 007440F0,13,CSoundManager,src/game/sound.h,

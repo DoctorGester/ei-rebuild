@@ -56,62 +56,26 @@ template <typename T> void CopyBits(T& to, const T& from) {
     std::memcpy(&to, &from, sizeof(T));
 }
 
-// A record of kind R: the base record's construction (inline in Build; 006A63B0 as a function),
-// then the kind's vtable. Null when the allocation fails.
-template <typename R> R* NewRecordOf() {
-    auto* record = gamecrt::operator_new_as<R>();
-    if (!record) return nullptr;
-    record->ConstructHead(ItemRecordHead::BaseVtable());
-    ei::SetVtable(record, R::Vtable());
-    return record;
-}
-
-// Allocates and constructs the temporary record for an item of class `classId`; null for other
-// classes (and when the allocation fails).
+// The temporary record for an item of class `classId` (the base record's construction inline in
+// Build); null for other classes (and when the allocation fails).
 ItemRecordHead* NewRecord(int classId) {
     switch (classId) {
-    case kClassWeapon: {
-        auto* record = NewRecordOf<WeaponRecord>();
-        if (!record) return nullptr;
-        std::memset(record->field1B, 0, 0x83 - 0x78);   // +0x78..+0x82
-        return record;
-    }
-    case kClassArmor:
-        return NewRecordOf<ArmorRecord>();
+    case kClassWeapon: return new WeaponRecord();
+    case kClassArmor: return new ArmorRecord();
     case kClassQuick:
-    case kClassSpell: {
-        auto* record = gamecrt::operator_new_as<QuickItemRecord>();
-        if (!record) return nullptr;
-        record->ConstructHead(ItemRecordHead::BaseVtable());
-        new (&record->text7C) mfc::CString();   // a CString the record's destructor would free
-        ei::SetVtable(record, QuickItemRecord::Vtable());
-        std::memset(record->attributeBonus, 0, 0x8B - 0x80);   // +0x80..+0x8A
-        return record;
-    }
-    case kClassQuest: {
-        auto* record = gamecrt::operator_new_as<QuestItemRecord>();
-        if (!record) return nullptr;
-        record->ConstructHead(ItemRecordHead::BaseVtable());
-        record->zones.ConstructEmpty();   // 0055A3E0
-        ei::SetVtable(record, QuestItemRecord::Vtable());
-        return record;
-    }
-    case kClassLoot:
-        return NewRecordOf<LootItemRecord>();
-    default:
-        return nullptr;
+    case kClassSpell: return new QuickItemRecord();
+    case kClassQuest: return new QuestItemRecord();
+    case kClassLoot: return new LootItemRecord();
+    default: return nullptr;
     }
 }
 
 // Destroys what every record has (the extra members of the quick, quest and loot records are
-// not destroyed: the original leaks them, though they hold nothing here) and frees it.
+// not destroyed: the original leaks them, though they hold nothing here; the head's destructor is
+// not virtual) and frees it.
 void DeleteRecord(ItemRecordHead* record) {
-    record->list50.~CStringArray();
-    record->list20.~CStringArray();
-    record->materialClass.~CString();
-    record->text08.~CString();
-    record->text04.~CString();
-    gamecrt::operator_delete(record);
+    record->~ItemRecordHead();
+    ItemRecordHead::operator delete(record);
 }
 
 // Index of `record` in `table` (the pointer difference divided by the stride, signed).
@@ -498,7 +462,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         return nullptr;
     }
     constructor->SetManager(this);
-    constructor->BeginCreateItem(RecordSlots(prototype)->Kind(), -1);
+    constructor->BeginCreateItem(prototype->Kind(), -1);
     MaterialRecordHead* material = nullptr;
     if (parts.size > 1) material = items.materials.Named(parts.data[1]);
     constructor->SetPrototype(prototype);

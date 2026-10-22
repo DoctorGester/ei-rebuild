@@ -785,14 +785,16 @@ struct PrintLook {
 };
 static_assert(sizeof(PrintLook) == 0xC);
 
-// A record of prints.db (terrain footprints). 0x28 bytes. The records are constructed and destroyed by the
-// game's vector code (record_vectors.h). A real virtual class (C19): the compiler makes its one-slot table
-// (game.exe's 00744264 is retired); Vtable() is it.
+// A record of prints.db (terrain footprints; game.exe's vtable 00744264). 0x28 bytes. The records live
+// in the prints' vectors (record_vectors.h): the copies copy the name and the looks; the record resize(n)
+// appends copies of (006D26E0) has an empty name with room for 8 bytes and zero looks; the destructor
+// (006D29A0) returns the name's storage.
 struct PrintRecord {
-    virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
-    void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
+    PrintRecord();
+    PrintRecord(const PrintRecord& from);
+    PrintRecord& operator=(const PrintRecord&) = delete;
 
-    static void* Vtable() { return ei::CompiledVtable<PrintRecord>(); }
+    virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
 
     stlp::string name;           // +0x04
     PrintLook look2;             // +0x10 chunk 2
@@ -801,13 +803,14 @@ struct PrintRecord {
 static_assert(offsetof(PrintRecord, name) == 0x04);
 static_assert(sizeof(PrintRecord) == 0x28);
 
-// The second record type of prints.db. 0x34 bytes. A real virtual class as PrintRecord (game.exe's 00744268 is
-// retired).
+// The second record type of prints.db (game.exe's vtable 00744268; destructor 006D29E0). 0x34 bytes. Its
+// lifetime is PrintRecord's, the values +0x28 with the looks.
 struct PrintRecord2 {
-    virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
-    void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
+    PrintRecord2();
+    PrintRecord2(const PrintRecord2& from);
+    PrintRecord2& operator=(const PrintRecord2&) = delete;
 
-    static void* Vtable() { return ei::CompiledVtable<PrintRecord2>(); }
+    virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
 
     stlp::string name;           // +0x04
     PrintLook look2;             // +0x10 chunk 2
