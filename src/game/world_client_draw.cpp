@@ -439,7 +439,7 @@ int CWorldClient::DrawPass() {
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
     const float* position = &CameraAnchor(camera_)->x;
-    if (void* listener = owned1B0_) static_cast<CEffectMoshka*>(listener)->Update(animTime);
+    if (bird_) bird_->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 0073B84C) and to 0, in 16-unit sectors.

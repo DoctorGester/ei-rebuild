@@ -77,6 +77,7 @@ class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
+class CEffectMoshka;   // world_effect.h
 namespace mapspec { struct Spec; }   // map_spec.h
 
 class CWorldServer;
@@ -1558,7 +1559,7 @@ public:
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
     struct CMusicSystem* music_;          // +0x1A8 owned (sound.h; constructor 006B4350)
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
-    CEngineObject* owned1B0_;             // +0x1B0 owned
+    CEffectMoshka* bird_;                 // +0x1B0 the bird following the party (SummonBird), owned
     CFlyingHitPoints* numbers_;           // +0x1B4 owned
     // +0x1B8 / +0x1BC / +0x1C0 the ground prints (ground_print.h; element destructors 0056D080,
     // 00575560, 00575580). Segment ticks them (slot 0) and colours the blood prints by the light.
@@ -1636,7 +1637,7 @@ static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
 static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
 static_assert(offsetof(CWorldClient, manager188_) == 0x188);
 static_assert(offsetof(CWorldClient, particleManager_) == 0x19C);
-static_assert(offsetof(CWorldClient, owned1B0_) == 0x1B0);
+static_assert(offsetof(CWorldClient, bird_) == 0x1B0);
 static_assert(offsetof(CWorldClient, bloodPrints_) == 0x1B8 && offsetof(CWorldClient, scorchMarks_) == 0x1C0);
 static_assert(offsetof(CWorldClient, handle_) == 0x1C8);
 static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
