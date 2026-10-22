@@ -106,8 +106,8 @@ BOOL CMpHeroScreen::Draw(int pass) {
     int y = MouseScreenY();
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = weaponPanel_->VirtualItemAt(x, y, &topic);
-    if (!hoveredItem_ && topic == 0) hoveredItem_ = spellPanel_->VirtualItemAt(x, y, &topic);
+    hoveredItem_ = weaponPanel_->ItemAt(x, y, &topic);
+    if (!hoveredItem_ && topic == 0) hoveredItem_ = spellPanel_->ItemAt(x, y, &topic);
 
     if (hoveredItem_) {
         if (descPanel_) descPanel_->Describe(hoveredItem_);

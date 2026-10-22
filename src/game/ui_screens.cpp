@@ -37,23 +37,8 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-// 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
-// 0065B090: a scroll bar's position; returns whether it moved since the last call.
-BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
-
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
-
-// Virtual slot `slot` of an object with its vtable at +0.
-template <typename Fn>
-Fn Virtual(const void* object, int slot) {
-    return ei::ObjectSlot<Fn>(object, slot);
-}
-
-// A scroll bar's virtual slot 25 (+0x64): set the position.
-void SetScrollPos(void* bar, int position) {
-    Virtual<void(__thiscall*)(void*, int)>(bar, 25)(bar, position);
-}
 } // namespace
 
 // --- Shared ---------------------------------------------------------------------------------
@@ -219,7 +204,7 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
 }
 EI_REWRITTEN(0x00621A80, CUiItemStrip::ArmorTab);
 
-void CUiItemStrip::RebuildList() {
+void CForwardingStrip::RebuildList() {
     list_.SetSize(0, -1);
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) {
@@ -240,7 +225,7 @@ void CUiItemStrip::RebuildList() {
     }
     count_ = list_.size;
 }
-EI_REWRITTEN(0x006212F0, CUiItemStrip::RebuildList);
+EI_REWRITTEN(0x006212F0, CForwardingStrip::RebuildList);
 
 int CUiItemStrip::TabOf(const CItem* item) {
     switch (filter_) {
@@ -286,13 +271,7 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
 }
 EI_REWRITTEN(0x00621570, CUiItemStrip::ScrollToItem);
 
-CItem* CUiItemStrip::CallItemAt(int x, int y, int* cursor) {
-    return Virtual<CItem*(__thiscall*)(CUiItemStrip*, int, int, int*)>(this, 25)(this, x, y, cursor);
-}
-
-void CUiItemStrip::CallRebuildList() { Virtual<void(__thiscall*)(CUiItemStrip*)>(this, 26)(this); }
-
-CItem* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
+CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
     if (!enabled_) return nullptr;
     if (RegionAt(x, y) != 8) return nullptr;
     switch (mode_) {
@@ -305,11 +284,11 @@ CItem* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
     int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
-    CallRebuildList();
+    RebuildList();
     if (index < 0 || index >= list_.size) return nullptr;
     return list_.data[index];
 }
-EI_REWRITTEN(0x00621F30, CUiItemStrip::ItemAt);
+EI_REWRITTEN(0x00621F30, CForwardingStrip::ItemAt);
 
 void CUiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
@@ -370,10 +349,10 @@ BOOL CUiItemStrip::OnWheel(int, short delta, int x, int y) {
     return 1;
 }
 
-void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
+void CForwardingStrip::OnLButtonDownForward(int flags, int x, int y) {
     OnLButtonDown(flags, x, y);
     // The original passes its own first argument's stack slot as the cursor output.
-    CItem* item = CallItemAt(x, y, &flags);
+    CItem* item = ItemAt(x, y, &flags);
     if (item) OwnerTakeItem(item);
 }
 
@@ -382,7 +361,7 @@ EI_REWRITTEN(0x00620E10, CUiItemStrip::OnLButtonDown);
 EI_REWRITTEN(0x00621010, CUiItemStrip::OnLButtonUp);
 EI_REWRITTEN(0x00620F10, CUiItemStrip::OnMouseMove);
 EI_REWRITTEN(0x006210F0, CUiItemStrip::OnWheel);
-EI_REWRITTEN(0x006212A0, CUiItemStrip::OnLButtonDownForward);
+EI_REWRITTEN(0x006212A0, CForwardingStrip::OnLButtonDownForward);
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
@@ -468,8 +447,8 @@ void CMpHeroScreen::ClampHeroSelection() {
     // Ten rows are visible.
     if (heroTop_ + 10 <= selected) heroTop_ = selected - 9;
     if (heroTop_ > selected) heroTop_ = selected;
-    SetScrollPos(heroScroll_, heroTop_);
-    TakeScrollPos(heroScroll_, nullptr, &heroTop_);
+    heroScroll_->SetPosition(heroTop_);
+    heroScroll_->TakePosition(&heroTop_);
     CallShowHero(heroIndex_);
 }
 EI_REWRITTEN(0x00618FF0, CMpHeroScreen::ClampHeroSelection);
@@ -482,8 +461,8 @@ void CMpHeroScreen::ClampVoiceSelection() {
     // Eleven rows are visible.
     if (voiceTop_ + 11 <= selected) voiceTop_ = selected - 10;
     if (voiceTop_ > selected) voiceTop_ = selected;
-    SetScrollPos(voiceScroll_, voiceTop_);
-    TakeScrollPos(voiceScroll_, nullptr, &voiceTop_);
+    voiceScroll_->SetPosition(voiceTop_);
+    voiceScroll_->TakePosition(&voiceTop_);
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const mfc::CString& file = voices_->begin()[voiceIndex_].file;
     HeroRecord()->texts[6] = file;

@@ -32,26 +32,6 @@ class CRepairGrid;
 class CSpellMakerPage;
 class CTradeGrid;
 
-// The camp screens' children's vtable pairs (main, input).
-struct VtablePair {
-    void** main;
-    void** input;
-};
-static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
-
-// A panel T of the camp or the hero screen (an item panel) built on the window base, owned by
-// `owner`, with the vtable pair; null when the allocation fails (their Creates).
-template <class T>
-T* NewItemPanel(CInterface3D* ui, CItemScreen* owner, VtablePair vtables) {
-    T* memory = gamecrt::operator_new_as<T>();
-    if (!memory) return nullptr;
-    CUiItemPanel* panel = memory;
-    panel->Construct(ui);
-    panel->owner_ = owner;
-    panel->SetTagTables(vtables.main, vtables.input);
-    return memory;
-}
-
 // The hero panel's seven body slots: their centres (800 x 600 layout; the panel's frames and its depth clear).
 inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550, 550};
 inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450, 250};
@@ -376,22 +356,20 @@ using TradeRecords = stlp::vector<TradeRecord>;
 
 class CTradePanel : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
-    // 0060E3E0 (__fastcall on the panel; ui_camp.cpp). The destructor body (vtable 007417A8): its
-    // CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
-    // +0x15C (0x18-byte entries), then the window base.
-    void DestroyBody();
-    // 0060E3C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CTradePanel* TradePanelDelete(unsigned flags);
+    // The trade panel of `owner` (inlined by the screens' Creates): the vectors empty, the titles' array.
+    CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
+    // 0060E3E0 (ui_camp.cpp; deleting 0060E3C0): its CStringArray (+0x1A4), the vectors at +0x190
+    // (0x3C-byte entries) and +0x180, +0x174, +0x168, +0x15C (0x18-byte entries), then the window's.
+    ~CTradePanel() override;
+    void Update() override { UpdateHeld(); }                                        // 24
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // input 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }       // input 3
     // 00624F10 (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
     // Lays the panel out at (200, 100, 600, 500): a surface, the regions (the four scroll arrows,
     // the title rows, 23 learnable rows from (415, 135), 10 held rows from (215, 330)), the arrows'
     // sprites, the three titles ("skills", "perks", "perks_av"), and one statistics record per
     // party member (00626F10 with +0x150 the member's index); +0x19C = -1, +0x1A0 = 0.
-    void Build();
+    void Build() override;
     // 00625880 (__fastcall). Rebuilds the lists for the owner's hero (its slot 51): the hero's
     // statistics are reset (00524CD0) and refreshed (owner slot 47); the schools (00793BD4 names,
     // levels at stats +0x6CB, science +0x6C8, prices 00527FF0), the held perks (a level byte per
@@ -745,9 +723,12 @@ static_assert(sizeof(CCampPages) == 0x260);
 // +0x20), slot 50 the hero's unit, slot 53 (hero screen) the equipment weight.
 class CHeroStatsPanel : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    // The statistics column of `owner` (inlined by the screens' Creates): the title and the texts' array.
+    CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
+    // 0060E360 (ui_window_delete.cpp; deleting 0060E340): the texts, the title, then the window's.
+    ~CHeroStatsPanel() override;
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // input 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }          // input 3
     // 006233C0. Shows the statistics for page `page` of the owner: 0 the body parts and the
     // weapon, 10 the new hero's points with -/+ buttons, others the plain values; rebuilds the
     // rows' regions (two fixed ones kept) and draws (DrawStats).
@@ -756,18 +737,13 @@ public:
     void DrawStats();
     // 00622DB0 (slot 18). Builds the panel: the hero arrows' regions, a surface, the arrow,
     // frame and -/+ button sprites, and the texts (CStringArray at +0x15C).
-    void Build();
+    void Build() override;
     // 00624CB0 (RET 0xC). What the statistics under the screen point (x, y) are, for the
     // description panel (the hero's statistics always set): rows 2 up the attributes (pages 1 and
     // 11; page 10 rows 2-4, row 14 the points left, row 5 the height); on page 0 rows 2-5 the body
     // parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9 encumbrance, 10
     // the magic skills.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
-    // 0060E360 (ui_window_delete.cpp). The destructor body: the texts, the title, then the window's.
-    void DestroyBody();
-    // 0060E340 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CHeroStatsPanel* StatsPanelDelete(unsigned flags);
     // 006232D0 (RET 8). Shows hero `heroIndex` of the owner (and `title` when not null): the
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
@@ -780,7 +756,7 @@ public:
     // 00624A60 (slot 24). While a button is held on page 10: after a quarter of a second (holdTime_
     // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
     // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
-    void Update();
+    void Update() override;
     // 00624A40 (input slot 3, RET 0xC; EAX 0; ui_small_members.cpp). The left button released: the
     // mouse let go (unconditionally) and the hold ended (heldRegion_ -1, holdTime_ 0).
     int OnLButtonUp(int buttons, int x, int y);
@@ -822,10 +798,10 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 // quick slots along the top, and in the camp the body with its seven equipment slots.
 class CHeroEquipPanel : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
-    // Body of the slot at 00622420 (registered by member pointer).
+    using CUiItemPanel::CUiItemPanel;
+    BOOL Draw(int pass) override { return DrawImpl(pass); }                             // 20
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }   // input 5
+    // 00622420 (slot 20, RET 4).
     int DrawImpl(int pass);
     // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
@@ -843,7 +819,7 @@ public:
     // 00622860 (slot 25, RET 0xC). The item under (x, y) with its help topic: regions 0-3 the
     // weapons (topic 2), 4-7 the +0x740 list from its end (3), on the body regions 8-14 the armour
     // worn at body part region - 8 (topic region - 4); null elsewhere or while disabled (topic 0).
-    CItem* ItemAt(int x, int y, int* topic);
+    CItem* ItemAt(int x, int y, int* topic) override;
 
     bool body_;                      // +0x150 (mode_ 0; owner_ the camp or the hero screen)
     std::uint8_t unused_151[3];
@@ -861,9 +837,9 @@ using UiItemList = lib::AlignedArray<CItem*>;
 // 0x164 bytes; ui_hero_panels.cpp).
 class CTradeGrid : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    using CUiItemPanel::CUiItemPanel;
+    BOOL Draw(int pass) override { return DrawGrid(pass); }   // 20
+    // 00627390 (slot 20, RET 4).
     int DrawGrid(int pass);
     // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
@@ -873,7 +849,7 @@ public:
     // regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12); null elsewhere, past a
     // list's end or while disabled (topic 0 when off the cells or disabled).
-    CItem* ItemAt(int x, int y, int* topic);
+    CItem* ItemAt(int x, int y, int* topic) override;
 
     UiItemList* bought_;             // +0x150 an item list (+0x40 of a 00661050 list)
     UiItemList* sold_;               // +0x154
@@ -889,19 +865,17 @@ static_assert(sizeof(CTradeGrid) == 0x164);
 // grid with textures repair1..4.
 class CRepairGrid : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    using CUiItemPanel::CUiItemPanel;
     // 006279E0. Builds the grid for the item list `items`.
     void Build(UiItemList* items);
     // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
     // and to 1 over the grid; each item's model in its cell (depth 2^(3 - row) * 6), its
     // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the
     // window's sprites and models; the depth buffer cleared to 1 again. Returns 1.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 00628060 (slot 25, RET 0xC; ui_hero_panels.cpp). The item in cell region (x, y) (topic 0x19
     // on the 16 cells), null past the list's end, elsewhere or while disabled (topic 0).
-    CItem* ItemAt(int x, int y, int* topic);
+    CItem* ItemAt(int x, int y, int* topic) override;
 
     UiItemList* items_;              // +0x150 (mode_ 8, the cells' mode; owner_ the camp)
 };
@@ -912,9 +886,7 @@ static_assert(sizeof(CRepairGrid) == 0x154);
 // cells along the top (camp) or the bottom of the screen.
 class CHeroQuickStrip : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    using CUiItemPanel::CUiItemPanel;
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
@@ -923,11 +895,11 @@ public:
     void ShowEntry(CItem* item);
     // 00622D40 (slot 25, RET 0xC). The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or
     // null (topic 0 off the cells or while disabled).
-    CItem* ItemAt(int x, int y, int* topic);
+    CItem* ItemAt(int x, int y, int* topic) override;
     // 00622C10 (slot 20, RET 4; ui_panel_draws.cpp). The highlight frame (scene object 0) on the
     // selected cell when it holds one of the hero's spell list (+0x760) entries, else hidden; each
     // entry's model in its cell; then the window's sprites and models. Returns 1.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
 
     int y_;                          // +0x150 (mode_ 0, the cells' mode; owner_ the camp or the hero screen)
     int selected_;                   // +0x154 -1
@@ -939,9 +911,10 @@ static_assert(sizeof(CHeroQuickStrip) == 0x158);
 // item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
 class CConstructorPage : public CUiItemPanel {
 public:
-    // The item maker's compiled tables (ui_item_panel_tables.cpp).
-    static void** ItemMakerVtable();
-    static void** ItemMakerInputVtable();
+    // The item maker of `owner`.
+    using CUiItemPanel::CUiItemPanel;
+    BOOL Draw(int pass) override { return DrawItemMaker(pass); }                                      // 20
+    CItem* ItemAt(int x, int y, int* topic) override { return ItemMakerItemAt(x, y, topic); }   // 25
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(CParty* slots);
@@ -969,9 +942,12 @@ static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 // The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
 class CSpellMakerPage : public CConstructorPage {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    // The spell maker of `owner` (inlined by the camp's Create): the cost texts' array.
+    CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) { texts_.Construct(); }
+    // 0060E600 (ui_window_delete.cpp; deleting 0060E5E0): the texts, then the window's.
+    ~CSpellMakerPage() override;
+    BOOL Draw(int pass) override { return DrawSpellMaker(pass); }                                      // 20
+    CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }   // 25
     // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
     // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
     void BuildSpellMaker(CParty* slots);
@@ -983,11 +959,6 @@ public:
     // (scene object 4, its plain colour from cos(5 * pulse_)) on the empty grid cells (with a
     // spell) or on the container and spell slots. Returns 1.
     BOOL DrawSpellMaker(int pass);
-    // 0060E600 (ui_window_delete.cpp). The destructor body: the texts, then the window's.
-    void DestroyBody();
-    // 0060E5E0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CSpellMakerPage* SpellMakerDelete(unsigned flags);
 
     mfc::CStringArray texts_;        // +0x158
 };

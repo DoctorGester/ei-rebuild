@@ -1,6 +1,7 @@
 // The item strips' setups (00621160, 00629A40): the camp's item, spell and part strips and the
 // hero screen's figure strips, called by their screens' Creates after constructing the strip;
-// and the figure strips' draw, count and click (00629AF0, 00629AD0, 00629DB0).
+// the forwarding strip's constructor, and the figure strips' draw, count and click (00629AF0,
+// 00629AD0, 00629DB0).
 // See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui.h"
@@ -10,6 +11,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstdint>
@@ -73,9 +75,13 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
 }
 EI_REWRITTEN(0x00629A40, CUiItemStrip::SetupFigures);
 
+CForwardingStrip::CForwardingStrip(CInterface3D* ui, CItemScreen* owner) : CUiItemStrip(ui, owner) {
+    list_.Construct(mfc::impl::ItemStripArrayClass::Vtable());   // CArray<char*>
+}
+
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-BOOL CUiItemStrip::DrawFigures(int pass) {
+BOOL CFigureStrip::Draw(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
@@ -111,12 +117,12 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00629AF0, CUiItemStrip::DrawFigures);
+EI_REWRITTEN(0x00629AF0, CFigureStrip::Draw);
 
-void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
-EI_REWRITTEN(0x00629AD0, CUiItemStrip::CountFigures);
+void CFigureStrip::RebuildList() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
+EI_REWRITTEN(0x00629AD0, CFigureStrip::RebuildList);
 
-void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
+void CFigureStrip::OnFigureClick(int buttons, int x, int y) {
     OnLButtonDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
@@ -126,4 +132,4 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
     owner_->ChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }
-EI_REWRITTEN(0x00629DB0, CUiItemStrip::OnFigureClick);
+EI_REWRITTEN(0x00629DB0, CFigureStrip::OnFigureClick);

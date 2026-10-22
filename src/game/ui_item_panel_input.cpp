@@ -11,7 +11,7 @@
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
     // The original hands the address of its x argument as the topic out-parameter.
     int topic = x;
-    if (CItem* item = VirtualItemAt(x, y, &topic)) {
+    if (CItem* item = ItemAt(x, y, &topic)) {
         OwnerTakeItem(item);
         return;
     }
@@ -19,11 +19,5 @@ void CUiItemPanel::OnLeftDown(int, int x, int y) {
 }
 EI_REWRITTEN(0x005EE310, CUiItemPanel::OnLeftDown);
 
-// 0060E210: the blank panel's constructor.
-CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CItemScreen* owner) {
-    Construct(ui);
-    owner_ = owner;
-    SetTagTables(BlankVtable(), BlankInputVtable());
-    return this;
-}
-EI_REWRITTEN(0x0060E210, CUiItemPanel::ConstructBlank);
+CUiItemPanel::CUiItemPanel(CInterface3D* ui, CItemScreen* owner) : CUiWindow(ui), owner_(owner) {}
+EI_REWRITTEN_SPECIAL(0x0060E210, CUiItemPanel::CUiItemPanel);

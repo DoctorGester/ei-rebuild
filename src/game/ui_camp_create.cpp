@@ -45,19 +45,6 @@
 
 namespace {
 
-VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
-VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
-VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPanel::InputVtable()}; }
-VtablePair PlainStripVtables() { return {CUiItemStrip::PlainVtable(), CUiItemStrip::PlainInputVtable()}; }
-VtablePair ForwardingStripVtables() { return {CUiItemStrip::ForwardingVtable(), CUiItemStrip::ForwardingInputVtable()}; }
-VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
-VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
-VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }
-VtablePair TradeGridVtables() { return {CTradeGrid::Vtable(), CTradeGrid::InputVtable()}; }
-VtablePair SpellMakerVtables() { return {CSpellMakerPage::Vtable(), CSpellMakerPage::InputVtable()}; }
-VtablePair ItemMakerVtables() { return {CConstructorPage::ItemMakerVtable(), CConstructorPage::ItemMakerInputVtable()}; }
-VtablePair RepairGridVtables() { return {CRepairGrid::Vtable(), CRepairGrid::InputVtable()}; }
-void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strips' CArray<char*>
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
 constexpr int kSurfaceFormat = 5;
@@ -82,33 +69,6 @@ CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 // Whether the local player's variable `name` is 1 (0073B84C). The original's FCOMP also takes an
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
-
-void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->SetTagTables(vtables.main, vtables.input);
-}
-
-// A description panel (its item list and text arrays constructed in place).
-CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CItemScreen* owner) {
-    auto* panel = NewItemPanel<CItemInfoPanel>(ui, owner, ItemPanelVtables());
-    if (!panel) return nullptr;
-    new (panel->ItemParty()) CParty();
-    panel->itemTexts_.Construct();
-    panel->skillTexts_.Construct();
-    SetVtables(panel, InfoPanelVtables());
-    return panel;
-}
-
-// An item strip that hands its clicks to `owner` (the blank panel, the plain strip, its list,
-// then the forwarding strip's vtables).
-CUiItemStrip* NewStrip(CInterface3D* ui, CItemScreen* owner) {
-    CUiItemStrip* strip = gamecrt::operator_new_as<CUiItemStrip>();
-    if (!strip) return nullptr;
-    strip->ConstructBlank(ui, owner);
-    SetVtables(strip, PlainStripVtables());
-    strip->list_.Construct(ItemArrayVtable());
-    SetVtables(strip, ForwardingStripVtables());
-    return strip;
-}
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
@@ -229,31 +189,26 @@ void CCampPages::BuildPages() {
     spellMade_ = nullptr;
 
     // The description panel on the right.
-    CItemInfoPanel* info = NewInfoPanel(interface_, this);
+    CItemInfoPanel* info = new CItemInfoPanel(interface_, this);
     descPanel_ = info;
     AsContainer(this)->AddChild(info);
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = NewItemPanel<CHeroStatsPanel>(interface_, this, ItemPanelVtables());
-    if (stats) {
-        new (&stats->title_) mfc::CString;
-        stats->texts_.Construct();
-        SetVtables(stats, StatsPanelVtables());
-    }
+    auto* stats = new CHeroStatsPanel(interface_, this);
     statsPanel_ = stats;
     AsContainer(this)->AddChild(stats);
     statsPanel_->AddObject(objects_.data[0]);
     BuildPanel(statsPanel_);
 
     // The help panel on the left.
-    info = NewInfoPanel(interface_, this);
+    info = new CItemInfoPanel(interface_, this);
     helpPanel_ = info;
     AsContainer(this)->AddChild(info);
     helpPanel_->Build(0, 100);
 
     // The party's items.
-    CUiItemStrip* strip = NewStrip(interface_, this);
+    CUiItemStrip* strip = new CForwardingStrip(interface_, this);
     itemStrip_ = strip;
     AsContainer(this)->AddChild(strip);
     itemStrip_->Setup(&LocalPlayerData()->items_, 0);
@@ -261,36 +216,27 @@ void CCampPages::BuildPages() {
     itemStrip_->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
+    auto* equipment = new CHeroEquipPanel(interface_, this);
     equipment_ = equipment;
     AsContainer(this)->AddChild(equipment);
     equipment_->AddObject(objects_.data[2]);
     equipment_->Build(true);
 
-    auto* quick = NewItemPanel<CHeroQuickStrip>(interface_, this, QuickStripVtables());
+    auto* quick = new CHeroQuickStrip(interface_, this);
     equipment2_ = quick;
     AsContainer(this)->AddChild(quick);
     equipment2_->AddObject(objects_.data[2]);
     equipment2_->Build(true);
 
     // The skills for experience.
-    auto* trade = NewItemPanel<CTradePanel>(interface_, this, ItemPanelVtables());
-    if (trade) {
-        trade->learnable_ = {};
-        trade->perks_ = {};
-        trade->schools_ = {};
-        trade->science_ = {};
-        trade->records_ = {};
-        trade->texts_.Construct();
-        SetVtables(trade, TradePanelVtables());
-    }
+    auto* trade = new CTradePanel(interface_, this);
     trade_ = trade;
     AsContainer(this)->AddChild(trade);
     trade_->AddObject(objects_.data[0]);
     BuildPanel(trade_);
 
     if (spellConstructor_) {
-        strip = NewStrip(interface_, this);
+        strip = new CForwardingStrip(interface_, this);
         spellStrip_ = strip;
         AsContainer(this)->AddChild(strip);
         spellStrip_->Setup(&spellParts_[0]->items_, 1);
@@ -298,24 +244,20 @@ void CCampPages::BuildPages() {
         spellStrip_->SetFilter(kFilterSpells);
         spellStrip_->SetSlots(0);
 
-        auto* grid = NewItemPanel<CTradeGrid>(interface_, this, TradeGridVtables());
+        auto* grid = new CTradeGrid(interface_, this);
         spellConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
         spellConstructor1_->Build(&spellParts_[1]->items_, &spellParts_[2]->items_, 1, 0);
         spellConstructor1_->mode_ = kModeSpellTrade;
 
-        auto* maker = NewItemPanel<CSpellMakerPage>(interface_, this, ItemPanelVtables());
-        if (maker) {
-            maker->texts_.Construct();
-            SetVtables(maker, SpellMakerVtables());
-        }
+        auto* maker = new CSpellMakerPage(interface_, this);
         spellConstructor2_ = maker;
         AsContainer(this)->AddChild(maker);
         spellConstructor2_->BuildSpellMaker(spellResults_);
     }
 
     if (itemConstructor_) {
-        strip = NewStrip(interface_, this);
+        strip = new CForwardingStrip(interface_, this);
         partStrip_ = strip;
         AsContainer(this)->AddChild(strip);
         partStrip_->Setup(&itemParts_[0]->items_, 1);
@@ -323,18 +265,18 @@ void CCampPages::BuildPages() {
         partStrip_->SetFilter(kFilterArmour);
         partStrip_->SetSlots(4);
 
-        auto* grid = NewItemPanel<CTradeGrid>(interface_, this, TradeGridVtables());
+        auto* grid = new CTradeGrid(interface_, this);
         itemConstructor1_ = grid;
         AsContainer(this)->AddChild(grid);
         itemConstructor1_->Build(&itemParts_[1]->items_, &itemParts_[2]->items_, 0, 0);
         itemConstructor1_->mode_ = kModeItemTrade;
 
-        auto* maker = NewItemPanel<CConstructorPage>(interface_, this, ItemMakerVtables());
+        auto* maker = new CConstructorPage(interface_, this);
         itemConstructor2_ = maker;
         AsContainer(this)->AddChild(maker);
         itemConstructor2_->BuildItemMaker(itemResults_);
 
-        auto* repairs = NewItemPanel<CRepairGrid>(interface_, this, RepairGridVtables());
+        auto* repairs = new CRepairGrid(interface_, this);
         itemConstructor3_ = repairs;
         AsContainer(this)->AddChild(repairs);
         itemConstructor3_->Build(&itemExtra_->items_);

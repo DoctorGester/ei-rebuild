@@ -130,6 +130,16 @@ using MpStringVector = stlp::vector<mfc::CString>;
 // 0x16-0x18; owner_ +0x14C the screen that owns the strip: item clicks, predicates).
 class CUiItemStrip : public CUiItemPanel {
 public:
+    // The plain strip (game.exe's tables 00741A1C / 007419E8: slot 26 pure), the base of the forwarding
+    // and the figure strips.
+    using CUiItemPanel::CUiItemPanel;
+    // 006212F0 / 00629AD0 (virtual slot 26): the visible list rebuilt (Update every frame).
+    virtual void RebuildList() = 0;
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // input 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }       // input 3
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }    // input 4
+    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, static_cast<short>(d), x, y); }   // input 12
+
     // 00621160 (RET 8; ui_item_strip_setup.cpp; the camp's three strips and the exchange window's,
     // built inline by their Creates). The background texture "Inventory02" (`top`) or
     // "Inventory01", the strip built (Build through its address), the arrows' tips 0x4FB0 /
@@ -143,19 +153,6 @@ public:
     void SetupFigures(MpStringVector* names, char top, char noArrowTips);
     // 00621F20 (RET 4; ui_small_members.cpp; the camp's Create and its page switch). slots_ = `slots`.
     void SetSlots(int slots);
-    // 006157C0 (slot 25 of the figure strips 00741BF4, RET 0xC). No item under the point: null,
-    // `topic` not written.
-    void* FigureItemAt(int x, int y, int* topic);
-    // The figure strips' own slots (vtable 00741BF4; ui_item_strip_setup.cpp). 00629AF0 (slot 20,
-    // RET 4, returns 1): the end faces dimmed where it can scroll on, the background and cells
-    // placed by the current tab's fraction, the frame (scene object 8) on selected_ when it is in
-    // view, the window's sprites, then each visible name's hero face through the owner (005ED7B0).
-    // 00629AD0 (slot 26): count_ = the number of names. 00629DB0 (input slot 2, RET 0xC; the
-    // result is not read): the strip's own click, then on the items (region 8) the figure under
-    // the point (as ItemAt) picked: the "on_off" sound and the owner's slot 52 with its name.
-    BOOL DrawFigures(int pass);
-    void CountFigures();
-    void OnFigureClick(int buttons, int x, int y);
     // 00620380 (RET 4; ui_item_strip.cpp; from the camp's and the hero screen's strip setup
     // 00621160 / 00629A40). Lays the strip out along the top edge (`top`: y 0, scale 8) or the
     // bottom (y 500, scale 4): the scroll state cleared, nine regions (arrows, six tab buttons, the
@@ -175,9 +172,6 @@ public:
     int ItemTab(const CItem* item);
     int SpellTab(const CItem* item);
     int ArmorTab(const CItem* item);
-    // 006212F0. Virtual slot 26: rebuilds the visible list from the source list for the current
-    // filter and tab (tab 5 of filter 0 shows everything).
-    void RebuildList();
     // 00621570 (RET 4; ui_screens.cpp). Rebuilds the list as RebuildList does, first switching to
     // `item`'s tab (SetTab, while the tab keys are enabled; not for filter 0's tab 5), and scrolls
     // the tab so the last entry `item` is the same as (CItem slot 14) is visible: its position
@@ -187,53 +181,23 @@ public:
     // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
     // choose it.
     int TabOf(const CItem* item);
-    // 00621F30. Virtual slot 25: the item under the screen point (x, y), or null; sets the cursor
-    // for the strip's action mode.
-    CItem* ItemAt(int x, int y, int* cursor);
-    // 00621B50 (slot 20 of the forwarding strip's vtable 0074197C; ui_item_strip.cpp). Draws the
-    // strip: the end faces dimmed (sprite +0xCC 0.195) where it can scroll on, the background cells
-    // shifted by the current tab's fractional position, the window's sprites, eight item cells
-    // through the owner (005ECA10), the stack counts (not 1) on surface 0 and, unless +0x1B0 is 9,
-    // the owner's slot 54 number of each item its slot 43 takes on surface 1. Returns 1.
-    BOOL Draw(int pass);
     // 00620A50 (slot 24, every frame; ui_item_strip.cpp; vtables 0074197C, 00741A1C, 00741BF4).
     // Scrolls: a held arrow (+0x154) adds one slot to the pending scroll at once and one more
     // every 0.1 s (+0x158 the timer); the pending scroll (+0x174) moves the current tab's
     // position at a speed (+0x178) that accelerates (15 slots/s^2, at most 7) and eases out within
     // half a slot, settling on a whole slot; then the list is rebuilt (slot 26) and the position
     // kept within [0, count - 7].
-    void Update();
+    void Update() override;
 
     // Input handlers (input sub-object).
     void OnLButtonDown(int flags, int x, int y);   // 00620E10
     void OnLButtonUp(int flags, int x, int y);     // 00621010
     void OnMouseMove(int flags, int x, int y);     // 00620F10
     BOOL OnWheel(int keys, short delta, int x, int y);   // 006210F0
-    void OnLButtonDownForward(int flags, int x, int y);  // 006212A0 (the forwarding subclass)
 
-    // 0060E2B0 (ui_window_delete.cpp). The forwarding strip's destructor body (vtable 0074197C):
-    // the visible list's storage, then the window's. The plain strip's (0060E280) frees nothing of
-    // its own.
-    void DestroyForwarding();
-    // 0060E290 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyForwarding, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CUiItemStrip* ForwardingStripDelete(unsigned flags);
-
-    // The strips' compiled tables and input sides (ui_item_panel_tables.cpp) in place of game.exe's: the plain
-    // strip (00741A1C / 007419E8), the forwarding strip (0074197C / 00741948), the figure strips (00741BF4 /
-    // 00741C60).
-    static void** PlainVtable();
-    static void** PlainInputVtable();
-    static void** ForwardingVtable();
-    static void** ForwardingInputVtable();
-    static void** FigureVtable();
-    static void** FigureInputVtable();
 
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
-    // Not rewritten: virtual slots 25 and 26 called through the vtable.
-    CItem* CallItemAt(int x, int y, int* cursor);
-    void CallRebuildList();
 
     int tab_;                   // +0x150 0-5
     int scrollDirection_;       // +0x154 0 none, 1 left arrow held, 2 right arrow held
@@ -260,6 +224,54 @@ static_assert(offsetof(CUiItemStrip, tab_) == 0x150);
 static_assert(offsetof(CUiItemStrip, position_) == 0x15C);
 static_assert(offsetof(CUiItemStrip, pending_) == 0x174);
 static_assert(offsetof(CUiItemStrip, count_) == 0x188);
+
+// The forwarding strip (game.exe's tables 0074197C / 00741948): the camp's item strips and the
+// exchange's; an item click goes to the owner.
+class CForwardingStrip : public CUiItemStrip {
+public:
+    // The strip of `owner` (inlined by the screens' Creates; ui_item_strip_setup.cpp): its visible list.
+    CForwardingStrip(CInterface3D* ui, CItemScreen* owner);
+    // 0060E2B0 (ui_window_delete.cpp; deleting 0060E290): the visible list's storage, then the window's.
+    // The plain strip's (0060E280) frees nothing of its own.
+    ~CForwardingStrip() override;
+    // 00621B50 (slot 20, RET 4; ui_item_strip.cpp). Draws the strip: the end faces dimmed (sprite
+    // +0xCC 0.195) where it can scroll on, the background cells shifted by the current tab's
+    // fractional position, the window's sprites, eight item cells through the owner (005ECA10), the
+    // stack counts (not 1) on surface 0 and, unless +0x1B0 is 9, the owner's slot 54 number of each
+    // item its slot 43 takes on surface 1. Returns 1.
+    BOOL Draw(int pass) override;
+    // 00621F30 (slot 25; ui_screens.cpp). The item under the screen point (x, y), or null; sets the
+    // cursor for the strip's action mode.
+    CItem* ItemAt(int x, int y, int* cursor) override;
+    // 006212F0 (slot 26; ui_screens.cpp). Rebuilds the visible list from the source list for the
+    // current filter and tab (tab 5 of filter 0 shows everything).
+    void RebuildList() override;
+    int LeftDown(int b, int x, int y) override { return OnLButtonDownForward(b, x, y), 0; }   // input 2
+    // 006212A0 (input slot 2; ui_screens.cpp). The strip's own click, then the item under the point
+    // to the owner.
+    void OnLButtonDownForward(int flags, int x, int y);
+};
+
+// The figure strips (game.exe's tables 00741BF4 / 00741C60: the hero screen's two, the exchange
+// window's); their slots are in ui_item_strip_setup.cpp.
+class CFigureStrip : public CUiItemStrip {
+public:
+    using CUiItemStrip::CUiItemStrip;
+    // 00629AF0 (slot 20, RET 4, returns 1): the end faces dimmed where it can scroll on, the background
+    // and cells placed by the current tab's fraction, the frame (scene object 8) on selected_ when it
+    // is in view, the window's sprites, then each visible name's hero face through the owner (005ED7B0).
+    BOOL Draw(int pass) override;
+    // 006157C0 (slot 25, RET 0xC; ui_small_members.cpp). No item under the point: null, `topic` not
+    // written.
+    CItem* ItemAt(int x, int y, int* topic) override;
+    // 00629AD0 (slot 26): count_ = the number of names.
+    void RebuildList() override;
+    int LeftDown(int b, int x, int y) override { return OnFigureClick(b, x, y), 0; }   // input 2
+    // 00629DB0 (input slot 2, RET 0xC; the result is not read): the strip's own click, then on the
+    // items (region 8) the figure under the point (as ItemAt) picked: the "on_off" sound and the
+    // owner's slot 52 with its name.
+    void OnFigureClick(int buttons, int x, int y);
+};
 static_assert(offsetof(CUiItemStrip, filter_) == 0x194);
 static_assert(offsetof(CUiItemStrip, list_) == 0x198);
 static_assert(offsetof(CUiItemStrip, source_) == 0x1AC);

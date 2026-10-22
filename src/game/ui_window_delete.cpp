@@ -78,14 +78,14 @@ UiInertInput::~UiInertInput() {}
 EI_REWRITTEN_SPECIAL(0x00602BA0, UiInertInput::~UiInertInput);
 EI_REWRITTEN_SPECIAL(0x00602B80, UiInertInput::~UiInertInput);
 
-void CItemInfoPanel::DestroyBody() {
-    SetTagTables(Vtable(), InputVtable());
+CItemInfoPanel::~CItemInfoPanel() {
     skillTexts_.Destruct();
     itemTexts_.Destruct();
     ItemParty()->CParty::~CParty();
-    DestroyBase();
 }
-EI_REWRITTEN(0x005EE380, CItemInfoPanel::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x005EE380, CItemInfoPanel::~CItemInfoPanel);
+EI_REWRITTEN_SPECIAL(0x005EE420, CItemInfoPanel::~CItemInfoPanel);   // deleting
+EI_REWRITTEN_SPECIAL(0x005F4600, CItemInfoPanel::~CItemInfoPanel);   // the input side's
 
 CChatWindow::~CChatWindow() {
     texts_.Destruct();
@@ -97,25 +97,24 @@ EI_REWRITTEN_SPECIAL(0x00608ED0, CChatWindow::~CChatWindow);
 EI_REWRITTEN_SPECIAL(0x00608EB0, CChatWindow::~CChatWindow);   // deleting
 EI_REWRITTEN_SPECIAL(0x0060C7D0, CChatWindow::~CChatWindow);   // the input side's
 
-void CUiItemStrip::DestroyForwarding() {
+CForwardingStrip::~CForwardingStrip() {
     list_.vtable = ItemArrayVtable();
     list_.FreeData();
-    DestroyBase();
 }
-EI_REWRITTEN(0x0060E2B0, CUiItemStrip::DestroyForwarding);
+EI_REWRITTEN_SPECIAL(0x0060E2B0, CForwardingStrip::~CForwardingStrip);
+EI_REWRITTEN_SPECIAL(0x0060E290, CForwardingStrip::~CForwardingStrip);   // deleting
+EI_REWRITTEN_SPECIAL(0x00613DC0, CForwardingStrip::~CForwardingStrip);   // the input side's
 
-void CSpellMakerPage::DestroyBody() {
-    texts_.Destruct();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0060E600, CSpellMakerPage::DestroyBody);
+CSpellMakerPage::~CSpellMakerPage() { texts_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0060E600, CSpellMakerPage::~CSpellMakerPage);
+EI_REWRITTEN_SPECIAL(0x0060E5E0, CSpellMakerPage::~CSpellMakerPage);   // deleting
+EI_REWRITTEN_SPECIAL(0x00613DF0, CSpellMakerPage::~CSpellMakerPage);   // the input side's
 
-void CHeroStatsPanel::DestroyBody() {
-    texts_.Destruct();
-    title_.~CString();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0060E360, CHeroStatsPanel::DestroyBody);
+// The texts, then the title (a member).
+CHeroStatsPanel::~CHeroStatsPanel() { texts_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0060E360, CHeroStatsPanel::~CHeroStatsPanel);
+EI_REWRITTEN_SPECIAL(0x0060E340, CHeroStatsPanel::~CHeroStatsPanel);   // deleting
+EI_REWRITTEN_SPECIAL(0x00613DD0, CHeroStatsPanel::~CHeroStatsPanel);   // the input side's
 
 CMessageBox::~CMessageBox() = default;
 EI_REWRITTEN_SPECIAL(0x0061E3E0, CMessageBox::~CMessageBox);
@@ -287,43 +286,8 @@ EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main men
 EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu (007412A4)
 
 
-// 005EE420: the description panel (007404DC).
-CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
-
 // 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
 // (00740D18).
-
-// 0060E290: the forwarding item strip (0074197C).
-CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
-    DestroyForwarding();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0060E290, CUiItemStrip::ForwardingStripDelete);
-
-// 0060E340: the statistics column (00741ABC).
-CHeroStatsPanel* CHeroStatsPanel::StatsPanelDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0060E340, CHeroStatsPanel::StatsPanelDelete);
-
-// 0060E3C0: the trade panel (007417A8).
-CTradePanel* CTradePanel::TradePanelDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0060E3C0, CTradePanel::TradePanelDelete);
-
-// 0060E5E0: the spell maker (00741670).
-CSpellMakerPage* CSpellMakerPage::SpellMakerDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0060E5E0, CSpellMakerPage::SpellMakerDelete);
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
@@ -336,16 +300,11 @@ EI_REWRITTEN_SPECIAL(0x00613D70, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613D80, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613D90, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613DA0, CUiWindow::~CUiWindow);
-EI_REWRITTEN(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
 EI_REWRITTEN_SPECIAL(0x00613DE0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x0061B210, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00601E70, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005FC140, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005FC120, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x0060C7E0, CUiContainer::~CUiContainer);
-EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
-EI_REWRITTEN(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
-EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
-EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
 EI_REWRITTEN_SPECIAL(0x0064BD60, CUiWindow::~CUiWindow);   // the game clock
 EI_REWRITTEN_SPECIAL(0x0064BD70, CUiWindow::~CUiWindow);   // the movement panel

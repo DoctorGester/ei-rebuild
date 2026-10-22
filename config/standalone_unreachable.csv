@@ -12,7 +12,6 @@ address,what,reason
 007051A1,address,"CWnd::DestroyWindow (mfc_window.cpp, ei::UnportedSlot): CWnd::Destruct reaches it for a window with a handle that is not one of MFC's four static windows; the image makes no other CWnd and those four have no handle"
 #
 # --- Slots in game classes' vtables ---
-006E73EB,address,"_purecall (the pure slot 26 of the plain item strip's 00741A1C; PlainStripClass, ui_item_panel_tables.cpp, reports it as ei::UnportedSlot): reached only by a bug; the report names the caller, more than the CRT's R6025 would"
 #
 # --- MFC classes the image makes, with slots nothing of ours calls ---
 #

@@ -35,6 +35,7 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -1055,6 +1056,12 @@ EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
 EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
 
 // --- 005EE440: Build ------------------------------------------------------------------------------
+
+CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {
+    new (ItemParty()) CParty();
+    itemTexts_.Construct();
+    skillTexts_.Construct();
+}
 
 void CItemInfoPanel::Build(int x, int y) {
     x_ = x;

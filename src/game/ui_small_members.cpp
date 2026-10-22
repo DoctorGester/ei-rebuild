@@ -65,11 +65,11 @@ EI_REWRITTEN(0x006324E0, GlobalMapPlace::AssignCopy);
 int UiInputSide::Wheel(int, int, int, int) { return 0; }
 EI_REWRITTEN(0x005E28B0, UiInputSide::Wheel);
 
-void* CUiWindow::NoItemAt(int, int, int* topic) {
+CItem* CUiItemPanel::ItemAt(int, int, int* topic) {
     *topic = 0;
     return nullptr;
 }
-EI_REWRITTEN(0x005EE400, CUiWindow::NoItemAt);
+EI_REWRITTEN(0x005EE400, CUiItemPanel::ItemAt);
 
 bool CItemScreen::CanEquip(CItem*, int) { return false; }
 EI_REWRITTEN(0x005F6380, CItemScreen::CanEquip);
@@ -89,8 +89,8 @@ EI_REWRITTEN(0x005F6430, CItemScreen::Weight);
 int CItemScreen::Price(CItem*, int) { return 0; }
 EI_REWRITTEN(0x005F6440, CItemScreen::Price);
 
-void* CUiItemStrip::FigureItemAt(int, int, int*) { return nullptr; }
-EI_REWRITTEN(0x006157C0, CUiItemStrip::FigureItemAt);
+CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
+EI_REWRITTEN(0x006157C0, CFigureStrip::ItemAt);
 
 bool CGlobalMap::MayTravel(int) { return true; }
 EI_REWRITTEN(0x006316A0, CGlobalMap::MayTravel);

@@ -37,17 +37,6 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
-VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
-VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPanel::InputVtable()}; }
-VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
-VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
-VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }
-VtablePair FigureStripVtables() { return {CUiItemStrip::FigureVtable(), CUiItemStrip::FigureInputVtable()}; }
-
-// The objects' sizes where the class declares less (or more) than the original allocates.
-constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
-
 constexpr int kTextureKind = 3;
 constexpr int kSurfaceFormat = 5;
 constexpr int kModeHeroList = 9;
@@ -77,10 +66,6 @@ using NameList = MpStringVector;
 using VoiceList = MpVoiceVector;
 
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
-
-void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->SetTagTables(vtables.main, vtables.input);
-}
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
@@ -204,53 +189,33 @@ void CMpHeroScreen::CreateScreen() {
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    auto* info = NewItemPanel<CItemInfoPanel>(interface_, this, ItemPanelVtables());
-    if (info) {
-        new (info->ItemParty()) CParty();
-        info->itemTexts_.Construct();
-        info->skillTexts_.Construct();
-        SetVtables(info, InfoPanelVtables());
-    }
+    auto* info = new CItemInfoPanel(interface_, this);
     descPanel_ = info;
     AsContainer(this)->AddChild(info);
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = NewItemPanel<CHeroStatsPanel>(interface_, this, ItemPanelVtables());
-    if (stats) {
-        new (&stats->title_) mfc::CString;
-        stats->texts_.Construct();
-        SetVtables(stats, StatsPanelVtables());
-    }
+    auto* stats = new CHeroStatsPanel(interface_, this);
     statsPanel_ = stats;
     AsContainer(this)->AddChild(stats);
     stats->AddObject(texture(kPanelTexture));
     stats->Build();
 
     // The equipment (without the body) and the quick items.
-    auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
+    auto* equipment = new CHeroEquipPanel(interface_, this);
     weaponPanel_ = equipment;
     AsContainer(this)->AddChild(equipment);
     equipment->AddObject(texture(kItemTexture));
     equipment->Build(false);
 
-    auto* quick = NewItemPanel<CHeroQuickStrip>(interface_, this, QuickStripVtables());
+    auto* quick = new CHeroQuickStrip(interface_, this);
     spellPanel_ = quick;
     AsContainer(this)->AddChild(quick);
     quick->AddObject(texture(kItemTexture));
     quick->Build(false);
 
     // The skills for experience.
-    auto* trade = NewItemPanel<CTradePanel>(interface_, this, ItemPanelVtables());
-    if (trade) {
-        trade->learnable_ = {};
-        trade->perks_ = {};
-        trade->schools_ = {};
-        trade->science_ = {};
-        trade->records_ = {};
-        trade->texts_.Construct();
-        SetVtables(trade, TradePanelVtables());
-    }
+    auto* trade = new CTradePanel(interface_, this);
     tradePanel_ = trade;
     AsContainer(this)->AddChild(trade);
     trade->AddObject(texture(kPanelTexture));
@@ -332,14 +297,8 @@ void CMpHeroScreen::CreateScreen() {
 
     // The two figure strips: the men on top, the women below.
     auto figureStrip = [this](int index, NameList& names, char top) {
-        CUiItemStrip* strip = gamecrt::operator_new_bytes_as<CUiItemStrip>(kFigureStripSize);
-        if (strip) {
-            strip->Construct(interface_);
-            strip->owner_ = this;
-            SetVtables(strip, FigureStripVtables());
-        }
-        figureStrips_[index] = strip;
-        AsContainer(this)->AddChild(strip);
+        figureStrips_[index] = new CFigureStrip(interface_, this);
+        AsContainer(this)->AddChild(figureStrips_[index]);
         figureStrips_[index]->SetupFigures(&names, top, 0);
     };
     figureStrip(0, men, 1);

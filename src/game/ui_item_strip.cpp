@@ -111,7 +111,7 @@ EI_REWRITTEN(0x00620380, CUiItemStrip::Build);
 
 // 00621B50 (RET 4). `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
-BOOL CUiItemStrip::Draw(int pass) {
+BOOL CForwardingStrip::Draw(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);
     const float frac = static_cast<float>(position - static_cast<float>(first));
@@ -184,7 +184,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     numbers->ReleaseDC();
     return 1;
 }
-EI_REWRITTEN(0x00621B50, CUiItemStrip::Draw);
+EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
 // --- 00620A50: the strip's per-frame scroll ---------------------------------------------------
 
@@ -280,7 +280,7 @@ void CUiItemStrip::Update() {
     EI_NAN_AUDIT(pending_);
     if (pending_ == zero) velocity_ = 0.0f;
 
-    CallRebuildList();
+    RebuildList();
     // Kept within [0, size - 7].
     const float last = static_cast<float>(count_ - 7);
     EI_NAN_AUDIT(position_[tab_]);
@@ -295,7 +295,4 @@ void CUiItemStrip::Update() {
         velocity_ = 0.0f;
     }
 }
-namespace {
-void __fastcall ItemStripUpdate(CUiItemStrip* self) { self->Update(); }
-} // namespace
-EI_REWRITTEN(0x00620A50, ItemStripUpdate);
+EI_REWRITTEN(0x00620A50, CUiItemStrip::Update);

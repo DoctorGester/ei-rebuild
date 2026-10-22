@@ -855,16 +855,6 @@ public:
     // 005FED00 (ui_window.cpp). Base slot 23: each region's tooltip follows the mouse (as
     // UpdateRegionTips) and redraws itself (its slot 22), region by region.
     void RedrawRegionTips();
-    // Slot 25 (+0x64) of the item panels and strips: the item under the screen point (x, y), or
-    // null; a panel may set a help topic instead.
-    CItem* VirtualItemAt(int x, int y, int* topic) {
-        using Fn = CItem*(__thiscall*)(CUiWindow*, int, int, int*);
-        return ei::VirtualSlot<Fn>(TagTable(), 25)(this, x, y, topic);
-    }
-    // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
-    // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
-    // 00741ABC; RET 0xC; ui_small_members.cpp). Nothing under the point: `topic` 0, null.
-    void* NoItemAt(int x, int y, int* topic);
     // Scene object `index` as the interface sprite it is.
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
@@ -945,21 +935,24 @@ static_assert(offsetof(CUiTooltip, state_) == 0x180);
 static_assert(sizeof(CUiTooltip) == 0x184);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
-// hero equipment, quick strip, trade and repair grids, constructor pages and the blank panel
-// (vtables 00741B58 / 00741B24, constructor 0060E210). Their input sides share the left-button
-// handler 005EE310; slot 25 (VirtualItemAt) gives the item or help topic under the mouse.
+// hero equipment, quick strip, trade and repair grids, constructor pages and the item strips, built on
+// the blank panel (game.exe's tables 00741B58 / 00741B24, constructor 0060E210). Their input sides
+// share the left-button handler 005EE310; slot 25 (ItemAt) gives the item or help topic under the mouse.
 class CUiItemPanel : public CUiWindow {
 public:
-    // The blank panel's compiled tables (ui_item_panel_tables.cpp).
-    static void** BlankVtable();
-    static void** BlankInputVtable();
+    // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor: the window base,
+    // owner_ = `owner` (mode_ left).
+    CUiItemPanel(CInterface3D* ui, CItemScreen* owner);
+    // 005EE400 (slot 25, RET 0xC; ui_small_members.cpp). The item under the screen point (x, y), or
+    // null; a panel may set a help topic instead. The panels without items of their own (the
+    // description panel, the statistics column, the trade panel): nothing under the point, `topic` 0.
+    virtual CItem* ItemAt(int x, int y, int* topic);
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }   // input 2
+
     // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
     // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
     // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
     void OnLeftDown(int buttons, int x, int y);
-    // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor (the camp's): the
-    // window base, vtables 00741B58 / 00741B24, owner_ = `owner` (mode_ left). Returns this.
-    CUiItemPanel* ConstructBlank(CInterface3D* ui, CItemScreen* owner);
 
     // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C; ui_item_info.h).
     // Slot 42 (+0xA8): take `item` with the panel's action mode.

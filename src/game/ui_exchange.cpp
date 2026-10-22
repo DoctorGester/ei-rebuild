@@ -112,30 +112,9 @@ EI_REWRITTEN(0x0062D210, CExchangeScreen::OnExchangeDone);
 
 namespace {
 
-VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
-VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
-VtablePair ForwardingStripVtables() { return {CUiItemStrip::ForwardingVtable(), CUiItemStrip::ForwardingInputVtable()}; }
-VtablePair FigureStripVtables() { return {CUiItemStrip::FigureVtable(), CUiItemStrip::FigureInputVtable()}; }
-VtablePair TradeGridVtables() { return {CTradeGrid::Vtable(), CTradeGrid::InputVtable()}; }
-void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strip's CArray<char*>
-constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
 constexpr int kSurfaceFormat = 5;
 constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
-
-void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->SetTagTables(vtables.main, vtables.input);
-}
-
-// A window of `size` bytes built on the window base with the vtable pair, or null.
-template <typename T>
-T* NewChild(std::size_t size, CInterface3D* ui, VtablePair vtables) {
-    T* window = gamecrt::operator_new_bytes_as<T>(size);
-    if (!window) return nullptr;
-    window->Construct(ui);
-    SetVtables(window, vtables);
-    return window;
-}
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
@@ -180,26 +159,13 @@ void CExchangeScreen::CreateScreen() {
     ownOffer_->Clear(1, 0);
 
     // The description panel (its item list and text arrays constructed in place).
-    auto* panel = NewChild<CItemInfoPanel>(sizeof(CItemInfoPanel), interface_, ItemPanelVtables());
-    if (panel) {
-        panel->owner_ = this;
-        new (panel->ItemParty()) CParty();
-        panel->itemTexts_.Construct();
-        panel->skillTexts_.Construct();
-        SetVtables(panel, InfoPanelVtables());
-    }
+    auto* panel = new CItemInfoPanel(interface_, this);
     descPanel_ = panel;
     AsContainer(this)->AddChild(panel);
     descPanel_->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    CUiItemStrip* strip = gamecrt::operator_new_as<CUiItemStrip>();
-    if (strip) {
-        strip->Construct(interface_);
-        strip->owner_ = this;
-        strip->list_.Construct(ItemArrayVtable());
-        SetVtables(strip, ForwardingStripVtables());
-    }
+    CUiItemStrip* strip = new CForwardingStrip(interface_, this);
     strip_ = strip;
     AsContainer(this)->AddChild(strip);
     strip_->Setup(&LocalParty()->items_, 0);
@@ -207,14 +173,12 @@ void CExchangeScreen::CreateScreen() {
     strip_->SetFilter(0);
 
     // The players.
-    figures_ = NewChild<CUiItemStrip>(kFigureStripSize, interface_, FigureStripVtables());
-    if (figures_) figures_->owner_ = this;
+    figures_ = new CFigureStrip(interface_, this);
     AsContainer(this)->AddChild(figures_);
     figures_->SetupFigures(&names_, 1, 1);
 
     // Both offers.
-    grid_ = NewChild<CTradeGrid>(sizeof(CTradeGrid), interface_, TradeGridVtables());
-    if (grid_) grid_->owner_ = this;
+    grid_ = new CTradeGrid(interface_, this);
     AsContainer(this)->AddChild(grid_);
     grid_->Build(&partnerOffer_->items_, &ownOffer_->items_, 0, 1);
     grid_->mode_ = kGridMode;
@@ -255,9 +219,9 @@ BOOL CExchangeScreen::Draw(int pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = strip_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
+    hoveredItem_ = strip_->ItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (!hoveredItem_ && !topic)
-        hoveredItem_ = grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
+        hoveredItem_ = grid_->ItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (hoveredItem_) {
         if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic) {

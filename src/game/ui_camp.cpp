@@ -609,8 +609,8 @@ BOOL CCampPages::Draw(int pass) {
     }
     // The items under the mouse (each panel's slot 25), panel by panel until one is found or a
     // topic is set.
-    auto probe = [&](CUiWindow* panel) {
-        if (!hoveredItem_ && topic == 0) hoveredItem_ = panel->VirtualItemAt(x, y, &topic);
+    auto probe = [&](CUiItemPanel* panel) {
+        if (!hoveredItem_ && topic == 0) hoveredItem_ = panel->ItemAt(x, y, &topic);
     };
     probe(equipment_);
     probe(equipment2_);
@@ -846,16 +846,17 @@ void DestroyRows(TradeRows& rows) {
 
 } // namespace
 
-void CTradePanel::DestroyBody() {
+CTradePanel::~CTradePanel() {
     texts_.Destruct();
     stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));   // 00613630
     DestroyRows(science_);
     DestroyRows(schools_);
     DestroyRows(perks_);
     DestroyRows(learnable_);
-    DestroyBase();
 }
-EI_REWRITTEN(0x0060E3E0, CTradePanel::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x0060E3E0, CTradePanel::~CTradePanel);
+EI_REWRITTEN_SPECIAL(0x0060E3C0, CTradePanel::~CTradePanel);   // deleting
+EI_REWRITTEN_SPECIAL(0x00613DB0, CTradePanel::~CTradePanel);   // the input side's
 
 // --- 0060FE40: taking an item off the hero ---------------------------------------------------
 

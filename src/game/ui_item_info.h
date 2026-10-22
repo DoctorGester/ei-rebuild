@@ -233,9 +233,15 @@ static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
 class CItemInfoPanel : public CUiItemPanel {
 public:
-    // The compiled tables (ui_item_panel_tables.cpp).
-    static void** Vtable();
-    static void** InputVtable();
+    // The description panel of `owner` (inlined by the screens' Creates; ui_item_info.cpp): its item
+    // list and text arrays constructed.
+    CItemInfoPanel(CInterface3D* ui, CItemScreen* owner);
+    // 005EE380 (ui_window_delete.cpp; deleting 005EE420): the skill and item text arrays, the item
+    // list (00661050 class's 006611D0), then the window's.
+    ~CItemInfoPanel() override;
+    void Deactivate() override { DescribeItem(); }                                    // input 1: 005EE6B0
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // input 9: 005EE640
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // input 11: 005EE680
     // 005EE760. Clears the surface and describes the item in the list (nothing without one):
     // its own description for blueprints (005F0370), materials (005EFD90), spells (005F0B90),
     // modifiers (005F1130), quick items of category 8 (005EF300) and spells carried by an item
@@ -263,17 +269,11 @@ public:
     void OnKeyUp(int key, int repeat, int flags);
     // 005EE5C0 (slot 20). Draws the described item's model at (x + 100, y + 200), size 120,
     // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 005EE440 (RET 8). Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
     // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
     // table, and an empty item list (its slot 2).
     void Build(int x, int y);
-    // 005EE380 (ui_window_delete.cpp). The destructor body: its vtables, the skill and item text
-    // arrays, the item list (00661050 class's 006611D0), then the window's.
-    void DestroyBody();
-    // 005EE420 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CItemInfoPanel* ItemInfoPanelDelete(unsigned flags);
 
     // 005EE720 (ui_small_members.cpp; the Describe* members call it). The described item: the
     // list's first entry, or null.
