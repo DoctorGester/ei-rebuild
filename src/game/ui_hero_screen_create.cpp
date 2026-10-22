@@ -304,13 +304,13 @@ void CMpHeroScreen::Create() {
             prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
-        const FigurePrototypeRecord* figure;
+        const UnitModelRecord* figure;
         {
             // The original inlines operator[] (a pair of the name and null through 0053D340).
             stlp::string key(prototype->modelName.GetString());
-            figure = reinterpret_cast<const FigurePrototypeRecord*>(unitdb::ModelNamed(key));
+            figure = unitdb::ModelNamed(key);
         }
-        figureModel = figure->model;
+        figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
             return gamecrt::mbsicmp(figureModel.GetString(),
                                    name) == 0;

@@ -31,6 +31,7 @@ T* DestroyAndFree(T* self, unsigned flags, Body body) {
 
 } // namespace
 
+template <>
 AIRef* AIRef::DeleteScalar(unsigned flags) {
     return DestroyAndFree(this, flags, [](AIRef* ref) { ref->Reset(); });
 }

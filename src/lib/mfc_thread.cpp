@@ -84,7 +84,7 @@ struct WinThreadTable final : CmdTargetTable<WinThreadTable, &kClassCWinThread> 
     virtual void Delete() { This()->Delete(); }                                                  // 30: 00702596
 
 private:
-    WinThread* This() { return reinterpret_cast<WinThread*>(this); }
+    WinThread* This() { return ObjectAs<WinThread>(); }
 };
 
 } // namespace

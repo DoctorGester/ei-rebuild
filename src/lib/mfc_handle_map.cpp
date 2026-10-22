@@ -60,7 +60,7 @@ namespace {
 struct MapPtrToPtrTable final : ei::CompiledTag<MapPtrToPtrTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCMapPtrToPtr; }   // 0: 0070D128
     virtual void* DeleteScalar(unsigned flags) {                                            // 1: 007002E9
-        return reinterpret_cast<CMapPtrToPtr*>(this)->DeletingDestructor(flags);
+        return ObjectAs<CMapPtrToPtr>()->DeletingDestructor(flags);
     }
     virtual void Serialize(void*) {}                                                        // 2: 00444B00
 };

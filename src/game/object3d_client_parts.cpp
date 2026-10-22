@@ -325,7 +325,7 @@ int CObject3DClientSpecific::PartRemoved(CFigureMesh* part) { return RemoveFromG
 EI_REWRITTEN(0x0051B160, CObject3DClientSpecific::PartRemoved);
 
 CFigureMesh* CObject3DClientSpecific::RemovePartNamed(const char* name) {
-    CFigureMesh* part = AsSpecific()->FindPart(name);
+    CFigureMesh* part = FindPart(name);   // slot 16
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }
@@ -385,7 +385,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
 }
 EI_REWRITTEN(0x0051C250, CObject3DClientSpecific::SetSkins);
 
-void CObject3DClientSpecific::ApplyMaterials() {
+void CObject3DClientSpecific::ApplyWorldMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
     if (materials.size <= 0) {
         materialCursor = -1;
@@ -403,9 +403,9 @@ void CObject3DClientSpecific::ApplyMaterials() {
     else
         SetSkins(skinName, secondSkinName);
 }
-EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyMaterials);
+EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyWorldMaterials);
 
-void CObject3DClientSpecific::SetLit(int lit) {
+void CObject3DClientSpecific::SetMaterialsLit(int lit) {
     if (lit) {
         for (int i = 0; i < materials.size; ++i) {
             CMaterial* material = materials[i];
@@ -424,9 +424,9 @@ void CObject3DClientSpecific::SetLit(int lit) {
         material->entries.pop_back();
     }
 }
-EI_REWRITTEN(0x0051C9F0, CObject3DClientSpecific::SetLit);
+EI_REWRITTEN(0x0051C9F0, CObject3DClientSpecific::SetMaterialsLit);
 
-void CObject3DClientSpecific::SetLitSlot(int lit) { SetLit(lit); }
+void CObject3DClientSpecific::SetLitSlot(int lit) { SetMaterialsLit(lit); }
 EI_REWRITTEN(0x0051C9E0, CObject3DClientSpecific::SetLitSlot);
 
 void CObject3DClientSpecific::EmptySlot25(int) {}

@@ -29,7 +29,7 @@ void SaveObjectList(mfc::CTypedPtrList<CUnit>& list, CStream* stream) {
     WriteCopy(stream, list.count);
     for (auto* node = list.head; node;) {
         auto* next = node->next;
-        AIRef::Of(&node->data)->Save(stream);
+        AIRefTo<CUnit>::Of(&node->data)->Save(stream);
         node = next;
     }
 }

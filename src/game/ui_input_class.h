@@ -25,7 +25,7 @@ class InputSideClass : public ei::CompiledTag<Self> {
 public:
     using Window = std::remove_pointer_t<decltype(InputSideWindowType(Delete))>;
 
-    UiInputSide* Side() { return reinterpret_cast<UiInputSide*>(this); }
+    UiInputSide* Side() { return this->template ObjectAs<UiInputSide>(); }
     Window* SideWindow() {
         return reinterpret_cast<Window*>(reinterpret_cast<char*>(this) - offsetof(CUiWindow, inputVtable_));
     }

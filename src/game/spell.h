@@ -250,8 +250,8 @@ struct __declspec(novtable) CSpellEffect {
     CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
-    CMapObject* target;         // +0x1C a unit or another map object (counted)
-    CUnit* caster;              // +0x20 the casting unit (counted; null for traps and scripts)
+    AIRefTo<CMapObject> target; // +0x1C a unit or another map object (counted)
+    AIRefTo<CUnit> caster;      // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract

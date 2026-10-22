@@ -182,7 +182,7 @@ does not need a second pass:
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
   virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
   pointer the game's helpers take by address is a field of the holder type (`CountedRef<T>`,
-  `HeldTexture`, `HeldDevice`, `AIRefTo<T>`: reads see the object, a plain store counts nothing),
+  `HeldTexture`, `HeldDevice`, `HeldObject<T>`, `AIRefTo<T>` (engine_object.h): reads see the object, a plain store counts nothing),
   not a `T*` field and a `Holder::Of(&field)` cast; a record that starts with another struct's
   fields derives from it (UnitAction : AIOrder, SectorBox : ClipBounds) and the functions that
   read only the prefix take the base.

@@ -132,26 +132,16 @@ void* CSpellEffect::Vtable() { return SpellEffectClass::Vtable(); }
 
 // --- A-H25: the cast's start values and the object it forgets ------------------------------------
 
-namespace {
-// A counted pointer takes `object`: nothing when it holds it already; else the held one released,
-// the new one counted.
-template <class T>
-void AssignCounted(T*& slot, T* object) {
-    if (object == slot) return;
-    if (slot) slot->Release();
-    slot = nullptr;
-    if (object) ++object->refCount_;
-    slot = object;
-}
-} // namespace
+// The caster and the target are counted references (AIRefTo::Assign: nothing when it holds the
+// object already; else the held one released, the new one counted).
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
                         CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
     spell->CopyTo(Spell());   // 0068B370
     world = newWorld;
     position = *newPosition;
-    AssignCounted(caster, newCaster);
-    AssignCounted(target, newTarget);
+    caster.Assign(newCaster);
+    target.Assign(newTarget);
     targetPoint = *newTargetPoint;
     state = 0;
     silentEnd = flagA4;

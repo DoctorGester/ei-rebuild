@@ -33,10 +33,10 @@ ItemUse* CItemQuest::GetUseImpl(ItemUse* out) {
 BOOL CItem::IsSameAsImpl(CItem* other) {
     if (other == this) return 1;
     if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
-    EI_NAN_AUDIT(FloatOf(condition_), FloatOf(other->condition_), FloatOf(conditionMax_), FloatOf(other->conditionMax_), charge_,
+    EI_NAN_AUDIT(condition_, other->condition_, conditionMax_, other->conditionMax_, charge_,
                  other->charge_, chargeMax_, other->chargeMax_, FloatOf(weight_), FloatOf(other->weight_), price_, other->price_,
                  FloatOf(value3C_), FloatOf(other->value3C_));
-    if (FloatOf(condition_) != FloatOf(other->condition_) || FloatOf(conditionMax_) != FloatOf(other->conditionMax_) ||
+    if (condition_ != other->condition_ || conditionMax_ != other->conditionMax_ ||
         charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || FloatOf(weight_) != FloatOf(other->weight_) ||
         price_ != other->price_ || FloatOf(value3C_) != FloatOf(other->value3C_))
         return 0;

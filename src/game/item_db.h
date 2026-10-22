@@ -257,9 +257,8 @@ int __fastcall LootItemRecordKind(ItemRecordHead*);
 // weapon's 00744068, the armour's 00744064, the quick item's 0074405C, the quest item's 00744058, the loot's 00744054
 // and the base's 00744060, whose slot is _purecall (the base record's kind is never asked).
 template <typename Self, int(__fastcall* KindOf)(ItemRecordHead*)>
-struct ItemRecordTag : ItemRecordSlots {
-    static void* Vtable() { return ei::CompiledVtable<Self>(); }
-    int Kind() override { return KindOf(reinterpret_cast<ItemRecordHead*>(this)); }
+struct ItemRecordTag : ItemRecordSlots, ei::CompiledTag<Self> {
+    int Kind() override { return KindOf(this->template ObjectAs<ItemRecordHead>()); }
 };
 struct WeaponRecordClass final : ItemRecordTag<WeaponRecordClass, &WeaponRecordKind> {};
 struct ArmorRecordClass final : ItemRecordTag<ArmorRecordClass, &ArmorRecordKind> {};

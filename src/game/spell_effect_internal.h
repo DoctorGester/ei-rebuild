@@ -237,7 +237,7 @@ inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return Obj
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
 // The target as a unit (the callers checked its class, or the original does not).
-inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target); }
+inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.object); }
 
 // A new object of class `classId` (whose objects are T's) from the world's timed object manager
 // (key -1).

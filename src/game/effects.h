@@ -56,6 +56,13 @@ struct Particle {
     std::uint32_t color;        // +0x58 ARGB
     std::uint32_t prevColor;    // +0x5C
     int dead;                   // +0x60 set by the tick when the update returned 0
+
+    // The emitters' Vector4::FromPoint (004679D0) on the particle's first 16 bytes: the position
+    // `at` and the size 1.
+    void PlaceAt(const Vector3& at) {
+        pos = at;
+        size = 1.0f;
+    }
 };
 static_assert(sizeof(Particle) == 0x64);
 

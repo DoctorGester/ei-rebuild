@@ -335,7 +335,7 @@ void CEffectArrowFigure::Start(int update) {
     int id = NextClientObjectId()--;
     auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     if (object != figure_) {
-        CountedRefResetOriginal(&figure_);
+        figure_.Reset();
         if (object != nullptr) ++object->refCount_;
         figure_ = object;
     }
@@ -392,7 +392,7 @@ void CEffectArrowFigure::LoadState(CStream* s) {
     s->Read(&casterId_, 4);
     s->Read(&velocity_, 12);
     s->Read(&arrived_, 4);
-    AIRef::Of(&figure_)->Load(s, WorldContext());
+    figure_.Load(s, WorldContext());
     s->Read(&hit_, sizeof(hit_));
     s->Read(&fromCaster_, 1);
 }
@@ -407,7 +407,7 @@ void CEffectArrowFigure::SaveState(CStream* s) {
     s->Write(&velocity_, 12);
     std::memcpy(&copy, &arrived_, 4);
     s->Write(&copy, 4);
-    AIRef::Of(&figure_)->Save(s);
+    figure_.Save(s);
     s->Write(&hit_, sizeof(hit_));
     std::uint8_t flag = fromCaster_;
     s->Write(&flag, 1);

@@ -123,7 +123,7 @@ void AIAttention::Build(CUnit* unit) {
             weapons.SetSize(weapons.size + 1, -1);
             AIAttackOption& option = weapons.data[weapons.size - 1];
             InitOption(&option, 0, -1, range, 0, 0.0f, 0);
-            server->GetDamageByType(reinterpret_cast<std::int16_t*>(option.damage));
+            server->GetDamageByType(option.damage);
         }
         for (std::uint32_t slot = 0; slot < 8; ++slot) {
             const CSpell* spell = unit->GetSpellObject(slot);
@@ -163,7 +163,7 @@ void AIAttention::Build(CUnit* unit) {
                 weapons.SetSize(weapons.size + 1, -1);
                 AIAttackOption& option = weapons.data[weapons.size - 1];
                 InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radius, effect);
-                server->GetSpellDamage(slot, reinterpret_cast<std::int16_t*>(option.damage));
+                server->GetSpellDamage(slot, option.damage);
                 break;
             }
             case 4:
@@ -181,7 +181,7 @@ void AIAttention::Build(CUnit* unit) {
     } else {
         float range = server->AttackRange();
         std::uint16_t* damage = AddWeaponOption(0, -1, range, 0, 0.0f, 0);
-        server->GetDamageByType(reinterpret_cast<std::int16_t*>(damage));
+        server->GetDamageByType(damage);
     }
     healWeight = 0.0f;
     for (int i = 0; i < weapons.size; ++i) {

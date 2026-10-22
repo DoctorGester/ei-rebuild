@@ -44,3 +44,5 @@ disassembly diff: the only differences were virtual calls replacing the VCall he
 - Hand-laid fields that remain: LocalSearch's `cellRows` CArray, the water grid fields, `bridgeHeights` as bytes, the `__fastcall` layer Set / Merge
   shims in `ai_unit_layer.h`, `SmoothPath`'s fraction passed as raw bits (it is stored to memory before the octant's x87 work; a float parameter
   would change when it is stored and pushed), and the `CStringArray` layouts in `CMapObjectServer` and `CObject3D` (other areas).
+- Counted object references are `AIRefTo<T>` fields (engine_object.h; AIRef is `AIRefTo<CEngineObject>`): `PlayerMode::leader` is an
+  `AIRefTo<CUnit>` (Reset / Load / Save on the field). `AIRefTo<T>::Of` remains for list nodes and slots that are not fields of a struct.

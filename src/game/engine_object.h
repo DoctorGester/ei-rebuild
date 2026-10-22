@@ -79,21 +79,78 @@ public:
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
 
-// A counted engine object pointer (a texture, a light, a particle source) as the original's helpers
-// take it: by address, thiscall on the pointer.
-struct HeldEngineObject {
-    CEngineObject* object;
+// A counted engine object pointer (a texture, a light, a particle source, a spell) as the original's
+// helpers take it: by address, thiscall on the pointer. A field that holds a T is a HeldObject<T>
+// (HeldEngineObject: any engine object): reads see the object (the conversion and ->), a plain store
+// (`held = p`) counts nothing. The count and the release are the engine object's.
+template <typename T>
+struct HeldObject {
+    // 004EBE60 (RET 4; registered in refptr_copies.cpp; byte-identical to 00429B50, 00511B90,
+    // 0052C690, 00556C40, 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first,
+    // then the old one released through its slot 4.
+    void Assign(T* value) {
+        CEngineObject* previous = object;
+        object = value;
+        if (CEngineObject* taken = value) ++taken->refCount_;
+        if (previous) previous->Release();
+    }
+    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; registered in
+    // library_containers.cpp): the pointer copied, its count raised when not null; returns this.
+    HeldObject* Construct(T* const* value) {
+        object = *value;
+        if (CEngineObject* taken = object) ++taken->refCount_;
+        return this;
+    }
+    // A counted pointer kept in a container of plain pointers (a list's or a vector's element)
+    // seen as the holder it is.
+    static HeldObject* Of(T** pointer) { return reinterpret_cast<HeldObject*>(pointer); }
 
-    static HeldEngineObject* Of(CEngineObject** pointer) { return reinterpret_cast<HeldEngineObject*>(pointer); }
-    // 004EBE60 (RET 4; refptr_copies.cpp; byte-identical to 00429B50, 00511B90, 0052C690, 00556C40,
-    // 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first, then the old one
-    // released through its slot 4.
-    void Assign(CEngineObject* value);
-    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; library_containers.cpp):
-    // the pointer copied, its count raised when not null; returns this.
-    HeldEngineObject* Construct(CEngineObject* const* value);
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    HeldObject& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
 };
+using HeldEngineObject = HeldObject<CEngineObject>;
 static_assert(sizeof(HeldEngineObject) == 4);
+
+// A counted reference (CEngineObject refcount at +4, released through vtable slot 4). The AI's
+// reference fields (orders, modes, the brain's target, the reports) and the effects' figures are
+// AIRefTo<T> of the class they hold (AIRef: any engine object): reads see the object (the
+// conversion and ->); Assign / Reset count, a plain store (`ref = p`) does not. The bodies are
+// counted_ref.cpp's, instantiated there for each T; AIRef's are the registered ones.
+template <typename T>
+struct AIRefTo {
+    // 0052B030. Release and clear.
+    void Reset();
+    // 0052A8F0. Hold `object` (released first unless it is already held).
+    void Assign(T* newObject);
+    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
+    void Load(CStream* stream, CWorld* world);
+    void Save(CStream* stream);
+    // 00558CA0 (AIRef only; world_deleting_destructors.cpp).
+    AIRefTo* DeleteScalar(unsigned flags);
+    // A counted object pointer kept in a container of plain pointers (a unit list's element) seen
+    // as the reference it is.
+    static AIRefTo* Of(T** slot) { return reinterpret_cast<AIRefTo*>(slot); }
+
+    operator T*() const { return object; }
+    T* operator->() const { return object; }
+    // A plain store (no reference taken or released), as the original's constructors and copies.
+    AIRefTo& operator=(T* plain) {
+        object = plain;
+        return *this;
+    }
+
+    T* object;
+};
+using AIRef = AIRefTo<CEngineObject>;
+template <>
+AIRef* AIRef::DeleteScalar(unsigned flags);
+static_assert(sizeof(AIRef) == 4);
 // 0040CB20 (camera_object.cpp): the engine object's constructor body (inlined in most classes).
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 // 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World

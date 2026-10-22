@@ -214,7 +214,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
 }
 EI_REWRITTEN(0x0054B9C0, CUnitServer::ScaledAttackValue);
 
-void CUnitServer::GetDamageByType(std::int16_t* out) {
+void CUnitServer::GetDamageByType(std::uint16_t* out) {
     CUnit* self = unit;
     CItemWeapon* weapon;
     if (self->player && self->activeWeapon < 4 &&
@@ -225,7 +225,7 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
         weapon->GetDamageTypes(weights);
         for (int i = 0; i < 7; ++i) {
             float value = scale * weights[i];
-            out[1 + i] = static_cast<std::int16_t>(x87::fistp(value));
+            out[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
         }
         return;
     }
@@ -233,16 +233,16 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
     float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
         float value = scale * Combat().damageWeights[i];
-        out[1 + i] = static_cast<std::int16_t>(x87::fistp(value));
+        out[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
     }
 }
 EI_REPLACE_METHOD(0x0054BA30, CUnitServer::GetDamageByType);
 
-void CUnitServer::GetSpellDamage(std::uint32_t source, std::int16_t* out) {
+void CUnitServer::GetSpellDamage(std::uint32_t source, std::uint16_t* out) {
     CSpell* spell = SpellOfSource(source);
     std::memset(out, 0, 16);
     if (spell) {
-        auto value = static_cast<std::int16_t>(gamecrt::Ftol(SpellDamage(spell)));
+        auto value = static_cast<std::uint16_t>(gamecrt::Ftol(SpellDamage(spell)));
         int type = spell->GetDamageType();
         out[1 + type] = value;
     }
