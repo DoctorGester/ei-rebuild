@@ -211,7 +211,7 @@ int CTextManager::CreateImpl() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004DED20, CTextManager::CreateImpl);
+EI_REWRITTEN(0x004DED20, CTextManager::CreateImpl);
 
 EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);

@@ -152,7 +152,7 @@ EI_REPLACE(0x00477F80, FileStreamPositionHook);
 // NetLink (0073C8A4)
 
 NetLink* NetLink::Construct() {   // 00477E60
-    ei::SetVtable(this, CRefObject::kVtableAddress);
+    ei::SetVtable(this, CRefObject::Vtable());
     record_.Construct();
     ei::SetVtable(this, Vtable());
     recording_ = 0;
@@ -161,7 +161,7 @@ NetLink* NetLink::Construct() {   // 00477E60
 EI_REWRITTEN(0x00477E60, NetLink::Construct);
 
 void NetLink::ConstructCopyOf(const NetLink* source) {
-    ei::SetVtable(this, CRefObject::kVtableAddress);
+    ei::SetVtable(this, CRefObject::Vtable());
     recording_ = source->recording_;
     skipNext_ = source->skipNext_;
     record_.CopyConstruct(&source->record_);

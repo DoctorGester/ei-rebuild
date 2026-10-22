@@ -432,7 +432,7 @@ void Connection::Track(Replicated* item) {
     // A new entry (vtable 0073BF4C) with no version and no id yet.
     auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
-        ei::SetVtable(entry, CRefObject::kVtableAddress);
+        ei::SetVtable(entry, CRefObject::Vtable());
         entry->object_.FromRawCounted(nullptr);
         ei::SetVtable(entry, ReplicaEntry::Vtable());
         entry->version_ = 0;
