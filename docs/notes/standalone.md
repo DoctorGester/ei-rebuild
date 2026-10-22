@@ -332,9 +332,10 @@ named range (C18) or another, `image_trace.py --check` a traced read outside the
 C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
 and the build needs nothing of game.exe (the resources are the host's own since C23).
 
-C25a took six rows and added four (out_of_range's throw information, found by the static proof below). With C18q and
-C18 the list is six rows: those four and the CRT's locale category names 007472E4 and static "C" 00797778 (C18q's
-"Left in the CRT": `__lc_category`'s init cells point at unported code):
+C25a took six rows and added four (out_of_range's throw information, found by the static proof below; C25c made
+out_of_range a class of ours the compiler throws, stlp_string.cpp). The list is two rows: the CRT's locale category
+names 007472E4 and static "C" 00797778 (C18q's "Left in the CRT": `__lc_category`'s init cells point at unported
+code; C26). C25a's rows:
 - **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
   `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
@@ -362,8 +363,7 @@ otherwise its object, from the root to the next start (another root, a cell's ta
 absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
 may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 86 after C18s, 0
 failing. The first run (before C18q) failed 14 that no suite reaches: out_of_range's throw information (its catchable
-types, the array, the type descriptors' names: our frame handler reads them for stlp_string.cpp's throw; four kept
-rows now), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
+types, the array, the type descriptors' names: the frame handler read them for stlp_string.cpp's throw; C25c), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
 literal 00796E4C (moved to the harness: tests/verify/harness_startup.cpp sets `g_dataNil` in game.exe), and
 _afxNewHandler's object running into an unreferenced GUID (ROOT_SIZES). The harness's literals (tests/) are not roots:
 the product has no harness.
@@ -561,10 +561,8 @@ kinds given.
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
     types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
-    over all of game.exe; a cell of the dead ones cannot be left out without breaking out_of_range's). **Left**:
-    stlp_string's out_of_range 0074C640, thrown by value: its object carries game.exe's vtables (C19) and the
-    ThrowInfo names the original's copy constructor and destructor (0041F760, 00429130 ...), so it still goes
-    through `CxxThrowException` with the original's record.
+    over all of game.exe). stlp_string's out_of_range (thrown by value, 0074C640) is a class of ours since C25c,
+    thrown by `throw` (std::exception, its 256-byte name, logic_error): its records are dead data too.
   - .data and .bss objects (C18d did particle*: 25 .data tables for 29 addresses, the bag's ball sizes 007A9BFC and the draw
     arrays' guard 007A9BF4). The form is the same; **const follows our code, not the section**: a .data table no
     code of ours writes is `constexpr` like an .rdata one (most are: the original's arrays lacked const;
@@ -1349,8 +1347,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), stlp_string's
-    out_of_range tables 0073B994 / 0073BE8C (their slots are unregistered game code; a throw uses game.exe's
-    ThrowInfo), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
+    out_of_range tables 0073B994 / 0073BE8C (batch 21), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
     CFileFind 00745EE8), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
     CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
@@ -1382,9 +1379,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     LockRange body and 21-23 its own), FileFindTable and mfc_exception.cpp's FileExceptionTable; every slot was
     registered already. CMemFile retired with no class of ours. Overloaded slots (CFileFind's CTime / FILETIME
     getters, CStdioFile's two ReadStrings) get distinct names: MSVC groups a name's overloads in the table.
-  - **stlp's out_of_range** (stlp_string.cpp): NamedExceptionClass / OutOfRangeClass (0 std::exception's deleting
-    destructor, 1 what: the name). The throw keeps game.exe's ThrowInfo 0074C640; its copy constructor 00429130 is
-    unported (a catch by value would report it; nothing catches one).
+  - **stlp's out_of_range** (stlp_string.cpp): since C25c real classes (NamedException : std::exception, LogicError,
+    OutOfRange) the compiler throws; game.exe's ThrowInfo 0074C640 and its records are dead data.
   - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
     the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
 - **Batch 22's families** (2026-10-22): the bases' own tables, the zone records, the item panels, CFont and the map
@@ -1783,8 +1779,8 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
   `stlp::CStringLess` is `_mbscmp < 0`; the sent-ids map compares signed. operator[] of records and attached ids
   inserts a partly uninitialised value in the original.
 - **string** (stlp_string, `StringAbi`): append's capacity follows size + max(size, n) + 1; the from-text constructor
-  reads its allocator argument (callers pass a real one); `ThrowOutOfRange` builds MSVC 6's out_of_range
-  (__Named_exception vtable 0073B994, out_of_range 0073BE8C, throw info 0074C640).
+  reads its allocator argument (callers pass a real one); `ThrowOutOfRange` throws an out_of_range of ours
+  (std::exception, the 256-byte name, logic_error; C25c).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
   temporaries; registered sorts in src/game/stl_sorts.cpp). Comparator facts: the save list sorts by `!(a < b)`
