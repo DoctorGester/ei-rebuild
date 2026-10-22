@@ -7,18 +7,13 @@
 #include "acks_db.h"
 #include "unit_create.h"
 #include "unit_db.h"   // UnitPrototypeRecord
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_units.h"
 #include "console.h"
 #include "item.h"
 #include "party.h"
@@ -44,7 +39,7 @@ namespace {
 // The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
 // continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
-void SetMode(CMpHeroScreen* screen, void*, int mode) { HeroScreenSetModeOriginal(screen, nullptr, mode); }
+void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
 void __fastcall MpHeroCreate(CMpHeroScreen*);
 void __fastcall MpHeroAddNew(CMpHeroScreen*);
 void __fastcall MpHeroContinue(CMpHeroScreen*);
@@ -53,7 +48,6 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4).
-__declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
@@ -97,7 +91,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
-    TextsGetString(GameClientTexts(), nullptr, "reserved_04", &text);
+    GameClientTexts()->CTextManager::GetString("reserved_04", &text);
     TheInterface()->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     TheGameFlow()->EndSession();
@@ -124,7 +118,7 @@ mfc::CString& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    SurfaceFreeze(surfaces_.data[3], nullptr, 0, 0);
+    static_cast<CUiSurface*>(surfaces_.data[3])->Freeze(0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
@@ -374,9 +368,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CallShowHero(index);
 }
 
-EI_REPLACE_METHOD(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
 
-EI_REPLACE_METHOD(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
 
 // --- 00618060: rename ---------------------------------------------------------------------------
 
@@ -402,11 +396,11 @@ void CMpHeroScreen::Rename() {
         name.TrimRight();
     }
     auto* surface = surfaces_.data[3];
-    SurfaceFreeze(surface, nullptr, 1, 0);
+    static_cast<CUiSurface*>(surface)->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
-    SurfaceDrawText(surface, nullptr, name + RenameSeparator(), &rect, 1, kBright, 2, 1);
+    surface->DrawTextIn(name + RenameSeparator(), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
 namespace {
@@ -527,7 +521,7 @@ void CMpHeroScreen::RefreshHero() {
 namespace {
 void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 } // namespace
-EI_REPLACE(0x00618850, MpHeroRefresh);
+EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     mfc::CString name(nameEdit_->text_);
@@ -577,7 +571,7 @@ EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();
-    PartyRecordsDestructOriginal(Party());   // 006611D0 by address: its wrapper runs
+    static_cast<CParty*>(Party())->DestructBody();   // 006611D0 by address: its wrapper runs
 }
 EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 
@@ -647,7 +641,7 @@ void CMpHeroScreen::OnMessageResult(int result) {
     }
     SetMode(this, nullptr, kModeList);
 }
-EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
+EI_REWRITTEN(0x00615940, CMpHeroScreen::OnMessageResult);
 
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 

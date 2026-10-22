@@ -201,7 +201,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REPLACE_METHOD(0x005E8450, CUiMeshBuilder::Framed);
+EI_REWRITTEN(0x005E8450, CUiMeshBuilder::Framed);
 
 // --- 005E8C60 -----------------------------------------------------------------------------------------
 

@@ -7,7 +7,6 @@
 #include "game_data.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "record_lifetime.h"
 
 #include <cstddef>
@@ -74,13 +73,13 @@ WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
     CopyOwn(source);
     return this;
 }
-EI_REPLACE_METHOD(0x006A8FB0, WeaponRecord::AssignWeapon);
+EI_REWRITTEN(0x006A8FB0, WeaponRecord::AssignWeapon);
 
 ItemRecordHead* ItemRecordHead::ConstructBase() {
     ConstructHead(BaseVtable());
     return this;
 }
-EI_REPLACE_METHOD(0x006A63B0, ItemRecordHead::ConstructBase);
+EI_REWRITTEN(0x006A63B0, ItemRecordHead::ConstructBase);
 
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
@@ -92,28 +91,28 @@ ArmorRecord* ArmorRecord::AssignArmor(const ArmorRecord* source) {
     CopyOwn(source);
     return this;
 }
-EI_REPLACE_METHOD(0x006A9370, ArmorRecord::AssignArmor);
+EI_REWRITTEN(0x006A9370, ArmorRecord::AssignArmor);
 
 QuickItemRecord* QuickItemRecord::AssignQuick(const QuickItemRecord* source) {
     Assign(source);
     CopyOwn(source);
     return this;
 }
-EI_REPLACE_METHOD(0x006A9770, QuickItemRecord::AssignQuick);
+EI_REWRITTEN(0x006A9770, QuickItemRecord::AssignQuick);
 
 QuestItemRecord* QuestItemRecord::AssignQuest(const QuestItemRecord* source) {
     Assign(source);
     CopyOwn(source);
     return this;
 }
-EI_REPLACE_METHOD(0x006AAE40, QuestItemRecord::AssignQuest);
+EI_REWRITTEN(0x006AAE40, QuestItemRecord::AssignQuest);
 
 LootItemRecord* LootItemRecord::AssignLoot(const LootItemRecord* source) {
     Assign(source);
     CopyOwn(source);
     return this;
 }
-EI_REPLACE_METHOD(0x006A9DA0, LootItemRecord::AssignLoot);
+EI_REWRITTEN(0x006A9DA0, LootItemRecord::AssignLoot);
 
 MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* source) {
     new (&key) mfc::CString(source->key);
@@ -147,8 +146,8 @@ void ItemRecordHead::DestructHead() {
     text04.~CString();
 }
 EI_REWRITTEN(0x006A8950, ItemRecordHead::DestructHead);   // weapons
-EI_REPLACE_METHOD(0x006A89D0, ItemRecordHead::DestructHead);   // armours
-EI_REPLACE_METHOD(0x006A8BD0, ItemRecordHead::DestructHead);   // loot
+EI_REWRITTEN(0x006A89D0, ItemRecordHead::DestructHead);   // armours
+EI_REWRITTEN(0x006A8BD0, ItemRecordHead::DestructHead);   // loot
 
 void QuickItemRecord::Destruct() {
     text7C.~CString();
@@ -273,12 +272,12 @@ void SpellListRecord::ConstructDefault() {
 
 // 0056E400 / 0056E440: the material and weapon tables' At, as the unit skins and the client's
 // maps read them (the 0x50- / 0xB4-byte records of 007C86D8 / 007C86F8).
-EI_REPLACE_METHOD(0x0056E400, itemdb::MaterialTable::At);
-EI_REPLACE_METHOD(0x0056E440, itemdb::WeaponTable::At);
-EI_REPLACE_METHOD(0x006A5950, itemdb::ArmorTable::At);
-EI_REPLACE_METHOD(0x006A5990, itemdb::QuickItemTable::At);
-EI_REPLACE_METHOD(0x006A59D0, itemdb::QuestItemTable::At);
-EI_REPLACE_METHOD(0x006A5A10, itemdb::LootItemTable::At);
+EI_REWRITTEN(0x0056E400, itemdb::MaterialTable::At);
+EI_REWRITTEN(0x0056E440, itemdb::WeaponTable::At);
+EI_REWRITTEN(0x006A5950, itemdb::ArmorTable::At);
+EI_REWRITTEN(0x006A5990, itemdb::QuickItemTable::At);
+EI_REWRITTEN(0x006A59D0, itemdb::QuestItemTable::At);
+EI_REWRITTEN(0x006A5A10, itemdb::LootItemTable::At);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;
@@ -376,13 +375,13 @@ template LootItemRecord* __fastcall FillItemRecords(LootItemRecord*, int, const 
 
 } // namespace itemdb
 
-EI_REPLACE(0x006AB9C0, CopyItemRecords<WeaponRecord>);
-EI_REPLACE(0x006ABB50, FillItemRecords<WeaponRecord>);
-EI_REPLACE(0x006ABCD0, CopyItemRecords<ArmorRecord>);
-EI_REPLACE(0x006ABE20, FillItemRecords<ArmorRecord>);
-EI_REPLACE(0x006ABF60, CopyItemRecords<QuickItemRecord>);
-EI_REPLACE(0x006AC0D0, FillItemRecords<QuickItemRecord>);
-EI_REPLACE(0x006AC240, CopyItemRecords<QuestItemRecord>);
-EI_REPLACE(0x006AC3B0, FillItemRecords<QuestItemRecord>);
-EI_REPLACE(0x006AC520, CopyItemRecords<LootItemRecord>);
-EI_REPLACE(0x006AC640, FillItemRecords<LootItemRecord>);
+EI_REWRITTEN(0x006AB9C0, CopyItemRecords<WeaponRecord>);
+EI_REWRITTEN(0x006ABB50, FillItemRecords<WeaponRecord>);
+EI_REWRITTEN(0x006ABCD0, CopyItemRecords<ArmorRecord>);
+EI_REWRITTEN(0x006ABE20, FillItemRecords<ArmorRecord>);
+EI_REWRITTEN(0x006ABF60, CopyItemRecords<QuickItemRecord>);
+EI_REWRITTEN(0x006AC0D0, FillItemRecords<QuickItemRecord>);
+EI_REWRITTEN(0x006AC240, CopyItemRecords<QuestItemRecord>);
+EI_REWRITTEN(0x006AC3B0, FillItemRecords<QuestItemRecord>);
+EI_REWRITTEN(0x006AC520, CopyItemRecords<LootItemRecord>);
+EI_REWRITTEN(0x006AC640, FillItemRecords<LootItemRecord>);

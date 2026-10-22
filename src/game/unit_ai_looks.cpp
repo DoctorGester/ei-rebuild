@@ -3,7 +3,6 @@
 #include "unit_ai.h"
 
 #include "core_maths.h"
-#include "originals_ai.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"

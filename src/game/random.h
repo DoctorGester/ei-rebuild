@@ -15,6 +15,13 @@ public:
     // 004667F0. Next 32-bit random value.
     std::uint32_t Next();
 
+    // The harness's seams (tests/verify): a seed that replaces Seed's (its deterministic runs), and an observer of
+    // every Next draw (its random trace; `caller` is Next's return address). Null: the game's own behaviour.
+    using SeedHook = void (*)(IsaacRandom& random);
+    using DrawObserver = void (*)(IsaacRandom& random, std::uint32_t value, const void* caller);
+    static void SetSeedHook(SeedHook hook);
+    static void SetDrawObserver(DrawObserver observer);
+
     // 0049EE70. Generates the next 256 results (reference isaac()).
     void Refill();
 
@@ -27,7 +34,7 @@ public:
 
     // 0049F660. Fills results_ with seed material: 1 KB read at a random offset (0x201..0x400) of a
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
-    // rand(); retried until a read gave 1 KB that is not all zero.
+    // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();
     // 0049F4B0 (RET 0x10; `this` not used). Walks `pattern` (a directory plus "\*.*") depth first,
     // skipping dots, system and hidden entries and counting files in *counter; the first file of at

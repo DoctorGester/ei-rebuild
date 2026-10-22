@@ -5,7 +5,6 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 
 #include <cstdint>
 
@@ -36,23 +35,23 @@ using AtExitFunction = void(__cdecl*)();
 
 void __cdecl ConstructRegistryRoot() {   // 0055E760
     g_registryRoot.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x0055E780));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E780));
 }
 void __cdecl ConstructStartFolder() {   // 0055E7A0
     g_startFolder.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x0055E7C0));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E7C0));
 }
 void __cdecl ConstructDataFolder() {   // 0055E7E0
     g_dataFolder.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x0055E800));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E800));
 }
 void __cdecl ConstructTextFolder() {   // 0055E820
     g_textFolder.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x0055E840));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E840));
 }
 void __cdecl ConstructDiscFolder() {   // 0055E860
     g_discFolder.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x0055E880));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x0055E880));
 }
 
 } // namespace

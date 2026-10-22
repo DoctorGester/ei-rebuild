@@ -85,8 +85,8 @@ const char* __fastcall ManagerClassNameHook(CServerSpecificManager* self) {
 }
 int __fastcall ManagerClassIdHook(CServerSpecificManager* self) { return self->CServerSpecificManager::GetClassId(); }
 } // namespace
-EI_REPLACE(0x004D6920, ManagerClassNameHook);
-EI_REPLACE(0x004D6930, ManagerClassIdHook);
+EI_REWRITTEN(0x004D6920, ManagerClassNameHook);
+EI_REWRITTEN(0x004D6930, ManagerClassIdHook);
 EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObjectImpl);
 
 // --- CTorchObjectSpec ---------------------------------------------------------------------------
@@ -120,6 +120,6 @@ int __fastcall TorchSpecClassIdHook(CTorchObjectSpec* self) { return self->CTorc
 // are a bare RET (too short to hook).
 int __fastcall TorchSpecUpdate(CTorchObjectSpec* self) { return self->CTorchObjectSpec::RunTick(); }
 } // namespace
-EI_REPLACE(0x004D6B60, TorchSpecClassNameHook);
-EI_REPLACE(0x004D6B70, TorchSpecClassIdHook);
-EI_REPLACE(0x004D6B50, TorchSpecUpdate);
+EI_REWRITTEN(0x004D6B60, TorchSpecClassNameHook);
+EI_REWRITTEN(0x004D6B70, TorchSpecClassIdHook);
+EI_REWRITTEN(0x004D6B50, TorchSpecUpdate);

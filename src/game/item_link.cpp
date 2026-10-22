@@ -33,7 +33,7 @@ CItemLink* CItemLink::Construct() {
     vtable = Vtable();
     return this;
 }
-EI_REPLACE_METHOD(0x0058FBB0, CItemLink::Construct);
+EI_REWRITTEN(0x0058FBB0, CItemLink::Construct);
 
 void CItemLink::Reset() {
     vtable = CRefCounted::RootVtable();

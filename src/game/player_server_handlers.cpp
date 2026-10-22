@@ -11,8 +11,6 @@
 #include "core_maths.h"
 #include "core_streams.h"
 #include "map_object.h"
-#include "originals_ai.h"
-#include "originals_world.h"
 #include "party.h"
 #include "party_manager.h"
 #include "party_records.h"
@@ -29,7 +27,6 @@
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -65,7 +62,7 @@ float CellScaleB() { return 0.5f /*0073B86C*/; }
 // 00671200 are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
-CUnit* FindUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
+CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
@@ -94,7 +91,7 @@ void __cdecl DestroyReceivedMessages() {   // 0066C520
 }
 void __cdecl ConstructReceivedMessages() {   // 0066C4D0
     g_receivedMessages->ConstructQueueStream();
-    GameAtExit(DestroyReceivedMessages);
+    libcrt::AtExit(DestroyReceivedMessages);
 }
 } // namespace
 

@@ -9,8 +9,6 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp_vector_refs.h"
-#include "originals_library.h"
-#include "originals_script.h"
 
 #include <cstring>
 

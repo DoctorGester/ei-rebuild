@@ -15,8 +15,6 @@ constexpr int kAnimatorClass = 0x300B;            // AnimationTrack's class id
 constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what happens at the end
 constexpr std::uint32_t kKeyLoops = 0x80000000;
 
-// Not rewritten here (forwarders):
-
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
@@ -109,4 +107,4 @@ void CFigureAnimationState::SetTime(float frame) {
 EI_REWRITTEN(0x0050D600, CFigureAnimationState::SetTime);
 
 void CFigureAnimationState::Advance(float frames) { SetTime(frames + time); }
-EI_REPLACE_METHOD(0x0050D5E0, CFigureAnimationState::Advance);
+EI_REWRITTEN(0x0050D5E0, CFigureAnimationState::Advance);

@@ -13,11 +13,9 @@ shim, stub or workaround lands.
   them. A registration stays only while something reaches its address (`tools/registration_readers.py`);
   the rest are `EI_REWRITTEN` lines, the tools' function-to-original map. C20 / C20e-g drop the rest and
   the code cells.
-- `EI_ORIGINAL` forwarders (`src/game/originals_<area>.h` and per file) jump to the function registered at
-  their address; `CodeLink` binds them. C29 makes each a direct call by name.
-- The harness's redirections in the image (`ei::RedirectCode`, tests/verify): the fixed ISAAC seed at
-  0049F660 and the traced rand at 006E77F7. C29 turns them into named seams in our code that the harness
-  sets. The harness's patches of game.exe by address stay: that is the original's side.
+- Our code calls game functions by name; src has no `EI_ORIGINAL` forwarders (C29). The harness changes
+  the image's behaviour through named seams (the fixed ISAAC seed, the traced draws), not addresses; its
+  patches of game.exe by address stay: that is the original's side.
 
 ## Data (C18, C18r, C18t, C25a, C18p)
 

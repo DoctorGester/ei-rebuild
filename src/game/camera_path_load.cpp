@@ -54,4 +54,4 @@ int CCamera::LoadPath(const char* name, int settle) {
     file.Close();
     return 1;
 }
-EI_REPLACE_METHOD(0x0040ECD0, CCamera::LoadPath);
+EI_REWRITTEN(0x0040ECD0, CCamera::LoadPath);

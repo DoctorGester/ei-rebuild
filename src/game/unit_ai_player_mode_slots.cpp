@@ -50,8 +50,8 @@ void PlayerMode::Destruct() {
     target = nullptr;
     vtable = CRefCounted::RootVtable();
 }
-EI_REPLACE_METHOD(0x005520D0, PlayerMode::Destruct);
-EI_REPLACE_METHOD(0x00552180, PlayerMode::Destruct);
+EI_REWRITTEN(0x005520D0, PlayerMode::Destruct);
+EI_REWRITTEN(0x00552180, PlayerMode::Destruct);
 
 PlayerMode* PlayerMode::DeletingDestruct(int flags) {
     Destruct();

@@ -13,7 +13,6 @@
 #include "map_object.h"           // CMapObject (ObjectWithId)
 #include "map_object_figures.h"   // CObject3D
 #include "model.h"                // CTransformPipeline, ScenePipeline
-#include "originals_library.h"    // GameAtExit
 #include "terrain.h"
 
 #include "ei/hook.h"
@@ -112,12 +111,12 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     if (!(Guards() & 1)) {
         Guards() |= 1;
         builder.Construct();
-        GameAtExit(ei::short_functions::Ret);   // 0056CE30 (the builder: nothing to destroy)
+        libcrt::AtExit(ei::short_functions::Ret);   // 0056CE30 (the builder: nothing to destroy)
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;
         PartPoints() = lib::AlignedArray<Vector4>{};
-        GameAtExit(FreePartPoints);   // 0056CE10
+        libcrt::AtExit(FreePartPoints);   // 0056CE10
     }
     auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);

@@ -12,11 +12,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 
 #include <cstring>
 #include <new>
@@ -147,7 +142,7 @@ CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
     pulseClock = 0.0f;
     return this;
 }
-EI_REPLACE_METHOD(0x0051AB00, CObject3DClientSpecific::Construct);
+EI_REWRITTEN(0x0051AB00, CObject3DClientSpecific::Construct);
 
 int CObject3DClientSpecific::CreateClient() {
     materialCursor = -1;
@@ -262,7 +257,7 @@ CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKi
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0051B5B0, CObject3DClientSpecific::FindMaterial);
+EI_REWRITTEN(0x0051B5B0, CObject3DClientSpecific::FindMaterial);
 
 CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int materialKind) {
     int k = 0;
@@ -349,7 +344,7 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     }
     return old;
 }
-EI_REPLACE_METHOD(0x0051B630, CObject3DClientSpecific::ReplaceTexture);
+EI_REWRITTEN(0x0051B630, CObject3DClientSpecific::ReplaceTexture);
 
 // --- Skins and materials --------------------------------------------------------------------------
 

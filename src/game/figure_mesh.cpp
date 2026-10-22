@@ -10,7 +10,6 @@
 
 #include "ei/hook.h"
 #include "model.h"
-#include "originals_render.h"
 #include "render/render.h"   // MeshChanged
 #include "game_data.h"
 

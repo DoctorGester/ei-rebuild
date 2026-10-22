@@ -37,4 +37,4 @@ CItem* CUnit::TakeRandomItem() {
     MarkChanged(kPartItems);
     return item;
 }
-EI_REPLACE_METHOD(0x00531400, CUnit::TakeRandomItem);
+EI_REWRITTEN(0x00531400, CUnit::TakeRandomItem);

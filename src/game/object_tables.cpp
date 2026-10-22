@@ -7,7 +7,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -74,7 +73,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
     out->Clear();
     for (const Node* node = First(); node; node = Next(node))
-        if (Strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key] = node->value.mapped;
+        if (gamecrt::strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key] = node->value.mapped;
 }
 EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 

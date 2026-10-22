@@ -21,7 +21,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
@@ -76,12 +75,6 @@ void FpuCopy2(float* a, float* b, const float* src) {
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 // Not rewritten / rewritten elsewhere, through their game addresses:
-// 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
-// 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
-// 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
-// This file's functions through their addresses, so their verify wrappers stay in the path.
-// 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
-// CUnit::SetPrototype23C, rewritten elsewhere.
 
 // The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
@@ -355,9 +348,9 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
     LearnNpcSkills(stats, npc);
-    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
-    UnitStatsRefillSlotsOriginal(stats);
-    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
+    stats->ResetToBase(1.0f);
+    stats->RefillSlots();
+    stats->ResetToBase(1.0f);
     return 1;
 }
 EI_REWRITTEN(0x00513DA0, BuildNpcStats);
@@ -453,12 +446,11 @@ void UnitStats::ResetToBase(float newLoad) {
     rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
-EI_REPLACE_METHOD(0x00524CD0, UnitStats::ResetToBase);
+EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 
 namespace {
 // 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded in ST0.
-__declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGINAL(0x005259B0)
 // 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
@@ -471,8 +463,8 @@ float CurveHitPoints(UnitStats* stats) {
 
 void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
-    float oldHitPoints = static_cast<float>(ReduceAt(this, nullptr, oldMaximum));
-    int index = SkillRecordIndex(database, nullptr, record);
+    float oldHitPoints = static_cast<float>(Reduce(oldMaximum));
+    int index = const_cast<SkillDatabase*>(database)->IndexOfLevel(record);
     int skill = index / 3;
     int level = index % 3;
     std::uint8_t& known = skillLevels[skill];   // unchecked, as the original
@@ -482,7 +474,7 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     EI_NAN_AUDIT(oldMaximum, newMaximum);
     if (oldMaximum <= kOneF) return;
     if (newMaximum <= kOneF) return;
-    double newHitPoints = ReduceAt(this, nullptr, newMaximum);
+    double newHitPoints = Reduce(newMaximum);
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
     HealSlots(newMaximum, heal);
 }
@@ -491,9 +483,6 @@ EI_REWRITTEN(0x00526450, UnitStats::LearnSkill);
 namespace {
 constexpr float kStatBase = 25.0f;   // 0073E124
 constexpr int kSkillRecordSize = 0x18;
-
-// 00527050 UnitStats::SkillWithBonus of unit_stats.cpp, through its game address; ST0.
-__declspec(naked) double __fastcall SkillWithBonusAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00527050)
 
 // The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {
@@ -532,7 +521,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     if (type == 8) {
         if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[0]));
         float weapon = WeaponBonus(unit, 0);
-        return SkillWithBonusAt(this, nullptr, 0) + weapon;
+        return SkillWithBonus(0) + weapon;
     }
     return kZero;
 }
@@ -565,13 +554,13 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
-    int group = SkillRecordIndex(database, nullptr, record) / 3;
+    int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
     for (int k = 0; k < 26; ++k) {
         std::uint8_t level = skillLevels[k];
         if (level == 0) continue;
         const ::SkillLevelRecord* known = LevelRecordAt(static_cast<std::uint32_t>(3 * k + level - 1));
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
-        if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
+        if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return 0;
     }
     int own = database->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
@@ -615,7 +604,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         std::memcpy(&scale, &prototype->scale, sizeof(scale));
-        ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
+        static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
         std::memcpy(&object->baseScale, &scale, sizeof(scale));
         object->ApplyBaseScale();
         static_cast<CUnit*>(object)->SetPrototype23C(prototype);
@@ -624,7 +613,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
     return 1;
 }
-EI_REPLACE_METHOD(0x00513B60, CMapObjectManager::ApplyPrototype);
+EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 
 // --- The factory ------------------------------------------------------------------------------
 

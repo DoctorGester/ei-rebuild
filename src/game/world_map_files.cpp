@@ -36,7 +36,7 @@ mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
     mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
     return new (out) mfc::CString(folder + MapsFolderName());
 }
-EI_REPLACE(0x0055E990, MapsFolder);
+EI_REWRITTEN(0x0055E990, MapsFolder);
 
 mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
     mfc::CString path;
@@ -45,29 +45,29 @@ mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
     } else {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         path = folder + name;
     }
     return new (out) mfc::CString(path);
 }
-EI_REPLACE(0x00595BA0, MapPath);
+EI_REWRITTEN(0x00595BA0, MapPath);
 
 bool __stdcall MapFileExists(const char* name) {
     mfc::CFileFind find;
     mfc::CString folder;
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString path = folder + name;
     return find.FindFile(path, 0) != 0;
 }
-EI_REPLACE(0x005812F0, MapFileExists);
+EI_REWRITTEN(0x005812F0, MapFileExists);
 
 void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     LocalFileStream file;
     {
         mfc::CString folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         mfc::CString path = folder + name;
         file.stream.Open(path, netlink::FileStream::kOpenWrite, 0);
     }
@@ -75,4 +75,4 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     file.stream.WriteImpl(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
     file.stream.Close();
 }
-EI_REPLACE(0x005813A0, WriteMapFile);
+EI_REWRITTEN(0x005813A0, WriteMapFile);

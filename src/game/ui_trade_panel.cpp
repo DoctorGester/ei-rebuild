@@ -17,11 +17,6 @@
 #include <cstdint>
 #include <cstring>
 #include "core_maths.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_units.h"
 #include "unit_db.h"
 #include "world_glue.h"
 #include "record_vectors.h"
@@ -29,12 +24,12 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
 
+int __fastcall SchoolPrice(int /*from*/, int /*to*/);
 namespace {
 
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
 // skill record's price (UnitStats::SkillPrice); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
 // The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
 // CString (RET 8), 004E0020 the text of a key (RET 8).
@@ -64,15 +59,15 @@ void Clear(TradeRows* rows) {
 }
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
-int HasPerkText(void* table, const mfc::CString& name) {
+int HasPerkText(CTextManager* table, const mfc::CString& name) {
     mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
-    return TextsOpenSection(table, nullptr, key);
+    return table->CTextManager::Open(key);
 }
-int HasPerkText(void* table, const char* name) {
+int HasPerkText(CTextManager* table, const char* name) {
     mfc::CString prefix("perk ");
     mfc::CString key = prefix + name;
-    return TextsOpenSection(table, nullptr, key);
+    return table->CTextManager::Open(key);
 }
 
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
@@ -121,7 +116,7 @@ EI_REWRITTEN(0x0062A310, TradeRow::CopyConstruct);
 
 void CTradePanel::BuildLists() {
     UnitStats* stats = &owner_->VirtualHeroRecord()->stats;
-    UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
+    stats->ResetToBase(0.0f);
     owner_->VirtualRefreshStats();
     CTextManager* table = GameClientTexts();
     CTextManager* texts = table;
@@ -154,7 +149,7 @@ void CTradePanel::BuildLists() {
 
     mfc::CString text;
     mfc::CString perkLevel;
-    TextsGetString(table, nullptr, "perk_level", &perkLevel);
+    table->CTextManager::GetString("perk_level", &perkLevel);
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -330,7 +325,7 @@ int PartyRecordCount() { return LocalPlayerData()->members_.size; }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
@@ -381,11 +376,11 @@ void CTradePanel::Build() {
     CTextManager* table = GameClientTexts();
     {
         mfc::CString text;
-        TextsGetString(table, nullptr, "skills", &text);
+        table->CTextManager::GetString("skills", &text);
         texts_.SetAtGrow(texts_.size, text);
-        TextsGetString(table, nullptr, "perks", &text);
+        table->CTextManager::GetString("perks", &text);
         texts_.SetAtGrow(texts_.size, text);
-        TextsGetString(table, nullptr, "perks_av", &text);
+        table->CTextManager::GetString("perks_av", &text);
         texts_.SetAtGrow(texts_.size, text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).

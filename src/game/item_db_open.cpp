@@ -9,7 +9,6 @@
 
 #include "database_file.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -92,7 +91,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     ar.DestructLocal();
     return 1;
 }
-EI_REPLACE_METHOD(0x00684550, SpellDatabase::Load);
+EI_REWRITTEN(0x00684550, SpellDatabase::Load);
 
 // --- The item database ----------------------------------------------------------------------------
 
@@ -124,6 +123,6 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REPLACE_METHOD(0x006A67A0, ItemDatabase::Load);
+EI_REWRITTEN(0x006A67A0, ItemDatabase::Load);
 
 } // namespace itemdb

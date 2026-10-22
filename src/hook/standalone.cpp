@@ -8,7 +8,6 @@
 #include "log.h"
 #include "standalone/static_init.h"
 #include "game/game_data.h"
-#include "game/originals_library.h"
 #include "game/system_text.h"
 #include "lib/crt.h"
 #include "render/render.h"
@@ -30,7 +29,6 @@ const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook
 std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
 int ImageImportsMissing();                                              // standalone/image_imports.cpp
 int FixCodeCells();                                                     // standalone/image_code.cpp
-bool RedirectedByHarness(std::uintptr_t address);                       // standalone/image_code.cpp
 
 
 // A code address as the log names it: inside game.exe's code plainly, elsewhere as module+offset.
@@ -107,8 +105,7 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// Every registration InstallHooks took is the code for its address, in this DLL (or the harness's replacement
-// there, RedirectCode). Returns the ones that are not.
+// Every registration InstallHooks took is the code for its address, in this DLL. Returns the ones that are not.
 int CheckCode() {
     HMODULE self = nullptr;
     GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -119,7 +116,7 @@ int CheckCode() {
         HMODULE owner = nullptr;
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                            reinterpret_cast<LPCSTR>(code), &owner);
-        if (owner != self || (code != reinterpret_cast<std::uintptr_t>(registered) && !RedirectedByHarness(address))) {
+        if (owner != self || code != reinterpret_cast<std::uintptr_t>(registered)) {
             Log("standalone: the code for %08X is not its registration", static_cast<unsigned>(address));
             ++bad;
         }

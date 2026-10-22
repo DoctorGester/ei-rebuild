@@ -5,7 +5,6 @@
 // windows.h (texture.h) renames CEngineObject's GetClassName.
 #undef GetClassName
 
-#include "originals_core.h"
 #include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"
@@ -165,7 +164,7 @@ void CSky::Destruct() {
     if (material) material->Release();
     if (object) object->Release();
 }
-EI_REPLACE_METHOD(0x005636A0, CSky::Destruct);
+EI_REWRITTEN(0x005636A0, CSky::Destruct);
 
 namespace {
 const char* __fastcall ClassNameHook(CSkyObject* self) { return self->CSkyObject::GetClassName(); }

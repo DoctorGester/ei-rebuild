@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include "lib/vecmath.h"
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <bit>

@@ -17,7 +17,6 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 
 #include <cstdint>
 
@@ -283,7 +282,7 @@ SmoothTable* SmoothTable::Construct() {
     chained.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
+EI_REWRITTEN(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
     chained.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
@@ -293,7 +292,7 @@ void SmoothTable::Destruct() {
     copies.vtable = mfc::impl::SmoothCopyArrayClass::Vtable();
     copies.FreeData();
 }
-EI_REPLACE_METHOD(0x005C4250, SmoothTable::Destruct);
+EI_REWRITTEN(0x005C4250, SmoothTable::Destruct);
 
 void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     copies.SetSize(0, -1);
@@ -373,7 +372,7 @@ constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 namespace {
 
 using AtExitFunction = void(__cdecl*)();
-void RegisterExit(std::uintptr_t exitFunction) { GameAtExit(ei::Code<AtExitFunction>(exitFunction)); }
+void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
 // 005C41C0: the tables built empty in order (the `eh vector constructor iterator` 006E8693 over 005C4210).
 void __cdecl ConstructSmoothTables() {

@@ -26,11 +26,6 @@
 #include "text_split.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -216,7 +211,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addItems = [&](const CStringVector& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    CItem* item = ItemManagerCreateItemOriginal(TheClientWorld()->itemManager_, nullptr, *it);
+                    CItem* item = TheClientWorld()->itemManager_->CreateItem(*it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -321,7 +316,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
+                if (auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_)) {
                     auto* controller = serverUnit->ServerController();
                     controller->StopAction();
                     controller->actionDone = SpeakerActionDone();

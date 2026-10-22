@@ -10,4 +10,4 @@ void ObjectIdMap::ReleaseAll() {
     map.Clear();
     maxId = 0;
 }
-EI_REPLACE_METHOD(0x0047B670, ObjectIdMap::ReleaseAll);
+EI_REWRITTEN(0x0047B670, ObjectIdMap::ReleaseAll);

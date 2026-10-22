@@ -6,8 +6,6 @@
 
 #include "ai_map.h"
 #include "console.h"
-#include "originals_ai.h"
-#include "originals_library.h"
 #include "unit.h"
 #include "world.h"
 

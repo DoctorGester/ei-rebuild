@@ -22,7 +22,6 @@
 #include <bit>
 #include <cstring>
 #include <new>
-#include "originals_library.h"
 #include "game_lists.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -65,7 +64,6 @@ constexpr float kHalfPi = /*007C8808*/ 1.5707964f;   // a static initialiser: pi
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
-
 
 // Miles Sound System through game.exe's import table (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);
@@ -199,7 +197,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    double angle = CIacos(D(ahead) / distF);
+    double angle = gamecrt::acos(D(ahead) / distF);
     if (angle > kHalfPi) angle = D(Pi()) - angle;
     double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the FDIV at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));
@@ -1353,7 +1351,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
 }
 EI_REWRITTEN(0x006B89F0, CSoundManager::LoadSample);
 
-// --- Forwarders -------------------------------------------------------------------------------------
+// --- Helpers ----------------------------------------------------------------------------------------
 
 void CSoundManager::StreamNotify(int /*mode*/) {}   // 006BBAC0: a shared RET 4
 

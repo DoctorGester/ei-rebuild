@@ -14,9 +14,6 @@
 #include "device_buffers.h"
 #include "model.h"   // CTransformPipeline, ITransformPipeline
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "texture.h"
 #include "lib/nan_audit.h"
 
@@ -39,7 +36,7 @@ struct TexCoord {
 struct MeshArgs {
     const void* positions;        // 64 bytes per block of four vertices
     int blocks;
-    int normals;                  // the normals' address (blocks of four as the positions)
+    const void* normals;          // the normals' address (blocks of four as the positions)
     int colourCount;              // the colour arrays hold four times this (and so many normal blocks)
     std::uint32_t* colours;
     std::uint32_t* speculars;
@@ -47,7 +44,7 @@ struct MeshArgs {
     int unused10;
     const DeviceCorner* corners;
     int cornerCount;
-    int words;                    // the words' address: (position, normal) index pairs, by colour index
+    const void* words;            // the words' address: (position, normal) index pairs, by colour index
     int wordCount;
     std::uint16_t* indices;       // into the corners
     int indexCount;
@@ -191,9 +188,9 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     m.zScale = 1.0f;
     m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU (R16i) needs its normals.
-    m.normals = reinterpret_cast<const float*>(static_cast<std::uintptr_t>(static_cast<std::uint32_t>(a.normals)));
+    m.normals = static_cast<const float*>(a.normals);
     m.normalCount = a.colourCount * 4;
-    m.words = reinterpret_cast<const std::uint16_t*>(static_cast<std::uintptr_t>(static_cast<std::uint32_t>(a.words)));
+    m.words = static_cast<const std::uint16_t*>(a.words);
     m.wordCount = a.wordCount;
     render::BeginMesh(device, m);
 }
@@ -237,9 +234,9 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 } // namespace
 
 // 004E9010 (thiscall on the device, RET 0x48).
-int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, int normals, int colourCount,
+int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                              const void* corners, int cornerCount, int words, int wordCount,
+                              const void* corners, int cornerCount, const void* words, int wordCount,
                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
                               int flags) {
     MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
@@ -247,13 +244,13 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, int normal
                indexCount, &uOffset, &vOffset, alpha, flags};
     return DrawMesh(this, a, nullptr);
 }
-EI_REPLACE_METHOD(0x004E9010, CTextureDevice::DrawMeshBlocks);
+EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
 // 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw (004EB370).
 int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
-                               int blocks, int normals, int colourCount, std::uint32_t* colours,
+                               int blocks, const void* normals, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
-                               int cornerCount, int words, int wordCount, std::uint16_t* indices, int indexCount,
+                               int cornerCount, const void* words, int wordCount, std::uint16_t* indices, int indexCount,
                                float uOffset, float vOffset, int alpha, int flags) {
     MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
                unused10, static_cast<const DeviceCorner*>(corners), cornerCount, words, wordCount, indices,
@@ -261,4 +258,4 @@ int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, con
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);
 }
-EI_REPLACE_METHOD(0x004E9A50, CTextureDevice::DrawMeshBlocks2);
+EI_REWRITTEN(0x004E9A50, CTextureDevice::DrawMeshBlocks2);

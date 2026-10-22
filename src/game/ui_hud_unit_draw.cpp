@@ -21,8 +21,6 @@
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
-#include "originals_render.h"    // the batch flushes
-#include "originals_ui.h"        // the sprite draw and Place, the surface's DC
 #include "render/render.h"
 #include "render/render_state.h"
 #include "game_data.h"
@@ -32,8 +30,6 @@
 
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
@@ -123,7 +119,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
     UiSurfaceGetDC(surfaces_.data[0]);
-    SurfaceClearOriginal(surfaces_.data[0]);
+    static_cast<CUiSurface*>(surfaces_.data[0])->Clear();
 
     if (unit && unit->Object3D()->attached) {
         CObject3D* model = unit->Object3D();
@@ -198,7 +194,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             std::memcpy(&bits, &barScale, sizeof(bits));
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(PanelHeight() - barScale * PanelHeight());
-            SpritePlaceOriginal(sceneObjects_.data[kHeightBar], nullptr, static_cast<float>(20 - offset_), barY, 4.0f);
+            static_cast<CUiMesh*>(sceneObjects_.data[kHeightBar])->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
             Sprite(this, kHeightBar)->visible_ = 1;
             break;
         }

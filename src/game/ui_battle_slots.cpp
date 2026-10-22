@@ -16,8 +16,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -66,7 +64,7 @@ void CBattleScreen::Close() {
     GameStopAmbience();
     party_.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
+EI_REWRITTEN(0x00635E60, CBattleScreen::Close);
 
 // --- 006360F0: slot 35 --------------------------------------------------------------------------
 
@@ -74,13 +72,13 @@ bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
         if (party.size > 0) TheCamera()->SetTarget(party.data[0]);
-        if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
+        if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), static_cast<char>(1));
         hasHero_ = false;
         interface_->OpenHelp(0);
     }
     return true;
 }
-EI_REPLACE_METHOD(0x006360F0, CBattleScreen::PollShown);
+EI_REWRITTEN(0x006360F0, CBattleScreen::PollShown);
 
 // --- 00636150: slot 28 --------------------------------------------------------------------------
 
@@ -91,10 +89,10 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
         node = next;
     }
     topPanel_->AddMoney(money);
-    TopPanelShowPageOriginal(topPanel_);
+    topPanel_->ShowItems();
     RefreshSelection();
 }
-EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
+EI_REWRITTEN(0x00636150, CBattleScreen::OnItemsPicked);
 
 // --- 006364E0: slot 30 --------------------------------------------------------------------------
 
@@ -113,10 +111,10 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     int after = party.size - index - 1;
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
     --party.size;
-    PortraitsRebuildOriginal(portraits_, nullptr, 0);
+    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
     RefreshSelection();
 }
-EI_REPLACE_METHOD(0x006364E0, CBattleScreen::OnUnitLeft);
+EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
 
 // --- 00635080: slot 40 --------------------------------------------------------------------------
 
@@ -140,7 +138,7 @@ void CBattleScreen::SaveState() {
     stream->Write(&exitPending_, 1);
     stream->Write(&pendingExit_, 4);
 }
-EI_REPLACE_METHOD(0x00635080, CBattleScreen::SaveState);
+EI_REWRITTEN(0x00635080, CBattleScreen::SaveState);
 
 // --- 006361B0: slot 29 --------------------------------------------------------------------------
 
@@ -190,7 +188,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         party.SetSize(count + 1, -1);
         party.data[count] = unit;
     }
-    PortraitsRebuildOriginal(portraits_, nullptr, 0);
+    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
     if (selected) {
         TheClientWorld()->Select(unit);
         MarkPortrait(place);
@@ -207,7 +205,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     RefreshSelection();
 }
-EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
+EI_REWRITTEN(0x006361B0, CBattleScreen::OnUnitJoined);
 
 // --- 00635EB0: slot 27 --------------------------------------------------------------------------
 
@@ -235,7 +233,7 @@ void CBattleScreen::OnMessageResult(int result) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00635EB0, CBattleScreen::OnMessageResult);
+EI_REWRITTEN(0x00635EB0, CBattleScreen::OnMessageResult);
 
 // --- 006365E0: slot 31 --------------------------------------------------------------------------
 
@@ -257,4 +255,4 @@ void CBattleScreen::OnGameOver(char won) {
     }
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x006365E0, CBattleScreen::OnGameOver);
+EI_REWRITTEN(0x006365E0, CBattleScreen::OnGameOver);

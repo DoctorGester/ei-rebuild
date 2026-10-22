@@ -15,15 +15,9 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
 
 #include <bit>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"

@@ -14,8 +14,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 constinit lib::StaticObject<CFixedAlloc> g_tempGdiObjectAlloc = /*007C8CF0*/ {};
@@ -237,8 +235,8 @@ EI_REWRITTEN(0x00444B30, CGdiObject::Destruct);
 EI_REWRITTEN(0x00444B90, CGdiObject::Destruct);
 EI_REWRITTEN(0x005FDDE0, CGdiObject::Destruct);
 EI_REWRITTEN(0x00444B10, CGdiObject::DeletingDestruct);
-EI_REPLACE_METHOD(0x00444B70, CGdiObject::DeletingDestruct);
-EI_REPLACE_METHOD(0x005FDDC0, CGdiObject::DeletingDestruct);
+EI_REWRITTEN(0x00444B70, CGdiObject::DeletingDestruct);
+EI_REWRITTEN(0x005FDDC0, CGdiObject::DeletingDestruct);
 EI_REWRITTEN(0x0070A060, CGdiObject::FromHandle);
 EI_REWRITTEN(0x0070A075, CGdiObject::Attach);
 EI_REWRITTEN(0x0070A0A2, CGdiObject::Detach);
@@ -368,9 +366,9 @@ EI_REWRITTEN(0x00708D79, CDC::FromHandle);
 EI_REPLACE(0x0070BFD7, CreateTempDC);
 EI_REPLACE(0x0070BF64, CreateCDC);
 EI_REWRITTEN(0x00708F5A, CDC::SelectObject);
-EI_REPLACE_METHOD(0x00708FE6, CDC::SelectObject);
-EI_REPLACE_METHOD(0x0070917A, CDC::SetTextColor);
-EI_REPLACE_METHOD(0x006E6A1C, CDC::DrawText);
+EI_REWRITTEN(0x00708FE6, CDC::SelectObject);
+EI_REWRITTEN(0x0070917A, CDC::SetTextColor);
+EI_REWRITTEN(0x006E6A1C, CDC::DrawText);
 EI_REWRITTEN(0x007090C2, CDC::SetBkMode);
 EI_REWRITTEN(0x00709613, CDC::MoveTo);
 EI_REWRITTEN(0x0070965F, CDC::LineTo);

@@ -31,7 +31,7 @@ std::uint32_t CMemoryStream::ReadImpl(void* buffer, std::uint32_t size) {
     position_ += size;
     return size;
 }
-EI_REPLACE_METHOD(0x004A5380, CMemoryStream::ReadImpl);
+EI_REWRITTEN(0x004A5380, CMemoryStream::ReadImpl);
 
 void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
     if (position_ + size > capacity_) {
@@ -50,13 +50,13 @@ std::uint32_t CMemoryStream::WriteImpl(const void* buffer, std::uint32_t size) {
     CMemoryStream::Write(buffer, size);
     return position_;
 }
-EI_REPLACE_METHOD(0x004A53F0, CMemoryStream::WriteImpl);
+EI_REWRITTEN(0x004A53F0, CMemoryStream::WriteImpl);
 
 void CMemoryStream::SeekImpl(std::uint32_t position) {
     position_ = position;
     EndBits();
 }
-EI_REPLACE_METHOD(0x004A5490, CMemoryStream::SeekImpl);
+EI_REWRITTEN(0x004A5490, CMemoryStream::SeekImpl);
 
 void CMemoryStream::CopyFromImpl(CStream* source) {
     source->Seek(0);
@@ -64,7 +64,7 @@ void CMemoryStream::CopyFromImpl(CStream* source) {
     source->Read(data_, size_);
     Seek(0);
 }
-EI_REPLACE_METHOD(0x004A55D0, CMemoryStream::CopyFromImpl);
+EI_REWRITTEN(0x004A55D0, CMemoryStream::CopyFromImpl);
 
 // --- CMemoryStream sizes and bits --------------------------------------------------------------
 
@@ -133,7 +133,7 @@ void CStream::CopyFromImpl(CStream* source) {
         Write(chunk, read);
     }
 }
-EI_REPLACE_METHOD(0x004A4D40, CStream::CopyFromImpl);
+EI_REWRITTEN(0x004A4D40, CStream::CopyFromImpl);
 
 void CStream::ReadSized(CStream* to) {
     std::uint32_t size = 0;

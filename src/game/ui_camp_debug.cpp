@@ -11,8 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "resource_manager.h"
 #include "game_data.h"
 #include "world.h"
@@ -31,7 +29,7 @@ const char* Dot() { return "."; }
 const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
-// The item and spell managers (their name lists, originals_gameplay.h).
+// The item and spell managers (their name lists).
 CItemManager* ItemDatabase() { return TheClientWorld()->itemManager_; }
 CSpellManager* SpellDatabase() { return TheClientWorld()->manager4C_; }
 
@@ -50,7 +48,7 @@ void AddCounted(CParty* list, CItem* item) {
 // An item named `name` from the list's item manager (not checked for null, as the original) with
 // record index `index` and count `count`, added.
 void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
-    auto* item = AsLoot(ItemManagerCreateItemOriginal(list->ItemManager(), nullptr, name));
+    auto* item = AsLoot(list->ItemManager()->CreateItem(name));
     item->index_ = index;
     item->count_ = count;
     AddCounted(list, item);
@@ -89,7 +87,7 @@ void CCampPages::DebugFill() {
     ItemDatabase()->ListMaterialNames(&materials);
 
     if (CParty* items = itemParts_[0]) {
-        PartyResetOriginal(items, nullptr, 1, 0);
+        static_cast<CParty*>(items)->Clear(1, 0);
 
         ItemDatabase()->ListWeaponNames(&names);
         for (int i = 0; i < names.size; ++i) {
@@ -124,14 +122,14 @@ void CCampPages::DebugFill() {
             mfc::CString name(MaterialWord());
             name += Dot();
             name += names.data[i];
-            auto* item = ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name);
+            auto* item = items->ItemManager()->CreateItem(name);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }
     }
 
     if (CParty* spells = spellParts_[0]) {
-        PartyResetOriginal(spells, nullptr, 1, 0);
+        static_cast<CParty*>(spells)->Clear(1, 0);
         SpellDatabase()->ListModifierNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
@@ -140,4 +138,4 @@ void CCampPages::DebugFill() {
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }
 }
-EI_REPLACE_METHOD(0x00612CF0, CCampPages::DebugFill);
+EI_REWRITTEN(0x00612CF0, CCampPages::DebugFill);

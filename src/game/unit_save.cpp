@@ -13,10 +13,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -203,7 +199,7 @@ void CUnit::LoadUnit(CStream* stream) {
     }
     prototype23C = PrototypeIndexOf(second);
 }
-EI_REPLACE_METHOD(0x00531A80, CUnit::LoadUnit);
+EI_REWRITTEN(0x00531A80, CUnit::LoadUnit);
 
 void CUnit::SaveUnit(CStream* stream) {
     SaveMapObject(stream);
@@ -249,4 +245,4 @@ void CUnit::SaveUnit(CStream* stream) {
     else prototypeName = "";
     WriteString(stream, prototypeName);
 }
-EI_REPLACE_METHOD(0x005321C0, CUnit::SaveUnit);
+EI_REWRITTEN(0x005321C0, CUnit::SaveUnit);

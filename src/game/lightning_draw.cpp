@@ -20,9 +20,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -73,7 +70,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         SpriteArrayConstruct(&Sprites());
-        GameAtExit(DestroySprites);
+        libcrt::AtExit(DestroySprites);
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
@@ -82,7 +79,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         p.growBy = 0;
         p.capacity = 0;
         p.size = 0;
-        GameAtExit(FreeGlowPoints);   // 004679F0
+        libcrt::AtExit(FreeGlowPoints);   // 004679F0
     }
     TextureHolderEnsureLoaded(&glowTexture_);   // 00500970
     if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, glowTexture_)) return;

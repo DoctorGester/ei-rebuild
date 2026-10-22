@@ -18,9 +18,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "lib/static_object.h"
 
@@ -146,7 +143,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
-        GameAtExit(DestroyBlocks);
+        libcrt::AtExit(DestroyBlocks);
     }
     if (blocks.data) {
         gamecrt::operator_delete(blocks.data);
@@ -213,12 +210,12 @@ void CRegionMap::LabelRegions() {
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
-        GameAtExit(DestroyFloodQueue);
+        libcrt::AtExit(DestroyFloodQueue);
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
-        GameAtExit(DestroyFloodSecond);
+        libcrt::AtExit(DestroyFloodSecond);
     }
     queue.SetSize(0, -1);
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {

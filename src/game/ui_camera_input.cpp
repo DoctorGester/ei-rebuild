@@ -16,7 +16,6 @@
 #include "lib/nan_audit.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -163,7 +162,7 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     pressScreen_ = POINT{x, y};
     pressLayout_ = POINT{x, y};
     turning_ = true;
-    interface_->CallScalePointFromScreen(&pressLayout_);
+    interface_->ScalePointFromScreenEntry(&pressLayout_);
     MouseDragY() = 0;
     MouseDragX() = 0;
     TheCursor()->SetHeld(1);
@@ -189,7 +188,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
     if (turning_) {
         POINT point{x, y};
         POINT drag{MouseDragX(), MouseDragY()};
-        interface_->CallScalePointFromScreen(&point);
+        interface_->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (005EB249: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * PerWidth();

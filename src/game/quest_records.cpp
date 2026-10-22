@@ -6,7 +6,6 @@
 #include "chunk_archive.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "record_lifetime.h"
 #include "record_vectors.h"
 

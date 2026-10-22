@@ -13,7 +13,6 @@
 #include "../lib/mfc.h"
 #include "lib/static_object.h"
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "record_vectors.h"
 #include "text_split.h"
 

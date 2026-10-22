@@ -14,9 +14,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
@@ -25,9 +22,7 @@
 #include <cstring>
 #include <new>
 
-// --- Forwarders --------------------------------------------------------------------------------
-
-__declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
+// --- Helpers -----------------------------------------------------------------------------------
 
 namespace {
 
@@ -139,12 +134,12 @@ CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(in
 
 // A row text into the surface (005FDE20, Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
-    SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, 1);
+    surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
 
 // The text key `key` read up to its '#' into `text` (unchanged when there is no such text).
 void ReadTip(mfc::CString* text) {
-    if (TextsOpenSection(TheTextManager(), nullptr, *text) != 0) TheTextManager()->ReadToHash(text, 1);
+    if (TheTextManager()->CTextManager::Open(*text) != 0) TheTextManager()->ReadToHash(text, 1);
 }
 
 // The shown name: the text of prefix + name, else the name itself.
@@ -173,7 +168,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
     // The group buttons' titles down the left; the shown group's button at full tint.
@@ -493,7 +488,7 @@ void COptionsWindow::Apply() {
     }
     if (shadowsChanged_) TheClientWorld()->DropShadows();
 }
-EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
+EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
 // --- 0065B8B0: the slider's slot 26 ---------------------------------------------------------------
 
@@ -535,13 +530,13 @@ void CUiSlider::SetRect(const RECT* rect) {
     TurnQuarter(left);
 
     // Regions (SetRect is Rebirth-patched: through its address).
-    regions_.data[0]->CallSetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
-    regions_.data[1]->CallSetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
-    regions_.data[2]->CallSetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
+    regions_.data[0]->SetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
+    regions_.data[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
+    regions_.data[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
 
     // The position set again (one below first, so slot 25 sees a change).
     int position = position_;
     position_ = position - 1;
     CallSetPosition(position);
 }
-EI_REPLACE_METHOD(0x0065B8B0, CUiSlider::SetRect);
+EI_REWRITTEN(0x0065B8B0, CUiSlider::SetRect);

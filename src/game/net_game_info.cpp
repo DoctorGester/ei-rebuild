@@ -5,7 +5,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "net_coder.h"
-#include "originals_script.h"
 
 #include <cstring>
 

@@ -17,9 +17,6 @@
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "record_vectors.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -61,8 +58,6 @@ PlayerNode* PlayersHead() { return net::GameClient()->players_.End(); }
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 } // namespace
-
-__declspec(naked) void CHudPortraits::AddPortraitAt(const char*, const char*, int, int) EI_ORIGINAL(0x00640060)
 
 void CHudPortraits::ShowFace(int index, int state) {
     int u;
@@ -174,7 +169,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     Sprite(sceneObjects_.data[column * 5 + 4])->visible_ = 0;   // the column's frame
     slots_[column].restB_ = kHudRestRotation;
     ++count_;
-    AddRegion()->CallSetRect(x, 510, right, 600);
+    AddRegion()->SetRect(x, 510, right, 600);
 }
 
 void CHudPortraits::Rebuild(int wide) {
@@ -206,7 +201,7 @@ void CHudPortraits::Rebuild(int wide) {
         model.Format("infa%s%s%dface", figure, build.GetString(),
                      unit->GetPrototype()->hair + 1);
         picture.Format("face%s%02d", sex.GetString(), skin);
-        AddPortraitAt(model, picture, wide, 0);
+        AddPortrait(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_.data[i * 5 + 4])->visible_ = 1;
@@ -231,7 +226,7 @@ void CHudPortraits::Rebuild(int wide) {
     for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
         auto* player = net::GameClient()->players_.At(node);
         CEngineObject* unit = nullptr;
-        if (player->id_ >= 0) unit = WorldFindUnit(TheClientWorld(), nullptr, player->id_);
+        if (player->id_ >= 0) unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;
 
         UnitPrototypeRecord* prototype;
@@ -250,7 +245,7 @@ void CHudPortraits::Rebuild(int wide) {
         build = "me";
         model.Format("infa%s%s%dface", figure->model.GetString(), build.GetString(), prototype->hair + 1);
         picture.Format("face%s%02d", sex.GetString(), prototype->skin);
-        AddPortraitAt(model, picture, wide, 1);
+        AddPortrait(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;
@@ -262,8 +257,8 @@ void CHudPortraits::Rebuild(int wide) {
 }
 
 EI_REWRITTEN(0x00640670, CHudPortraits::ShowFace);
-EI_REPLACE_METHOD(0x00640060, CHudPortraits::AddPortrait);
-EI_REPLACE_METHOD(0x006407E0, CHudPortraits::Rebuild);
+EI_REWRITTEN(0x00640060, CHudPortraits::AddPortrait);
+EI_REWRITTEN(0x006407E0, CHudPortraits::Rebuild);
 // EI_Plugin.asi patches both in a Rebirth launch: NPlayers' row length in AddPortrait (00640069; the sites
 // for more than 7 players are not reproduced, the installer skips the function then) and Fixes in Rebuild
 // (the party's and the players' sex at 006408E6 / 00640D2F, the prototype fallback at 00640C97).

@@ -7,8 +7,6 @@
 
 #include "console.h"
 #include "item_db_text.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "quest_records.h"
 #include "text_reader.h"
 #include "ui_screens.h"
@@ -145,8 +143,8 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REPLACE_METHOD(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;
@@ -255,4 +253,4 @@ void CObjectivesWindow::Update() {
         marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
 }
-EI_REPLACE_METHOD(0x0064E760, CObjectivesWindow::Update);
+EI_REWRITTEN(0x0064E760, CObjectivesWindow::Update);

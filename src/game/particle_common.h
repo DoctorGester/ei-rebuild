@@ -1,7 +1,7 @@
 #pragma once
 
 // Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's
-// constants and random generator, and the forwarders they call. Include after effects.h.
+// constants and random generator, and the helpers they call. Include after effects.h.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float; constants the original reads from memory
@@ -16,8 +16,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -51,7 +49,7 @@ inline std::uint32_t Bits(const void* field) {
 inline std::uint32_t Next() { return IsaacRandom::Global().Next(); }
 
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
-inline double Range(float min, float max) { return RandomRange(&IsaacRandom::Global(), nullptr, min, max); }
+inline double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // 00564070 CWorldClient::ClientRawSurfaceHeight(x, y) on the client world 007AF5B8 (ST0).
 inline double GroundHeight(float x, float y) { return TheClientWorld()->ClientRawSurfaceHeight(x, y); }

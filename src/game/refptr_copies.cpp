@@ -74,7 +74,7 @@ EI_REWRITTEN(0x00439910, RefPtrRelease);
 EI_REWRITTEN(0x0059B4B0, RefPtrRelease);
 EI_REWRITTEN(0x0069FD50, RefPtrRelease);
 EI_REWRITTEN(0x004A5D70, RefPtrRelease);
-EI_REPLACE(0x005B80D0, RefPtrRelease);   // the same, 007C2F64's exit function (no Ghidra function; S16b)
+EI_REWRITTEN(0x005B80D0, RefPtrRelease);   // the same, 007C2F64's exit function (no Ghidra function; S16b)
 
 // 004AB960 (RET 4; S16a): counted_ptr<T>'s scalar deleting destructor (the release, then operator
 // delete when bit 0 of `flags` is set). Returns the holder.
@@ -111,8 +111,8 @@ RefPtr* __fastcall RefPtrNull(RefPtr* self) {
     self->ptr = nullptr;
     return self;
 }
-EI_REPLACE(0x0041FF50, RefPtrNull);
-EI_REPLACE(0x0041FF60, RefPtrNull);
+EI_REWRITTEN(0x0041FF50, RefPtrNull);
+EI_REWRITTEN(0x0041FF60, RefPtrNull);
 EI_REWRITTEN(0x0041FF70, RefPtrNull);
 EI_REWRITTEN(0x0041FF80, RefPtrNull);
 EI_REWRITTEN(0x0041FFC0, RefPtrNull);

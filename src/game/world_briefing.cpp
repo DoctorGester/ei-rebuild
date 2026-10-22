@@ -23,11 +23,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_world.h"
-#include "originals_ui.h"
 #include "game_flow_data.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -57,12 +52,12 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     {
         mfc::CString prefix(game::briefingwords::BriefingSection());
         mfc::CString section = prefix + briefing;
-        missing = TextsOpenSection(texts, nullptr, section) == 0;
+        missing = texts->CTextManager::Open(section) == 0;
     }
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
-    while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
+    while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(words[1].GetString(),
@@ -100,7 +95,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
             mfc::CString left = zone.Left(zone.GetLength() - 2);
             zone = left;
         }
-        FlowLoadQuestsOriginal(zone);
+        LoadZoneQuests(zone);
     }
     mfc::CString variable(mfc::CString::kUnset);   // BriefingVariableInto constructs it
     BriefingVariableInto(&variable, briefing);
@@ -196,7 +191,7 @@ void ShareQuestFile(const char* path, const char* name) {
 stlp::string MapFilePath(const mfc::CString& file) {
     mfc::CString folder;
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString full = folder + file;
     return stlp::string(full.GetString());
 }
@@ -212,7 +207,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         mfc::CFileFind find;
         mfc::CString folder;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         mfc::CString pattern = folder + file.GetString();
         found = find.FindFile(pattern, 0) != 0;
     }
@@ -229,7 +224,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     }
     return true;
 }
-EI_REPLACE(0x005809D0, LoadZoneQuests);
+EI_REWRITTEN(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
@@ -272,7 +267,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 void GameFlow::RegisterQuests(const char* folder) {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
-    if (!FlowLoadQuestsOriginal(folder)) return;
+    if (!LoadZoneQuests(folder)) return;
     StringVector& folders = QuestFolders();
     for (stlp::string* s = folders.begin(); s != folders.end(); ++s)
         if (Equal(*s, folder)) return;
@@ -318,7 +313,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     {
         mfc::CString prefix(game::briefingwords::QuestSection());
         mfc::CString section = prefix + name;
-        found = TextsOpenSection(texts, nullptr, section);
+        found = texts->CTextManager::Open(section);
     }
     if (found) texts->ReadLine(&name, 1);
     return new (out) mfc::CString(name);

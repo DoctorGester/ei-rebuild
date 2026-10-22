@@ -6,8 +6,6 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 #include "object_tables.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "random.h"
 #include "resource_manager.h"
 #include "spell.h"
@@ -174,7 +172,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     itemManager_->ReleaseUnused();
     spellManager_->ReleaseUnused();
 }
-EI_REPLACE_METHOD(0x006618C0, CParty::LoadParty);
+EI_REWRITTEN(0x006618C0, CParty::LoadParty);
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
@@ -193,7 +191,7 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     WriteValue(stream, money_ ^ key);
     WriteValue(stream, key);
 }
-EI_REPLACE_METHOD(0x00661C10, CParty::SaveParty);
+EI_REWRITTEN(0x00661C10, CParty::SaveParty);
 
 CParty* CParty::Assign(CParty* source) {
     Clear(1, 0);

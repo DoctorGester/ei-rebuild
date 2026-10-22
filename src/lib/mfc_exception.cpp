@@ -9,12 +9,9 @@
 #include "mfc_runtime_class.h"
 #include "mfc_window.h"
 #include "static_object.h"
-#include "game/originals_library.h"   // GameAtExit
 #include "game/game_data.h"
 
 #include <new>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
@@ -356,15 +353,15 @@ EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
 EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
 EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
 EI_REWRITTEN(0x00702069, DeleteException);
-EI_REPLACE_METHOD(0x0070209C, CException::ReportError);
+EI_REWRITTEN(0x0070209C, CException::ReportError);
 EI_REWRITTEN(0x006FE31D, CSimpleException::InitString);
-EI_REPLACE_METHOD(0x006FE346, CSimpleException::GetErrorMessage);
-EI_REPLACE_METHOD(0x00703135, CFileException::GetErrorMessage);
-EI_REPLACE_METHOD(0x0070A795, CArchiveException::GetErrorMessage);
+EI_REWRITTEN(0x006FE346, CSimpleException::GetErrorMessage);
+EI_REWRITTEN(0x00703135, CFileException::GetErrorMessage);
+EI_REWRITTEN(0x0070A795, CArchiveException::GetErrorMessage);
 EI_REWRITTEN(0x006E6335, CFileException::Destruct);
-EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
+EI_REWRITTEN(0x006E6319, CFileException::DeletingDestructor);
 EI_REWRITTEN(0x006E6BA1, CArchiveException::Destruct);
-EI_REPLACE_METHOD(0x006E6B85, CArchiveException::DeletingDestructor);
+EI_REWRITTEN(0x006E6B85, CArchiveException::DeletingDestructor);
 EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
 EI_REPLACE(0x006E695C, UserExceptionDestruct);
 EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
@@ -376,8 +373,8 @@ EI_REWRITTEN(0x0070A835, ThrowArchiveException);
 EI_REWRITTEN(0x006FE3A2, ThrowNotSupported);
 EI_REWRITTEN(0x006FE389, ThrowMemoryException);
 EI_REWRITTEN(0x0070A29E, ThrowResourceException);
-EI_REPLACE(0x0070CF4C, FileExceptionRuntimeClass);
-EI_REPLACE(0x0070CF46, ArchiveExceptionRuntimeClass);
+EI_REWRITTEN(0x0070CF4C, FileExceptionRuntimeClass);
+EI_REWRITTEN(0x0070CF46, ArchiveExceptionRuntimeClass);
 
 namespace {
 void __cdecl DestroySimpleResourceException() { ResourceExceptionDestruct(AsException(g_simpleResourceException)); }   // 0070BF22
@@ -387,15 +384,15 @@ void __cdecl DestroySimpleNotSupportedException() {                             
 }
 void __cdecl ConstructSimpleResourceException() {   // 0070BEFA
     g_simpleResourceException->ConstructResource(FALSE, kIdsResourceException);
-    GameAtExit(DestroySimpleResourceException);
+    libcrt::AtExit(DestroySimpleResourceException);
 }
 void __cdecl ConstructSimpleMemoryException() {     // 0070C1B5
     g_simpleMemoryException->ConstructMemory(FALSE, kIdsMemoryException);
-    GameAtExit(DestroySimpleMemoryException);
+    libcrt::AtExit(DestroySimpleMemoryException);
 }
 void __cdecl ConstructSimpleNotSupportedException() {   // 0070C1ED
     g_simpleNotSupportedException->ConstructNotSupported(FALSE, kIdsNotSupportedException);
-    GameAtExit(DestroySimpleNotSupportedException);
+    libcrt::AtExit(DestroySimpleNotSupportedException);
 }
 } // namespace
 

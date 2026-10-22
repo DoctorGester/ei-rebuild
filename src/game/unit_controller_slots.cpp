@@ -39,7 +39,7 @@ void __fastcall ControllerDestruct(CUnitController* self) {
     self->unit_ = nullptr;
     self->DestructBase();
 }
-EI_REPLACE(0x00533DB0, ControllerDestruct);
+EI_REWRITTEN(0x00533DB0, ControllerDestruct);
 
 // 00533D90 (slot 0, RET 4).
 CUnitController* CUnitController::DeletingDestruct(unsigned flags) {
@@ -153,7 +153,7 @@ void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* mar
         ++marker->refCount_;
     }
 }
-EI_REPLACE_METHOD(0x00535240, CUnitClientSpecific::SetMarkers);
+EI_REWRITTEN(0x00535240, CUnitClientSpecific::SetMarkers);
 
 void CUnitClientSpecific::DropFaceTexture() {
     CTexture* texture = faceTexture;
@@ -161,7 +161,7 @@ void CUnitClientSpecific::DropFaceTexture() {
     if (texture) texture->Release();
     blinks = 0;
 }
-EI_REPLACE_METHOD(0x00538EA0, CUnitClientSpecific::DropFaceTexture);
+EI_REWRITTEN(0x00538EA0, CUnitClientSpecific::DropFaceTexture);
 
 // --- The compiled tables (C19) -------------------------------------------------------------------------
 // Compiled tags (engine_object_class.h) in place of game.exe's 0073EDBC (the abstract controller), 0073ECD8

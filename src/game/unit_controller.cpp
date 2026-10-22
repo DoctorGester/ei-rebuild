@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
 
 namespace {
 constexpr std::uint32_t kFlagRelationsChanged = 0x80000;   // flags_
@@ -31,7 +30,7 @@ void CUnit::SetHostileMask(std::uint32_t mask) {
     flags_ |= kFlagRelationsChanged;
     MarkChanged(kPartRelations);
 }
-EI_REPLACE_METHOD(0x0052E970, CUnit::SetHostileMask);
+EI_REWRITTEN(0x0052E970, CUnit::SetHostileMask);
 
 void CUnit::RefreshMotion() {
     PathOrder* path = Controller()->Path();
@@ -45,7 +44,7 @@ void CUnit::RefreshMotion() {
     unitMotion->Build(path);
     MarkChanged(kPartPath);
 }
-EI_REPLACE_METHOD(0x0052E9D0, CUnit::RefreshMotion);
+EI_REWRITTEN(0x0052E9D0, CUnit::RefreshMotion);
 
 void CUnit::SetPlayer(CPlayer* newPlayer) {
     CPlayer* old = player;
@@ -56,7 +55,7 @@ void CUnit::SetPlayer(CPlayer* newPlayer) {
     MarkChanged(kPartRelations);
     if (controller) Controller()->PlayerChanged(newPlayer);
 }
-EI_REPLACE_METHOD(0x005300D0, CUnit::SetPlayer);
+EI_REWRITTEN(0x005300D0, CUnit::SetPlayer);
 
 void CUnit::ReleaseUnit() {
     // The map object's slot 5 (0050E760) is empty.
@@ -74,11 +73,11 @@ void CUnit::ReleaseUnit() {
     carriedCapacity = 0;
     carriedCount = 0;
 }
-EI_REPLACE_METHOD(0x0052E740, CUnit::ReleaseUnit);
+EI_REWRITTEN(0x0052E740, CUnit::ReleaseUnit);
 
 void CUnit::DestroyUnit() {
     ClearState();
     DestroyMapObject();
     Reset();
 }
-EI_REPLACE_METHOD(0x0052E590, CUnit::DestroyUnit);
+EI_REWRITTEN(0x0052E590, CUnit::DestroyUnit);

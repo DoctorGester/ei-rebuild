@@ -84,4 +84,4 @@ Matrix4* __stdcall AxisSwapMatrix(Matrix4* out) {
     out->m[5] = -1.0f;
     return out;
 }
-EI_REPLACE(0x004F1330, AxisSwapMatrix);
+EI_REWRITTEN(0x004F1330, AxisSwapMatrix);

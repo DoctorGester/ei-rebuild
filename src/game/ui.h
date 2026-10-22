@@ -105,12 +105,6 @@ public:
     int ScalePointFromScreen(POINT* point) const;
     int ScalePointFromScreenCopy(POINT* point) const;
 
-    // Rewritten code calls the scaling functions through their original addresses: Rebirth patches
-    // all of them (widescreen), so in that install the hooks are skipped and the patched versions
-    // must still run (rewrite-guide rule 9). In the vanilla install these land on the rewrites above.
-    int CallScaleRectToScreen(RECT* rect) const;        // -> 005F7CA0
-    int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
-    int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
     // The same where Rebirth's WideScreen scales without the margin: addon clears ECX before the call
     // (XOR ECX,ECX over MOV ECX,[ESI+0x98] / [EDI+4]: the text surfaces' draw 005FDE20, the edit
     // field 0065C2E0, the connection list 0061D780, the save / load list 006567A0, the chat line
@@ -204,9 +198,8 @@ public:
     // empties the chat lines (ClearLines).
     void ChatKeyEnter();
     void ChatKeyBackspace();
-    // 005F8340 (RET 0xC; Rebirth-patched, WideScreen reproduced behind its flag, W2; ui_text_draw.cpp; rewritten
-    // callers go through InterfaceTextExtentOriginal). The extent of `text` (a CString taken by
-    // value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
+    // 005F8340 (RET 0xC; Rebirth-patched, WideScreen reproduced behind its flag, W2; ui_text_draw.cpp). The
+    // extent of `text` (a CString taken by value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
     // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`.
     SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
     // 005F46A0 (ui_small_members.cpp). The constructor of the interface object 007C7D50, run by
@@ -472,10 +465,7 @@ public:
     void SetTip(int textId, int a, int b);
     // 005FC6B0 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one showing `text`.
     void SetTipString(const char* text, int a, int b);
-    // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
-    void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
-    void CallAddPoint(int x, int y);                              // -> 005FCA70 (Rebirth-patched too)
-    // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect (through its original address) from a RECT
+    // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect from a RECT
     // passed by value; the menus' layouts use it for their menus.reg rectangles.
     void SetRectFrom(RECT rect);
 
@@ -1028,8 +1018,7 @@ struct CUiTooltip : CUiWindow {
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (RET 8; Rebirth-patched: the body is OnMouseMoveVanilla in ui_tooltip.cpp, WideScreen reproduced behind its flag, W2,
-    // and callers use this forwarder, rule 9). One step of the showing, with the mouse at (x, y)
+    // 0065E580 (RET 8; ui_tooltip.cpp; Rebirth-patched, WideScreen reproduced behind its flag, W2). One step of the showing, with the mouse at (x, y)
     // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
     // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
     // the key of command extra_ is looked up and measured, the state becomes 2 and the surface is
@@ -1037,7 +1026,6 @@ struct CUiTooltip : CUiWindow {
     // 4 (the appearing time is 0). State 3 draws while the timer is positive, then drops the
     // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
-    void OnMouseMoveVanilla(int x, int y);
     // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
     BOOL Draw(int pass);
     // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
@@ -1181,11 +1169,8 @@ public:
     void Update();
     // 0063C4F0 (slot 20). Draws with alpha test and specular on.
     BOOL Draw(int pass);
-    // 0063C050 (Rebirth-patched; rewritten callers go through this forwarder). Highlights slot
-    // `index` (or not).
-    void Highlight(int index, int on);
     // The bodies of the bar's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the bar
-    // at the screen's left edge; the battle screen and SetUnit reach them through their forwarders).
+    // at the screen's left edge).
     // 0063BAB0 (RET 8). Constructor: the window base, the labels, the vtables, the rectangle
     // (80, 520, 240, 600), four 40-wide regions with empty tips (WideScreen: everything from
     // 80 - shift, the regions still up to x 240, so more of them), no sprites, nothing selected,
@@ -1195,7 +1180,7 @@ public:
     // index, 540) depth 12, scale 0.65, colour 0xFF282828, its region from y 495; or not: at y 560,
     // scale 1.2 ^ count_ and depth 24 times that, colour 0xFF000000, the region from y 520
     // (WideScreen: with the left panels' offset).
-    void HighlightVanilla(int index, int on);
+    void Highlight(int index, int on);
     // 0063BCC0 (RET 8). The next slot's sprite: `image` copied into the bar's texture (42 x 128,
     // at column count_ / 2, row count_ % 2), the model `model` turned to face the screen, or a
     // plain rectangle when there is no such model; its texture offsets, plain white; counted and
@@ -1513,7 +1498,6 @@ public:
     // frame, the flash and the region; 56 wide (multiplayer: 40, or 56 with the low byte of `wide`
     // for the first). The low byte of `hasPlayer` marks a player's portrait (half tint, no bars).
     void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
-    void AddPortraitAt(const char* model, const char* picture, int wide, int hasPlayer);
 
     // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
     // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
@@ -1602,16 +1586,10 @@ public:
     // 005E6FA0 through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
-    // 005E70E0 / 005E7D60 (Rebirth-patched, not rewritten). Make the sprite a textured
-    // rectangle (layout left, top, right, bottom at `depth`; texels u0, v0 .. u1, v1) or a
-    // framed one (`border` wide).
+    // 005E70E0 (Rebirth-patched). Makes the sprite a textured rectangle (layout left, top, right,
+    // bottom at `depth`; texels u0, v0 .. u1, v1): SetRectangleVanilla.
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                       int u1, int v1);
-    void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
-                  int u0, int v0, int u1, int v1);
-    // 005E99D0 (Rebirth-patched: through its address; the vanilla body is SetTriangleVanilla).
-    void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
-                     float v0, float u1, float v1, float u2, float v2);
     // 005E70E0 (RET 0x28; Rebirth-patched; ui_mesh_shapes.cpp, hooked in the vanilla launch and,
     // reproducing WideScreen, in a Rebirth launch; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
@@ -1631,11 +1609,11 @@ public:
     // 005E7D60 (RET 0x2C). A frame `border` wide inside the rectangle: the outer and the inner
     // rectangle's corners (two packets) joined by four quads, each showing the whole picture;
     // position_ the layout centre at `depth`.
-    void SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
+    void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
                          int v0, int u1, int v1);
     // 005E99D0 (RET 0x38). A triangle: the first layout point is position_ (at `depth`), the
     // other two are points relative to it in units of `scale`; the texels are floats here.
-    void SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+    void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                             float v0, float u1, float v1, float u2, float v2);
     // 005E6FA0 (RET 0xC; ui_mesh_draw.cpp). Place: position_ =
     // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
@@ -1739,12 +1717,11 @@ public:
     // 00635C80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHudMap* HudMapDelete(unsigned flags);
-    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3; our callers go
-    // through CallLayout). Places the panel's
+    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
+    // Places the panel's
     // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
     // current slide offset.
-    void LayoutVanilla();
-    void CallLayout();                             // through 00642930
+    void Layout();
     // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
     // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
     // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
@@ -1828,13 +1805,12 @@ public:
     // 00635CE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHudUnitPanel* HudUnitPanelDelete(unsigned flags);
-    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3; our callers go
-    // through CallLayout). Places the panel's
+    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
+    // Places the panel's
     // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
     // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
     // regions after the first at the current slide offset.
-    void LayoutVanilla();
-    void CallLayout();                             // through 00645F80
+    void Layout();
     // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
     // A running slide advances (as the map's), the panel is laid out and the sling button (scene
     // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
@@ -1945,8 +1921,6 @@ public:
     // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
     // shows the button's state (scene object 5).
     void ToggleFlag();
-    // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
-    void ShowMode(int mode);
     // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
     // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
     // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
@@ -2038,7 +2012,7 @@ public:
     void DrawChildrenImpl(int pass);
     // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
     // seconds: the display object's (00500960) slot 6 milliseconds * 0.001f, left unrounded in ST0.
-    double FrameTime();
+    static double FrameTime();
     // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
     // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this calls it).
@@ -2817,17 +2791,7 @@ public:
     // 00655A10. A selected save that is not broken: "notify_loading" shown, 00578920(1), "ok"
     // played, the game flow asked to load its folder (flag 0).
     void LoadSelected();
-    void CallDeleteSave();
 
-    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
-    // RefreshListVanilla in ui_saveload_list.cpp, A-H26, WideScreen reproduced behind its flag, W2). Draws the list into surface 0: the caret
-    // clamped to the name; up to sixteen rows from firstVisible_, each the save's title (the typed
-    // name for the selected row of a save window) and, but for a save window's new save, its date
-    // ("%d/%m, %H:%M"); the selected row also gets the caret (a save window, not the quick or an
-    // automatic save) and the marker (scene object 4, hidden otherwise); then for a selected save
-    // that is not broken its allod, zone, the game's day and time ("save_day" d, h:mm from
-    // gameTime_ hours) and its folder.
-    void RefreshList();
     void RefreshListVanilla();
 
     // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
@@ -2843,9 +2807,6 @@ public:
     // list, sorts it, puts the new save's entry first in a save window (with dialog_ made from the
     // escape menu's 256x192 copy of the screen) and sets the scroll bar's range.
     void FillEntries();
-    void CallSaveGame();
-    void CallShowPicture();
-    void CallFillEntries();
 
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
@@ -3182,7 +3143,6 @@ public:
     // ("action_" + name), and the first key name (table 007857B0) of a scan code bound to the
     // action, as the keys' text.
     void BuildBindings();
-    void CallApply();
 
     // 00652000 (ui_options.cpp, A-H21). Binds pressedKey_ to the selected row's action: the row's
     // keys unbound and replaced by the pressed one (keys text rebuilt), the key taken from the first
@@ -3245,13 +3205,6 @@ public:
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
     // the key is marked used. Other keys: nothing.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
-    // DrawContentsVanilla in ui_edit_field.cpp, A-H26, WideScreen reproduced behind its flag, W2). The caret is clamped to the text; with the
-    // surface's DC (nothing without one) the surface is cleared, the text drawn over the whole
-    // field in font_ and colour_ (centred when centred_), and the caret drawn as a line of
-    // caretColour_ over the field's height after the first caret_ characters, unless it falls
-    // outside the field. (Not named DrawText: windows.h makes that a macro.)
-    void DrawContents();
     void DrawContentsVanilla();
     mfc::CString& Text() { return text_; }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
@@ -3391,8 +3344,6 @@ public:
     // 006592C0 (input slot 9, RET 0xC). The container's key handler, then Enter the next page
     // (Finish on the last), Esc or the help key (action ';') Finish; each sets the handled flag.
     void OnKeyDown(int key, int repeat, int flags);
-    // 00659420 (Rebirth-patched; through its address). Shows page page_.
-    void ShowPage();
     // 00659420's body (plain RET; ui_help_page.cpp, A-H26; reproducing Rebirth's WideScreen, so
     // hooked in both launches). Empties the two lists, the surfaces, regions and scene objects,
     // opens "tutorial <text_>" (without it the pending value is set to 0) and goes to the page's
@@ -3406,7 +3357,7 @@ public:
     // makes the pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells,
     // and gives the height), 2 the buttons' texts with the help key's name. Regions 0-2 the
     // buttons.
-    void ShowPageVanilla();
+    void ShowPage();
 
     bool message_;                       // +0x164 a message window (ShowMessage), not help
     std::uint8_t unused_165[3];
@@ -3550,3 +3501,9 @@ long& MouseDragY();
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }
+
+// key_bindings.cpp: 00462C10 reads and 00462DF0 writes config\keyboard.ini (the interface's create and shutdown).
+namespace keybind {
+void __cdecl LoadKeyBindings();
+void __cdecl SaveKeyBindings();
+}

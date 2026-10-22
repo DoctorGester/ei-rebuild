@@ -1,6 +1,5 @@
 // Functions the game sources linked into ei_vectors refer to but no replay reaches: their files would
-// pull in the world, the renderer and the terrain. Each stops the replay naming itself (as an
-// EI_ORIGINAL forwarder without a rewrite does, hook_stub.cpp).
+// pull in the world, the renderer and the terrain. Each stops the replay naming itself.
 #include "../../src/game/ai_map.h"
 #include "../../src/game/ai_shape_cache.h"
 #include "../../src/game/base_manager.h"
@@ -128,3 +127,15 @@ CWorldServer* TheServerWorld() {
     alignas(8) static unsigned char world[sizeof(CWorldServer)] = {};
     return reinterpret_cast<CWorldServer*>(world);
 }
+
+// The game CRT's rand (crt.cpp's port reads the image's per-thread seed) and the fatal error report (app.cpp).
+int __cdecl libcrt::Rand() EI_UNLINKED("libcrt::Rand")
+int __cdecl game::FatalError(const char*, ...) EI_UNLINKED("game::FatalError")
+
+// The object lookup (world_server.cpp) and the sector map's Move (sector_map.cpp).
+CMapObject* CWorldServer::FindObject(unsigned) EI_UNLINKED("CWorldServer::FindObject")
+bool CSectorMap::Move(CMapObject*, const Vector3*) EI_UNLINKED("CSectorMap::Move")
+
+// The game CRT's atexit (crt.cpp): the static initialisers of the linked game sources register their exit
+// functions; the replay runs none of them.
+int __cdecl libcrt::AtExit(libcrt::ExitFunction) { return 0; }

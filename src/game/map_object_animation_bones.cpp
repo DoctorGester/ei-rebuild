@@ -9,7 +9,6 @@
 #include "base_manager.h"
 #include "core_maths.h"
 #include "figure_mesh.h"
-#include "originals_units.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -86,7 +85,7 @@ CFigureAnimationState::CFigureAnimationState() {
 }
 
 CFigureAnimationState* CFigureAnimationState::Construct() { return new (this) CFigureAnimationState(); }
-EI_REPLACE_METHOD(0x0050C5F0, CFigureAnimationState::Construct);
+EI_REWRITTEN(0x0050C5F0, CFigureAnimationState::Construct);
 
 CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
@@ -153,7 +152,7 @@ FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
         if (CompareNames(node->data->name, boneName) == 0) return node->data;
     return nullptr;
 }
-EI_REPLACE_METHOD(0x0050CC20, CFigureAnimationState::FindBone);
+EI_REWRITTEN(0x0050CC20, CFigureAnimationState::FindBone);
 
 int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, const char* parentName) {
     CBaseManager* manager = FigureManagerOf(this);
@@ -214,7 +213,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     if (old) old->Release();
     return 1;
 }
-EI_REPLACE_METHOD(0x0050D0E0, CFigureAnimationState::AttachMesh);
+EI_REWRITTEN(0x0050D0E0, CFigureAnimationState::AttachMesh);
 
 int CFigureAnimationState::FindRoot() {
     changed = 1;
@@ -226,7 +225,7 @@ int CFigureAnimationState::FindRoot() {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0050D2E0, CFigureAnimationState::FindRoot);
+EI_REWRITTEN(0x0050D2E0, CFigureAnimationState::FindRoot);
 
 int CFigureAnimationState::SetModel(const char* model) {
     changed = 1;
@@ -247,7 +246,7 @@ int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0050D350, CFigureAnimationState::DetachMesh);
+EI_REWRITTEN(0x0050D350, CFigureAnimationState::DetachMesh);
 
 int CFigureAnimationState::DetachMeshes() {
     changed = 1;
@@ -260,7 +259,7 @@ int CFigureAnimationState::DetachMeshes() {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0050D3A0, CFigureAnimationState::DetachMeshes);
+EI_REWRITTEN(0x0050D3A0, CFigureAnimationState::DetachMeshes);
 
 void CFigureAnimationState::PlaceIfChanged() {
     if (!changed) return;
@@ -317,7 +316,7 @@ EI_REWRITTEN(0x0050D920, CFigureAnimationState::CollectBoneNames);
 
 // 0050DFF0 (RET 8): AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key
 // frames' vertex sets; 0050A720, 0050C552). Registered on the template (map_object_figures.cpp).
-EI_REPLACE_METHOD(0x0050DFF0, AlignedPtrArray::SetSize);
+EI_REWRITTEN(0x0050DFF0, AlignedPtrArray::SetSize);
 
 int CFigureAnimationState::ClearBoneTracks() {
     changed = 1;

@@ -53,7 +53,7 @@ CItem* CItem::Construct() {
     DropSpell(spell_);
     return this;
 }
-EI_REPLACE_METHOD(0x0069FCA0, CItem::Construct);
+EI_REWRITTEN(0x0069FCA0, CItem::Construct);
 
 int CItem::Create() {
     count_ = 1;
@@ -85,13 +85,13 @@ void CItem::DestructBody() {
     if (link != nullptr && --link->refs_ == 0) delete link;
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0069FD70, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A05B0, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A2FC0, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A3B30, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A4420, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A4A00, CItem::DestructBody);
-EI_REPLACE_METHOD(0x006A5740, CItem::DestructBody);
+EI_REWRITTEN(0x0069FD70, CItem::DestructBody);
+EI_REWRITTEN(0x006A05B0, CItem::DestructBody);
+EI_REWRITTEN(0x006A2FC0, CItem::DestructBody);
+EI_REWRITTEN(0x006A3B30, CItem::DestructBody);
+EI_REWRITTEN(0x006A4420, CItem::DestructBody);
+EI_REWRITTEN(0x006A4A00, CItem::DestructBody);
+EI_REWRITTEN(0x006A5740, CItem::DestructBody);
 
 CItem* CItem::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -115,7 +115,7 @@ CItemWeapon* CItemWeapon::Construct() {
     actionValue_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x006A0540, CItemWeapon::Construct);
+EI_REWRITTEN(0x006A0540, CItemWeapon::Construct);
 
 CItemArmor* CItemArmor::Construct() {
     CItem::Construct();
@@ -125,35 +125,35 @@ CItemArmor* CItemArmor::Construct() {
     layerMask_[0] = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x006A2F20, CItemArmor::Construct);
+EI_REWRITTEN(0x006A2F20, CItemArmor::Construct);
 
 CItemQuick* CItemQuick::Construct() {
     CItem::Construct();
     SetVtable(this, Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x006A3AD0, CItemQuick::Construct);
+EI_REWRITTEN(0x006A3AD0, CItemQuick::Construct);
 
 CItemQuest* CItemQuest::Construct() {
     CItem::Construct();
     SetVtable(this, Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x006A43A0, CItemQuest::Construct);
+EI_REWRITTEN(0x006A43A0, CItemQuest::Construct);
 
 CItemLoot* CItemLoot::Construct() {
     CItem::Construct();
     SetVtable(this, Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x006A49A0, CItemLoot::Construct);
+EI_REWRITTEN(0x006A49A0, CItemLoot::Construct);
 
 CItemSpell* CItemSpell::Construct() {
     CItem::Construct();
     SetVtable(this, Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x006A56E0, CItemSpell::Construct);
+EI_REWRITTEN(0x006A56E0, CItemSpell::Construct);
 
 // --- The item manager's Create and factory (A-H25) -------------------------------------------------
 

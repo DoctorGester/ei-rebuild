@@ -249,9 +249,6 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
 } // namespace
 
-// --- Forwarders --------------------------------------------------------------------------------
-
-
 // --- 00643DC0 ----------------------------------------------------------------------------------
 
 void CHudMap::BuildMarkers() {
@@ -410,7 +407,6 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
 }
 
 } // namespace
-
 
 void CHudMap::UpdateView() {
     // Follow the camera: the map is centred on its target and turns with its facing.

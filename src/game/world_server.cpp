@@ -1,6 +1,7 @@
 // CWorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
 #include "player_messages.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "party.h"
 #include "world.h"
@@ -18,10 +19,6 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_world.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "game_lists.h"
 #include "game_data.h"
 
@@ -43,11 +40,7 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-
 // RemoveObject's callees (not rewritten).
-// 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
-// 005300D0 (RET 4). The unit's controller is replaced (here by none).
-// 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
@@ -58,7 +51,6 @@ void EraseId(Map& map, unsigned id) {
 }
 
 } // namespace
-
 
 // ---- Id maps -------------------------------------------------------------------------------------
 
@@ -208,7 +200,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) SectorMapRemove(Sectors(), nullptr, *slot);
+    if (object->GetClassId() != kClassNoSector) Sectors()->Remove(*slot);
 
     hash400::ObjectsRemoveKey(updateMap_.map, id);
     EraseId(objects_, id);
@@ -258,7 +250,7 @@ void CWorldServer::RemoveAllUnits() {
         bool isUnit = object->GetClassId() == world::kClassUnit;
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
-        if (isUnit) WorldRemoveObject(this, nullptr, static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
+        if (isUnit) RemoveObject(static_cast<int>(id));   // 005935C0: Rebirth patches it (rule 9)
     } while (node);
 }
 EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);
@@ -292,8 +284,8 @@ EI_REWRITTEN(0x0058A3D0, CWorldServer::ServerGroundHeight);
 double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
 EI_REWRITTEN(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
-EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
-EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
+EI_REWRITTEN(0x005935C0, CWorldServer::RemoveObject);
+EI_REWRITTEN(0x00593AA0, CWorldServer::FindObject);
 EI_REWRITTEN(0x00594180, CWorldServer::GetPlayer);
 EI_REWRITTEN(0x00594220, CWorldServer::GridHeight);
 EI_REWRITTEN(0x00591740, CWorldServer::CountLivingMercs);
@@ -306,7 +298,7 @@ EI_REWRITTEN(0x0058EE00, CWorldServer::SetWeather);
 EI_REWRITTEN(0x005942C0, CWorld::SetServerPaused);
 EI_REWRITTEN(0x00566350, CWorld::SetPaused);
 EI_REWRITTEN(0x0058E4C0, CWorldServer::GetZoneExit);
-EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);
+EI_REWRITTEN(0x0058E520, CWorldServer::AddTimedObject);
 EI_REWRITTEN(0x0058E5D0, CWorldServer::RemoveTimedObject);
 EI_REWRITTEN(0x0058D5D0, CWorldServer::AddToUpdateMap);
 EI_REWRITTEN(0x005999E0, ObjectIdMap::Set);

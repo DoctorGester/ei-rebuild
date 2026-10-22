@@ -13,17 +13,11 @@
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
 #include "random.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>
 #include <type_traits>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace scriptaddon {
 
@@ -138,9 +132,9 @@ bool GetArmor(Call* call) {
         for (int i = 0; i < 3; ++i) sum = slot.layers[i].absorb[part] + sum;
         Store(call->FloatResult(), sum);
     } else {
-        char* unit = reinterpret_cast<char*>(data->unit);
+        CUnit* unit = data->unit;
         float block[7];
-        UnitParameterBlock(unit + 0x330, nullptr, unit + 0x17C, block, data->unit->id_ >= 1000000000 ? 1 : 0);
+        unit->Params()->ProtectionBlock(&unit->packedVitals, block, static_cast<unsigned char>(unit->id_ >= 1000000000 ? 1 : 0));
         Store(call->FloatResult(), block[part]);
     }
     return true;

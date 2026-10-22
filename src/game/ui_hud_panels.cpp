@@ -15,9 +15,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -38,7 +35,7 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 
 // Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
-    SurfaceDrawText(window->surfaces_.data[0], nullptr, text, &rect, 0, colour, a, b);
+    window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
@@ -193,13 +190,13 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             icons[i] = static_cast<int>(spell->icon);
             code = spell->code.GetString();
             // The texts' section "spell <code>": its first line is the spell's name.
-            bool found = TextsOpenSection(texts, nullptr, mfc::CString("spell ") + code) != 0;
+            bool found = texts->CTextManager::Open(mfc::CString("spell ") + code) != 0;
             if (found) texts->ReadLine(&text, 1);
         }
-        SurfaceDrawText(surface, nullptr, text, &line, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
         number.Format("%d", effects[i].ticksLeft / 15);
-        SurfaceDrawText(surface, nullptr, number, &line, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
     }
 
@@ -294,7 +291,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = WorldCopyItemOriginal(TheClientWorld(), nullptr, item);
+        CItem* copy = reinterpret_cast<CParty*>(TheClientWorld())->MakeCopyOf(item);
         copy->count_ = item->count_;
         ++copy->refCount_;
         merged.AddTail(copy);
@@ -304,7 +301,7 @@ void CHudTopPanel::ShowItems() {
     text.Empty();
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
-        TextsGetString(texts, nullptr, "format_money", &format);
+        texts->CTextManager::GetString("format_money", &format);
         line.Format(format, static_cast<int>(party->money_));
         text += line;
         text += kNewLine;
@@ -325,16 +322,16 @@ void CHudTopPanel::ShowItems() {
     }
     merged.RemoveAll();
 }
-EI_REPLACE_METHOD(0x0064A7A0, CHudTopPanel::ShowItems);
+EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
     // Place (005E6FA0) is Rebirth-patched: through its address.
     float offset = static_cast<float>(offset_);
-    SpritePlaceOriginal(sceneObjects_.data[0], nullptr, 400.0f, 57.5f - offset, 20.0f);
-    SpritePlaceOriginal(sceneObjects_.data[1], nullptr, 400.0f, 10.0f - offset, 20.0f);
-    SpritePlaceOriginal(sceneObjects_.data[3], nullptr, 200.0f, 10.0f - offset, 10.0f);
-    SpritePlaceOriginal(sceneObjects_.data[4], nullptr, 230.0f, 10.0f - offset, 10.0f);
-    SpritePlaceOriginal(sceneObjects_.data[5], nullptr, 400.0f, 47.5f - offset, 18.0f);
+    static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(400.0f, 57.5f - offset, 20.0f);
+    static_cast<CUiMesh*>(sceneObjects_.data[1])->PlaceBody(400.0f, 10.0f - offset, 20.0f);
+    static_cast<CUiMesh*>(sceneObjects_.data[3])->PlaceBody(200.0f, 10.0f - offset, 10.0f);
+    static_cast<CUiMesh*>(sceneObjects_.data[4])->PlaceBody(230.0f, 10.0f - offset, 10.0f);
+    static_cast<CUiMesh*>(sceneObjects_.data[5])->PlaceBody(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
     owner_->MessageLog()->CallSetRect(&rect);
     for (int i = 1; i < regions_.size; ++i) {

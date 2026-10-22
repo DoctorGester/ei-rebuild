@@ -31,7 +31,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
-#include "originals_core.h"
 #include "party_storage.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -1152,6 +1151,10 @@ struct ClientArrayManager : CBaseManager {
     mfc::CList<CEngineObject*> list;      // +0xB4 counted (vtable 0073F73C)
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
+// vis_fog_manager.cpp: 004E2850 the manager's Clear (its object and every listed one released, the list emptied);
+// 004E28D0 a new fog object, counted, at the list end.
+void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
+CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 // +0x19C: the particle manager, CParticleManager (effects.h).
 
 // The drawing side (game.exe's vtable 0073F41C; world_class.h's CWorldClientClass).
@@ -1941,7 +1944,7 @@ extern stlp::vector<stlp::string> g_questFiles;
 // "<zone>.mq" (CFileFind). A running game server (0079B5DC) first lists the file's bytes under
 // "<zone>.mq" for its clients (ShareFile); then a path not yet among the quest files (007AFDD0)
 // joins them and the briefing texts add it as a source. Rebirth patches it: hooked in the vanilla
-// launch only, and rewritten callers go through FlowLoadQuestsOriginal (originals_world.h).
+// launch only.
 bool __stdcall LoadZoneQuests(const char* zone);
 
 // 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of

@@ -352,7 +352,6 @@ using ScriptTokenList = mfc::CList<ScriptToken>;
 // The parser's current position in the token list (null at the end).
 using ScriptPos = ScriptTokenList::Node*;
 
-
 // A named area for IsInArea (AddRectToArea / AddRoundToArea): one element of the area's array.
 struct ScriptAreaPart {
     std::uint8_t isRect;
@@ -562,7 +561,7 @@ public:
     // Every Load* function returns 1 on success; on failure it returns what Error returned (0).
     // `pos` is the current token (CList POSITION); functions consume tokens through it.
 
-    // 004CF470 (Rebirth patches it; forwarder). Formats the message into the error text (+0x1EC)
+    // 004CF470 (Rebirth patches it). Formats the message into the error text (+0x1EC)
     // and sets the error code (+0x1F0) and line (+0x1F4). Returns 0. __cdecl with `this` first.
     static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
     // 004CF7A0. Splits the script text into tokens (see script.md, "Lexer").
@@ -602,7 +601,6 @@ public:
     // the file cannot be read.
     BOOL LoadFile(const char* path);
 
-    // Not rewritten (forwarders).
     struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
     // 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
     struct ScriptDecl* NewWorldScript();

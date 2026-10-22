@@ -16,9 +16,6 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -26,17 +23,14 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console {
 
-// ---- Library forwarders -------------------------------------------------------------------------
+// ---- Helpers ------------------------------------------------------------------------------------
 
 void Str::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
 void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
 void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
-
 
 // The library's CStdioFile (lib/mfc_file.h) has this layout.
 mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
@@ -57,7 +51,6 @@ GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); r
 GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
 GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
-
 CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return map->Subscript(name); }
 
 namespace {
@@ -75,8 +68,6 @@ int Mbscmp(const char* a, const char* b) {
 bool NetworkGame() { return IsMultiplayerClient(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
-
-
 
 } // namespace
 
@@ -119,7 +110,7 @@ ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     vtable_ = static_cast<void**>(Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
+EI_REWRITTEN(0x005DC200, ConsoleStreambuf::Construct);
 
 // 005DC260
 void ConsoleStreambuf::Destruct() {
@@ -127,7 +118,7 @@ void ConsoleStreambuf::Destruct() {
     line_.~CString();
     Base()->Destruct();   // 006FCB35
 }
-EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
+EI_REWRITTEN(0x005DC260, ConsoleStreambuf::Destruct);
 
 // 005DC240
 ConsoleStreambuf* ConsoleStreambuf::DeletingDestruct(unsigned flags) {
@@ -135,7 +126,7 @@ ConsoleStreambuf* ConsoleStreambuf::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005DC240, ConsoleStreambuf::DeletingDestruct);
+EI_REWRITTEN(0x005DC240, ConsoleStreambuf::DeletingDestruct);
 
 // 005DC150: moves the put area (and `c`, unless EOF) into the line, when this streambuf's
 // category is shown; a hidden category keeps its put area as it is. Always returns 0.
@@ -150,7 +141,7 @@ int ConsoleStreambuf::Overflow(int c) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x005DC150, ConsoleStreambuf::Overflow);
+EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 
 // 005DC1B0: overflow(EOF) through the vtable, the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
@@ -161,7 +152,7 @@ int ConsoleStreambuf::Sync() {
     line_ = game::EmptyText();   // ""
     return 0;
 }
-EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);
+EI_REWRITTEN(0x005DC1B0, ConsoleStreambuf::Sync);
 
 // ---- Executor -----------------------------------------------------------------------------------
 
@@ -280,11 +271,11 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
                     out->SetAtGrow(out->GetSize(), token);
                     token.Empty();
                 }
-                p = MbsInc(p);
+                p = gamecrt::mbsinc(p);
                 continue;
             }
             if (state != 2) {
-                p = MbsInc(p);
+                p = gamecrt::mbsinc(p);
                 continue;
             }
         } else if (c == '"') {
@@ -299,7 +290,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
             Ops(character).AssignChar(p[0]);
         }
         token += character;
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     if (token.GetLength() != 0) {
         out->SetAtGrow(out->GetSize(), token);

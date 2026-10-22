@@ -12,8 +12,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "random.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "system_text.h"
 
@@ -23,8 +21,6 @@
 #include <cstring>
 #include <string>
 #include <vector>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace scriptaddon {
 

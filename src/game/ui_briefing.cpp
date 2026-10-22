@@ -15,10 +15,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
@@ -72,7 +68,7 @@ void CBriefingScreen::Close() {
     std::uint32_t& flags = TheCamera()->flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
-EI_REPLACE_METHOD(0x00602BB0, CBriefingScreen::Close);
+EI_REWRITTEN(0x00602BB0, CBriefingScreen::Close);
 
 // --- 00606F40: slot 27 --------------------------------------------------------------------------
 
@@ -158,7 +154,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00602C90, CBriefingScreen::OnUnitJoined);
+EI_REWRITTEN(0x00602C90, CBriefingScreen::OnUnitJoined);
 
 // --- 00603010: slot 30 --------------------------------------------------------------------------
 
@@ -172,7 +168,7 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (after != 0) std::memmove(&party_.data[index], &party_.data[index + 1], after * sizeof(party_.data[0]));
     --party_.size;
 }
-EI_REPLACE_METHOD(0x00603010, CBriefingScreen::OnUnitLeft);
+EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
 
 // --- 00608C70: slot 31 --------------------------------------------------------------------------
 
@@ -184,7 +180,7 @@ void CBriefingScreen::OnGameOver(int) {
                        : nullptr;
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x00608C70, CBriefingScreen::OnGameOver);
+EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);
 
 // --- 006030C0: slot 34 --------------------------------------------------------------------------
 
@@ -192,14 +188,14 @@ void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
     StartDialogue(1, 1);
 }
-EI_REPLACE_METHOD(0x006030C0, CBriefingScreen::OnBriefing);
+EI_REWRITTEN(0x006030C0, CBriefingScreen::OnBriefing);
 
 // --- 00603090: slot 36 --------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
-EI_REPLACE_METHOD(0x00603090, CBriefingScreen::ShowChat);
+EI_REWRITTEN(0x00603090, CBriefingScreen::ShowChat);
 
 // --- 00602490: slot 40 --------------------------------------------------------------------------
 
@@ -207,8 +203,8 @@ void CBriefingScreen::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);
 }
-EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
-EI_REPLACE_METHOD(0x00606F40, CBriefingScreen::OnMessageResult);
+EI_REWRITTEN(0x00602490, CBriefingScreen::SaveState);
+EI_REWRITTEN(0x00606F40, CBriefingScreen::OnMessageResult);
 
 // --- 00607720 -----------------------------------------------------------------------------------
 

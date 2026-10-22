@@ -26,10 +26,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
@@ -258,7 +254,7 @@ void CBriefingScreen::FinishDialogue() {
         CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
+        auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);
@@ -290,7 +286,7 @@ void CBriefingScreen::FinishDialogue() {
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         text::Split(node->value.key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
-        WorldCompleteBriefingOriginal(TheServerWorld(), nullptr, 0, node->value.key);
+        TheServerWorld()->CompleteBriefing(0, node->value.key);
         break;
     }
 

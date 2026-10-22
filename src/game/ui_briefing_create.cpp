@@ -30,12 +30,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
@@ -100,7 +94,7 @@ CPlayer* LocalViewPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
+CUnit* ServerUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -128,7 +122,7 @@ void PlaceMover(BriefingMover* node) {
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    SectorMapMove(TheSectorMap(), nullptr, unit, &target);
+    TheSectorMap()->Move(unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
     node->person->SetHeading(&facing.x);
@@ -289,21 +283,21 @@ void CBriefingScreen::Create() {
     markPhase_ = 0.0f;
 }
 
-EI_REPLACE_METHOD(0x006024B0, CBriefingScreen::Create);
+EI_REWRITTEN(0x006024B0, CBriefingScreen::Create);
 
 // --- 00604130: slot 24 --------------------------------------------------------------------------
 
 void CBriefingScreen::Update() {
-    markPhase_ = static_cast<float>(WindowFrameTimeOriginal(this) + markPhase_);
+    markPhase_ = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + markPhase_);
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
     children_.data[kTopicBarChild]->SetEnabled(0, 1);
     children_.data[kTextChild]->SetEnabled(0, 1);
 
     for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
-        node->time = static_cast<float>(WindowFrameTimeOriginal(this) + node->time);
+        node->time = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + node->time);
         if (node->time > kMoverTimeout) {
             PlaceMover(node);
             node->state = BriefingMover::kDone;
@@ -355,7 +349,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) NextPhrase(0);
         } else {
-            phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
+            phraseTime_ = static_cast<float>(phraseTime_ - static_cast<CUiContainer*>(this)->FrameTime());
             EI_NAN_AUDIT(phraseTime_);
             if (phraseTime_ < 0.0f) NextPhrase(0);
         }
@@ -367,7 +361,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {
-            phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
+            phraseTime_ = static_cast<float>(phraseTime_ - static_cast<CUiContainer*>(this)->FrameTime());
             EI_NAN_AUDIT(phraseTime_);
             if (speaking_ && phraseTime_ < 0.0f) StopTalking(speaking_);
         }
@@ -395,7 +389,7 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (int* id = people_.begin(); id != people_.end(); ++id) {
-        if (!WorldFindUnit(TheClientWorld(), nullptr, *id)) continue;
+        if (!static_cast<CWorld*>(TheClientWorld())->FindUnit(*id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player && player->Server())
@@ -427,4 +421,4 @@ void CBriefingScreen::LeaveIfExitOpen() {
     records.FreeData();
 }
 
-EI_REPLACE_METHOD(0x00604130, CBriefingScreen::Update);
+EI_REWRITTEN(0x00604130, CBriefingScreen::Update);

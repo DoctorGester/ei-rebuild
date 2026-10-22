@@ -9,7 +9,6 @@
 
 #include "ei/hook.h"
 #include "render/render_state.h"
-#include "originals_ui.h"
 
 #include <cstdint>
 
@@ -46,7 +45,7 @@ void CUiContainer::DrawChildrenImpl(int pass) {
     }
     SetState(this, kAlphaRef, savedRef);
 }
-EI_REPLACE_METHOD(0x00600F70, CUiContainer::DrawChildrenImpl);
+EI_REWRITTEN(0x00600F70, CUiContainer::DrawChildrenImpl);
 
 // 0062EFC0. Returns 1.
 int CUiContainer::DrawBlendedImpl(int pass) {
@@ -58,7 +57,7 @@ int CUiContainer::DrawBlendedImpl(int pass) {
     DrawContainerImpl(pass);
     return 1;
 }
-EI_REPLACE_METHOD(0x0062EFC0, CUiContainer::DrawBlendedImpl);
+EI_REWRITTEN(0x0062EFC0, CUiContainer::DrawBlendedImpl);
 
 // 0065A6D0. Returns 1.
 int CUiContainer::DrawAlphaRefImpl(int pass) {
@@ -68,4 +67,4 @@ int CUiContainer::DrawAlphaRefImpl(int pass) {
     SetState(this, kAlphaRef, savedRef);
     return 1;
 }
-EI_REPLACE_METHOD(0x0065A6D0, CUiContainer::DrawAlphaRefImpl);
+EI_REWRITTEN(0x0065A6D0, CUiContainer::DrawAlphaRefImpl);

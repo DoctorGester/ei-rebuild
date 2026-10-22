@@ -3,13 +3,13 @@
 // and the figure strips' draw, count and click (00629AF0, 00629AD0, 00629DB0).
 // See ui_screens.h (CUiItemStrip::Setup, SetupFigures) and docs/notes/ui.md ("Camp, global map,
 // hero screens").
+#include "ui.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 
 #include <bit>
 #include <cstdint>
@@ -39,10 +39,6 @@ constexpr float kFrameDepth = 0.9f;
 constexpr float kFaceDepth = 1.5f;
 constexpr float kSlotsPerPixel = 0.01f;
 constexpr std::uint32_t kDimmed = 0x3E480000;   // 0.1953125 as the end faces' texture offset
-
-// 005ED7B0 through its address (CItemScreen::DrawHeroFace; its verify wrapper runs).
-__declspec(naked) void __fastcall DrawHeroFaceAt(CUiWindow* /*owner*/, void*, int /*pass*/, HeroFaceCell*)
-    EI_ORIGINAL(0x005ED7B0)
 
 // "buttons\battle\on_off.wav": the sound system keeps the game's own string pointer.
 const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
@@ -75,7 +71,7 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
     tabsEnabled_ = false;
     for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
 }
-EI_REPLACE_METHOD(0x00629A40, CUiItemStrip::SetupFigures);
+EI_REWRITTEN(0x00629A40, CUiItemStrip::SetupFigures);
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
@@ -111,20 +107,20 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
         cell.y = static_cast<float>(top_) + kHalfCell;
         cell.depth = scale_ * kFaceDepth;
         cell.size = kCell;
-        DrawHeroFaceAt(owner_, nullptr, pass, &cell);
+        owner_->DrawHeroFace(pass, &cell);
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00629AF0, CUiItemStrip::DrawFigures);
+EI_REWRITTEN(0x00629AF0, CUiItemStrip::DrawFigures);
 
 void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
-EI_REPLACE_METHOD(0x00629AD0, CUiItemStrip::CountFigures);
+EI_REWRITTEN(0x00629AD0, CUiItemStrip::CountFigures);
 
 void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     OnLButtonDown(buttons, x, y);
     if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
@@ -132,4 +128,4 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);
+EI_REWRITTEN(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);

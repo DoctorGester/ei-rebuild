@@ -2,13 +2,11 @@
 // (mfc_state.h).
 #include "mfc_state.h"
 
+#include "crt.h"
 #include "ei/hook.h"
-#include "game/originals_library.h"   // GameAtExit
 #include "gameapi.h"
 #include "static_object.h"
 #include "game/game_data.h"
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
@@ -154,7 +152,7 @@ namespace {
 void __cdecl DestroyAfxData() { g_afxData->Destruct(); }   // 0070D14E
 void __cdecl ConstructAfxData() {                          // 0070D12E
     g_afxData->Construct();
-    GameAtExit(DestroyAfxData);
+    libcrt::AtExit(DestroyAfxData);
 }
 } // namespace
 
@@ -244,14 +242,14 @@ constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
 // The original keeps atexit's answer in _afxWingdixTerm (007C8D44), which nothing reads.
-void __cdecl AfxWingdixTermInit() { GameAtExit(WingdixTermAt()); }
+void __cdecl AfxWingdixTermInit() { libcrt::AtExit(WingdixTermAt()); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);
 EI_REWRITTEN(0x0070CE8C, ImageModuleState);
 EI_REWRITTEN(0x0070C3C5, AfxCriticalInit);
 EI_REWRITTEN(0x0070C458, AfxLockGlobals);
 EI_REWRITTEN(0x0070C4C8, AfxUnlockGlobals);
-EI_REPLACE(0x00700674, AfxClassInit);
+EI_REWRITTEN(0x00700674, AfxClassInit);
 EI_REPLACE(0x0070DC4D, AfxInitDbcs);
 EI_REPLACE(0x0070B5F0, AfxWingdixTerm);
 EI_REPLACE(0x0070B600, AfxWingdixTermInit);

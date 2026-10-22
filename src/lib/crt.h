@@ -40,6 +40,9 @@ void* __cdecl malloc(std::size_t size);         // 006EABD1
 void __cdecl free(void* p);                     // 006EA8AD
 
 int __cdecl rand();                             // 006E77F7
+// The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
+using RandObserver = void (*)(int value, const void* caller);
+void SetRandObserver(RandObserver observer);
 void __cdecl srand(unsigned seed);              // 006E77EA
 int __cdecl tolower(int c);                     // 006EBA53
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n); // 006FA1A0
@@ -121,7 +124,7 @@ void SetReplayCtype(const ReplayCtype& ctype);
 } // namespace gamecrt
 
 // The game CRT's own functions (S4, docs/notes/standalone.md section 2), each registered at its library
-// address, so the forwarders above and the exe's remaining library code reach these bodies. The string
+// address, so the exe's remaining library code reaches these bodies. The string
 // and character functions are the host CRT's under the host's locale (C26, crt_locale_data.h); with
 // EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
 namespace libcrt {
@@ -303,10 +306,16 @@ int Fileno(const gamecrt::CrtFile* file);
 } // namespace libcrt
 
 namespace gamecrt {
-// _mbsicmp (006E8767) on char strings (the single-byte code page makes them the same bytes).
+// _mbsicmp (006E8767) and _mbsinc (006E9947) on char strings (the single-byte code page makes them the same bytes).
 inline int __cdecl mbsicmp(const char* a, const char* b) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
+inline const char* __cdecl mbsinc(const char* p) {
+    return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
+}
+// The game CRT's _getptd (006F00D1, plain RET): game.exe's per-thread data (allocated on first use), for the paths
+// that run in game.exe (the harness's rand, errno); the image has no code at the address and never calls it.
+inline void* __cdecl GameThreadData() { return reinterpret_cast<void*(__cdecl*)()>(0x006F00D1)(); }
 } // namespace gamecrt
 
 // The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same

@@ -10,9 +10,6 @@
 
 #include "core_maths.h"
 #include "material.h"            // CMaterial
-#include "originals_library.h"   // GameAtExit
-#include "originals_render.h"    // DrawMesh, DrawMesh2
-#include "originals_script.h"    // LinkHeaderMapAtOriginal
 #include "texture.h"             // CTextureDevice, CPixelConverter
 
 #include "ei/hook.h"
@@ -59,15 +56,13 @@ lib::AlignedArray<PixelPair>& TexturePixels() {
     if (!(constructed & 1)) {
         constructed |= 1;
         pixels.Construct();
-        GameAtExit(FreeTexturePixels);   // 004F4B30
+        libcrt::AtExit(FreeTexturePixels);   // 004F4B30
     }
     return pixels;
 }
 
 // The screen rectangle of a part that was not drawn.
 constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
-
-std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
 void Fill(ColourArray& array, std::uint32_t value) {
     for (int i = 0; i < array.size; ++i) array.data[i] = value;
@@ -113,29 +108,26 @@ struct PartDraw {
     std::uint32_t v;
     int flags;
 
-    // 004E9010 / 004E9A50 through their addresses (their checks see the call): positions and
+    // 004E9010 / 004E9A50 (CTextureDevice::DrawMeshBlocks / 2): positions and
     // packets, normals and count, colours, speculars, texture coordinates and count, corners and
     // count, words and count, indices and count, the texture offsets, alpha, flags.
     int Draw(CTextureDevice* device, CDXSurface* first, CDXSurface* second, bool textured) const {
-        const std::uint32_t speculars_ = Word(speculars->data);
-        const std::uint32_t colours_ = Word(colours->data);
-        const std::uint32_t indices = Word(mesh->indices_.data + r.indices.start);
-        const std::uint32_t words = Word(mesh->words_.data + r.words.start);
-        const std::uint32_t corners = Word(mesh->corners_.data + r.corners.start);
-        const std::uint32_t texCoords = Word(mesh->texCoords_.data + r.texCoords.start);
-        const std::uint32_t normals = Word(mesh->normals_.data + r.normals.start);
+        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices_.data + r.indices.start);
+        const auto* words = mesh->words_.data + r.words.start;
+        const auto* corners = mesh->corners_.data + r.corners.start;
+        const auto* texCoords = mesh->texCoords_.data + r.texCoords.start;
+        const auto* normals = mesh->normals_.data + r.normals.start;
+        const float uOffset = std::bit_cast<float>(u);
+        const float vOffset = std::bit_cast<float>(v);
         if (textured) {
-            return DrawMesh2(device, nullptr, first, second, positions, r.vertices.count, normals, r.normals.count,
-                             colours_, speculars_, texCoords, static_cast<std::uint32_t>(r.texCoords.count), corners,
-                             static_cast<std::uint32_t>(r.corners.count), words,
-                             static_cast<std::uint32_t>(r.words.count), indices,
-                             static_cast<std::uint32_t>(r.indices.count), u, v, kOpaque, flags);
+            return device->DrawMeshBlocks2(first, second, positions, r.vertices.count, normals, r.normals.count,
+                                           colours->data, speculars->data, texCoords, r.texCoords.count, corners,
+                                           r.corners.count, words, r.words.count, indices, r.indices.count, uOffset,
+                                           vOffset, kOpaque, flags);
         }
-        return DrawMesh(reinterpret_cast<char*>(device), nullptr, positions, r.vertices.count, normals,
-                        r.normals.count, colours_, speculars_, texCoords, static_cast<std::uint32_t>(r.texCoords.count),
-                        corners, static_cast<std::uint32_t>(r.corners.count), words,
-                        static_cast<std::uint32_t>(r.words.count), indices,
-                        static_cast<std::uint32_t>(r.indices.count), u, v, kOpaque, flags);
+        return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data,
+                                      speculars->data, texCoords, r.texCoords.count, corners, r.corners.count, words,
+                                      r.words.count, indices, r.indices.count, uOffset, vOffset, kOpaque, flags);
     }
 };
 

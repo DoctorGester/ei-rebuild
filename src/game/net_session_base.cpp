@@ -8,7 +8,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
 #include "record_vectors.h"
 
 #include <cstring>

@@ -9,8 +9,6 @@
 
 #include <cstdint>
 #include <new>
-#include "originals_library.h"
-#include "originals_engine.h"
 
 namespace scene {
 namespace {

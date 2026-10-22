@@ -33,7 +33,7 @@ EI_REWRITTEN(0x004513A0, Dwords::SetSize);
 EI_REWRITTEN(0x00452EB0, Dwords::SetSize);
 
 // ---- SetAtGrow(index, value) -------------------------------------------------------------------
-EI_REPLACE_METHOD(0x00452FC0, Words::SetAtGrow);
+EI_REWRITTEN(0x00452FC0, Words::SetAtGrow);
 EI_REWRITTEN(0x00452C40, Dwords::SetAtGrowRef);
 EI_REWRITTEN(0x004538D0, Dwords::SetAtGrow);
 EI_REWRITTEN(0x0051EE50, Dwords::SetAtGrow);
@@ -84,7 +84,7 @@ EI_REWRITTEN(0x006003B0, ArrayFree1);
 EI_REWRITTEN(0x00601B50, ArrayFree1);
 EI_REWRITTEN(0x0044F1B0, ArrayFree1);
 // Byte-identical copies in the world range (A-W12).
-EI_REPLACE(0x0058A880, ArrayFree1);
+EI_REWRITTEN(0x0058A880, ArrayFree1);
 EI_REWRITTEN(0x005995C0, ArrayFree1);
 EI_REWRITTEN(0x00599780, ArrayFree1);
 EI_REWRITTEN(0x0059A6F0, ArrayFree1);

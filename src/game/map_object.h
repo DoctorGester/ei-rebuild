@@ -345,7 +345,7 @@ public:
     UnitVitalsPacked* PackedVitals() { return &packedVitals; }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
 
-    // --- Not rewritten (forwarders) ---
+    // --- Helpers ----------------------
 
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     CWorld* World();

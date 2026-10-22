@@ -12,9 +12,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"   // SetVtable
 #include "lib/crt.h"
-#include "originals_effects.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
 #include "lib/stlp_string.h"
@@ -278,18 +275,18 @@ EI_REWRITTEN(0x00688EB0, CSpellManager::NewContainer);
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers) {
     CSpellConstructor* constructor = context_->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
-    constructor->CallSetManager(this);
-    if (!constructor->CallBeginConstruct(prototype))
+    constructor->SetManager(this);
+    if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.GetString());
     int added = 0;
     for (SpellModifierNode* node = modifiers->First(); node != modifiers->End(); node = node->next) {
         if (added >= 8) break;
-        constructor->CallAddModifier(node->data);
+        constructor->AddModifier(node->data);
         ++added;
     }
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
     CSpell* spell = constructor->container_->Spell()->Clone(this);
-    constructor->CallSetManager(nullptr);
+    constructor->SetManager(nullptr);
     return spell;
 }
 EI_REWRITTEN(0x00689310, CSpellManager::CreateSpell);
@@ -378,8 +375,5 @@ BOOL CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
     container_->Build();
     return 1;
 }
-EI_REPLACE_METHOD(0x006842A0, CSpellConstructor::AddModifier);
+EI_REWRITTEN(0x006842A0, CSpellConstructor::AddModifier);
 
-void CSpellConstructor::CallSetManager(CSpellManager* manager) { SetManager(manager); }
-BOOL CSpellConstructor::CallBeginConstruct(const itemdb::SpellRecord* prototype) { return BeginConstruct(prototype); }
-BOOL CSpellConstructor::CallAddModifier(itemdb::SpellModifierRecord* modifier) { return AddModifier(modifier); }

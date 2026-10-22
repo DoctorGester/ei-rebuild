@@ -15,7 +15,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 #include <new>
 
@@ -86,11 +85,11 @@ CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return Cre
 
 // 00512600 / 00512610 / 00512620 (slots 25, 11, 12).
 const char* __fastcall MapObjectManagerFolder(CMapObjectManager* self) { return self->CMapObjectManager::GetFolderName(); }
-EI_REPLACE(0x00512600, MapObjectManagerFolder);
+EI_REWRITTEN(0x00512600, MapObjectManagerFolder);
 const char* __fastcall MapObjectManagerClassName(CMapObjectManager* self) { return self->CMapObjectManager::GetClassName(); }
-EI_REPLACE(0x00512610, MapObjectManagerClassName);
+EI_REWRITTEN(0x00512610, MapObjectManagerClassName);
 int __fastcall MapObjectManagerClassId(CMapObjectManager* self) { return self->CMapObjectManager::GetClassId(); }
-EI_REPLACE(0x00512620, MapObjectManagerClassId);
+EI_REWRITTEN(0x00512620, MapObjectManagerClassId);
 
 int CMapObjectManager::CreateManager() {
     mfc::CString folder(TheTextFolder());
@@ -115,7 +114,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
         slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }
-EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);
+EI_REWRITTEN(0x00512A30, CMapObjectManager::CreateMapObject);
 
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(GetFile(*figure + ".adb", nullptr));
@@ -155,7 +154,7 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
     object->prototypeId_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00513630, CMapObjectManager::GiveDefaults);
+EI_REWRITTEN(0x00513630, CMapObjectManager::GiveDefaults);
 
 int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                                           mfc::CString* secondWeapon, mfc::CStringArray* spells) {

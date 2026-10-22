@@ -26,7 +26,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -34,9 +33,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-
-__declspec(naked) void CHudMap::CallLayout() EI_ORIGINAL(0x00642930)
-__declspec(naked) void CHudUnitPanel::CallLayout() EI_ORIGINAL(0x00645F80)
 
 namespace {
 
@@ -76,7 +72,7 @@ float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()
 float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
 
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
-    SpritePlaceOriginal(window->sceneObjects_.data[index], nullptr, x, y, depth);
+    AsUiMesh(window->sceneObjects_.data[index])->PlaceBody(x, y, depth);
 }
 
 void SetTint(CEngineObject* object, float value) {
@@ -99,7 +95,7 @@ void MoveRegions(CUiWindow* window, int offsetX) {
 template <typename Panel>
 void AdvanceSlide(Panel* panel) {
     const double moved =
-        WindowFrameTimeOriginal(panel) * panel->slideDirection_ / SlideTime() + panel->slide_;
+        CUiContainer::FrameTime() * panel->slideDirection_ / SlideTime() + panel->slide_;
     panel->slide_ = static_cast<float>(moved);
     if (moved > 1.0) panel->slide_ = 1.0f;
     if (panel->slide_ < 0.0f) panel->slide_ = 0.0f;
@@ -120,14 +116,14 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     AsUiMesh(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
-    SpritePlaceOriginal(sling, nullptr, x, kSlingY, FromBits(kSlingDepthBits));
+    AsUiMesh(sling)->PlaceBody(x, kSlingY, FromBits(kSlingDepthBits));
 }
 
 } // namespace
 
 // --- The map -------------------------------------------------------------------------------------
 
-void CHudMap::LayoutVanilla() {
+void CHudMap::Layout() {
     widescreen::EnterRightPanel();   // addon's 10023366
     const float offset = static_cast<float>(offset_);
     const float centre = offset + MapCentreX();
@@ -147,17 +143,17 @@ void CHudMap::LayoutVanilla() {
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
-EI_REPLACE_METHOD(0x00642930, CHudMap::LayoutVanilla);
+EI_REWRITTEN(0x00642930, CHudMap::Layout);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
     if (view_ == 1) {
-        const double zoom = std::pow(kZoomRate, WindowFrameTimeOriginal(this)) * zoom_;
+        const double zoom = std::pow(kZoomRate, CUiContainer::FrameTime()) * zoom_;
         zoom_ = static_cast<float>(zoom);
         if (zoom > zoomMax_) zoom_ = zoomMax_;
     }
     if (view_ == 2) {
-        const double zoom = zoom_ / std::pow(kZoomRate, WindowFrameTimeOriginal(this));
+        const double zoom = zoom_ / std::pow(kZoomRate, CUiContainer::FrameTime());
         zoom_ = static_cast<float>(zoom);
         if (zoom < 1.0) zoom_ = 1.0f;
     }
@@ -166,7 +162,7 @@ void CHudMap::UpdateVanilla() {
 
     if (sliding_) {
         AdvanceSlide(this);
-        CallLayout();
+        Layout();
         // The sling button (scene object 5).
         // WideScreen: 00642D23 / 00642D7F.
         if (slideDirection_ == 1.0f)
@@ -177,14 +173,14 @@ void CHudMap::UpdateVanilla() {
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     // The "camera north" button (scene object 11) is lit while its time runs.
-    if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - WindowFrameTimeOriginal(this));
+    if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - CUiContainer::FrameTime());
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 EI_REWRITTEN(0x00642B40, CHudMap::UpdateVanilla);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
-void CHudUnitPanel::LayoutVanilla() {
+void CHudUnitPanel::Layout() {
     widescreen::EnterLeftPanel();    // addon's 100232AF
     const float offset = static_cast<float>(offset_);
     const float edge = UnitEdgeX() - offset;
@@ -214,12 +210,12 @@ void CHudUnitPanel::LayoutVanilla() {
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
 }
-EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::LayoutVanilla);
+EI_REWRITTEN(0x00645F80, CHudUnitPanel::Layout);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
         AdvanceSlide(this);
-        CallLayout();
+        Layout();
         // The sling button (scene object 2).
         // WideScreen: 006480EB / 00648147.
         if (slideDirection_ == -1.0f)
@@ -266,14 +262,14 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
     // Regions: the sling button, the four body part buttons, the whole panel.
     CUiRegion* sling = AddRegion();
-    sling->CallSetRect(0, 0, 20, 30);
+    sling->SetRect(0, 0, 20, 30);
     sling->SetTip(0x2774, 1, 0);
     for (int i = 0; i < 4; ++i) {
         CUiRegion* part = AddRegion();
-        part->CallSetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
+        part->SetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
         part->SetTip(0x2775 + i, 1, 0x2E + i);
     }
-    AddRegion()->CallSetRect(0, 0, 185, 225);
+    AddRegion()->SetRect(0, 0, 185, 225);
 
     // Scene objects 0 and 1: the panel's and its edge's plain backgrounds.
     CUiMesh* back = AddSprite(nullptr);
@@ -301,7 +297,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
     CUiMesh* strip = AddSprite(nullptr);
-    UiMeshCellsOriginal(strip, nullptr, 4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
+    strip->SetGridVanilla(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     strip->visible_ = 0;
     CUiMesh* more = AddSprite(nullptr);
     more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
@@ -333,7 +329,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
 
     bodyPart_ = bodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
-    CallLayout();
+    Layout();
     shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
 
@@ -357,7 +353,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     for (int& icon : effectIcons_) icon = -1;
     widescreen::LeavePanel();        // addon's 100230E2
 }
-EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
+EI_REWRITTEN(0x006456E0, CHudUnitPanel::SetupVanilla);
 
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
@@ -428,7 +424,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // Regions: 0 the sling button, 1 the round map, 2 the map's square, 3 and 4 the view buttons,
     // 5 "camera north", 6 the whole panel.
     CUiRegion* sling = AddRegion();
-    sling->CallSetRect(780, 0, 800, 30);
+    sling->SetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 1, 0x34);
     // The round map's outline: each product and sum is a float on the game's FPU (24-bit
     // precision; FCOS / FSIN themselves are not rounded), so the point under the centre is 80
@@ -440,19 +436,19 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         const int y = static_cast<int>(gamecrt::Ftol(static_cast<float>(down + OutlineCentreY())));
         const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
         const int x = static_cast<int>(gamecrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
-        round->CallAddPoint(x, y);
+        round->AddPoint(x, y);
     }
-    AddRegion()->CallSetRect(620, 0, 780, 160);
+    AddRegion()->SetRect(620, 0, 780, 160);
     CUiRegion* zoomIn = AddRegion();
-    zoomIn->CallSetRect(780, 100, 800, 130);
+    zoomIn->SetRect(780, 100, 800, 130);
     zoomIn->SetTip(0x283D, 1, 0);
     CUiRegion* zoomOut = AddRegion();
-    zoomOut->CallSetRect(780, 130, 800, 160);
+    zoomOut->SetRect(780, 130, 800, 160);
     zoomOut->SetTip(0x283E, 1, 0);
     CUiRegion* north = AddRegion();
-    north->CallSetRect(780, 70, 800, 100);
+    north->SetRect(780, 70, 800, 100);
     north->SetTip(0x283F, 1, 0xC);
-    AddRegion()->CallSetRect(615, 0, 800, 165);
+    AddRegion()->SetRect(615, 0, 800, 165);
 
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the
     // picture too; 2: the markers, four texels of one colour each.
@@ -466,7 +462,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     area->texture_ = objects_.data[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddSprite(nullptr);
-    SpritePlaceOriginal(markers, nullptr, 700.0f, 80.0f, 12.0f);
+    markers->PlaceBody(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
     Builder(markers)->ResetColours();
     markers->SetUvCount(4);
@@ -495,7 +491,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
-    SpritePlaceOriginal(needle, nullptr, 900.0f, 80.0f, FromBits(kSlingDepthBits));
+    needle->PlaceBody(900.0f, 80.0f, FromBits(kSlingDepthBits));
     needle->SetScale(0.8f);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
@@ -518,8 +514,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
 
     view_ = 0;
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
-    CallLayout();
+    Layout();
     northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359
 }
-EI_REPLACE_METHOD(0x00641F20, CHudMap::SetupVanilla);
+EI_REWRITTEN(0x00641F20, CHudMap::SetupVanilla);

@@ -13,9 +13,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -47,7 +44,7 @@ bool SoundBusy(int handle) {
 }
 
 void SetTalking(const CUnit* unit, bool talking) {
-    CEngineObject* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
+    CEngineObject* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;
@@ -62,13 +59,13 @@ CMaterial* CObject3DClientSpecific::FirstMaterial() {
     materialCursor = 0;
     return materials[0];
 }
-EI_REPLACE_METHOD(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
+EI_REWRITTEN(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
 
 CMaterial* CObject3DClientSpecific::NextMaterial() {
     ++materialCursor;
     return materials.size > materialCursor ? materials[materialCursor] : nullptr;
 }
-EI_REPLACE_METHOD(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
+EI_REWRITTEN(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
 int CUnitClientSpecific::UpdateClient() {
     if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);

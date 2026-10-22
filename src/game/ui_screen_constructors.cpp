@@ -10,7 +10,6 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"

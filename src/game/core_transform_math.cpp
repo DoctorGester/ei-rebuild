@@ -10,7 +10,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_core.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -91,7 +90,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return static_cast<float>(gamecrt::acos(ClampUnit(static_cast<float>(DotRaw(&a, &b)))));
+    return static_cast<float>(gamecrt::acos(ClampUnit(static_cast<float>(Dot(a, b)))));
 }
 
 } // namespace
@@ -208,7 +207,7 @@ void CTransformObject::RollTowards(const Vector3& dir) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, down, &toward, &axis);
     float angle;
-    if (LengthRaw(&axis) >= EI_MIN_AXIS) {
+    if (axis.Length() >= EI_MIN_AXIS) {
         angle = AngleBetween(down, toward);
     } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);
@@ -243,7 +242,7 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
     Vector3 toward, axis;
     TowardsAxis(forward, dir, from, &toward, &axis);
     float angle = 0.0f;
-    if (LengthRaw(&axis) >= EI_MIN_AXIS) {
+    if (axis.Length() >= EI_MIN_AXIS) {
         angle = AngleBetween(from, toward);
     } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);

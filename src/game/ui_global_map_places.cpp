@@ -2,6 +2,7 @@
 // and quests from the texts and map.txt, the zone selection's marker colours and the weather. The
 // map's Create (0062D350, ui_global_map.cpp) calls them through their addresses. See
 // docs/notes/ui.md ("Camp, global map, hero screens").
+#include "global_map_clouds.h"
 #include "model.h"
 #include "app.h"
 #include "ui_camp.h"
@@ -12,10 +13,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 
@@ -192,7 +189,7 @@ void CGlobalMap::SetWeather() {
     } else if (index < 16) {
         Marker(markerCount_ + 2)->flatColour_ = Argb(&weatherTable_[12]);
     } else {
-        WeatherSetRampOriginal(weather_, nullptr, weatherTable_[16], weatherTable_[17], 2.0f);
+        reinterpret_cast<CCloudNoise*>(weather_)->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
     }
 }
 EI_REWRITTEN(0x0062EE90, CGlobalMap::SetWeather);

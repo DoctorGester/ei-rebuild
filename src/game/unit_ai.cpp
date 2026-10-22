@@ -1,4 +1,5 @@
 // The unit AI brain (005D0000-005DC000): the per-tick mode selection and the actions.
+#include "core_refcount.h"
 #include "unit_ai.h"
 #include "console.h"
 
@@ -14,11 +15,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_core.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world.h"
 #include "world_data.h"
 #include "lib/crt_iostream.h"
@@ -26,8 +22,6 @@
 #include "game_arrays.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 // The AI's perception log: the AI stream (its static initialiser 005C8B50 stores the address).
 constexpr console::GameOStream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
@@ -41,7 +35,6 @@ constexpr float kArrivedDistanceSq = 1.0f;                              // 0073F
 
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
-
 
 // Virtual slot 55 (0xDC) of units and objects: non-zero when dead / gone.
 int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
@@ -59,7 +52,6 @@ struct GameOstream : libcrt::Ostream {
 constexpr libcrt::Ostream* kModeLog = /*007C54E8*/ {&console::g_aiLogOut};
 GameOstream* ModeLog() { return console::StreamAs<GameOstream>(*kModeLog); }
 
-
 // 0052CEC0: DestructElements of counted references (gamearrays::ObjectRefs').
 template <typename T>
 void DestructRefs(T** refs, int count) {
@@ -67,7 +59,6 @@ void DestructRefs(T** refs, int count) {
 }
 
 // 006E79A0: the game's memmove.
-
 
 // The mode names of the "new motivation" message (the original pushes these addresses).
 const char* ModeName(int type) {
@@ -89,17 +80,15 @@ const char* ModeName(int type) {
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 } // namespace
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
-void AIMode::Release() { RefObjectRelease((void*)this); }
+void AIMode::Release() { static_cast<CRefObject*>((void*)this)->Release(); }
 int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
 void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
 void AIMode::Enter(AIBrain* brain) { Virtuals()->Enter(brain); }
 void AIMode::Leave(AIBrain* brain) { Virtuals()->Leave(brain); }
 int AIMode::GetType() { return Virtuals()->GetType(); }
 void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDeleted(object); }
-
-// AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 

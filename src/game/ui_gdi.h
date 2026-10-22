@@ -6,7 +6,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc_gdi.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>

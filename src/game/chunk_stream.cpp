@@ -9,7 +9,6 @@
 #include "ei/hook.h"
 #include "lib/stlp.h"
 #include "mob_script_decoder.h"
-#include "originals_engine.h"
 #include "ei/x87.h"
 
 #include <cstring>

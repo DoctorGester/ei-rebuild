@@ -10,7 +10,6 @@
 #include "unit_db.h"
 
 #include "ei/hook.h"
-#include "originals_units.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -27,8 +26,6 @@ constexpr float kZero = 0.0f;               // 0073B858
 // Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
 // calls: 00527850 UnitParams::WeaponSkillBonus (unit_params_skill.cpp, ST0), 005285D0 the damage
 // scale (this file; thiscall on the parameters, which it does not read: RET 8, ST0).
-__declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /*type*/, const itemdb::WeaponRecord* /*weapon*/)
-    EI_ORIGINAL(0x00527850)
 // 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
@@ -52,9 +49,9 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->speed = WeaponAttack(weapon);
         const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
         // The bonus is stored to a float (FSTP) before the weapon's figure is added; _ftol truncates.
-        float bonus = static_cast<float>(WeaponSkillBonusAt(params, nullptr, out->weaponType, record));
+        float bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));
         out->attack = static_cast<int>(static_cast<double>(WeaponStat84(weapon)) + bonus);
-        bonus = static_cast<float>(WeaponSkillBonusAt(params, nullptr, out->weaponType, record));
+        bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));
         out->defence = static_cast<int>(static_cast<double>(WeaponStat88(weapon)) + bonus);
     } else {
         // The packed parameters (bytes).

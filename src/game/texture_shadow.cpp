@@ -14,7 +14,6 @@
 #include "dx_surface.h"
 #include "game_strings.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"

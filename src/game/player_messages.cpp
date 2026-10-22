@@ -1,6 +1,7 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "ai_map.h"
 #include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
@@ -9,15 +10,11 @@
 #include "game_singletons.h"
 #include "party.h"
 #include "random.h"
+#include "script.h"
 #include "unit.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_ai.h"
-#include "originals_script.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/static_object.h"
@@ -386,8 +383,8 @@ CPlayerServer* CPlayerServer::Construct() {
 void CPlayerServer::DestructBody() {
     ei::SetVtable(this, Vtable());
     ClearServerState();
-    ScriptGroupDestructOriginal(&partyUnits_);
-    ScriptGroupDestructOriginal(&group50F8_);
+    static_cast<ScriptGroup*>(&partyUnits_)->DestructBody();
+    static_cast<ScriptGroup*>(&group50F8_)->DestructBody();
     sentTimed_.FreeData();
     sentObjects_.FreeData();
     decompressor_.out.End();
@@ -466,7 +463,7 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     if (kind == kPathKindNoPath) return;
     LocalDeltaField field;
     DeltaField* delta = field.Get()->BeginWriteB(0);
-    PathWriteOriginal(path, nullptr, delta);
+    path->WriteState(delta);
     delta->EndField();
     out_.EndBits();
     BitStream& written = field.Get()->out[0];
@@ -491,7 +488,7 @@ EI_REWRITTEN(0x0066D490, CPlayerServer::SendPathMessage);
 EI_REWRITTEN(0x0066C9A0, CPlayerServer::CreateServer);
 
 EI_REWRITTEN(0x0066EE10, CPlayerServer::SetVariable);
-EI_REPLACE_METHOD(0x0066EE80, CPlayerServer::SetVariableMax);
+EI_REWRITTEN(0x0066EE80, CPlayerServer::SetVariableMax);
 EI_REWRITTEN(0x0066EF30, CPlayerServer::DeleteVariable);
 EI_REWRITTEN(0x0066F180, CPlayerServer::SendGameTime);
 EI_REWRITTEN(0x0066EBD0, CPlayerServer::SendState02);
@@ -511,7 +508,7 @@ EI_REWRITTEN(0x0066F1F0, CPlayerServer::SendText08);
 EI_REWRITTEN(0x0066F280, CPlayerServer::SendValue15);
 EI_REWRITTEN(0x0066F2C0, CPlayerServer::SendPair18);
 EI_REWRITTEN(0x0066D6A0, CPlayerServer::SendObject43);
-EI_REPLACE_METHOD(0x0066D6E0, CPlayerServer::SendObject0B);
+EI_REWRITTEN(0x0066D6E0, CPlayerServer::SendObject0B);
 EI_REWRITTEN(0x0066D730, CPlayerServer::SendValue12);
 EI_REWRITTEN(0x0066D770, CPlayerServer::SendText13);
 EI_REWRITTEN(0x0066D7B0, CPlayerServer::SendText);
@@ -519,4 +516,4 @@ EI_REWRITTEN(0x0066D230, CPlayerServer::WriteTo);
 EI_REWRITTEN(0x0066D250, CPlayerServer::SetDisconnect);
 EI_REWRITTEN(0x0066D260, CPlayerServer::SetFlag70);
 EI_REWRITTEN(0x006621B0, CParty::Find);
-EI_REPLACE_METHOD(0x00665DE0, CPlayer::Tick);
+EI_REWRITTEN(0x00665DE0, CPlayer::Tick);

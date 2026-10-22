@@ -6,9 +6,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
 #include "game_singletons.h"
@@ -68,7 +65,7 @@ void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player)
     std::uint32_t line = 0;   // CString
     mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);
     Announce(formatted->GetString(), player);
-    CStringDestroy(&line);
+    reinterpret_cast<mfc::CString*>(&line)->~CString();
 }
 
 EI_REWRITTEN(0x0041A310, ServerSession::Announce);

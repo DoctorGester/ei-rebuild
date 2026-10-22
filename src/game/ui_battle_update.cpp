@@ -11,8 +11,6 @@
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "stl_sorts.h"
 #include "text_reader.h"
 #include "ui.h"
@@ -28,14 +26,10 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
 #include <bit>
-#include "originals_ui.h"
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
@@ -47,12 +41,6 @@
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
 namespace {
-
-// 0063CAE0 (thiscall, RET 8; Rebirth-patched): the next slot's picture (image `image` copied into
-// the panel's texture) and a sprite of model `model` (or a plain square); counts it in +0x14C
-// (at most eight).
-__declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const char* /*model*/, const char* /*image*/)
-    EI_ORIGINAL(0x0063CAE0)
 
 } // namespace
 
@@ -84,9 +72,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
-            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
+            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
-            SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
+            static_cast<CUiMesh*>((void*)sprite)->PlaceBody(right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
@@ -103,7 +91,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             mfc::CString image = item->FigureName();   // slot 19
             mfc::CString model = item->PictureName();  // slot 20
-            AddItemSprite(this, nullptr, model, image);
+            AddItem(model, image);
         }
         finish(item, true);
         ItemTip(slot, &tip);
@@ -128,7 +116,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             mfc::CString image = item->FigureName();   // slot 19
             mfc::CString model = item->PictureName();  // slot 20
-            AddItemSprite(this, nullptr, model, image);
+            AddItem(model, image);
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
@@ -159,7 +147,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
-static CUnit* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
+static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
 // vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
@@ -175,7 +163,7 @@ using PartyIds = CBattleScreen::PartyIds;
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
 // message box's constructor.
-void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
+void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
@@ -265,7 +253,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 party->SetAtGrow(party->size, unit);
             }
         }
-        PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
+        static_cast<CHudPortraits*>(screen->portraits_)->Rebuild(cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();
@@ -405,7 +393,7 @@ void CBattleScreen::Update() {
 namespace {
 void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
-EI_REPLACE(0x00638280, BattleScreenUpdate);
+EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
 // --- 006381E0: the party ids compared --------------------------------------------------------------
 
@@ -438,7 +426,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         POINT point = {x, y};
         CUnit* unit = world->UnitAt(&point);   // 00565E40
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
-        SelectUnitAt(this, nullptr, unit, point.x, point.y);
+        SelectUnit(unit, point.x, point.y);
         return;
     }
 
@@ -500,7 +488,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         stlp::PushSmallNode(units.head);
     }
 }
-EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
 
@@ -537,7 +525,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         } else {
             key = "combat_get_quest";
         }
-        TextsGetString(texts, nullptr, key, &title);
+        texts->CTextManager::GetString(key, &title);
         text.Empty();
         BOOL found;
         {
@@ -566,7 +554,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         } else {
             key = "combat_get_subobj";
         }
-        TextsGetString(texts, nullptr, key, &title);
+        texts->CTextManager::GetString(key, &title);
         text.Empty();
         bool found = false;
         {
@@ -599,7 +587,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
 }
-EI_REPLACE_METHOD(0x006369D0, CBattleScreen::OnQuestVariable);
+EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
 // --- 00637DC0: the selection's refresh --------------------------------------------------------
 

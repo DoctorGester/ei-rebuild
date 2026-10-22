@@ -5,9 +5,6 @@
 #include "acks_db.h"
 #include "base_manager.h"
 #include "maths.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "player_client.h"
 #include "random.h"
 #include "text_reader.h"
@@ -23,8 +20,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -57,8 +52,6 @@ inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView
 // The local view's spell and quick item orders (thiscall, RET 0x10): on a unit 0066AC70 (spell) /
 // 0066AD40 (quick item) with (slot, member, target, ctrl), at a point 0066ACD0 / 0066ADD0 with
 // (slot, member, &point, 0).
-__declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, Vector3*, int) EI_ORIGINAL(0x0066ACD0)
-__declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Vector3*, int) EI_ORIGINAL(0x0066ADD0)
 // CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
@@ -191,7 +184,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REPLACE_METHOD(0x00637190, CBattleScreen::AttackUnit);
+EI_REWRITTEN(0x00637190, CBattleScreen::AttackUnit);
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
@@ -255,11 +248,11 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         }
         int refused;
         if (quick != 0) {
-            ViewQuickAtPoint(LocalView(TheClientWorld()), nullptr, pendingSlot_, unitAt(i), &point, 0);
+            LocalView(TheClientWorld())->SendItemAtPoint(pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
             refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &point.x);
         } else {
-            ViewSpellAtPoint(LocalView(TheClientWorld()), nullptr, pendingSlot_, unitAt(i), &point, 0);
+            LocalView(TheClientWorld())->SendCastAtPoint(pendingSlot_, unitAt(i), &point, 0);
             refused = unitAt(i)->CanCastSpell(pendingSlot_, &point.x);
         }
         if (refused == 0) NodPortrait(this, i);
@@ -322,4 +315,4 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-EI_REPLACE_METHOD(0x006366F0, CBattleScreen::OnUnitSpeech);
+EI_REWRITTEN(0x006366F0, CBattleScreen::OnUnitSpeech);

@@ -8,7 +8,6 @@
 #include "ei/hook.h"
 #include "hash_tables_400.h"   // ClassRegistryConstruct / Destruct
 #include "lib/static_object.h"
-#include "originals_library.h"   // GameAtExit
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -65,7 +64,7 @@ namespace {
 void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }   // 00408D50
 void __cdecl ConstructClassRegistry() {                                                     // 00408D30
     hash400::ClassRegistryConstruct(&*g_classRegistry);
-    GameAtExit(DestroyClassRegistry);
+    libcrt::AtExit(DestroyClassRegistry);
 }
 } // namespace
 

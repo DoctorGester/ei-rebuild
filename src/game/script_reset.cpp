@@ -12,10 +12,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "record_arrays.h"
 #include "world.h"
 #include "game_data.h"
@@ -24,14 +20,12 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // ---- Original code ------------------------------------------------------------------------------
 
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
-inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // The world (007AFF60): timed objects.
 

@@ -87,10 +87,6 @@ bool SameName(const TextSourceNode* node, const char* path) {
     return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
 }
 
-// 004DEC40 through its address: Rebirth patches it (rule 9).
-__declspec(naked) void __fastcall TextSourcesListKeysOriginal(TextSources*, void*, mfc::CStringArray*, const char*)
-    EI_ORIGINAL(0x004DEC40)
-
 void CloseAndDelete(CMappedResource* source) {
     ForgetConvertedTexts(source);
     source->CloseResource();
@@ -188,10 +184,10 @@ void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
         out->Append(found);
     }
 }
-EI_REPLACE_METHOD(0x004DEC40, TextSources::ListKeys);
+EI_REWRITTEN(0x004DEC40, TextSources::ListKeys);
 
 void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
-    TextSourcesListKeysOriginal(&sources_, nullptr, out, pattern);
+    sources_.ListKeys(out, pattern);
     // EI_UTF8: the names in UTF-8, as Find takes them (one person's key holds Cyrillic).
     if constexpr (text::kUtf8) {
         for (int i = 0; i < out->GetSize(); ++i) text::FromAssetText(&(*out)[i]);
@@ -216,7 +212,7 @@ EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);
 EI_REWRITTEN(0x004DEB60, TextSources::Clear);
 EI_REWRITTEN(0x005628E0, TextSources::DestructList);
-EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
+EI_REWRITTEN(0x004DEDB0, CTextManager::AddSource);
 EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
 EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);
 EI_REWRITTEN(0x005629B0, CTextManager::Destruct);

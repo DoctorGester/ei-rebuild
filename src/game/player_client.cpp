@@ -11,11 +11,7 @@
 #include "app_helpers.h"
 #include "lib/crt_iostream.h"
 #include "camera.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "net_link.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "lib/static_object.h"
 #include "party.h"
 #include "player_messages.h"
@@ -27,12 +23,8 @@
 #include "effects.h"
 #include "item.h"
 #include "resource_manager.h"
-#include "originals_ai.h"
-#include "originals_effects.h"
-#include "originals_ui.h"
 #include "unit_client_models.h"
 #include "unit_db.h"
-#include "originals_units.h"
 #include "console.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -101,7 +93,6 @@ struct MemoryStream {
 
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
 // (00567A60, 00567950); all RET 4 with the block.
-__declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567AB0)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
@@ -194,13 +185,13 @@ int CPlayerClient::DispatchMessages() {
     std::uint8_t type = 0xFF;
     std::uint8_t previous = 0xFF;
     for (;;) {
-        if (!in_.ok_) return PlayerMessageErrorOriginal(TextReadPastEnd(), previous, type);
+        if (!in_.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
         previous = type;
         if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
+        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
-        if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
-        if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);
+        if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
+        if (!handler(this, nullptr)) return PlayerMessageError(TextHandlerFailed(), previous, type);
     }
 }
 
@@ -272,8 +263,8 @@ int CPlayerClient::OnJingle() {
 int CPlayerClient::OnZone() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    PlayerClearOriginal(Owner());
-    ClientLoadZone(TheClientWorld(), nullptr, block.Get());
+    static_cast<CPlayer*>(Owner())->Clear();
+    TheClientWorld()->LoadZone(block.Get());
     return 1;
 }
 
@@ -321,7 +312,7 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = WorldFindUnit(TheClientWorld(), nullptr, id);
+    auto* unit = static_cast<CWorld*>(TheClientWorld())->FindUnit(id);
     if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
@@ -453,7 +444,7 @@ int CPlayerClient::OnPathMarker() {
         // The controller's slot 16 (00533DF0 for the client's): its path.
         PathOrder* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field->BeginWriteB(0);
-        PathWriteOriginal(path, nullptr, writing);
+        path->WriteState(writing);
         writing->EndField();
         DeltaField* reading = field->BeginReadB(0, &in_);
         path->ReadState(reading);
@@ -476,7 +467,7 @@ int CPlayerClient::OnPathMarker() {
         auto* marker = TheParticleManager()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
-        CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
+        CUnit* unit = static_cast<CWorld*>(owner->ManagerContext())->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
     field->Destruct();
@@ -486,7 +477,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     TextBuffer text;
     ReadText(text.Get());
-    InterfaceStringEventOriginal(TheInterface(), nullptr, *text.Get());
+    static_cast<CInterface3D*>(TheInterface())->OnStringEvent(*text.Get());
     return 1;
 }
 
@@ -630,7 +621,7 @@ int CPlayerClient::OnNewObject() {
     if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
         // The head part takes the prototype's hair, or goes without one.
         for (int i = 0; i < parts.GetSize(); ++i) {
-            if (GameMbscmp(parts[i], TextHairPart()) != 0) continue;
+            if (gamecrt::mbscmp(parts[i], TextHairPart()) != 0) continue;
             int hair = PrototypeRecord(header.prototype)->hair;
             if (hair == -1) parts.RemoveAt(i, 1);
             else parts[i].Format(TextHairFormat(), hair);
@@ -868,7 +859,7 @@ constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
 void __cdecl ConstructPartyIdSet() {   // 00668B40
     g_partyIdSet->Construct(100, 0, 0, 0);
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
 }
 void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }   // 00668B60
 
@@ -888,7 +879,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < partyUnitIds_.size; ++i) {
         bool inserted;
         PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CEngineObject* unit = WorldFindUnit(player->ManagerContext(), nullptr, partyUnitIds_.data[i]);
+        CEngineObject* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(partyUnitIds_.data[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 
@@ -902,7 +893,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
         partyUnitIds_.data[i] = id;
-        auto* unit = WorldFindUnit(player->ManagerContext(), nullptr, id);
+        auto* unit = static_cast<CWorld*>(player->ManagerContext())->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&

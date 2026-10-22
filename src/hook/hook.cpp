@@ -20,7 +20,6 @@ static HookEntry* g_hooks = nullptr;
 
 // The standalone image's code table (src/standalone/image_code.cpp, S18i).
 void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed);
-bool RedirectedByHarness(std::uintptr_t address);
 
 // Every address InstallHooks took, in install order, with its code (the replacement, or a recorder in game.exe,
 // where a jump is written): the standalone image's code table (SetCodeTable) and its check (standalone.cpp CheckCode).
@@ -330,11 +329,6 @@ int InstallHooks() {
     for (HookEntry* h = g_hooks; h; h = h->next) {
         // The image takes the replacements, game.exe (recording) the recorders.
         if (h->record == standalone) continue;
-        // In the image the harness replaced a registered address before the hooks (its fixed ISAAC seed at 0049F660).
-        if (standalone && RedirectedByHarness(h->address)) {
-            LogSkip(h, true, "replaced before the hooks (the harness)");
-            continue;
-        }
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = standalone ? nullptr : FileBytesAt(file, h->address);
         const bool inCode = standalone ? InGameText(h->address) : orig != nullptr;

@@ -132,7 +132,7 @@ void CCloudNoise::SetRamp(int start, int width, float speed) {
         ramp_[i] = static_cast<std::uint16_t>(((alpha >> 4) << 12) | 0xFFF);
     }
 }
-EI_REPLACE_METHOD(0x0049A010, CCloudNoise::SetRamp);
+EI_REWRITTEN(0x0049A010, CCloudNoise::SetRamp);
 
 void CCloudNoise::MakeLayerImpl(std::uint8_t* out) {
     IsaacRandom& random = IsaacRandom::Global();

@@ -1,6 +1,7 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "core_refcount.h"
 #include "game_lists.h"
 #include "base_manager.h"
 #include "hash_tables_400.h"
@@ -12,6 +13,7 @@
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
 #include "game_arrays.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -21,19 +23,11 @@
 #include "map_object.h"
 #include "lib/containers.h"
 #include "lib/mfc_array.h"
-#include "originals_gameplay.h"
-#include "originals_script.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_core.h"
-#include "originals_ai.h"
 #include "lib/mfc_slots.h"
 
 namespace {
 
 
-// 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
-__declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 // 0040A3A0. CRefObject::Release (the missiles).
 
@@ -53,7 +47,7 @@ void EndTimedObjects(CWorldServer* world) {
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
-        if (node->data) RefObjectRelease(node->data);
+        if (node->data) reinterpret_cast<CRefObject*>(node->data)->Release();
     list.RemoveAll();
 }
 
@@ -66,9 +60,9 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         aiMap->BeginRefresh();
         bool failed;
         {
-            mfc::CString path(mfc::CString::kUnset);   // ServerMapPathOriginal constructs it
-            ServerMapPathOriginal(this, nullptr, &path, map);
-            failed = AIMapLoad(aiMap, nullptr, path) == 0;
+            mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+            MapPath(&path, map);
+            failed = static_cast<CAIMap*>(aiMap)->Load(path) == 0;
         }
         if (failed) return 0;
         mapName_ = map;
@@ -160,7 +154,7 @@ void CWorldServer::ResetZone() {
         auto* it = gamecrt::operator_new_as<PlayerIterator>();
         if (it) it->manager = nullptr;
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next())
-            PlayerClearOriginal((void*)player);
+            static_cast<CPlayer*>((void*)player)->Clear();
         if (it) {
             if (it->manager) {
                 --it->manager->refCount_;
@@ -172,7 +166,7 @@ void CWorldServer::ResetZone() {
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         node->value->ClearState();
-    ObjectMapClearOriginal(&objects_);
+    reinterpret_cast<ObjectIdMap*>(&objects_)->ReleaseAll();
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
         map->map.Clear();   // 0059D6D0
@@ -198,7 +192,7 @@ void CWorldServer::TeardownZone() {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
-        PlayerDisconnectOriginal((void*)player);
+        static_cast<CPlayer*>((void*)player)->Disconnect();
         PlayerList()->ReleasePlayer(player);
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;
@@ -267,7 +261,7 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = PlayerCreateOriginal(players_);
+    CPlayer* temporary = static_cast<CPlayer*>(players_->CreateSessionPlayer());
     CPlayerServer* state = temporary->Server();
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {
@@ -320,8 +314,8 @@ EI_REWRITTEN(0x00595C70, CWorldServer::LoadMap);
 EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
-    if (GameMbscmp(mapName_, map) == 0 && GameMbscmp(mobName_, mob) == 0) return;
-    WorldNewZoneOriginal(this, nullptr, map, mob, nullptr);   // patched by Rebirth: stays the original
+    if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
+    NewZone(map, mob, nullptr);   // patched by Rebirth: stays the original
     TeardownZone();
 }
 EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);

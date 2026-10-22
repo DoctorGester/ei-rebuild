@@ -59,32 +59,32 @@ template class PlainMapObject<0x53>;
 template class PlainMapObject<0x54>;
 template class PlainMapObject<0x56>;
 
-EI_REPLACE_METHOD(0x005296E0, CTree::Construct);
-EI_REPLACE_METHOD(0x00529770, CTree::DestructBody);
-EI_REPLACE_METHOD(0x00529750, CTree::DeletingDestruct);
-EI_REPLACE_METHOD(0x005297C0, CBuilding::Construct);
-EI_REPLACE_METHOD(0x00529850, CBuilding::DestructBody);
-EI_REPLACE_METHOD(0x00529830, CBuilding::DeletingDestruct);
-EI_REPLACE_METHOD(0x005298A0, CStone::Construct);
-EI_REPLACE_METHOD(0x00529930, CStone::DestructBody);
-EI_REPLACE_METHOD(0x00529910, CStone::DeletingDestruct);
-EI_REPLACE_METHOD(0x00529980, CStuffObject::Construct);
-EI_REPLACE_METHOD(0x00529A10, CStuffObject::DestructBody);
-EI_REPLACE_METHOD(0x005299F0, CStuffObject::DeletingDestruct);
+EI_REWRITTEN(0x005296E0, CTree::Construct);
+EI_REWRITTEN(0x00529770, CTree::DestructBody);
+EI_REWRITTEN(0x00529750, CTree::DeletingDestruct);
+EI_REWRITTEN(0x005297C0, CBuilding::Construct);
+EI_REWRITTEN(0x00529850, CBuilding::DestructBody);
+EI_REWRITTEN(0x00529830, CBuilding::DeletingDestruct);
+EI_REWRITTEN(0x005298A0, CStone::Construct);
+EI_REWRITTEN(0x00529930, CStone::DestructBody);
+EI_REWRITTEN(0x00529910, CStone::DeletingDestruct);
+EI_REWRITTEN(0x00529980, CStuffObject::Construct);
+EI_REWRITTEN(0x00529A10, CStuffObject::DestructBody);
+EI_REWRITTEN(0x005299F0, CStuffObject::DeletingDestruct);
 
 const char* __fastcall TreeClassName(CTree* self) { return self->CTree::GetClassName(); }
-EI_REPLACE(0x00529730, TreeClassName);
+EI_REWRITTEN(0x00529730, TreeClassName);
 int __fastcall TreeClassId(CTree* self) { return self->CTree::GetClassId(); }
-EI_REPLACE(0x00529740, TreeClassId);
+EI_REWRITTEN(0x00529740, TreeClassId);
 const char* __fastcall BuildingClassName(CBuilding* self) { return self->CBuilding::GetClassName(); }
-EI_REPLACE(0x00529810, BuildingClassName);
+EI_REWRITTEN(0x00529810, BuildingClassName);
 int __fastcall BuildingClassId(CBuilding* self) { return self->CBuilding::GetClassId(); }
-EI_REPLACE(0x00529820, BuildingClassId);
+EI_REWRITTEN(0x00529820, BuildingClassId);
 const char* __fastcall StoneClassName(CStone* self) { return self->CStone::GetClassName(); }
-EI_REPLACE(0x005298F0, StoneClassName);
+EI_REWRITTEN(0x005298F0, StoneClassName);
 int __fastcall StoneClassId(CStone* self) { return self->CStone::GetClassId(); }
-EI_REPLACE(0x00529900, StoneClassId);
+EI_REWRITTEN(0x00529900, StoneClassId);
 const char* __fastcall StuffClassName(CStuffObject* self) { return self->CStuffObject::GetClassName(); }
-EI_REPLACE(0x005299D0, StuffClassName);
+EI_REWRITTEN(0x005299D0, StuffClassName);
 int __fastcall StuffClassId(CStuffObject* self) { return self->CStuffObject::GetClassId(); }
-EI_REPLACE(0x005299E0, StuffClassId);
+EI_REWRITTEN(0x005299E0, StuffClassId);

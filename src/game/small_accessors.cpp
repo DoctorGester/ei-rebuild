@@ -82,11 +82,11 @@ EI_REWRITTEN(0x004B9F60, CEngineObject::ClearFlagBits);
 void CMapObject::SetScriptPosition(const Vector3* point) {
     localPosition_ = *point;
 }
-EI_REPLACE_METHOD(0x004B9F90, CMapObject::SetScriptPosition);
+EI_REWRITTEN(0x004B9F90, CMapObject::SetScriptPosition);
 
 CItem* CUnit::CarriedItem(int index) const {
     return carried[index];
 }
-EI_REPLACE_METHOD(0x004BA080, CUnit::CarriedItem);
+EI_REWRITTEN(0x004BA080, CUnit::CarriedItem);
 
 EI_REWRITTEN(0x004BAA20, ObjectListIterator::First);

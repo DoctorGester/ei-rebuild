@@ -297,7 +297,7 @@ void CParty::DestructBody() {
     }
     DestructBase();
 }
-EI_REPLACE_METHOD(0x006611D0, CParty::DestructBody);
+EI_REWRITTEN(0x006611D0, CParty::DestructBody);
 
 CParty* CParty::DeletingDestruct(unsigned flags) {
     DestructBody();
@@ -358,4 +358,4 @@ void CParty::Clear(int clearVariables, int keepSpells) {
     entrance_ = 0;
     money_ = 0;
 }
-EI_REPLACE_METHOD(0x00661700, CParty::Clear);
+EI_REWRITTEN(0x00661700, CParty::Clear);

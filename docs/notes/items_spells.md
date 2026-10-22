@@ -528,7 +528,7 @@ obvious.
 - HUD ports (ui_hud*.cpp, ui_hud_slide.cpp, ui_hud_setup.cpp; the code is the description): 00648D70 `CHudClock::OnMouseUp`
   (regions 0 pause, 1 / 2 normal / fast speed, not on a network client, update period 55 / 27 ms at 0078FF34, 3 the
   objectives; O, no scenario clicks the clock); 00649910 `CHudMovePanel::ShowModeVanilla` (+0x14C `mode_`; S); 00642930 /
-  00645F80 map and unit panel `LayoutVanilla` (sprites, text surface and regions after the first at the slide offset:
+  00645F80 map and unit panel `Layout` (sprites, text surface and regions after the first at the slide offset:
   `offset_`, `travel_`, `slide_`; S); 00647FB0 `CHudUnitPanel::UpdateVanilla` and 00642B40 `CHudMap::UpdateVanilla` (slot 24:
   the slide time x direction / 0.3 s, eased, _ftol of travel x eased; the map's zoom x or / 2.5^time towards zoomMax_ / 1,
   UpdateView, BuildMarkers, "camera north" time and tint; the map's is O because it rebuilds meshes, no scenario slides the
@@ -543,7 +543,7 @@ obvious.
   picture referenced object 1, 32 x 32 and "battle00" without a record; scale 2 / size, zoom up to size x 0.05; the round
   map is sixteen points of radius 65 about (700, 80); a 5 x 5 surface with one white pixel; the picture's reference and
   place are given back without a release so the second run finds the same texture).
-- Other windows: 0065E580 `CUiTooltip::OnMouseMoveVanilla` (ui_tooltip.cpp; +0x17C `timer_`; O: it makes the surface): state 1
+- Other windows: 0065E580 `CUiTooltip::OnMouseMove` (ui_tooltip.cpp; +0x17C `timer_`; O: it makes the surface): state 1
   (hovered) gives 0 with no lines or a zero delay (setting 20, 0079BE80), else the timer runs up to the delay, then the
   command's key (FindCommandByKey of `extra_`) is measured with the first line, state 2, a surface (format 5) at the mouse +
   the cursor offset ((24, 24) screen pixels at 007C8258, set by the static initialiser 0065E310), pushed left off the right
@@ -553,7 +553,7 @@ obvious.
   ui_hud): up to sixteen rows from the scroll position (title, or the typed name for the selected row of a save window; the
   date "%d/%m, %H:%M" through CTime::Format 006FE795 but for a save window's new save), the caret (not for "saveq" / "savea" /
   "saveb"), the marker (scene object 4); then the selected save's allod, zone, day and time (_ftol(gameTime x 60) minutes: day
-  + 1, h:mm) and folder. 00659420 `CHelpWindow::ShowPageVanilla` (ui_help_page.cpp; +0x18C `pictures_`; S, the function
+  + 1, h:mm) and folder. 00659420 `CHelpWindow::ShowPage` (ui_help_page.cpp; +0x18C `pictures_`; S, the function
   empties the window itself; ui_help): "tutorial <text_>" opened, the page's "#screen" found; rectangle (200, 50)-(600, 560)
   or "#position left top right [rows]" (searched from the page on; at least 300 wide, rows x 16 + 110 high, at most 600);
   surface 0 title, surface 1 the entries' "tutor <key>" texts (laid out twice unless rows are given: the first pass copies

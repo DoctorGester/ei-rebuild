@@ -64,8 +64,8 @@ const char* CParticleManager::GetClassName() { return kParticleManagerName; }
 int CParticleManager::GetClassId() { return kParticleManagerId; }
 const char* __fastcall ParticleManagerClassName(CParticleManager* self) { return self->CParticleManager::GetClassName(); }
 int __fastcall ParticleManagerClassId(CParticleManager* self) { return self->CParticleManager::GetClassId(); }
-EI_REPLACE(0x00562780, ParticleManagerClassName);
-EI_REPLACE(0x00562790, ParticleManagerClassId);
+EI_REWRITTEN(0x00562780, ParticleManagerClassName);
+EI_REWRITTEN(0x00562790, ParticleManagerClassId);
 
 const char* __fastcall TextManagerClassName(CTextManager*) { return kTextManagerName; }
 int __fastcall TextManagerClassId(CTextManager*) { return kTextManagerId; }
@@ -81,15 +81,15 @@ const char* CLightningManager::GetClassName() { return kLightningManagerName; }
 int CLightningManager::GetClassId() { return kLightningManagerId; }
 const char* __fastcall LightningManagerClassName(CLightningManager* self) { return self->CLightningManager::GetClassName(); }
 int __fastcall LightningManagerClassId(CLightningManager* self) { return self->CLightningManager::GetClassId(); }
-EI_REPLACE(0x00562D80, LightningManagerClassName);
-EI_REPLACE(0x00562D90, LightningManagerClassId);
+EI_REWRITTEN(0x00562D80, LightningManagerClassName);
+EI_REWRITTEN(0x00562D90, LightningManagerClassId);
 
 const char* ClientArrayManager::GetClassName() { return kVisFogManagerName; }
 int ClientArrayManager::GetClassId() { return kVisFogManagerId; }
 const char* __fastcall VisFogManagerClassName(ClientArrayManager* self) { return self->ClientArrayManager::GetClassName(); }
 int __fastcall VisFogManagerClassId(ClientArrayManager* self) { return self->ClientArrayManager::GetClassId(); }
-EI_REPLACE(0x00562DB0, VisFogManagerClassName);
-EI_REPLACE(0x00562DC0, VisFogManagerClassId);
+EI_REWRITTEN(0x00562DB0, VisFogManagerClassName);
+EI_REWRITTEN(0x00562DC0, VisFogManagerClassId);
 
 const char* CFigureManager::GetClassName() { return kFigureManagerName; }
 int CFigureManager::GetClassId() { return kFigureManagerId; }
@@ -108,12 +108,12 @@ EI_REWRITTEN(0x005A7050, FigureClientSpecificClassId);
 int __fastcall UiObjectCreate(CEngineObject*) { return 1; }
 const char* __fastcall UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 int __fastcall UiObjectClassId(CEngineObject*) { return kUiObjectId; }
-EI_REPLACE(0x00579560, UiObjectCreate);
-EI_REPLACE(0x00579580, UiObjectClassName);
-EI_REPLACE(0x00579590, UiObjectClassId);
+EI_REWRITTEN(0x00579560, UiObjectCreate);
+EI_REWRITTEN(0x00579580, UiObjectClassName);
+EI_REWRITTEN(0x00579590, UiObjectClassId);
 
 const char* __fastcall ItemManagerResourceName(CItemManager* self) { return self->CItemManager::GetFolderName(); }
-EI_REPLACE(0x0055F3B0, ItemManagerResourceName);
+EI_REWRITTEN(0x0055F3B0, ItemManagerResourceName);
 
 int __fastcall WorldBaseRunTick(CWorld*) { return 1; }
 int __fastcall WorldServerIsServer(CWorldServer*) { return 1; }
@@ -146,5 +146,5 @@ void CWorldClient::MoveObject2Impl(CEngineObject* object, const float* position)
 EI_REWRITTEN(0x005618A0, CWorldClient::MoveObjectImpl);
 EI_REWRITTEN(0x005618C0, CWorldClient::MoveObject2Impl);
 
-EI_REPLACE_METHOD(0x00562D70, CBaseManager::InitImpl);   // the lightning manager's Init
-EI_REPLACE_METHOD(0x00562DA0, CBaseManager::InitImpl);   // the vis-fog manager's Init (ClientArrayManager)
+EI_REWRITTEN(0x00562D70, CBaseManager::InitImpl);   // the lightning manager's Init
+EI_REWRITTEN(0x00562DA0, CBaseManager::InitImpl);   // the vis-fog manager's Init (ClientArrayManager)

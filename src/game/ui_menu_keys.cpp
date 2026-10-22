@@ -17,8 +17,6 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -68,8 +66,8 @@ void CSaveLoadWindow::ShowSelection() {
     scrollbar_->CallSetPosition(firstVisible_);
     scrollbar_->TakePosition(&firstVisible_);
     TakeSelectedTitle();
-    RefreshList();
-    CallShowPicture();
+    RefreshListVanilla();
+    ShowPicture();
 }
 
 // --- 006548A0 ------------------------------------------------------------------------------------
@@ -151,23 +149,17 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     default:
         return;
     }
-    RefreshList();
+    RefreshListVanilla();
     inputHandled_ = true;
 }
 
 // --- 00655050 ------------------------------------------------------------------------------------
 
 namespace {
-// The width of `text` in interface font `font` (005F8340, through its address: it takes the
-// CString by value, so a counted copy's data is handed over and released by the callee).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 } // namespace
@@ -201,7 +193,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
                 cursor_ += text::TypedLength(key);
             }
         }
-        RefreshList();
+        RefreshListVanilla();
         break;
     }
     }
@@ -331,8 +323,8 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
 
 // --- Entry points --------------------------------------------------------------------------------
 
-EI_REPLACE_METHOD(0x006548A0, InputForward<&CSaveLoadWindow::OnKeyDown>::Call);
-EI_REPLACE_METHOD(0x00650E40, InputForward<&COptionsWindow::OnKeyDown>::Call);
-EI_REPLACE_METHOD(0x00655050, InputForward<&CSaveLoadWindow::OnChar>::Call);
+EI_REWRITTEN(0x006548A0, InputForward<&CSaveLoadWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x00650E40, InputForward<&COptionsWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x00655050, InputForward<&CSaveLoadWindow::OnChar>::Call);
 EI_REWRITTEN(0x00655430, CSaveLoadWindow::ShowSelection);
 EI_REWRITTEN(0x00657820, CSaveLoadWindow::IsReservedSave);

@@ -7,7 +7,6 @@
 
 #include "game_strings.h"
 #include "map_object.h"
-#include "originals_effects.h"
 #include "random.h"
 #include "sector_map.h"
 #include "sound.h"

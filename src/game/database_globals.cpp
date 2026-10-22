@@ -11,7 +11,6 @@
 #include "world_data.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 
 #include <cstdint>
 
@@ -30,7 +29,7 @@ QuestBriefingTable::Index& worlddata::QuestBriefings() { return TheQuestDatabase
 namespace {
 
 using AtExitFunction = void(__cdecl*)();
-void RegisterExit(std::uintptr_t exitFunction) { GameAtExit(ei::Code<AtExitFunction>(exitFunction)); }
+void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
 void __cdecl ConstructSpellDatabase() {   // 00684360
     g_spellDatabase->Construct();

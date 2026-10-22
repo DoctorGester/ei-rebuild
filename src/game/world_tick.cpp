@@ -22,27 +22,12 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_script.h"
 #include "game_lists.h"
 #include "game_data.h"
 
 namespace {
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ------------
-
-// 0058D670. Runs the units in the update map (rewritten below; called through its address so a
-// Rebirth launch without the flag still runs addon's patched original).
-__declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
-// 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
-// 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
-// 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
-__declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
-
-// The game's atexit (006E727B).
-
+// ---- Helpers ------------------------------------------------------------------------------------
 
 // WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard,
 // destructor 0058D5C0 registered with atexit).
@@ -136,7 +121,7 @@ void CWorldServer::Tick(char force) {
     }
     finished.Clear();
 
-    TimeWheelAdvance(AIEvents(), nullptr, tick_);
+    static_cast<AIEventTable*>(AIEvents())->Advance(tick_);
     // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 
@@ -159,7 +144,7 @@ void CWorldServer::Tick(char force) {
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
     ScriptTick(SecondScript());
-    ServerUpdateUnits(this, nullptr);
+    UpdateUnits();
 }
 
 void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
@@ -167,7 +152,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
         WakeCache().length = 0;
-        GameAtExit(ei::short_functions::Ret);
+        libcrt::AtExit(ei::short_functions::Ret);
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
@@ -244,12 +229,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        GameAtExit(FreeRemovedIds);
+        libcrt::AtExit(FreeRemovedIds);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        GameAtExit(FreeSleepingIds);
+        libcrt::AtExit(FreeSleepingIds);
     }
     RemovedIds().RemoveAll();
     SleepingIds().RemoveAll();
@@ -293,7 +278,7 @@ void CWorldServer::UpdateUnits() {
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);
     }
-    for (int i = 0; i < RemovedIds().size; ++i) WorldRemoveObject(this, nullptr, RemovedIds().data[i]);
+    for (int i = 0; i < RemovedIds().size; ++i) RemoveObject(RemovedIds().data[i]);
 }
 
 void CWorldServer::TickSleepingEffects() {
@@ -317,6 +302,6 @@ EI_REWRITTEN(0x0058DCD0, CWorldServer::Tick);
 EI_REWRITTEN(0x0058D3D0, CWorldServer::WakeUnitsAround);
 EI_REWRITTEN(0x00593FC0, CWorldServer::InvokeAlarm);
 EI_REWRITTEN(0x0058DC90, CWorldServer::SetGameResult);
-EI_REPLACE_METHOD(0x0058D670, CWorldServer::UpdateUnits);
+EI_REWRITTEN(0x0058D670, CWorldServer::UpdateUnits);
 EI_REPLACE(0x0058DA20, FreeRemovedIds);
 EI_REPLACE(0x0058DA00, FreeSleepingIds);

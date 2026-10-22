@@ -3,15 +3,14 @@
 
 #include "core_maths.h"
 #include "net_coder.h"
+#include "lib/mfc.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
-#include "originals_engine.h"
 
 // --- BitStream ---------------------------------------------------------------------------------
 
@@ -71,7 +70,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
     out->Write(result.begin, length);
     out->Seek(0);
     ei::SetVtable(&view, GameBuffer::ViewBaseVtable());
-    GrowingBufferDestruct(&result);
+    static_cast<GameBuffer*>(&result)->DestructGrowing();
 }
 } // namespace
 

@@ -4,11 +4,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "text_split.h"
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace console {
 
@@ -20,7 +16,7 @@ void ConsoleWindow::SetRect(const RECT* rect) {
     int screenHeight = screen_->height_;
     screenRect_ = *rect;
     // The 3D interface scales 800x600 to pixels (005F7CA0, Rebirth-patched, so through its address).
-    screen_->CallScaleRectToScreen(&screenRect_);
+    screen_->ScaleRectToScreenEntry(&screenRect_);
     width_ = screenRect_.right - screenRect_.left;
     height_ = screenRect_.bottom - screenRect_.top;
     if (width_ < 0x4C) width_ = 0x4C;
@@ -31,7 +27,7 @@ void ConsoleWindow::SetRect(const RECT* rect) {
     screenRect_.right = screenRect_.left + width_;
     screenRect_.bottom = screenRect_.top + height_;
     rect_ = screenRect_;
-    InterfaceScaleRectFromScreenOriginal(screen_, nullptr, &rect_);
+    screen_->ScaleRectFromScreenEntry(&rect_);
     if (shown_) {
         Show(false);
         Show(true);

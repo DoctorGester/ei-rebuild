@@ -2,7 +2,6 @@
 // initialised and given its 25 shapes, the "sm_" set when the small cursors are on. The cursor
 // object itself (005E5xxx-005E6xxx) is not rewritten yet.
 #include "ei/hook.h"
-#include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_data.h"
 #include "game_singletons.h"

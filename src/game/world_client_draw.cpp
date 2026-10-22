@@ -8,6 +8,7 @@
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
+#include "lightning.h"
 #include "options.h"
 #include "renderer_lines.h"
 #include "net_session.h"
@@ -26,6 +27,7 @@
 #include "texture.h"
 #include "device.h"
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -34,18 +36,12 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
 
 #include <windows.h>
 
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "ui.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
@@ -55,8 +51,6 @@
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"
-
-#pragma warning(disable : 4740) // naked forwarders, inline assembly
 
 // windows.h renames CEngineObject's GetClassName.
 #undef GetClassName
@@ -90,7 +84,7 @@ void PushMatrix(MatrixStack& stack, const float* matrix) {
         std::memcpy(matrices, matrix, sizeof(Matrix4));
     } else {
         int d = ++depth;
-        MatrixMultiplyOriginal(matrices[d - 1].m, nullptr, matrices[d - 2].m, matrix);
+        matrices[d - 1].Multiply(matrices[d - 2].m, matrix);
     }
 }
 void PopMatrix(MatrixStack& stack) {
@@ -99,8 +93,6 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) int __fastcall DrawPassAt(CWorldClient*) EI_ORIGINAL(0x0056AFE0)
-__declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL(0x00468940)
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
@@ -277,8 +269,8 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
-    PushSceneMatrixOriginal(device, nullptr, top, kStackScene2);
-    PushSceneMatrixOriginal(device, nullptr, top, kStackScene1);
+    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene2);
+    static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene1);
     PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
 
     std::uint32_t flags = flags_;
@@ -305,7 +297,7 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, g_stageBlocks[kTerrainBlock]);
         terrain_->DrawGround(TheSceneRenderer());
     }
-    DrawPassAt(this);
+    DrawPass();
     net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         Vector3 frame;
@@ -336,7 +328,7 @@ int CWorldClient::Render() {
         particles->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
-        LightningDraw(listManager_, nullptr, TheSceneRenderer());
+        static_cast<CLightningManager*>(listManager_)->DrawAll(TheSceneRenderer());
         SetRenderState(TheRenderDevice(), 19, 5);
         SetRenderState(TheRenderDevice(), 20, 6);
         RainSnow()->DrawImpl(TheSceneRenderer());
@@ -359,7 +351,7 @@ int CWorldClient::Render() {
     render::EndWorld();
     return 1;
 }
-EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
+EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
 // 00569D60 (A-W13).
 int CWorldClient::DrawLineLists() {
@@ -558,7 +550,7 @@ int CWorldClient::DrawPass() {
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
         Vector3 sun;
-        QuaternionAxisZ(&TheCamera()->localRotation_, nullptr, &sun);
+        TheCamera()->localRotation_.AxisZ(&sun);
         const float scale = ShadowLength();
         float product = sun.x * scale;
         matrix.m[3] = product;
@@ -566,8 +558,8 @@ int CWorldClient::DrawPass() {
         matrix.m[7] = product;
         product = sun.z * scale;
         matrix.m[11] = product;
-        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
-        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
+        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene2);
+        static_cast<CTransformPipeline*>(device)->PushMatrix(matrix.m, kStackScene1);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
@@ -606,8 +598,8 @@ int CWorldClient::DrawPass() {
                     }
                     const Quaternion* orientation = &object->localRotation_;
                     Vector3 axisY, axisX;
-                    QuaternionAxisY(orientation, nullptr, &axisY);
-                    QuaternionAxisX(orientation, nullptr, &axisX);
+                    orientation->AxisY(&axisY);
+                    orientation->AxisX(&axisX);
                     TheSceneRenderer()->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
@@ -641,4 +633,4 @@ int CWorldClient::DrawPass() {
     touchedModels.EraseRange<stlp::PlainElement<CEngineObject*>>(touchedModels.begin(), touchedModels.end());
     return 1;
 }
-EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);
+EI_REWRITTEN(0x0056AFE0, CWorldClient::DrawPass);

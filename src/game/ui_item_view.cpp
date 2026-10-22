@@ -6,6 +6,7 @@
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
 #include "app.h"
+#include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
@@ -27,12 +28,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_core.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -238,9 +233,9 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
-        std::uint32_t word = RandomNext(&IsaacRandom::Global());
+        std::uint32_t word = IsaacRandom::Global().Next();
         turn->glow = RandomPhase(word);
-        RefPtrAssign(&item->link_, nullptr, turn);   // the item's RefPtr slot
+        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(turn));   // the item's RefPtr slot
     }
 
     if (cell->mode == 9) {
@@ -454,7 +449,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     RemoveSceneObject(frame);
     model->Draw(PassRenderer(pass));
 }
-EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
+EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
 
 // --- 005EC020: an item's figure texture -------------------------------------------------------------

@@ -13,8 +13,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_units.h"
-#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -76,9 +74,6 @@ void TellParty(CUnit* unit, int message) {
 }
 } // namespace
 
-// Not rewritten (forwarders).
-// 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
-
 void CUnitServer::FinishCast() {
     CWorldServer* world = ServerWorld();
     std::uint32_t source = action.source;
@@ -131,7 +126,7 @@ void CUnitServer::FinishCast() {
     }
     action.source = kNoSource;
 }
-EI_REPLACE_METHOD(0x0054EE10, CUnitServer::FinishCast);
+EI_REWRITTEN(0x0054EE10, CUnitServer::FinishCast);
 
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
@@ -141,7 +136,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     action2.modifier = 0;
     action2.param = static_cast<int>(time);
 }
-EI_REPLACE_METHOD(0x005546B0, CUnitServer::OrderTurn);
+EI_REWRITTEN(0x005546B0, CUnitServer::OrderTurn);
 
 void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
@@ -161,7 +156,7 @@ void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range
     }
     PlanMove(point, walk, run, range);
 }
-EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
+EI_REWRITTEN(0x00554740, CUnitServer::OrderMove);
 
 void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
@@ -301,4 +296,4 @@ void CUnitServer::StopQueued() {
     ReleaseTarget(&action2);
     action2.modifier = 0;
 }
-EI_REPLACE_METHOD(0x00555200, CUnitServer::StopQueued);
+EI_REWRITTEN(0x00555200, CUnitServer::StopQueued);

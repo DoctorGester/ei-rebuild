@@ -11,13 +11,9 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "ei/x87.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
@@ -119,7 +115,7 @@ void* StringAt(const void* array, void* out, int index) {
 }
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
-inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 // 006FE268: ConstructElements for CString.
 void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 

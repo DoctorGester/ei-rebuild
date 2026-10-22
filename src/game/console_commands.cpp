@@ -11,14 +11,8 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "net_classes.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
 #include "acks_db.h"
 #include "world_glue.h"
-#include "originals_units.h"
 #include "model.h"
 #include "net_messages.h"
 #include "party.h"
@@ -30,8 +24,6 @@
 #include "game_singletons.h"
 
 #include <cstdlib>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace console::commands {
 
@@ -287,7 +279,7 @@ void __fastcall Exec(CStringArray* args) {
         EndLine(Out() << "Cannot open file " << ((*args)[0]).GetString() << " for reading");
         return;
     }
-    while (file.ReadString(line)) ExecuteAt(line);
+    while (file.ReadString(line)) console::Execute(line);
     file.Close();
 }
 EI_REWRITTEN(0x005DEF50, Exec);

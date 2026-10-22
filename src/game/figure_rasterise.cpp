@@ -12,8 +12,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "lib/containers.h"
 #include "game_data.h"
 
@@ -38,7 +36,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
         uv = PointArray{};
-        GameAtExit(FreeTexturePoints);   // 005A1170
+        libcrt::AtExit(FreeTexturePoints);   // 005A1170
     }
     uv.SetSizeDiscard(buffers.texCoordCount);
     float scale = 255.0f /*0073C370*/;

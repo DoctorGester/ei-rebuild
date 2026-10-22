@@ -119,6 +119,6 @@ EI_REWRITTEN(0x00455F20, app::QuitGame);
 EI_REWRITTEN(0x00455E20, app::MovieMode);
 EI_REWRITTEN(0x00455BA0, app::ScrambleObjects);
 EI_REWRITTEN(0x00455B50, app::DelayedProtectionCheck);
-EI_REPLACE(0x00455E50, app::ConstructProtectionChecks);
+EI_REWRITTEN(0x00455E50, app::ConstructProtectionChecks);
 EI_REWRITTEN(0x00455950, CEngineObject::World);
-EI_REPLACE_METHOD(0x00457720, CEngineObject::ReleaseAndDelete);
+EI_REWRITTEN(0x00457720, CEngineObject::ReleaseAndDelete);

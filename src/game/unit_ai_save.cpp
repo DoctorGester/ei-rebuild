@@ -3,8 +3,6 @@
 #include "core_streams.h"
 #include "unit_ai.h"
 
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "world.h"
 #include "game_singletons.h"
 

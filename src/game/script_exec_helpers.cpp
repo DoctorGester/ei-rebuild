@@ -10,17 +10,12 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_script.h"
 #include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
 namespace {
 
@@ -223,7 +218,7 @@ int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
 mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
 // operator+'s result, destroyed with the holder.
 class Sum {
@@ -307,7 +302,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
-    ScriptLoadLine((void*)script, nullptr, (const mfc::CString*)&text, 1);
+    script->Load(&text, 1);
     QuestName() = game::EmptyText();   // the empty string constant
 }
 EI_REWRITTEN(0x004BAAB0, ScriptQuestFinish);
@@ -327,12 +322,12 @@ void __cdecl DestroyScriptQuestObjectives() {   // 004B17E0 (the destructor 004C
 }
 void __cdecl ConstructScriptQuestObjectives() {   // 004B17C0 (the constructor 004C9D90)
     mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
-    GameAtExit(DestroyScriptQuestObjectives);
+    libcrt::AtExit(DestroyScriptQuestObjectives);
 }
 void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }   // 004B17B0
 void __cdecl ConstructScriptQuestName() {                               // 004B1790
     g_scriptQuestName.Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x004B17B0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004B17B0));
 }
 } // namespace
 

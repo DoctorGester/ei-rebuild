@@ -8,9 +8,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_strings.h"
 
 #include <cstring>
@@ -18,8 +15,6 @@
 namespace net {
 
 namespace {
-__declspec(naked) void __fastcall CoderConstruct(CoderState* /*coder*/) EI_ORIGINAL(0x0042FCA0)
-__declspec(naked) void __fastcall CoderDecompress(CoderState* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
@@ -48,14 +43,14 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     GameBuffer buffer;
     buffer.ConstructGrowing();
     CoderState coder;
-    CoderConstruct(&coder);
+    coder.Construct();
     in->Seek(0);
     std::uint32_t size;
     ReadBytes(in, &size, 4);
     if (in->cur > in->high) in->high = in->cur;
     bool complete = false;
     if (size == static_cast<std::uint32_t>(Offset(*in, in->high))) {
-        CoderDecompress(&coder, nullptr, in, &buffer);
+        coder.Decompress(in, &buffer);
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
         buffer.cur = begin;
@@ -93,7 +88,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
         }
     }
     coder.out.End();
-    GrowingBufferDestruct(&buffer);
+    static_cast<GameBuffer*>(&buffer)->DestructGrowing();
 }
 EI_REWRITTEN(0x0041D600, ClientSession::ReadServerListImpl);
 

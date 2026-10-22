@@ -13,8 +13,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_units.h"
 
 #include <cstdint>
 
@@ -22,9 +20,6 @@ namespace {
 constexpr int kUnitNetFields = 14;
 constexpr int kTorchNetFields = 5;
 
-// Not rewritten (forwarders):
-// 0050FA30. CArray<DeltaField>::SetSize (growBy -1 keeps the step). Both functions below inline it;
-// the inlined copies do exactly what it does.
 } // namespace
 
 // --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
@@ -79,7 +74,7 @@ int CUnit::CreateUnit() {
     MapObject()->NetState()->SetFieldCount(kUnitNetFields);
     return 1;
 }
-EI_REPLACE_METHOD(0x0052E400, CUnit::CreateUnit);
+EI_REWRITTEN(0x0052E400, CUnit::CreateUnit);
 
 int CTorchObject::CreateTorch() {
     CreateMapObject();

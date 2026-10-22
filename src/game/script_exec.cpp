@@ -2,9 +2,8 @@
 // command. See script.h and docs/notes/script.md.
 //
 // Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
-// vanilla game. Every callee is reached through its original address (forwarders below): several
-// are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
-// the rest still run original code or their own replacement's verify wrapper.
+// vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError, 005935C0,
+// Execute itself for For bodies).
 #include "ai_map.h"
 #include "options.h"
 #include "object_tables.h"
@@ -43,16 +42,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_render.h"
-#include "originals_ai.h"
-#include "originals_core.h"
 #include "game_lists.h"
 #include "bink_video.h"
 #include "game_data.h"
@@ -94,8 +83,6 @@ float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
 // Script helpers (script.h types, original addresses).
-__declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
-    EI_ORIGINAL(0x004B4030)
 // CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
 // new node before the head): returns the new node.
 using InstanceList = mfc::CList<ScriptDefinition>;
@@ -220,7 +207,7 @@ void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
     run->index = 0;
     run->ticks = 0;
     run->sleepStart = -1;
-    ExecuteOrig(run, nullptr, script);
+    run->Execute(script);
     run->block = block;
     run->index = index;
     run->ticks = ticks;
@@ -426,7 +413,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         cmd->SetParameters(&cmd->localBindings, &vars);
         cmd->SetParameters(&cmd->globalBindings, script->Globals());
         for (int i = 0; i < cmd->subCalls.size; ++i)
-            CalcParametersOrig(cmd, nullptr, script, &vars, &cmd->subCalls.data[i]);
+            cmd->CalcParameters(script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
         bool done = false;
         if (scriptaddon::Enabled()) {   // Rebirth's AddNewScriptCommands (hook at 004B684E)
@@ -488,7 +475,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             }
             for (int i = cmd->groupArgs.data[0]->size - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
-                if (condition) CalcParametersOrig(cmd, nullptr, script, &vars, condition);
+                if (condition) cmd->CalcParameters(script, &vars, condition);
                 if (!IsZero(cmd->floatArgs.data[0])) RunBody(this, script, cmd->calledScript);
             }
             --ForDepth(script);
@@ -623,7 +610,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x89:     // RemoveUnitFromServer(object)
         case 0x96: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) WorldRemoveObject(TheWorld(), nullptr, object->id_);   // Rebirth patches it
+            if (object) static_cast<CWorldServer*>(TheWorld())->RemoveObject(object->id_);   // Rebirth patches it
             break;
         }
         case 0xD2:   // RecalcMercBriefings
@@ -1245,4 +1232,4 @@ BOOL ScriptRun::Execute(CScript* script) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x004B6760, ScriptRun::Execute);
+EI_REWRITTEN(0x004B6760, ScriptRun::Execute);

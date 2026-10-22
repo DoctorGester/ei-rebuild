@@ -41,11 +41,11 @@ EI_REWRITTEN(0x00556D70, ArrayHeader<MotionPointArrayClass>::Construct);
 EI_REWRITTEN(0x00557230, ArrayHeader<PointArrayClass>::Construct);
 EI_REWRITTEN(0x00557B60, ArrayHeader<AnimationStepsClass>::Construct);
 EI_REWRITTEN(0x005BD1E0, ArrayHeader<CellRowArrayClass>::Construct);
-EI_REPLACE(0x005C1760, ArrayHeader<IntArrayClass>::Construct);
+EI_REWRITTEN(0x005C1760, ArrayHeader<IntArrayClass>::Construct);
 EI_REWRITTEN(0x005FAF80, ArrayHeader<UnitPtrArrayClass>::Construct);
 
 // The destructor: the vtable, the storage freed (20 instantiations).
-EI_REPLACE(0x004600D0, ArrayHeader<IntArrayClass>::Destruct);
+EI_REWRITTEN(0x004600D0, ArrayHeader<IntArrayClass>::Destruct);
 EI_REWRITTEN(0x00474F30, ArrayHeader<FilePointArrayClass>::Destruct);
 EI_REWRITTEN(0x00475110, ArrayHeader<FileUvArrayClass>::Destruct);
 EI_REWRITTEN(0x004752F0, ArrayHeader<FileFaceArrayClass>::Destruct);
@@ -60,7 +60,7 @@ EI_REWRITTEN(0x004C29C0, ArrayHeader<ScriptFloatsClass>::Destruct);
 EI_REWRITTEN(0x004C5AF0, ArrayHeader<ScriptIfThenArrayClass>::Destruct);
 EI_REWRITTEN(0x004CB050, ArrayHeader<FloatArrayClass>::Destruct);
 EI_REWRITTEN(0x004CB770, ArrayHeader<AiLookArrayClass>::Destruct);
-EI_REPLACE(0x00557250, ArrayHeader<PointArrayClass>::Destruct);
+EI_REWRITTEN(0x00557250, ArrayHeader<PointArrayClass>::Destruct);
 EI_REWRITTEN(0x004C2510, Strings::SetSize);
 EI_REWRITTEN(0x004C26A0, Strings::Destruct<StringArrayClass>);
 EI_REWRITTEN(0x006C5050, AlignedArrays::ConstructElements);

@@ -5,7 +5,6 @@
 #include "unit.h"
 
 #include "ai_map.h"
-#include "originals_units.h"
 #include "unit_client_models.h"
 #include "world.h"
 
@@ -81,14 +80,14 @@ FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
     if (!anyOfKind) return nullptr;
     return CallRandomAnimationOfKind(this, kind);
 }
-EI_REPLACE_METHOD(0x005301B0, CUnit::FindAnimation);
+EI_REWRITTEN(0x005301B0, CUnit::FindAnimation);
 
 FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
     FigureAnimation* entry = AnimationAt(key);
     if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.GetString());
     return entry;
 }
-EI_REPLACE_METHOD(0x00530240, CUnit::AnimationEntry);
+EI_REWRITTEN(0x00530240, CUnit::AnimationEntry);
 
 double CUnit::BodyExtent() {
     int part = FindPartIndex(kBodyPart);
@@ -103,7 +102,7 @@ double CUnit::BodyExtent() {
     double x = corner.x;
     return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
 }
-EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
+EI_REWRITTEN(0x005304A0, CUnit::BodyExtent);
 
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
@@ -111,7 +110,7 @@ double CUnit::GroundHeight(float x, float y) {
     if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
-EI_REPLACE_METHOD(0x00530280, CUnit::GroundHeight);
+EI_REWRITTEN(0x00530280, CUnit::GroundHeight);
 
 Vector3* CUnit::EffectPoint(Vector3* out) {
     // The original leaves this uninitialised on the server and for a hero without a right hand,
@@ -141,4 +140,4 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     out->z = turned.z + localPosition_.z;
     return out;
 }
-EI_REPLACE_METHOD(0x00532860, CUnit::EffectPoint);
+EI_REWRITTEN(0x00532860, CUnit::EffectPoint);

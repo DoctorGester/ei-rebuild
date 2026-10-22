@@ -22,7 +22,6 @@
 #include "game_arrays.h"
 #include "lib/mfc_coll.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -154,7 +153,7 @@ void __cdecl DestroyLineOutcodes() {   // 0049B6D0 (CByteArray's destructor 006F
 }
 void __cdecl ConstructLineOutcodes() {   // 0049B6B0 (CByteArray's constructor 006FF5EA)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
-    GameAtExit(DestroyLineOutcodes);
+    libcrt::AtExit(DestroyLineOutcodes);
 }
 } // namespace
 

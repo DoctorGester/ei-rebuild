@@ -15,7 +15,6 @@
 #include "figure_mesh.h"         // VertexPacket
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
-#include "originals_effects.h"
 #include "record_lists.h"
 #include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"

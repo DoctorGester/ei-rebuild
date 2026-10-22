@@ -13,9 +13,6 @@ class GameBuffer;   // net_coder.h
 // 0055E990 (RET 4). The maps folder: the game's data folder (the CString at 007AF460) + "maps\",
 // constructed into `out`. Returns `out`.
 mfc::CString* __stdcall MapsFolder(mfc::CString* out);
-// The same through its address, for rewritten callers (Rebirth patches it): the CString is
-// constructed over `out`, which may hold an empty one.
-__declspec(naked) inline mfc::CString* __stdcall MapsFolderAt(mfc::CString* /*out*/) EI_ORIGINAL(0x0055E990)
 // 00595BA0 (RET 8). The full path of the map file `name`, constructed into `out`: `name` as it is
 // when its second character is ':' (a drive), else under the maps folder. Returns `out`.
 mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name);

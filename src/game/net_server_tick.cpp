@@ -1,6 +1,7 @@
 // The game server's tick (004182E0, slot 14) and a player state query (00417E40, called by the
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
 // net_classes.h and docs/notes/network.md.
+#include "net_classes.h"
 #include "net_messages.h"
 #include "net_connection.h"
 #include "options.h"
@@ -18,10 +19,6 @@
 namespace net {
 
 namespace {
-
-// 0041AA10: announces the game to the master server (patched by Rebirth at a call site; called
-// through its address).
-__declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
 const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }   // the master server's host name
 
@@ -59,7 +56,7 @@ void ServerSession::TickImpl(double dt) {
     if (announceTimer_ < worlddata::Zero()) {   // run out
         std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const char* host = MasterHost();
-        if (gamecrt::mbscmp(host, game::EmptyText()) != 0) ServerAnnounceToMaster(this);
+        if (gamecrt::mbscmp(host, game::EmptyText()) != 0) AnnounceToMaster();
     }
 }
 EI_REWRITTEN(0x004182E0, ServerSession::TickImpl);

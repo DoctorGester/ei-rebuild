@@ -17,14 +17,12 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"
+#include "ui_cursor.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -36,8 +34,6 @@
 
 #include <windows.h>
 #undef GetClassName   // CEngineObject::GetClassName
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace console {
 
@@ -181,7 +177,7 @@ void __fastcall NoGui(CStringArray* args) {
     g_guiShown = mode == 0;
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
-    CursorShowOriginal(TheCursor(), nullptr, g_cursorShown ? 1 : 0);
+    TheCursor()->ShowImage(g_cursorShown ? 1 : 0);
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {
@@ -244,7 +240,7 @@ void ApplyAddonGuiVisibility(CUiContainer* screen) {
 }
 
 void RunAddonAutoExec() {
-    for (const std::string& line : AutoExecLines()) ExecuteAt(line.c_str());
+    for (const std::string& line : AutoExecLines()) Execute(line.c_str());
 }
 
 } // namespace console

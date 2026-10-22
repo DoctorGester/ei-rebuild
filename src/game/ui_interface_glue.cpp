@@ -11,7 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
@@ -146,9 +145,9 @@ void CInterface3D::ShowStatusText(const char* text) {
     if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
-    SurfaceClearOriginal(statusSurface_);
+    static_cast<CUiSurface*>(statusSurface_)->Clear();
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
-    SurfaceDrawText(statusSurface_, nullptr, text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
+    statusSurface_->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
     UiSurfaceReleaseDC(statusSurface_);
     app::FrameStep(true, true);
     if (statusSurface_) {

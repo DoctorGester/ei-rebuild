@@ -16,15 +16,12 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "record_lists.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
+#include "world_map_files.h"
 #include "game_singletons.h"
 
 #include <cstring>
@@ -39,14 +36,10 @@ namespace {
 // std::sort of the chunk pointers by index, as the instantiation splits it: the introsort loop
 // (RET 0xC: a null type tag, twice the size's log2, the empty comparator) and the final insertion
 // sort (RET 4: the comparator).
-// The game flow's map file writer (patched by Rebirth: through its address).
-__declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
-    EI_ORIGINAL(0x005813A0)
 
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
-inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
-__declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
-inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
+inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
+inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
 
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
@@ -286,7 +279,7 @@ void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   
 // +0x25E8.
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0041EAC0
     AppendRaw(self->files_, message);
-    if (FlowHasFile(TheGameFlow(), nullptr, message->name_.data())) return;
+    if (MapFileExists(message->name_.data())) return;
     auto* request = NewMessageMemory<FileRequestMessage>();
     if (request) {
         RefValueConstructBase(request);
@@ -352,7 +345,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         const std::int32_t size = file->size_;
         buffer.high = buffer.begin + size;
         if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
-        FlowWriteMapFile(TheGameFlow(), nullptr, file->name_.data(), &buffer);
+        WriteMapFile(file->name_.data(), &buffer);
         DropRequestsFor(self, file);
         buffer.DestructGrowing();
     }
@@ -384,8 +377,8 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 
 void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {   // 0041F1E0
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);
-    PartyResetOriginal(&self->parties_[0], nullptr, 1, 0);   // parties (00661050 class)
-    PartyResetOriginal(&self->parties_[1], nullptr, 1, 0);
+    reinterpret_cast<CParty*>(&self->parties_[0])->Clear(1, 0);   // parties (00661050 class)
+    reinterpret_cast<CParty*>(&self->parties_[1])->Clear(1, 0);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.

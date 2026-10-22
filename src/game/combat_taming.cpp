@@ -5,6 +5,7 @@
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "ai_mode_class.h"
 #include "combat.h"
+#include "engine_object.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
@@ -15,19 +16,14 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_ai.h"
 
 namespace {
 
 constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
-// Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
@@ -35,8 +31,8 @@ constexpr int kStatTaming = 2;
 void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 template <typename T>
-void __fastcall ReferenceRelease(T** a0) { CountedRefResetOriginal((void*)a0); }
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
 
@@ -137,4 +133,4 @@ void CUnitServer::UndoTaming() {
     if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;
 }
-EI_REPLACE_METHOD(0x00552280, CUnitServer::UndoTaming);
+EI_REWRITTEN(0x00552280, CUnitServer::UndoTaming);

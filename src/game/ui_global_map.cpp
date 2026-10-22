@@ -10,6 +10,7 @@
 #include "options.h"
 #include "global_map_clouds.h"
 #include "player_client.h"
+#include "ui.h"
 #include "world_glue.h"
 #include "sound.h"
 #include "ui_camp.h"
@@ -33,10 +34,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -56,7 +53,6 @@ using console::CStringArray;
 
 namespace {
 
-
 inline double D(float f) { return f; }
 
 float Bits(std::uint32_t bits) {
@@ -66,7 +62,6 @@ float Bits(std::uint32_t bits) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Bits(T) = delete;
-
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -94,7 +89,7 @@ void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // The local player's variables, copied by name prefix into a local hash_map<CString, float> (100
@@ -187,10 +182,9 @@ private:
     CGlobalMap* map_;
 };
 
-
 void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     region->SetTip(tip, 1, 0);
 }
 
@@ -202,7 +196,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
     int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
     int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
-    map->AddRegion()->CallSetRect(left, top, right, bottom);
+    map->AddRegion()->SetRect(left, top, right, bottom);
 }
 
 } // namespace
@@ -513,21 +507,20 @@ void CGlobalMap::Create() {
     ei::VirtualSlot<UpdateFn>(vtable_, 24)(this);   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (options::TheOptions()->autosave_ != 0) AutoSaveOriginal("saveb", 1);
+        if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
         autosave_ = false;
     }
     interface_->OpenHelp(0);
 }
 
-EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
+EI_REWRITTEN(0x0062D350, CGlobalMap::Create);
 
 // --- Update (0062F050) -----------------------------------------------------------------------------
 
 namespace {
 
 // 006010E0 (not rewritten): the container's base update (its children).
-void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
-
+void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
@@ -612,7 +605,7 @@ void CGlobalMap::Update() {
             int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
             int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
             int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
-            regions_.data[3 + i]->CallSetRect(left, top, right, bottom);
+            regions_.data[3 + i]->SetRect(left, top, right, bottom);
         }
     }
 
@@ -646,7 +639,7 @@ void CGlobalMap::Update() {
     TheCursor()->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
-EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);
+EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 
@@ -702,8 +695,8 @@ void DestroyArray(Array* array, void* vtable) {
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {
-        CStringDestroy(&array->data[i].title);
-        CStringDestroy(&array->data[i].name);
+        array->data[i].title.~CString();
+        array->data[i].name.~CString();
     }
     gamecrt::operator_delete(array->data);
 }
@@ -711,16 +704,16 @@ void DestroyArray(Array* array, void* vtable) {
 
 // 00600BA0: the container base's destructor body.
 void __fastcall GlobalMapDestroy(CGlobalMap* self) {
-    CStringDestroy(&self->shownName_);
+    self->shownName_.~CString();
     self->arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
-    CStringDestroy(&self->target_);
+    self->target_.~CString();
     stlp::deallocate(self->path_.Start(), static_cast<std::size_t>(self->path_.EndOfStorage() - self->path_.Start()) *
                                               sizeof(GlobalMapStep));   // 005FA7E0
     DestroyArray(&self->quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
     DestroyArray(&self->links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     DestroyArray(&self->zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
-    CStringDestroy(&self->allodTitle_);
-    DestroyContainerBody(self);
+    self->allodTitle_.~CString();
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6920, GlobalMapDestroy);
 

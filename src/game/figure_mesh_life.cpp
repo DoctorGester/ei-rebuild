@@ -12,8 +12,6 @@
 #include "engine_object_class.h"
 #include "item.h"
 #include "link_figure.h"
-#include "originals_core.h"
-#include "originals_world.h"
 #include "scene_loader.h"   // InitFigurePart
 
 #include <cstring>

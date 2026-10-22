@@ -54,4 +54,4 @@ void CUnit::UpdateSizeClass() {
     // FCOMP; TEST AH,0x41: only for a value above 1.5.
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }
-EI_REPLACE_METHOD(0x00530570, CUnit::UpdateSizeClass);
+EI_REWRITTEN(0x00530570, CUnit::UpdateSizeClass);

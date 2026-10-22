@@ -12,9 +12,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
@@ -69,7 +66,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         Spiral()->radius = -1.0f;
         SpiralGuard() |= 1;
         Spiral()->length = 0;
-        GameAtExit([] {});   // 005BA3F0: nothing to destroy
+        libcrt::AtExit([] {});   // 005BA3F0: nothing to destroy
     }
     int sizeClass = unit->sizeClass;
     path->cells.RemoveAll();   // 00556D40
@@ -218,7 +215,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;
-                retried = PlanPath(this, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
+                retried = PlanLongPath(unit, fromX, fromY, toX, toY, path, retry, maxCells);
             }
             DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
             DestroyList(chain, PathCellListVtable());

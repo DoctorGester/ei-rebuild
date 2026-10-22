@@ -9,7 +9,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -62,7 +61,7 @@ struct LocalCoder {
 struct LocalBuffer {
     GameBuffer b;
     LocalBuffer() { b.ConstructGrowing(); }
-    ~LocalBuffer() { GrowingBufferDestruct(&b); }
+    ~LocalBuffer() { static_cast<GameBuffer*>(&b)->DestructGrowing(); }
     LocalBuffer(const LocalBuffer&) = delete;
     LocalBuffer& operator=(const LocalBuffer&) = delete;
 };

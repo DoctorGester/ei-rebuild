@@ -12,7 +12,6 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
-#include "originals_library.h"
 
 void AIPath::LoadPath(CStream* stream) {
     int count;

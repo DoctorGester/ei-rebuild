@@ -18,8 +18,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "originals_library.h"
-#include "originals_units.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -295,4 +293,4 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x00530A60, CUnit::IsBehind);
+EI_REWRITTEN(0x00530A60, CUnit::IsBehind);

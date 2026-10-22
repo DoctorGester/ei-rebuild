@@ -6,7 +6,6 @@
 
 #include "logic_settings.h"
 #include "map_object.h"
-#include "originals_ai.h"
 #include "player_messages.h"
 #include "world.h"
 #include "game_singletons.h"
@@ -163,7 +162,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     candidates.RemoveAll();
 }
 
-EI_REPLACE_METHOD(0x005D4170, PlayerMode::UpdateCombat);
+EI_REWRITTEN(0x005D4170, PlayerMode::UpdateCombat);
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     AIObjectList nearby;

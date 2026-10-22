@@ -13,9 +13,6 @@
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "model.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "render/render.h"   // MeshSource
 #include "texture.h"           // CTextureDevice
 #include "world.h"
@@ -70,9 +67,6 @@ const void* MovedPositionsOf(CFigureMesh* mesh) {
     return moved.data;
 }
 
-std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
-
-
 } // namespace
 
 // 005A7640 (thiscall on the part's drawer, RET 0x18). Arguments 2-4 are not read; `alpha` goes to
@@ -84,7 +78,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        GameAtExit(FreeMovedPositions);   // 005A7A50
+        libcrt::AtExit(FreeMovedPositions);   // 005A7A50
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;
@@ -116,12 +110,10 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
     const render::MeshSource source{m, nullptr, m->offsets_.size != 0, (meshFlags & 0x100) != 0};
     render::SetMeshSource(&source);
-    int result = DrawMesh(reinterpret_cast<char*>(device), nullptr, positions, blocks, Word(b.normals), b.normalCount,
-                          Word(m->colorsA_.data), Word(m->colorsB_.data), Word(b.texCoords),
-                          static_cast<std::uint32_t>(b.texCoordCount), Word(b.corners),
-                          static_cast<std::uint32_t>(b.cornerCount), Word(b.words), static_cast<std::uint32_t>(b.wordCount),
-                          Word(b.indices), static_cast<std::uint32_t>(b.indexCount), std::bit_cast<std::uint32_t>(m->textureOffsetU_),
-                          std::bit_cast<std::uint32_t>(m->textureOffsetV_), alpha, drawFlags);
+    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data, m->colorsB_.data,
+                                        b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
+                                        static_cast<std::uint16_t*>(b.indices), b.indexCount, m->textureOffsetU_,
+                                        m->textureOffsetV_, alpha, drawFlags);
     render::SetMeshSource(nullptr);
     if (rect) {
         RECT* own = &screen_;

@@ -1,6 +1,7 @@
 // Small virtual slots of the 3D object base (CObject3D, vtable 0073DDD4; shared by every map
 // object's vtable): the world rotation, copying a figure, the side half, the effect sources and
 // the drawing slots. See map_object_figures.h and docs/notes/map_objects.md.
+#include "effects.h"
 #include "map_object_figures.h"
 
 #include "core_transform.h"
@@ -8,7 +9,6 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 #include <cstring>
 
@@ -46,7 +46,7 @@ void CObject3D::RemoveAllEffectSources() {
         if (!node) continue;
         effectSources.RemoveAt(node);
         if (source) {
-            ParticleSourceAttachOriginal(source, nullptr, nullptr);
+            static_cast<CParticleSource*>(source)->Attach(nullptr);
             source->Release();
         }
     }

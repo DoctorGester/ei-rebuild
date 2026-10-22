@@ -10,7 +10,6 @@
 #include "player_source.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
 
 namespace {
 

@@ -5,6 +5,7 @@
 #include "ai_map.h"
 #include "map_object.h"
 #include "combat.h"
+#include "map_object_figures.h"
 #include "map_spec.h"
 #include "map_spec_class.h"
 #include "core_streams.h"
@@ -19,10 +20,6 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/mfc_slots.h"
 #include "lib/mfc_array.h"
 #include "world_data.h"
@@ -160,7 +157,7 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
     for (int i = 0, n = self->patrols.size; i < n; ++i) DestroyPatrol(patrols[i]);
     gamecrt::operator_delete(self->patrols.data);
 }
-EI_REPLACE(0x0046C290, BehaviourDestruct);
+EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
 // 0046E680: the patrol array becomes a copy of `from` (each patrol copied through a temporary
 // returned by value, as the original does).
@@ -399,14 +396,14 @@ CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(base.object); }
 void UnitSpec::UnitSpecApply() {
     Spec& b = object.base;
     if (!b.object) {
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
         return;
     }
     CUnit* unit = object.Unit();
-    SectorMapMove(TheSectorMap(), nullptr, unit, &b.position);
+    TheSectorMap()->Move(unit, &b.position);
     TheServerWorld()->AIMap()->TurnObject(unit, &b.rotation);
     std::memcpy(&unit->localRotation_, &b.rotation, 16);
-    ObjectSetFigureScaleOriginal(b.object, nullptr, &object.scale.x);
+    static_cast<CObject3D*>(b.object)->SetFigureScale(&object.scale.x);
     std::memcpy(&unit->baseScale, &object.scale, 12);
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;

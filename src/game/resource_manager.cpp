@@ -6,7 +6,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 #include <cstring>
 #include <type_traits>
@@ -161,9 +160,9 @@ void __fastcall FreeAllFilesHook(CResourceManager* self) { self->CResourceManage
 EI_REWRITTEN(0x00674F40, DestroyHook);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
-EI_REPLACE(0x00512720, DestroyHook);
-EI_REPLACE(0x0068E8F0, DestroyHook);
-EI_REPLACE(0x006AC800, DestroyHook);
+EI_REWRITTEN(0x00512720, DestroyHook);
+EI_REWRITTEN(0x0068E8F0, DestroyHook);
+EI_REWRITTEN(0x006AC800, DestroyHook);
 EI_REWRITTEN(0x00675050, CResourceManager::AddArchiveImpl);
 EI_REWRITTEN(0x00675200, CResourceManager::RemoveArchiveImpl);
 EI_REWRITTEN(0x00675340, RemoveAllArchivesHook);

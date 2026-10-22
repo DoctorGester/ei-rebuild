@@ -148,9 +148,6 @@ struct __declspec(novtable) CSpellEffect {
     // through `position` along `direction` (only x and y are used): the wall spells.
     void HitUnitsAlong(const Vector3* direction);
 
-    // Forwarders to the game's entries (so the verify wrappers see the calls).
-    BOOL CallGetDamage(DamageInfo* out);
-
     // spell_effect_start.cpp: the casting state (state 0) and the effect objects it creates.
     // 0067F870. Starts spell `type` (the prototype index): creates its sounds, particles, lights
     // and lightning, delivers the instant hits, and sets the next state (1 missile, 2 lasting,
@@ -455,10 +452,6 @@ public:
     // 006842A0. Adds `modifier` and rebuilds when the prototype accepts it. Returns 0/1.
     BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
-    // Forwarders to the game's entries (so the verify wrappers see the calls).
-    void CallSetManager(CSpellManager* manager);
-    BOOL CallBeginConstruct(const itemdb::SpellRecord* prototype);
-    BOOL CallAddModifier(itemdb::SpellModifierRecord* modifier);
 
     CSpellManager* manager_;        // +0x1C counted (+4) but never released
     CSpellContainer* container_;    // +0x20

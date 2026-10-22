@@ -777,8 +777,8 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std
     LeaveCriticalSection(&g_randomLock);
 }
 
+// game.exe: the generator's Next (004667F0), which jumps here.
 std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
-    // IsaacRandom::Next (random.cpp), which jumps here too.
     if (self->count_-- == 0) {
         self->Refill();
         self->count_ = 255;
@@ -789,8 +789,7 @@ std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
     return value;
 }
 
-// The game's CRT rand() (006E77F7; per thread: the seed libcrt::RandState has), which gamecrt::rand
-// jumps to.
+// game.exe: the game's CRT rand() (006E77F7; per thread: the seed libcrt::RandState has), which jumps here.
 constexpr std::uintptr_t kCrtRand = 0x006E77F7;
 int __cdecl TracedRand() {
     unsigned& hold = libcrt::RandState();
@@ -800,15 +799,19 @@ int __cdecl TracedRand() {
     return value;
 }
 
-// A JMP at `entry` to `to`; for an address of game.exe's code in the image (no code there, the code section guarded)
-// the code for the address (ei::RedirectCode).
+// The image: the draws of our generator and rand(), through their observers.
+void ObservedDraw(IsaacRandom& random, std::uint32_t value, const void* caller) {
+    WriteDraw(reinterpret_cast<std::uintptr_t>(caller), value, &random == &IsaacRandom::Global() ? "" : " (another generator)",
+              random.c_ * 256u + 255u - random.count_);
+}
+void ObservedRand(int value, const void* caller) {
+    WriteDraw(reinterpret_cast<std::uintptr_t>(caller), static_cast<std::uint32_t>(value), " rand()", libcrt::RandState());
+}
+
+// game.exe: a JMP at `entry` to `to`.
 void JumpFrom(std::uintptr_t entry, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(entry);
     ei::NoteHarnessPatch(entry, 5, "the random trace");
-    if (ei::Standalone() && entry >= 0x00401000 && entry < 0x0073A670) {
-        ei::RedirectCode(entry, to);
-        return;
-    }
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;
@@ -848,11 +851,14 @@ void InstallRandomTrace(const unsigned* frames) {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof(info));
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    // The original's entry and ours (the rewritten callers call ours directly), and rand().
-    auto ours = &IsaacRandom::Next;
-    JumpFrom(kIsaacNext, reinterpret_cast<const void*>(&TracedNext));
-    JumpFrom(*reinterpret_cast<std::uintptr_t*>(&ours), reinterpret_cast<const void*>(&TracedNext));
-    JumpFrom(kCrtRand, reinterpret_cast<const void*>(&TracedRand));
+    // The generator's Next and rand().
+    if (ei::Standalone()) {
+        IsaacRandom::SetDrawObserver(&ObservedDraw);
+        gamecrt::SetRandObserver(&ObservedRand);
+    } else {
+        JumpFrom(kIsaacNext, reinterpret_cast<const void*>(&TracedNext));
+        JumpFrom(kCrtRand, reinterpret_cast<const void*>(&TracedRand));
+    }
     Log("harness: random trace to %s", path);
 }
 

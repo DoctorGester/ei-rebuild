@@ -3,6 +3,7 @@
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "ai_map.h"
 #include "base_manager.h"
+#include "map_object_figures.h"
 #include "map_spec.h"
 #include "map_spec_class.h"
 #include "game_strings.h"
@@ -13,15 +14,11 @@
 
 #include <cstring>
 #include <new>
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "sector_map.h"
 #include "world.h"
 
 namespace mapspec {
@@ -163,7 +160,7 @@ void ObjectSpec::ObjectSpecDestruct() {
     model.~CString();
     base.SpecDestruct();
 }
-EI_REPLACE_METHOD(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
+EI_REWRITTEN(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
 EI_REWRITTEN(0x0058EDF0, ObjectSpec::ObjectSpecDestruct);
 
 // 0046A6F0 (slot 10).
@@ -281,7 +278,7 @@ EI_REWRITTEN(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
 // 0046AF70 (slot 6): removes the world object, then slot 7.
 void ObjectSpec::ObjectSpecRemove() {
     if (base.object) {
-        WorldRemoveObject(TheServerWorld(), nullptr, base.id);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(base.id);
         base.object = nullptr;
     }
     base.Record()->ApplyObject();
@@ -300,15 +297,15 @@ EI_REWRITTEN(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 // scale, visibility) while it is out of the editor's lists.
 void ObjectSpec::ObjectSpecApply() {
     if (!base.object) {
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, &base);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&base);
         return;
     }
     Selection()->BeginRefresh();
-    SectorMapRemove(AsSectorMap(TheSectorMap()), nullptr, base.object);
+    TheSectorMap()->Remove(MapObject());
     CMapObject* object = MapObject();
     std::memcpy(&object->localPosition_, &base.position, 12);
     std::memcpy(&object->localRotation_, &base.rotation, 16);
-    ObjectSetFigureScaleOriginal(base.object, nullptr, &scale.x);
+    static_cast<CObject3D*>(base.object)->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, 12);
     object->ApplyBaseScale();
     std::uint32_t& flags = object->flags_;
@@ -316,7 +313,7 @@ void ObjectSpec::ObjectSpecApply() {
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, base.object);
+    TheSectorMap()->Add(MapObject());
     Selection()->EndRefresh();
 }
 EI_REWRITTEN(0x0046AFB0, ObjectSpec::ObjectSpecApply);
@@ -366,10 +363,10 @@ EI_REWRITTEN(0x0046B1F0, FlameSpec::FlameSpecDelete);
 void FlameSpec::FlameSpecApply() {
     Spec& b = object.base;
     if (b.object) {
-        WorldRemoveObject(TheServerWorld(), nullptr, b.id);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(b.id);
         b.object = nullptr;
     }
-    WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
+    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
 }
 EI_REWRITTEN(0x0046B310, FlameSpec::FlameSpecApply);
 

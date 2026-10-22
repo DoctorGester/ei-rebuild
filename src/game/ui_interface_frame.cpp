@@ -11,22 +11,15 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "net_classes.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_core.h"
 #include "ui_cursor.h"
 #include "world.h"
 #include "world_glue.h"
 #include "../hook/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace {
 
@@ -38,8 +31,6 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
-
-// 00458220: dispatches the window messages waiting in the queue.
 
 void ReleaseBackdrop(CUiSurface* surface) {
     if (!surface) return;
@@ -191,4 +182,4 @@ void CInterface3D::OnStringEvent(const char* event) {
 }
 
 EI_REWRITTEN(0x005F57C0, CInterface3D::Update);
-EI_REPLACE_METHOD(0x005F8070, CInterface3D::OnStringEvent);
+EI_REWRITTEN(0x005F8070, CInterface3D::OnStringEvent);

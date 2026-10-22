@@ -11,15 +11,11 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
 // MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.
-int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
+int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
 // CString members not in lib/mfc.h.
 struct TextString : mfc::CString {
@@ -78,8 +74,8 @@ void Advance(CTextManager* t, const AdvanceKind& kind) {
     const char* p = t->cursor_;
     if (!InsideBy(t, p, kind.entry)) return;
     while (InsideBy(t, p, kind.loopEnd) && (kind.code == Test::Inline ? CharCode(p) : TextCharCode(p)) != 10)
-        p = MbsInc(p);
-    t->cursor_ = InsideBy(t, p, kind.exit) ? MbsInc(p) : p;
+        p = gamecrt::mbsinc(p);
+    t->cursor_ = InsideBy(t, p, kind.exit) ? gamecrt::mbsinc(p) : p;
 }
 
 constexpr AdvanceKind kAfterRead{Test::Inline, Test::Inline, Test::Inline, Test::Call};    // ReadLine / Split
@@ -117,7 +113,7 @@ BOOL CTextManager::Open(const char* key) {
     text_ = text;
     return text && length_ != 0;
 }
-EI_REPLACE_METHOD(0x004DEFC0, CTextManager::Open);
+EI_REWRITTEN(0x004DEFC0, CTextManager::Open);
 
 BOOL CTextManager::OpenData(const char* key) {
     if (text_) {
@@ -155,7 +151,7 @@ BOOL CTextManager::PeekWord(mfc::CString* out) {
             started = true;
             AppendCharAt(out, tmp, p);
         }
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     return 1;
 }
@@ -164,12 +160,12 @@ EI_REWRITTEN(0x004DF770, CTextManager::PeekWord);
 BOOL __fastcall TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;
     if (!Inside(self, p)) return 0;
-    while (Inside(self, p) && CharCode(p) != 10) p = MbsInc(p);
+    while (Inside(self, p) && CharCode(p) != 10) p = gamecrt::mbsinc(p);
     if (!Inside(self, p)) {
         self->cursor_ = p;
         return 0;
     }
-    self->cursor_ = MbsInc(p);
+    self->cursor_ = gamecrt::mbsinc(p);
     return 1;
 }
 EI_REWRITTEN(0x004DF6E0, TextSkipLine);
@@ -194,7 +190,7 @@ BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
         int code = CharCode(p);
         if (code == 10 || code == 13) break;
         AppendCharAt(out, tmp, p);
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
@@ -209,7 +205,7 @@ BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
     while (Inside(this, p)) {
         if (CharCode(p) == '#') break;
         AppendCharAt(out, tmp, p);
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     if (advance) cursor_ = p;
     return 1;
@@ -245,7 +241,7 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
             inWord = true;
             AppendCharAt(&word, tmp, p);
         }
-        p = MbsInc(p);
+        p = gamecrt::mbsinc(p);
     }
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
@@ -304,4 +300,4 @@ BOOL CTextManager::FindLine(const char* key) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x004DF030, CTextManager::FindLine);
+EI_REWRITTEN(0x004DF030, CTextManager::FindLine);

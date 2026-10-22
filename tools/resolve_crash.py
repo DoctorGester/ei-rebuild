@@ -202,9 +202,7 @@ class Stack:
         return self.cache[key]
 
     def thunk(self, kind, t):
-        """(module, address) where code at t really goes: through jump thunks (incremental linking) and
-        the forwarders to the original game function (cmp [link], 0; je; jmp [link], S18i1: the address in
-        their CodeLink, the dword after the link's code pointer)."""
+        """(module, address) where code at t really goes: through jump thunks (incremental linking)."""
         for _ in range(3):
             img = self.images.get(kind)
             head = img.read(t - img.base, 15) if img else None
@@ -212,13 +210,6 @@ class Stack:
                 break
             if head[0] == 0xE9:
                 t += 5 + struct.unpack_from('<i', head, 1)[0]
-            elif (len(head) == 15 and head[:2] == b'\x83\x3d' and head[6:8] == b'\x00\x74' and
-                  head[9:11] == b'\xff\x25' and head[2:6] == head[11:15] and 'game' in self.images):
-                link = struct.unpack_from('<I', head, 2)[0] - img.preferred + img.base
-                address = img.read(link + 4 - img.base, 4)
-                if not address:
-                    break
-                kind, t = 'game', struct.unpack_from('<I', address)[0]
             else:
                 break
         return kind, t

@@ -13,10 +13,6 @@
 #include "game_arrays.h"
 #include "map_object.h"
 #include "net_link.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_units.h"
 #include "party.h"
 #include "random.h"
 #include "resource_manager.h"
@@ -303,7 +299,7 @@ int CPlayerServer::SendPartyState() {
     for (int i = 0; i < count; ++i) {
         auto* unit = partyUnits_.data[i].AsUnit();
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
-            if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
+            if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto* node = unit->ServerController()->Brain()->memory.nearby.head; node != nullptr;) {
                 auto* other = node->data;
@@ -381,14 +377,14 @@ int CPlayerServer::ReceiveMessages() {
         std::uint8_t type = 0xFF;
         std::uint8_t previous = 0xFF;
         for (;;) {
-            if (!in.ok_) return PlayerMessageErrorOriginal(TextReadPastEnd(), previous, type);
+            if (!in.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
             previous = type;
             if (in.Read(&type, 1) == 0) break;
             if (state_ == 0 && type != kMessageJoin && type != kMessageJoin8) break;
-            if (static_cast<int>(type) >= handlers_.size) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
+            if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
             auto handler = handlers_[type];
-            if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
-            if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);
+            if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
+            if (!handler(this, nullptr)) return PlayerMessageError(TextHandlerFailed(), previous, type);
             if (state_ == kStateLeaving) return 0;
         }
     }

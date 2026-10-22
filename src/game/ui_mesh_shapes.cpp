@@ -1,7 +1,6 @@
 // The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
-// these reproduce behind the flag (ticket W2); rewritten callers keep going through the forwarders
-// (CUiMesh::SetRectangle, ...). docs/notes/ui.md, section 9.
+// these reproduce behind the flag (ticket W2). docs/notes/ui.md, section 9.
 #include "ui.h"
 #include "ui_widescreen.h"
 
@@ -149,7 +148,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E70E0, CUiMesh::SetRectangleVanilla);
+EI_REWRITTEN(0x005E70E0, CUiMesh::SetRectangleVanilla);
 
 void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
@@ -204,9 +203,9 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
+EI_REWRITTEN(0x005E7680, CUiMesh::SetGridVanilla);
 
-void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border,
+void CUiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
@@ -256,9 +255,9 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrameVanilla);
+EI_REWRITTEN(0x005E7D60, CUiMesh::SetFrame);
 
-void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
+void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
     SetFlatNormals(this, 4);
     Vertices().SetSize(4);
@@ -297,4 +296,4 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangleVanilla);
+EI_REWRITTEN(0x005E99D0, CUiMesh::SetTriangle);

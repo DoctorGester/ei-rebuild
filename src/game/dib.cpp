@@ -11,8 +11,6 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // CDib's table: the compiler's (C19; game.exe's 00744288, the same slots): 0 GetRuntimeClass, 1 the scalar

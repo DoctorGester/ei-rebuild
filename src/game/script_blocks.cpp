@@ -15,15 +15,11 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_slots.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 
 #include <cstdint>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 

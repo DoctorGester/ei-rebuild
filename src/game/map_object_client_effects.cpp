@@ -17,10 +17,6 @@
 #include "game_lists.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
 
 #include "ei/hook.h"
 #include "lib/stlp_list.h"
@@ -407,7 +403,7 @@ EI_REWRITTEN(0x005112A0, CMapObjectClientSpecific::UpdateEffectSounds);
 void CObject3DClientSpecific::ResetPartAlpha() {
     for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
-EI_REPLACE_METHOD(0x0051CCA0, CObject3DClientSpecific::ResetPartAlpha);
+EI_REWRITTEN(0x0051CCA0, CObject3DClientSpecific::ResetPartAlpha);
 
 void CObject3DClientSpecific::ClearPartTints() {
     for (int i = 0; i < materials.size; ++i) {
@@ -418,7 +414,7 @@ void CObject3DClientSpecific::ClearPartTints() {
         materials[i]->flags_ &= ~kPartTinted;
     }
 }
-EI_REPLACE_METHOD(0x0051CD60, CObject3DClientSpecific::ClearPartTints);
+EI_REWRITTEN(0x0051CD60, CObject3DClientSpecific::ClearPartTints);
 
 void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
@@ -427,7 +423,7 @@ void CMapObjectClientSpecific::HideLight() {
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
-EI_REPLACE_METHOD(0x005119B0, CMapObjectClientSpecific::HideLight);
+EI_REWRITTEN(0x005119B0, CMapObjectClientSpecific::HideLight);
 
 void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
@@ -436,7 +432,7 @@ void CMapObjectClientSpecific::ShowLight() {
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
-EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
+EI_REWRITTEN(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();

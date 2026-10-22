@@ -15,6 +15,7 @@
 #include "item_db.h"
 #include "map_object.h"
 #include "player_messages.h"
+#include "sector_map.h"
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
@@ -26,12 +27,6 @@
 #include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -58,14 +53,14 @@ constexpr int kShoutCannotDo = 0x0E;
 // The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
+// --- Helpers --------------------------------------------------------------------------------------
 
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
-// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
+// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample, 005C6270 Clear.
 // The controller's functions rewritten elsewhere: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
@@ -75,7 +70,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
 // map (007B01F4).
@@ -181,7 +176,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         for (int i = 0; i < spots.size; ++i) {
             spot = spots.data[i];
             path.Path()->Clear();
-            if (!MapFindPath(map, nullptr, unit, &spot, path.Path(), kFar, 0.0f)) continue;
+            if (!static_cast<CAIMap*>(map)->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
@@ -327,17 +322,17 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             if (target) {
                 savedFlag = PathFlag();
                 PathFlag() = false;
-                SectorMapRemove(ServerSectors(), nullptr, target);
+                ServerSectors()->Remove(target);
             }
             CWorldServer* world = ServerWorld();
             path.Path()->flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.Path(), kFar, 0.0f);
+            bool found = MapOf(world)->FindPath(unit, &point, path.Path(), kFar, 0.0f);
             unit->altPassCosts = saved43C;
             if (!found) path.Path()->StandStill(unit);
             if (target) {
-                SectorMapAdd(ServerSectors(), nullptr, target);
+                ServerSectors()->Add(target);
                 PathFlag() = savedFlag;
             }
             path.Path()->ToMotionOrder(&route);
@@ -370,29 +365,29 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
-        SectorMapRemove(sectors, nullptr, unit);
+        sectors->Remove(unit);
         unit->moveMode = 2;
         unit->UpdateSizeClass();
         if (!map->CanLeaveCell(unit)) unit->moveMode = mode;
-        SectorMapAdd(sectors, nullptr, unit);
+        sectors->Add(unit);
     }
     std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.Path(), range, 0.0f);
+    bool found = MapOf(world2)->FindPath(unit, point, path.Path(), range, 0.0f);
     unit->altPassCosts = saved43C;
     if (running) {
-        SectorMapRemove(sectors, nullptr, unit);
+        sectors->Remove(unit);
         unit->moveMode = mode;
         unit->UpdateSizeClass();
-        SectorMapAdd(sectors, nullptr, unit);
+        sectors->Add(unit);
     }
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(sectors, nullptr, current->data);
+        sectors->Add(current->data);
     }
     ReportPath(path.Path(), found ? 1 : 0);
     // The list's RemoveAll (inlined).

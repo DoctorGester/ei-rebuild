@@ -40,7 +40,7 @@ CMemoryStream* CMemoryStream::ConstructQueueStream() {
     SetVtable(this, CMemoryStream::QueueStreamVtable());
     return this;
 }
-EI_REPLACE_METHOD(0x0066C4F0, CMemoryStream::ConstructQueueStream);
+EI_REWRITTEN(0x0066C4F0, CMemoryStream::ConstructQueueStream);
 
 DeltaField* DeltaField::Construct() {
     snapshot[0].Construct();

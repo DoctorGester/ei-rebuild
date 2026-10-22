@@ -12,7 +12,6 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 
@@ -54,8 +53,6 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 } // namespace
 
-__declspec(naked) void CHelpWindow::ShowPage() EI_ORIGINAL(0x00659420)
-
 void CHelpWindow::Build() {
     LoadTexture(SaveLoadTexture(), 3, nullptr);
     CreateTexture(0x100, 0x100, 0x20);
@@ -88,7 +85,7 @@ void CHelpWindow::Build() {
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, 1);
     ShowPage();
 }
-EI_REPLACE_METHOD(0x00658E10, CHelpWindow::Build);
+EI_REWRITTEN(0x00658E10, CHelpWindow::Build);
 
 void CHelpWindow::Close() {
     pulsing_.ClearWith([](CUiMesh**) {});
@@ -97,7 +94,7 @@ void CHelpWindow::Close() {
     ClearRegions();
     ClearSceneObjects();
 }
-EI_REPLACE_METHOD(0x006590F0, CHelpWindow::Close);
+EI_REWRITTEN(0x006590F0, CHelpWindow::Close);
 
 void CHelpWindow::Update() {
     UpdateBase();
@@ -114,7 +111,7 @@ void CHelpWindow::Update() {
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
     for (auto* node = pulsing_.First(); node != pulsing_.End(); node = node->next) node->data->flatColour_ = colour;
 }
-EI_REPLACE_METHOD(0x0065A5E0, CHelpWindow::Update);
+EI_REWRITTEN(0x0065A5E0, CHelpWindow::Update);
 
 void CHelpWindow::Finish() {
     interface_->PlaySound(OkSound(), 0);
@@ -166,5 +163,5 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00659190, InputForward<&CHelpWindow::OnLeftDown>::Call);
-EI_REPLACE_METHOD(0x006592C0, InputForward<&CHelpWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x00659190, InputForward<&CHelpWindow::OnLeftDown>::Call);
+EI_REWRITTEN(0x006592C0, InputForward<&CHelpWindow::OnKeyDown>::Call);

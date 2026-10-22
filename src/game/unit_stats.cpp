@@ -164,7 +164,7 @@ void UnitStats::GetFactors(float* a, float* b, int) {
 }
 EI_REPLACE_METHOD(0x00528840, UnitStats::GetFactors);
 
-BOOL LockKey::Opens(const LockKey* lock) {
+BOOL LockKey::Opens(const LockKey* lock) const {
     std::uint32_t common = lock->mask & mask;
     if (common == 0) return 0;
     if ((common & 8) == 8 && id == lock->id) return 1;

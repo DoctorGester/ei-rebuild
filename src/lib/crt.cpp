@@ -4,16 +4,17 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "game/originals_library.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 #include "text_case.h"
 
 #include <cfloat>
 #include <cmath>
+#include <cstdarg>
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <intrin.h>
 #include <corecrt_startup.h>
 #include <malloc.h>
 #include <mbctype.h>
@@ -24,23 +25,53 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-__declspec(naked) void* __cdecl operator_new(std::size_t) EI_ORIGINAL(0x007005AF)
-__declspec(naked) void __cdecl operator_delete(void*) EI_ORIGINAL(0x007005D8)
-__declspec(naked) void* __cdecl malloc(std::size_t) EI_ORIGINAL(0x006EABD1)
-__declspec(naked) void __cdecl free(void*) EI_ORIGINAL(0x006EA8AD)
+// In game.exe (the harness's runs of the original) the heap stays the game CRT's own code: the harness frees blocks
+// the game allocated and the other way round. In the image, ours.
+void* __cdecl operator_new(std::size_t size) {
+    if (ei::Standalone()) return libcrt::OperatorNew(size);
+    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x007005AF)(size);
+}
+void __cdecl operator_delete(void* p) {
+    if (ei::Standalone()) return libcrt::OperatorDelete(p);
+    reinterpret_cast<void(__cdecl*)(void*)>(0x007005D8)(p);
+}
+void* __cdecl malloc(std::size_t size) {
+    if (ei::Standalone()) return libcrt::Malloc(size);
+    return reinterpret_cast<void*(__cdecl*)(std::size_t)>(0x006EABD1)(size);
+}
+void __cdecl free(void* p) {
+    if (ei::Standalone()) return libcrt::Free(p);
+    reinterpret_cast<void(__cdecl*)(void*)>(0x006EA8AD)(p);
+}
 #endif
 
-__declspec(naked) int __cdecl rand() EI_ORIGINAL(0x006E77F7)
+namespace {
+RandObserver g_randObserver;
+} // namespace
+
+void SetRandObserver(RandObserver observer) { g_randObserver = observer; }
+
+int __cdecl rand() {
+    const int value = libcrt::Rand();
+    if (g_randObserver) g_randObserver(value, _ReturnAddress());
+    return value;
+}
 void __cdecl srand(unsigned seed) { libcrt::Srand(seed); }
 // The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
-// own answers through record_crt.cpp's forwarders).
+// own answers through record_crt.cpp's calls by address).
 int __cdecl tolower(int c) { return libcrt::Tolower(c); }
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
 char* __cdecl strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }
 int __cdecl strncmp(const char* a, const char* b, std::size_t n) { return libcrt::Strncmp(a, b, n); }
 int __cdecl isdigit(int c) { return libcrt::Isdigit(c); }
 int __cdecl isspace(int c) { return libcrt::Isspace(c); }
-__declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
+int __cdecl sprintf(char* buffer, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    const int length = libcrt::Vsprintf(buffer, format, args);
+    va_end(args);
+    return length;
+}
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) { return libcrt::Mbscmp(a, b); }
 
 #ifndef EI_VECTORS_REPLAY
@@ -85,8 +116,8 @@ std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count
 
 namespace game {
 
-__declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
-__declspec(naked) unsigned __cdecl DebugLog(const char*, ...) EI_ORIGINAL(0x0044C470)
+// The release build's debug log writes nothing (its callers ignore the result).
+unsigned __cdecl DebugLog(const char*, ...) { return 0; }
 
 } // namespace game
 
@@ -374,7 +405,7 @@ bool InStandalone() {
 unsigned& RandSeed() {
     thread_local unsigned standaloneSeed = 1;
     if (InStandalone()) return standaloneSeed;
-    return static_cast<CrtThreadData*>(CrtThreadDataOriginal())->randSeed;
+    return static_cast<CrtThreadData*>(gamecrt::GameThreadData())->randSeed;
 }
 } // namespace
 

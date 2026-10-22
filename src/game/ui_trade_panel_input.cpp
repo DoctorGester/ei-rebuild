@@ -2,14 +2,13 @@
 // scrolling the perk lists and buying school levels, science and perks with experience, a school
 // or science level again every quarter second while the button stays down. See docs/notes/ui.md,
 // section 5.
+#include "ui.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
 
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "unit_db.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -134,7 +133,7 @@ EI_REWRITTEN(0x00626C30, TradePanelInput::OnLButtonUp);
 void CTradePanel::UpdateHeld() {
     if (heldRegion_ < 0) return;
     // The comparison uses the unrounded sum; the field keeps it rounded.
-    double held = WindowFrameTimeOriginal(this) + holdTime_;
+    double held = CUiContainer::FrameTime() + holdTime_;
     holdTime_ = static_cast<float>(held);
     EI_NAN_AUDIT(held);
     if (held < kHoldRepeat) return;

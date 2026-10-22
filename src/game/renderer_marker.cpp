@@ -8,7 +8,6 @@
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
-#include "originals_render.h"
 
 #include <bit>
 #include <cstdint>

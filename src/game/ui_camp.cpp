@@ -3,6 +3,7 @@
 #include "device.h"   // the old device's calls
 #include "game_lists.h"
 #include "game_strings.h"
+#include "ui.h"
 #include "unit_create.h"
 #include "item.h"
 #include "ui_camp.h"
@@ -24,13 +25,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -94,7 +88,7 @@ void SetShade(CUiMesh* mesh, float shade) {
 
 // A white centred line on a surface between GetDC and ReleaseDC (005FDE20 is Rebirth-patched).
 void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
-    SurfaceDrawText(surface, nullptr, text, rect, 1, 0xFFFFFF, 1, 1);
+    surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
 
 } // namespace
@@ -198,7 +192,7 @@ void CCampPages::ShowPage(int page) {
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         UiSurfaceGetDC(title);
-        SurfaceClearOriginal(title);
+        static_cast<CUiSurface*>(title)->Clear();
         RECT rect = {0, 10, 200, 30};
         DrawLine(title, pageTitles_[page_], &rect);
         UiSurfaceReleaseDC(title);
@@ -315,7 +309,7 @@ int CCampPages::Price(CItem* item, int kind) {
     return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
 
-EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
+EI_REWRITTEN(0x0060FAB0, CCampPages::Price);
 
 bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
@@ -434,7 +428,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     }
 }
 
-EI_REPLACE_METHOD(0x006100E0, CCampPages::CanEquip);
+EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 
 // --- 00611930: UpdateAction ------------------------------------------------------------------------
 
@@ -571,7 +565,7 @@ void CCampPages::UpdateAction() {
     CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
     UiSurfaceGetDC(draw);
-    SurfaceClearOriginal(draw);
+    static_cast<CUiSurface*>(draw)->Clear();
     if (action.GetLength() != 0) {
         texts->GetString(action, &text);
         RECT name = {0, 30, 200, 50};
@@ -660,7 +654,7 @@ BOOL CCampPages::Draw(int pass) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0060F050, CCampPages::Draw);
+EI_REWRITTEN(0x0060F050, CCampPages::Draw);
 
 // --- 00612290 / 00612600: what the constructors would make ---------------------------------------
 
@@ -693,23 +687,23 @@ bool CCampPages::CanMakeSpell() {
             modifiers[modifierCount++] = ModifierRecordOf(item);
     }
     if (!spell) return false;
-    constructor->CallSetManager(manager);
-    if (!constructor->CallBeginConstruct(spell)) {
-        constructor->CallSetManager(nullptr);
+    constructor->SetManager(manager);
+    if (!constructor->BeginConstruct(spell)) {
+        constructor->SetManager(nullptr);
         return false;
     }
     for (int i = 0; i < modifierCount; ++i) {
-        if (!constructor->CallAddModifier(modifiers[i])) {
-            constructor->CallSetManager(nullptr);
+        if (!constructor->AddModifier(modifiers[i])) {
+            constructor->SetManager(nullptr);
             return false;
         }
     }
     if (!constructor->EndConstruct()) {
-        constructor->CallSetManager(nullptr);
+        constructor->SetManager(nullptr);
         return false;
     }
     CSpell* made = constructor->container_->Spell()->Clone(manager);
-    constructor->CallSetManager(nullptr);
+    constructor->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
     CItem* container = factory->MakeItem(0x3008, index, 0, -1);
@@ -835,7 +829,7 @@ void CCampPages::Close() {
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x0060E6B0, CCampPages::Close);
+EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 
 // --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
 
@@ -1123,7 +1117,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
     }
     interface_->PlaySound(game::PutOffSoundText(), 0);
 }
-EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
+EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
@@ -1139,7 +1133,7 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->RefreshModel();
     VirtualRefreshStats();
 }
-EI_REPLACE_METHOD(0x0060F9E0, CCampPages::RefreshWeapons);
+EI_REWRITTEN(0x0060F9E0, CCampPages::RefreshWeapons);
 
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
@@ -1149,7 +1143,7 @@ void CCampPages::RefreshStats() {
     }
     statsPanel_->DrawStats();
 }
-EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
+EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
 // --- 0060F6B0 / 0060F710 / 0060F7A0 / 0060F830: turning and choosing the hero ------------------
 
@@ -1167,20 +1161,20 @@ constexpr int kHeroClass = 0x32;
 } // namespace
 
 void CCampPages::Update() {
-    UiUpdateChildrenOriginal(this);   // 006010E0: the container's update
+    static_cast<CUiContainer*>(this)->UpdateBase();   // 006010E0: the container's update
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
     // 00600270: the frame time in seconds (ST0, unrounded).
     if (turning == 1) {
-        float turned = TurnedBy(WindowFrameTimeOriginal(this), turn, false);
+        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, false);
         std::memcpy(&heroTurn_, &turned, 4);
     } else if (turning == 2) {
-        float turned = TurnedBy(WindowFrameTimeOriginal(this), turn, true);
+        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, true);
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }
-EI_REPLACE_METHOD(0x0060F6B0, CCampPages::Update);
+EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
@@ -1219,8 +1213,8 @@ void CCampPages::PreviousHero() {
     ShowHero();
     VirtualRefreshWeapons();
 }
-EI_REPLACE_METHOD(0x0060F710, CCampPages::NextHero);
-EI_REPLACE_METHOD(0x0060F7A0, CCampPages::PreviousHero);
+EI_REWRITTEN(0x0060F710, CCampPages::NextHero);
+EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
@@ -1236,7 +1230,7 @@ void CCampPages::ShowHero() {
         {
             mfc::CString prefix("pers ");
             mfc::CString key = prefix + own;
-            found = TextsOpenSection(table, nullptr, key);
+            found = table->CTextManager::Open(key);
         }
         if (found) table->ReadLine(&name, 1);
     } else {

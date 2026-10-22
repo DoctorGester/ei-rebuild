@@ -12,11 +12,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -270,7 +266,7 @@ int CVisibilityFog::UpdateCells() {
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
         dead.ConstructEmpty();   // 004E2BA0
-        GameAtExit(DestroyDeadCells);
+        libcrt::AtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original
@@ -298,7 +294,7 @@ int CVisibilityFog::UpdateCells() {
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x004E1AB0, CVisibilityFog::UpdateCells);
+EI_REWRITTEN(0x004E1AB0, CVisibilityFog::UpdateCells);
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
 // the ground) and clears the mark on all others.
@@ -359,7 +355,7 @@ CVisibilityFog* CVisibilityFog::DeletingDestruct(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004E24C0, CVisibilityFog::DeletingDestruct);
+EI_REWRITTEN(0x004E24C0, CVisibilityFog::DeletingDestruct);
 
 namespace {
 constexpr int kFogClassId = 0x5F;
@@ -372,10 +368,10 @@ int __fastcall FogCreate(CVisibilityFog* self) {
 void __fastcall FogDestroy(CVisibilityFog* self) { self->ClearCells(); }
 const char* __fastcall FogClassName(CVisibilityFog*) { return "CVisibilityFog"; }
 int __fastcall FogClassId(CVisibilityFog*) { return kFogClassId; }
-EI_REPLACE(0x004E23D0, FogCreate);
-EI_REPLACE(0x004E2440, FogDestroy);
-EI_REPLACE(0x004E24A0, FogClassName);
-EI_REPLACE(0x004E24B0, FogClassId);
+EI_REWRITTEN(0x004E23D0, FogCreate);
+EI_REWRITTEN(0x004E2440, FogDestroy);
+EI_REWRITTEN(0x004E24A0, FogClassName);
+EI_REWRITTEN(0x004E24B0, FogClassId);
 
 namespace {
 // The compiled table (C19, engine_object_class.h) in place of game.exe's 0073D6B4: 0 the deleting destructor, 2 / 3

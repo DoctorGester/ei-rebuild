@@ -3,7 +3,6 @@
 
 #include "library_trees.h"
 #include "model.h"
-#include "originals_script.h"
 #include "texture.h"   // CTextureDevice
 #include "render/render.h"   // MeshChanged
 

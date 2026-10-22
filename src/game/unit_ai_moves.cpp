@@ -8,8 +8,6 @@
 #include "core_maths.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
-#include "originals_ai.h"
-#include "originals_units.h"
 #include "random.h"
 #include "script.h"
 #include "world.h"
@@ -324,9 +322,9 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-    SectorMapMove(TheServerWorld()->Sectors(), nullptr, unit, from);
+    TheServerWorld()->Sectors()->Move(unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
-    SectorMapMove(TheServerWorld()->Sectors(), nullptr, unit, &saved);
+    TheServerWorld()->Sectors()->Move(unit, &saved);
     return found;
 }
 EI_REWRITTEN(0x005D37E0, PlayerMode::PathClear);

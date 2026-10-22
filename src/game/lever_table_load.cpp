@@ -6,7 +6,6 @@
 
 #include "chunk_archive.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 #include "resource_local.h"
 
 #include "ei/hook.h"
@@ -54,7 +53,7 @@ int LeverRecordTable::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REPLACE_METHOD(0x00463390, LeverRecordTable::Load);
+EI_REWRITTEN(0x00463390, LeverRecordTable::Load);
 
 LeverRecordTable* LeverRecordTable::Construct() {
     begin = nullptr;
@@ -63,4 +62,4 @@ LeverRecordTable* LeverRecordTable::Construct() {
     byName.InitBuckets(100);
     return this;
 }
-EI_REPLACE_METHOD(0x004632A0, LeverRecordTable::Construct);
+EI_REWRITTEN(0x004632A0, LeverRecordTable::Construct);

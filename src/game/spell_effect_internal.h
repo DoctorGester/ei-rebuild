@@ -1,7 +1,7 @@
 #pragma once
 
 // Shared by spell_effect_start.cpp (casting, 0067EF40-00681B00) and spell_effect_update.cpp
-// (missile flight 00681BB0, lasting effects 00682650): forwarders, the x87 sequences the
+// (missile flight 00681BB0, lasting effects 00682650): helpers, the x87 sequences the
 // original repeats inline, and small accessors. See docs/notes/items_spells.md.
 
 #include "game_strings.h"
@@ -19,12 +19,6 @@
 #include "world_effect.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_effects.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_units.h"
-#include "originals_library.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
@@ -66,10 +60,8 @@ inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
+// --- Helpers -------------------------------------------------------------------------------------
 
-// --- Forwarders ----------------------------------------------------------------------------------
-
-// The world server's timed objects: WorldAddTimed (originals_world.h).
 // Effect setters (world_effect*.cpp).
 // 0067AC70 (not rewritten): the missile's target object id.
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
@@ -80,14 +72,9 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
 extern lib::StaticObject<FootprintCellSet> g_spellFootprint;   // ai_footprint.cpp
 inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
-// The later states' callees.
-// 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
-// 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
-// 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move: originals_ai.h.
 
 // --- x87 sequences ------------------------------------------------------------------------------
 // Plain C++ in the x87 order: double intermediates are the original's unrounded register values.
-
 
 // The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
 // original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The

@@ -70,9 +70,9 @@ EI_REWRITTEN(0x005BD010, FreeAnyGrid);
 // Byte-identical copies (the other element types' destructors).
 EI_REWRITTEN(0x00598400, FreeAnyGrid);
 EI_REWRITTEN(0x00598420, FreeAnyGrid);
-EI_REPLACE(0x00598440, FreeAnyGrid);
-EI_REPLACE(0x00598460, FreeAnyGrid);
-EI_REPLACE(0x00598480, FreeAnyGrid);
+EI_REWRITTEN(0x00598440, FreeAnyGrid);
+EI_REWRITTEN(0x00598460, FreeAnyGrid);
+EI_REWRITTEN(0x00598480, FreeAnyGrid);
 EI_REWRITTEN(0x00598580, FreeAnyGrid);
 EI_REWRITTEN(0x005985A0, FreeAnyGrid);
 EI_REWRITTEN(0x00598A60, FreeAnyGrid);
@@ -150,21 +150,21 @@ void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
     grid->height = 1;
     AllocateEdgeGrid(grid);
 }
-EI_REPLACE(0x005AF580, ConstructEdgeGrid);
+EI_REWRITTEN(0x005AF580, ConstructEdgeGrid);
 
 void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid) {
     grid->width = 1;
     grid->height = 1;
     AllocateZeroedByteGrid(grid);
 }
-EI_REPLACE(0x005AF590, ConstructRepresentativeGrid);
+EI_REWRITTEN(0x005AF590, ConstructRepresentativeGrid);
 
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
     grid->width = 1;
     grid->height = 1;
     AllocateGrid(*grid);
 }
-EI_REPLACE(0x005AF5A0, ConstructRegionGrid);
+EI_REWRITTEN(0x005AF5A0, ConstructRegionGrid);
 
 LocalSearch* LocalSearch::Construct(CAIMap* owner) {
     nodes.width = 1;
@@ -215,7 +215,7 @@ CUnitLayer* CUnitLayer::Construct() {
     freeNodes = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x005B4110, CUnitLayer::Construct);
+EI_REWRITTEN(0x005B4110, CUnitLayer::Construct);
 
 void CUnitLayer::Destruct() {
     nodes.vtable = mfc::impl::NodeListClass::Vtable();
@@ -227,7 +227,7 @@ void CUnitLayer::Destruct() {
     nodes.blocks = nullptr;
 }
 EI_REWRITTEN(0x0058A8A0, CUnitLayer::Destruct);
-EI_REPLACE_METHOD(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy
+EI_REWRITTEN(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy
 
 void AIDirtyRect::Reset() {
     minX = 10000;
@@ -235,7 +235,7 @@ void AIDirtyRect::Reset() {
     minY = 10000;
     maxY = 0;
 }
-EI_REPLACE_METHOD(0x005B40F0, AIDirtyRect::Reset);
+EI_REWRITTEN(0x005B40F0, AIDirtyRect::Reset);
 
 EI_REWRITTEN(0x005BDD50, lib::AlignedArray<AITerrainType>::ElementAt);
 

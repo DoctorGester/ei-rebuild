@@ -22,10 +22,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
-#include "originals_ai.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -79,13 +75,13 @@ Vector3 Normalised(float x, float y, float z) {
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
     (void)z;   // the server unit's height is used instead
-    auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);
+    auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
     Vector3 target{x, y, serverUnit->localPosition_.z};
     if (immediate) {
-        SectorMapMove(TheSectorMap(), nullptr, serverUnit, &target);
+        TheSectorMap()->Move(serverUnit, &target);
         Vector3 facing = Normalised(dx, dy, dz);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);
@@ -146,7 +142,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         speakersEnd_[-1].name = name;
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_)) {
+        if (auto* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             serverUnit->ServerController()->actionDone = SpeakerActionDone();
         }

@@ -1,11 +1,11 @@
-# Cleanup tooling and the shared forwarder headers
+# Cleanup tooling
 
-Tools (all in `tools/`; each file's docstring says how to run it) and the state of the forwarder cleanup. The plan is
+Tools (all in `tools/`; each file's docstring says how to run it) and what the cleanups learnt. The plan is
 `docs/cleanup-plan.md`; the rules for new code are in `docs/rewrite-guide.md`.
 
 ## Checks
 
-`build.cmd` runs `check_thunks`, `check_registrations`, `check_forwarders`, `check_cleanup` and the data checks (a failure stops the
+`build.cmd` runs `check_thunks`, `check_registrations`, `check_cleanup` and the data checks (a failure stops the
 build; the list and why each runs are in build.cmd). The others are run by hand before handing work back.
 
 | Tool | What it catches |
@@ -15,21 +15,16 @@ build; the list and why each runs are in build.cmd). The others are run by hand 
 | `check_signatures.py` / `check_signatures.cmd` (after `verify`) | a registered, forwarded or recorded declaration whose stack arguments differ from the original's `RET n` (argument order is not checked) |
 | `check_thunks.py` | an `EI_REPLACE_METHOD` naming a method that is virtual, or overrides one, in its class or a base (it would register a vcall thunk: rewrite-guide rule 4) |
 | `check_registrations.py` | two registrations of one address, or an `EI_REWRITTEN` address also registered (reads the built DLL) |
-| `check_forwarders.py` | a function newly forwarded from more than one file (baseline `config/forwarder_duplicates.txt`, `--update` drops fixed ones) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | rewritten / verified numbers plus the cleanup artefact counts (below) |
-| `gen_originals.py` | `docs/originals-report.md` (generated; do not read it whole: grep the address). `--check` exits 1 when it is stale |
 | `find_dead_code.py` | rewrites `config/dead_code.csv` from scratch (drops hand-added rows; refuses arguments) |
 
 ## `progress.py` cleanup artefacts
 
-Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`, shared with `gen_originals.py`): EI_ORIGINAL forwarders
+Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): EI_ORIGINAL forwarders
 (sites and distinct addresses), forwarded from several files, naked non-forwarders, files with `#pragma float_control`, unknown_XXX fields,
 `At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
 `0x0073xxxx`-`0x008Fxxxx`), `__fastcall Fn(T* self, void*)` shims, struct names defined in several files, and the rest listed in its output.
-`gen_originals.py` lists every address with an `EI_ORIGINAL` forwarder in more than one file (file, line, declared signature), tagged by how far
-the files agree and sorted into already rewritten (a direct call replaces the forwarders), library code, and not yet ported. "Rewritten" means
-an `EI_REPLACE(0x...)` / `EI_REPLACE_METHOD(0x...)` with a literal address, or a `UI_INPUT_HANDLER` / `UI_WHEEL_HANDLER` (`ui_hud.cpp`).
 
 ## Redundant pointer casts (`cast_scan.py`, C21)
 
@@ -74,99 +69,18 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)
   declares the virtual destructor (CEngineObject's slot 0): no upcast to CEngineObject first.
 
-## Shared forwarder headers (cleanup ticket C3)
+## Forwarders (C3, C13, C29)
 
-One declaration per forwarded address in `src/game/originals_<area>.h` (`core`, `engine`, `script`, `render`, `units`, `world`, `ai`, `ui`,
-`gameplay`, `effects` by address range; `library` for STLport / MFC / CRT code), each `__declspec(naked) inline ... EI_ORIGINAL(addr)` with a
-comment giving RET n and what EAX / ST0 holds, and forward declarations of the types it names. Other sites keep their local name and
-signature as a one-line inline wrapper over the shared forwarder. No new forwarders are written (rewrite guide rule 5); C29 turns these
-into direct calls.
-
-What the declarations follow:
-
-- A plain `RET` function declared `(T*, void*)` dropped its dummy EDX: declare `__fastcall` with only the real arguments; a function that
-  never reads ECX takes no `this` (`GameFlowOriginal()`, `SetServerFlagOriginal(int)`: the old `this` arguments
-  were dummies).
-- Constructors and copies return `this` (`void*`); results callers never read are `void`; a result in ST0 is declared `double` (so it stays
-  unrounded) and `float` arguments the function only copies are passed as raw dword bits (`std::bit_cast`; no FPU load touches a NaN payload).
-- CString: 006FDA6D is `Right(nCount)` and 006FD9B4 `Mid(nFirst)` (core.md, "MFC CString: Mid and Right"); 006FDAE9 `Left` is
-  `CString CString::Left(int) const` (RET 8: result slot, count). The iostream inserters are distinct addresses: 006FC9C6 "%d", 006FC14E
-  "%u", 006FC91C "%ld", 006FC7FA double (RET 8), 006FC0B0 char, 006FC31D string, 00434FE0 manipulator.
-- `src/lib` keeps its own copy of some functions (lib cannot include game headers): 0044C470, 006E6370, 006E63AD, 006E6433, 006FE90F,
-  00700AA9, 00700AF9, 00700B9F, 00700C05, 00700D4C, 00700E17 (and the CRT / STLport ones such as 006E848B, 00404D70, 00405950); those
-  addresses stay listed as duplicates.
-- Where a class member forwarded the same address (`World::GetPlayer`, `Ostream` members, `CStringArray` members, ...) it is a one-line
-  wrapper over the shared forwarder; a rewrite that is also declared in a header (e.g. `FatalError` in app.cpp) gets a different shared name
-  (`FatalErrorOriginal`).
-
-## Retiring container forwarders (C13b1-C13b3x)
-
-Measure with `python tools/direct_calls.py --report -v --cast --loose --library` after a `build.cmd verify` (it reads the map);
-check_cleanup's "EI_ORIGINAL forwarder" count is the ratchet (C13b2: 1,426 to 798; C13b3: to 365; C13b3x: to 294). Forwarders to library containers go once the
-storage is typed; then the call is the container's member or its ABI type's static member. The helpers this uses:
-
-- `mfc::impl::ArrayAs<Abi>(array)` (lib/mfc_array.h) views a `CArray<T>` as the policy instantiation `Abi` registers (same element
-  size, checked); `ConstructHeader` / `DestructHeader<Class>` / `ConstructArrayOf` / `DestructArrayOf` and lib/mfc_list.h's
-  `ConstructListHeader<Class>` replace the per-instantiation constructors and destructors of a header written in place.
-- `PlainElements<CString>` constructs and destroys its elements (`CArray<CString>` is MFC's CStringArray element code).
-- STLport: a `_Vector_base(alloc)` constructor is `ConstructEmpty()` (or the three pointers nulled when the field is raw), an alloc
-  proxy constructor is the null it stores, a node / block deallocation `stlp::deallocate(p, n * size)`, `resize(n)` the instantiation's
-  `VectorAbi::ResizeDefault` (`recordvec::ResizeUntyped<Abi>` where a serialiser holds the vector untyped), a map's constructor /
-  destructor / find / operator[] the `stlp::map` members (the map's key order must be the instantiation's: CInterface3D's help topics
-  are `stlp::map<CString, int, CStringLess>`).
-- Lists: `mfc::impl::ListAs<Abi>` / `NewNodeAs` / `FreeNodeAs` / `RemoveAtAs` view a CList as its registered instantiation;
-  `stlp::AsNode<T>` / `AsRefNode` view a node declared by its own struct as `list<T>::Node` for `ListAbi<T, E>`'s statics.
-  Element policies (`HeldObject`, `SharedRef`, `CountedRef`, `ConstructElementsAt`) pick the instantiation, not the call site.
-- Trees and hashes: `stlp::TreeAbi<Map>` / `HashtableAbi<Traits>` statics over the registered instantiation (library_trees.h,
-  game_hashes.h); pointer-triple vectors go through `VectorAbi` statics; serialisers by member pointer.
-- A forwarder to a rewrite under another name (`Refresh` / `RefreshArea`, `CallCopyTo` / `CopyToImpl`, `ShowHelp` / `OpenHelp`) is
-  dropped and the callers name the rewrite; a base-class body hidden by a derived declaration is a qualified call
-  (`CMapObject::DestructBody()`, `CObject3D::Construct()`, `SessionBase::TickImpl(dt)`). Hooks are retired, so "through its address
-  so the verify wrapper runs" no longer holds a forwarder; tests/verify's do stay (a vanilla run must call the game's own code).
-
-Left for C29: Rebirth-patched callees, the skip list, harness-replaced entries, WordsSetAtGrow and ViewStackDestroyRange;
-the vector recorders and replay stand-ins stay.
-
-C13b3x took check_cleanup's count from 364 to 294 (direct_calls.py: 301 in scope, 299 left, 2 convertible but kept). What made the
-rest convertible:
-
-- `ei_vectors` links the caller without the target: direct_calls.py now also accepts a target that a `tests/vectors/replay_*.cpp`
-  defines, so a replay-linked caller calls the target and `tests/vectors/replay_unlinked.cpp` gets an `EI_UNLINKED("name")` stop
-  for each target the replay does not link (a call exits with "not linked into the replay"). replay_crt.cpp's stand-ins are now
-  definitions of `libcrt::Mbsinc` / `Mbscmp` / `Atoi` and the others, replay_script_load.cpp's of `ScriptRunWorldScript`.
-- lib/mfc.cpp's CFile / CFileFind / CStringArray are no longer an `#else` branch: `ei_vectors` links mfc_file.cpp and mfc_coll.cpp.
-  `mfc::CFileFind` has `FindNext` / `GetTitle` / `IsDots` / `Close` (not `FindNextFile` / `GetFileTitle`: Windows' headers define
-  those as macros). mfc_file.cpp / mfc_time.cpp call the host CRT only (the hook build's game-CRT branch is gone).
-- No-registration rows rewritten: a patrol's destructor (`DestroyPatrol`), net_lobby's query vector through
-  `stlp::ConstructDefaultAt` / `CopyAssignTagged<Query, recordvec::QueryElement>`, ui_saveload's `ConstructCopyAt`, counted-pointer
-  holders through `RefPtrRelease`, renderer_sprites' `lib::AlignedArray::SetSize`.
-- One `PartyRecords` (unit.h; player_messages.cpp has `Find`), `CCamera::Update` called directly (`CameraUpdateOf` is the image's
-  fallback for the frame's call target), the shape cache through `gamehash::InitShapeHandle` / `ShapesOf` and `CAIMap::CellMark`.
-
-C13d took the count from 294 to 284 (the CRT / MFC names below and the exit function):
-
-- A `gamecrt::` name with a port is a one-line call of the port (`strncpy` / `strncmp` / `strnicmp` / `tolower` / `isdigit` /
-  `isspace` / `write`, like `mbscmp` / `srand`); ei_vectors defines the `libcrt::` names it links instead (replay_crt.cpp:
-  `Tolower` / `Isdigit` / `Isspace` from the recorded ctype, `Strncpy` / `Strncmp` / `Strnicmp`). `mfc::PlexCreate` /
-  `PlexFreeDataChain` call mfc_list.cpp's `impl::CreatePlex` / `FreePlexChain` (ei_vectors links mfc_list.cpp).
-- A recorder that needs the original's answer has its own forwarder: record_crt.cpp's `GameIsdigit` / `GameIsspace` /
-  `GameTolower` (the "@GameCrtCtype" record is the game CRT's classes).
-- A function-local static's exit function is registered as the generated `ei::static_init::ExitXXXXXXXX`
-  (src/game/at_exit_functions.h), not through a forwarder to its address (`Terrain::SetSun`'s sorted sectors, 006C9270).
-
-Still forwarders after C13d, and why:
-
-- `CrtThreadDataOriginal` (006F00D1): in a vanilla game.exe run the harness reads rand's seed through `libcrt::RandState()`, whose
-  non-image path is the game CRT's thread data.
-- `CWndDestroyWindow` (007051A1): unreachable in the image; porting it needs afxMapHWND (007048B7) and `CWnd::Detach` (007049A7).
-- `ManagerFindObject` (00403F40): its one caller is world_client_draw.cpp, left for the renderer work (R16).
-- `DrawMesh` / `DrawMesh2` (originals_render.h): `CTextureDevice::DrawMeshBlocks` / `2` take other argument lists; after R16.
-- tests/verify (`HarnessLoadUnitFaces`, `HarnessMappedResourceConstruct`, blink / pick / class templates): a vanilla run must call
-  the game's own code.
-- crt.cpp's `operator_new` / `operator_delete` / `malloc` / `free` (replay_crt.cpp has its own heap): the harness runs inside
-  game.exe for the goldens (`--no-hooks`) and frees blocks the game allocated, so its allocations must stay the game CRT's own
-  code (the ports' `HeapAlloc` on the game's heap would be the same only while the game's CRT uses the system heap, which no run
-  checks). `SectorMapAdd` / `GameAtExit` (replay stand-ins), `SeedAt` / `rand` (the harness replaces them).
+src has no `EI_ORIGINAL` forwarder since C29 (from 1,426 at C13b2): our code calls every game function by name, the type
+puns the forwarders hid are `reinterpret_cast`s at the call, and the harness changes the image's behaviour through named seams
+(`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
+`gen_originals.py`, `check_forwarders.py`, `direct_calls.py`, `RedirectCode` / `CodeLink` and the vector replay's stand-ins went
+with them. What is left calls game.exe's own code in its runs: tests/verify (`harness_original.h`; each forwarder sits behind
+`ei::Standalone()` with our function on the other side) and record_crt.cpp's recorders. ei_vectors links the callers without
+some targets: `tests/vectors/replay_unlinked.cpp` stops each one the replay never reaches (`EI_UNLINKED`) or stands in for it.
+crt.h's `gamecrt::GameThreadData` (006F00D1) stays for the game.exe side of rand's seed and the CRT's errno, and
+crt.cpp's `gamecrt::operator_new` / `operator_delete` / `malloc` / `free` call game.exe's own heap outside the image
+(the harness frees blocks the game allocated; the host heap there crashed 104 of the original's runs).
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 

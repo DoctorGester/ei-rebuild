@@ -23,15 +23,11 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
-#include "originals_world.h"
-#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
 #include <new>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -280,7 +276,7 @@ void CBattleScreen::Create() {
             owner->MessageLog()->AddText(text);
         }
     }
-    TopPanelShowPageOriginal(topPanel_);
+    topPanel_->ShowItems();
 
     CCameraInput* camera = gamecrt::operator_new_as<CCameraInput>();
     AddInput(camera ? reinterpret_cast<UiInputSide*>(camera->Construct(interface_)) : nullptr);
@@ -339,5 +335,5 @@ BOOL CBattleScreen::Draw(void* target) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00635250, CBattleScreen::Create);
-EI_REPLACE_METHOD(0x00636020, CBattleScreen::Draw);
+EI_REWRITTEN(0x00635250, CBattleScreen::Create);
+EI_REWRITTEN(0x00636020, CBattleScreen::Draw);

@@ -1,6 +1,6 @@
 // The CAIMap constructor (005B3C30) and its reset (005B5E10: every member destroyed in reverse
 // order, then the constructor run again in place). The members are built through their own
-// constructors (forwarders); the inlined ones (CArrays, CLists, the dirty rectangle) are stores.
+// constructors; the inlined ones (CArrays, CLists, the dirty rectangle) are stores.
 // The original's exception frames only matter when a member constructor throws, which ends the
 // game either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
@@ -12,8 +12,6 @@
 #include "lib/mfc_array.h"
 
 #include <cstdint>
-#include "originals_library.h"
-#include "originals_ai.h"
 #include "unit_ai.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
@@ -21,10 +19,6 @@
 #include "record_arrays.h"
 
 namespace {
-
-// Constructors of the members (thiscall).
-// 005B40F0: resets the dirty rectangle (+4).
-__declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
 
 
@@ -75,7 +69,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->Events()->Construct();
     self->loaded = false;
     self->batching = false;
-    ResetDirty(&self->dirtyMinX, nullptr);
+    reinterpret_cast<AIDirtyRect*>(&self->dirtyMinX)->Reset();
     FillAreaLists(self);
     self->footprintTick = 0;
     self->refreshUnits = false;

@@ -19,7 +19,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
 #include "render/render.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -267,7 +266,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
         sorted = {nullptr, 0, 0, 0};
-        GameAtExit(terrain::FreeSortedSectors);
+        libcrt::AtExit(terrain::FreeSortedSectors);
     }
     if (!sorted.data) {
         sorted.data = sorted.Allocate(0);

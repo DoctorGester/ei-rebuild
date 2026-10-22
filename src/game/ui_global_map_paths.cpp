@@ -8,7 +8,6 @@
 #include "game_strings.h"
 
 #include "object_tables.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "ui_widescreen.h"
@@ -186,4 +185,4 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0062F950, InputForward<&CGlobalMap::OnLeftDown>::Call);
+EI_REWRITTEN(0x0062F950, InputForward<&CGlobalMap::OnLeftDown>::Call);

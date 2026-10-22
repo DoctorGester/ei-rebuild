@@ -15,8 +15,6 @@
 #include "../lib/mfc.h"
 
 #include <cstring>
-#include "originals_library.h"
-#include "originals_world.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_coll.h"
 #include "record_arrays.h"
@@ -590,7 +588,7 @@ void __cdecl DestroyProjectionOutcodes() {   // 006BFAE0
 }
 void __cdecl ConstructProjectionOutcodes() {   // 006BFAC0
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
-    GameAtExit(DestroyProjectionOutcodes);
+    libcrt::AtExit(DestroyProjectionOutcodes);
 }
 constexpr int kProjectionVertices = 0x330;
 

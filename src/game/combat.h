@@ -607,7 +607,6 @@ public:
     void TakeQueuedOrder();
     // 00546830. The unit's second movement mode, marking it changed.
     void SetUnitMoveMode2(int mode);
-    void CallExecuteOrder();
 
     // combat_update.cpp: the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
@@ -771,7 +770,6 @@ public:
     // 005460A0. Virtual slot 39: the taming stage.
     int TameStage();
 
-    // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
     // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
     // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.

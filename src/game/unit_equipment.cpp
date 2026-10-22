@@ -12,9 +12,6 @@
 
 #include "ei/hook.h"
 #include "world.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 
 #include <cstdint>
 
@@ -41,7 +38,7 @@ bool Named(const mfc::CString& name) {
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CItem* MakeWeapon(CItemManager* items, const mfc::CString& name, const char* prototype) {
-    CItem* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
+    CItem* weapon = items->CreateItem(name);
     if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.GetString(), prototype);
     return weapon;
 }
@@ -59,7 +56,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     if (unit->type_ == kTypeArmed) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
-            CItem* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
+            CItem* armour = items->CreateItem(prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].GetString(), name);
         }

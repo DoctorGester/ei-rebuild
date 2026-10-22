@@ -7,8 +7,6 @@
 #include <ctime>
 #include <new>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 namespace {

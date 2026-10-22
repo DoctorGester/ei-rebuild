@@ -17,8 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "originals_ai.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 namespace {
@@ -58,7 +56,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (!(Guard() & 1)) {
         Guard() |= 1;
         Patch() = nullptr;
-        GameAtExit(ReleasePatch);
+        libcrt::AtExit(ReleasePatch);
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
         CUnitShape* fresh = NewPatch();

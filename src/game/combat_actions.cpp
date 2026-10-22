@@ -5,7 +5,6 @@
 #include "ai_alarm.h"
 #include "combat.h"
 #include "map_object.h"
-#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -16,6 +15,7 @@
 #include "party.h"
 #include "player_messages.h"
 #include "resource_manager.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -26,11 +26,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
 #include "world_effect.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -100,7 +95,7 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 // 00665470. Player: receives the items in `list` (a CPtrList).
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code) {
-    PlayerSendObject0BOriginal(messages, nullptr, unit, code);
+    static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
@@ -178,7 +173,7 @@ void CUnitServer::FinishAction(int location, char) {
     action.modifier = 0;
     if (action2.kind == 9) Idle();
 }
-EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
+EI_REWRITTEN(0x00549EC0, CUnitServer::FinishAction);
 
 void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     CWorldServer* world = ServerWorld();
@@ -205,7 +200,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
-EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
+EI_REWRITTEN(0x0054F450, CUnitServer::DeliverAttack);
 
 void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     ManagerContext();
@@ -221,7 +216,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     const Vector3* at = target->AimPoint(&point);
     TheServerWorld()->CastSpell(spell, self, &self->localPosition_, target, at, 0);
 }
-EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
+EI_REWRITTEN(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
 void CUnitServer::TriggerItemSpells(char onHit) {
     ManagerContext();
@@ -239,7 +234,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         TheServerWorld()->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
     }
 }
-EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
+EI_REWRITTEN(0x0054F8E0, CUnitServer::TriggerItemSpells);
 
 void CUnitServer::UseItemCharge(CItem* item, float cost) {
     if (!item) return;
@@ -255,7 +250,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
     player->ItemUsed(copy);   // 00665BE0
 }
-EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
+EI_REWRITTEN(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
     if (!stats.Heal(ServerStatsOf(unit), amount)) return 0;
@@ -287,7 +282,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (AbsBits(sideStored) >= AbsBits(frontStored)) return sideStored > kZero ? 0xC00000 : 0x1000000;
     return frontStored > kZero ? 0x800000 : 0x400000;
 }
-EI_REPLACE_METHOD(0x005518F0, CUnitServer::HitDirection);
+EI_REWRITTEN(0x005518F0, CUnitServer::HitDirection);
 
 void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murderer) {
     CWorldServer* world = ServerWorld();
@@ -361,7 +356,7 @@ void CUnitServer::PropagateHostility() {
         if (toMe) ClaimHostility(other, toMe);
     }
 }
-EI_REPLACE_METHOD(0x00552E00, CUnitServer::PropagateHostility);
+EI_REWRITTEN(0x00552E00, CUnitServer::PropagateHostility);
 
 void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CWorldServer* world = ServerWorld();
@@ -428,7 +423,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
-        WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;
@@ -532,15 +527,15 @@ void CUnitServer::Idle() {
     if (action2.kind == 7 || action2.kind == 8) return;
     DropQueuedOrder();
 }
-EI_REPLACE_METHOD(0x00555180, CUnitServer::Idle);
+EI_REWRITTEN(0x00555180, CUnitServer::Idle);
 
 void CUnitServer::SetDead(int dead) {
     auto* world = ServerWorld();
     if (unit->dead == dead) return;
     CSectorMap* units = world->Sectors();
-    SectorMapRemove(units, nullptr, unit);
+    units->Remove(unit);
     unit->dead = dead;
-    SectorMapAdd(units, nullptr, unit);
+    units->Add(unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;

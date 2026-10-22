@@ -5,6 +5,7 @@
 #include "app_helpers.h"
 #include "bink_video.h"
 #include "model.h"
+#include "ui.h"
 #include "ui_screens.h"
 
 #include "world.h"
@@ -12,9 +13,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -37,15 +35,15 @@ constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 // --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
-EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
+EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
 // --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
 
 // --- 0062BCB0: a script line's destructor ---------------------------------------------------------
 
 void TitleLine::Destroy() {
-    CStringDestroy(&style);
-    CStringDestroy(&text);
+    style.~CString();
+    text.~CString();
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
@@ -66,9 +64,9 @@ BOOL CCreditsScreen::Draw(int pass) {
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 UiSurfaceGetDC(headerSurface_);
-                SurfaceClearOriginal(headerSurface_);
+                static_cast<CUiSurface*>(headerSurface_)->Clear();
                 RECT rect = {0, 0, 0, 0};
-                SurfaceDrawText(headerSurface_, nullptr, line.text, &rect, 2, kHeaderColour, 1, 1);
+                headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {
@@ -80,14 +78,14 @@ BOOL CCreditsScreen::Draw(int pass) {
     }
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
-        PlayMoviesOriginal(mfc::operator+(name_, kOutroSuffix), 0, 0, 0, 0);
+        app::PlayMovies(mfc::operator+(name_, kOutroSuffix), false, false, 0, 0);
         app::g_interfaceHasScreen = 0;
         Close();
         return 1;
     }
     return DrawContainer(pass);
 }
-EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
+EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
 // --- 0062BD00: the close ---------------------------------------------------------------------------
 
@@ -96,6 +94,6 @@ void CCreditsScreen::OnClose() {
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;
-    CursorShowOriginal(TheCursor(), nullptr, 1);
+    TheCursor()->ShowImage(1);
 }
-EI_REPLACE_METHOD(0x0062BD00, CCreditsScreen::OnClose);
+EI_REWRITTEN(0x0062BD00, CCreditsScreen::OnClose);

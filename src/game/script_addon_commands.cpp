@@ -21,10 +21,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_engine.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
@@ -35,8 +31,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace scriptaddon {
 
@@ -179,7 +173,7 @@ bool Loot(Call* call) {
     if (!unit) return Report("Loot", "Object must be a unit");
     if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
     TheServerWorld()->Loot(unit, player);
-    WorldRemoveObject(TheServerWorld(), nullptr, unit->id_);
+    static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(unit->id_);
     return true;
 }
 

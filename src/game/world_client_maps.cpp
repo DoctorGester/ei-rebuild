@@ -11,6 +11,8 @@
 #include "item.h"
 #include "lightning.h"
 #include "map_object_shadow.h"
+#include "player_manager.h"
+#include "player_messages.h"
 #include "world.h"
 #include "world_client_class.h"
 #include "world_data.h"
@@ -37,7 +39,6 @@
 #include "unit_db.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
-#include "originals_engine.h"
 #include "mod_folders.h"
 #include "world_map_files.h"
 #include "world_glue.h"
@@ -54,11 +55,6 @@
 #include "lib/stlp_list_refs.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "player_client.h"
 #include "ui_flying_hit_points.h"
 #include "unit_client_models.h"
@@ -267,7 +263,7 @@ using DynamicNode = DynamicList::Node;
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
 
 // ClearMaps: the session's player data [00665200].
-void __fastcall SessionPlayerClear(CPlayer* session) { PlayerClearOriginal(session); }
+void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
 
 // The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
 // ScreenIntroSort (00573740), ScreenInsertionSort (00575BC0), ScreenUnguardedInsertionSort (00576D40).
@@ -711,7 +707,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(&record->stats);
-        ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
+        static_cast<CObject3D*>(unit)->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
@@ -1077,10 +1073,8 @@ EI_REWRITTEN(0x00566030, CWorldClient::Select);
 namespace {
 
 
-// Rebirth-patched callees (config/rebirth_patches.csv), kept as forwarders: the lights table loader
-// [00563930 (file name)] and the sound manager's constructor [006B6040].
-__declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
-__declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
+// The sound manager's constructor (006B6040).
+void* __fastcall ConstructSoundManager(void* memory) { return static_cast<CSoundManager*>(memory)->Construct(); }
 
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
@@ -1139,7 +1133,7 @@ SectorList* SectorList::VectorDelete(unsigned flags) {
     return this;
 }
 void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list) { DestroySectorList(list); }
-EI_REPLACE(0x0056DEF0, SectorListDestruct);
+EI_REWRITTEN(0x0056DEF0, SectorListDestruct);
 
 EI_REWRITTEN(0x00572B30, SectorList::VectorDelete);
 EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
@@ -1177,9 +1171,9 @@ int CWorldClient::Setup() {
         mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
         texturePath_ = path;
     }
-    LoadLightsAt(this, nullptr, worlddata::LightsTableText());
+    LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
-    sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
+    sounds_ = MakeCounted<CSoundManager>(0x8C0, ConstructSoundManager);
 
     // The text resources: the engine object's fields (in the original's order), the table, then
     // the class's constructor body.
@@ -1245,7 +1239,7 @@ int CWorldClient::Setup() {
     ++manager->refCount_;
     manager->Init(this);
 
-    session_ = PlayerCreateOriginal(players_);
+    session_ = static_cast<CPlayer*>(players_->CreateSessionPlayer());
 
     auto* handle = gamecrt::operator_new_as<CRefObject>();
     handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
@@ -1590,7 +1584,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (map.GetLength() > 1 && map[1] != ':') {
         mfc::CString folder;
         modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
-        MapsFolderAt(&folder);
+        MapsFolder(&folder);
         map = folder + map;
     }
     terrain->ClearMap();
@@ -1605,7 +1599,7 @@ int CWorldClient::LoadZone(CStream* block) {
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
     allod.MakeLower();
-    if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
+    if (!terrain->LoadMap(map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), map.GetString());
 
     FitGrid(objectGrid_, terrain);
@@ -1635,7 +1629,7 @@ int CWorldClient::LoadZone(CStream* block) {
     {
         mfc::CString table = lights + allod;
         mfc::CString file = table + worlddata::IniSuffixText();
-        LoadLightsAt(this, nullptr, file);
+        LoadLights(file);
     }
     CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
@@ -1658,7 +1652,7 @@ int CWorldClient::LoadZone(CStream* block) {
     CloseLoadingMovie();
     return 1;
 }
-EI_REPLACE_METHOD(0x00567AB0, CWorldClient::LoadZone);
+EI_REWRITTEN(0x00567AB0, CWorldClient::LoadZone);
 
 EI_REWRITTEN(0x00561E50, CWorldClient::Setup);
 EI_REWRITTEN(0x00560650, PlatformSet::AddFace);

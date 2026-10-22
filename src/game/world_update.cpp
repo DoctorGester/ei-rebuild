@@ -21,11 +21,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc_array.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_script.h"
-#include "originals_world.h"
 #include "game_data.h"
 
 namespace {
@@ -35,9 +30,8 @@ libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
 // CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
-__declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, CPlayer*) EI_ORIGINAL(0x0058B750)
 // 00665A10. Disconnects a player (its connection and units).
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
@@ -47,7 +41,7 @@ void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, CPlayer* player) {
-    PlayerDisconnectOriginal(player);
+    static_cast<CPlayer*>(player)->Disconnect();
     world->PlayerList()->ReleasePlayer(player);
     NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->playerId_)->PutChar('\n')
         ->Apply(libcrt::FlushManipulator);
@@ -98,7 +92,7 @@ int CWorldServer::Update() {
 
     if (!paused_) {
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            PlayerTickOriginal(player);
+            static_cast<CPlayer*>(player)->Tick();
         Tick(static_cast<char>(0));
     }
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
@@ -123,7 +117,7 @@ int CWorldServer::Update() {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);
-            ScriptGroupDestructOriginal((void*)storage.Get());
+            static_cast<ScriptGroup*>((void*)storage.Get())->DestructBody();
             break;
         }
     }
@@ -162,7 +156,7 @@ int CWorldServer::Update() {
     }
 
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        if (!SyncPlayerAt(this, nullptr, player)) DropPlayer(this, player);
+        if (!SyncPlayer(player)) DropPlayer(this, player);
 
     ++updateCount_;
     return 1;

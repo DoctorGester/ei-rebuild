@@ -23,7 +23,6 @@
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "model.h"
-#include "originals_library.h"
 #include "texture.h"
 #include "weather_noise.h"
 #include "world.h"
