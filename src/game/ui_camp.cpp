@@ -289,7 +289,7 @@ float WornFraction(const CItem* item) {
 } // namespace
 
 int CCampPages::Price(CItem* item, int kind) {
-    const float* multipliers = reinterpret_cast<const float*>(priceWeights_);
+    const float* multipliers = priceWeights_;
     float repair = kPriceZero;
     int type = ItemType(item);
     if (type == 0x3004 || type == 0x3005 || kind == 8) {

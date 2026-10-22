@@ -986,7 +986,7 @@ public:
 
     bool loaded;                        // +0x000 set by Load
     bool batching;                      // +0x001 refreshes collect into the dirty rectangle
-    bool refreshUnits;                  // +0x002 a refresh also re-registers the units around it
+    std::uint8_t refreshUnits;          // +0x002 non-zero: a refresh also re-registers the units around it
     std::uint8_t unused_003;
     int dirtyMinX, dirtyMaxX;           // +0x004
     int dirtyMinY, dirtyMaxY;           // +0x00C

@@ -46,6 +46,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <new>
 
 namespace {
@@ -167,7 +168,7 @@ void CCampPages::BuildPages() {
         }
         spellConstructor_ = constructor_->flag0D != 0;
         itemConstructor_ = constructor_->flag0C != 0;
-        for (int i = 0; i < kPriceWeights; ++i) priceWeights_[i] = constructor_->weights[i];
+        std::memcpy(priceWeights_, constructor_->weights, kPriceWeights * sizeof(float));   // the dwords as they are
         spellParts_[0] = constructor_->SpellsParty();
         itemParts_[0] = constructor_->ItemsParty();
     }

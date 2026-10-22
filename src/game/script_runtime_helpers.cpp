@@ -48,7 +48,7 @@ CSectorMap* Sectors(CAIMap* map) { return &map->sectorMap; }
 } // namespace
 
 std::uint8_t CAIMap::SetRefreshUnits(int on) {
-    auto& flag = reinterpret_cast<std::uint8_t&>(refreshUnits);
+    std::uint8_t& flag = refreshUnits;
     std::uint8_t old = flag;
     flag = static_cast<std::uint8_t>(on);
     return old;

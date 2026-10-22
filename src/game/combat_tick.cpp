@@ -859,7 +859,7 @@ void CUnitServer::ApproachTarget() {
     }
     float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
     CAIMap* aiMap = TheServerWorld()->AIMap();
-    bool savedFlag = aiMap->refreshUnits;
+    std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)

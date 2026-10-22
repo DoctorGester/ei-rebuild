@@ -79,7 +79,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
 // map (007B01F4).
-bool& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
+std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -323,7 +323,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         if (order->flag18 == 0) {
             LocalPath path;
             CMapObject* target = order->target;
-            bool savedFlag = false;
+            std::uint8_t savedFlag = 0;
             if (target) {
                 savedFlag = PathFlag();
                 PathFlag() = false;

@@ -709,7 +709,7 @@ public:
     std::uint8_t unused_213;
     CItem* itemMade_;                // +0x214 the item the item constructor would make, or null
     CItem* spellMade_;               // +0x218 the spell the spell constructor would make, or null
-    std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
+    float priceWeights_[9];          // +0x21C the constructor's price multipliers (ClassTemplate::weights)
     mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unused_255[0x258 - 0x255];
