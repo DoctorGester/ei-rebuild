@@ -1081,8 +1081,8 @@ across runs; the goldens check the game state.
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
     after the ground (not the sky, the flat geometry or additive passes) sample it in their shaders (`shaders/shadow_receiver.hlsli`:
-    soft edges below, receiver-plane depth bias, face normal from screen derivatives so surfaces turned
-    away from the sun stay as the game lit them) and darken by up to half (the old decal's alpha 0x80) before fog.
+    soft edges below, receiver-plane depth bias; a receiver's own object shadows only its faces turned to
+    the sun, any other object every face: R22 below) and darken by up to half (the old decal's alpha 0x80) before fog.
     **Soft edges (R16j2; the user: the map's shadows were much harder than the old ones, the town gate's).** PCSS,
     contact-hardening: after the casters two small passes make the map's depth range per 16 x 16-texel cell
     (`shaders/shadow_reduce.hlsl`: nearest and farthest texel, Gather, shader model 4.1; `shadow_dilate.hlsl`: the same over the cells
@@ -1161,6 +1161,32 @@ across runs; the goldens check the game state.
     outside), town 0.65-0.72 / 0.25-0.29 (26, 44, 35k), moved town 1.2-1.4 / 0.32-0.40 (32, 111, 83k); the map's
     GPU pass within the runs' noise (0.21-0.69 ms either way). The corners are copied every frame (no cache
     across frames yet).
+    **Whose shadow it is (R22; the user: on a mound beside a pine the shadow covered some of the mound's faces
+    and stopped at their edges).** The game lights objects much as the ground around them, not by the sun's
+    direction (the mound, a flora object with the grass texture, cannot be told from the ground with the
+    classic decals). R16j left every face turned away from the sun (the face normal from the screen
+    derivatives, towards the camera; full shadow from N.L 1/6) as the game lit it, so that a surface behind
+    its own object's front does not darken twice or show acne. Inside another object's shadow that left
+    those faces lit: a bright patch with straight edges (the mound's back faces in the pine's shadow, with
+    flora shadows on as the user's Rebirth settings have them; the ruin blocks' faces towards the camera in
+    the fight). Now the casters write their object's id (from 1, per frame: the objects CastsShadow shadows,
+    then the outside casters) beside the map's depth (an R16UI image of the map's size; 0: none), and a
+    receiver's uniforms carry its own object's id (MeshBatch::caster; 0 for the ground and for objects that
+    cast nothing, which then take every shadow on every face). Where the facing is below 1 (faces turned
+    away or nearly) the receiver compares per tap, point-sampled over the widest radius the depth range
+    allows (the blocker search's cells do not tell objects apart): a texel nearer the sun counts 1 when
+    another object drew it, the facing when its own did. Faces turned to the sun take the filter as before.
+    So inside another object's shadow every face darkens alike (a back face behind a neighbour towards the
+    sun too: the palisade's logs, the ruin blocks; the hero inside the gate's shadow volume), and outside
+    it faces turned away stay as the game lit them. Frames against before (vanilla 4K): the mound's faces
+    (0.8% of the frame), zone1's start 0.4%, fight 0.4%, town 1.8% (the hero, the palisade, the stump),
+    nothing else; the classic frames the same. GPU (render_stats of the mound frame, `shadowfacing all`
+    against the default, three frames each): frame 1.62 / 1.71 ms and 1.67 / 1.68 ms, the map's pass with
+    the ids 0.26-0.35 ms (within the runs' noise). Check: scenario render_shadows_mound (the user's save in
+    tests/saves/shadow_mound, prepared by tools/copy_save.py; flora shadows switched on in the options
+    window): the map's frame, the classic one, and with `shadowfacing all` (the rule before R22, harness
+    build): that frame differs from the default by 0.6-0.8% (the mound), so the check fails if the ids stop
+    working.
 
 11. **R16k The device's mesh draws without the per-corner work nothing reads (done).** `device_mesh.cpp`. When
     `render::MeshCornersSkipped()` (the image with the new renderer on) the mesh draws 004E9010 / 004E9A50 still

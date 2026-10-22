@@ -186,7 +186,7 @@ struct Command {
 struct ShadowParams {
     float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
     float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
-    float camera[4];   // xyz: the camera in shadow clip space
+    float camera[4];   // xyz: the camera in shadow clip space, w: the receiver's own caster id (0: none; R22)
     float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
                        // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
 };
@@ -471,12 +471,15 @@ const void* MeshSourceOwner();
 // (two small passes: the receivers' early end and blocker search). The receivers' shaders
 // include shaders/shadow_receiver.hlsli (ps: `shadow_amount`, from the light rows' map position), take
 // ShadowParams in their uniforms and bind the map (or a cleared 1 x 1 one) with BindShadowMap.
+// ShadowUniforms' `object`: the object the receiving batch belongs to (MeshBatch::caster; none for the
+// ground), whose own shadow only falls on its faces turned to the sun (R22).
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
+void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params, const void* object = nullptr);
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
 // The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots,
-// and of its depth range per cell (RGBA32F, Load) with a point sampler at the slots after them.
+// of its depth range per cell (RGBA32F, Load) with a point sampler at the slots after them, and of
+// its caster ids (R16UI, Load; R22) at the view slot after that.
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
 void DestroyShadows();
 // The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over, whether
