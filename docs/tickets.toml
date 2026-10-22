@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "docs/notes/renderer.md section 13, item 9. Waits for the user: it changes the look. Today all lighting is CPU per vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights, relit on the LightingFreq countdown; about 2 ms a frame on the CPU in zone1; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting with the game vertex colours as the fallback option; option off must match today at 8 / 0.1%; the user reviews side-by-side frames. Object shadows split out to R16j (user 2026-10-20 wants GPU shadows); R16i keeps per-pixel lighting and terrain sun shadows, still waiting for the user."
+note = "User 2026-10-22: with per-pixel sun lighting, R22's object-id shadow test (away-facing faces skip only their own object's shadow) can go back to plain N.L darkening plus normal-offset bias; remove the id target then."
 
 [[ticket]]
 id = "R16j"
