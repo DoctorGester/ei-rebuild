@@ -24,8 +24,6 @@ namespace netlink {
 
 namespace {
 
-constexpr std::uint32_t kStreamLimit = 2000000000;
-
 // --- Library (STLport list<CMemoryStream> of the queue) and other callees -----------------------
 // The queue's members with recordlist::StreamQueue's element (record_lists.h): its constructors
 // (00478D50 / 00479150), insert of a default element (00478FF0), erase (004790F0), clear (00479570)
@@ -78,43 +76,28 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 // ================================================================================================
 // FileStream (0073C8D8)
 
-FileStream* FileStream::Construct() {   // 00478470
-    ei::SetVtable(this, CStream::StreamVtable());
-    version_ = kStreamLimit;
-    ok_ = 1;
-    new (file_.Get()) mfc::CFile();
-    ei::SetVtable(this, Vtable());
-    return this;
-}
-EI_REWRITTEN(0x00478470, FileStream::Construct);
+FileStream::FileStream() { new (file_.Get()) mfc::CFile(); }
+EI_REWRITTEN_SPECIAL(0x00478470, FileStream::FileStream);
 
-FileStream* FileStream::CopyConstruct(const FileStream*) { return Construct(); }   // 00479B10
-EI_REWRITTEN(0x00479B10, FileStream::CopyConstruct);
+FileStream::FileStream(const FileStream&) : FileStream() {}
+EI_REWRITTEN_SPECIAL(0x00479B10, FileStream::FileStream);
 
-void FileStream::Destruct() {   // 00477FB0
-    ei::SetVtable(this, Vtable());
-    file_->~CFile();
-    ei::SetVtable(this, CStream::StreamVtable());
-}
-EI_REWRITTEN(0x00477FB0, FileStream::Destruct);
+FileStream::~FileStream() { file_->~CFile(); }
+EI_REWRITTEN_SPECIAL(0x00477FB0, FileStream::~FileStream);
+EI_REWRITTEN_SPECIAL(0x00477F90, FileStream::~FileStream);
 
-FileStream* FileStream::DeletingDestruct(unsigned flags) {   // 00477F90
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REPLACE_METHOD(0x00477F90, FileStream::DeletingDestruct);
-
-std::uint32_t FileStream::ReadImpl(void* buffer, std::uint32_t size) {   // 00477F00
+std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
     std::uint32_t read = File()->Read(buffer, size);
     ok_ = static_cast<std::uint8_t>(ok_ & (read == size ? 1 : 0));
     return read;
 }
+EI_REWRITTEN(0x00477F00, FileStream::Read);
 
-void FileStream::WriteImpl(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }   // 00477F30
+void FileStream::Write(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }
+EI_REWRITTEN(0x00477F30, FileStream::Write);
 
 long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }   // 00477F50
-EI_REPLACE_METHOD(0x00477F50, FileStream::SeekFrom);
+EI_REWRITTEN(0x00477F50, FileStream::SeekFrom);
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
 std::uint32_t FileStream::Size() { return File()->GetLength(); }       // 00477F70
@@ -124,24 +107,18 @@ long FileStream::Restart() {   // 00477EE0
     ok_ = 1;
     return File()->Seek(0L, 0u);
 }
-EI_REPLACE_METHOD(0x00477EE0, FileStream::Restart);
+EI_REWRITTEN(0x00477EE0, FileStream::Restart);
 void FileStream::Clear() { Restart(); }
 
-namespace {
-std::uint32_t __fastcall FileStreamSizeHook(FileStream* self) { return self->FileStream::Size(); }
-std::uint32_t __fastcall FileStreamPositionHook(FileStream* self) { return self->FileStream::Position(); }
-} // namespace
-EI_REPLACE_METHOD(0x00477F00, FileStream::ReadImpl);
-EI_REPLACE_METHOD(0x00477F30, FileStream::WriteImpl);
-EI_REPLACE(0x00477F70, FileStreamSizeHook);
-EI_REPLACE(0x00477F80, FileStreamPositionHook);
+EI_REWRITTEN(0x00477F70, FileStream::Size);
+EI_REWRITTEN(0x00477F80, FileStream::Position);
 
 // ================================================================================================
 // NetLink (0073C8A4)
 
 NetLink* NetLink::Construct() {   // 00477E60
     ei::SetVtable(this, CRefObject::Vtable());
-    record_.Construct();
+    new (&record_) FileStream();
     ei::SetVtable(this, Vtable());
     recording_ = 0;
     return this;
@@ -152,12 +129,12 @@ void NetLink::ConstructCopyOf(const NetLink* source) {
     ei::SetVtable(this, CRefObject::Vtable());
     recording_ = source->recording_;
     skipNext_ = source->skipNext_;
-    record_.CopyConstruct(&source->record_);
+    new (&record_) FileStream(source->record_);
     ei::SetVtable(this, Vtable());
 }
 
 void NetLink::Destruct() {   // 00478050
-    record_.Destruct();
+    record_.~FileStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00478050, NetLink::Destruct);
@@ -259,7 +236,7 @@ void LoopbackLink::Destruct() {   // 004787A0
     ei::SetVtable(this, Vtable());
     ReleaseCounted(peer_);
     DestroyQueue();
-    record_.Destruct();
+    record_.~FileStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x004787A0, LoopbackLink::Destruct);
@@ -278,7 +255,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     ReleaseCounted(peer_);
     queue_.Clear<QueueElement>();
     stlp::deallocate(queue_.head, 48);   // 00479530
-    record_.Destruct();
+    record_.~FileStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
     NetLink::Construct();
     queue_.Construct();
@@ -378,7 +355,7 @@ EI_REPLACE(0x00478140, LoopbackDisconnectHook);
 // second file stream.
 void ReplayLink::ConstructInPlace() {
     NetLink::Construct();
-    replay_.Construct();
+    new (&replay_) FileStream();
     ei::SetVtable(this, Vtable());
 }
 
@@ -394,8 +371,8 @@ EI_REWRITTEN(0x00478960, ReplayLink::Create);
 
 void ReplayLink::Destruct() {   // 00478CC0
     ei::SetVtable(this, Vtable());
-    replay_.Destruct();
-    record_.Destruct();
+    replay_.~FileStream();
+    record_.~FileStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00478CC0, ReplayLink::Destruct);
@@ -420,7 +397,7 @@ ReplayLink* ReplayLink::Clone() {   // 00478A50
     auto* copy = net::NewMessageMemory<ReplayLink>();
     if (!copy) return nullptr;
     copy->ConstructCopyOf(this);
-    copy->replay_.Construct();
+    new (&copy->replay_) FileStream();
     ei::SetVtable(copy, Vtable());
     return copy;
 }
@@ -461,10 +438,8 @@ EI_REPLACE(0x00478C90, ReplayDisconnectHook);
 // FramedLink (0073C9C8)
 
 void FramedLink::Destruct() {   // 00479B90
-    ei::SetVtable(&inbox_, CMemoryStream::MemoryStreamVtable());
-    if (inbox_.data_) gamecrt::operator_delete(inbox_.data_);
-    ei::SetVtable(&inbox_, CStream::StreamVtable());
-    record_.Destruct();
+    inbox_.~CMemoryStream();
+    record_.~FileStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00479B90, FramedLink::Destruct);
@@ -576,15 +551,7 @@ EI_REPLACE_METHOD(0x0047BB70, FramedLink::ReceiveImpl);
 
 DriverLink* DriverLink::Construct() {   // 0047A030
     NetLink::Construct();
-    inbox_.version_ = kStreamLimit;
-    ei::SetVtable(&inbox_, CMemoryStream::MemoryStreamVtable());
-    inbox_.data_ = nullptr;
-    inbox_.capacity_ = 0;
-    inbox_.position_ = 0;
-    inbox_.size_ = 0;
-    inbox_.ok_ = 1;
-    inbox_.bitMask_ = 0x80;
-    inbox_.bitsIndex_ = -1;
+    new (&inbox_) CMemoryStream();
     player_.ptr = nullptr;
     ei::SetVtable(this, Vtable());
     return this;
@@ -594,15 +561,10 @@ EI_REWRITTEN(0x0047A030, DriverLink::Construct);
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over
 // the start of that stream (when there were any and the player is alive); then the player let go.
 void DriverLink::Disconnect() {   // 00479810
-    CMemoryStream pending;   // the original's stack stream: +4, +6, +7 and +0xC never written
-    pending.version_ = kStreamLimit;
-    pending.ok_ = 1;
-    ei::SetVtable(&pending, CMemoryStream::MemoryStreamVtable());
-    pending.data_ = nullptr;
-    pending.Reset();
+    CMemoryStream pending;
     TakeAll(&pending);
     if (pending.size_ != 0 && IsLive(player_.Get())) {
-        pending.SeekImpl(pending.size_);
+        pending.Seek(pending.size_);
         std::uint32_t count = BufferFill(&player_.Get()->reliableIn_);
         CStream* stream = &pending;
         stream->Write(player_.Get()->reliableIn_.begin, count);
@@ -612,8 +574,6 @@ void DriverLink::Disconnect() {   // 00479810
     net::Connection* player = player_.Get();
     player_.ptr = nullptr;
     ReleaseCounted(player);
-    ei::SetVtable(&pending, CMemoryStream::MemoryStreamVtable());
-    if (pending.data_) gamecrt::operator_delete(pending.data_);
 }
 
 void DriverLink::Destruct() {   // 00479D40
@@ -647,12 +607,7 @@ DriverLink* DriverLink::Clone() {   // 00479A30
     auto* copy = net::NewMessageMemory<DriverLink>();
     if (!copy) return nullptr;
     copy->ConstructCopyOf(this);
-    CMemoryStream* inbox = &copy->inbox_;
-    inbox->version_ = kStreamLimit;
-    inbox->ok_ = 1;
-    ei::SetVtable(inbox, CMemoryStream::MemoryStreamVtable());
-    inbox->data_ = nullptr;
-    inbox->Reset();
+    CMemoryStream* inbox = new (&copy->inbox_) CMemoryStream();
     inbox->SetSize(inbox_.size_);
     CStream* stream = inbox;
     stream->Read(inbox_.data_, inbox->size_);

@@ -69,19 +69,12 @@ constexpr int kVersionPartyKey = 0x6B;   // the key follows +0x50 above this ver
 
 int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 
-// The stream operator= and the copy constructor go through: an empty memory stream, freed
-// afterwards (the original builds and destroys it inline).
-struct CopyStream {
-    CopyStream() { stream.Construct(); }
-    ~CopyStream() { stream.Destruct(); }
-    CMemoryStream stream;
-};
-
 void CopyThrough(CParty* target, CParty* source) {
-    CopyStream copy;
-    source->SaveParty(&copy.stream, 1);
-    copy.stream.CMemoryStream::SeekImpl(0);
-    target->LoadParty(&copy.stream, 1);
+    // Through an empty memory stream, freed afterwards.
+    CMemoryStream copy;
+    source->SaveParty(&copy, 1);
+    copy.CMemoryStream::Seek(0);
+    target->LoadParty(&copy, 1);
 }
 
 } // namespace
@@ -209,14 +202,14 @@ EI_REWRITTEN_SPECIAL(0x006613C0, CParty::CParty);
 
 void CParty::ArchiveParty(ChunkArchive* ar) {
     constexpr int kStreamField = 1;
-    CopyStream held;
+    CMemoryStream held;
     if (ar->loading_) {
-        ar->StreamField(kStreamField, &held.stream);
-        held.stream.version_ = static_cast<std::uint32_t>(ar->version_);
-        LoadParty(&held.stream, 1);
+        ar->StreamField(kStreamField, &held);
+        held.version_ = static_cast<std::uint32_t>(ar->version_);
+        LoadParty(&held, 1);
     } else {
-        SaveParty(&held.stream, 1);
-        ar->StreamField(kStreamField, &held.stream);
+        SaveParty(&held, 1);
+        ar->StreamField(kStreamField, &held);
     }
 }
 EI_REWRITTEN(0x006617F0, CParty::ArchiveParty);

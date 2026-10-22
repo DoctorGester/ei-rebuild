@@ -53,11 +53,8 @@ namespace {
 
 // ---- Constants --------------------------------------------------------------------------------
 
-// The memory streams' tables are CMemoryStream::MemoryStreamVtable() and CStream::StreamVtable() (its base; compiled tables
-// in place of 0073BD90 / 0073BDB0): core_streams.h.
 // The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
-constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
 // Save format versions (WorldStream::version_) at which fields were added.
@@ -95,31 +92,6 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 // A player's MFC list of plain dwords (CPlayer::recharging_, AddTail 0059CC60) and of objects
 // (CPlayer::items_, AddTail 004C98F0); only head and the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
-
-// The memory stream locals of LoadSave / SaveWorld are built in place.
-void InitMemoryStream(CMemoryStream* stream) {
-    std::memset(stream, 0, sizeof(*stream));
-    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    stream->version_ = kStreamLimit;
-    stream->ok_ = 1;
-    stream->data_ = nullptr;
-    stream->Reset();
-}
-
-void DestroyMemoryStream(CMemoryStream* stream) {
-    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    if (stream->data_) gamecrt::operator_delete(stream->data_);
-    ei::SetVtable(stream, CStream::StreamVtable());
-}
-
-// A CMemoryStream local: built in place, its buffer freed when it goes out of scope.
-struct LocalMemoryStream {
-    CMemoryStream stream;
-    LocalMemoryStream() { InitMemoryStream(&stream); }
-    ~LocalMemoryStream() { DestroyMemoryStream(&stream); }
-    LocalMemoryStream(const LocalMemoryStream&) = delete;
-    LocalMemoryStream& operator=(const LocalMemoryStream&) = delete;
-};
 
 void WriteString(WorldStream* stream, const char* text) {
     stream->Write(text, static_cast<unsigned>(std::strlen(text) + 1));
@@ -363,8 +335,8 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
 } // namespace
 
 int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
-    LocalMemoryStream savedGraph;   // the AI graph state as the zone files have it
-    LocalMemoryStream graph;        // ... with the save's differences applied
+    CMemoryStream savedGraph;   // the AI graph state as the zone files have it
+    CMemoryStream graph;        // ... with the save's differences applied
     mfc::CString mobName;
     mfc::CString mapName;
     mfc::CString zoneName;
@@ -414,12 +386,12 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     stream->Read(&sessionKind_, 4);
 
     int result;
-    if (!ReadAIGraph(mapName, mobName, &savedGraph.stream)) {
+    if (!ReadAIGraph(mapName, mobName, &savedGraph)) {
         result = 0;
     } else {
-        graph.stream.ApplyDiff(&savedGraph.stream, stream);
+        graph.ApplyDiff(&savedGraph, stream);
         ShowLoadProgress(kProgressZone);
-        if (!LoadMap(mapName, mobName, &graph.stream, 1)) {
+        if (!LoadMap(mapName, mobName, &graph, 1)) {
             result = game::FatalError(game::CantLoadSaveMapText());
         } else {
             // The map objects' identities: id, type and +0x18 (created by the manager at +0x40).
@@ -609,25 +581,13 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     }
 }
 
-// A memory stream local of SaveWorld: CStream's constructor (0047A200), then the memory stream's
-// vtable and an empty buffer.
-void ConstructSaveStream(CMemoryStream* stream) {
-    std::memset(stream, 0, sizeof(*stream));
-    stream->ConstructBase();
-    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    stream->data_ = nullptr;
-    stream->Reset();
-}
-
 } // namespace
 
 void CWorldServer::SaveWorld(WorldStream* stream) {
     // The AI graph state as the zone files have it (`base`) and as it is now (`current`); only
     // their differences are saved.
     CMemoryStream base;
-    ConstructSaveStream(&base);
     CMemoryStream current;
-    ConstructSaveStream(&current);
 
     if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimes(0.0f);
     manager40_->ReleaseUnused();
@@ -734,12 +694,6 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         for (int i = 0; i < count; ++i) WriteCopy(stream, node->data.objects.data[i]->id_);
         node = next;
     }
-
-    ei::SetVtable(&current, CMemoryStream::MemoryStreamVtable());
-    if (current.data_) gamecrt::operator_delete(current.data_);
-    ei::SetVtable(&base, CMemoryStream::MemoryStreamVtable());
-    if (base.data_) gamecrt::operator_delete(base.data_);
-    ei::SetVtable(&current, CStream::StreamVtable());
 }
 
 // ---- The shared-object list -------------------------------------------------------------------
@@ -875,15 +829,15 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     ShowLoadProgress(kProgressStart);
     if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
-    LocalMemoryStream graph;
-    if (!ReadAIGraph(map, mob, &graph.stream))
+    CMemoryStream graph;
+    if (!ReadAIGraph(map, mob, &graph))
         return game::FatalError(kCantLoadGraph);
     mobFiles_.SetSize(0, -1);
     AIMap()->BeginRefresh();
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
     AIMap()->refreshUnits = false;
-    if (!LoadMap(map, mob, &graph.stream, 0))
+    if (!LoadMap(map, mob, &graph, 0))
         return game::FatalError(kCantLoadMap);
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;

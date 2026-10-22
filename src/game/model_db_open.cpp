@@ -19,7 +19,6 @@ namespace {
 using dbfile::FillStream;
 using dbfile::LoadTable;
 using dbfile::LocalResource;
-using dbfile::LocalStream;
 using dbfile::OpenDatabase;
 using dbfile::ReportNoDatabase;
 
@@ -75,8 +74,8 @@ int PrintsDatabase::Load(const char* folder) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("prints.db", &size);
     if (!data) return game::FatalError("Can't open terrain prints database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is the file's data.
@@ -106,8 +105,8 @@ int AckDatabase::Load(const char* folder) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("acks.db", &size);
     if (!data) return game::FatalError("Can't open acks database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument: a stack slot the original has not written yet for the

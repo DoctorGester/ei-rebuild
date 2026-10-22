@@ -207,17 +207,13 @@ public:
     // 0052DF40 (RET 0xC; unit_db.cpp, A-U11). A vector<CString> as chunk `id` (InlineStrings).
     void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
 
-    // An archive built and destroyed inline on a function's stack, as 004A8310 / 004A8560 do
-    // (0053A7B0 is the out-of-line constructor): two empty memory streams, the containers'
-    // constructors (004A94A0, 004639D0, 00463AA0), version 1; the destructors in reverse order.
-    void ConstructLocal();
-    void DestructLocal();
-    // 0053A7B0 (A-U8). The out-of-line constructor (the database loaders' archives): the same
-    // steps as ConstructLocal, the streams' constructors and the containers' inlined. Returns this.
-    ChunkArchive* Construct();
-    // 004645A0 (A-E1). The out-of-line destructor (the database loaders' archives): DestructLocal's
-    // steps with the containers' destructors inlined.
-    void Destruct();
+    // 0053A7B0 (A-U8; also inlined by 004A8310 / 004A8560): two empty memory streams, the
+    // containers (004A94A0, 004639D0, 00463AA0), version 1.
+    ChunkArchive();
+    // 004645A0 (A-E1; also inlined): the containers, then the streams.
+    ~ChunkArchive();
+    ChunkArchive(const ChunkArchive&) = delete;
+    ChunkArchive& operator=(const ChunkArchive&) = delete;
 
     CMemoryStream indexStream_;    // +0x00 chunk 0
     CMemoryStream dataStream_;     // +0x28 the chunk data (chunk 2 while loading the records)
@@ -227,24 +223,6 @@ public:
     ObjectMap objects_;            // +0x5C
     SavedList saved_;              // +0x70 the objects whose records Close writes
 };
-static_assert(offsetof(ChunkArchive, dataStream_) == 0x28);
-static_assert(offsetof(ChunkArchive, stack_) == 0x50);
-static_assert(offsetof(ChunkArchive, version_) == 0x54);
-static_assert(offsetof(ChunkArchive, loading_) == 0x58);
-static_assert(offsetof(ChunkArchive, objects_) == 0x5C);
-static_assert(offsetof(ChunkArchive, saved_) == 0x70);
-static_assert(sizeof(ChunkArchive) == 0x74);
-
-// An archive built and destroyed inline (ConstructLocal / DestructLocal), as the savers and the
-// address book do on their stacks.
-struct LocalArchive {
-    LocalArchive() { archive.ConstructLocal(); }
-    ~LocalArchive() { archive.DestructLocal(); }
-    LocalArchive(const LocalArchive&) = delete;
-    LocalArchive& operator=(const LocalArchive&) = delete;
-    ChunkArchive archive;
-};
-static_assert(sizeof(LocalArchive) == 0x74 && offsetof(LocalArchive, archive) == 0);
 static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
 // Whole chunks of a stream (the archive's top-level chunks).

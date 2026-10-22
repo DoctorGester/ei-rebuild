@@ -11,8 +11,6 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 
-#include <intrin.h>
-
 #include <cstring>
 #include <new>
 #include "originals_engine.h"
@@ -30,9 +28,6 @@ void* DeleteIf(void* self, unsigned flags) {
 }
 
 // operator+(const CString&, char) (AFXAPI, 006FD56E).
-
-// The hook of CMemoryStream's slot 6 (a virtual: registered through this shim).
-void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream::Clear(); }
 
 } // namespace
 
@@ -112,65 +107,18 @@ EI_REWRITTEN(0x0058FBC0, CRefObject::ValueDeletingDestruct);
 
 // --- CStream -----------------------------------------------------------------------------------
 
-namespace {
-// CStream's compiled table (C19; game.exe's 0073BDB0): 0 the deleting destructor, 1-6 the compiler CRT's `_purecall`,
-// 7 CopyFrom.
-struct StreamClass final : ei::CompiledDeleter<StreamClass, &CStream::DeletingDestruct> {
-    virtual std::uint32_t Read(void*, std::uint32_t) { return _purecall(); }   // 1
-    virtual void Write(const void*, std::uint32_t) { _purecall(); }           // 2
-    virtual void Seek(std::uint32_t) { _purecall(); }                         // 3
-    virtual std::uint32_t Size() { return _purecall(); }                      // 4
-    virtual std::uint32_t Position() { return _purecall(); }                  // 5
-    virtual void Clear() { _purecall(); }                                     // 6
-    virtual void CopyFrom(CStream* source) { ObjectAs<CStream>()->CopyFromImpl(source); }   // 7: 004A4D40
-};
-
-// The memory streams' compiled tables (C19; game.exe's 0073BD90 and the queue streams' 0073C960, whose slot 0 is a
-// copy of the same deleting destructor). Slot 2 tells the harness's observer first.
-template <typename Self>
-struct MemoryStreamSlots : ei::CompiledDeleter<Self, &CMemoryStream::DeletingDestruct> {
-    virtual std::uint32_t Read(void* buffer, std::uint32_t size) { return Stream()->ReadImpl(buffer, size); }   // 1
-    virtual std::uint32_t Write(const void* buffer, std::uint32_t size) {   // 2: 004A53F0 (the position in EAX)
-        if (g_memoryStreamWriteObserver)
-            g_memoryStreamWriteObserver(Stream(), size, static_cast<void* const*>(_AddressOfReturnAddress()));
-        return Stream()->WriteImpl(buffer, size);
-    }
-    virtual void Seek(std::uint32_t position) { Stream()->SeekImpl(position); }   // 3: 004A5490
-    virtual std::uint32_t Size() { return Stream()->size_; }                     // 4: 00417390
-    virtual std::uint32_t Position() { return Stream()->position_; }             // 5: 004173A0
-    virtual void Clear() { Stream()->CMemoryStream::Clear(); }                   // 6: 00417350
-    virtual void CopyFrom(CStream* source) { Stream()->CopyFromImpl(source); }   // 7: 004A55D0
-
-private:
-    CMemoryStream* Stream() { return this->template ObjectAs<CMemoryStream>(); }
-};
-struct MemoryStreamClass final : MemoryStreamSlots<MemoryStreamClass> {};
-struct QueueStreamClass final : MemoryStreamSlots<QueueStreamClass> {};
-} // namespace
-
-void* CStream::StreamVtable() { return StreamClass::Vtable(); }
-void* CMemoryStream::MemoryStreamVtable() { return MemoryStreamClass::Vtable(); }
-void* CMemoryStream::QueueStreamVtable() { return QueueStreamClass::Vtable(); }
-
-void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
-
-CStream* CStream::ConstructBase() {
-    SetVtable(this, StreamVtable());
+CStream::CStream() {
     version_ = kDefaultVersion;
     ok_ = 1;
-    return this;
 }
-EI_REWRITTEN(0x0047A200, CStream::ConstructBase);
+EI_REWRITTEN_SPECIAL(0x0047A200, CStream::CStream);
+EI_REWRITTEN_SPECIAL(0x004174E0, CStream::~CStream);
+EI_REWRITTEN_SPECIAL(0x00417400, CStream::~CStream);
 
-void CStream::DestructBase() { SetVtable(this, StreamVtable()); }
-EI_REWRITTEN(0x004174E0, CStream::DestructBase);
+void* CStream::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-CStream* CStream::DeletingDestruct(unsigned flags) {
-    SetVtable(this, StreamVtable());
-    DeleteIf(this, flags);
-    return this;
-}
-EI_REPLACE_METHOD(0x00417400, CStream::DeletingDestruct);
+void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 
 mfc::CString* CStream::ReadString(void* out) {
     mfc::CString text;
@@ -182,36 +130,24 @@ EI_REWRITTEN(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------
 
-CMemoryStream* CMemoryStream::Construct() {
-    version_ = kDefaultVersion;
-    SetVtable(this, MemoryStreamVtable());
+CMemoryStream::CMemoryStream() {
     data_ = nullptr;
     capacity_ = 0;
     position_ = 0;
     size_ = 0;
-    ok_ = 1;
     bitMask_ = 0x80;
     bitsIndex_ = -1;
-    return this;
 }
-EI_REPLACE_METHOD(0x0041DD70, CMemoryStream::Construct);
+EI_REWRITTEN_SPECIAL(0x0041DD70, CMemoryStream::CMemoryStream);
+EI_REWRITTEN_SPECIAL(0x0066C4F0, CMemoryStream::CMemoryStream);   // the queue streams' (table 0073C960)
 
-void CMemoryStream::Destruct() {
-    SetVtable(this, MemoryStreamVtable());
+CMemoryStream::~CMemoryStream() {
     if (data_) gamecrt::operator_delete(data_);
-    SetVtable(this, StreamVtable());
 }
-EI_REPLACE_METHOD(0x004173D0, CMemoryStream::Destruct);
-EI_REPLACE_METHOD(0x004790A0, CMemoryStream::Destruct);   // byte-identical copy (vtable 0073C960)
-
-// The originals call their own copy of the destructor body out of line.
-CMemoryStream* CMemoryStream::DeletingDestruct(unsigned flags) {
-    Destruct();
-    DeleteIf(this, flags);
-    return this;
-}
-EI_REPLACE_METHOD(0x004173B0, CMemoryStream::DeletingDestruct);
-EI_REPLACE_METHOD(0x004790D0, CMemoryStream::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004173D0, CMemoryStream::~CMemoryStream);
+EI_REWRITTEN_SPECIAL(0x004790A0, CMemoryStream::~CMemoryStream);   // the queue streams' copy
+EI_REWRITTEN_SPECIAL(0x004173B0, CMemoryStream::~CMemoryStream);
+EI_REWRITTEN_SPECIAL(0x004790D0, CMemoryStream::~CMemoryStream);
 
 void CMemoryStream::Clear() {
     if (data_) gamecrt::operator_delete(data_);
@@ -223,7 +159,7 @@ void CMemoryStream::Clear() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-EI_REPLACE(0x00417350, MemoryStreamClearHook);
+EI_REWRITTEN(0x00417350, CMemoryStream::Clear);
 
 void CMemoryStream::Reset() {
     ok_ = 1;

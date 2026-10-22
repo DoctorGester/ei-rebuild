@@ -46,31 +46,24 @@ class CWorldHandle;   // world.h
 
 namespace netlink {
 
-// A CStream over a file (vtable 0073C8D8). The CFile is raw storage: the constructor and destructor
-// bodies build and tear it down explicitly (rewrite-guide rule 5).
-class __declspec(novtable) FileStream : public CStream {
+// A CStream over a file (game.exe's vtable 0073C8D8). The CFile is raw storage (MFC, C28n): the
+// constructor and destructor build and tear it down explicitly.
+class FileStream : public CStream {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073C8D8)
-
-    ~FileStream() override {}                                           // 0: 00477F90 (DeletingDestruct)
+    // 00478470 (also inlined): a closed file.
+    FileStream();
+    // 00479B10: a fresh stream; `other` is not read.
+    FileStream(const FileStream& other);
+    // 00477FB0 (also inlined; deleting: 00477F90): the CFile destroyed (closing an open file).
+    ~FileStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 00477F00 (a short read clears ok_)
-    std::uint32_t ReadImpl(void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Write(const void* buffer, std::uint32_t size) override;       // 2: 00477F30
-    void WriteImpl(const void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Seek(std::uint32_t position) override;                        // 3: 00477F50 (SeekFrom)
     std::uint32_t Size() override;                                     // 4: 00477F70 (the file's length)
     std::uint32_t Position() override;                                 // 5: 00477F80
     void Clear() override;                                             // 6: 00477EE0 (Restart)
     // 7: CStream::CopyFrom (004A4D40)
 
-    // 00478470 (also inlined). CStream's fields, the CFile constructed, the vtable. Returns this.
-    FileStream* Construct();
-    // 00479B10. The copy constructor: a fresh stream; `other` is not read. Returns this.
-    FileStream* CopyConstruct(const FileStream* other);
-    // 00477FB0 (also inlined). The CFile destroyed (closing an open file), CStream's vtable left.
-    void Destruct();
-    // 00477F90 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    FileStream* DeletingDestruct(unsigned flags);
     // The body of slot 3: seeks from the start; returns the CFile's result.
     long SeekFrom(long position);
     // The body of slot 6: ok_ again, back to the start; returns the seek's result.
@@ -93,10 +86,8 @@ public:
     static constexpr unsigned kOpenRead = 0;         // CFile::modeRead
     static constexpr unsigned kOpenWrite = 0x1001;   // CFile::modeCreate | modeWrite
 
-    lib::InPlace<mfc::CFile> file_;   // +0x0C (constructed in place by Construct)
+    lib::InPlace<mfc::CFile> file_;   // constructed and destroyed by the stream's constructor and destructor
 };
-static_assert(offsetof(FileStream, file_) == 0xC);
-static_assert(sizeof(FileStream) == 0x1C);
 
 // The loopback link's queue: an STLport list of memory streams (0x30-byte nodes from the node
 // pool: next, prev, the stream).
@@ -316,26 +307,11 @@ static_assert(offsetof(DriverSession, holders_) == 0x0C);
 
 // ---- The compiled tables --------------------------------------------------------------------------
 
-// The file stream's, the links' and the driver session's compiled tables (C19, lib/compiled_vtable.h) in place of
+// The links' and the driver session's compiled tables (C19, lib/compiled_vtable.h) in place of
 // game.exe's: a tag per class whose slots call the bodies game.exe's table reached (the class's members called
 // qualified, the `...Impl` bodies; the short ones written out, the pure ones the compiler CRT's `_purecall` as
 // game.exe's 006E73EB), a derived link's tag deriving from its base's.
 extern "C" int __cdecl _purecall();
-
-class FileStreamClass final : public ei::CompiledTag<FileStreamClass> {
-public:
-    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestruct(flags); }   // 0: 00477F90
-    virtual std::uint32_t Read(void* buffer, std::uint32_t size) { return Object()->ReadImpl(buffer, size); }   // 1: 00477F00
-    virtual void Write(const void* buffer, std::uint32_t size) { Object()->WriteImpl(buffer, size); }   // 2: 00477F30
-    virtual long Seek(std::uint32_t position) { return Object()->SeekFrom(static_cast<long>(position)); }   // 3: 00477F50
-    virtual std::uint32_t Size() { return Object()->FileStream::Size(); }           // 4: 00477F70
-    virtual std::uint32_t Position() { return Object()->FileStream::Position(); }   // 5: 00477F80
-    virtual long Clear() { return Object()->Restart(); }                             // 6: 00477EE0
-    virtual void CopyFrom(CStream* source) { Object()->CopyFromImpl(source); }       // 7: 004A4D40
-
-private:
-    FileStream* Object() { return ObjectAs<FileStream>(); }
-};
 
 class NetLinkClass : public ei::CompiledTag<NetLinkClass> {
 public:
@@ -433,7 +409,6 @@ private:
     DriverSession* Object() { return ObjectAs<DriverSession>(); }
 };
 
-inline void* FileStream::Vtable() { return FileStreamClass::Vtable(); }
 inline void* NetLink::Vtable() { return NetLinkClass::Vtable(); }
 inline void* LoopbackLink::Vtable() { return LoopbackLinkClass::Vtable(); }
 inline void* ReplayLink::Vtable() { return ReplayLinkClass::Vtable(); }

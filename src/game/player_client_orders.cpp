@@ -69,14 +69,6 @@ int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units
 
 // The game flow (007AFE20).
 
-// A memory stream on the stack, as the original builds (0041DD70's fields inlined) and destroys it.
-struct LocalStream {
-    lib::InPlace<CMemoryStream> bytes;
-    LocalStream() { Get()->Construct(); }
-    ~LocalStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return bytes.Get(); }
-};
-
 // A potion used from a quick slot is counted off at once.
 void SpendPotion(CUnit* user, int slot) {
     auto* item = user->GetQuickItem(static_cast<std::uint32_t>(slot));
@@ -202,10 +194,10 @@ int CPlayerClient::SendUseDead(const mfc::CArray<CUnit*>* units, CEngineObject* 
 }
 
 int CPlayerClient::SendPartyUpdate() {
-    LocalStream block;
-    Owner()->Party()->SaveParty(block.Get(), 0);
+    CMemoryStream block;
+    Owner()->Party()->SaveParty(&block, 0);
     WriteType(out_, kPartyUpdate);
-    out_.WriteSized(block.Get());
+    out_.WriteSized(&block);
     return 1;
 }
 

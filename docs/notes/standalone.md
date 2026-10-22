@@ -1115,7 +1115,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     registry keys on the stored table, so every store uses `X::Vtable()`.
   - **Sessions** (net_classes.h): SessionBaseClass (15 slots), ServerBaseClass / ClientBaseClass (17) and the final
     ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
-    **Links** (net_link.h): FileStreamClass, NetLinkClass and its Loopback / Replay / Framed / Driver tags,
+    **Links** (net_link.h): NetLinkClass and its Loopback / Replay / Framed / Driver tags (FileStream is a real class),
     DriverSessionClass. net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
   - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
     base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
@@ -1298,10 +1298,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     overflow, 8 EOF, the rest old iostream's streambuf defaults). Only ConsoleStreambuf changed (no ConsoleWindow
     edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
     `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
-  - **The streams** (core_streams.cpp): StreamClass (0073BDB0, 1-6 `_purecall`), MemoryStreamClass (0073BD90 with its
-    tail 0073BD98) and QueueStreamClass (0073C960). The stores call the accessors (`ei::SetVtable(stream,
-    CMemoryStream::MemoryStreamVtable())`, `CStream::StreamVtable()`, `CMemoryStream::QueueStreamVtable()`; batch 21
-    switched the last world_* / net_* users and removed the `kStreamVtable` / `kMemoryStreamVtable` names).
+  - **The streams** (core_streams.h; real classes since C28e): CStream (0073BDB0, 1-6 pure), CMemoryStream (0073BD90
+    with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
+    (net_link.h, 0073C8D8). Locals are plain, members of hand-built owners use placement new and the destructor;
+    ChunkArchive and DeltaField have real constructors and destructors over them.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
   - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's

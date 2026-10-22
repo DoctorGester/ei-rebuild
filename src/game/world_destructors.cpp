@@ -266,7 +266,7 @@ void CWorldServer::Destruct() {
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
     DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
-    zoneHeader_.Destruct();
+    zoneHeader_.~CMemoryStream();
     timedObjects_.map.Destroy();
     namedObjects_.map.Destroy();
     otherMapObjects_.map.Destroy();

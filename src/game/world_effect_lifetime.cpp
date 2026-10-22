@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "record_arrays.h"
 
 #include <new>
 
@@ -35,22 +36,9 @@ T* DeleteAfter(T* object, unsigned flags) {
 
 // --- Streams and the state field -----------------------------------------------------------------
 
-CMemoryStream* CMemoryStream::ConstructQueueStream() {
-    Construct();
-    SetVtable(this, CMemoryStream::QueueStreamVtable());
-    return this;
-}
-EI_REPLACE_METHOD(0x0066C4F0, CMemoryStream::ConstructQueueStream);
-
-DeltaField* DeltaField::Construct() {
-    snapshot[0].Construct();
-    snapshot[1].Construct();
-    out[0].ConstructQueueStream();
-    out[1].ConstructQueueStream();
-    return this;
-}
-EI_REWRITTEN(0x00677EC0, DeltaField::Construct);
-EI_REWRITTEN(0x0066A300, DeltaField::Construct);
+EI_REWRITTEN_SPECIAL(0x00677EC0, DeltaField::DeltaField);
+EI_REWRITTEN_SPECIAL(0x0066A300, DeltaField::DeltaField);
+EI_REWRITTEN_SPECIAL(0x00510340, DeltaField::~DeltaField);
 
 void DeltaField::Empty() {
     snapshot[0].Resize(0);
@@ -60,26 +48,19 @@ void DeltaField::Empty() {
 }
 EI_REWRITTEN(0x00675F70, DeltaField::Empty);
 
-void DeltaField::Destruct() {
-    out[1].Destruct();
-    out[0].Destruct();
-    snapshot[1].Destruct();
-    snapshot[0].Destruct();
-}
-
 // --- The effect base -----------------------------------------------------------------------------
 
 void CEffect::ConstructEffect() {
     ConstructBase();
     velocity_ = Vector3{0.0f, 0.0f, 0.0f};
-    state_.Construct();
+    new (&state_) DeltaField();
     startTick_ = 0;
     moving_ = 0;
     SetVtable(this, BaseVtable());
 }
 
 void CEffect::DestructEffect() {
-    state_.Destruct();
+    state_.~DeltaField();
     SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
@@ -306,3 +287,8 @@ CEngineObject* CEffectManager::NewObject(int type) {
     return object;
 }
 EI_REWRITTEN(0x0067E170, CEffectManager::NewObject);
+
+namespace recordarrays {
+void InitDeltaField(DeltaField* p) { new (p) DeltaField(); }
+void DestroyDeltaField(DeltaField* p) { p->~DeltaField(); }
+} // namespace recordarrays

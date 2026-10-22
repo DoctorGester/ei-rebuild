@@ -286,31 +286,20 @@ EI_REWRITTEN(0x0040A5A0, ChunkArchive::ObjectRef);
 
 // ---- An archive on the stack ----------------------------------------------------------------------
 
-void ChunkArchive::ConstructLocal() {
-    indexStream_.Construct();
-    dataStream_.Construct();
+ChunkArchive::ChunkArchive() {
     stack_.Construct();
     objects_.Construct(100);
     saved_.Construct();
     version_ = 1;
 }
+EI_REWRITTEN_SPECIAL(0x0053A7B0, ChunkArchive::ChunkArchive);
 
-ChunkArchive* ChunkArchive::Construct() {
-    ConstructLocal();
-    return this;
-}
-EI_REWRITTEN(0x0053A7B0, ChunkArchive::Construct);
-
-void ChunkArchive::DestructLocal() {
+ChunkArchive::~ChunkArchive() {
     saved_.Release();
     objects_.Destroy();
     stack_.Release<RefElement>();
-    dataStream_.Destruct();
-    indexStream_.Destruct();
 }
-
-void ChunkArchive::Destruct() { DestructLocal(); }
-EI_REWRITTEN(0x004645A0, ChunkArchive::Destruct);
+EI_REWRITTEN_SPECIAL(0x004645A0, ChunkArchive::~ChunkArchive);
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 

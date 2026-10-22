@@ -54,17 +54,16 @@ struct TradeElement {
 // The link queues' memory streams (QueueNode, 48-byte nodes). The copy (00479410) constructs a
 // memory stream, sizes it as the source (SetSize) and calls its slot 1 (Read) with the source's
 // buffer: the original reads the new stream's fresh block into the source rather than writing the
-// source's bytes, so both hold the new block's bytes; then the queue's vtable. Destroyed through
-// slot 0 with flags 0 (004790D0); T() is a queue stream (0066C4F0).
+// source's bytes, so both hold the new block's bytes. Destroyed by the destructor (004790D0); T()
+// is an empty stream (0066C4F0).
 struct QueueStreamElement {
     static void Copy(CMemoryStream* to, const CMemoryStream& from) {
-        to->Construct();
+        new (to) CMemoryStream();
         to->SetSize(from.size_);
         to->Read(from.data_, to->size_);
-        ei::SetVtable(to, CMemoryStream::QueueStreamVtable());
     }
-    static void Destroy(CMemoryStream* p) { static_cast<CStream*>(p)->~CStream(); }
-    static void Default(CMemoryStream* p) { p->ConstructQueueStream(); }
+    static void Destroy(CMemoryStream* p) { p->~CMemoryStream(); }
+    static void Default(CMemoryStream* p) { new (p) CMemoryStream(); }
 };
 static_assert(sizeof(stlp::list<CMemoryStream>::Node) == 0x30);
 

@@ -91,7 +91,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         auto* message = NewMessageMemory<PartyMemberMessage>();
         if (message) {
             MessageConstructBase(message);
-            message->stream_.Construct();
+            new (&message->stream_) CMemoryStream();
             ei::SetVtable(message, PartyMemberMessage::Vtable());
         }
         RefPtr ref;

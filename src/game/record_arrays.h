@@ -47,10 +47,10 @@ struct FaceGroupArrayClass final
 
 // ---- Records -------------------------------------------------------------------------------------
 
-// Network delta fields (0xA0 bytes; 005101A0): DeltaField::Construct (00677EC0's body), destroyed by
-// DeltaField::Destruct (00510340).
-inline void InitDeltaField(DeltaField* p) { p->Construct(); }
-inline void DestroyDeltaField(DeltaField* p) { p->Destruct(); }
+// Network delta fields (0xA0 bytes; 005101A0): constructed (00677EC0's body) and destroyed (00510340).
+// Out of line (world_effect_lifetime.cpp), so the replays that link this file need no streams.
+void InitDeltaField(DeltaField* p);
+void DestroyDeltaField(DeltaField* p);
 using DeltaFields = ArrayAbi<DeltaField, EachElements<DeltaField, InitDeltaField, DestroyDeltaField>>;
 
 // Music themes (0x38 bytes): the names empty, both name arrays constructed (006B5BC0); destroyed

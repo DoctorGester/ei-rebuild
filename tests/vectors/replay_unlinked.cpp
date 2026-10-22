@@ -55,6 +55,8 @@ void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::Sc
 // record_arrays.cpp's other element types.
 void scene::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("scene::InitFigurePart")
 CMaterial* CMaterial::Construct() EI_UNLINKED("CMaterial::Construct")
+void recordarrays::InitDeltaField(DeltaField*) EI_UNLINKED("recordarrays::InitDeltaField")
+void recordarrays::DestroyDeltaField(DeltaField*) EI_UNLINKED("recordarrays::DestroyDeltaField")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
@@ -64,8 +66,6 @@ void __fastcall scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKE
 void scene::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("scene::InitSceneMesh")
 void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
 void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")
-DeltaField* DeltaField::Construct() EI_UNLINKED("DeltaField::Construct")
-void DeltaField::Destruct() EI_UNLINKED("DeltaField::Destruct")
 mapspec::Behaviour* __fastcall mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
 void __fastcall mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 

@@ -44,7 +44,6 @@
 namespace {
 using ei::SetVtable;
 
-constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
 constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
 constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
@@ -81,13 +80,6 @@ void InitEngineObject(CEngineObject* object) {
 // data), or destroyed.
 void ConstructString(void* string) { new (string) mfc::CString(); }
 void DestroyString(void* string) { static_cast<mfc::CString*>(string)->~CString(); }
-
-// A memory stream member (the memory stream table while it frees its buffer, then its base's).
-void DestroyStream(CMemoryStream* stream) {
-    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    if (stream->data_) gamecrt::operator_delete(stream->data_);
-    SetVtable(stream, CStream::StreamVtable());
-}
 
 // A plain CArray member: its vtable, then its data freed.
 template <typename Array>
@@ -212,19 +204,8 @@ void CMapObject::SetUpMapObject() {
     records->fieldGrowBy_ = 0;
     records->fieldCapacity_ = 0;
     records->fieldCount_ = 0;
-    CMemoryStream* stream = &records->header_[0];
-    stream->version_ = kStreamLimit;
-    stream->ok_ = 1;
-    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    stream->data_ = nullptr;
-    stream->Reset();
-    SetVtable(stream, CMemoryStream::QueueStreamVtable());
-    stream = &records->header_[1];
-    stream->ConstructBase();
-    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
-    stream->data_ = nullptr;
-    stream->Reset();
-    SetVtable(stream, CMemoryStream::QueueStreamVtable());
+    new (&records->header_[0]) CMemoryStream();
+    new (&records->header_[1]) CMemoryStream();
     records->Reset();
     companion = nullptr;
     PackedVitals()->Reset();
@@ -252,12 +233,12 @@ CMapObject::~CMapObject() {
 
 void CMapObject::TearDownMapObject() {
     DeltaState* records = NetState();
-    DestroyStream(&records->header_[1]);
-    DestroyStream(&records->header_[0]);
+    records->header_[1].~CMemoryStream();
+    records->header_[0].~CMemoryStream();
     SetVtable(records, recordarrays::DeltaFieldArrayClass::Vtable());
     if (DeltaField* data = records->fields_) {
         int count = records->fieldCount_;
-        for (int i = 0; i < count; ++i) (data + i)->Destruct();
+        for (int i = 0; i < count; ++i) data[i].~DeltaField();
         gamecrt::operator_delete(records->fields_);
     }
 }

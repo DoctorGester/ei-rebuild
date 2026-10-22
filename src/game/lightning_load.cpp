@@ -20,7 +20,7 @@
 // result when the file is missing, else 1.
 int __cdecl LoadLightningNoise() {
     LocalResource resource;
-    LocalStream local;
+    CMemoryStream local;
     bool opened;
     {
         mfc::CString folder(TheTextFolder());
@@ -34,8 +34,8 @@ int __cdecl LoadLightningNoise() {
     void* data = resource.Get()->CMappedResource::GetFileImpl("lightning.dat", &size);
     if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
 
-    local.Fill(data, size);
-    CStream* stream = &local.stream;
+    FillStream(local, data, size);
+    CStream* stream = &local;
     float* row = LightningNoiseTable();
     for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
         stream->Read(row, kLightningNoiseRowLength * sizeof(float));

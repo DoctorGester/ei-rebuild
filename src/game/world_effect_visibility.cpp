@@ -26,14 +26,6 @@ namespace {
 // by the manager's list.
 ClientArrayManager* FogManager() { return TheClientWorld()->arrayManager_; }
 
-// A memory stream on the stack, as the original builds and destroys it inline.
-struct TempStream {
-    lib::InPlace<CMemoryStream> bytes;
-    TempStream() { Get()->Construct(); }
-    ~TempStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return bytes.Get(); }
-};
-
 void ReleaseFog(CVisibilityFog*& fog) {
     CVisibilityFog* old = fog;
     fog = nullptr;
@@ -100,17 +92,17 @@ void CEffectShowVisibility::Start(int update) {
 }
 
 int CEffectShowVisibility::Unpack(int update, DeltaField* field) {
-    TempStream stream;
-    if (field->ReadStream(stream.Get()) == 0) return 0;
-    grid_.Read(stream.Get());
+    CMemoryStream stream;
+    if (field->ReadStream(&stream) == 0) return 0;
+    grid_.Read(&stream);
     Start(update);
     return 1;
 }
 
 void CEffectShowVisibility::Pack(DeltaField* field) {
-    TempStream stream;
-    grid_.Write(stream.Get());
-    field->WriteStreamBoth(stream.Get());
+    CMemoryStream stream;
+    grid_.Write(&stream);
+    field->WriteStreamBoth(&stream);
 }
 
 int CEffectShowVisibility::Tick() {

@@ -29,19 +29,11 @@ struct LocalResource {
     lib::InPlace<CMappedResource> storage;
 };
 
-// The memory stream the database file is copied into, built and destroyed as the originals
-// inline it.
-struct LocalStream {
-    LocalStream() { stream.Construct(); }
-    ~LocalStream() { stream.Destruct(); }
-    CMemoryStream stream;
-};
-
 // The file's bytes into `stream`, which is left at its start for reading.
 inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
     stream.reading_ = 0;
     stream.CMemoryStream::Write(data, size);
-    stream.CMemoryStream::SeekImpl(0);
+    stream.CMemoryStream::Seek(0);
     stream.reading_ = 1;
 }
 
@@ -63,12 +55,10 @@ template <typename Records, typename Table, typename Index>
 void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*, void*), Table* table,
                void* unused, Index index) {
     ChunkArchive archive;
-    archive.Construct();
     archive.Open(stream, 1, 1);
     (archive.*serialize)(id, table, unused);
     archive.Close(stream);
     index();
-    archive.Destruct();
 }
 
 } // namespace dbfile

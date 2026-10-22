@@ -131,20 +131,17 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         GatherItem(&gathered, &spells, node->data);   // 0069FB60
-    lib::InPlace<CMemoryStream> bytes;
-    auto* states = bytes.Get();
-    states->Construct();
-    SaveListed(&spells, states);
-    SaveListed(&gathered, states);
+    CMemoryStream states;
+    SaveListed(&spells, &states);
+    SaveListed(&gathered, &states);
     WriteByte(&out_, kMessageItemStates);
-    out_.WriteStream(states);
+    out_.WriteStream(&states);
     WriteByte(&out_, kMessageItemsGiven);
     WriteDword(&out_, static_cast<std::uint32_t>(Owner()->Party()->Money()));
     WriteByte(&out_, static_cast<std::uint8_t>(flag));
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         WriteDword(&out_, static_cast<std::uint32_t>(node->data->id_));
     WriteDword(&out_, 0xFFFFFFFFu);
-    states->Destruct();
     gathered.RemoveAll();   // the lists' inlined destructors
     spells.RemoveAll();
 }
@@ -152,15 +149,15 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
 int CPlayerServer::Flush() {
     netlink::NetLink* link = Owner()->link_;
     if (link == nullptr) return 0;
-    QueueStream packed;
-    out_.CompressTo(&compressor_, packed.Get());
+    CMemoryStream packed;
+    out_.CompressTo(&compressor_, &packed);
     if (Owner()->logTraffic_ != 0) {
-        std::uint32_t packedSize = packed.Get()->size_;
+        std::uint32_t packedSize = packed.size_;
         std::uint32_t size = out_.Size();
         GameCout()->PutText(TextServerToClient())->PutUnsigned(size)->PutText(TextSqueezedTo())
             ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     }
-    int sent = link->Send(packed.Get()) ? 1 : 0;
+    int sent = link->Send(&packed) ? 1 : 0;
     out_.Resize(0);
     return sent;
 }
@@ -357,14 +354,11 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
 BOOL CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Contains(object) != 0; }
 
 void CPlayerServer::SendParty() {
-    lib::InPlace<CMemoryStream> bytes;
-    auto* party = bytes.Get();
-    party->Construct();
-    Owner()->Party()->SaveParty(party, 1);
+    CMemoryStream party;
+    Owner()->Party()->SaveParty(&party, 1);
     WriteByte(&out_, kMessageParty);
-    out_.WriteSized(party);
+    out_.WriteSized(&party);
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % kRefreshSpread + kRefreshMinimum);
-    party->Destruct();
 }
 
 int CPlayerServer::ReceiveMessages() {
@@ -373,9 +367,9 @@ int CPlayerServer::ReceiveMessages() {
     if (link == nullptr) return 0;
     CMemoryStream& in = ReceivedMessages();
     while (link->HasIncoming()) {
-        QueueStream packet;
-        if (!link->Receive(packet.Get())) return 0;
-        packet.Get()->DecompressTo(&decompressor_, &in);
+        CMemoryStream packet;
+        if (!link->Receive(&packet)) return 0;
+        packet.DecompressTo(&decompressor_, &in);
         in.Seek(0);
         in.ok_ = 1;
         std::uint8_t type = 0xFF;

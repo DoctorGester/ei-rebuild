@@ -23,7 +23,6 @@ namespace {
 template <typename Record>
 void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int field) {
     ChunkArchive archive;
-    archive.ConstructLocal();
     archive.Open(source, 1, 1);
     if constexpr (std::is_same_v<Record, itemdb::QuickItemRecord>)
         archive.SerializeQuickItems(field, &table->records, nullptr);
@@ -36,7 +35,6 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
         stlp::string name(record->text04);
         stlp::NamedSlot<Record>(table->names, name) = record;
     }
-    archive.DestructLocal();
 }
 
 } // namespace

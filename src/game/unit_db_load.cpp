@@ -27,7 +27,6 @@ constexpr int kModelSlots = 6;
 
 using dbfile::FillStream;
 using dbfile::LocalResource;
-using dbfile::LocalStream;
 
 // The tables' vector serialisers (RET 0xC: id, vector, unused; ChunkArchive::SerializeUnitLevels /
 // SerializeModels / SerializePrototypes / SerializeNpcs, unit_db.cpp: 0053E1B0, 0053DF50, 0053DC10,
@@ -53,12 +52,10 @@ template <typename Record, typename Index>
 void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, void* table, void* levels, Record*& begin,
                Record*& end, Index* index) {
     ChunkArchive archive;
-    archive.Construct();
     archive.Open(stream, 1, 1);
     (archive.*serialize)(id, static_cast<stlp::vector<Record>*>(table), levels);
     archive.Close(stream);
     IndexNames(begin, end, index);
-    archive.Destruct();
 }
 
 } // namespace
@@ -94,8 +91,8 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName);
@@ -138,10 +135,9 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     if (!data) return game::FatalError("Can't open perks database\n");
 
     ChunkArchive ar;
-    ar.ConstructLocal();
     {
-        LocalStream local;
-        CMemoryStream* stream = &local.stream;
+        CMemoryStream local;
+        CMemoryStream* stream = &local;
         FillStream(*stream, data, size);
         ar.Open(stream, 1, 1);
         ar.SerializeSkills(kSkillsChunk, &skills, nullptr);
@@ -166,7 +162,6 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
         resource.Get()->CMappedResource::CloseFileImpl(data);
         resource.Get()->CMappedResource::CloseResource();
     }
-    ar.DestructLocal();
     return 1;
 }
 EI_REPLACE_METHOD(0x00520220, SkillDatabase::Load);

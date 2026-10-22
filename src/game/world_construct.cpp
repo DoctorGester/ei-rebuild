@@ -104,7 +104,7 @@ CWorldServer* CWorldServer::Construct() {
     for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
         map->Construct();
     timedObjects_.Construct();
-    zoneHeader_.ConstructQueueStream();
+    new (&zoneHeader_) CMemoryStream();
     ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
     ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());

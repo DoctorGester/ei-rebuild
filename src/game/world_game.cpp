@@ -81,7 +81,6 @@ using namespace flowdata;
 
 constexpr unsigned kOpenWrite = netlink::FileStream::kOpenWrite;
 constexpr unsigned kOpenRead = netlink::FileStream::kOpenRead;
-constexpr std::uint32_t kStreamLimit = 2000000000;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
@@ -124,23 +123,6 @@ const mfc::CString& RecordName(MapRecord* record) { return record->name; }
 const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
 const mfc::CString& RecordMob(MapRecord* record) { return record->mob; }
 const mfc::CString& RecordMap(MapRecord* record) { return record->map; }
-
-// A file stream local (zero-filled first, then built and torn down as the original inlines it).
-struct LocalFileStream {
-    FileStream stream;
-    LocalFileStream() {
-        std::memset(static_cast<void*>(&stream), 0, sizeof(stream));
-        stream.Construct();
-    }
-    ~LocalFileStream() { stream.Destruct(); }
-    LocalFileStream(const LocalFileStream&) = delete;
-    LocalFileStream& operator=(const LocalFileStream&) = delete;
-
-    // Opens `path` (`reading`: the stream's direction byte, 1 to read, 0 to write) through the
-    // embedded CFile's virtual Open, not the stream's.
-    bool Open(const char* path, unsigned flags, std::uint8_t reading) { return stream.Open(path, flags, reading); }
-    void Close() { stream.Close(); }
-};
 
 // The record builder's party (a CParty, party.h), built and torn down by the originals (its
 // bytes, so the compiler neither constructs nor destroys it).
@@ -203,9 +185,9 @@ constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
 CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
 namespace {
-void __cdecl DestroySaveStream() { g_saveStream->Destruct(); }   // 00578550
+void __cdecl DestroySaveStream() { g_saveStream->~CMemoryStream(); }   // 00578550
 void __cdecl ConstructSaveStream() {                             // 00578530
-    g_saveStream->Construct();
+    new (&*g_saveStream) CMemoryStream();
     GameAtExit(DestroySaveStream);
 }
 } // namespace
@@ -214,7 +196,7 @@ EI_REPLACE(0x00578530, ConstructSaveStream);
 EI_REPLACE(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
-    LocalFileStream file;
+    FileStream file;
     mfc::CString zone;          // [0x14]
     mfc::CString slotFolder;    // [0x10]
     mfc::CString currentFolder; // [0x18]
@@ -249,24 +231,7 @@ int GameFlow::SaveGame(const char* slot) {
 
     // scenario.sav: the party, the input state, the scripts and the globals.
     CMemoryStream scenario;
-    std::memset(&scenario, 0, sizeof(scenario));
-    ei::SetVtable(&scenario, CMemoryStream::MemoryStreamVtable());
-    scenario.data_ = nullptr;
-    scenario.capacity_ = 0;
-    scenario.position_ = 0;
-    scenario.size_ = 0;
-    scenario.ok_ = 1;
-    scenario.bitMask_ = 0x80;
-    scenario.bitsIndex_ = -1;
     scenario.version_ = static_cast<std::uint32_t>(SaveVersion());
-    struct ScenarioOwner {   // frees the buffer on the way out (CMemoryStream's inlined destructor)
-        CMemoryStream* s;
-        ~ScenarioOwner() {
-            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
-            if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, CStream::StreamVtable());
-        }
-    } scenarioOwner{&scenario};
     PartySave(ThePartyManager(), nullptr, &scenario);
     TheInterface()->SaveState(&scenario);
     ScriptsReset(GameSaveStream());
@@ -274,7 +239,7 @@ int GameFlow::SaveGame(const char* slot) {
     scenario.WriteSized(GameSaveStream());
     ScriptsReset(GameSaveStream());
     TheCamera()->SaveState(&scenario);
-    SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
+    SaveFileWrite(&file, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
@@ -286,17 +251,9 @@ int GameFlow::SaveGame(const char* slot) {
         }
         if (!opened) return 0;
         CMemoryStream mission;
-        std::memset(&mission, 0, sizeof(mission));
-        mission.version_ = kStreamLimit;
-        mission.ok_ = 1;
-        ei::SetVtable(&mission, CMemoryStream::MemoryStreamVtable());
-        mission.data_ = nullptr;
-        mission.Reset();
         mission.version_ = static_cast<std::uint32_t>(SaveVersion());
         TheServerWorld()->SaveWorld(&mission);
-        SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &mission);
-        ei::SetVtable(&mission, CMemoryStream::MemoryStreamVtable());
-        if (mission.data_) gamecrt::operator_delete(mission.data_);
+        SaveFileWrite(&file, kMagicMission, SaveVersion(), &mission);
         file.Close();
     }
 
@@ -330,7 +287,7 @@ const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 // around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
 // corrupt.
 int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
-                const char* mapOverride, LocalFileStream& file, bool& failed) {
+                const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;
     folder.Format(kCurrentFolder, DataFolderText());
     mfc::CString fileName = zone + kSaveExtension;
@@ -344,21 +301,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
         return 0;
     }
     CMemoryStream data;
-    std::memset(&data, 0, sizeof(data));
-    data.version_ = kStreamLimit;
-    data.ok_ = 1;
-    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
-    data.data_ = nullptr;
-    data.Reset();
-    struct DataOwner {
-        CMemoryStream* s;
-        ~DataOwner() {
-            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
-            if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, CStream::StreamVtable());
-        }
-    } owner{&data};
-    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion, &file.stream)) {
+    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion, &file)) {
         game::FatalError(kCorruptSave, fileName.GetString());
         failed = true;
         return 0;
@@ -399,7 +342,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
 // loads it fresh (NewZone; gz6g picks its frozen or thawed map), then the zone's scripts and its
 // exits. Returns 0 on failure, else the restore's result (1 for a fresh zone).
 int __stdcall EnterZone(CParty* records) {
-    LocalFileStream file;
+    FileStream file;
     int result = 1;
     mfc::CString folder;                                // [0x14]
     mfc::CString zone(records->zone_);                   // [0x10]
@@ -530,7 +473,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     TheServerWorld()->TeardownZone();
 
     mfc::CString folder;   // [0x14]
-    LocalFileStream file;  // [0x20]
+    FileStream file;  // [0x20]
     folder.Format(kCurrentFolder, DataFolderText());
     bool opened;
     {
@@ -540,22 +483,11 @@ int __stdcall StartNetworkZone(const char* zone) {
     }
     if (opened) {
         CMemoryStream data;
-        std::memset(&data, 0, sizeof(data));
-        data.version_ = kStreamLimit;
-        data.ok_ = 1;
-        ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
-        data.data_ = nullptr;
-        data.Reset();
         bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion,
-                                   &file.stream) &&
+                                   &file) &&
                       TheServerWorld()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
-        ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
-        if (data.data_) gamecrt::operator_delete(data.data_);
-        if (!loaded) {
-            ei::SetVtable(&data, CStream::StreamVtable());
-            return 0;
-        }
+        if (!loaded) return 0;
     } else {
         bool loaded;
         {
@@ -622,7 +554,7 @@ mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
 // it was visited (zs.<zone> = 1) and when it was left (zt.<zone> = gtime). Returns 1, 0 when the
 // file cannot be written (after FatalError).
 int __stdcall LeaveZone(CParty* records) {
-    LocalFileStream file;
+    FileStream file;
     mfc::CString path;   // [0x04]
     mfc::CString zone(mfc::CString::kUnset);   // [0x08]
     TheServerWorld()->ZoneNameInto(&zone);
@@ -641,15 +573,9 @@ int __stdcall LeaveZone(CParty* records) {
     }
     TheServerWorld()->PrepareSave();
     CMemoryStream data;
-    std::memset(&data, 0, sizeof(data));
-    data.version_ = kStreamLimit;
-    data.ok_ = 1;
-    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
-    data.data_ = nullptr;
-    data.Reset();
     data.version_ = static_cast<std::uint32_t>(SaveVersion());
     TheServerWorld()->SaveWorld(&data);
-    SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &data);
+    SaveFileWrite(&file, kMagicMission, SaveVersion(), &data);
     file.Close();
 
     NamedFloatTable* variables = &records->variables_;
@@ -664,9 +590,6 @@ int __stdcall LeaveZone(CParty* records) {
         mfc::CString variable = prefix + zone;
         VariableSet(variables, variable, now);
     }
-    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
-    if (data.data_) gamecrt::operator_delete(data.data_);
-    ei::SetVtable(&data, CStream::StreamVtable());
     return 1;
 }
 
@@ -885,7 +808,7 @@ constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk 
 } // namespace
 
 int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
-    LocalFileStream mobFile;
+    FileStream mobFile;
     int found = 0;
     if (mob) {
         // The graph chunk of the .mob file.
@@ -895,7 +818,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
-        if (mobFile.stream.FindTagged(kGraphChunk, out)) found = 1;
+        if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
         mobFile.Close();
         if (found) return found;
     }
@@ -908,14 +831,14 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
         *base = cut;
     }
     {
-        LocalFileStream graph;
+        FileStream graph;
         bool opened;
         {
             mfc::CString path = *base + kGraphExtension;
             opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
-            out->CopyFrom(&graph.stream);
+            out->CopyFrom(&graph);
             found = 1;
             graph.Close();
         }
@@ -934,33 +857,13 @@ constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script te
 
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 
-// A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
-struct LocalMemoryStream {
-    CMemoryStream s;
-    LocalMemoryStream() {
-        std::memset(&s, 0, sizeof(s));
-        s.version_ = kStreamLimit;
-        s.ok_ = 1;
-        ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
-        s.data_ = nullptr;
-        s.Reset();
-    }
-    ~LocalMemoryStream() {
-        ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
-        if (s.data_) gamecrt::operator_delete(s.data_);
-        ei::SetVtable(&s, CStream::StreamVtable());
-    }
-    LocalMemoryStream(const LocalMemoryStream&) = delete;
-    LocalMemoryStream& operator=(const LocalMemoryStream&) = delete;
-};
-
 } // namespace
 
 void CWorldServer::LoadZoneScripts(const char* mob) {
-    LocalFileStream file;
+    FileStream file;
     mfc::CString script;
-    LocalMemoryStream scripts;
-    LocalMemoryStream text;
+    CMemoryStream scripts;
+    CMemoryStream text;
     MobScriptDecoder decoder;
     decoder.text.ConstructEmpty();   // 00598940
     decoder.input.ConstructEmpty();
@@ -970,19 +873,19 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         file.Open(*path, kOpenRead, 1);
         path->~CString();
     }
-    file.stream.FindTagged(kScriptsChunk, &scripts.s);
-    if (scripts.s.FindTagged(kScriptEncoded, &text.s)) {
-        const std::uint8_t* data = text.s.data_;
-        std::uint32_t size = text.s.size_;
+    file.FindTagged(kScriptsChunk, &scripts);
+    if (scripts.FindTagged(kScriptEncoded, &text)) {
+        const std::uint8_t* data = text.data_;
+        std::uint32_t size = text.size_;
         char zero = 0;
         decoder.input.Resize<stlp::PlainElement<char>>(size, zero);
         std::memmove(decoder.input.begin(), data, size);
         decoder.Decode(&script);
-    } else if (scripts.s.FindTagged(kScriptPlain, &text.s)) {
-        text.s.SeekImpl(text.s.size_);
+    } else if (scripts.FindTagged(kScriptPlain, &text)) {
+        text.Seek(text.size_);
         char zero = 0;
-        text.s.Write(&zero, 1u);
-        script = reinterpret_cast<const char*>(text.s.data_);
+        text.Write(&zero, 1u);
+        script = reinterpret_cast<const char*>(text.data_);
     }
     ScriptReset(MainScript());
     ScriptLoadLine(MainScript(), nullptr, &script, 1);
@@ -1272,20 +1175,20 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C
 
 int __stdcall LoadMission(CStream* file) {
     TheSoundManager()->StopAll(1);
-    LocalMemoryStream mission;
-    if (!SaveFileRead(&mission.s, kMagicMissionFile, kSaveVersion,
+    CMemoryStream mission;
+    if (!SaveFileRead(&mission, kMagicMissionFile, kSaveVersion,
                       kSaveOldestVersion, file))
         return 0;
-    int version = static_cast<int>(mission.s.version_);
-    if (version < kVersionGlobalsInMission) TheCamera()->LoadState(&mission.s);
-    if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
+    int version = static_cast<int>(mission.version_);
+    if (version < kVersionGlobalsInMission) TheCamera()->LoadState(&mission);
+    if (static_cast<int>(mission.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
-        TheInterface()->LoadState(&mission.s);
-        mission.s.ReadSized(GameSaveStream());
-        GameSaveStream()->version_ = mission.s.version_;
+        TheInterface()->LoadState(&mission);
+        mission.ReadSized(GameSaveStream());
+        GameSaveStream()->version_ = mission.version_;
     }
-    return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
+    return TheServerWorld()->LoadSave(&mission, nullptr);   // 00596E70
 }
 
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
@@ -1624,7 +1527,7 @@ int GameFlow::LoadGame(const char* slot) {
     ExecuteAt(kExecAutoexec);
     TheCursor()->SetShape(3);
     ToMainMenu() = 1;
-    LocalFileStream file;
+    FileStream file;
     mfc::CString zone;          // [0x14]
     mfc::CString slotFolder;    // [0x10]
     mfc::CString currentFolder; // [0x18]
@@ -1644,21 +1547,7 @@ int GameFlow::LoadGame(const char* slot) {
 
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
     CMemoryStream scenario;
-    std::memset(&scenario, 0, sizeof(scenario));
-    scenario.version_ = kStreamLimit;
-    scenario.ok_ = 1;
-    ei::SetVtable(&scenario, CMemoryStream::MemoryStreamVtable());
-    scenario.data_ = nullptr;
-    scenario.Reset();
-    struct ScenarioOwner {   // the buffer freed on the way out (the inlined destructor)
-        CMemoryStream* s;
-        ~ScenarioOwner() {
-            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
-            if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, CStream::StreamVtable());
-        }
-    } scenarioOwner{&scenario};
-    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), kSaveOldestVersion, &file.stream)) {
+    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), kSaveOldestVersion, &file)) {
         ToMainMenu() = 1;
         StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
@@ -1725,7 +1614,7 @@ int GameFlow::LoadGame(const char* slot) {
             opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
-        LoadMission(&file.stream);
+        LoadMission(&file);
         file.Close();
         TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     }

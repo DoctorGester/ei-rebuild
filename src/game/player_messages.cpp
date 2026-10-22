@@ -348,13 +348,6 @@ void ConstructGroup(ScriptGroup& group) {
     group.vtable = mfc::impl::ScriptGroupClass::Vtable();
 }
 
-// A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
-struct LocalDeltaField {
-    lib::InPlace<DeltaField> bytes;
-    LocalDeltaField() { Get()->Construct(); }
-    ~LocalDeltaField() { Get()->Destruct(); }
-    DeltaField* Get() { return bytes.Get(); }
-};
 constexpr std::uint8_t kPathMessage = 0x0E;
 constexpr int kPathKindNoPath = 3;
 
@@ -365,7 +358,7 @@ CPlayerServer* CPlayerServer::Construct() {
     ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
     handlers_.Construct();
-    out_.ConstructQueueStream();
+    new (&out_) CMemoryStream();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     placements_.data = nullptr;
     placements_.size = 0;
@@ -394,7 +387,7 @@ void CPlayerServer::DestructBody() {
     compressor_.out.End();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     if (placements_.data) gamecrt::operator_delete(placements_.data);
-    out_.Destruct();
+    out_.~CMemoryStream();
     handlers_.FreeData();
     ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
@@ -464,12 +457,12 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     out_.Write(&id, 4);
     out_.Write(&limitBits, 4);
     if (kind == kPathKindNoPath) return;
-    LocalDeltaField field;
-    DeltaField* delta = field.Get()->BeginWriteB(0);
+    DeltaField field;
+    DeltaField* delta = field.BeginWriteB(0);
     PathWriteOriginal(path, nullptr, delta);
     delta->EndField();
     out_.EndBits();
-    BitStream& written = field.Get()->out[0];
+    BitStream& written = field.out[0];
     written.Seek(0);
     std::uint8_t* data = written.data_;
     out_.Write(data, written.Size());

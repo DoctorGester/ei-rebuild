@@ -61,7 +61,7 @@ record size, signed, as the original computes it, also for a null record), `Name
 a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
 
 Loading (item_db_load.cpp; O; startup, every scenario): `QuickItemTable / QuestItemTable / LootItemTable::Load`
-(a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed under its name with
+(a stack archive: a `ChunkArchive` local, Open, the vector serialisers, Close; then each record filed under its name with
 find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them by address),
 `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` (the quest_records.cpp pattern; the loads call
 them by address), `SerializeMaterials / Weapons / Armors`, `ItemDatabase::DestructBody` 006A6570 (007C86D8; six tables last
