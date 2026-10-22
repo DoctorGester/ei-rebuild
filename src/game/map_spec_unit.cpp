@@ -155,7 +155,7 @@ void Patrols::CopyFrom(const Patrols& from) {
         maxSize = 0;
         size = 0;
     } else if (!data) {
-        data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Patrol)));
+        data = gamecrt::operator_new_array<Patrol>(static_cast<std::size_t>(n));
         ConstructPatrols(data, n);
         maxSize = n;
         size = n;
@@ -171,7 +171,7 @@ void Patrols::CopyFrom(const Patrols& from) {
         }
         int capacity = maxSize + grow;
         if (n >= capacity) capacity = n;
-        auto* grown = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Patrol)));
+        auto* grown = gamecrt::operator_new_array<Patrol>(static_cast<std::size_t>(capacity));
         std::memcpy(grown, data, static_cast<std::size_t>(size) * sizeof(Patrol));
         ConstructPatrols(grown + size, n - size);
         gamecrt::operator_delete(data);
@@ -476,7 +476,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
         a->maxSize = 0;
         a->size = 0;
     } else if (!a->data) {
-        a->data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Waypoint)));
+        a->data = gamecrt::operator_new_array<Waypoint>(static_cast<std::size_t>(n));
         mfc::PlainElements<Waypoint>::Construct(a->data, n);
         a->maxSize = n;
         a->size = n;
@@ -491,7 +491,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
         }
         int capacity = a->maxSize + grow;
         if (n >= capacity) capacity = n;
-        auto* data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Waypoint)));
+        auto* data = gamecrt::operator_new_array<Waypoint>(static_cast<std::size_t>(capacity));
         std::memcpy(data, a->data, static_cast<std::size_t>(a->size) * sizeof(Waypoint));
         mfc::PlainElements<Waypoint>::Construct(data + a->size, n - a->size);
         gamecrt::operator_delete(a->data);

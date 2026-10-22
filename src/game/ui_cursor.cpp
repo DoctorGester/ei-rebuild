@@ -69,7 +69,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     hotX = static_cast<int>(CursorWidth()) * hotSpotX / 32;
     hotY = static_cast<int>(CursorHeight()) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
-    saved = static_cast<std::uint8_t*>(gamecrt::operator_new(maskBytes));
+    saved = gamecrt::operator_new_array<std::uint8_t>(maskBytes);
 
     // The mask, under the device lock.
     gameapi::EnterCriticalSection(TheDeviceLock());

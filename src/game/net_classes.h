@@ -64,7 +64,7 @@ class ZoneMessage;
 // inline: operator new, then the reference count dword cleared before the null check.
 template <typename T>
 T* NewMessageMemory() {
-    auto* p = static_cast<std::uint8_t*>(gamecrt::operator_new(sizeof(T)));
+    auto* p = gamecrt::operator_new_array<std::uint8_t>(sizeof(T));
     const std::uint32_t zero = 0;
     std::memcpy(p + 4, &zero, 4);
     return reinterpret_cast<T*>(p);

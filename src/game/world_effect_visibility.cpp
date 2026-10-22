@@ -48,8 +48,8 @@ CEffectShowVisibility* CEffectShowVisibility::Construct() {
     fog_ = nullptr;
     grid_.width = 1;
     grid_.height = 1;
-    grid_.cells = static_cast<std::uint8_t*>(gamecrt::operator_new(1));
-    grid_.rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid_.height * 4));
+    grid_.cells = gamecrt::operator_new_array<std::uint8_t>(1);
+    grid_.rows = gamecrt::operator_new_array<std::uint8_t*>(grid_.height);
     for (int row = 0; row < grid_.height; ++row) grid_.rows[row] = grid_.cells + row * grid_.width;
     observerId_ = -1;
     seerId_ = -1;

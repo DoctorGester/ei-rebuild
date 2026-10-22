@@ -226,7 +226,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     MapEffect* wanted = nullptr;
     int wantedCount = 0;
     if (mapObject->effectCount > 0) {
-        wanted = static_cast<MapEffect*>(gamecrt::operator_new(mapObject->effectCount * sizeof(MapEffect)));
+        wanted = gamecrt::operator_new_array<MapEffect>(mapObject->effectCount);
         for (int i = 0; i < mapObject->effectCount; ++i) {
             const MapEffect& effect = mapObject->effects[i];
             bool merged = false;

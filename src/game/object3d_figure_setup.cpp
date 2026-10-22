@@ -72,7 +72,7 @@ static void SetBoxCount(CObject3D* object, int count) {
         object->partBoxCapacity = 0;
         object->partBoxCount = 0;
     } else if (!object->partBoxes) {
-        object->partBoxes = static_cast<FootprintPart*>(gamecrt::operator_new(count * sizeof(FootprintPart)));
+        object->partBoxes = gamecrt::operator_new_array<FootprintPart>(count);
         ClearBoxes(object->partBoxes, count);
         object->partBoxCapacity = count;
         object->partBoxCount = count;
@@ -84,7 +84,7 @@ static void SetBoxCount(CObject3D* object, int count) {
         int grow = object->partBoxGrowBy ? object->partBoxGrowBy : DefaultGrowBy(object->partBoxCount);
         int capacity = object->partBoxCapacity + grow;
         if (count >= capacity) capacity = count;
-        auto* boxes = static_cast<FootprintPart*>(gamecrt::operator_new(capacity * sizeof(FootprintPart)));
+        auto* boxes = gamecrt::operator_new_array<FootprintPart>(capacity);
         std::memcpy(boxes, object->partBoxes, object->partBoxCount * sizeof(FootprintPart));
         ClearBoxes(boxes + object->partBoxCount, count - object->partBoxCount);
         gamecrt::operator_delete(object->partBoxes);

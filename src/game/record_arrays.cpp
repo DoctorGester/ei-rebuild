@@ -88,7 +88,7 @@ template <typename Abi>
 void AllocateExact(typename Abi::Array* self, int n) {
     using T = typename Abi::Element;
     if (n) {
-        self->data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(T)));
+        self->data = gamecrt::operator_new_array<T>(static_cast<std::size_t>(n));
         Abi::ConstructElements(self->data, n);
     }
     self->maxSize = n;
@@ -237,7 +237,7 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     to.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::WaypointArrayClass::Vtable()));
     int n = from.waypoints.size;
     if (n) {
-        to.data = static_cast<mapspec::Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(mapspec::Waypoint)));
+        to.data = gamecrt::operator_new_array<mapspec::Waypoint>(static_cast<std::size_t>(n));
         mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);   // 0045E130
     }
     to.maxSize = n;

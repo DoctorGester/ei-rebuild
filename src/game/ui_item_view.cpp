@@ -504,7 +504,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     if (image) {
         // The image decoded to 32-bit pixels (decoder slot 5: out, image data, count, PNT3).
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
-        pixels = static_cast<std::uint32_t*>(gamecrt::operator_new(count * 4));
+        pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
         void* decoder = PixelDecoder();
         VirtualCall(decoder, 5, pixels, static_cast<const void*>(image + 1), count, image->format == kPnt3 ? 1 : 0);
@@ -558,7 +558,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     std::uint32_t* pixels = nullptr;
     if (image) {
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
-        pixels = static_cast<std::uint32_t*>(gamecrt::operator_new(count * 4));
+        pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
         // The device's decoder, slot 5: out, image data, count, PNT3.
         void* decoder = interface_->renderer_->decoder_;
