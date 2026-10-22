@@ -60,7 +60,6 @@ float AbsBits(float f) {
     return f;
 }
 
-
 // --- Game data ----------------------------------------------------------------------------------
 
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map

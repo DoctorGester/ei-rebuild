@@ -75,12 +75,6 @@ void FpuCopy2(float* a, float* b, const float* src) {
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 // Not rewritten / rewritten elsewhere, through their game addresses:
-// 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
-// 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
-// 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
-// This file's functions through their addresses, so their verify wrappers stay in the path.
-// 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
-// CUnit::SetPrototype23C, rewritten elsewhere.
 
 // The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }

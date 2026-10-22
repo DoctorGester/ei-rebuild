@@ -2,8 +2,7 @@
 // with their dates, the name being typed with its caret, the selection's marker and the selected
 // save's details, all drawn into the window's first surface.
 // Rebirth's WideScreen patches it (the caret's points scaled without the margin), which this
-// reproduces behind the flag (ticket W2); our callers keep the forwarder in ui_menus.cpp (rule 9). Patched callees through their addresses: the
-// surface's text 005FDE20, the text extent 005F8340, the point scaling 005F7D20 and the sprite's
+// reproduces behind the flag (ticket W2). Rebirth-patched callees: the surface's text 005FDE20, the text extent 005F8340, the point scaling 005F7D20 and the sprite's
 // Place 005E6FA0. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
 #include "game_strings.h"
@@ -22,8 +21,6 @@
 
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace {
 

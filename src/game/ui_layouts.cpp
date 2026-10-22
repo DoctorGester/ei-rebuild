@@ -39,12 +39,11 @@
 #include <cstring>
 #include <new>
 
-// --- Forwarders ---------------------------------------------------------------------------------
+// --- Helpers ------------------------------------------------------------------------------------
 
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 
 namespace {
-
 
 // Fields of an interface sprite set directly by the builders.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }

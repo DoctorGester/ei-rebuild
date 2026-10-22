@@ -21,8 +21,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace {
 
 // The value a window leaves pending that ends the game session (the message boxes' "yes").
@@ -33,8 +31,6 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
-
-// 00458220: dispatches the window messages waiting in the queue.
 
 void ReleaseBackdrop(CUiSurface* surface) {
     if (!surface) return;

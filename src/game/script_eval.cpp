@@ -106,7 +106,6 @@ net::ServerSession* ActiveServer() {
     return nullptr;
 }
 
-
 WorldAlarm& Alarm(int index) { return TheServerWorld()->alarms_[index]; }
 
 int WorldTick() { return TheServerWorld()->tick_; }
@@ -126,9 +125,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 }
 
 } // namespace
-
-// ---- CScript forwarders -------------------------------------------------------------------------
-
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
@@ -623,7 +619,6 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 // The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
-
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).

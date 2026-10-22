@@ -61,7 +61,7 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
 }
 } // namespace
 
-// --- Forwarders --------------------------------------------------------------------------------
+// --- Helpers -----------------------------------------------------------------------------------
 
 void CHudQuickItems::HighlightAt(int slot, int on) { Highlight(slot, on); }
 void CHudSpellColumn::HighlightAt(int index, int on) { Highlight(index, on); }

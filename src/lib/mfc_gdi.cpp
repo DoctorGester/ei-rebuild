@@ -14,8 +14,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 namespace {

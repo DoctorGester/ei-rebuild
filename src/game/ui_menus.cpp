@@ -56,7 +56,7 @@ struct UiDisplaySettings {
 UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(); }
 } // namespace
 
-// --- Forwarders --------------------------------------------------------------------------------
+// --- Helpers -----------------------------------------------------------------------------------
 
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
 

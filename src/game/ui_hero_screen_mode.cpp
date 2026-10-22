@@ -1,8 +1,7 @@
 // The multiplayer hero screen's mode (CMpHeroScreen::SetModeVanilla 00615D30): the hero list (9), the new
 // hero (10) and its statistics page (11) laid out. Rebirth's WideScreen replaces it with the
 // original followed by the curtains' visibility (widescreen::ShowHeroCurtains), which this
-// reproduces, so it is hooked in both launches; the screen's other members call it through their
-// forwarder. See ui_screens.h and docs/notes/ui.md, section 5.
+// reproduces, so it is hooked in both launches. See ui_screens.h and docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"

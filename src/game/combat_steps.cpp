@@ -72,14 +72,12 @@ constexpr int kLocationCount = 6;
 // 0078FD48, printed when not even the fallback attack animation exists.
 const char* const kNoAnimationMessage = "Fucking ShITTT!!! ArtIsTs MuSt diE!!! CaN'T FiNd pRoPER ANiMatioN!!!\n";
 
-
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // The original's branch-free selects: FLD a; FCOMP b; C0 (a < b, or unordered) picks `ifLess`.
 float Select(float a, float b, float ifLess, float otherwise) {
     return std::bit_cast<float>(a >= b ? Bits(otherwise) : Bits(ifLess));
 }
-
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 
@@ -106,18 +104,6 @@ AnimationStep BlankStep() {
 } // namespace
 
 namespace {
-// Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
-// 005301B0. CUnit: the animation record for `key` (falling back to coarser keys; with `any`, a
-// random one of the closest group).
-// 00530240. CUnit: animation entry `index` (only its low byte counts), or null.
-// 00525B20. UnitStats: a body part near `location` that can still be hit (UnitStats::PickLocation,
-// unit_hit_location.cpp; called through its address).
-// 00530560. CUnit: its height (2 * +0x14C), in ST0.
-// 00530280. CUnit: the ground (or water surface) height under (x, y) for the unit, in ST0.
-// AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
-// AddStep(animation, duration), 00544DD0 set every step's +8.
-// Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ActionSpeed, the unit's
-// speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 
 } // namespace
 

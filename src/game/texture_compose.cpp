@@ -19,8 +19,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* const kTextures = "textures\\";

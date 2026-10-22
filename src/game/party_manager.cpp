@@ -15,8 +15,6 @@
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 static_assert(sizeof(PartyInPlace) == sizeof(CParty));
 
 namespace {

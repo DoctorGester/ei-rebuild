@@ -117,8 +117,7 @@ volatile double g_minimumTilt = 20.0;
 // 00501AF0 (CSceneRenderer::SetTextureImpl). Texture stages: binds a texture.
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
-// 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
-// CFigureMesh::DrawOffset.
+// 004018A0 Quaternion::PreMultiply; 005A0CD0 CFigureMesh::DrawOffset.
 
 // 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
 void AssignTexture(CTexture** slot, CTexture* value) {

@@ -50,10 +50,7 @@
 
 namespace {
 
-
 // The game's folder (the CString 007AF460 that 00578DB0 returns).
-
-
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
@@ -62,18 +59,7 @@ constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | mode
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
-
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
-
-// 004800E0 (cdecl): DirectX error report; nonzero to go on.
-// 005E5200 (CCursor::ChangeShape): the cursor's shape (3 busy, 0 normal).
-// 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
-// 006E80D8: atoi.
-// 006FE925: CStringArray's constructor.
-
-// The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
-// the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to
-// a zero into a new CString at `out` / into the CString `out`).
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 // _Construct(p, x) (00657C60).
@@ -144,9 +130,6 @@ const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 } // namespace
 
-// --- Forwarders through the original addresses ---------------------------------------------------
-
-
 // --- 00656E10 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::ShowPicture() {
@@ -198,7 +181,6 @@ constexpr const char* kQuickTitle = "save_quick";
 constexpr const char* kAutoEnterTitle = "save_auto_enter";
 constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
-
 
 bool SameFolder(const char* folder, const char* name) {
     return gamecrt::mbsicmp(folder, name) == 0;

@@ -11,8 +11,6 @@
 #include <new>
 #include <vector>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 #ifndef EI_VECTORS_REPLAY

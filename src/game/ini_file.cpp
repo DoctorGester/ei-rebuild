@@ -14,8 +14,6 @@
 #include <cstring>
 #include <new>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* const kDoubleFormat = "%g";
@@ -89,7 +87,7 @@ template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, co
 }
 
 // The list as integers in a temporary CDWordArray, then copied as T into `out` (resized by
-// `setSize`, one of the MFC SetSize forwarders).
+// `setSize`, one of the MFC SetSize instantiations).
 template <typename T>
 BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out,
                 void (*setSize)(mfc::CArray<T>*, int)) {

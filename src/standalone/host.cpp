@@ -5,7 +5,7 @@
 // strings are literals in our code, no icon yet); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
 // the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
 // (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
-// cells of game.exe's data at them and runs WinMain. Forwarders, function pointers in the data and vtable slots reach
+// cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach
 // our code that way.
 //
 // The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is free, with

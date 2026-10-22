@@ -21,8 +21,6 @@
 #include <string>
 #include <vector>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace scriptaddon {
 
 namespace {

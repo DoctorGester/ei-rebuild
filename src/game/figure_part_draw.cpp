@@ -46,7 +46,7 @@ std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 std::uint32_t AmbientBits() { return std::bit_cast<std::uint32_t>(options::TheOptions()->objectsLightingCoeff_); }
 int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).

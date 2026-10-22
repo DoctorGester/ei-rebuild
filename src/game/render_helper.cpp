@@ -29,8 +29,6 @@
 #include <cstring>
 #include <optional>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 using State = RenderPresetRecord::State;

@@ -27,8 +27,6 @@
 #include "game_arrays.h"
 #include "lib/static_object.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 constexpr int kPriority = 50;
 constexpr int kNoPriority = -1000;

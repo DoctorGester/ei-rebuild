@@ -34,8 +34,6 @@
 #include <windows.h>
 #undef GetClassName   // CEngineObject::GetClassName
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console {
 
 namespace {

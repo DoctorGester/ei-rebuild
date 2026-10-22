@@ -82,7 +82,7 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // The game's atexit (006E727B).
 // 0055FBD0 (RET 8). The time of day and the time speed.

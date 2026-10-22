@@ -26,7 +26,6 @@ namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 
 namespace console {
 
-
 // CString members beyond lib/mfc.h, called on existing strings through this view (no extra data).
 struct Str : mfc::CString {
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)
@@ -54,7 +53,7 @@ public:
     virtual void WriteString(const char* text);     // 21: 00701E23
 };
 
-// MFC CStdioFile (0x14 bytes: CFile and the FILE*). Locals only; raw members for the forwarders.
+// MFC CStdioFile (0x14 bytes: CFile and the FILE*). Locals only.
 class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
@@ -153,7 +152,6 @@ public:
     // The old iostream streambuf base part (libcrt::Streambuf: 006FCAD2 streambuf(char*, int) and
     // 006FCB35 ~streambuf).
     libcrt::Streambuf* Base() { return reinterpret_cast<libcrt::Streambuf*>(this); }
-
 
     void** vtable_;
     int allocated_;            // +0x04 streambuf members (old iostream)

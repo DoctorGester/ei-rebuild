@@ -6,9 +6,6 @@
 #include "scene_loader.h"
 #include "unit.h"
 
-// --- Forwarders (not rewritten) ----------------------------------------------------------------
-
-
 // --- CHoover ------------------------------------------------------------------------------------
 
 CHoover* CHoover::Construct() {

@@ -60,8 +60,6 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-
-// Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 00516A80. 3D object: its figure part named `name`, or null.
 // 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).

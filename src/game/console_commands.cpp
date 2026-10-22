@@ -23,8 +23,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console::commands {
 
 namespace {

@@ -3582,7 +3582,7 @@ namespace {
 constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                                              255, 255, 255, 255, 255, 255, 255};
 
-// Not rewritten (forwarders): the figure part named `name` (00516A80, null if none) and a part's
+// The figure part named `name` (00516A80, null if none) and a part's
 // world position (005188B0).
 void* FindFigurePart(void* unit, const char* name) {
     using Fn = void*(__thiscall*)(void*, const char*);
@@ -3804,7 +3804,6 @@ namespace {
 // By tick.
 constexpr std::int32_t kModifierAlphaIn[35] = /*0078A800*/ {0, 128, 255, 255, 255, 255, 255, 255, 192, 128, 64, 32};
 constexpr std::int32_t kModifierAlphaOut[34] = /*0078A88C*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 128};
-
 
 } // namespace
 

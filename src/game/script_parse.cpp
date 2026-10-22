@@ -2,9 +2,7 @@
 // and name helpers. The parser proper is in script_parse_load.cpp. See script.h and
 // docs/notes/script.md ("Loader and parser").
 //
-// Calls between loader functions go through the original addresses (forwarders below): the
-// keyword lookups are patched by Rebirth, and in verify builds each callee then runs through its
-// own wrapper.
+// Rebirth patches the keyword lookups.
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
@@ -21,8 +19,6 @@
 
 #include <cstring>
 #include <new>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 // ---- Game CRT and MFC helpers (local to the loader) ---------------------------------------------
 

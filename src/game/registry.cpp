@@ -9,8 +9,6 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "CFileRegistry::IsValid().\nThat is not registry file.\n"

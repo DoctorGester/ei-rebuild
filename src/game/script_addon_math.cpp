@@ -14,7 +14,6 @@
 
 #include <cmath>
 
-#pragma warning(disable : 4740) // inline assembly
 #pragma function(sin, cos, pow, floor, ceil)
 
 namespace scriptaddon {

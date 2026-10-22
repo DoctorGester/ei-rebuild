@@ -1,7 +1,6 @@
 // The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
-// these reproduce behind the flag (ticket W2); rewritten callers keep going through the forwarders
-// (CUiMesh::SetRectangle, ...). docs/notes/ui.md, section 9.
+// these reproduce behind the flag (ticket W2). docs/notes/ui.md, section 9.
 #include "ui.h"
 #include "ui_widescreen.h"
 

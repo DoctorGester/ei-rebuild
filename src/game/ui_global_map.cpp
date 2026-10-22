@@ -52,7 +52,6 @@ using console::CStringArray;
 
 namespace {
 
-
 inline double D(float f) { return f; }
 
 float Bits(std::uint32_t bits) {
@@ -62,7 +61,6 @@ float Bits(std::uint32_t bits) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Bits(T) = delete;
-
 
 // --- Game data ----------------------------------------------------------------------------------
 
@@ -182,7 +180,6 @@ public:
 private:
     CGlobalMap* map_;
 };
-
 
 void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, int tip) {
     CUiRegion* region = window->AddRegion();
@@ -523,7 +520,6 @@ namespace {
 
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
-
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(libcrt::CiFmod(a, *divisor)); }

@@ -7,8 +7,6 @@
 #include "gameapi.h"
 #include "game/game_data.h"
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 namespace {

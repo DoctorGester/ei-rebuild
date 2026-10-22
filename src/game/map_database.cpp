@@ -30,8 +30,6 @@
 #include <cstring>
 #include <type_traits>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace mapdb {
 namespace {
 
@@ -70,7 +68,6 @@ void StoreRadians(float* out, const char* text) {
 bool Is(const char* word, const char* text) {
     return gamecrt::mbscmp(word, text) == 0;
 }
-
 
 // CArray::SetSize(size, -1) as the original inlines it, with the instantiation's element
 // constructor and destructor.

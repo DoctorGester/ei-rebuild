@@ -41,7 +41,7 @@ int __cdecl rand() {
 }
 void __cdecl srand(unsigned seed) { libcrt::Srand(seed); }
 // The ports (ei_vectors: replay_crt.cpp's libcrt:: versions; the vector recorders take the game CRT's
-// own answers through record_crt.cpp's forwarders).
+// own answers through record_crt.cpp's calls by address).
 int __cdecl tolower(int c) { return libcrt::Tolower(c); }
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n) { return libcrt::Strnicmp(a, b, n); }
 char* __cdecl strncpy(char* dst, const char* src, std::size_t n) { return libcrt::Strncpy(dst, src, n); }

@@ -137,7 +137,6 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 } // namespace
 
-
 void CHudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : static_cast<float>(WindowFrameTime(this));
     Sprite(sceneObjects_.data[0])->visible_ = 0;   // the selection marker

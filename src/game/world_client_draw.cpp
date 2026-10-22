@@ -52,8 +52,6 @@
 #include "settings_file.h"
 #include "system_text.h"
 
-#pragma warning(disable : 4740) // naked forwarders, inline assembly
-
 // windows.h renames CEngineObject's GetClassName.
 #undef GetClassName
 

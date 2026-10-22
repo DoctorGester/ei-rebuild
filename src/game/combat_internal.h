@@ -27,9 +27,7 @@ inline const libcrt::Manipulator kLogEndLine = libcrt::FlushManipulator;
 inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }
 inline UnitVitals* ServerStatsOf(CUnit* unit) { return &unit->ServerCompanion()->vitals; }
 
-// Forwarders defined in combat_actions.cpp (__fastcall with the unused EDX for __thiscall).
+// Defined in combat_actions.cpp.
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code);
-// 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source`.
 
-// 005D7E90: the AI's memory of attackers (CUnitServer + 0x980) remembers `attacker`: AIBrain::SetSeen.

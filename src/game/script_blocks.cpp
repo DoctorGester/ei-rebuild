@@ -21,8 +21,6 @@
 
 #include <cstdint>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // ---- Original code (MFC template instantiations, config/library.csv) ------------------------------

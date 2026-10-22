@@ -32,8 +32,6 @@
 #include <cstring>
 #include <string>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace scriptaddon {
 
 namespace {

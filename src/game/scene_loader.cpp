@@ -33,8 +33,6 @@
 #include <cstring>
 #include <new>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace scene {
 namespace {
 

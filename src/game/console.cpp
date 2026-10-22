@@ -23,17 +23,14 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console {
 
-// ---- Library forwarders -------------------------------------------------------------------------
+// ---- Helpers ------------------------------------------------------------------------------------
 
 void Str::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
 void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
 void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
-
 
 // The library's CStdioFile (lib/mfc_file.h) has this layout.
 mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
@@ -54,7 +51,6 @@ GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); r
 GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
 GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
-
 CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return map->Subscript(name); }
 
 namespace {
@@ -72,8 +68,6 @@ int Mbscmp(const char* a, const char* b) {
 bool NetworkGame() { return IsMultiplayerClient(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
-
-
 
 } // namespace
 

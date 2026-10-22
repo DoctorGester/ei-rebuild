@@ -129,7 +129,6 @@ void CTextureDevice::DestructDirectDraw() {
 }
 EI_REWRITTEN(0x004EE330, CTextureDevice::DestructDirectDraw);
 
-// The parts are called through their addresses (originals_render.h), as the original calls them.
 // Not kept: the original copies the processor's twelve bytes as a string into a local nothing reads.
 CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height,
                                                     int bitsPerPixel, int /*refreshRate*/, unsigned /*backBuffers*/,

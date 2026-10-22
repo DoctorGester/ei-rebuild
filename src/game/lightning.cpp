@@ -18,8 +18,7 @@
 #include <cstring>
 #include <initializer_list>
 
-// --- Forwarders (not rewritten) ----------------------------------------------------------------
-
+// --- Helpers -----------------------------------------------------------------------------------
 
 namespace {
 
@@ -28,7 +27,6 @@ double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
-
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
@@ -107,7 +105,6 @@ float NoiseAmplitude(float power) {
     if (power > 0.0f) return 1.5f;
     return power < 0.0f ? 1.0f : 2.0f;
 }
-
 
 } // namespace
 

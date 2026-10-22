@@ -43,7 +43,6 @@ constexpr int kStackWorld = 1;                      // the pipeline's matrix sta
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
-// Not rewritten, forwarders:
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
 // 00457720. A temporary texture reference: released.

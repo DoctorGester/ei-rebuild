@@ -89,9 +89,6 @@ constexpr std::uint32_t kCameraFollows = 8;
 
 } // namespace
 
-// --- Forwarders --------------------------------------------------------------------------------
-
-
 // --- Weapon bar --------------------------------------------------------------------------------
 
 void CHudWeaponBar::OnMouseDown(int, int x, int y) {

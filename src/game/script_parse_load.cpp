@@ -29,8 +29,6 @@
 #include <new>
 #include <type_traits>
 
-#pragma warning(disable : 4740) // inline assembly
-
 using namespace scriptparse;
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)

@@ -64,8 +64,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 using options::GameOptions;
 
 namespace app {

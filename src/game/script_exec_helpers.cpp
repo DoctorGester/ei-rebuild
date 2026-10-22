@@ -17,8 +17,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // inline assembly: no optimisation across it
-
 namespace {
 
 

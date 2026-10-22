@@ -20,8 +20,6 @@
 #include <io.h>
 #include <new>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace mfc::impl {
 
 // CFileFind's vtable slots that its own members call (mfc::CFileFindVirtuals with this file's

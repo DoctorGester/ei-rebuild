@@ -19,8 +19,6 @@
 #include <cstdint>
 #include <type_traits>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace scriptaddon {
 
 namespace {

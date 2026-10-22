@@ -31,29 +31,6 @@
 
 namespace {
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
-
-// 00455940 the owning manager's context (the world server); 00455950 the object's world.
-// 005C7430 UnitMotion::Sample (ai_motion.cpp) on CUnit + 0x27C.
-// The controller's animation helpers (not rewritten): 00551400 the next animation of the order,
-// 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
-// played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
-// animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-// 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
-// Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
-// the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
-// GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
-// CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
-// (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
-// The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
-// The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005B81B0
-// CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
-// 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
-// rewritten).
-// The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
-// 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
-// 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
-
 // --- Float helpers -------------------------------------------------------------------------------
 
 // The exe's constants: 0073EEE4 the cell size, 0073B86C 0.5, 0073B84C 1.0, 0073F088 the stamina

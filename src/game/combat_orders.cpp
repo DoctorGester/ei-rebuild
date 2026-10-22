@@ -74,9 +74,6 @@ void TellParty(CUnit* unit, int message) {
 }
 } // namespace
 
-// Not rewritten (forwarders).
-// 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
-
 void CUnitServer::FinishCast() {
     CWorldServer* world = ServerWorld();
     std::uint32_t source = action.source;

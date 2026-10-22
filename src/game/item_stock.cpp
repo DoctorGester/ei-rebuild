@@ -25,8 +25,6 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // ---- Original code --------------------------------------------------------------------------------

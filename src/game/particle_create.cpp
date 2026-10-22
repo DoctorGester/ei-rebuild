@@ -55,13 +55,11 @@ double Unsigned(std::uint32_t value) {
 #define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/     // ~0.4 * 2^-32
 #define EI_RING_STEP 0.62832 /*0073CC98*/     // 0.62832 (2 pi / 10)
 
-
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
-
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
@@ -70,7 +68,6 @@ const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
-
 
 // The element array's SetSize(n) as the original inlines it (MFC CArray: data +0x154, size
 // +0x158, max +0x15C, grow by +0x160). After Reset the array is always empty, so only the first
@@ -861,11 +858,6 @@ EI_REWRITTEN(0x00485540, CParticleSource::CreateForType);
 // --- Factory and destructor ----------------------------------------------------------------------
 
 namespace {
-
-// Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
-// rest zero) and its base destructor body.
-
-
 
 } // namespace
 

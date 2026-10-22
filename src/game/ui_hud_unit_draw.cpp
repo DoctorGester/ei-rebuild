@@ -31,8 +31,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // The constants the original reads at run time.

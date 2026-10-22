@@ -124,31 +124,11 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // 00461190 (RET 4). Reads a zero-terminated string; constructs the CString at `out` and returns it.
 // 005DA400. Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
-// 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
-// FindFreeCellNear (ai_map.cpp).
-// 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
-// 00596730. SaveMapObjects (world_zone.cpp), through its address.
-// 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
-// 00675CA0. Marks an object new (flags_ |= 2, stamp).
-// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's.
-// 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
-// 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
-// 0040A3A0. CRefObject::Release.
-// 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
-// pointer's assignment (reference added, old one released through slot 4).
-// Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
-// tables (+0x12C64) and the countdowns (+0x70).
-// 0055FB00 (RET 4). CWorld::FindUnit.
-// 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
-// 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
-// 00554450. The unit controller's reposition after a move.
-// 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
-// Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 
 } // namespace
 
@@ -161,7 +141,6 @@ SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode*
 } // namespace
 
 namespace {
-
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(WorldStream* stream, mfc::CString& target) {

@@ -106,23 +106,6 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeap
 } // namespace
 
 namespace {
-// Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
-// 00455950 the object's world; 0066D6E0 party messages; 00552780 the unit shouts.
-// CUnitServer helpers: 0054A150 follow the path (true while moving), 00550F30 the idle animation
-// (+0x960), 00546C40 play it, 00547280 / 00547090 / 005474B0 / 0054EB30 / 005467B0 movement and
-// motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
-// into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
-// (taken by value), 00549690 the end of an order.
-// Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
-// 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
-// destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-// Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
-// CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
-// 0052FBC0 ScaledValue (unit.cpp; ST0).
-// The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
-// Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
-// leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
-// unit (0066E110).
 } // namespace
 
 namespace {

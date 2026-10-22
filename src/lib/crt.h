@@ -124,7 +124,7 @@ void SetReplayCtype(const ReplayCtype& ctype);
 } // namespace gamecrt
 
 // The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
-// at its library address, so the forwarders above and the exe's remaining library code reach these
+// at its library address, so the exe's remaining library code reaches these
 // bodies; verify_crt.cpp compared them with the originals until S21d. MSVC 6 behaviour for the CRT
 // state in the exe's data, read as the originals read it: the LC_CTYPE locale handle and code page
 // (case changes go through LCMapStringW under a locale, as _tolower_lk does), the character class

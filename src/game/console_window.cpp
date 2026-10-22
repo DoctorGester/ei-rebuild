@@ -6,8 +6,6 @@
 #include "ei/hook.h"
 #include "text_split.h"
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console {
 
 // 005E3E90: the rectangle in pixels, clamped to at least 76x69 and at most the screen; the number

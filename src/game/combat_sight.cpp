@@ -94,10 +94,6 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
 } // namespace
 
 namespace {
-// Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
-// 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
-// 00557B80. CArray::SetSize of an AnimationSteps list.
-// 00455950. The world an object lives in.
 
 } // namespace
 

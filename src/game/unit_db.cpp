@@ -15,7 +15,7 @@ namespace {
 
 // The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of
 // `size` bytes (missing ones read as zero), a CString field, entering / leaving chunk `id`.
-// Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
+// 0052DF40 (the CString vector's archive); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and

@@ -337,8 +337,6 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 namespace {
 
-// Callees, through their addresses (thiscall as fastcall).
-// 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 

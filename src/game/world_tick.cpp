@@ -27,14 +27,7 @@
 
 namespace {
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ------------
-
-// 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
-// 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
-// 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
-
-// The game's atexit (006E727B).
-
+// ---- Helpers ------------------------------------------------------------------------------------
 
 // WakeUnitsAround's function-local static: a SpiralCache (guard bit 0 of g_wakeCacheGuard,
 // destructor 0058D5C0 registered with atexit).

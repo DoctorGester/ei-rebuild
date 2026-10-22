@@ -126,16 +126,6 @@ float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
-// Not rewritten (forwarders). UnitStats and CUnit methods of the unit range, as __fastcall with
-// the unused EDX.
-// 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
-// 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
-// 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;
-// 0 when it did nothing.
-// 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
-// 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
-// 005D7E90 (AIBrain::SetSeen). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
-
 GameOstream* GameOstream::Put(const char* text) { PutText(text); return this; }
 GameOstream* GameOstream::Put(long v) { PutInt(v); return this; }
 GameOstream* GameOstream::Put(double v) { PutDouble(v); return this; }

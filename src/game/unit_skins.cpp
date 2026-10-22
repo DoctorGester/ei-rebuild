@@ -30,9 +30,7 @@
 #include <cstring>
 #include <new>
 
-
 namespace {
-
 
 // --- Tables --------------------------------------------------------------------------------------
 
@@ -59,7 +57,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
     return static_cast<std::uintptr_t>(list.Finish() - list.Start()) * sizeof(T);
 }
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
 // out, weapon record; material record]; the weapon and material records are the tables' At
@@ -76,7 +74,6 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
-
 
 // --- The dressed units ---------------------------------------------------------------------------
 

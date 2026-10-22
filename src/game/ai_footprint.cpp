@@ -103,7 +103,6 @@ EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-
 namespace {
 // Object model helpers not rewritten yet.
 // CStringArray element by value (004698A0, PartNames::CopyAt: a CString copy-constructed into `out`).

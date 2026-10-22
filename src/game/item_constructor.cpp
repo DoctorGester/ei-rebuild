@@ -120,8 +120,6 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
     return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
 }
 
-#pragma warning(disable : 4740) // naked forwarders
-
 } // namespace
 
 // --- CItem ---------------------------------------------------------------------------------------

@@ -37,7 +37,6 @@ float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Float(T) = delete;
 
-// Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 0059F3D0. Part: remembers its owner.
 // 0050D0E0. Animation state: a part was added.

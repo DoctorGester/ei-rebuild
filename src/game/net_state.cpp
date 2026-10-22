@@ -26,7 +26,6 @@ CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 // The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
 // [005C7DB0 on the controller's path (field)].
-// (005C7DB0: PathWriteOriginal, originals_ai.h.)
 
 constexpr int kClassServerController = 0x3E;
 

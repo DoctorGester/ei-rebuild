@@ -40,20 +40,10 @@ namespace {
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
 constexpr const char* kNoExit = "none";   // 007846F0
 
-
 // The default orientation of new units, passed by value.
 Quaternion DefaultRotation() { return kNewUnitRotation; }
 
-
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
-
-
-// 0058EF20 (RET 0x20): CWorldServer::CreateUnits creates the units described by `records` (pointers to 0x784-byte unit
-// records) around `position` with `rotation`; ids come from the records (+0x1C).
-// 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
-// 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
-// game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
-// 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // The unit record AddUnitToServer builds on its stack: a CParty (party.h; constructor 00661050,
 // destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
@@ -71,7 +61,6 @@ struct UnitRecordBuilder {
 };
 
 } // namespace
-
 
 // ---- Zone exits -------------------------------------------------------------------------------
 

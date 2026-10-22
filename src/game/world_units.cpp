@@ -63,16 +63,6 @@ constexpr int kGameResultLost = 2;
 using Placement = UnitPlacement;
 using PlacementArray = mfc::CArray<Placement>;
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
-
-// 00513240 (RET 4). The map objects manager's type of a prototype name.
-// The unit's AI brain (CUnitServer::brain, controller + 0x980).
-// Placement on the maps.
-// The unit's setup.
-// 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
-// Items: the counted record at item + 0x1C (CItemLink, item.h).
-// 004D23A0 (RET 8). Queues a script command line on the first command queue.
-
 // ---- The creation message ---------------------------------------------------------------------
 
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).

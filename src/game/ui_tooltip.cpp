@@ -21,8 +21,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace {
 // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30: drawn (20) and redrawn
 // (22) only while shown; the input side's defaults.

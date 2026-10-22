@@ -18,8 +18,6 @@
 #include <vector>
 #include <bit>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace {
 
 // MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,

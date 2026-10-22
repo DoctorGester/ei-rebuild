@@ -686,23 +686,23 @@ bool CCampPages::CanMakeSpell() {
             modifiers[modifierCount++] = ModifierRecordOf(item);
     }
     if (!spell) return false;
-    constructor->CallSetManager(manager);
-    if (!constructor->CallBeginConstruct(spell)) {
-        constructor->CallSetManager(nullptr);
+    constructor->SetManager(manager);
+    if (!constructor->BeginConstruct(spell)) {
+        constructor->SetManager(nullptr);
         return false;
     }
     for (int i = 0; i < modifierCount; ++i) {
-        if (!constructor->CallAddModifier(modifiers[i])) {
-            constructor->CallSetManager(nullptr);
+        if (!constructor->AddModifier(modifiers[i])) {
+            constructor->SetManager(nullptr);
             return false;
         }
     }
     if (!constructor->EndConstruct()) {
-        constructor->CallSetManager(nullptr);
+        constructor->SetManager(nullptr);
         return false;
     }
     CSpell* made = constructor->container_->Spell()->Clone(manager);
-    constructor->CallSetManager(nullptr);
+    constructor->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
     int index = quickItems.IndexOf(quickItems.Named("spell container"));
     CItem* container = factory->MakeItem(0x3008, index, 0, -1);

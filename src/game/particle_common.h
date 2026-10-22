@@ -1,7 +1,7 @@
 #pragma once
 
 // Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's
-// constants and random generator, and the forwarders they call. Include after effects.h.
+// constants and random generator, and the helpers they call. Include after effects.h.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float; constants the original reads from memory

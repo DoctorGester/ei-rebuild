@@ -13,8 +13,6 @@
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // The game's messages, passed by address as the original does.
@@ -84,25 +82,25 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     CSpellConstructor* constructor = context_->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
-    constructor->CallSetManager(this);
+    constructor->SetManager(this);
 
     itemdb::SpellRecord* prototype;
     {
         stlp::string key(text.GetString());
         prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
-    if (!constructor->CallBeginConstruct(prototype))
+    if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, text.GetString());
 
     for (int i = 0; i < codes.GetSize(); ++i) {
         const mfc::CString& code = codes[i];
         if (code.GetLength() == 0) continue;
-        constructor->CallAddModifier(FindModifier(code));
+        constructor->AddModifier(FindModifier(code));
     }
 
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
     CSpell* spell = constructor->container_->Spell()->Clone(this);
-    constructor->CallSetManager(nullptr);
+    constructor->SetManager(nullptr);
     return spell;
 }
 EI_REWRITTEN(0x00689030, CSpellManager::CreateSpellFromText);

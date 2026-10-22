@@ -15,8 +15,6 @@
 
 #include <cstddef>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* FiguresArchive() { return "figures.res"; }

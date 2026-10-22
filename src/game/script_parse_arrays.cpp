@@ -15,8 +15,6 @@
 #include "ei/hook.h"
 #include "unit_ai.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 using namespace scriptarray;

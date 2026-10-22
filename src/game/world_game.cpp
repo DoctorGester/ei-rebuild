@@ -69,9 +69,7 @@ namespace {
 
 using namespace flowdata;
 
-
 // ---- Data -------------------------------------------------------------------------------------
-
 
 constexpr unsigned kOpenWrite = netlink::FileStream::kOpenWrite;
 constexpr unsigned kOpenRead = netlink::FileStream::kOpenRead;
@@ -96,7 +94,7 @@ MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); 
 // A CStream over a file (net_link.h).
 using netlink::FileStream;
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // The mouse cursor's busy shape (3 while saving, 0 after): TheCursor()->SetShape (005E5200).
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
@@ -109,7 +107,6 @@ void VariableSet(NamedFloatTable* table, const char* name, float value) { table-
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
-// The console's ostream.
 
 const mfc::CString& RecordName(MapRecord* record) { return record->name; }
 const mfc::CString& RecordAllod(MapRecord* record) { return record->allod; }
@@ -304,9 +301,7 @@ constexpr float kCatchUpRadius = 70.0f;
 constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
-
 const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
-
 
 // 005DB3F0. Plays a movie file (ECX path, EDX 0, five flags).
 // 00460DB0 (RET 4). Named float table Remove.
@@ -597,7 +592,6 @@ int __stdcall StartNetworkZone(const char* zone) {
 
 namespace {
 
-
 // 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
 // 00460BC0 (RET 8). Named float table Set.
 
@@ -699,7 +693,7 @@ namespace {
 // The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
 // bz4mpg, anything else bz1mpg.
 
-// The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
+// The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890
 // begins a redeploy of a party.
 
 // The party outside a game (007C82B0, the party records as CPlayer::Party has them).
@@ -982,7 +976,6 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
 // ---- SwitchMultiplayerZone ------------------------------------------------------------------------
 
 namespace {
-
 
 constexpr int kServerDropClient = 9;
 
@@ -1309,7 +1302,6 @@ bool __fastcall NameInList(const char* const* list, const char* name) {
 
 namespace {
 
-
 // StartZone's modes (also stored as the campaign mode, the server world's sessionKind_).
 constexpr int kModeFromRecord = 0;   // by the zone record's kind: 0 -> 1, 1 -> 4, 2 -> 3
 constexpr int kModeMainMenu = 2;
@@ -1317,7 +1309,6 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 // SetGameResult's values here.
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
-
 
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 inline CPlayerClient* ClientWorldLocalView(CWorldClient* client) { return client->LocalView(); }
@@ -1963,8 +1954,7 @@ namespace {
 
 // An entry is a multiplayer hero record (ui_screens.h): the vector's element copy loop is
 // MpHeroRecord::CopyRange (00664410), its element destructor DeletingDestruct (00664AE0, flag 0);
-// the records' copy constructor (006613C0) and the insert overflow (00619920) are in
-// originals_gameplay.h.
+// the records' copy constructor (006613C0) and the insert overflow (00619920).
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).

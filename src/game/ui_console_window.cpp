@@ -16,8 +16,6 @@
 #include <cstring>
 #include <string>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace console {
 
 namespace {

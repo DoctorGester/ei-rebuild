@@ -15,8 +15,6 @@ constexpr int kAnimatorClass = 0x300B;            // AnimationTrack's class id
 constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what happens at the end
 constexpr std::uint32_t kKeyLoops = 0x80000000;
 
-// Not rewritten here (forwarders):
-
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {

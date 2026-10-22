@@ -135,7 +135,6 @@ EI_REWRITTEN(0x005F74E0, CInterface3D::SetPendingValue);
 
 // --- CUiSurface ------------------------------------------------------------------------------
 
-
 void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.left = left;
     rect_.top = top;

@@ -30,7 +30,7 @@ libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
 // CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // 00665A10. Disconnects a player (its connection and units).
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,

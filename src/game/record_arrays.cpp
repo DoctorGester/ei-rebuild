@@ -1,6 +1,5 @@
 // The CArray<T> instantiations of game records (record_arrays.h), registered at their library
-// addresses (ticket S6b). Our code keeps calling them through their addresses (the forwarders in
-// scene_loader.cpp, script_copy.cpp, sound_music.cpp, ...).
+// addresses (ticket S6b).
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"

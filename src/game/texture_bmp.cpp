@@ -24,8 +24,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture %s.\n"; }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"

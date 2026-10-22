@@ -29,7 +29,7 @@ const char* Dot() { return "."; }
 const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
-// The item and spell managers (their name lists, originals_gameplay.h).
+// The item and spell managers (their name lists).
 CItemManager* ItemDatabase() { return TheClientWorld()->itemManager_; }
 CSpellManager* SpellDatabase() { return TheClientWorld()->manager4C_; }
 

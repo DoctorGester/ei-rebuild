@@ -1,6 +1,5 @@
 // Functions the game sources linked into ei_vectors refer to but no replay reaches: their files would
-// pull in the world, the renderer and the terrain. Each stops the replay naming itself (as an
-// EI_ORIGINAL forwarder without a rewrite does, hook_stub.cpp).
+// pull in the world, the renderer and the terrain. Each stops the replay naming itself.
 #include "../../src/game/ai_map.h"
 #include "../../src/game/ai_shape_cache.h"
 #include "../../src/game/base_manager.h"

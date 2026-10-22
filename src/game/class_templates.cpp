@@ -23,8 +23,6 @@
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
@@ -36,7 +34,7 @@ namespace {
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
 // 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records
 // have the class mask at +0x4C). The spell database (template +0xAC slot 22): 00689570 spells,
-// 00689610 spell modifiers (originals_gameplay.h).
+// 00689610 spell modifiers.
 void ListWeapons(CItemManager* db, void*, console::CStringArray* names) { db->ListWeaponNames(names); }
 void ListArmors(CItemManager* db, void*, console::CStringArray* names) { db->ListArmorNames(names); }
 void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db->ListQuickItemNames(names); }

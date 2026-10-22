@@ -31,7 +31,7 @@ using options::GameOptions;
 Matrix4* __stdcall AxisSwapMatrix(Matrix4*);
 namespace {
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
 // one released.

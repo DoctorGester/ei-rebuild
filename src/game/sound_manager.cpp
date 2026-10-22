@@ -65,7 +65,6 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
-
 // Miles Sound System through game.exe's import table (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);
 using SampleFn = void(__stdcall*)(void*);
@@ -1352,7 +1351,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
 }
 EI_REWRITTEN(0x006B89F0, CSoundManager::LoadSample);
 
-// --- Forwarders -------------------------------------------------------------------------------------
+// --- Helpers ----------------------------------------------------------------------------------------
 
 void CSoundManager::StreamNotify(int /*mode*/) {}   // 006BBAC0: a shared RET 4
 

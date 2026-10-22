@@ -1,6 +1,6 @@
 // The CAIMap constructor (005B3C30) and its reset (005B5E10: every member destroyed in reverse
 // order, then the constructor run again in place). The members are built through their own
-// constructors (forwarders); the inlined ones (CArrays, CLists, the dirty rectangle) are stores.
+// constructors; the inlined ones (CArrays, CLists, the dirty rectangle) are stores.
 // The original's exception frames only matter when a member constructor throws, which ends the
 // game either way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"

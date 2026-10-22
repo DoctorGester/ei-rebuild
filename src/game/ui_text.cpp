@@ -11,8 +11,6 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
-
 namespace {
 
 // The game's multibyte CRT.

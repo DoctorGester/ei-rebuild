@@ -20,9 +20,6 @@ namespace {
 constexpr int kUnitNetFields = 14;
 constexpr int kTorchNetFields = 5;
 
-// Not rewritten (forwarders):
-// 0050FA30. CArray<DeltaField>::SetSize (growBy -1 keeps the step). Both functions below inline it;
-// the inlined copies do exactly what it does.
 } // namespace
 
 // --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------

@@ -198,8 +198,7 @@ void CTextureDevice::Destruct() {
 }
 EI_REWRITTEN(0x004E68A0, CTextureDevice::Destruct);
 
-// The base's constructor and the format table are called through their addresses
-// (originals_render.h), as the original calls them. The original then makes the Direct3D object,
+// The base's constructor and the format table first. The original then makes the Direct3D object,
 // takes the HAL device (the T&L HAL is skipped by its id), the depth buffer (004E6C30) and the render
 // target; none of that exists in the switch-over.
 CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,

@@ -53,14 +53,14 @@ constexpr int kShoutCannotDo = 0x0E;
 // The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
+// --- Helpers --------------------------------------------------------------------------------------
 
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
-// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
+// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample, 005C6270 Clear.
 // The controller's functions rewritten elsewhere: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),

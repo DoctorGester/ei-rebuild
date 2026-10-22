@@ -4,8 +4,7 @@
 // patches all nine for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
 // the weapon bar and the action column at the screen's left edge, the quick items and the spell
 // column at its right (the panel offset while some of them run, layout constants moved by
-// EdgeShift). Rewritten callers keep their forwarders (the battle screen's Create, the panels'
-// SetUnit). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
+// EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 #include "ui_window_class.h"
 #include "game_strings.h"

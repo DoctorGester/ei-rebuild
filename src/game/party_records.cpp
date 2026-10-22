@@ -20,8 +20,6 @@
 
 #include <bit>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // 006E848B _mbscmp.

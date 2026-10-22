@@ -26,7 +26,7 @@ namespace {
 
 using PointArray = lib::AlignedArray<Vector3>;
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // Element helpers [pointer, count]: the morph frame constructor 00452E20 (mfc::impl::Plain24's) and
 // destructor 00452DF0.
@@ -34,8 +34,6 @@ constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::Bl
 // Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0; the aligned arrays' (a frame's
 // points 0044F1D0, the children 0044F540; a frame's points copied 0044F410) are their members.
 using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
-// Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
-// a + b [0040CDC0]. Each component is one rounded operation.
 
 // --- x87 -----------------------------------------------------------------------------------------
 

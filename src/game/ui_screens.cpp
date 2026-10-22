@@ -37,11 +37,9 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-// Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
 BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
-// The hero screen's equipment panels.
 
 // 0079BE84: the camp's tab keys are active.
 bool TabKeysEnabled() { return options::TheOptions()->switchFilters_ != 0; }
@@ -113,14 +111,12 @@ bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
 }
 EI_REWRITTEN(0x005EE130, UiItemKinds::IsBuildable);
 
-
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
 void LeaveGame() { TheGameFlow()->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------
-
 
 void CUiItemStrip::SetTab(int tab) {
     float& position = position_[tab_];

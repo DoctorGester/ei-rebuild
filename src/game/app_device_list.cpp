@@ -21,7 +21,7 @@ using LeverRecordVector = stlp::vector<LeverRecord>;
 static_assert(sizeof(LeverRecordVector) == 12);
 
 namespace {
-// The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
+// The chunk archive: +0x58 is its loading flag, +0x50 its chunk stack.
 
 void CopyPlain(LeverRecord* to, const LeverRecord* from) {
     std::memcpy(to->spots, from->spots, sizeof(to->spots));

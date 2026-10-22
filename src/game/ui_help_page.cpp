@@ -2,8 +2,7 @@
 // window shows is rebuilt from the texts for page page_ (see ui.h).
 // Rebirth's WideScreen patches it (a context hook at +574: the pulsing frames of some tutorial
 // messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
-// installs in both launches; our callers keep the forwarder in ui_help_window.cpp (rule 9). Patched callees through their
-// addresses: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
+// installs in both launches. Rebirth-patched callees: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
 // SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
 #include "game_strings.h"

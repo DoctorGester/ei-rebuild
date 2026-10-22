@@ -59,7 +59,6 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
 }
 } // namespace
 
-BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return GetDamage(out); }
 
 int __fastcall IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 EI_REWRITTEN(0x00681B80, IsSpellTarget);
@@ -71,7 +70,7 @@ void CSpellEffect::HitUnitsInRadius() {
     UnitList list;
     InitList(list);
     DamageInfo hit;
-    CallGetDamage(&hit);
+    GetDamage(&hit);
     SectorMapOf(this)->FindUnitsInRadius(&position, &list, Spell()->radius_);
     for (UnitList::Node* node = list.head; node;) {
         CUnit* unit = node->data;
@@ -87,7 +86,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     UnitList list;
     InitList(list);
     DamageInfo hit;
-    CallGetDamage(&hit);
+    GetDamage(&hit);
 
     // The wall's normal in the ground plane, as the original computes it: s = 2 / sqrt(x^2 + y^2)
     // (rounded to float), normal = (s * -y, s * x, 0). The normal has length 2, so the test against 1

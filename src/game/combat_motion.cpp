@@ -61,7 +61,7 @@ constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;
 constexpr int kMessagePartial = 0x01;
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
+// --- Helpers --------------------------------------------------------------------------------------
 
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.

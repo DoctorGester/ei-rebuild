@@ -40,11 +40,7 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-
 // RemoveObject's callees (not rewritten).
-// 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
-// 005300D0 (RET 4). The unit's controller is replaced (here by none).
-// 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
@@ -55,7 +51,6 @@ void EraseId(Map& map, unsigned id) {
 }
 
 } // namespace
-
 
 // ---- Id maps -------------------------------------------------------------------------------------
 

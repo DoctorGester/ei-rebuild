@@ -11,8 +11,6 @@
 
 #include <cstring>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 // 004BAEB0: an objective's destructor (its text).
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { objective->text.~CString(); }
 

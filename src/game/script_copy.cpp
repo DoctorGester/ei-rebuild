@@ -15,8 +15,6 @@
 #include "lib/mfc_slots.h"
 #include "ei/x87.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.

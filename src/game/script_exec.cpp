@@ -2,9 +2,8 @@
 // command. See script.h and docs/notes/script.md.
 //
 // Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
-// vanilla game. Every callee is reached through its original address (forwarders below): several
-// are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
-// the rest still run original code or their own replacement's verify wrapper.
+// vanilla game. Several callees are patched by Rebirth too (CalcParameters, FatalError, 005935C0,
+// Execute itself for For bodies).
 #include "ai_map.h"
 #include "options.h"
 #include "object_tables.h"

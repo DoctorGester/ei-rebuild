@@ -18,8 +18,6 @@
 #include "ei/x87.h"
 #include "game_data.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 using namespace scriptarray;
 
 namespace {

@@ -11,8 +11,6 @@
 
 #include <cstdint>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 

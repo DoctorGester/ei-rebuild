@@ -12,8 +12,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.

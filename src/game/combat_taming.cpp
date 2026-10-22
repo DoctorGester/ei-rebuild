@@ -24,7 +24,6 @@ namespace {
 constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
-// Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24

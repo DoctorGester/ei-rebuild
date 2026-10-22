@@ -13,12 +13,9 @@
 
 #include <cstring>
 
-// --- Forwarders to original code not rewritten yet -----------------------------------------------
-
+// --- Helpers -------------------------------------------------------------------------------------
 
 namespace {
-// MFC ConstructElements<PathCell> (zero-fills `count` elements).
-// The direction a quaternion faces (the orientation at CEngineObject + 0x34).
 
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.
