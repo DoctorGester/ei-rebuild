@@ -94,8 +94,6 @@ public:
     // The destructor of a manager with real C++ constructors: DestructBody's part past the vtable
     // store (TearDownBaseManager), then the engine object's.
     ~CBaseManager() override;
-    // Managers are freed into the game's heap (slot 0's operator delete).
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
     // 00402DD0. Slot 0's body: DestructBody, then operator delete when flags bit 0 is set.
     CBaseManager* DeletingDestruct(unsigned flags);
     // 00403F40. Object registered under `id`, or null.

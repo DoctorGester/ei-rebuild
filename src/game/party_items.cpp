@@ -70,7 +70,7 @@ CItem* CItem::Clone(CSpellManager* spells) {
 }
 EI_REWRITTEN(0x0069FF70, CItem::Clone);
 
-BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
+BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
     target->Destroy();
     target->prototypeId_ = prototypeId_;
@@ -91,15 +91,15 @@ BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
 
 
 // The subclasses' slot 15: the base copy (0069FFC0), then their own dwords.
-BOOL CItemWeapon::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     CItemWeapon* weapon = AsWeapon(target);   // a copy of this weapon
     std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
     return 1;
 }
 
-BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     auto* armor = AsArmor(target);
     std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
     armor->layerMask_[0] = layerMask_[0];
@@ -107,20 +107,20 @@ BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-BOOL CItemQuick::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     AsQuick(target)->actionValue_ = actionValue_;
     return 1;
 }
 
-BOOL CItemQuest::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     AsQuest(target)->questItemId_ = questItemId_;
     return 1;
 }
 
-BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     auto* loot = AsLoot(target);
     loot->kind_ = kind_;
     loot->recordType_ = recordType_;
@@ -128,19 +128,19 @@ BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-BOOL CItemSpell::CopyToImpl(CItem* target, CSpellManager* spells) {
-    if (!CItem::CopyToImpl(target, spells)) return 0;
+BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CItem::CopyTo(target, spells)) return 0;
     static_cast<CItemSpell*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 
-EI_REWRITTEN(0x0069FFC0, CItem::CopyToImpl);
-EI_REWRITTEN(0x006A0730, CItemWeapon::CopyToImpl);
-EI_REWRITTEN(0x006A3140, CItemArmor::CopyToImpl);
-EI_REWRITTEN(0x006A3C50, CItemQuick::CopyToImpl);
-EI_REWRITTEN(0x006A4540, CItemQuest::CopyToImpl);
-EI_REWRITTEN(0x006A4B50, CItemLoot::CopyToImpl);
-EI_REWRITTEN(0x006A57F0, CItemSpell::CopyToImpl);
+EI_REWRITTEN(0x0069FFC0, CItem::CopyTo);
+EI_REWRITTEN(0x006A0730, CItemWeapon::CopyTo);
+EI_REWRITTEN(0x006A3140, CItemArmor::CopyTo);
+EI_REWRITTEN(0x006A3C50, CItemQuick::CopyTo);
+EI_REWRITTEN(0x006A4540, CItemQuest::CopyTo);
+EI_REWRITTEN(0x006A4B50, CItemLoot::CopyTo);
+EI_REWRITTEN(0x006A57F0, CItemSpell::CopyTo);
 
 // --- The party's items --------------------------------------------------------------------------
 

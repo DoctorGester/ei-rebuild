@@ -2950,7 +2950,7 @@ title = "C28 items: CItem, its six classes and the item constructor as real virt
 group = "cleanup"
 model = "opus"
 files = ["src/game/item.h", "src/game/item_class.h", "src/game/item_lifetime.cpp", "src/game/engine_object.h"]
-note = "item_class.h's tags go: C++ constructors and a virtual destructor in place of Construct / DestructBody, the slot bodies are the virtuals (the ...Impl split folded), CItemSpell derives from CItemQuick (its table has the quick item's 9/10/13/14). CEngineObject gets the game heap's operator new / delete (noexcept new, so a null block is not constructed, as the original tests). Layout asserts dropped (items are saved through CStream field by field)."
+note = "item_class.h's tags go: C++ constructors and a virtual destructor in place of Construct / DestructBody, the slot bodies are the virtuals (the ...Impl split folded), CItemSpell derives from CItemQuick (its table has the quick item's 9/10/13/14). CEngineObject gets the game heap's operator new / delete (noexcept new, so a null block is not constructed, as the original tests). Layout asserts dropped (items are saved through CStream field by field). Done: CItem and its six classes and CItemConstructor are C++ classes (constructors, virtual destructors, virtual overrides, GetClassName/GetClassId); item_class.h deleted; CEngineObject has the game heap's operator new/delete (20 per-class deletes dropped); EI_REWRITTEN_SPECIAL tags constructors and destructors."
 
 [[ticket]]
 id = "C28b"

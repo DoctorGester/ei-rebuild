@@ -32,7 +32,6 @@ public:
     // arrays' storage freed, then the map object's destructor.
     ~MagicTrap() override;
     // The deleting destructor (slot 0, 00529F70) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateTrap(); }         // 2: 0052A100
     void Destroy() override { DestroyTrap(); }             // 3: 0052A200

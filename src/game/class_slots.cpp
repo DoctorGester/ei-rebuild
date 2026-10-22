@@ -193,21 +193,22 @@ EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityModeImpl);
 // ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
 
 // 00462300 / 00462330 / 00462360 / 00462390 (RET 4; four identical copies), slots 17-20: the names
-// a plain item does not have. An empty text built in the caller's result, which is returned.
-mfc::CString* CItem::EmptyName(mfc::CString* out) {
-    return new (out) mfc::CString(game::EmptyText());
-}
-EI_REWRITTEN(0x00462300, CItem::EmptyName);
-EI_REWRITTEN(0x00462330, CItem::EmptyName);
-EI_REWRITTEN(0x00462360, CItem::EmptyName);
-EI_REWRITTEN(0x00462390, CItem::EmptyName);
+// a plain item does not have. An empty text built in the caller's result.
+mfc::CString CItem::ModelName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::FirstListName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::FigureName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::PictureName() { return mfc::CString(game::EmptyText()); }
+EI_REWRITTEN(0x00462300, CItem::ModelName);
+EI_REWRITTEN(0x00462330, CItem::FirstListName);
+EI_REWRITTEN(0x00462360, CItem::FigureName);
+EI_REWRITTEN(0x00462390, CItem::PictureName);
 
 // 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
-// zeroed and returned. (Slot 16, 004622F0, is four bytes and cannot be hooked.)
-ItemUse* CItem::NoUse(ItemUse* out) {
+// zeroed and returned.
+ItemUse* CItem::GetUse(ItemUse* out) {
     out->kind = 0;
     out->value = 0;
     out->extra = 0;
     return out;
 }
-EI_REWRITTEN(0x004623C0, CItem::NoUse);
+EI_REWRITTEN(0x004623C0, CItem::GetUse);

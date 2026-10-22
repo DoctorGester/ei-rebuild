@@ -11,7 +11,6 @@
 
 #include "game_strings.h"
 #include "item.h"
-#include "item_class.h"
 #include "spell.h"
 #include "spell_class.h"
 #include "unit.h"
@@ -156,18 +155,6 @@ EI_REWRITTEN(0x00663FA0, PartyMemberArray::SetSize);
 EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize);
 
 // --- The managers and constructors a party makes ------------------------------------------------
-
-CItemConstructor* CItemConstructor::Construct() {
-    ClearFields();
-    ei::SetVtable(this, Vtable());
-    material_ = nullptr;
-    prototype_ = nullptr;
-    item_ = nullptr;
-    spell_ = nullptr;
-    manager_ = nullptr;
-    return this;
-}
-EI_REWRITTEN(0x006A5AB0, CItemConstructor::Construct);
 
 CSpellConstructor* CSpellConstructor::Construct() {
     ClearFields();
@@ -318,8 +305,7 @@ BOOL CParty::CreateParty() {
     ++spellManager_->refCount_;
     spellManager_->Init(this);
 
-    CItemConstructor* itemMaker = gamecrt::operator_new_as<CItemConstructor>();
-    itemConstructor_ = itemMaker != nullptr ? itemMaker->Construct() : nullptr;
+    itemConstructor_ = new CItemConstructor();
     ++itemConstructor_->refCount_;
     itemConstructor_->Create();
 

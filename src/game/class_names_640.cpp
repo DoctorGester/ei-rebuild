@@ -84,38 +84,3 @@ EI_REWRITTEN(0x0068B290, SpellClassId);
 
 
 // The items (item.h).
-// 006A0570 / 006A0580: "CItemWeapon", 0x11.
-const char* __fastcall ItemWeaponClassName(CEngineObject*) { return "CItemWeapon"; }
-int __fastcall ItemWeaponClassId(CEngineObject*) { return 0x11; }
-EI_REWRITTEN(0x006A0570, ItemWeaponClassName);
-EI_REWRITTEN(0x006A0580, ItemWeaponClassId);
-// 006A2F80 / 006A2F90: "CItemArmor", 0x12.
-const char* __fastcall ItemArmorClassName(CEngineObject*) { return "CItemArmor"; }
-int __fastcall ItemArmorClassId(CEngineObject*) { return 0x12; }
-EI_REWRITTEN(0x006A2F80, ItemArmorClassName);
-EI_REWRITTEN(0x006A2F90, ItemArmorClassId);
-// 006A3AF0 / 006A3B00: "CItemQuick", 0x13.
-const char* __fastcall ItemQuickClassName(CEngineObject*) { return "CItemQuick"; }
-int __fastcall ItemQuickClassId(CEngineObject*) { return 0x13; }
-EI_REWRITTEN(0x006A3AF0, ItemQuickClassName);
-EI_REWRITTEN(0x006A3B00, ItemQuickClassId);
-// 006A43E0 / 006A43F0: "CItemQuest", 0x14.
-const char* __fastcall ItemQuestClassName(CEngineObject*) { return "CItemQuest"; }
-int __fastcall ItemQuestClassId(CEngineObject*) { return 0x14; }
-EI_REWRITTEN(0x006A43E0, ItemQuestClassName);
-EI_REWRITTEN(0x006A43F0, ItemQuestClassId);
-// 006A49C0 / 006A49D0: "CItemLoot", 0x15.
-const char* __fastcall ItemLootClassName(CEngineObject*) { return "CItemLoot"; }
-int __fastcall ItemLootClassId(CEngineObject*) { return 0x15; }
-EI_REWRITTEN(0x006A49C0, ItemLootClassName);
-EI_REWRITTEN(0x006A49D0, ItemLootClassId);
-// 006A5700 / 006A5710: "CItemSpell", 0x16.
-const char* __fastcall ItemSpellClassName(CEngineObject*) { return "CItemSpell"; }
-int __fastcall ItemSpellClassId(CEngineObject*) { return 0x16; }
-EI_REWRITTEN(0x006A5700, ItemSpellClassName);
-EI_REWRITTEN(0x006A5710, ItemSpellClassId);
-// 006A5AE0 / 006A5AF0: "CItemConstructor", 0x1C.
-const char* __fastcall ItemConstructorClassName(CEngineObject*) { return "CItemConstructor"; }
-int __fastcall ItemConstructorClassId(CEngineObject*) { return 0x1c; }
-EI_REWRITTEN(0x006A5AE0, ItemConstructorClassName);
-EI_REWRITTEN(0x006A5AF0, ItemConstructorClassId);

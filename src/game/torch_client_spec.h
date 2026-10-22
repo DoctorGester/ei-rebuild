@@ -31,7 +31,6 @@ public:
     // and dropped, DestroySpec), then the spec's destructor.
     ~CTorchObjectClientSpec() override;
     // The deleting destructor (slot 0, 0052D1B0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateClient(); }    // 2: 0052D2A0
     void Destroy() override { DestroyClient(); }        // 3: 0052D2E0

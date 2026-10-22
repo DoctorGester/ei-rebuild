@@ -234,7 +234,6 @@ public:
     // (a member) and the map object's destructor.
     ~CUnit() override;
     // The deleting destructor (slot 0, 0052E2A0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // Body of the slot at 00446830 (registered by member pointer).
     const mfc::CString* SetScriptNameImpl(const char* newName);

@@ -50,7 +50,6 @@ public:
     // 0068DE30. The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
     // The deleting destructor (slot 0, 0068DD20) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 2: 0068DF90. Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;

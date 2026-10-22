@@ -1428,6 +1428,29 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
   instead.
 
+### Real classes (C28)
+
+C19 left most families on compiled tag classes: the class keeps game.exe's layout and its constructor body stores a
+tag's compiled table (`ei::SetVtable(this, X::Vtable())`, engine_object_class.h, compiled_vtable.h, mfc_slots.h),
+whose slots call `...Impl` bodies or `__fastcall ...Hook` shims. C28 makes each family ordinary C++ (child tickets
+C28a-p, one family per commit; the order is in C28's ticket note). How a family converts (C28a, the items):
+- The constructor body becomes the C++ constructor (no SetVtable), Destruct / DestructBody the virtual destructor,
+  DeletingDestruct the compiler's scalar deleting destructor. The destructor calls its own Destroy qualified
+  (`CItem::Destroy()`), as the original's does.
+- The slot bodies are the virtual overrides (the `Impl` split folded into the virtual of the same name, base calls
+  qualified); class names and ids are `GetClassName` / `GetClassId` overrides (`#undef GetClassName` where windows.h
+  is in). The helper's `Vtable()`, `Construct` / `DestructBody` / `DeletingDestruct` and the layout asserts go.
+- Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no
+  constructor runs, which the original's callers test) and `operator delete`, plus the placement pair; a derived
+  class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). A class that
+  must be built in storage someone else allocates keeps a `Construct() { return new (this) X(); }` (world_create's
+  `Make`).
+- The function-to-original map: virtuals are `EI_REWRITTEN(addr, X::Virtual)`; constructors and destructors, which
+  have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
+  original's scalar deleting destructor is tagged with the destructor's name too: check_signatures accepts a
+  destructor tag whose original pops 4 more (the flags argument).
+- game.exe's tables stay in config/retired_vtables.csv; their rows name the real class and its header.
+
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
 - **Resources** (S18j, C23): none of game.exe's ("How it runs"); the game's module is the host's. MFC's module state has

@@ -56,7 +56,6 @@ public:
     // 004D6BA0. DestroySpec (the original's Destroy through the vtable), the name, the engine object.
     ~CTorchObjectSpec() override;
     // The deleting destructor (slot 0, 004D6B80) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateSpec(); }   // 2: 0052C610
     void Destroy() override { DestroySpec(); }       // 3: 0052C680

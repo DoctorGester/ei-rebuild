@@ -411,7 +411,6 @@ public:
     // 00691950. Destroy's work, the extra block freed, the name, CEngineObject's.
     ~CTexture() override;
     // The deleting destructor (slot 0, 00691930) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 00690430 (texture_mmp.cpp). Creates the surface from .mmp data, starting at mip level `mip`
     // (the original: a system-memory surface filled from the file by 0068FA10 and loaded into a

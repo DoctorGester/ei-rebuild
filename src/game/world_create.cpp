@@ -85,7 +85,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->manager50_->Create();
     world->manager4C_ = Make<CSpellManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
     Attach(world->manager4C_, world);
-    world->manager58_ = Make(0x34, ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
+    world->manager58_ = Make(sizeof(CItemConstructor), ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
     world->manager58_->Create();
     world->itemManager_ = Make<CItemManager>(CItemManager::kSize, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr);
     Attach(world->itemManager_, world);

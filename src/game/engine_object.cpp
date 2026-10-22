@@ -79,6 +79,9 @@ void CEngineObject::DestructBase() {
 EI_REWRITTEN(0x0055ED90, CEngineObject::DestructBase);
 EI_REWRITTEN(0x00455930, CEngineObject::DestructBase);
 
+void* CEngineObject::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CEngineObject::operator delete(void* block) { gamecrt::operator_delete(block); }
+
 void CEngineObject::ClearFields() {
     refCount_ = 0;
     id_ = -1;

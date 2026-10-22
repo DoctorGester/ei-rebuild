@@ -22,7 +22,7 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 } // namespace
 
-void CItem::LoadImpl(CStream* stream) {
+void CItem::Load(CStream* stream) {
     stream->Read(&prototypeId_, kDword);
     stream->Read(&condition_, kDword);
     stream->Read(&conditionMax_, kDword);
@@ -44,7 +44,7 @@ void CItem::LoadImpl(CStream* stream) {
     stream->Read(&magicLevel_, kDword);
 }
 
-void CItem::SaveImpl(CStream* stream) {
+void CItem::Save(CStream* stream) {
     stream->Write(&prototypeId_, kDword);
     stream->Write(&condition_, kDword);
     stream->Write(&conditionMax_, kDword);
@@ -60,56 +60,56 @@ void CItem::SaveImpl(CStream* stream) {
     stream->Write(&magicLevel_, kDword);
 }
 
-void CItemWeapon::LoadImpl(CStream* stream) {
-    CItem::LoadImpl(stream);
+void CItemWeapon::Load(CStream* stream) {
+    CItem::Load(stream);
     stream->Read(&actionValue_, kDword);
     stream->Read(&damage_, kDword);
     stream->Read(&damageSpread_, kDword);
     stream->Read(&reach_, kDword);
 }
 
-void CItemWeapon::SaveImpl(CStream* stream) {
-    CItem::SaveImpl(stream);
+void CItemWeapon::Save(CStream* stream) {
+    CItem::Save(stream);
     stream->Write(&actionValue_, kDword);
     stream->Write(&damage_, kDword);
     stream->Write(&damageSpread_, kDword);
     stream->Write(&reach_, kDword);
 }
 
-void CItemArmor::LoadImpl(CStream* stream) {
-    CItem::LoadImpl(stream);
+void CItemArmor::Load(CStream* stream) {
+    CItem::Load(stream);
     stream->Read(absorb_[0], sizeof(absorb_[0]));
     stream->Read(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemArmor::SaveImpl(CStream* stream) {
-    CItem::SaveImpl(stream);
+void CItemArmor::Save(CStream* stream) {
+    CItem::Save(stream);
     stream->Write(absorb_[0], sizeof(absorb_[0]));
     stream->Write(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemQuick::LoadImpl(CStream* stream) {
-    CItem::LoadImpl(stream);
+void CItemQuick::Load(CStream* stream) {
+    CItem::Load(stream);
     stream->Read(&actionValue_, kDword);
 }
 
-void CItemQuick::SaveImpl(CStream* stream) {
-    CItem::SaveImpl(stream);
+void CItemQuick::Save(CStream* stream) {
+    CItem::Save(stream);
     stream->Write(&actionValue_, kDword);
 }
 
-void CItemQuest::LoadImpl(CStream* stream) {
-    CItem::LoadImpl(stream);
+void CItemQuest::Load(CStream* stream) {
+    CItem::Load(stream);
     stream->Read(&questItemId_, kDword);
 }
 
-void CItemQuest::SaveImpl(CStream* stream) {
-    CItem::SaveImpl(stream);
+void CItemQuest::Save(CStream* stream) {
+    CItem::Save(stream);
     stream->Write(&questItemId_, kDword);
 }
 
-void CItemLoot::LoadImpl(CStream* stream) {
-    CItem::LoadImpl(stream);
+void CItemLoot::Load(CStream* stream) {
+    CItem::Load(stream);
     std::uint32_t value = StreamSlot(stream);
     stream->Read(&value, kDword);
     kind_ = value;
@@ -118,8 +118,8 @@ void CItemLoot::LoadImpl(CStream* stream) {
     stream->Read(&index_, kDword);
 }
 
-void CItemLoot::SaveImpl(CStream* stream) {
-    CItem::SaveImpl(stream);
+void CItemLoot::Save(CStream* stream) {
+    CItem::Save(stream);
     stream->Write(&kind_, kDword);
     stream->Write(&recordType_, kDword);
     stream->Write(&index_, kDword);
@@ -127,15 +127,15 @@ void CItemLoot::SaveImpl(CStream* stream) {
 
 // --- The virtual slots' entry points (rule 4) -----------------------------------------------------
 
-EI_REWRITTEN(0x006A0270, CItem::LoadImpl);
-EI_REWRITTEN(0x006A0360, CItem::SaveImpl);
-EI_REWRITTEN(0x006A2E60, CItemWeapon::LoadImpl);
-EI_REWRITTEN(0x006A2EB0, CItemWeapon::SaveImpl);
-EI_REWRITTEN(0x006A3A70, CItemArmor::LoadImpl);
-EI_REWRITTEN(0x006A3AA0, CItemArmor::SaveImpl);
-EI_REWRITTEN(0x006A3C80, CItemQuick::LoadImpl);
-EI_REWRITTEN(0x006A3CA0, CItemQuick::SaveImpl);
-EI_REWRITTEN(0x006A4570, CItemQuest::LoadImpl);
-EI_REWRITTEN(0x006A4590, CItemQuest::SaveImpl);
-EI_REWRITTEN(0x006A5630, CItemLoot::LoadImpl);
-EI_REWRITTEN(0x006A5680, CItemLoot::SaveImpl);
+EI_REWRITTEN(0x006A0270, CItem::Load);
+EI_REWRITTEN(0x006A0360, CItem::Save);
+EI_REWRITTEN(0x006A2E60, CItemWeapon::Load);
+EI_REWRITTEN(0x006A2EB0, CItemWeapon::Save);
+EI_REWRITTEN(0x006A3A70, CItemArmor::Load);
+EI_REWRITTEN(0x006A3AA0, CItemArmor::Save);
+EI_REWRITTEN(0x006A3C80, CItemQuick::Load);
+EI_REWRITTEN(0x006A3CA0, CItemQuick::Save);
+EI_REWRITTEN(0x006A4570, CItemQuest::Load);
+EI_REWRITTEN(0x006A4590, CItemQuest::Save);
+EI_REWRITTEN(0x006A5630, CItemLoot::Load);
+EI_REWRITTEN(0x006A5680, CItemLoot::Save);
