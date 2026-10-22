@@ -5,6 +5,7 @@
 //
 // prototypeId_ of CEngineObject is the item's packed id: prototype index << 16 | material index.
 
+#include "core_refcount.h"
 #include "engine_object.h"
 #include "manager_context.h"
 #include "item_db.h"
@@ -43,7 +44,7 @@ struct ItemUse {
 
 // Base of every item (game.exe's vtable 00743DA4, 22 slots; slots 11 and 12 pure). The six item
 // classes override the slots (each calls CItem's first).
-struct CItemLink;   // below
+class CItemLink;   // below
 
 class CItem : public CEngineObject {
 public:
@@ -146,29 +147,23 @@ public:
     std::uint32_t count_;         // +0x48 the stack's count
 };
 
-// The record an item's link (CItem::link_) points at as the world server makes it (0xC
-// bytes): a counted value with a 16-bit count and the dword the world's save keeps
-// per item (world_save.cpp, world_units.cpp, world_quests.cpp). When the server builds a unit's
-// items from its party record (0058EF20) the record is a reference value (constructor 00419720
-// then CItemLink::Vtable(), or 0058FBB0) holding the id of the record's item.
-struct CItemLink {
-    static void* Vtable();   // the compiled table (CItemLinkClass, item_link.cpp; game.exe's 0073FA88)
+// The record an item's link (CItem::link_) points at as the world server makes it: a counted
+// value holding the dword the world's save keeps per item (world_save.cpp, world_units.cpp,
+// world_quests.cpp). When the server builds a unit's items from its party record (0058EF20) it
+// holds the id of the record's item. Methods in item_link.cpp (A-W14).
+class CItemLink final : public CRefObject {
+public:
+    // 0058FBB0 (also inlined): no references, no flags (the original clears the count's dword
+    // before it tests the allocation).
+    CItemLink();
+    // 0058FB90. Built again in place (the count and the value stay): nothing changes. Returns 0
+    // (the original leaves EAX; no caller reads it).
+    int OnShutdown() override;
+    // 0058FB60. A new link with this one's value and no references; null without memory.
+    CItemLink* Clone() override;
 
-    // item_link.cpp (A-W14). 0058FBB0: the constructor's last step, the vtable stored (the counted
-    // value's 00419720 ran before); returns this. The world server's CreateUnits and
-    // SyncPartyRecords inline it.
-    CItemLink* Construct();
-    // 0058FB90 (slot 2). Built again in place: the root vtable, then its own (the value stays).
-    void Reset();
-    // 0058FB60 (slot 3). A new link with this one's value and no references; null without memory.
-    CItemLink* Clone();
-
-    void* vtable;
-    std::int16_t references;        // +0x04
-    std::uint16_t refsHigh;             // +0x06 the reference dword's high half (zeroed with it)
     std::uint32_t value;            // +0x08
 };
-static_assert(sizeof(CItemLink) == 0xC);
 inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
 
 // A weapon (game.exe's vtable 00743DFC).

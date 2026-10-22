@@ -490,17 +490,6 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
     return added;
 }
 
-// A fresh item record (CItemLink, item.h) for the item's link (+0x1C).
-CItemLink* NewItemRecord(bool refValueBase) {
-    auto* memory = gamecrt::operator_new_as<CItemLink>();
-    memory->references = 0;   // the count's whole dword, before the null test
-    memory->refsHigh = 0;
-    if (!memory) return nullptr;
-    if (!refValueBase) return memory->Construct();
-    RefValueConstructBase(memory);
-    memory->vtable = CItemLink::Vtable();
-    return memory;
-}
 
 // The record's four lists emptied (armour, weapons, spells, quick items: the first entry each time).
 void ClearRecordItems(PartyUnitRecord* record) {
@@ -518,7 +507,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CItem* item = unit->GetWeapon(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
-        CItemLink* ref = NewItemRecord(false);
+        CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
@@ -526,7 +515,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CItem* item = unit->WornItem(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
-        CItemLink* ref = NewItemRecord(true);
+        CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
@@ -538,12 +527,12 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (entry) ++entry->refCount_;
         CEngineObject* added = (CEngineObject*)record->AddQuickItem(entry);
         if (entry) entry->Release();
-        CItemLink* link = NewItemRecord(true);
+        CItemLink* link = new CItemLink();
         link->value = static_cast<std::uint32_t>(added->id_);
         // The counted pointer's assignment, inlined (16-bit count at +4).
         CItemLink* old = item->ServerLink();
         item->link_ = link;
-        if (link) ++link->references;
+        if (link) ++link->refs_;
         if (old) RefObjectRelease(old);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {

@@ -1219,8 +1219,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InertInputVtable()`). The window tables themselves stay game.exe's: the census (ui_census.cpp's
     `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
     windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
-  - **Engine objects** (engine_object_class.h): HooverClass (0073C434) and LightningClass (0073C550) in
-    class_slots.cpp, PlayerClass (00743104), SysInfoClass (0073D644), CameraClass (0073B9E0, transform),
+  - **Engine objects** (engine_object_class.h): LightningClass (0073C550) in class_slots.cpp (CHoover, 0073C434,
+    is a real class since C28e), PlayerClass (00743104), SysInfoClass (0073D644), CameraClass (0073B9E0, transform),
     ParticleSourceClass (0073CFD0, transform) and RainSnowClass (0073F4C8 with its tail 0073F4E8; its slots 11 / 12,
     "CWeather" and 0x1D, are dead code's). The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's
     slot 0 names it).
@@ -1302,6 +1302,11 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
     (net_link.h, 0073C8D8). Locals are plain, members of hand-built owners use placement new and the destructor;
     ChunkArchive and DeltaField have real constructors and destructors over them.
+  - **The counted root** (core_refcount.h): CRefCounted / CRefObject have C++ constructors (the count left to the
+    creator) and destructors and the game heap's `operator new` / `delete`; CItemLink (item.h) and CUnitShape
+    (ai_unit_layer.h) derive from them as real classes. The root's and the counted value's compiled tables
+    (RootVtable, CRefObject::Vtable, PlainRootVtable) stay until the network (C28k) and the other derived families
+    are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
   - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's

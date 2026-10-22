@@ -54,7 +54,7 @@ namespace {
 // ---- Constants --------------------------------------------------------------------------------
 
 // The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
-// after 004C2030), the item link record's CItemLink::Vtable() (item.h).
+// after 004C2030).
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
 // Save format versions (WorldStream::version_) at which fields were added.
@@ -474,15 +474,11 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
                     CItem* object = FindItem(ItemFactory(), id);
                     if (!object) continue;
-                    auto* record = gamecrt::operator_new_as<CItemLink>();
-                    // The count's whole dword is cleared, before the null test.
-                    record->references = 0;
-                    record->refsHigh = 0;
-                    if (record) record->vtable = CItemLink::Vtable();
+                    auto* record = new CItemLink();
                     record->value = value;
                     CItemLink* old = object->ServerLink();
                     object->link_ = record;
-                    if (record) ++record->references;
+                    if (record) ++record->refs_;
                     if (old) RefObjectRelease(old);
                 }
             }

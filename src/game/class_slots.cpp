@@ -25,50 +25,15 @@
 
 namespace {
 
-const char* const kHooverName = "CHoover";
 const char* const kLightningName = "CLightning";
 const char* const kFakeUnitName = "CFakeUnit";
 
 constexpr int kClassLightning = 0x1E;
-constexpr int kClassHoover = 0x1F;
 
 // Set once the lightning noise table has been loaded (00468A00).
 int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace
-
-// ---- CHoover (HooverClass in place of game.exe's 0073C434) ---------------------------------------------
-
-// 00461C60, slot 0 (RET 4): the destructor body, then operator delete when bit 0 of `flags` is set.
-CHoover* CHoover::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00461C60, CHoover::DeletingDestruct);
-
-// 00461C90, slot 2 (Create): 1.
-int __fastcall HooverCreate(CHoover*) { return 1; }
-EI_REWRITTEN(0x00461C90, HooverCreate);
-
-// 00461C40 / 00461C50, slots 11 / 12.
-const char* __fastcall HooverGetClassName(const CHoover*) { return kHooverName; }
-EI_REWRITTEN(0x00461C40, HooverGetClassName);
-int __fastcall HooverGetClassId(const CHoover*) { return kClassHoover; }
-EI_REWRITTEN(0x00461C50, HooverGetClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create, 3 Destroy (empty: 00461CA0), 11 / 12.
-class HooverClass final : public EngineObjectClass<HooverClass, CHoover> {
-public:
-    int Create() override { return HooverCreate(As<CHoover>()); }                       // 2: 00461C90
-    void Destroy() override {}                                                          // 3: 00461CA0
-    const char* ClassName() override { return HooverGetClassName(As<CHoover>()); }      // 11: 00461C40
-    int ClassId() override { return HooverGetClassId(As<CHoover>()); }                  // 12: 00461C50
-};
-} // namespace
-
-void* CHoover::Vtable() { return HooverClass::Vtable(); }
 
 // ---- CLightning (LightningClass in place of game.exe's 0073C550) and its manager ---------------------
 

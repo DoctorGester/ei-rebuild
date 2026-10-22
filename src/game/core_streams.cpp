@@ -80,7 +80,6 @@ EI_REWRITTEN(0x00412960, RefObjectDestructBase);
 EI_REWRITTEN(0x004368C0, RefObjectDestructBase);
 EI_REWRITTEN(0x00562770, RefObjectDestructBase);
 EI_REWRITTEN(0x0058FBE0, RefObjectDestructBase);
-EI_REWRITTEN(0x005B3590, RefObjectDestructBase);
 
 CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
     SetVtable(this, RootVtable());
@@ -88,7 +87,6 @@ CRefCounted* CRefCounted::RootDeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REWRITTEN(0x00412730, CRefCounted::RootDeletingDestruct);
-EI_REWRITTEN(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
     SetVtable(self, CRefObject::Vtable());

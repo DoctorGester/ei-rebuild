@@ -158,23 +158,9 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 }
 
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.
-// `refValueBase`: the record is built through the reference value constructor (00419720) and the
-// vtable stored after it, instead of 0058FBB0.
-CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
+CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
     CItem* item = world->DuplicateItem(itemRecord);
-    auto* memory = gamecrt::operator_new_as<CItemLink>();
-    memory->references = 0;   // the count's whole dword, written before the null test
-    memory->refsHigh = 0;
-    CItemLink* record = nullptr;
-    if (memory) {
-        if (refValueBase) {
-            RefValueConstructBase(memory);
-            memory->vtable = CItemLink::Vtable();
-            record = memory;
-        } else {
-            record = memory->Construct();
-        }
-    }
+    auto* record = new CItemLink();
     record->value = static_cast<std::uint32_t>(itemRecord->id_);
     RefPtrAssign(&item->link_, nullptr, record);
     return item;
@@ -279,18 +265,18 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
-            unit->AddWeapon(MakeItem(this, record->weapons[n], false));
+            unit->AddWeapon(MakeItem(this, record->weapons[n]));
         unit->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
-            unit->EquipArmour(MakeItem(this, record->armor[n], true));
+            unit->EquipArmour(MakeItem(this, record->armor[n]));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
-            CItem* item = MakeItem(this, record->quickItems[n], true);
+            CItem* item = MakeItem(this, record->quickItems[n]);
             item->count_ = record->quickItems[n]->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
             unit->AddQuickItem(item);
         }
         for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
-            unit->AddSpell(MakeItem(this, record->spells[n], true));
+            unit->AddSpell(MakeItem(this, record->spells[n]));
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);

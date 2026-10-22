@@ -294,7 +294,7 @@ Facts a worker needs that the code comments do not say:
   `debugFlags_` (the eight debug display switches 00566360..005665F0), +0x108 `lineLists_` (DrawLineLists 00569D60).
 - `CWorld::NightLevel` 0055FC50: 1 before 8, 0 until 20, then (hours - 20) / 4. `CWorld::SetPaused` is the old
   CWorldServer::SetUnknown6C (the client copy 00566350).
-- `CUnitShape` (ai_unit_layer.h): Construct 005B3440 (disc levels), Empty 005B3540 (slot 2), Copy 005B34F0 (slot 3),
+- `CUnitShape` (ai_unit_layer.h; a real class since C28e): constructor 005B3440 (disc levels), OnShutdown 005B3540, Clone 005B34F0,
   CreateUnitShape 005B33D0 (the shape cache's slot 0). `Sector` has its members (two object lists, `freeOccluder`,
   `occluders` as `mfc::CArray<SectorOccluder>`); ai_occluders.cpp uses them.
 - `UnitTextureRecords` 005683D0 (`unit_skins.cpp`): the body list is [0] body, [1] empty, [2..7] items[1..6].

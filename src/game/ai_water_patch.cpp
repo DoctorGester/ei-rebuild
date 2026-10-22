@@ -34,19 +34,6 @@ std::uint8_t g_guard = /*007C2F68*/ {};
 std::uint8_t& Guard() { return g_guard; }
 
 
-// An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count
-// and flags) is cleared with one dword store, as the original does.
-CUnitShape* NewPatch() {
-    auto* shape = gamecrt::operator_new_as<CUnitShape>();
-    if (!shape) return nullptr;
-    const std::uint32_t noReferences = 0;
-    std::memcpy(&shape->refs_, &noReferences, sizeof(noReferences));
-    static_assert(offsetof(CUnitShape, flags7_) - offsetof(CUnitShape, refs_) == 3);
-    ei::SetVtable(shape, CUnitShape::Vtable());
-    std::memset(shape->levels, 0, sizeof(shape->levels));
-    shape->radius = -1.0f;
-    return shape;
-}
 
 } // namespace
 
@@ -61,7 +48,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
         GameAtExit(ReleasePatch);
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
-        CUnitShape* fresh = NewPatch();
+        CUnitShape* fresh = new CUnitShape();
         CUnitShape* old = Patch();
         Patch() = fresh;
         if (fresh) ++fresh->refs_;

@@ -84,7 +84,7 @@ vtable,slots,class,file,note
 0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
-0073C434,13,HooverClass,src/game/class_slots.cpp,the loot hoover (CHoover)
+0073C434,13,CHoover,src/game/object.h,the loot hoover (CHoover)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073C550,13,LightningClass,src/game/class_slots.cpp,a lightning bolt (CLightning)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
@@ -317,7 +317,7 @@ vtable,slots,class,file,note
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FA4C,3,RefListAClass,src/game/game_slots.h,CList (the world server's new connections; 00598F40)
 0073FA58,12,ObjectSpecClass,src/game/map_spec_class.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
-0073FA88,4,CItemLinkClass,src/game/item_link.cpp,an item's link record (the world server's)
+0073FA88,4,CItemLink,src/game/item.h,an item's link record (the world server's)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
@@ -333,7 +333,7 @@ vtable,slots,class,file,note
 0073FCF0,3,AiMapListClass,src/lib/mfc_slots.h,CList (the AI map's lists)
 0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
 0073FD58,1,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
-0073FD5C,4,CUnitShapeClass,src/game/ai_unit_shape.cpp,a unit's footprint on the AI map's unit layers
+0073FD5C,4,CUnitShape,src/game/ai_unit_layer.h,a unit's footprint on the AI map's unit layers
 0073FD6C,2,LargeUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's large-unit layer
 0073FD74,2,SmallUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's small-unit layer
 0073FD7C,2,UnitLayerBaseClass,src/game/ai_grids.cpp,the AI map's unit layer base (CUnitLayer)

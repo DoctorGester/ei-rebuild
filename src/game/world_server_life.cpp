@@ -49,8 +49,7 @@ int CWorldServer::Setup() {
     manager44_ = new CServerSpecificManager();
     ++manager44_->refCount_;   // the original counts the reference without testing the pointer
     manager44_->SetContext(this);
-    auto* hoover = gamecrt::operator_new_as<CHoover>();
-    hoover_ = hoover ? hoover->Construct() : nullptr;
+    hoover_ = new CHoover();
     ++hoover_->refCount_;
 
     // The wind: along x, no strength yet (three dwords), then 0.4.

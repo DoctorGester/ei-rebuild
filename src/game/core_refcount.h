@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 class ChunkArchive;
@@ -18,8 +19,19 @@ public:
         kDetached = 0x80,       // flags7_: shut down by its owner; not shared any more
     };
 
-    virtual ~CRefCounted();                 // 0: scalar deleting destructor (1 when the last reference goes)
-    virtual void Serialize(ChunkArchive* ar);   // 1: empty in the root class (RET 4); chunk_archive.h
+    // The count and the flags are the creator's to set (a class rebuilt in place keeps them).
+    CRefCounted() = default;
+    CRefCounted(const CRefCounted&) = delete;
+    CRefCounted& operator=(const CRefCounted&) = delete;
+    virtual ~CRefCounted() {}               // 0: scalar deleting destructor (1 when the last reference goes)
+    virtual void Serialize(ChunkArchive*) {}   // 1: empty in the root class (00412580, RET 4); chunk_archive.h
+
+    // Counted objects live on the game's heap (core_refcount.cpp): null without memory, and then
+    // no constructor runs.
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
     // 00412730 (and the unit shape's 005B3570; slot 0 of the root class's vtable 0073BB68, RET 4,
     // core_streams.cpp): the root vtable stored, then operator delete when bit 0 of `flags` is set.
