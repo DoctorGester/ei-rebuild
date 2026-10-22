@@ -128,7 +128,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 
 namespace {
 // The item manager (007AFFB4, the world server's +0x54), which resolves the armour spells' item ids.
-CBaseManager* ItemManager() { return TheServerWorld()->itemManager_; }
+CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 } // namespace
 
 void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {

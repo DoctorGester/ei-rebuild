@@ -255,8 +255,8 @@ CItem* CWorldServer::CopyItem(CItem* source) {
     // The original also builds and frees two empty CPtrLists (vtable 0073B8D4) here, unused.
     std::uint32_t packed = source->prototypeId_;
     int type = source->type_;
-    CEngineObject* factory = ItemFactory();
-    CItem* copy = static_cast<CItemManager*>(factory)->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
+    CItemManager* factory = ItemFactory();
+    CItem* copy = factory->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
     source->CopyTo(copy, SpellManager());
     std::memcpy(&copy->charge_, &source->charge_, 4);
     // An item below its maximum is kept on the counted list (once).
@@ -274,7 +274,7 @@ namespace {
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
 
 // The world server's item manager (CWorld::itemManager_, 007AFFB4).
-CEngineObject* ItemManager() { return TheServerWorld()->itemManager_; }
+CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 
 } // namespace
 
@@ -282,8 +282,8 @@ CEngineObject* ItemManager() { return TheServerWorld()->itemManager_; }
 CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManagerCreateItemOriginal(ItemManager(), nullptr, name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return static_cast<CItemManager*>(manager)->CreateSpellItem(name, SpellManager());
+    CItemManager* manager = ItemManager();   // read before slot 22, as in the original
+    return manager->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {
