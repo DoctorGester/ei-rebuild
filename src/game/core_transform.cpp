@@ -3,33 +3,13 @@
 #include "camera.h"
 
 #include "core_maths.h"
-#include "engine_object_class.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
 #include <cstring>
-
-CTransformObject* CTransformObject::ConstructBase() {
-    ClearFields();
-    // Identity rotations (w first); the positions are not initialised.
-    localRotation_.w = 1.0f;
-    localRotation_.x = 0.0f;
-    localRotation_.y = 0.0f;
-    localRotation_.z = 0.0f;
-    worldRotation_.w = 1.0f;
-    worldRotation_.x = 0.0f;
-    worldRotation_.y = 0.0f;
-    worldRotation_.z = 0.0f;
-    ei::SetVtable(this, BaseVtable());
-    return this;
-}
-EI_REWRITTEN(0x00453400, CTransformObject::ConstructBase);
-
-void* CTransformObject::BaseVtable() { return TransformBaseClass::Vtable(); }
 
 CTransformObject* CTransformObject::CopyTransformImpl(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));

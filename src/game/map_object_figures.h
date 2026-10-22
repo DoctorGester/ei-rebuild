@@ -375,17 +375,15 @@ static_assert(sizeof(CFigureAnimationState) == 0x78);
 template <typename T>
 inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
-// The virtual slots are game.exe's table 0073DDD4 (27 slots, abstract: 11 / 12 are _purecall): the
-// game builds most objects with Construct, which stores that table; a class whose constructor is
-// C++ (C19: the torches, levers and traps) gets the compiler's, built from the same bodies (the
-// slots below are defined, object3d_slots.cpp). Slots 13-17 are CTransformObject's: the object
+// The virtual slots are game.exe's table 0073DDD4 (27 slots, abstract: 11 / 12 are _purecall; the slots below are
+// defined, object3d_slots.cpp). Slots 13-17 are CTransformObject's: the object
 // starts with its fields (local position +0x1C, world position +0x28, which CWorldClient's
 // CollectVisible sets to the position in view space, local rotation +0x34, world rotation +0x44).
 class CObject3D : public CTransformObject {
 public:
-    static void* Object3DVtable();   // the compiled 0073DDD4 (map_object_tables.cpp)
-
-    ~CObject3D() override;   // 00515D70's work without the vtables (map_object_lifetime.cpp)
+    // 00515D70 (deleting 00515D50; map_object_lifetime.cpp): the parts released (00516080), the frame array, string
+    // array, figure (counted), part arrays and list blocks freed, then the name (a member).
+    ~CObject3D() override;
     int Create() override { return Create3D(); }          // 2: 00515F70
     void Destroy() override { Destroy3D(); }               // 3: 00516080
     void ClearState() override { RemoveAllEffectSources(); }   // 5: 00515E90
@@ -413,17 +411,6 @@ public:
     // 26: loads the figure (00517500 LoadFiguresImpl, units 0052E910). Returns 1 (or the loader's
     // EAX).
     virtual std::uintptr_t LoadFigures();
-
-    // map_object_lifetime.cpp.
-    // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
-    // 0073BA38), identity orientations, empty name, part list (Object3DListClass), arrays and
-    // string array, the bounds cleared, then the vtable 0073DDD4 and the default figure scale
-    // from kDefaultFigureScale. Returns this.
-    CObject3D* Construct();
-    // 00515D70. The destructor body: the parts released (00516080), the frame array, string
-    // array, figure (counted), part arrays, list blocks and name freed, then the transform and
-    // engine object bases.
-    void DestructBody();
 
     // 00518310. The bounding box of the parts (+0xD0, only those within 1e9 squared of the
     // object) and of the pending parts (+0xE0, whose positions are reset to 0) into the bounds:
@@ -576,8 +563,6 @@ public:
     int DrawFigureShadowImpl(void* context);
 
     // object3d_small_methods.cpp (A-U12).
-    // 00515D50 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
-    CObject3D* DeleteObject3D(unsigned flags);
     // 005161A0 (RET 4). `half` (of any type, or null) replaces the attached half: the old one is
     // detached (+0x1C cleared) and released, the new one points back here and gains a reference.
     void SetSpecific(CObject3DSpecific* half);
@@ -603,9 +588,8 @@ public:
     // dirtyRect as the RECT it is (windows.h).
     tagRECT* DirtyRect() { return reinterpret_cast<tagRECT*>(dirtyRect); }
 
-    // The fields the constructor sets past the engine object's and the name (Construct and the C++
-    // constructor), and the destructor body's work but for the name and the vtables (DestructBody
-    // and the C++ destructor).
+    // The fields the constructor sets past the engine object's and the name, and the destructor's work but for the
+    // name.
     void SetUpObject3D();
     void TearDownObject3D();
 
@@ -651,7 +635,9 @@ public:
     int partBoxGrowBy;              // +0x16C /
 
 protected:
-    // 00515BD0 as C++, for a class whose vtable is the compiler's: SetUpObject3D (the name is a member).
+    // 00515BD0: the engine object's fields, identity orientations, an empty name (a member), the part list
+    // (Object3DListClass), arrays and string array, the bounds cleared and the default figure scale
+    // (kDefaultFigureScale): SetUpObject3D.
     CObject3D();
 };
 static_assert(offsetof(CObject3D, worldMatrix) == 0x54);

@@ -9,7 +9,6 @@
 
 #include "figure_manager.h"
 #include "figure_mesh.h"
-#include "engine_object_class.h"
 #include "item.h"
 #include "link_figure.h"
 #include "scene_loader.h"   // InitFigurePart

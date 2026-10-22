@@ -15,13 +15,6 @@ constexpr float kFirstFrame = 0.0f;
 CFigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }
 } // namespace
 
-CObject3D* CObject3D::DeleteObject3D(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00515D50, CObject3D::DeleteObject3D);
-
 void CObject3D::SetSpecific(CObject3DSpecific* half) {
     if (attached) {
         Specific()->object = nullptr;

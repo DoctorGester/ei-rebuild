@@ -17,19 +17,14 @@ class CWorldServer;   // world.h
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
 // Name provisional; game.exe's vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall
-// there), is retired (C19): the rewritten constructor bodies store BaseVtable(), the compiled table
-// with the same slots (engine_object_class.h's EngineObjectBaseClass); no C++ constructor is
-// declared. A derived class with real C++ constructors gets the compiler's vtable (C19;
-// CMusicSystem): the default slots are defined (engine_object.cpp) and its constructor calls
-// ClearFields. Non-virtual members: object.cpp.
+// there). No C++ constructor is declared: the derived classes' constructors call ClearFields, as
+// game.exe inlines the base's. The default slots are defined in engine_object.cpp.
 class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
-    // The table the constructor bodies store (game.exe's 0073B8E0, compiled: EngineObjectBaseClass).
-    static void* BaseVtable();
 
-    virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor; the body: no owner)
+    virtual ~CEngineObject();                          // 0: 00402D20 (deleting; the body 00455930: no owner)
     virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
     void CopyFromImpl(const CEngineObject& other);   // body of the slot above (registered by member pointer)
     virtual int Create() = 0;                          // 2
@@ -44,8 +39,6 @@ public:
     virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
     virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
 
-    // 00402D20. Slot 0's body: DestructBase, then operator delete when flags bit 0 is set.
-    CEngineObject* DeletingDestruct(unsigned flags);
     // 00455940. The owning manager's context_ (the world, for the world's managers).
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (units, map objects, effects, items
@@ -62,10 +55,8 @@ public:
     void ReleaseAndDelete();
     // 00455970. Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
-    // 00455930. The destructor body: the CEngineObject vtable back, no owner.
-    void DestructBase();
-    // The fields the (always inlined) constructor sets, in its order: no references, id -1, no
-    // flags, kind 0, no owner.
+    // The fields the (mostly inlined) constructor sets (0040CB20 out of line), in its order: no
+    // references, id -1, no flags, kind 0, no owner.
     void ClearFields();
 
     // Engine objects live on the game's heap (engine_object.cpp: gamecrt::operator_new / delete).
@@ -159,8 +150,6 @@ using AIRef = AIRefTo<CEngineObject>;
 template <>
 AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
-// 0040CB20 (camera_object.cpp): the engine object's constructor body (inlined in most classes).
-CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 // 00455950: CEngineObject::World, for the callers that name the object's base (CMapObject::World
 // hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

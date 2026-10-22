@@ -12,7 +12,6 @@
 #include "object_diplomacy.h"
 #include "registry.h"
 #include "world_class_slots.h"
-#include "engine_object_class.h"
 #include "script.h"
 
 #include "ei/hook.h"

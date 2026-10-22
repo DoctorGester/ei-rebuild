@@ -1,12 +1,12 @@
 vtable,slots,class,file,note
 0073B870,25,CBaseManager,src/game/base_manager.h,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
-0073B8E0,13,EngineObjectBaseClass,src/game/engine_object_class.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
+0073B8E0,13,CEngineObject,src/game/engine_object.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
 0073B984,2,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedException,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base; C25c: a class of ours, its table the compiler's)"
 0073B9E0,18,CCamera,src/game/camera.h,the camera (CCamera)
-0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
+0073BA38,18,CTransformObject,src/game/core_transform.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,ServerEntry,src/game/net_classes.h,the lobby's server entry
 0073BB40,6,ServerEntryBase,src/game/net_classes.h,the server entry's base; slots 2-5 _purecall
 0073BB58,4,CRefObject,src/game/core_refcount.h,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)
@@ -225,7 +225,7 @@ vtable,slots,class,file,note
 0073DC54,20,CMapObjectCompanion,src/game/map_object.h,the map object companions' base
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
 0073DD6C,21,CMapObjectServer,src/game/unit.h,the map objects' server companion
-0073DDD4,5,Object3DBaseClass,src/game/map_object_tables.cpp,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
+0073DDD4,5,CObject3D,src/game/map_object_figures.h,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
 0073DE90,27,CObject3DClientSpecific,src/game/map_object_shadow.h,a 3D object's client half

@@ -197,7 +197,7 @@ CODE_REVIEWED = [
 # Dwords in the code section's range that are no code pointer, or one the image never needs moved: (first cell,
 # last cell, the number of dwords in the code section, why).
 NOT_CODE = [
-    (0x0073DDE8, 0x0073DE3C, 22, 'slots 5-26 of the retired 0073DDD4 (CObject3D\'s, compiled: map_object_tables.cpp), '
+    (0x0073DDE8, 0x0073DE3C, 22, 'slots 5-26 of the retired 0073DDD4 (CObject3D\'s, a real class since C28p: map_object_figures.h), '
                                    'past its five-slot row (006E0437 reads 0073DDE8): nothing stores the table'),
     (0x00745D14, 0x00745D14, 1, "c_dfDIMouse's object array (dinput.lib's data inside game.exe's code section; "
                                    "CDirectInputMouse::MouseDataFormat is our copy)"),

@@ -1378,7 +1378,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
 - **Batch 22's families** (2026-10-22): the bases' own tables, the zone records, the item panels, CFont and the map
   objects: 44 rows (retired 560 -> 604), 1,696 -> 974 code cells, game data addresses 918 -> 874.
-  - **The bases' own tables** (engine_object_class.h): EngineObjectBaseClass (CEngineObject's 0073B8E0), `ManagerClass`
+  - **The bases' own tables** (engine_object_class.h, gone in C28p: CEngineObject, CTransformObject and CObject3D
+    are real classes whose destructors the compiler builds): EngineObjectBaseClass (CEngineObject's 0073B8E0), `ManagerClass`
     over EngineObjectClass (CBaseManager's slots 2 / 3 / 9 / 10 and 13-24) with BaseManagerClass (0073B870) and
     resource_manager.cpp's ResourceManagerClass (00743338), and TransformBaseClass (CTransformObject's 0073BA38). The
     constants became `X::BaseVtable()`; figure_mesh_life.cpp's FigureBaseClass (0073C224, CFigureMesh's slots 18 / 19
@@ -1401,7 +1402,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     their input sides) stay: CUiItemStrip and NewStrip are C21's.
   - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont): the debug panel, the interface and the
     console store `CFont::Vtable()`.
-  - **Map objects** (map_object_tables.cpp): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
+  - **Map objects** (map_object_tables.cpp, gone in C28p): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
     MapObjectBaseClass over it (CMapObject's 61; gone in C28h: CMapObject's own table), each slot the class's C++
     virtual called qualified. CObject3D's row is
     five slots (find_vtables split it at 0073DDE8): its slots 5-26 moved from gen_image_cells.py's CODE_REVIEWED to

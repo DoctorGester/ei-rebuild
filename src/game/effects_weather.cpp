@@ -1,5 +1,4 @@
 #include "effects.h"
-#include "engine_object_class.h"
 #include "texture.h"
 #include "at_exit_functions.h"
 

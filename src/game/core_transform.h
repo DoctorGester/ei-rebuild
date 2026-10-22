@@ -8,25 +8,16 @@
 
 // An engine object placed in the world: local position and rotation relative to its parent, and
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
-// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots, its own table compiled
-// (engine_object_class.h's TransformBaseClass, C19) in place of game.exe's 0073BA38.
-// Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
-// Slots 13-17 are defined (core_transform.cpp), for a derived class whose vtable is the compiler's (C19).
-namespace mfc {
-class CFileVirtuals;   // lib/mfc.h
-}
-
+// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots (game.exe's 0073BA38).
+// Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save); 13-17 are defined in
+// core_transform.cpp. game.exe's out-of-line constructor body 00453400 (the base's fields and identity rotations) is
+// what the derived classes' constructors do; its destructor 0040CB70 (deleting 0040CB50) is CEngineObject's.
 namespace mfc {
 class CFileVirtuals;   // lib/mfc.h
 }
 
 class CTransformObject : public CEngineObject {
 public:
-    CTransformObject* DeleteScalar(unsigned flags);
-    CTransformObject* DeletingDestruct(unsigned flags) { return DeleteScalar(flags); }   // the tag's slot 0
-    // The base's own table (TransformBaseClass), which the constructor and destructor bodies store.
-    static void* BaseVtable();
-
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
     CTransformObject* CopyTransformImpl(const CTransformObject& other);   // body of the slot above (registered by member pointer)
@@ -42,10 +33,6 @@ public:
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(mfc::CFileVirtuals* file);
     void LoadTransformImpl(mfc::CFileVirtuals* file);   // body of the slot above (registered by member pointer)
-
-    // 00453400. Constructor body: base fields, identity rotations (positions left as they are),
-    // the base table (BaseVtable); returns this.
-    CTransformObject* ConstructBase();
 
     // Rotation helpers (core_transform_math.cpp).
     void WorldMatrix(float* m) const;                    // 00401570: 4x4 world matrix

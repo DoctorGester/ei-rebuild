@@ -1,12 +1,11 @@
 // The camera object itself: construction and destruction, its small virtual slots, Init, and saving / loading its state with the world. The transform base's destructor
-// and the engine object's inlined constructor live here too.
+// is tagged here too.
 // See camera.h and docs/notes/core.md.
 #include "camera.h"
 
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -29,32 +28,9 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 } // namespace
 
-// 0040CB20: the engine object's constructor body (inlined in most classes): vtable 0073B8E0,
-// id -1, everything else zero.
-CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
-    ei::SetVtable(self, CEngineObject::BaseVtable());
-    self->refCount_ = 0;
-    self->id_ = -1;
-    self->prototypeId_ = 0;
-    self->type_ = 0;
-    self->flags_ = 0;
-    self->owner_ = nullptr;
-    return self;
-}
-EI_REWRITTEN(0x0040CB20, EngineObjectConstruct);
-
-// 0040CB70: CTransformObject's destructor body; 0040CB50 its deleting destructor (slot 0).
-void __fastcall TransformDestruct(CTransformObject* self) {
-    ei::SetVtable(self, CTransformObject::BaseVtable());
-    self->DestructBase();
-}
-EI_REWRITTEN(0x0040CB70, TransformDestruct);
-CTransformObject* CTransformObject::DeleteScalar(unsigned flags) {
-    TransformDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0040CB50, CTransformObject::DeleteScalar);
+// 0040CB70 (deleting 0040CB50): CTransformObject's destructor, which is CEngineObject's.
+EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
+EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
 // 0040C8B0: the constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
 // the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,

@@ -12,7 +12,6 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
-#include "engine_object_class.h"
 #include "map_object_figures.h"
 #include "texture.h"
 

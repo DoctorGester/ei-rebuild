@@ -89,17 +89,8 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 
 // --- CObject3D --------------------------------------------------------------------------------
 
-CObject3D* CObject3D::Construct() {
-    SetVtable(this, CEngineObject::BaseVtable());
-    SetVtable(this, CTransformObject::BaseVtable());
-    ::new (&name) mfc::CString;
-    SetUpObject3D();
-    SetVtable(this, CObject3D::Object3DVtable());
-    return this;
-}
-EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
-
 CObject3D::CObject3D() { SetUpObject3D(); }
+EI_REWRITTEN_SPECIAL(0x00515BD0, CObject3D::CObject3D);
 
 void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
@@ -134,17 +125,10 @@ void CObject3D::SetUpObject3D() {
     std::memset(&worldPosition_, 0, sizeof(worldPosition_));
 }
 
-void CObject3D::DestructBody() {
-    SetVtable(this, CObject3D::Object3DVtable());
-    TearDownObject3D();
-    name.~CString();
-    SetVtable(this, CTransformObject::BaseVtable());
-    CEngineObject::DestructBase();
-}
-EI_REWRITTEN(0x00515D70, CObject3D::DestructBody);
-
 // The name is destroyed after the body, then CEngineObject's part.
 CObject3D::~CObject3D() { TearDownObject3D(); }
+EI_REWRITTEN_SPECIAL(0x00515D70, CObject3D::~CObject3D);
+EI_REWRITTEN_SPECIAL(0x00515D50, CObject3D::~CObject3D);   // deleting
 
 void CObject3D::TearDownObject3D() {
     Destroy3D();
