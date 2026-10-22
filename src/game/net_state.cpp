@@ -27,7 +27,7 @@
 namespace {
 
 // The world (ObjectWorld) as the base class.
-CWorld* WorldOf(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object)); }
+CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 // The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
 // [005C7DB0 on the controller's path (field)].

@@ -59,7 +59,6 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-CWorld* WorldOf(const CEngineObject* object) { return object->WorldContext(); }
 
 } // namespace
 
@@ -115,7 +114,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     moving_ = effect::IsMoving(velocity_);
     MarkChanged();
     localPosition_ = *from;
-    launchTick_ = WorldOf(this)->tick_;
+    launchTick_ = effect::ContextWorld(this)->tick_;
 }
 
 int CEffectTornado::Tick() {
@@ -126,7 +125,7 @@ int CEffectTornado::Tick() {
         if (sound_ != -1) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
-    CWorld* world = WorldOf(this);
+    CWorld* world = effect::ContextWorld(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
         mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         ServerWorld()->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);

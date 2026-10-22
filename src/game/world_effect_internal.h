@@ -79,7 +79,7 @@ __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, voi
 
 // The world an object belongs to (the effects' manager context is the world, too). The effects
 // reach their own slots 18-23 through TimedSlots / EffectSlots (world_effect.h).
-inline CWorld* WorldOf(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object)); }
+inline CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldContext(); }
 
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------

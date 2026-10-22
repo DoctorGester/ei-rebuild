@@ -102,7 +102,7 @@ CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
 bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
 int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
 // The world time of an object's world (00455950).
-int WorldTick(const void* object) { return ObjectWorld(static_cast<const CEngineObject*>(object))->tick_; }
+int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
 // The messages of a unit's player (CPlayer::connection_).
