@@ -31,6 +31,19 @@ constexpr std::uint64_t kInfinity = 0x7FF0000000000000ull;
 constexpr double kPi = 3.141592653589793;
 constexpr double kHalfPi = 1.5707963267948966;
 
+// The game CRT's math function names by their code (read by 006F06AC and 006F0FBF, its math error reporting, which
+// has no registration: nothing of the image reads the table). Named so that its bytes come from here.
+struct MathFunctionName {
+    int code;
+    const char* name;
+};
+[[maybe_unused]] constexpr MathFunctionName kMathFunctionNames[27] = /*00797CC0*/ {
+    {20, "exp"},   {29, "pow"},    {26, "log"},   {27, "log10"}, {31, "sinh"},  {19, "cosh"},  {33, "tanh"},
+    {14, "asin"},  {13, "acos"},   {15, "atan"},  {16, "atan2"}, {5, "sqrt"},   {30, "sin"},   {18, "cos"},
+    {32, "tan"},   {12, "ceil"},   {11, "floor"}, {21, "fabs"},  {28, "modf"},  {25, "ldexp"}, {17, "_cabs"},
+    {24, "_hypot"}, {22, "fmod"},  {23, "frexp"}, {34, "_y0"},   {35, "_y1"},   {36, "_yn"},
+};
+
 std::uint64_t Bits(double value) {
     std::uint64_t bits;
     std::memcpy(&bits, &value, sizeof bits);

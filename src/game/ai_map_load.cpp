@@ -45,6 +45,9 @@ __declspec(naked) int __fastcall AIEventsSetupAt(AIEventTable*, void*, CAIMap*, 
 
 // ---- The files -------------------------------------------------------------------------------------
 
+// The files' extensions: this file's copies of the header constants (each of the original's files had its own).
+constexpr const char* kMapExtension = /*0073FD1C*/ ".MP";
+constexpr const char* kSectorExtension = /*0073FD20*/ ".SEC";
 constexpr std::uint32_t kMapMagic = 0xCE4AF672;
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 
@@ -144,7 +147,7 @@ int Fatal(const mfc::CString& message) { return game::FatalError(message); }
 // file is missing or not a map (its size must be the header's counts).
 int ReadDescription(Archive& archive, const mfc::CString& path, const mfc::CString& name, MapDescription& map) {
     std::uint32_t size;
-    void* file = archive.File(name + ".MP", &size);
+    void* file = archive.File(name + kMapExtension, &size);
     if (!file) return Fatal(("Unable to open file \"" + path) + "\"");
     if (size < sizeof(MapHeader)) return Fatal("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
@@ -460,7 +463,7 @@ int CAIMap::LoadTerrain(const char* path) {
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
-            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", name.GetBuffer(0), sectorX, sectorY, ".SEC");
+            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", name.GetBuffer(0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
             if (!sector) return Fatal("Unable to locate resource: " + mfc::CString(file));

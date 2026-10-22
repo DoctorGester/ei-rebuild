@@ -186,7 +186,17 @@ void ClearVariablesKeepingGlobals(NamedFloatTable* table);
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF; the options window's OK stores its copy there).
 inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
 
-// 00462F70. The command bound to `key`: the first command slot i (0..0x1FF) whose key in g_keyActions
-// equals `key` and that has an entry in the command table at 007857B0 (0x48-byte
-// entries, slot number first). Returns the entry + 8, or null. __fastcall (key in ECX).
+// The keys (0x48 bytes each, 88 of them; key_bindings.cpp's g_keyNames): the options window lists them, and
+// the bindings file names them.
+struct UiKeyName {
+    int scan_;                       // +0x00 scan code, the index into g_keyActions
+    const char* file_;               // +0x04 the bindings file's name ("TAB", "Q", ...)
+    char name_[0x40];                // +0x08 GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
+};
+static_assert(sizeof(UiKeyName) == 0x48);
+constexpr int kUiKeyNameCount = 88;
+extern UiKeyName g_keyNames[kUiKeyNameCount];
+
+// 00462F70. The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
+// has `key` in g_keyActions, or null. __fastcall (key in ECX).
 void* __fastcall FindCommandByKey(int key);

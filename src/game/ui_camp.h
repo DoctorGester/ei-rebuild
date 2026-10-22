@@ -78,12 +78,13 @@ struct PartyUnitRecord;
 // The statistics' names, also their text keys: the six skill schools followed by "Science"; the
 // attributes (index 7 "Encumbrance").
 inline const char* const* SkillNames() {
-    static constexpr const char* kNames[7] = {"Melee", "Archery", "Backstab", "Elemental", "Sense", "Astral", "Science"};
+    static constexpr const char* kNames[7] = /*00793BD4*/ {"Melee", "Archery", "Backstab", "Elemental", "Sense",
+                                                           "Astral", "Science"};
     return kNames;
 }
 inline const char* const* AttributeNames() {
-    static constexpr const char* kNames[8] = {"Strength", "Dexterity", "Intelligence", "Health",
-                                              "Mana",     "Actions",   "Experience",   "Encumbrance"};
+    static constexpr const char* kNames[8] = /*00793BF0*/ {"Strength", "Dexterity", "Intelligence", "Health",
+                                                           "Mana",     "Actions",   "Experience",   "Encumbrance"};
     return kNames;
 }
 

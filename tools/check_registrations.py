@@ -1,13 +1,13 @@
 """Fails the build when one game address has two registrations that InstallHooks would both install.
 
-Every registration macro (include/ei/hook.h: EI_REPLACE, EI_REPLACE_METHOD, EI_REPLACE_DISPATCH,
+Every registration macro (include/ei/hook.h: EI_REPLACE, EI_REPLACE_METHOD,
 EI_REPLACE_STANDALONE, EI_REPLACE_SHORT, EI_RECORD) leaves a record of the
 address, its kind and the file and line of the expansion in the section .eireg of the module. This
 check reads those records from the built ei_hook.dll, so it sees what this build registers (macro
 generated registrations included, and registrations left out by #if are not there), and groups them
 per address into the two sets InstallHooks keeps one of:
 
-  - plain replacements: EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE and _SHORT together (the standalone
+  - plain replacements: EI_REPLACE, _METHOD, _STANDALONE and _SHORT together (the standalone
     image installs all of them; the second one at an address is skipped, or its jump wins, and the
     rewrite never runs: SV6 saw this at run time),
   - vector recorders: EI_RECORD (installed only in game.exe, with EI_VECTORS=1).
@@ -24,10 +24,8 @@ exit code 1 on any problem
 import argparse, os, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KINDS = ['EI_REPLACE', 'EI_REPLACE_STANDALONE', 'EI_REPLACE_SHORT', 'EI_REPLACE_DISPATCH',
-         'EI_RECORD']   # include/ei/hook.h RegKind
-SET_OF = ['plain replacement', 'plain replacement', 'plain replacement', 'plain replacement',
-          'recorder']
+KINDS = ['EI_REPLACE', 'EI_REPLACE_STANDALONE', 'EI_REPLACE_SHORT', 'EI_RECORD']   # include/ei/hook.h RegKind
+SET_OF = ['plain replacement', 'plain replacement', 'plain replacement', 'recorder']
 RECORD = struct.Struct('<IIII')   # address, file (VA of the string), line, kind
 ORIGIN = struct.Struct('<IIII')   # EI_REWRITTEN: address, function (VA), file (VA of the string), line
 

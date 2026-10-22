@@ -193,8 +193,9 @@ namespace {
 // The option groups' names.
 constexpr int kOptionGroups = 11;
 const char* OptionGroupName(int index) {
-    static constexpr const char* kNames[12] = {"video",  "sound", "sens",   "game",   "select",  "actions",
-                                               "camera", "items", "spells", "cshots", "windows", "debug1"};
+    static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
+                                                            "actions", "camera", "items",  "spells",  "cshots",
+                                                            "windows", "debug1", "debug2"};
     return kNames[index];
 }
 } // namespace

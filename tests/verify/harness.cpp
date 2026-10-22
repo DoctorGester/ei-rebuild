@@ -424,6 +424,7 @@
 #include "harness_savetrace.h"
 #include "harness_script_order.h"
 #include "harness_watch.h"
+#include "harness_image_trace.h"
 #include "harness_hooks.h"
 #include "harness_settings.h"
 #include "harness_starter.h"
@@ -4388,6 +4389,7 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
+        if (image_trace::Enabled()) image_trace::Install();   // EI_IMAGE_TRACE: its traps go before CrashLogger
         ei::SetMissingCodeHandler(&EndRunOnMissingCode);
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));

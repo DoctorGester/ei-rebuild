@@ -50,8 +50,9 @@ constexpr int kMipCount = 3;
 constexpr int kFormat = 0x4444;
 constexpr const char* kWoundTexture = "%s%sw%d.mmp";   // 0078FB8C
 constexpr const char* kWoundCacheName = "mo%dw";       // 0078FB84
-constexpr const char* kHeroParts[kBodyParts] = {"hd", "bd", "lh", "rh", "ll", "rl"};   // 0078F974
-constexpr const char* kParts[kBodyParts] = {"hd", "bd", "h", "h", "l", "l"};           // 0078F990
+// The parts' texture names of a hero and of other units, each list ended by an empty name.
+constexpr const char* kHeroParts[kBodyParts + 1] = /*0078F974*/ {"hd", "bd", "lh", "rh", "ll", "rl", ""};
+constexpr const char* kParts[kBodyParts + 1] = /*0078F990*/ {"hd", "bd", "h", "h", "l", "l", ""};
 
 // The level of one part (0 none .. 3 heavy).
 std::uint8_t PartLevel(const UnitParamsSlot& part) {

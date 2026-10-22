@@ -120,21 +120,26 @@ if(NOT EI_GAME_EXE)
     endif()
     file(TO_CMAKE_PATH "${EI_GAME_EXE_FOUND}" EI_GAME_EXE)
 endif()
-# The dispatch-only functions' bytes (InstallHooks' check of the EI_REPLACE_DISPATCH thunks, S18k) come the same way.
 set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
-set(EI_IMAGE_DISPATCH ${CMAKE_BINARY_DIR}/image/dispatch_bytes.inc)
-add_custom_command(OUTPUT ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH}
+# The zero-filled trial (C25, build.cmd's `trial`): the bytes are zero but the cells and config/image_kept.csv's
+# ranges, to find what the image still reads of game.exe's data. Never the product.
+option(EI_IMAGE_ZERO_TRIAL "the image's data bytes zero but the cells and config/image_kept.csv (C25's trial)" OFF)
+set(EI_IMAGE_BYTES_MODE)
+if(EI_IMAGE_ZERO_TRIAL)
+    set(EI_IMAGE_BYTES_MODE --zero)
+endif()
+add_custom_command(OUTPUT ${EI_IMAGE_DATA}
     COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --exe ${EI_GAME_EXE} --bytes ${EI_IMAGE_DATA}
-            --dispatch ${EI_IMAGE_DISPATCH}
+            ${EI_IMAGE_BYTES_MODE}
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv
-            ${CMAKE_SOURCE_DIR}/config/retired_vtables.csv ${EI_GAME_EXE}
+            ${CMAKE_SOURCE_DIR}/config/retired_vtables.csv ${CMAKE_SOURCE_DIR}/config/image_kept.csv
+            ${CMAKE_SOURCE_DIR}/src/standalone/image_cells.inc ${CMAKE_SOURCE_DIR}/src/standalone/image_code_cells.inc
+            ${EI_GAME_EXE}
     COMMENT "Writing game.exe's .data bytes"
     VERBATIM)
-target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA} ${EI_IMAGE_DISPATCH})
+target_sources(ei_hook PRIVATE ${EI_IMAGE_DATA})
 set_source_files_properties(src/standalone/image_data.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
                             OBJECT_DEPENDS ${EI_IMAGE_DATA})
-set_source_files_properties(src/hook/hook.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/image
-                            OBJECT_DEPENDS ${EI_IMAGE_DISPATCH})
 if(EI_HARNESS)
     file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
     # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).
