@@ -887,7 +887,7 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     EngineObjectConstruct(s);
     s->localRotation_.SetIdentity();
     s->worldRotation_.SetIdentity();
-    ei::SetVtable(s, CTransformObject::kVtableAddress);
+    ei::SetVtable(s, CTransformObject::BaseVtable());
     s->elements = nullptr;
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
@@ -933,7 +933,7 @@ void CParticleSource::Destruct() {
     mfc::PlexFreeDataChain(particles.blocks);
     particles.blocks = nullptr;
     if (elements) lib::FreeAligned32(elements);
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
 EI_REWRITTEN(0x00498310, CParticleSource::Destruct);

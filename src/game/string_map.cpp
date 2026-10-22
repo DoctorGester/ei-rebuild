@@ -105,8 +105,7 @@ namespace {
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
 // surface's constructor and destructor body.
 
-// MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
-constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
+// The panel's font face (007842C8).
 const char* FontFace() { return "Courier New"; }
 
 void DrawString(ui_gdi::GameDC* dc, const stlp::string& s, RECT* rect) {
@@ -123,7 +122,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
     auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (font) {
         font->handle = nullptr;
-        font->vtable = ei::GamePointer<void*>(kFontVtable);
+        font->vtable = mfc::impl::CFont::Vtable();
     }
     font_ = font;
     if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {

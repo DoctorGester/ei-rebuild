@@ -65,7 +65,7 @@ EI_REWRITTEN(0x006324E0, GlobalMapPlace::AssignCopy);
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 
 int UiInputSide::WheelIgnored(int, int, int, int) { return 0; }
-EI_REPLACE_METHOD(0x005E28B0, UiInputSide::WheelIgnored);
+EI_REWRITTEN(0x005E28B0, UiInputSide::WheelIgnored);
 
 void* CUiWindow::NoItemAt(int, int, int* topic) {
     *topic = 0;
@@ -204,7 +204,7 @@ int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     holdTime_ = 0.0f;
     return 0;
 }
-EI_REPLACE_METHOD(0x00624A40, InputForward<&CHeroStatsPanel::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00624A40, InputForward<&CHeroStatsPanel::OnLButtonUp>::Call);
 
 int CGlobalMap::OnLButtonUp(int, int, int) {
     if (turning_ != 0) selectPending_ = 1;

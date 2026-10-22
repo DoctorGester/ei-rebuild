@@ -101,7 +101,7 @@ public:
     int AcceptsNoKey(const void* /*key*/);
     void IgnoreArgument(int);
     void SetScriptPosition(const Vector3* point);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
+    static void* MapObjectVtable();   // the compiled 0073DAA0 (map_object_tables.cpp)
 
     // 0050E660's work without the vtables (map_object_lifetime.cpp); 0050E560 is slot 0.
     ~CMapObject() override;

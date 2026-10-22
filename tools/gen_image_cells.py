@@ -178,8 +178,6 @@ LEFT_KINDS = ('vtable-retired', 'eh-unwind', 'eh-handler')
 # Code cells outside those structures, as looked at in game.exe: (first cell, last cell, the number of dwords in the
 # code section, what). Every dword of the range whose value lies in the code section is a code cell.
 CODE_REVIEWED = [
-    (0x0073DDE8, 0x0073DE3C, 22, 'slots after vtable 0073DDD4\'s five (config/vtables.csv): a vtable at 0073DDE8 '
-                                   '(006E0437 reads it), up to the vtable 0073DE40'),
     (0x00746A14, 0x00747064, 35, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
     (0x00783BBC, 0x00783BE4, 6, "the CRT's C initialisers and terminators (__xi_a..__xi_z 00783BB4-00783BCC, __xp, "
                                    "__xt): __initmbctable and the CRT's own"),
@@ -196,6 +194,8 @@ CODE_REVIEWED = [
 # Dwords in the code section's range that are no code pointer, or one the image never needs moved: (first cell,
 # last cell, the number of dwords in the code section, why).
 NOT_CODE = [
+    (0x0073DDE8, 0x0073DE3C, 22, 'slots 5-26 of the retired 0073DDD4 (CObject3D\'s, compiled: map_object_tables.cpp), '
+                                   'past its five-slot row (006E0437 reads 0073DDE8): nothing stores the table'),
     (0x00745D14, 0x00745D14, 1, "c_dfDIMouse's object array (dinput.lib's data inside game.exe's code section; "
                                    "CDirectInputMouse::MouseDataFormat is our copy)"),
     (0x007472B8, 0x007472E0, 4, "the CRT's SEH scope tables ({enclosing level, filter, handler}): read by "

@@ -15,16 +15,18 @@ class CWorldClient;   // world.h
 class CWorldServer;   // world.h
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
-// Name provisional; vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall there). Objects
-// are created by original code or by the rewritten constructor bodies, which store the original
-// vtable (kVtableAddress); no C++ constructor is declared. A derived class with real C++
-// constructors gets the compiler's vtable (C19; CMusicSystem): the default slots are defined
-// (engine_object.cpp) and its constructor calls ClearFields. Non-virtual members: object.cpp.
+// Name provisional; game.exe's vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall
+// there), is retired (C19): the rewritten constructor bodies store BaseVtable(), the compiled table
+// with the same slots (engine_object_class.h's EngineObjectBaseClass); no C++ constructor is
+// declared. A derived class with real C++ constructors gets the compiler's vtable (C19;
+// CMusicSystem): the default slots are defined (engine_object.cpp) and its constructor calls
+// ClearFields. Non-virtual members: object.cpp.
 class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B8E0);
+    // The table the constructor bodies store (game.exe's 0073B8E0, compiled: EngineObjectBaseClass).
+    static void* BaseVtable();
 
     virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor; the body: no owner)
     virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)

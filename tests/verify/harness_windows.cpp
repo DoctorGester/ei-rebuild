@@ -65,6 +65,17 @@ const std::vector<WindowKind>& WindowKinds() {
         {&ei::OriginalGameData<const std::uint8_t>(0x0074091C), CCampPages::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00740D18), CExchangeScreen::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x0074214C), CMpHeroScreen::Vtable()},
+        // The item screens' panels (ui_item_panel_tables.cpp).
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741B58), CUiItemPanel::BlankVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007404DC), CItemInfoPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741ABC), CHeroStatsPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007418E0), CHeroEquipPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741844), CHeroQuickStrip::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007417A8), CTradePanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074170C), CTradeGrid::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741670), CSpellMakerPage::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007415D4), CConstructorPage::ItemMakerVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741538), CRepairGrid::Vtable()},
     };
     return kinds;
 }

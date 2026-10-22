@@ -119,11 +119,11 @@ namespace {
 
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 
-VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
-VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel
+VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
+VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
 VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
 VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
-VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)}; }
+VtablePair TradeGridVtables() { return {CTradeGrid::Vtable(), CTradeGrid::InputVtable()}; }
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strip's CArray<char*>
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
 constexpr int kSurfaceFormat = 5;

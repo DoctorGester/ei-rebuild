@@ -17,14 +17,14 @@ constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
 void CObject3D::CombineRotation3D(const Quaternion* parent) { CombineRotationImpl(*parent); }
-EI_REPLACE_METHOD(0x00516370, CObject3D::CombineRotation3D);
+EI_REWRITTEN(0x00516370, CObject3D::CombineRotation3D);
 
 void CObject3D::CopyFigureImpl(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);
     std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
     CopyTransformImpl(*other);
 }
-EI_REPLACE_METHOD(0x005161E0, CObject3D::CopyFigureImpl);
+EI_REWRITTEN(0x005161E0, CObject3D::CopyFigureImpl);
 
 void CObject3D::AttachSpecific(CEngineObject* half) {
     if (!half || half->type_ != kSpecificType) return;
@@ -36,7 +36,7 @@ void CObject3D::AttachSpecific(CEngineObject* half) {
     Specific()->object = this;
     ++attached->refCount_;
 }
-EI_REPLACE_METHOD(0x00516D50, CObject3D::AttachSpecific);
+EI_REWRITTEN(0x00516D50, CObject3D::AttachSpecific);
 
 void CObject3D::RemoveAllEffectSources() {
     while (effectSources.head) {
@@ -51,19 +51,19 @@ void CObject3D::RemoveAllEffectSources() {
         }
     }
 }
-EI_REPLACE_METHOD(0x00515E90, CObject3D::RemoveAllEffectSources);
+EI_REWRITTEN(0x00515E90, CObject3D::RemoveAllEffectSources);
 
 int CObject3D::DrawFigureImpl(void* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
-EI_REPLACE_METHOD(0x00516460, CObject3D::DrawFigureImpl);
+EI_REWRITTEN(0x00516460, CObject3D::DrawFigureImpl);
 
 int CObject3D::DrawCollectDirtyImpl(void* context) {
     gameapi::SetRectEmpty(DirtyRect());
     return attached ? Specific()->DrawParts(context, dirtyRect) : 1;
 }
-EI_REPLACE_METHOD(0x00516420, CObject3D::DrawCollectDirtyImpl);
+EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirtyImpl);
 
 int CObject3D::DrawFigureShadowImpl(void* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
-EI_REPLACE_METHOD(0x00516490, CObject3D::DrawFigureShadowImpl);
+EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadowImpl);
 
 // --- The virtual slots (vtable 0073DDD4) for the compiler's tables (C19) -------------------------------
 

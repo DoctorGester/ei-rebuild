@@ -52,18 +52,18 @@ namespace {
 
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 
-VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
-VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel
-VtablePair StatsPanelVtables() { return {Vtable(0x00741ABC), Vtable(0x00741A88)}; }         // CHeroStatsPanel
+VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
+VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
+VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPanel::InputVtable()}; }
 VtablePair PlainStripVtables() { return {Vtable(0x00741A1C), Vtable(0x007419E8)}; }
 VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
-VtablePair EquipPanelVtables() { return {Vtable(0x007418E0), Vtable(0x007418AC)}; }         // CHeroEquipPanel
-VtablePair QuickStripVtables() { return {Vtable(0x00741844), Vtable(0x00741810)}; }         // CHeroQuickStrip
-VtablePair TradePanelVtables() { return {Vtable(0x007417A8), Vtable(0x00741774)}; }         // CTradePanel
-VtablePair TradeGridVtables() { return {Vtable(0x0074170C), Vtable(0x007416D8)}; }          // CTradeGrid
-VtablePair SpellMakerVtables() { return {Vtable(0x00741670), Vtable(0x0074163C)}; }         // CSpellMakerPage
-VtablePair ItemMakerVtables() { return {Vtable(0x007415D4), Vtable(0x007415A0)}; }          // CConstructorPage
-VtablePair RepairGridVtables() { return {Vtable(0x00741538), Vtable(0x00741504)}; }         // CRepairGrid
+VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
+VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
+VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }
+VtablePair TradeGridVtables() { return {CTradeGrid::Vtable(), CTradeGrid::InputVtable()}; }
+VtablePair SpellMakerVtables() { return {CSpellMakerPage::Vtable(), CSpellMakerPage::InputVtable()}; }
+VtablePair ItemMakerVtables() { return {CConstructorPage::ItemMakerVtable(), CConstructorPage::ItemMakerInputVtable()}; }
+VtablePair RepairGridVtables() { return {CRepairGrid::Vtable(), CRepairGrid::InputVtable()}; }
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strips' CArray<char*>
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 

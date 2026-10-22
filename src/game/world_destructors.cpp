@@ -192,7 +192,7 @@ void Terrain::Destruct() {
     textF8.~CString();
     pageMaterials.FreeData();
     pageTextures.FreeData();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00562B80, Terrain::Destruct);

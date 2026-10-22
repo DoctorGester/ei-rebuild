@@ -4,6 +4,7 @@
 #include "hash_tables_400.h"
 
 #include "core_streams.h"
+#include "engine_object_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
@@ -136,9 +137,9 @@ static_assert(std::is_trivially_destructible_v<ObjectMap> && std::is_trivially_d
 static_assert(std::is_trivially_default_constructible_v<ObjectList> && std::is_trivially_destructible_v<ObjectList>);
 
 CBaseManager* CBaseManager::ConstructBase() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);   // the inlined CEngineObject constructor
+    ei::SetVtable(this, CEngineObject::BaseVtable());   // the inlined CEngineObject constructor
     SetUpBaseManager();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     return this;
 }
 EI_REWRITTEN(0x00402B20, CBaseManager::ConstructBase);
@@ -169,7 +170,7 @@ void CBaseManager::SetUpBaseManager() {
 }
 
 void CBaseManager::DestructBody() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     TearDownBaseManager();
     DestructBase();
 }
@@ -192,7 +193,7 @@ CBaseManager* CBaseManager::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00402DD0, CBaseManager::DeletingDestruct);
+EI_REWRITTEN(0x00402DD0, CBaseManager::DeletingDestruct);
 
 // --- Slots 2, 3, 13, 15 -------------------------------------------------------------------------
 
@@ -337,23 +338,30 @@ int __fastcall CreateHook(CBaseManager* self) { return self->CBaseManager::Creat
 void __fastcall DestroyHook(CBaseManager* self) { self->CBaseManager::Destroy(); }
 void __fastcall DestroyAllHook(CBaseManager* self) { self->CBaseManager::DestroyAll(); }
 } // namespace
-EI_REPLACE(0x00403020, CreateHook);
-EI_REPLACE(0x004031E0, DestroyHook);
+EI_REWRITTEN(0x00403020, CreateHook);
+EI_REWRITTEN(0x004031E0, DestroyHook);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REPLACE(0x0066C100, DestroyHook);
 EI_REPLACE(0x0067E160, DestroyHook);
-EI_REPLACE_METHOD(0x004046E0, CBaseManager::LoadImpl);
-EI_REPLACE_METHOD(0x00404760, CBaseManager::SaveImpl);
-EI_REPLACE_METHOD(0x004031B0, CBaseManager::InitImpl);
-EI_REPLACE(0x004034E0, DestroyAllHook);
-EI_REPLACE_METHOD(0x00402D60, CBaseManager::AddArchiveImpl);
-EI_REPLACE_METHOD(0x00402D70, CBaseManager::RemoveArchiveImpl);
-EI_REPLACE_METHOD(0x00402D90, CBaseManager::GetFileImpl);
-EI_REPLACE_METHOD(0x00402DA0, CBaseManager::CloseFileImpl);
-EI_REPLACE_METHOD(0x00402DB0, CBaseManager::HasFileImpl);
-EI_REPLACE_METHOD(0x00403730, CBaseManager::CreateObjectImpl);
-EI_REPLACE_METHOD(0x00403AE0, CBaseManager::ReleaseObjectImpl);
+EI_REWRITTEN(0x004046E0, CBaseManager::LoadImpl);
+EI_REWRITTEN(0x00404760, CBaseManager::SaveImpl);
+EI_REWRITTEN(0x004031B0, CBaseManager::InitImpl);
+EI_REWRITTEN(0x004034E0, DestroyAllHook);
+EI_REWRITTEN(0x00402D60, CBaseManager::AddArchiveImpl);
+EI_REWRITTEN(0x00402D70, CBaseManager::RemoveArchiveImpl);
+EI_REWRITTEN(0x00402D90, CBaseManager::GetFileImpl);
+EI_REWRITTEN(0x00402DA0, CBaseManager::CloseFileImpl);
+EI_REWRITTEN(0x00402DB0, CBaseManager::HasFileImpl);
+EI_REWRITTEN(0x00403730, CBaseManager::CreateObjectImpl);
+EI_REWRITTEN(0x00403AE0, CBaseManager::ReleaseObjectImpl);
+
+namespace {
+// game.exe's 0073B870 compiled (C19; engine_object_class.h's ManagerClass: 11, 12 and 14 _purecall).
+class BaseManagerClass final : public ManagerClass<BaseManagerClass, CBaseManager> {};
+} // namespace
+
+void* CBaseManager::BaseVtable() { return BaseManagerClass::Vtable(); }
 
 // --- Registration (non-virtual) -----------------------------------------------------------------
 

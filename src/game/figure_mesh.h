@@ -84,11 +84,13 @@ struct FigureLights {
 // (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
 // vtables. The slot bodies are plain members registered by address (Create's is CreateMesh,
 // CopyFigure's CopyFigureImpl, ...); the virtuals call them. Abstract: slots 20 and 21 are the
-// derived classes'. game.exe's base vtable 0073C224 (20 slots) stays: only the registered bodies
-// ConstructBase / DestructBase store it, which no code of ours calls (they go with C20).
+// derived classes'. game.exe's base vtable 0073C224 (20 slots) is retired (C19): the bodies
+// ConstructBase / DestructBase, which no code of ours calls, store BaseVtable() (figure_mesh_life.cpp's
+// FigureBaseClass) in its place.
 class CFigureMesh : public CTransformObject {
 public:
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // the base
+    // The table ConstructBase / DestructBase store (game.exe's 0073C224, compiled).
+    static void* BaseVtable();
 
     // The vtable (game.exe's base 0073C224 and the pure slots 20 and 21). The slots not listed are
     // CTransformObject's (1, 4-6, 8-10, 13, 14, 17).
@@ -173,6 +175,9 @@ public:
     // bounds, vtable 0073C224, then Create. Returns this. No code of ours calls it (the protected
     // constructor below does its work).
     CFigureMesh* ConstructBase();
+    // 00453470 (slot 0 of the base table): DestructBase, then operator delete when bit 0 of `flags`
+    // is set. Returns this.
+    CFigureMesh* DeletingDestruct(unsigned flags);
     // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
     // buffers or bounds; white flat colours. Returns 1.
     int CreateMesh();

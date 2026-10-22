@@ -35,14 +35,13 @@ namespace {
 const char* FontFace() { return "Times New Roman"; }
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
-void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 
 // A new CFont without a handle (null when the memory cannot be had).
 ui_gdi::GameFont* NewFont() {
     auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (!font) return nullptr;
     font->handle = nullptr;
-    font->vtable = FontVtable();
+    font->vtable = mfc::impl::CFont::Vtable();
     return font;
 }
 

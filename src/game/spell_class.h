@@ -4,8 +4,8 @@
 // with its tail 00743AA8), 00743AC8 (CSpellContainer, with its tails 00743ADC / 00743AE8), 007439C8
 // (CSpellConstructor) and 00743AFC (CLight): each tag overrides the slots its game.exe table changes with the bodies
 // that table reached. The constructor and destructor bodies (spell_lifetime.cpp, spell_manager.cpp,
-// party_lifetime.cpp, spell_cast.cpp, light.cpp) store them. The cast spell's 0074399C stays game.exe's (the harness's
-// digest recognises a CSpellEffect by it).
+// party_lifetime.cpp, spell_cast.cpp, light.cpp) store them. The cast spell's 0074399C is spell_lifetime.cpp's
+// SpellEffectClass (CSpellEffect::Vtable).
 
 #include "spell.h"
 

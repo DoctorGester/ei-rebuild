@@ -49,25 +49,25 @@ EI_REPLACE(0x0050E4F0, MapObjectZero);
 
 // 0050F110 (slot 42, RET 4): no key is accepted.
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
-EI_REPLACE_METHOD(0x0050F110, CMapObject::AcceptsNoKey);
+EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 
 // 0050E400 (slot 18, RET 4; AL): any animation may be played.
 bool CMapObject::AcceptsAnyAnimation(const void* /*animation*/) { return true; }
-EI_REPLACE_METHOD(0x0050E400, CMapObject::AcceptsAnyAnimation);
+EI_REWRITTEN(0x0050E400, CMapObject::AcceptsAnyAnimation);
 
 // 0050E960 (slot 33, RET 4): a scaling effect came or went; 1.
 int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
-EI_REPLACE_METHOD(0x0050E960, CMapObject::ScaleEffectChangedDefault);
+EI_REWRITTEN(0x0050E960, CMapObject::ScaleEffectChangedDefault);
 
 // 0050F0E0 (slot 40): the key the object asks for; none.
 int __fastcall MapObjectKeyId(CMapObject*) { return kNoKey; }
-EI_REPLACE(0x0050F0E0, MapObjectKeyId);
+EI_REWRITTEN(0x0050F0E0, MapObjectKeyId);
 
 // 0050E540 / 0050E550 (slots 59 / 60, ST0): a plain object does not move; its radius is 0.75.
 float __fastcall MapObjectMoveSpeed(CMapObject*) { return kNoSpeed; }
-EI_REPLACE(0x0050E540, MapObjectMoveSpeed);
+EI_REWRITTEN(0x0050E540, MapObjectMoveSpeed);
 float __fastcall MapObjectRadius(CMapObject*) { return kPlainRadius; }
-EI_REPLACE(0x0050E550, MapObjectRadius);
+EI_REWRITTEN(0x0050E550, MapObjectRadius);
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
@@ -76,10 +76,10 @@ CMapObject* CMapObject::DeleteMapObject(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0050E560, CMapObject::DeleteMapObject);
+EI_REWRITTEN(0x0050E560, CMapObject::DeleteMapObject);
 
 int CMapObject::CompanionIsDead() { return companion->IsDead(); }
-EI_REPLACE_METHOD(0x0050E500, CMapObject::CompanionIsDead);
+EI_REWRITTEN(0x0050E500, CMapObject::CompanionIsDead);
 
 int CMapObject::NotifyCompanion() {
     companion->Unused14();
@@ -95,7 +95,7 @@ void CMapObject::TakePrototypeImpl(const char* prototype) {
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
-EI_REPLACE_METHOD(0x0050E9B0, CMapObject::TakePrototypeImpl);
+EI_REWRITTEN(0x0050E9B0, CMapObject::TakePrototypeImpl);
 
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
@@ -132,10 +132,10 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
 void CMapObject::SaveTransformSlot(void* file) { SaveTransformImpl(file); }
-EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);
+EI_REWRITTEN(0x00516350, CMapObject::SaveTransformSlot);
 
 void CMapObject::LoadTransformSlot(void* file) { LoadTransformImpl(file); }
-EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);
+EI_REWRITTEN(0x00516360, CMapObject::LoadTransformSlot);
 
 // --- The virtual slots (vtable 0073DAA0) for the compiler's tables (C19) -------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.

@@ -35,7 +35,7 @@ void InitList(mfc::CList<T>& list, void* vtable) {
 
 CPlayer* CPlayer::Construct() {
     ClearFields();
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+    ei::SetVtable(this, CEngineObject::BaseVtable());
     link_ = nullptr;
     knownObjects_.InitBuckets(100);
     maxObjectId_ = 0;

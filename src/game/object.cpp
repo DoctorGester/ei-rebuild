@@ -38,7 +38,7 @@ float __fastcall UnitGetValue328(const CUnit* unit) { return FieldAt<float>(unit
 EI_REWRITTEN(0x004468A0, UnitGetValue328);
 
 const char* __fastcall FigureGetName(const CEngineObject* figure) { return FieldAt<const char*>(figure, 0x120); }
-EI_REPLACE(0x00453440, FigureGetName);
+EI_REWRITTEN(0x00453440, FigureGetName);
 
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure) { return FieldAt<const char*>(figure, 0x94); }
 EI_REWRITTEN(0x004547C0, FakeFigureGetName);
