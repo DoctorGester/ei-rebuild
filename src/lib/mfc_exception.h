@@ -48,7 +48,8 @@ struct CSimpleException {
     unsigned resourceId;    // +0x94 m_nResourceID
 
     // The four classes' constructors (BOOL autoDelete, UINT resourceId): CException(BOOL), the flags
-    // cleared, the resource id kept, the class's vtable (the one its destructor stores, below). Only the
+    // cleared, the resource id kept, the class's table (the one its destructor stores, below; compiled,
+    // C19, in place of game.exe's 0074646C, 00746484, 007465F8 and 00746610). Only the
     // static initialisers call them, on the static objects (resource ids AFX_IDS_RESOURCE_EXCEPTION ...).
     CSimpleException* ConstructResource(BOOL autoDeleteFlag, unsigned id);       // 006E68C9 (007C8C58, 0xF022)
     CSimpleException* ConstructUser(BOOL autoDeleteFlag, unsigned id);           // 006E6916 (007C8BC0, 0xF024)
@@ -96,7 +97,7 @@ struct CFileException {
 };
 static_assert(sizeof(CFileException) == 0x14);
 
-// CArchiveException (0x10 bytes, vtable 00746808).
+// CArchiveException (0x10 bytes; a compiled table, C19, in place of game.exe's 00746808).
 struct CArchiveException {
     enum Cause { none = 0, generic, readOnly, endOfFile, writeOnly, badIndex, badClass, badSchema };
 
@@ -105,7 +106,7 @@ struct CArchiveException {
     int cause;          // +0x08
     CString fileName;   // +0x0C
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00746808); }
+    static void* Vtable();
     void Destruct();                                        // 006E6BA1
     CArchiveException* DeletingDestructor(unsigned flags);  // 006E6B85 (vtable slot 1)
     // 0070A795 (slot 3): as CFileException's, with AFX_IDP_ARCH_NONE + cause.
@@ -114,7 +115,7 @@ struct CArchiveException {
 static_assert(sizeof(CArchiveException) == 0x10);
 
 // The destructors of the simple exceptions (CSimpleException's and CException's are empty): each
-// stores its class's vtable. The exit functions run them on MFC's static objects
+// stores its class's table (compiled, C19). The exit functions run them on MFC's static objects
 // (_simpleResourceException 007C8C58, _simpleUserException 007C8BC0, _simpleMemoryException 007C8DE8,
 // _simpleNotSupportedException 007C8D50); their deleting destructors call them too.
 void __fastcall ResourceExceptionDestruct(CException* self);       // 006E690F (vtable 0074646C)

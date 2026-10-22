@@ -507,7 +507,12 @@ vtable,slots,class,file,note
 00744288,3,DibClass,src/game/dib.cpp,CDib
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+0074646C,5,ResourceExceptionTable,src/lib/mfc_exception.cpp,CResourceException (_simpleResourceException)
+00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
 007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
 00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
+007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)
+00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
 007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
+00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
