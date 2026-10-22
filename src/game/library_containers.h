@@ -118,7 +118,6 @@ struct HeroRecordElement {
     static void Assign(MpHeroRecord& to, const MpHeroRecord& from) { to.Assign(&from); }
     static void Destroy(MpHeroRecord* p) { p->Destruct(); }
 };
-using HeroRecords = stlp::vector<MpHeroRecord>;
 // _M_insert_overflow(pos, x, n) (00619920; RET 0xC): a block of size + max(size, n) records (the
 // node allocator's pool for one record), [start, pos), n copies of x, [pos, finish); the old
 // records destroyed in order, the old block freed.

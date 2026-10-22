@@ -48,7 +48,7 @@ float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
 // The multiplayer heroes object (its vector at +4: SavedHero).
-void* MpHeroesObject() { return &TheSavedParties(); }
+SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
@@ -185,7 +185,7 @@ EI_REPLACE_METHOD(0x00617820, CMpHeroScreen::Update);
 // --- 00615850: Close (slot 26) -----------------------------------------------------------------
 
 void CMpHeroScreen::Close() {
-    static_cast<SavedParties*>(MpHeroesObject())->SaveAll();
+    MpHeroesObject()->SaveAll();
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* party = LocalPlayerData();
     for (int i = 0; i < party->members_.size; ++i) {
@@ -387,7 +387,7 @@ void CMpHeroScreen::ShowHero(int index) {
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
         player->Assign(MpHero(index));
-        static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
+        MpHeroesObject()->Select(SavedHero(static_cast<int>(index)));
     }
     MakePreview(1);
     auto* hero = Hero();

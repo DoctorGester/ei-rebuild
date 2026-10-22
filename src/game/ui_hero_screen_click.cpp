@@ -471,7 +471,7 @@ EI_REWRITTEN(0x00619150, MpHeroPlayVoice);
 
 namespace {
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
-void* MpHeroesObject() { return &TheSavedParties(); }
+SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = gamecrt::operator_new_as<CMpConnectScreen>();
@@ -494,7 +494,7 @@ void CMpHeroScreen::Continue() {
     CInterface3D* ui = window.interface_;
     ui->PlaySound(SoundOk(), 0);
     if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
-        static_cast<SavedParties*>(MpHeroesObject())->SaveAll();
+        MpHeroesObject()->SaveAll();
         ui->PushWindow(BuildConnectScreen(ui), 1, 1);
         return;
     }
@@ -571,8 +571,8 @@ MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
 }
 EI_REWRITTEN(0x0061A350, MpHeroRecord::Assign);
 
-void MpHeroRoster::Select(const MpHeroRecord* hero) { current.Assign(hero); }
-EI_REWRITTEN(0x00662F80, MpHeroRoster::Select);
+void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_.Assign(hero); }
+EI_REWRITTEN(0x00662F80, SavedParties::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
     Party()->Construct();   // 00661050 by address: its wrapper runs
@@ -604,8 +604,8 @@ EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
 const mfc::CString& MpHeroesFolder() { return TheSavedParties().folder_; }
-MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_; }
-MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().finish_; }
+MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_.Start(); }
+MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().entries_.Finish(); }
 // The count as the original computes it: a signed division, compared unsigned.
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
 constexpr std::uint32_t kListRows = 10;
@@ -658,7 +658,7 @@ EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 
 namespace {
-MpHeroRecord*& MpHeroesCapacity() { return TheSavedParties().eos_; }
+MpHeroRecord*& MpHeroesCapacity() { return TheSavedParties().entries_.EndOfStorage(); }
 const char* HeroFilePattern() { return "%s*.mp"; }
 const char* HeroFileFormat() { return "%d.mp"; }
 
@@ -716,7 +716,7 @@ void CMpHeroScreen::AddNewHero() {
     if (MpHeroesEnd() == MpHeroesCapacity()) {
         BlankHeroRecord blank;
         blank.record.Construct();
-        static_cast<libcontainers::HeroRecordAbi*>(reinterpret_cast<libcontainers::HeroRecords*>(&MpHeroesBegin()))
+        static_cast<libcontainers::HeroRecordAbi*>(&TheSavedParties().entries_)
             ->InsertOverflow(MpHeroesEnd(), blank.record, 1);   // 00619920
         blank.record.Destruct();
     } else {

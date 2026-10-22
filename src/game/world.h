@@ -25,6 +25,7 @@
 #include "lib/stlp.h"
 #include "maths.h"
 #include "originals_core.h"
+#include "party_storage.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -1888,7 +1889,39 @@ static_assert(sizeof(GameFlow) == 0x84);
 // destroyed by the exit function it registers (005784C0).
 extern lib::StaticObject<GameFlow> g_gameFlow;
 
-struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
+constexpr int kMpHeroSize = 0x74;
+// A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
+// (CParty, 0x70 bytes) and file name.
+struct MpHeroRecord {
+    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
+    // name. Returns this.
+    MpHeroRecord* Assign(const MpHeroRecord* other);
+    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
+    MpHeroRecord* Construct();
+    // 00619560. Destructor: the file name, then the party (006611D0).
+    void Destruct();
+    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
+    // destructor with flag 0). Returns this.
+    MpHeroRecord* DeletingDestruct(unsigned flags);
+    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
+    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
+    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
+    // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
+    // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
+    // stream and that written as a save file (magic 0x114, the save version), then the temporary
+    // file deleted.
+    void WriteFile(const char* folder);
+    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
+    // the versions 00790260..00790268): false when the file does not read, else the party loaded
+    // (with its variables) and the memory stream's ok flag.
+    bool ReadFile(const char* folder);
+    CParty* Party() { return party.Party(); }
+
+    PartyStorage party;              // +0x00 CParty (party_storage.h)
+    mfc::CString file;               // +0x70
+};
+static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
 // The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
@@ -1907,19 +1940,18 @@ struct SavedParties {
     // the party outside a game as an MpHeroRecord (the party 00661050, an empty file name). Returns
     // this.
     SavedParties* Construct();
+    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the party outside a game
+    // (MpHeroRecord's assignment, inlined in the original).
+    void Select(const MpHeroRecord* hero);
 
-    mfc::CString folder_;        // +0x00
-    MpHeroRecord* entries_;         // +0x04 vector<MpHeroRecord>: start, finish, end of storage
-    MpHeroRecord* finish_;          // +0x08
-    MpHeroRecord* eos_;             // +0x0C
-    // +0x10 the party outside a game (CParty, 0x70 bytes; 007C82B0) and a file name: an MpHeroRecord
-    // (ui_screens.h).
-    std::uint8_t outsideGame_[0x74];
-    MpHeroRecord* OutsideGame() { return reinterpret_cast<MpHeroRecord*>(outsideGame_); }
+    mfc::CString folder_;                   // +0x00
+    stlp::vector<MpHeroRecord> entries_;    // +0x04
+    // +0x10 the party outside a game (007C82B0; the hero screens' current hero) and a file name.
+    MpHeroRecord outsideGame_;
+    MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };
 static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);
-static_assert(offsetof(SavedParties, eos_) == 0x0C);
 static_assert(sizeof(SavedParties) == 0x84);
 // The saved parties (007C82A0; world_game.cpp), built empty by the static initialiser 0065F2A0.
 extern lib::StaticObject<SavedParties> g_savedParties;

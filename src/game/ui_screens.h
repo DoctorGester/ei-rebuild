@@ -786,55 +786,10 @@ static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
 static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
 static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
-constexpr int kMpHeroSize = 0x74;
-// A multiplayer hero record: its party (CParty, 0x70 bytes) and file name.
-struct MpHeroRecord {
-    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
-    // name. Returns this.
-    MpHeroRecord* Assign(const MpHeroRecord* other);
-    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
-    MpHeroRecord* Construct();
-    // 00619560. Destructor: the file name, then the party (006611D0).
-    void Destruct();
-    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
-    // destructor with flag 0). Returns this.
-    MpHeroRecord* DeletingDestruct(unsigned flags);
-    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
-    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
-    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
-    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
-    // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
-    // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
-    // stream and that written as a save file (magic 0x114, the save version), then the temporary
-    // file deleted.
-    void WriteFile(const char* folder);
-    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
-    // the versions 00790260..00790268): false when the file does not read, else the party loaded
-    // (with its variables) and the memory stream's ok flag.
-    bool ReadFile(const char* folder);
-    CParty* Party() { return party.Party(); }
-
-    PartyStorage party;              // +0x00 CParty (party_storage.h)
-    mfc::CString file;               // +0x70
-};
-static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 // The multiplayer heroes: the vector of SavedParties (TheSavedParties(), world.h).
-inline MpHeroRecord* SavedHero(int index) { return TheSavedParties().entries_ + index; }
-inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().finish_ - TheSavedParties().entries_); }
+inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
+inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
 
-// The multiplayer heroes (007C82A0; constructed by the static initialiser 0065F580): their folder,
-// the records (SavedHero above) and the current hero.
-struct MpHeroRoster {
-    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the current one
-    // (MpHeroRecord's assignment, inlined in the original).
-    void Select(const MpHeroRecord* hero);
-
-    mfc::CString folder;                    // +0x00
-    stlp::vector<MpHeroRecord> records;     // +0x04
-    MpHeroRecord current;                   // +0x10
-};
-static_assert(offsetof(MpHeroRoster, records) == 0x04 && offsetof(MpHeroRoster, current) == 0x10 &&
-              sizeof(MpHeroRoster) == 0x84);
 
 // --- In-game escape menu ----------------------------------------------------------------------
 //
