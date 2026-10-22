@@ -78,13 +78,12 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         return;
     }
     // The fourth component is an uninitialised stack slot in the original; only copied through.
-    float shaded[4];
-    float source[4] = {colour.x, colour.y, colour.z, 0.0f};
-    sun->AddDirectional(reinterpret_cast<Vector4*>(shaded), attenuation, reinterpret_cast<const Vector4*>(source),
-                        &record->normal);
-    record->lit.x = Max(shaded[0], ambient.x);
-    record->lit.y = Max(shaded[1], ambient.y);
-    record->lit.z = Max(shaded[2], ambient.z);
+    Vector4 shaded;
+    Vector4 source = {colour.x, colour.y, colour.z, 0.0f};
+    sun->AddDirectional(&shaded, attenuation, &source, &record->normal);
+    record->lit.x = Max(shaded.x, ambient.x);
+    record->lit.y = Max(shaded.y, ambient.y);
+    record->lit.z = Max(shaded.z, ambient.z);
 }
 
 void SectorData::LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* terrain, int layer) {
@@ -108,19 +107,18 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
             double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, kWaterFalloff);
             attenuation = AtLeastZero(static_cast<float>(1.0 - loss));
         }
-        float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
-        float shaded[4];
-        light->AddPoint(reinterpret_cast<Vector4*>(shaded), attenuation, reinterpret_cast<const Vector4*>(source),
-                        &record->normal, &direction, distance);
+        Vector4 source = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
+        Vector4 shaded;
+        light->AddPoint(&shaded, attenuation, &source, &record->normal, &direction, distance);
         if (light->flags_ & 0x40) {
-            specular.x = Max(specular.x, shaded[0]);
-            specular.y = Max(specular.y, shaded[1]);
-            specular.z = Max(specular.z, shaded[2]);
+            specular.x = Max(specular.x, shaded.x);
+            specular.y = Max(specular.y, shaded.y);
+            specular.z = Max(specular.z, shaded.z);
             hasSpecular = 1;
         } else {
-            colour.x = Max(colour.x, shaded[0]);
-            colour.y = Max(colour.y, shaded[1]);
-            colour.z = Max(colour.z, shaded[2]);
+            colour.x = Max(colour.x, shaded.x);
+            colour.y = Max(colour.y, shaded.y);
+            colour.z = Max(colour.z, shaded.z);
         }
         ref = next;
     }
