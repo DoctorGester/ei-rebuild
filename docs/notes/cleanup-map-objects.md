@@ -17,6 +17,9 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
   `CMapObjectClientSpecific` (0073DBEC; reads the owner as a unit through `Unit()`). Both classes' IsDead / IsOverkilled (slots 17 / 18) are
   overrides with shims in `unit.cpp`. The base's Destruct / Delete / Create / Destroy / Update are members (`DestructCompanion`,
   `DeleteCompanion`, ...).
+- `CObject3DClientSpecific : CObject3DSpecific` (map_object_shadow.h; `CObject3D::ClientSpecific()` is a static_cast). Its own bodies are
+  named apart from the base's slots so none overrides one (rule 4): ApplyWorldMaterials, SetMaterialsLit, DirtyRectContains, PartRectsContain,
+  PartRectsMeet; `FindPart` / `SetLit` on it are the base's slots 16 / 26.
 - `CObject3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
   `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::CreateTorch` is a member (`map_object_create.cpp`).
