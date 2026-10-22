@@ -114,8 +114,7 @@ struct TempDCTable final : DCTable<TempDCTable, &kClassCTempDC> {
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
         const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
-        CHandleMap* memory = gamecrt::operator_new_as<CHandleMap>();
-        map = memory ? memory->Construct(objectClass, handleOffset, handleCount) : nullptr;
+        map = new CHandleMap(objectClass, handleOffset, handleCount);
         SetAfxNewHandler(old);
     }
     return map;

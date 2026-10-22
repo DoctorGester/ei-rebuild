@@ -592,8 +592,8 @@ vtable,slots,class,file,note
 007467C8,1,AFX_MODULE_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CD6E / 0070CDA8, which no code of ours calls"
 007467D0,1,_AFX_BASE_MODULE_STATE,-,"an MFC state object: stored only by game.exe's 0070CEC9, which no code of ours calls"
 00746808,5,CArchiveException,src/lib/mfc_exception.h,CArchiveException
-0074685C,1,HandleMapTable,src/lib/mfc_handle_map.cpp,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
-0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
+0074685C,1,CHandleMap,src/lib/mfc_handle_map.h,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
+0074689C,3,CMapPtrToPtr,src/lib/mfc_handle_map.h,CMapPtrToPtr (the handle maps' maps)
 007469A0,4,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"
 00746DA8,46,PlainWndTable,src/lib/mfc_window.cpp,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
 00746E88,4,CTestCmdUI,-,"stored only by game.exe's 00705EA0, which no code of ours calls"

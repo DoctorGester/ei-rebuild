@@ -5,6 +5,7 @@
 // slots (real C++ classes since C28n), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
 // the game's name, so a handler of ours catches it by that name.
 
+#include "mfc_object.h"
 #include "mfc_string.h"
 #include "mfc_try.h"
 #include "game/game_data.h"
@@ -14,31 +15,20 @@
 
 namespace mfc::impl {
 
-struct CRuntimeClass;
-
-// CException (8 bytes): CObject's three slots (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize), then
-// CException's two (3 GetErrorMessage, 4 ReportError); m_bAutoDelete (a positive value: Delete frees the object).
-// On the game's heap.
-class CException {
+// CException (8 bytes): CObject's three slots, then CException's two (3 GetErrorMessage, 4 ReportError);
+// m_bAutoDelete (a positive value: Delete frees the object).
+class CException : public CObject {
 public:
     // 00702053: auto-delete on.
     CException() : autoDelete(TRUE) {}
     // 0070205D: auto-delete as given.
     explicit CException(BOOL autoDeleteFlag) : autoDelete(autoDeleteFlag) {}
 
-    virtual const CRuntimeClass* GetRuntimeClass() const = 0;                                // 0
-    virtual ~CException() = default;                                                          // 1
-    virtual void Serialize(void*) {}                                                          // 2: CObject's (00444B00)
     virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
     // 0070209C (4): the error message (slot 3) in a message box, or the prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE)
     // when there is none; the box's answer. The help context starts at 0 here (the original's is unset when slot 3
     // leaves it; the box ignores it).
     virtual int ReportError(unsigned type, unsigned error);
-
-    static void* operator new(std::size_t size) noexcept;
-    static void* operator new(std::size_t, void* place) noexcept { return place; }
-    static void operator delete(void* block);
-    static void operator delete(void*, void*) noexcept {}
 
     BOOL autoDelete;    // +0x04
 };

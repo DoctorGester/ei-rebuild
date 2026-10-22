@@ -14,6 +14,7 @@
 
 #include "crt.h"
 #include "mfc.h"
+#include "mfc_object.h"
 #include "ei/hook.h"
 #include "game/game_data.h"
 
@@ -50,27 +51,22 @@ extern gamecrt::NewHandler g_afxNewHandler;
 // The handler's address as the exe has it (our CriticalNewHandler in the image).
 inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::NewHandler>(0x0070AB1A); }
 
-// CMapPtrToPtr (0x1C bytes, vtable 0074689C): void* to void*, hashed by `key >> 4`.
-struct CMapPtrToPtr {
+// CMapPtrToPtr (0x1C bytes, game.exe's table 0074689C): void* to void*, hashed by `key >> 4`.
+class CMapPtrToPtr final : public CObject {
+public:
     struct Assoc {
         Assoc* next;    // +0x00
         void* key;      // +0x04
         void* value;    // +0x08
     };
 
-    void* vtable;               // +0x00
-    Assoc** table;              // +0x04 m_pHashTable
-    std::uint32_t hashSize;     // +0x08 m_nHashTableSize (17 until InitHashTable)
-    int count;                  // +0x0C m_nCount
-    Assoc* freeList;            // +0x10 m_pFreeList
-    CPlex* blocks;              // +0x14 m_pBlocks
-    int blockSize;              // +0x18 m_nBlockSize
+    // 007002C2: empty, 17 buckets (no table yet), associations in blocks of `blockSize`.
+    explicit CMapPtrToPtr(int blockSize);
+    // 00700375 (1; deleting 007002E9): RemoveAll.
+    ~CMapPtrToPtr() override;
+    // 0070D128 (0).
+    const CRuntimeClass* GetRuntimeClass() const override;
 
-    static void* Vtable();   // compiled (C19, mfc_handle_map.cpp) in place of game.exe's 0074689C
-
-    CMapPtrToPtr* Construct(int blockSize);                             // 007002C2 (returns this)
-    void Destruct();                                                    // 00700375
-    CMapPtrToPtr* DeletingDestructor(unsigned flags);                   // 007002E9 (vtable slot 1)
     void InitHashTable(std::uint32_t size, BOOL allocNow);              // 00700305
     void RemoveAll();                                                   // 0070034A
     Assoc* NewAssoc();                                                  // 0070039E
@@ -85,35 +81,42 @@ struct CMapPtrToPtr {
 
     // BEFORE_START_POSITION.
     static Assoc* StartPosition() { return reinterpret_cast<Assoc*>(-1); }
+
+    Assoc** table = nullptr;        // +0x04 m_pHashTable
+    std::uint32_t hashSize = 17;    // +0x08 m_nHashTableSize (17 until InitHashTable)
+    int count = 0;                  // +0x0C m_nCount
+    Assoc* freeList = nullptr;      // +0x10 m_pFreeList
+    CPlex* blocks = nullptr;        // +0x14 m_pBlocks
+    int blockSize;                  // +0x18 m_nBlockSize
 };
 static_assert(sizeof(CMapPtrToPtr) == 0x1C);
 static_assert(sizeof(CMapPtrToPtr::Assoc) == 12);
 
-// CHandleMap (0x48 bytes; a compiled table, C19, in place of game.exe's 0074685C: slot 0 the deleting destructor).
-struct CHandleMap {
-    void* vtable;
-    CMapPtrToPtr permanentMap;      // +0x04 (blocks of 10)
-    CMapPtrToPtr temporaryMap;      // +0x20 (blocks of 4, 7 buckets)
-    const CRuntimeClass* objectClass;   // +0x3C what FromHandle makes for an unknown handle
-    unsigned handleOffset;          // +0x40 where the object keeps its handle
-    int handleCount;                // +0x44 1, or 2 (a DC's output and attribute handles)
+// CHandleMap (0x48 bytes; game.exe's table 0074685C, one slot: the deleting destructor).
+class CHandleMap {
+public:
+    // 00703617: the two maps (the temporary one 7 buckets), the objects' class and where they keep their handles.
+    CHandleMap(const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);
+    // 006E6D08 (0; deleting 006E6CEC): DeleteTemp, then the two maps destroyed (members). The image's maps are never
+    // destroyed (mfc_gdi.cpp MapHDC / MapHGDIOBJ live until the process ends).
+    virtual ~CHandleMap();
 
-    static void* Vtable();
+    static void* operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    CHandleMap* Construct(const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);   // 00703617
-    // ~CHandleMap (006E6D08): DeleteTemp, then the two maps destroyed. The scalar deleting destructor (006E6CEC,
-    // slot 0): it, then the memory freed when bit 0 of `flags` is set. The image's maps are never destroyed
-    // (mfc_gdi.cpp MapHDC / MapHGDIOBJ live until the process ends).
-    void Destruct();
-    CHandleMap* DeletingDestructor(unsigned flags);
-    // 0070373B: every temporary object's handles cleared and the object deleted (slot 1 with 1), then the
-    // temporary map emptied. The original also returns at once for a null map (MFC's `this == NULL` test); every
+    // 0070373B: every temporary object's handles cleared and the object deleted, then the temporary map emptied. The original also returns at once for a null map (MFC's `this == NULL` test); every
     // caller here has one.
     void DeleteTemp();
     // 0070367C: the object of `handle` (null for null): the permanent one, else the temporary one,
     // else a new temporary object of objectClass (under the critical new handler; a CMemoryException
     // when none could be made). A temporary object's handles are (re)written.
     void* FromHandle(HANDLE handle);
+
+    CMapPtrToPtr permanentMap{10};      // +0x04 (blocks of 10)
+    CMapPtrToPtr temporaryMap{4};       // +0x20 (blocks of 4, 7 buckets)
+    const CRuntimeClass* objectClass;   // +0x3C what FromHandle makes for an unknown handle
+    unsigned handleOffset;              // +0x40 where the object keeps its handle
+    int handleCount;                    // +0x44 1, or 2 (a DC's output and attribute handles)
 
 private:
     void SetHandles(void* object, HANDLE handle) const;

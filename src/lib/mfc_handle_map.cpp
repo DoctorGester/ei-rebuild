@@ -3,7 +3,6 @@
 #include "mfc_handle_map.h"
 
 #include "ei/hook.h"
-#include "compiled_vtable.h"
 #include "mfc_exception.h"
 #include "mfc_runtime_class.h"
 #include "mfc_try.h"
@@ -53,41 +52,11 @@ EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);
 
 // ---- CMapPtrToPtr ---------------------------------------------------------------------------------
 
-namespace {
-// CMapPtrToPtr's compiled table (C19; game.exe's 0074689C): 0 GetRuntimeClass (its record), 1 the deleting destructor,
-// 2 Serialize (CObject's, empty).
-struct MapPtrToPtrTable final : ei::CompiledTag<MapPtrToPtrTable> {
-    virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCMapPtrToPtr; }   // 0: 0070D128
-    virtual void* DeleteScalar(unsigned flags) {                                            // 1: 007002E9
-        return ObjectAs<CMapPtrToPtr>()->DeletingDestructor(flags);
-    }
-    virtual void Serialize(void*) {}                                                        // 2: 00444B00
-};
-} // namespace
+CMapPtrToPtr::CMapPtrToPtr(int size) : blockSize(size) {}
 
-void* CMapPtrToPtr::Vtable() { return MapPtrToPtrTable::Vtable(); }
+CMapPtrToPtr::~CMapPtrToPtr() { RemoveAll(); }
 
-CMapPtrToPtr* CMapPtrToPtr::Construct(int size) {
-    table = nullptr;
-    count = 0;
-    freeList = nullptr;
-    blocks = nullptr;
-    vtable = Vtable();
-    hashSize = 17;
-    blockSize = size;
-    return this;
-}
-
-void CMapPtrToPtr::Destruct() {
-    vtable = Vtable();
-    RemoveAll();
-}
-
-CMapPtrToPtr* CMapPtrToPtr::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+const CRuntimeClass* CMapPtrToPtr::GetRuntimeClass() const { return &kClassCMapPtrToPtr; }
 
 // The old table is deleted; a new one of `size` empty buckets only when asked for.
 void CMapPtrToPtr::InitHashTable(std::uint32_t size, BOOL allocNow) {
@@ -200,9 +169,10 @@ void CMapPtrToPtr::GetNextAssoc(Assoc*& position, void*& key, void*& value) cons
     value = assoc->value;
 }
 
-EI_REWRITTEN(0x007002C2, CMapPtrToPtr::Construct);
-EI_REWRITTEN(0x00700375, CMapPtrToPtr::Destruct);
-EI_REWRITTEN(0x007002E9, CMapPtrToPtr::DeletingDestructor);
+EI_REWRITTEN_SPECIAL(0x007002C2, CMapPtrToPtr::CMapPtrToPtr);
+EI_REWRITTEN_SPECIAL(0x00700375, CMapPtrToPtr::~CMapPtrToPtr);
+EI_REWRITTEN_SPECIAL(0x007002E9, CMapPtrToPtr::~CMapPtrToPtr);   // deleting
+EI_REWRITTEN(0x0070D128, CMapPtrToPtr::GetRuntimeClass);
 EI_REWRITTEN(0x00700305, CMapPtrToPtr::InitHashTable);
 EI_REWRITTEN(0x0070034A, CMapPtrToPtr::RemoveAll);
 EI_REWRITTEN(0x0070039E, CMapPtrToPtr::NewAssoc);
@@ -215,25 +185,7 @@ EI_REWRITTEN(0x0070051D, CMapPtrToPtr::GetNextAssoc);
 
 // ---- CHandleMap -----------------------------------------------------------------------------------
 
-namespace {
-// CHandleMap's compiled table (C19; game.exe's 0074685C): 0 the deleting destructor (006E6CEC).
-struct HandleMapTable final : ei::CompiledDeleter<HandleMapTable, &CHandleMap::DeletingDestructor> {};
-} // namespace
-
-void* CHandleMap::Vtable() { return HandleMapTable::Vtable(); }
-
-void CHandleMap::Destruct() {
-    vtable = Vtable();
-    DeleteTemp();
-    temporaryMap.Destruct();
-    permanentMap.Destruct();
-}
-
-CHandleMap* CHandleMap::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+CHandleMap::~CHandleMap() { DeleteTemp(); }
 
 void CHandleMap::DeleteTemp() {
     CMapPtrToPtr::Assoc* position = temporaryMap.count ? CMapPtrToPtr::StartPosition() : nullptr;
@@ -242,20 +194,14 @@ void CHandleMap::DeleteTemp() {
         void* object;
         temporaryMap.GetNextAssoc(position, handle, object);
         SetHandles(object, nullptr);
-        if (object) static_cast<CObjectVirtuals*>(object)->DeletingDestructor(1);
+        delete static_cast<CObject*>(object);
     }
     temporaryMap.RemoveAll();
 }
 
-CHandleMap* CHandleMap::Construct(const CRuntimeClass* cls, unsigned offset, int handles) {
-    permanentMap.Construct(10);
-    temporaryMap.Construct(4);
-    vtable = Vtable();
+CHandleMap::CHandleMap(const CRuntimeClass* cls, unsigned offset, int handles)
+    : objectClass(cls), handleOffset(offset), handleCount(handles) {
     temporaryMap.InitHashTable(7, FALSE);
-    objectClass = cls;
-    handleOffset = offset;
-    handleCount = handles;
-    return this;
 }
 
 void CHandleMap::SetHandles(void* object, HANDLE handle) const {
@@ -286,9 +232,9 @@ void* CHandleMap::FromHandle(HANDLE handle) {
     return object;
 }
 
-EI_REWRITTEN(0x00703617, CHandleMap::Construct);
-EI_REWRITTEN(0x006E6D08, CHandleMap::Destruct);
-EI_REWRITTEN(0x006E6CEC, CHandleMap::DeletingDestructor);
+EI_REWRITTEN_SPECIAL(0x00703617, CHandleMap::CHandleMap);
+EI_REWRITTEN_SPECIAL(0x006E6D08, CHandleMap::~CHandleMap);
+EI_REWRITTEN_SPECIAL(0x006E6CEC, CHandleMap::~CHandleMap);   // deleting
 EI_REWRITTEN(0x0070373B, CHandleMap::DeleteTemp);
 EI_REPLACE_METHOD(0x0070367C, CHandleMap::FromHandle);
 

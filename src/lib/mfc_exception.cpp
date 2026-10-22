@@ -41,9 +41,6 @@ BOOL CauseMessage(unsigned base, int cause, const CString& fileName, char* error
 
 } // namespace
 
-void* CException::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
-void CException::operator delete(void* block) { gamecrt::operator_delete(block); }
-
 int CException::ReportError(unsigned type, unsigned error) {
     char message[kReportLength];
     unsigned helpContext = 0;

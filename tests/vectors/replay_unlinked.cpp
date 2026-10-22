@@ -106,7 +106,6 @@ mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc
 const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
 BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")
 int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
-void mfc::impl::CException::operator delete(void*) EI_UNLINKED("mfc::impl::CException::operator delete")
 void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
