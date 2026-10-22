@@ -107,10 +107,4 @@ CFigureManager::~CFigureManager() {
         Deallocate(buckets.Start(), static_cast<std::size_t>(buckets.EndOfStorage() - buckets.Start()) * 4);
 }
 
-// The registration (C20 retires it). The char* parameter is what world_deleting_destructors.cpp
-// declares.
-void __fastcall DestroyFigureManager(char* object) {
-    auto* manager = reinterpret_cast<CFigureManager*>(object);
-    manager->CFigureManager::~CFigureManager();
-}
-EI_REWRITTEN(0x005AA1C0, DestroyFigureManager);
+EI_REWRITTEN_SPECIAL(0x005AA1C0, CFigureManager::~CFigureManager);

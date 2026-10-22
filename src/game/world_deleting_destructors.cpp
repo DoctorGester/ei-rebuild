@@ -16,8 +16,6 @@
 #include "record_arrays.h"
 #include "game/game_slots.h"
 
-void __fastcall DestroyFigureManager(char* manager);   // figure_model_destroy.cpp (005AA1C0)
-
 namespace {
 
 // The shape of every one of them: the body, the memory freed when bit 0 is set, the object back.
@@ -51,10 +49,7 @@ ScriptPointLight* ScriptPointLight::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x0059DD70, ScriptPointLight::DeleteScalar);
 
-CFigureManager* CFigureManager::DeleteScalar(unsigned flags) {
-    return DestroyAndFree(this, flags, [](CFigureManager* manager) { DestroyFigureManager(reinterpret_cast<char*>(manager)); });
-}
-EI_REWRITTEN(0x005AA1A0, CFigureManager::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x005AA1A0, CFigureManager::~CFigureManager);   // deleting
 
 mapspec::Behaviour* mapspec::Behaviour::DeleteScalar(unsigned deleteFlags) {
     return DestroyAndFree(this, deleteFlags, [](mapspec::Behaviour* behaviour) { mapspec::BehaviourDestruct(behaviour); });

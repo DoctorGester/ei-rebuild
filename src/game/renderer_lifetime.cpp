@@ -125,9 +125,7 @@ CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
     helper_ = nullptr;
 }
-
-CSceneRenderer* CSceneRenderer::ConstructRenderer() { return new (this) CSceneRenderer(); }
-EI_REWRITTEN(0x00500A70, CSceneRenderer::ConstructRenderer);
+EI_REWRITTEN_SPECIAL(0x00500A70, CSceneRenderer::CSceneRenderer);
 
 CSceneRenderer::~CSceneRenderer() {
     CTextureDevice* device = device_;
@@ -136,9 +134,7 @@ CSceneRenderer::~CSceneRenderer() {
     // The helper's member destructor: released, the pointer left as it is.
     if (helper_ && --helper_->refs_ == 0) delete helper_;
 }
-
-void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
-EI_REWRITTEN(0x00500AC0, CSceneRenderer::DestructRenderer);
+EI_REWRITTEN_SPECIAL(0x00500AC0, CSceneRenderer::~CSceneRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers (00500930, 004F0B10)
 // in the list's order and destroyed by the exit functions those register (00500950, 004F0B30); all ported on the
@@ -150,9 +146,9 @@ constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
 namespace {
-void __cdecl DestroySceneRenderer() { g_sceneRenderer->DestructRenderer(); }   // 00500950
+void __cdecl DestroySceneRenderer() { g_sceneRenderer.Destroy(); }   // 00500950
 void __cdecl ConstructSceneRenderer() {                                        // 00500930
-    g_sceneRenderer->ConstructRenderer();
+    g_sceneRenderer.Construct();
     libcrt::AtExit(DestroySceneRenderer);
 }
 void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }   // 004F0B30

@@ -582,10 +582,6 @@ public:
     // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
     // (00500970) and binds it to `stage` through slot 11.
     int BindHeldTexture(int stage, HeldTexture* holder);
-    // 00500A70. The static initialiser's constructor: the renderer constructed in place. Returns this.
-    CSceneRenderer* ConstructRenderer();
-    // 00500AC0. The exit's destructor: the renderer's destructor, called qualified.
-    void DestructRenderer();
     // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.

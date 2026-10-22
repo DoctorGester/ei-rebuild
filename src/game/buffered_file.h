@@ -26,7 +26,7 @@ public:
         begin = nullptr;
         flags = 0;
     }
-    // 00580DF0 (slot 5 with BufferedFile's): ReleaseBlock.
+    // 00580DF0 (deleting: 00580E40, slot 5 with BufferedFile's): ReleaseBlock.
     ~BufferedStream() override { ReleaseBlock(); }
     // The deleting destructor (slot 5) frees into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -63,14 +63,6 @@ public:
     void Flush();
     // 004DAC80. Flush, then the block freed (begin = null; the other pointers left).
     void ReleaseBlock();
-    // 00580DD0 for game.exe's derived constructors: the constructor's fields (the vtable is the
-    // derived class's). Returns this.
-    BufferedStream* Construct();
-    // 00580DF0. Destructor body: ReleaseBlock (the original stores this vtable before and the view
-    // base's after).
-    void DestructBody();
-    // 00580E40 (RET 4): DestructBody, then operator delete when bit 0 of `flags` is set.
-    BufferedStream* DeletingDestruct(unsigned deleteFlags);
     // BeginWrite (00580EE0) is GameBuffer's: the quest file loader calls it on a growing buffer.
 
     // 004DB040 (slot 2). Moves the window so that it starts at the cursor's file position (Flush,
@@ -91,7 +83,7 @@ class BufferedFile : public BufferedStream {
 public:
     // The constructor the quest file loader inlines: BufferedStream's, no file.
     BufferedFile() : file(nullptr) {}
-    // 00580E60: Close, then BufferedStream's.
+    // 00580E60 (deleting: 00580EC0): Close, then BufferedStream's.
     ~BufferedFile() override { Close(); }
 
     int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }   // 7
@@ -108,11 +100,6 @@ public:
     // 004DB700 (RET 0xC). Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
-    // 00580E60. Destructor body: Close, then BufferedStream's (the original stores this class's,
-    // BufferedStream's and the view base's vtables in turn).
-    void DestructFile();
-    // 00580EC0 (RET 4): DestructFile, then operator delete when bit 0 of `flags` is set.
-    BufferedFile* DeletingDestructFile(unsigned deleteFlags);
 
     gamecrt::CrtFile* file;   // +0x1C
 };

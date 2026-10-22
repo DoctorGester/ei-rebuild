@@ -57,23 +57,9 @@ void BufferedStream::ReleaseBlock() {
 }
 EI_REWRITTEN(0x004DAC80, BufferedStream::ReleaseBlock);
 
-BufferedStream* BufferedStream::Construct() {
-    base = 0;
-    begin = nullptr;
-    flags = 0;
-    return this;
-}
-EI_REWRITTEN(0x00580DD0, BufferedStream::Construct);
-
-void BufferedStream::DestructBody() { ReleaseBlock(); }
-EI_REWRITTEN(0x00580DF0, BufferedStream::DestructBody);
-
-BufferedStream* BufferedStream::DeletingDestruct(unsigned deleteFlags) {
-    DestructBody();
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00580E40, BufferedStream::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00580DD0, BufferedStream::BufferedStream);
+EI_REWRITTEN_SPECIAL(0x00580DF0, BufferedStream::~BufferedStream);
+EI_REWRITTEN_SPECIAL(0x00580E40, BufferedStream::~BufferedStream);   // deleting
 
 std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
     flags |= kFlagUnwritten;
@@ -214,18 +200,8 @@ void BufferedFile::Close() {
 }
 EI_REWRITTEN(0x004DB680, BufferedFile::Close);
 
-void BufferedFile::DestructFile() {
-    Close();
-    ReleaseBlock();
-}
-EI_REWRITTEN(0x00580E60, BufferedFile::DestructFile);
-
-BufferedFile* BufferedFile::DeletingDestructFile(unsigned deleteFlags) {
-    DestructFile();
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00580EC0, BufferedFile::DeletingDestructFile);
+EI_REWRITTEN_SPECIAL(0x00580E60, BufferedFile::~BufferedFile);
+EI_REWRITTEN_SPECIAL(0x00580EC0, BufferedFile::~BufferedFile);   // deleting
 
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();

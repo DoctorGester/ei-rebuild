@@ -254,9 +254,6 @@ public:
                         Vector2* points, float* bounds);
     int RasterisePartImpl(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target);
 
-    // 004F2C00: the constructor in place (RET 0x14, returns this; the loader's LoadLinkFile / MakeFigure call it).
-    CLinkMesh* Construct(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
-
     // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
     // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
     int MemoryBytes() const;

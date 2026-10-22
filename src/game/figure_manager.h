@@ -38,7 +38,7 @@ public:
     // 005AA070 (figure_mesh_life.cpp). CResourceManager's constructor, an empty model map with
     // NextPrime(100) buckets.
     CFigureManager();
-    // 005AA1C0 (figure_model_destroy.cpp). Every cached model destroyed and freed, the base's
+    // 005AA1C0 (figure_model_destroy.cpp; deleting: 005AA1A0). Every cached model destroyed and freed, the base's
     // clean-up (00674F40), the model map cleared and its buckets freed, then CResourceManager's
     // destructor.
     ~CFigureManager() override;
@@ -51,9 +51,6 @@ public:
     CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }   // 23
     const char* GetFolderName() override;                                    // 25: 005AA170 "figures"
 
-    // 005AA1A0 (slot 0; world_deleting_destructors.cpp): the destructor, then operator delete when
-    // bit 0 of `flags` is set (returns this). A registration (C20 retires it), as Construct.
-    CFigureManager* DeleteScalar(unsigned flags);
     int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);

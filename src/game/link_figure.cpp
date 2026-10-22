@@ -114,11 +114,7 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float 
     loader_ = loader;
     pipeline_ = loader->renderer_->pipeline_->transform_;
 }
-
-CLinkMesh* CLinkMesh::Construct(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u) {
-    return new (this) CLinkMesh(loader, name, s, t, u);
-}
-EI_REWRITTEN(0x004F2C00, CLinkMesh::Construct);
+EI_REWRITTEN_SPECIAL(0x004F2C00, CLinkMesh::CLinkMesh);
 
 CLinkMesh::~CLinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
