@@ -1075,7 +1075,8 @@ across runs; the goldens check the game state.
     frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
     inverse times a mesh's clip matrix gives the mesh in the landscape's space; an orthographic view from the sun
     (tilted to at least 20 degrees as 0051CE60's) is fitted around every second terrain vertex inside the view (x, y
-    in steps of 8 units, origin on whole texels; 160 units of caster room towards the sun), 4096 x 4096 D32. The
+    in steps of 8 units, origin on whole texels; along the light from the nearest caster that reaches it, below),
+    4096 x 4096 D32. The
     casters' model meshes (first pass of each; alpha-tested or blended passes cut out by stage 0's alpha, read from
     the texture's level 0: a smaller level seen from the sun at a grazing angle averages fronds away;
     render_options_shadows' pine casts a denser shadow so, 0.9% of that frame) go into it in a depth-only pass. Receivers: the ground pages (not water: the ground under it) and the world's model meshes
@@ -1123,9 +1124,43 @@ across runs; the goldens check the game state.
     shadow for it). To tell which object a shadow belongs to: a temporary filter in DrawShadow (0051CE60) by object
     id, classic and map captured in one run, with kStrength 1 (map shadows black); a dump of the map (a staging copy
     of its D32 image) showed that adding casters only ever lowers its depths. R16j3 holds what is left (darkness
-    where shadows overlap, point lights). Open: casters the game does not draw (off screen) cast nothing, so a shadow can appear at the
-    screen's edge with its object; terrain does not cast (R16i); point lights do not cast. `run_all --widescreen`
-    runs with `classicshadows` (addon's frames have the decals).
+    where shadows overlap, point lights). Open: terrain does not cast (R16i); point lights do not cast.
+    `run_all --widescreen` runs with `classicshadows` (addon's frames have the decals).
+    **Casters outside the view (R20; the user: shadows popped in at the screen's edge with their objects).** The
+    game draws only what it sees, so an object just off screen (or a part of a drawn one that the part's own view
+    test left out) cast nothing onto the visible ground. Now the world's draw (CWorldClient::Render, after its
+    object draws; `world_client_shadow_casters.cpp`) walks the objects that can reach the map and hands over the
+    meshes the game did not draw, reading the game's objects only (no flag, pose, list or heap block of the game
+    changes; nothing the goldens record moves). Which casters: exact up to bounding-box conservativeness, with no
+    distance rule. A caster shadows the visible ground only if its box seen from the sun (the light-space box of
+    its bounding sphere: object bounds through its placement and extra scale) overlaps the map's x / y area (fitted
+    around the visible ground) and lies on the sun's side of the ground's far depth; towards the sun nothing
+    limits it (the receivers fix the far side), so `render::ShadowCasterReaches` tests exactly that and the map's
+    depth range starts at the nearest caster that passes (less 2 units), not at a fixed room before the ground
+    (the 160 units R16j kept are gone); the caster shader pancakes anything nearer onto the near plane. The
+    candidates come from the object grid's 16-unit sectors over the visible ground's world box swept back
+    towards the sun by the highest object's top over the ground (scanned every 32 frames) divided by the
+    tangent of the sun's elevation, widened by the widest radius (`render::ShadowCasterArea`); each then takes the
+    box test. The game's own filters stay: its object draw flags (0x40 objects, 0x80 units), a multiplayer
+    spectator's hidden units, CastsShadow's option, class switch, hidden and invisible tests (the strength
+    CastsShadow gave this frame when it ran for the object, a unit from half faded in). Each part is placed as
+    CObject3DClientSpecific::Draw (0051B7E0) places it (object placement x extra scale x part placement; parts
+    flagged hidden 0x80 or farther than 0073DE58 skipped; a link figure's part through its ranges, a plain one
+    through its buffers, per-vertex offsets added), with its part set's texture; a part the game drew as a
+    caster's mesh this frame is left out (`render::CasterPartDrawn`). Cut out by alpha as the on-screen meshes with
+    the same texture were (remembered per texture), else at alpha 0.5. Check: scenario render_shadows_outside
+    (image only): zone1's start, the town bz1g, and the town with the camera moved towards the viewer until the
+    gate is above the screen; each frozen with the outside casters (`shadowcasters all`, the default), without them
+    (`view`, as before R20) and with every caster taken from the walk and none from the game's draws (`walked`: the
+    frame matches the default at 8 / 0.01%, so the walk places, selects and cuts out meshes as the game's draws
+    do). At the start and in the town nothing outside reaches the visible ground (the sun is behind the scene,
+    the shadows fall towards the camera: frames the same at 8 / 0.01%); in the moved town the gate's long shadow
+    on the road is there with them and gone without them (1.8% of the frame). shadowcheck's second number:
+    the least casters outside the view. Cost (render_stats, vanilla 4K, per frame, run alone; outside / view):
+    the map's CPU time (fit, walk, hand-over, pass) zone1 start 0.40 / 0.36 ms (7 objects, 18 draws, 704 corners
+    outside), town 0.65-0.72 / 0.25-0.29 (26, 44, 35k), moved town 1.2-1.4 / 0.32-0.40 (32, 111, 83k); the map's
+    GPU pass within the runs' noise (0.21-0.69 ms either way). The corners are copied every frame (no cache
+    across frames yet).
 
 11. **R16k The device's mesh draws without the per-corner work nothing reads (done).** `device_mesh.cpp`. When
     `render::MeshCornersSkipped()` (the image with the new renderer on) the mesh draws 004E9010 / 004E9A50 still

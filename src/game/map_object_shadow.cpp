@@ -506,15 +506,21 @@ void MarkTexture(const CObject3DClientSpecific* self, bool made) {
 }
 } // namespace
 
+bool ShadowCastStrength(CObject3D* object, float* strength) {
+    if (ShadowMode() <= 0) return false;
+    if (!ShadowSwitch(object->GetClassId())) return false;
+    if (object->flags_ & kObjectHidden) return false;
+    if (ObjectSlots(object)->InvisibleSlot()) return false;   // invisible
+    *strength = 1.0f;
+    if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
+    return true;
+}
+
 int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
-    if (ShadowMode() <= 0) return 1;
-    if (!ShadowSwitch(object->GetClassId())) return 1;
-    if (object->flags_ & kObjectHidden) return 1;
-    if (ObjectSlots(object)->InvisibleSlot()) return 1;   // invisible
     // The game shows this object's shadow: in the new renderer's shadow map its meshes cast (R16j),
     // a unit as strongly as it has faded in.
     float strength = 1.0f;
-    if (CUnit* unit = UnitOrNull(object)) strength = unit->ClientController()->fadeIn;
+    if (!ShadowCastStrength(object, &strength)) return 1;
     render::CastsShadow(object, strength);
 
     if (!texture) {

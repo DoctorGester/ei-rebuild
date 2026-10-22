@@ -3542,6 +3542,15 @@ void RunSteps() {
             if (s.argument == "classic" || s.argument == "map") render::SetClassicShadows(s.argument == "classic");
             else if (s.argument == "rebuild") render::RebuildShadowTextures();
             else g_failures.push_back("shadows needs classic, map or rebuild");
+        } else if (s.verb == "shadowcasters") {
+            if (!render::Active()) {
+                Log("harness: shadowcasters %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "view") render::SetOffscreenCasters(render::OffscreenCasters::View);
+            else if (s.argument == "all") render::SetOffscreenCasters(render::OffscreenCasters::All);
+            else if (s.argument == "walked") render::SetOffscreenCasters(render::OffscreenCasters::Walked);
+            else g_failures.push_back("shadowcasters needs view, all or walked");
         } else if (s.verb == "shadowbuild") {
             if (!render::Active()) {
                 Log("harness: shadowbuild %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3605,8 +3614,9 @@ void RunSteps() {
             if (s.argument == "inplace" || s.argument == "remake") render::SetMemoryTexturesInPlace(s.argument == "inplace");
             else g_failures.push_back("memorytextures needs inplace or remake");
         } else if (s.verb == "shadowcheck") {
-            int least = 1;
-            if (sscanf_s(s.argument.c_str(), "%d", &least) < 1) {
+            // shadowcheck <least casters> [<least casters outside the view> (R20)]
+            int least = 1, leastOutside = 0;
+            if (sscanf_s(s.argument.c_str(), "%d %d", &least, &leastOutside) < 1) {
                 g_failures.push_back("shadowcheck needs the least number of casters");
                 continue;
             }
@@ -3615,18 +3625,19 @@ void RunSteps() {
                 continue;
             }
             render::ShadowInfo info = render::ShadowState();
-            char text[320];
+            char text[420];
             std::snprintf(text, sizeof(text),
                           "shadowcheck: %s, map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes and %d "
                           "ground batches sampling it (at least %d casters); shadowed objects not drawn %d, drawn but "
-                          "not cast %d",
+                          "not cast %d; outside the view %d casters in %d draws (%d corners)",
                           info.classic ? "classic" : "shadow map", info.made ? "made" : "not made", info.size,
                           static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
-                          info.receivingTerrain, least, info.offScreen, info.lost);
+                          info.receivingTerrain, least, info.offScreen, info.lost, info.outsideCasters,
+                          info.outsideDraws, info.outsideCorners);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (info.classic || !info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||
-                info.lost > 0)
+                info.lost > 0 || info.outsideCasters < leastOutside)
                 g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
             if (!render::Active()) {

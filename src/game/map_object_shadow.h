@@ -242,6 +242,12 @@ static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
 static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8 && offsetof(CObject3DClientSpecific, touchTime) == 0xEC);
 static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
+// Whether the game shows `object`'s shadow (0051CE60's tests: shadows on for its kind, the object
+// shown and not invisible) and, when it does, how strongly it casts in the new renderer's shadow map
+// (*strength: 1, a unit as far as it has faded in). Reads only; the shadow draw and the casters
+// outside the view (R20, world_client_shadow_casters.cpp) share it.
+bool ShadowCastStrength(CObject3D* object, float* strength);
+
 // The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes,
 // vtable 0073DF68 over the counted root 0073C368; 0051C3D0 makes it, slot 0 0051C710 deletes it):
 // blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6 (D3DBLEND_INVSRCALPHA), the renderer
