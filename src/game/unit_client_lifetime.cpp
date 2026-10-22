@@ -53,7 +53,7 @@ int CUnitClientSpecific::CreateClient() {
     blinks = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00533FE0, CUnitClientSpecific::CreateClient);
+EI_REWRITTEN(0x00533FE0, CUnitClientSpecific::CreateClient);
 
 void CUnitClientSpecific::DestroyClient() {
     for (CParticleSource*& source : sources) {
@@ -65,10 +65,10 @@ void CUnitClientSpecific::DestroyClient() {
     ReleaseFace(this);
     blinks = 0;
 }
-EI_REPLACE_METHOD(0x005340C0, CUnitClientSpecific::DestroyClient);
+EI_REWRITTEN(0x005340C0, CUnitClientSpecific::DestroyClient);
 
 void CUnitClientSpecific::DestructClientBody() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     for (CParticleSource*& source : sources) {
         if (!source) continue;
         source->Stop();
@@ -88,7 +88,7 @@ void CUnitClientSpecific::DestructClientBody() {
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
     list58.vtable = mfc::impl::CellListClass::Vtable();
     list58.RemoveAll();
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     DestructBase();
 }
@@ -96,7 +96,7 @@ EI_REWRITTEN(0x00533EA0, CUnitClientSpecific::DestructClientBody);
 
 CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     list58.vtable = mfc::impl::CellListClass::Vtable();
     list58.count = 0;
@@ -110,7 +110,7 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     header->next = header;
     header->prev = header;
     faceTexture = nullptr;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     fadeIn = 1.0f;
     return this;
 }

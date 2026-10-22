@@ -514,6 +514,9 @@ public:
     // 005FCDD0 (RET 0xC; ui_surface_create.cpp). Constructor over the layout rectangle `rect` (always
     // scaled) with format `format`; returns this.
     CUiSurface* ConstructOnRect(CInterface3D* ui, const RECT* rect, int format);
+    // 005FCF80 (RET 8; ui_surface_create.cpp). Constructor showing the picture "<name>.mmp" of the
+    // texture manager at its own size (screen rectangle 0, 0, width, height); returns this.
+    CUiSurface* ConstructFromPicture(CInterface3D* ui, mfc::CString name);
     // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).
     // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
     // stretched to that size through a temporary surface. 005FE440. Greys the surface in place

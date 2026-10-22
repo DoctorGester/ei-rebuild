@@ -151,7 +151,7 @@ void LockKey::WriteTo(CStream* stream) const {
 EI_REPLACE_METHOD(0x00522A30, LockKey::WriteTo);
 
 void Lever::WriteLeverNetState() {
-    MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));
+    WriteNetStateImpl();
     DeltaField* field = NetState()->BeginField(kLeverField);
     if (!field) return;
     EI_NAN_AUDIT(to, scale.y);
@@ -168,7 +168,7 @@ void Lever::WriteLeverNetState() {
 EI_REPLACE_METHOD(0x0052B560, Lever::WriteLeverNetState);
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
-    std::uint32_t complete = MapObjectReadNetState(reinterpret_cast<std::uint8_t*>(this), nullptr, first);
+    std::uint32_t complete = ReadNetStateImpl(first);
     DeltaField* field = NetState()->BeginField(kLeverField);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));

@@ -982,7 +982,7 @@ across runs; the goldens check the game state.
    (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active() and not ClassicShadows(); the harness's
    `shadowbuild full` makes them as before, for A/B frames and timings): RenderShadow still projects the parts'
    points (bounds, quad), reads whether a part is keyed (`KeyedParts`, which the original read in the raster's loop)
-   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / RasteriseFigureMesh, BlurShadow /
+   and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`) and, after SetTexture and EdgeFade, the
    ClassicShadowDecal / DrawFlatBlocks pair are skipped. A switch to classic needs the textures again, and objects
    with flags 0x600 (animated, then static: class 0x54 map objects, 2 at zone1's start, 4-8 in bz1g) are not rebuilt
@@ -1252,3 +1252,45 @@ call, so they grow with the frame rate, and a followed unit's position changes o
 - Harness for it: `keydown` / `keyup` (a key held over frames; the navigation keys extended as from a keyboard, which
   the game's key table needs: held without the bit, the arrows did not pan at all), `frametime <ms>`,
   `smoothcamera on|off`, `camtrace` / `camsame` / `camsmooth` (tests/verify/harness_camera.h).
+
+## 15. The performance overlay (R21)
+
+User 2026-10-22: a small performance overlay in the standalone, switched on from the settings file, no UI.
+
+- **Switch**: in ei_settings.ini next to ei_standalone.exe (docs/notes/standalone.md, "Settings file"; play.cmd's is
+  run\play\ei_settings.ini):
+  ```
+  [Software\Nival Interactive\EvilIslands\Standalone]
+  "PerfOverlay"=dword:00000001
+  ```
+  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, directdraw_holder.cpp, after
+  `render::StartPresenting`) into `render::SetPerfOverlay`. **Never in a harness run**: the harness build
+  (EI_RENDER_VALIDATION) has `render::PerfOverlaySupported()` false, so the value is not even read (the pinned
+  settings file lacks it, and a read of a missing value fails a run) and SetPerfOverlay keeps it off.
+- **What it shows** (top left of the game image, refreshed every 250 ms, averages over the last second):
+  `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the frame's draws
+  and the present (worst too), split into `SHADOW` (the shadow map's passes), `WORLD` (the frame's draws up to the
+  end of the world view, the shadow map left out; the interface canvases' and uploads' work queued before it counts
+  here), `UI` (the rest of the frame: the interface) and `PRESENT` (the window's pass: the frame through the gamma
+  ramp, the cursor, the overlay); `CPU SUBMIT` the main thread's time in EndFrame's draws up to the present (the
+  present's wait left out; draws already made by a split earlier in the frame are not in it) and of it `SHADOW` the
+  shadow map's fitting and pass; `DRAWS` FrameStats::draws and the shadow map's draws. `GPU -` until timestamps
+  come back (or when the device has none).
+- **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): six timestamps a frame (frame begin at the first
+  DrawPending, around DrawShadowMap, after the last world command, before and after DrawToWindow) in a disjoint
+  query; five sets in flight, read with `DONOTFLUSH` when a later frame begins (never waiting; a set not ready waits
+  for a later frame, a disjoint one is dropped). A mark not reached (no shadow map, no world) takes the one before
+  it. The text is a built-in 5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 image (digits brighter
+  than labels), uploaded when the text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540
+  rows of the game image, so 4 at 2160) over a 60% black box, in the present's pass after the frame and the
+  cursor (the cursor passes under it).
+- **Never in the frame target**: captures, frame checks, the Scroll Lock screenshot, the movie recorder and the
+  escape menu's / save game's pictures read the frame target, which never holds it. The cursor thread's presents
+  between frames (a frame later than 40 ms, R9c2) show the last frame without it.
+- **Cost**: off, a flag test at each entry point (the commands' world test only when on). On: six query Ends and a
+  few non-blocking GetData calls a frame, one 6-vertex draw in the present's pass, a CPU text image of about
+  250 x 50 bytes made and uploaded at most four times a second.
+- **Check**: `ei_perf_check` (tools/perf_check, run by build.cmd) on a WARP device: the lines of known numbers, the
+  font, the image's pixels; the overlay over a cleared BGRA8 target at 720 and 2160 rows against the image scaled up
+  (every pixel); 40 frames of timestamps (the GPU times come back, the passes within the total). No harness
+  scenario: the overlay is never on in a run.

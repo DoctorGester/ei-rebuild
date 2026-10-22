@@ -408,7 +408,7 @@ void CEffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
     // Without a source the original goes on and reads through the null pointer.
     if (source_ != nullptr) {
-        auto* followed = static_cast<CEngineObject*>(source_->attachedTo);
+        CEngineObject* followed = source_->attachedTo;
         if (followed != nullptr) {
             if (followed->id_ == attachedTo_) return;
         } else if (attachedTo_ == -1) {

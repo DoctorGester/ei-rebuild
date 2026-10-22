@@ -70,6 +70,7 @@ extern const ShaderBytecode kTerrainShader;                   // render_terrain.
 extern const ShaderBytecode kPresentShader;                   // render_window.cpp
 extern const ShaderBytecode kIntoMultisampledShader;          // render_smooth.cpp
 extern const ShaderBytecode kCasterShader, kReduceShader, kDilateShader;   // render_shadows.cpp
+extern const ShaderBytecode kPerfOverlayShader;               // render_perf.cpp
 extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
     kUiBlitShader;   // render_ui.cpp
 // The smooth option's depth copy for a multisampled target of `samples` (2, 4 or 8); null ranges for

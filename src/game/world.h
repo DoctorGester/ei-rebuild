@@ -66,10 +66,7 @@ class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
-// hoover_loot.cpp. 00461CB0 (RET 0x18; ECX the world's hoover, not read): the loot of the dead
-// `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
-int __fastcall HooverCollectLoot(void* hoover, void*, CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
-                                 mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
+
 class CWorldServer;
 
 namespace world {
@@ -194,7 +191,8 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots
+    // Virtual slots after CEngineObject's 13 (the compiled tags of world_class.h; game.exe's server
+    // vtable 0073F928, client 0073F41C). Slots
     // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
     // `void Name()` keep their place in the order only (their return types are not declared; give
     // them their signature when calling them); rewritten slots stay plain members, rewrite guide
@@ -287,7 +285,7 @@ public:
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
     // 0055EAB0 (world_create.cpp; the two worlds' constructors 005612F0 / 00589ED0). The base
-    // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
+    // constructor: the engine object's fields, the base vtable (BaseVtable()), no figure loader, helper,
     // session or managers, the clock at 0 and the empty countdown array. Returns this.
     CWorld* ConstructBase();
     // 0055EC80 (S13a, world_destructors.cpp; also the end of the client's 00561B00 and the
@@ -299,7 +297,8 @@ public:
     // is set. Returns this.
     CWorld* DeletingDestruct(unsigned flags);
 
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
+    // The base's compiled table (CWorldBaseClass, world_class.h; game.exe's 0073F18C).
+    static void* BaseVtable();
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -419,7 +418,7 @@ static_assert(sizeof(SharedObject) == 0x20);
 // MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The game rules side (vtable 0073F928).
+// The game rules side (game.exe's vtable 0073F928; world_class.h's CWorldServerClass).
 class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
@@ -605,10 +604,12 @@ public:
     // 00589ED0 (the static initialiser 00589BE0). The constructor: the base (ConstructBase), the
     // members' constructors in order (the zone exits, the update map, the strings and .mob list, the
     // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
-    // queue stream), the three lists), the vtable 0073F928, then ResetState. Returns this.
+    // queue stream), the three lists), the vtable (Vtable()), then ResetState. Returns this.
     CWorldServer* Construct();
+    // The compiled table (CWorldServerClass, world_class.h; game.exe's 0073F928).
+    static void* Vtable();
     // world_destructors.cpp
-    // 0058AAD0 (the global's exit function 00589C00). The vtable 0073F928, Teardown, then the members
+    // 0058AAD0 (the global's exit function 00589C00). The vtable (Vtable()), Teardown, then the members
     // last to first: the lists, the zone header, the id maps, the strings, the diplomacy (its Reset),
     // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
     // list, the zone name, the update map, the zone exits, then the base body (CWorld::Destruct).
@@ -1026,6 +1027,9 @@ struct SectorCellObjects : stlp::list<CEngineObject*> {
 };
 using SectorList = SectorCellObjects;
 using SectorListNode = SectorList::Node;
+// The client's filed objects (+0xB8): the same plain STLport list, of map objects only (every
+// object filed is one the player client created through the map object manager, or a unit).
+using MapObjectList = stlp::list<CMapObject*>;
 // A cell's list destroyed (world_client_maps.cpp; STLport's list<counted pointer>::~list, 0056DEF0
 // / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
 // and its node returned to the pool, the sentinel last.
@@ -1261,7 +1265,7 @@ static_assert(offsetof(MatrixDevice, objectStack) == 0x24);
 static_assert(offsetof(MatrixDevice, viewStack) == 0x5C);
 inline MatrixDevice* TheMatrixDevice() { return ei::GameData<MatrixDevice*>(0x007AF068); }
 
-// The drawing side (vtable 0073F41C).
+// The drawing side (game.exe's vtable 0073F41C; world_class.h's CWorldClientClass).
 class CWorldClient : public CWorld {
 public:
     // Body of the slot at 005618C0 (registered by member pointer).
@@ -1392,11 +1396,11 @@ public:
     // session of kind 1 (+0x6EC >= 1, unit +0x24C clear); then the list +0xB8 (with a
     // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
     // text-key id, the list +0xB4. Returns 1.
-    int AddObject(CEngineObject* object);
+    int AddObject(CMapObject* object);
     // 005651A0 (RET 4; a platform object moved: 0052B490, the client's 00668840). When an object
     // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
     // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
-    void RefreshPlatforms(CEngineObject* object);
+    void RefreshPlatforms(CMapObject* object);
     // 0056D7E0 (RET 4). Files `object` in the synchronised list +0xBC and the id map +0xD8 (as
     // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
     // are not a result; the callers do not read it).
@@ -1595,8 +1599,10 @@ public:
     // (ConstructBase), the members' constructors in order (the zone exits, the counted array, the
     // lists and maps, both sector grids at 1 x 1, the ground print lists, the platform set, the rain
     // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
-    // 0073F41C and the fields it zeroes. Returns this.
+    // (Vtable()) and the fields it zeroes. Returns this.
     CWorldClient* Construct();
+    // The compiled table (CWorldClientClass, world_class.h; game.exe's 0073F41C).
+    static void* Vtable();
     // 00561B00 (S13a, world_destructors.cpp; also the global client world's exit function). The
     // destructor's body: the client vtable, Teardown, then the members last to first (the window
     // names, the lists, the rain and snow layer, the platforms, the handle, the ground prints, both
@@ -1620,7 +1626,7 @@ public:
     // own SetSize 00570000 releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
     CountedPtrs<CParticleSource> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
-    SectorList objects_;                  // +0x0B8 every filed object (one reference each)
+    MapObjectList objects_;               // +0x0B8 every filed object (one reference each)
     // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and
     // the highest id at +0x0EC (Segment drops those whose update returns 0).
     mfc::CList<CEngineObject*> dynamicObjects_;

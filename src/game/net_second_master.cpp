@@ -93,7 +93,7 @@ std::string Names(std::uint8_t* count) {
     const stlp::SharedRefList& bindings = GameServer()->bindings_;
     for (auto* node = bindings.First(); node != bindings.End(); node = node->next) {
         auto* binding = static_cast<BindingMessage*>(node->data.ptr);
-        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        auto* player = binding->Player();
         const char* name = player->name_.data();
         std::size_t length = std::strlen(name);
         names.push_back(static_cast<char>(length + 1));

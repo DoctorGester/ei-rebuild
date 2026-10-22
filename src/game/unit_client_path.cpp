@@ -131,9 +131,8 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
 void CUnitClientSpecific::PlaceOnPath(float time, float rate) { PlaceOnPathOf(this, time, rate); }
 EI_REWRITTEN(0x00535850, CUnitClientSpecific::PlaceOnPath);
 
-// 00535B20 (slot 41 MotionChanged; A-U12): the unit placed on its new path at the time it was last
-// advanced to, without turning.
+// 00535B20 (A-U12; unit_client_models.h).
 void __fastcall ClientMotionChanged(CUnitClientSpecific* self) {
     self->PlaceOnPath(self->lastTime, 0.0f);
 }
-EI_REPLACE(0x00535B20, ClientMotionChanged);
+EI_REWRITTEN(0x00535B20, ClientMotionChanged);

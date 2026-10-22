@@ -86,6 +86,14 @@ struct RefPtr {
 };
 static_assert(sizeof(RefPtr) == 4);
 
+// A RefPtr field whose object is always a T (a network message of one class): RefPtr's layout
+// and operations, the object read typed.
+template <typename T>
+struct RefPtrTo : RefPtr {
+    T* Get() const { return static_cast<T*>(ptr); }
+};
+static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
+
 // refptr_copies.cpp (ECX the holder, EDX the object). 00427D50 and its 15 identical copies: `self`
 // holds `object` without a reference; returns self. 00421360 and its identical copies: clears it.
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);

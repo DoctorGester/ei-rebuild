@@ -218,6 +218,13 @@ struct ListAbi : list<T> {
         *out = List::template InsertDefault<E>(pos);
         return out;
     }
+    // list(const list& x) (e.g. 00437930; RET 4): a sentinel, then insert(end(), x.begin(), x.end());
+    // returns this.
+    List* CopyConstruct(const List* from) {
+        List::Construct();
+        List::template InsertRange<E>(this->head, from->First(), from->End());
+        return this;
+    }
     // insert(pos, first, last) (e.g. 004795B0; RET 0xC).
     void InsertRange(Node* pos, const Node* first, const Node* last) {
         List::template InsertRange<E>(pos, first, last);

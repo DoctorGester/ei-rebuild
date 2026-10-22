@@ -2009,11 +2009,11 @@ std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
     auto* world = ei::GamePointer<CWorldClient>(kClientWorld);
     if (argument == "faces") HarnessLoadUnitFaces(world);
-    SectorListNode* head = world->objects_.head;
+    MapObjectList::Node* head = world->objects_.head;
     if (!head) return "blink: no client world";
     int faces = 0;
-    for (SectorListNode* node = head->next; node != head; node = node->next) {
-        CEngineObject* object = node->data;
+    for (MapObjectList::Node* node = head->next; node != head; node = node->next) {
+        CMapObject* object = node->data;
         if (!object || object->GetClassId() != kClassUnit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (!half || !half->faceTexture) continue;

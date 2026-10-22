@@ -144,11 +144,10 @@ void ReadScripts(Chunk* chunk, mfc::CString* scripts, bool encoded) {
 
 } // namespace
 
-bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplomacy* diplomacy,
-                              mfc::CString* scripts) {
+bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts) {
     bool flag = true;
-    root->ReadHeader();
-    Chunk child(root);
+    ReadHeader();
+    Chunk child(this);
     do {
         child.ReadHeader();
         const std::uint32_t id = child.id_;
@@ -165,12 +164,12 @@ bool __fastcall ReadMobChunks(Chunk* root, void*, MobRecords* records, ZoneDiplo
         if (id == kChunkFlagOn) flag = true;
         else if (id == kChunkFlagOff) flag = false;
         child.SkipContent();
-    } while (root->size_ != root->consumed_);
+    } while (size_ != consumed_);
     return flag;
 }
-EI_REWRITTEN(0x00481F00, ReadMobChunks);
+EI_REWRITTEN(0x00481F00, MobFile::ReadChunks);
 
-bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
+bool MobFile::Load(void*, int keepIds) {
     MobRecords records;
     records.byId.InitBuckets(100);
     records.maxId = 0;
@@ -180,7 +179,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
     alignas(mfc::CString) std::uint8_t scriptsStorage[sizeof(mfc::CString)];   // destroyed by hand, in order
     auto* scripts = new (scriptsStorage) mfc::CString();
 
-    if (ReadMobChunks(root, nullptr, &records, diplomacy, scripts)) {
+    if (ReadChunks(&records, diplomacy, scripts)) {
         CDiplomacy* table = GameDiplomacy();
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
@@ -217,6 +216,6 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
     records.byId.Destroy();
     return true;
 }
-EI_REWRITTEN(0x00481660, LoadMobFile);
+EI_REWRITTEN(0x00481660, MobFile::Load);
 
 } // namespace mapspec

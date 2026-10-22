@@ -428,13 +428,13 @@ int CUnitServer::Level() {
     const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
 }
-EI_REPLACE_METHOD(0x00556760, CUnitServer::Level);
+EI_REWRITTEN(0x00556760, CUnitServer::Level);
 
 void CUnitServer::UpdateSpellBlockFlag() {
     if (unit->HasEffect(0x20) && Combat().naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
     else unit->flags_ &= ~kFlagSpellBlocked;
 }
-EI_REPLACE_METHOD(0x00553220, CUnitServer::UpdateSpellBlockFlag);
+EI_REWRITTEN(0x00553220, CUnitServer::UpdateSpellBlockFlag);
 
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
@@ -482,7 +482,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     std::memcpy(&out->attackSpread, &Combat().attackSpread, sizeof(float));
     out->ScaleForDifficulty(keyed);
 }
-EI_REPLACE_METHOD(0x00555A00, CUnitServer::GetAttackParams);
+EI_REWRITTEN(0x00555A00, CUnitServer::GetAttackParams);
 
 float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     AttackParams theirs;
@@ -680,7 +680,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     brain.SetSeen(attacker);
     return 0;
 }
-EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);
+EI_REWRITTEN(0x00553F40, CUnitServer::TakeHit);
 
 namespace {
 // One size class of 00552FB0: by the load first, then by `size`.
@@ -711,7 +711,7 @@ void CUnitServer::UpdateSizeClasses() {
     combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);
     combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);
 }
-EI_REPLACE_METHOD(0x00552FB0, CUnitServer::UpdateSizeClasses);
+EI_REWRITTEN(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
@@ -755,4 +755,4 @@ void CUnitServer::UpdateMoveFactors() {
     else if (speed > kSpeedSlow) speedClass = 7;
     else speedClass = 15;
 }
-EI_REPLACE_METHOD(0x005536B0, CUnitServer::UpdateMoveFactors);
+EI_REWRITTEN(0x005536B0, CUnitServer::UpdateMoveFactors);

@@ -85,7 +85,7 @@ std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
 EI_REPLACE_METHOD(0x0052C2C0, CTorchObject::AttachTorchObject);
 
 void CTorchObject::WriteTorchNetState() {
-    MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));
+    WriteNetStateImpl();
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return;
     std::uint32_t value = spec->lightKind_;
@@ -100,7 +100,7 @@ void CTorchObject::WriteTorchNetState() {
 EI_REPLACE_METHOD(0x0052C180, CTorchObject::WriteTorchNetState);
 
 std::uint32_t CTorchObject::ReadTorchNetState(int first) {
-    std::uint32_t complete = MapObjectReadNetState(reinterpret_cast<std::uint8_t*>(this), nullptr, first);
+    std::uint32_t complete = ReadNetStateImpl(first);
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return complete;
     spec->ReadNetState(field);

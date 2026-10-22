@@ -126,7 +126,7 @@ void EraseValue(stlp::SharedRefList& list, const void* value) {
 
 // The player record of a login, through its binding.
 PlayerMessage* PlayerOf(LoginMessage* login) {
-    return static_cast<PlayerMessage*>(static_cast<BindingMessage*>(login->binding_.ptr)->PlayerRef().ptr);
+    return login->binding_.Get()->Player();
 }
 
 // 0041AD80 (channel 1): the client's login changed: its player record takes the state and id,
@@ -143,9 +143,9 @@ EI_REPLACE(0x0041AD80, ServerOnPlayerChanged);
 // players list, and when it was the host the first remaining player becomes the host (its version
 // goes up); then the binding is removed from the bindings list.
 void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
-    auto* binding = static_cast<BindingMessage*>(message->binding_.ptr);
+    auto* binding = message->binding_.Get();
     if (!Live(binding)) return;
-    auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+    auto* player = binding->Player();
     if (Live(player)) {
         std::uint8_t wasHost = player->host_;
         EraseValue(self->players_, player);

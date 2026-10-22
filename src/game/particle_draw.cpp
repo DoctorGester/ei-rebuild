@@ -3,6 +3,7 @@
 // introsort (as instantiated in game.exe: median of three, unguarded partition, heap sort at the
 // depth limit, insertion sort below 16 elements) and drawn in that order. Names are provisional.
 #include "effects.h"
+#include "map_object_figures.h"
 
 #include "engine_object.h"
 
@@ -110,7 +111,7 @@ void SetRenderState(void* renderer, int source, int dest) {
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has flag 0x400000.
 bool AttachedToHiddenUnit(const CParticleSource* s) {
-    auto* object = static_cast<CEngineObject*>(s->attachedTo);
+    CEngineObject* object = s->attachedTo;
     if (!object) return false;
     return object->GetClassId() == 0x50 && !(object->flags_ & 0x400000);
 }

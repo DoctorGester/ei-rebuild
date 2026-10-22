@@ -601,7 +601,7 @@ public:
     void TearDownObject3D();
 
     // The side-specific half (+0x94).
-    CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
+    CObject3DSpecific* Specific() const { return attached; }
     // The same half on the client: the CObject3DClientSpecific (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;
     // The figure (+0xF0) as the counted reference 00519580 assigns.
@@ -609,7 +609,7 @@ public:
     // The object as the CTransformObject it starts with (core_transform.h).
 
     Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
-    CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
+    CObject3DSpecific* attached;    // +0x094 the side half: the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
     std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)

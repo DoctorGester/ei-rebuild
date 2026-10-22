@@ -114,8 +114,13 @@ struct SameObject {
 // element that is the same object, erased through 00572270.
 void ListRemoveHeld(list<CEngineObject*>* self, CEngineObject* const& value);
 
-// for_each(first, last, f) (00571780; RET 0xC) over a HeldObject list with a functor that releases
-// each object (slot 4, when there is one); the nodes stay. Returns the functor (one byte).
-char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f);
+// for_each(first, last, f) (00571780; RET 0xC) over a list of counted objects with a functor that
+// releases each object (slot 4, when there is one); the nodes stay. Returns the functor (one byte).
+template <typename T>
+char ListForEachRelease(typename list<T*>::Node* first, typename list<T*>::Node* last, char f) {
+    for (; first != last; first = first->next)
+        if (first->data) first->data->Release();
+    return f;
+}
 
 } // namespace stlp

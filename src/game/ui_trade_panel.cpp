@@ -38,7 +38,7 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 
 // The text table (GameClientTexts, 00578E20): 004DEFC0 whether it has a key (RET 4), 004DF8D0 the found text into a
 // CString (RET 8), 004E0020 the text of a key (RET 8).
-int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
+
 
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (recordvec::TradeRowVector's).
 
@@ -138,6 +138,7 @@ void CTradePanel::BuildLists() {
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
     void* table = GameClientTexts();
+    CTextManager* texts = static_cast<CTextManager*>(table);
     Clear(&perks_);
     Clear(&learnable_);
     Clear(&schools_);
@@ -149,7 +150,7 @@ void CTradePanel::BuildLists() {
     for (int i = 0; i < 6; ++i) {
         TradeRow* row = PushBack(&schools_, blank);
         if (HasPerkText(table, names[i]))
-            TextReadLine(table, nullptr, &row->name, 1);
+            texts->ReadLine(&row->name, 1);
         else
             row->name = names[i];
         row->level = stats->skills[i];
@@ -158,7 +159,7 @@ void CTradePanel::BuildLists() {
     {
         TradeRow* row = PushBack(&science_, blank);
         if (HasPerkText(table, names[6]))
-            TextReadLine(table, nullptr, &row->name, 1);
+            texts->ReadLine(&row->name, 1);
         else
             row->name = names[6];
         row->level = stats->attributes[0];
@@ -180,7 +181,7 @@ void CTradePanel::BuildLists() {
         TradeRow* row = PushBack(&perks_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
-            TextReadLine(table, nullptr, &text, 1);
+            texts->ReadLine(&text, 1);
         else
             text = record->field0;
         if (level > 1)
@@ -212,7 +213,7 @@ void CTradePanel::BuildLists() {
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))
-            TextReadLine(table, nullptr, &row->name, 1);
+            texts->ReadLine(&row->name, 1);
         else
             row->name = record->field0;
         row->price = stats->SkillPrice(record);

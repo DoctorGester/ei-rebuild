@@ -380,6 +380,8 @@ public:
     // nothing. 00552F30 (slot 53): slot 45 (UpdateMoveFactors; CUnitServer is the only class with
     // this vtable).
     CUnitServer* DeletingDestruct(int flags);
+    // The compiled table (CUnitServerClass, unit_controller_slots.cpp; game.exe's 0073EF38).
+    static void* Vtable();
     AIPath* MotionSlot();
     void EmptySlot17();
     void UpdateMoveFactorsSlot53();

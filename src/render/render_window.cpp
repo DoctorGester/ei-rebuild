@@ -8,6 +8,7 @@
 #include "render.h"
 #include "render_game.h"
 #include "render_internal.h"
+#include "render_perf.h"
 
 #include "../hook/log.h"
 
@@ -458,6 +459,7 @@ bool DrawToWindow(const BlitBatch* cursor) {
     sg_range cursorRange{&cp, sizeof(cp)};
     sg_apply_uniforms(1, &cursorRange);
     sg_draw(0, 3, 1);
+    perf::Draw(clientWidth, clientHeight, placed);   // R21: over the frame and the cursor, off unless switched on
     sg_end_pass();
     return true;
 }

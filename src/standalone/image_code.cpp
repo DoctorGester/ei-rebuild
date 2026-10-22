@@ -31,11 +31,6 @@ namespace ei {
 
 namespace {
 
-// game.exe's code section (.text, 0x401000-0x73A670).
-constexpr std::uintptr_t kTextBegin = 0x00401000;
-constexpr std::uintptr_t kTextEnd = 0x0073A670;
-
-bool InText(std::uintptr_t address) { return address - kTextBegin < kTextEnd - kTextBegin; }
 
 struct CodeCell {
     std::uintptr_t cell;     // a dword of game.exe's .rdata or .data
@@ -133,7 +128,7 @@ std::vector<std::uintptr_t*> g_notedPointers;   // FixUpCodePointer's before the
 
 std::uintptr_t CodeAddress(std::uintptr_t address) {
     ++g_lookups;
-    if (!Standalone() || !InText(address)) return address;
+    if (!Standalone() || !InGameText(address)) return address;
     if (const void* to = RedirectedTo(address)) return reinterpret_cast<std::uintptr_t>(to);
     if (void* replacement = Registered(address)) return reinterpret_cast<std::uintptr_t>(replacement);
     return reinterpret_cast<std::uintptr_t>(Stub(address));
@@ -145,7 +140,7 @@ std::uintptr_t BindCode(CodeLink* link) {
     ++g_forwarderLookups;
     const std::uintptr_t address = link->address;
     const std::uintptr_t code = CodeAddress(address);
-    if (Standalone() && InText(address) && !Registered(address)) return code;
+    if (Standalone() && InGameText(address) && !Registered(address)) return code;
     AcquireSRWLockExclusive(&g_linkLock);
     if (g_binding && !RedirectedTo(address)) {
         if (!link->next) {
@@ -170,7 +165,7 @@ void SetCodeBinding(bool on) {
 bool RedirectedByHarness(std::uintptr_t address) { return RedirectedTo(address) != nullptr; }
 
 bool HasCode(std::uintptr_t address) {
-    return !Standalone() || !InText(address) || RedirectedTo(address) || Registered(address);
+    return !Standalone() || !InGameText(address) || RedirectedTo(address) || Registered(address);
 }
 
 void RedirectCode(std::uintptr_t address, const void* to) {

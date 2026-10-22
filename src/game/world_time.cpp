@@ -19,7 +19,7 @@ void CWorld::SetTimeImpl(float hours) {
     timeBase_ = static_cast<float>(hours - elapsed);
 }
 
-EI_REPLACE_METHOD(0x0055FB30, CWorld::SetTimeImpl);
+EI_REWRITTEN(0x0055FB30, CWorld::SetTimeImpl);
 
 void CWorld::SetTimeSpeedImpl(float speed) {
     // The time of day now, stored as a float before the speed changes.
@@ -31,7 +31,7 @@ void CWorld::SetTimeSpeedImpl(float speed) {
     SetTime(now);
 }
 
-EI_REPLACE_METHOD(0x0055FB50, CWorld::SetTimeSpeedImpl);
+EI_REWRITTEN(0x0055FB50, CWorld::SetTimeSpeedImpl);
 
 double CWorld::NightLevel() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
@@ -70,7 +70,7 @@ void CWorldServer::SetTimeImpl(float hours) {
     UpdateWeather();
 }
 
-EI_REPLACE_METHOD(0x0058EEA0, CWorldServer::SetTimeImpl);
+EI_REWRITTEN(0x0058EEA0, CWorldServer::SetTimeImpl);
 
 void CWorldServer::SetTimeSpeedImpl(float speed) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
@@ -79,7 +79,7 @@ void CWorldServer::SetTimeSpeedImpl(float speed) {
     UpdateWeather();
 }
 
-EI_REPLACE_METHOD(0x0058EEE0, CWorldServer::SetTimeSpeedImpl);
+EI_REWRITTEN(0x0058EEE0, CWorldServer::SetTimeSpeedImpl);
 
 void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
     // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.

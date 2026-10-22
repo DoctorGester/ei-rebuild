@@ -360,6 +360,10 @@ server), `PlaySpeakerAnimation` (the controller's +0x978 callback 006023F0), `Vi
 `PersonTextMap::Load` (also the battle screen's setup), `FinishDialogue` (completes "b.*.<topic>" through 00592090's
 address), `MovePerson` (RET 0x28).
 
+Meshes: 0 / 1 the topics' backdrop and frame (shown in state 1 only), 2 / 3 the text's backdrop and frame, then the people's
+slots. Update hides them all each frame, then state 1 shows 0 and 1 and states 3 / 4 show 2 onwards (not 0 and 1: showing every
+mesh drew the topics' frame inside the text's, W5; ui_widescreen_dialogue's phrase frame and ui_gallery_base show it).
+
 Layout: speakers +0x1A4 hero, +0x1A8 person, +0x1AC third; places_ +0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2]
 third), thirdPlace_ / thirdDirection_ +0x210 / +0x21C, personHome_ / personHomeDirection_ +0x228 / +0x234, firstPhrase_ +0x244,
 dialogueText_ +0x248, speaking_ +0x254, shown_ +0x278 (BriefingShownItem list), immediate_ +0x27C, autosave_ +0x27E, people_

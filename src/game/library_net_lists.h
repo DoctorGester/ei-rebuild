@@ -92,14 +92,6 @@ struct ChunkElement {
 
 // ---- The members -----------------------------------------------------------------------------------
 
-// list(const list& x) (00437930, 00437F60, 00438690; RET 4): a sentinel, then insert(end(),
-// x.begin(), x.end()); returns self.
-template <typename T, typename E>
-stlp::list<T>* __fastcall CopyConstruct(stlp::list<T>* self, void*, const stlp::list<T>* from) {
-    self->Construct();
-    stlp::list<T>::template InsertRange<E>(self->head, from->First(), from->End());
-    return self;
-}
 
 using SentItemAbi = stlp::ListAbi<SentRecord, SentRecordElement>;
 using SentPacketAbi = stlp::ListAbi<PacketRecord, PacketRecordElement>;
@@ -115,10 +107,15 @@ struct ClientsNode {
 };
 static_assert(sizeof(ClientsNode) == sizeof(net::ClientNode));
 
-// find_if(first, last, same peer address) (0043D780 through 0043FB30; thiscall on out, RET 0xC): the
-// first node whose connection's address has the 16 bytes of `address`, or last; returns out.
-ClientsNode** __fastcall FindClientByAddress(ClientsNode** out, void*, ClientsNode* first, ClientsNode* last,
-                                             const net::NetAddress* address);
+// An iterator of the clients' list (its node), as find_if returns it.
+struct ClientsIterator {
+    ClientsNode* node;
+
+    // find_if(first, last, same peer address) (0043D780 through 0043FB30; RET 0xC): the first node
+    // whose connection's address has the 16 bytes of `address`, or last, into this; returns this.
+    ClientsIterator* FindByAddress(ClientsNode* first, ClientsNode* last, const net::NetAddress* address);
+};
+static_assert(sizeof(ClientsIterator) == 4);
 
 // The clients' counted pointer made from a raw connection (0043D7D0; ECX the pointer, EDX the
 // connection): stored without a reference; returns the pointer.

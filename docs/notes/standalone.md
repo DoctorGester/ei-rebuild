@@ -1027,6 +1027,27 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
     0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness
     digest names them), and world_data's unit spec tables 0073C6E0 / 0073FA58 (map spec, C21).
+- **Batch 16's families** (2026-10-22): the worlds', the unit controllers' and the map object companions' tables: 9
+  rows (retired 346 -> 355), 5,175 -> 4,825 code cells.
+  - **Worlds** (world_class.h): `WorldClass<Self, T>` declares CWorld's slots 13-41 over EngineObjectClass with the
+    base's bodies (13-23 the getters, 24 CParty::MakeCopyOf, 27-30 `_purecall`); CWorldBaseClass (0073F18C:
+    ConstructBase and CWorld::Destruct store `CWorld::BaseVtable()`), CWorldClientClass (0073F41C, its own slot 42
+    MoveObject2) and CWorldServerClass (0073F928). The height slots return double (ST0) from the float bodies.
+  - **Unit controllers** (unit_controller_slots.cpp): `ControllerClass<Self, T>` declares CUnitController's slots
+    13-53 with the base's bodies; ControllerBaseClass (0073EDBC: every controller's constructor stores
+    `CUnitController::Vtable()` first, its destructor body last), CUnitClientSpecificClass (0073ECD8) and
+    CUnitServerClass (0073EF38). Slots whose original is a plain RET are void (CUnit passes EAX of 23 / 44 / 49 / 53
+    on; nothing was seen to use it). The deleting destructors are `DeletingDestruct` (EngineObjectClass's slot 0
+    needs the name).
+  - **Map object companions** (map_object_companion_slots.cpp): `CompanionClass<Self, T>` (slots 13-19);
+    CompanionBaseClass (0073DC54, `CMapObjectCompanion::BaseVtable()`), CMapObjectClientSpecificClass (0073DBEC) and
+    CMapObjectServerClass (0073DD6C, slot 20 TakeHit). Slot 13 takes a bool (the client's OnEffectsChanged reads
+    the low byte).
+  - **check_fp_fold**: once CWorld::SetTimeSpeedImpl lost its slot registration the compiler inlined it into the
+    server's (0058EEE0); its 1/15 is 0055FB50's own double (tools/check_fp_fold_allow.txt).
+  - **Left in world* / unit***: the tamed mode 0073F0C4 is PlayerMode's table (an AI mode: the harness digest names
+    it, `aimode::kTamedVtable`), with the other AI modes once the digest has another id; world_data's unit spec
+    tables 0073C6E0 / 0073FA58 (C21).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
@@ -1109,7 +1130,9 @@ the `--no-hooks` suite) keeps the registry.
 - **Who uses it**: CWinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
-  ui_widescreen, world_client_draw's draw radii). `ReadValue` reads the registry (read only) outside the image.
+  ui_widescreen, world_client_draw's draw radii, directdraw_holder's `Standalone` "PerfOverlay": the performance
+  overlay, renderer.md section 15, not read in the harness build). `ReadValue` reads the registry (read only)
+  outside the image.
 - **Read filters** change a value as it is read, as the registry hooks did on game.exe's import slot: EI_GAME_ROOT's
   Work path / CD-ROM Path (hook/paths.cpp) and the harness's `discprompt` (harness_startup.cpp).
 - **Harness runs** (tests/verify/harness_settings.h): the harness writes `<run folder>\ei_settings.ini` at start

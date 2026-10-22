@@ -105,7 +105,7 @@ void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
         for (RefNode* n = bindings_.First(); n != bindings_.End(); n = n->next) {
             auto* binding = ValueOf<BindingMessage>(n);
             if (binding->ConnectionRef().ptr != g_currentConnection) continue;
-            record = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+            record = binding->Player();
             if (record->host_) hosting = true;
             PushReplicated(*out, binding, 2);
         }

@@ -97,6 +97,9 @@ struct QuestDatabase {
     // 006AE0F0 (database_construct.cpp; the static initialiser 006ADF10). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
     QuestDatabase* Construct();
+    // 006AE8E0 (RET 4; quest_database.cpp). The quests of a registry file in memory (`image`) filed
+    // into the database; false when it is not a registry.
+    bool LoadRegistry(const void* image);
     // 006ADF40 (database_destruct.cpp, S3c; the exit function 006ADF30). The members from the
     // last: each index's nodes and buckets, then its records and their storage.
     void Destruct();
@@ -109,9 +112,6 @@ static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // 007C87A8, database_globals.cpp
 inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 
-// 006AE8E0 (thiscall on the database, RET 4; quest_database.cpp). The quests of a registry file in
-// memory (`image`) filed into the database; false when it is not a registry.
-bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image);
 
 class CFileRegistry;   // registry.h
 // 006AE740 (__fastcall registry, section; key and list on the stack, RET 8; quest_database.cpp,
