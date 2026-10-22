@@ -1086,15 +1086,15 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
-    alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, kLocalHost, net::g_gamePort);
+    net::NetAddress address = {};
+    AddressSet(&address, nullptr, kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-        net::GameClient()->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
+        net::GameClient()->Join(&address, &hello);
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;

@@ -9,6 +9,7 @@
 #include "game_strings.h"
 
 #include "buffered_file.h"
+#include "lib/static_object.h"
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
@@ -169,8 +170,8 @@ bool ServerRuns() {
 struct LocalBuffer {
     LocalBuffer() { Get()->ConstructGrowing(); }
     ~LocalBuffer() { Get()->DestructGrowing(); }
-    GameBuffer* Get() { return reinterpret_cast<GameBuffer*>(storage); }
-    alignas(GameBuffer) std::uint8_t storage[sizeof(GameBuffer)];
+    GameBuffer* Get() { return storage.Get(); }
+    lib::InPlace<GameBuffer> storage;
 };
 
 // The game server lists the file at `path` under `name` for its clients: the whole file, read

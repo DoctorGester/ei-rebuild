@@ -199,7 +199,7 @@ void CWorldServer::ClearMapObjects() {
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)
-        ObjectHolderRelease(reinterpret_cast<CEngineObject**>(&node->data));   // 0059DDB0
+        ObjectHolderRelease(&node->data);   // 0059DDB0
     counted_.RemoveAll();
 
     countdowns_.RemoveAll();
