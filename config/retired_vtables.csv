@@ -219,12 +219,12 @@ vtable,slots,class,file,note
 0073DAA0,61,MapObjectBaseClass,src/game/map_object_tables.cpp,"CMapObject's own table (Construct / DestructBody; slots 11, 12 _purecall)"
 0073DB94,3,DeltaFieldArrayClass,src/game/record_arrays.h,CArray<DeltaField> (a map object's network records)
 0073DBA0,3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
-0073DBEC,20,CMapObjectClientSpecificClass,src/game/map_object_companion_slots.cpp,the map objects' client companion (CMapObjectClientSpecific)
+0073DBEC,20,CMapObjectClientSpecific,src/game/unit.h,the map objects' client companion
 0073DC3C,3,EffectSoundArrayClass,src/lib/mfc_slots.h,CArray (a map object's effect sounds)
 0073DC48,3,EffectObjectArrayClass,src/game/game_slots.h,CArray (a map object client's effect records)
-0073DC54,20,CompanionBaseClass,src/game/map_object_companion_slots.cpp,the map object companions' base (CMapObjectCompanion)
+0073DC54,20,CMapObjectCompanion,src/game/map_object.h,the map object companions' base
 0073DCD8,26,CMapObjectManager,src/game/unit_create.h,
-0073DD6C,21,CMapObjectServerClass,src/game/map_object_companion_slots.cpp,the map objects' server companion (CMapObjectServer)
+0073DD6C,21,CMapObjectServer,src/game/unit.h,the map objects' server companion
 0073DDD4,5,Object3DBaseClass,src/game/map_object_tables.cpp,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)

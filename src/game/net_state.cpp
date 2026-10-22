@@ -198,7 +198,7 @@ std::uint32_t CMapObject::ReadNetStateImpl(int first) {
         field->ReadRaw(&effect->ending, 1);
     }
     if (GetClassId() != world::kClassUnit)
-        companion->EffectsChanged(first == 0 ? 1 : 0);
+        companion->EffectsChanged(first == 0);
     complete &= SnapshotConsumed();
     field->EndField();
     return complete;
@@ -380,7 +380,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
-        unit->companion->EffectsChanged(first == 0 ? 1 : 0);
+        unit->companion->EffectsChanged(first == 0);
         field->EndField();
     }
     if (changed) {

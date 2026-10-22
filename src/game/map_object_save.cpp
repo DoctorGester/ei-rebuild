@@ -72,7 +72,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
 }
 EI_REWRITTEN(0x0050F900, CMapObject::SaveMapObject);
 
-void CMapObjectServer::LoadServer(CStream* stream) {
+void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&vitals, sizeof(vitals));
     {
         ReadText text(stream);
@@ -90,9 +90,9 @@ void CMapObjectServer::LoadServer(CStream* stream) {
         strings.SetAtGrow(strings.size, *text.text);
     }
 }
-EI_REWRITTEN(0x005159D0, CMapObjectServer::LoadServer);
+EI_REWRITTEN(0x005159D0, CMapObjectServer::Load);
 
-void CMapObjectServer::SaveServer(CStream* stream) {
+void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
     WriteText(stream, name78);
     WriteText(stream, name7C);
@@ -100,4 +100,4 @@ void CMapObjectServer::SaveServer(CStream* stream) {
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);
 }
-EI_REWRITTEN(0x00515AC0, CMapObjectServer::SaveServer);
+EI_REWRITTEN(0x00515AC0, CMapObjectServer::Save);

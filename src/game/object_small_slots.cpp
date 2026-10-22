@@ -32,7 +32,7 @@ void CMapObject::FreeArray(UseSpotArray* array, int) {
 }
 EI_REWRITTEN(0x0050F120, CMapObject::FreeArray);
 
-int CMapObjectClientSpecific::CreateClientCompanion() {
+int CMapObjectClientSpecific::Create() {
     lightStateA = 0;
     lightStateB = 0;
     mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
@@ -40,21 +40,21 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
     owner = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
+EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::Create);
 
-int CMapObjectServer::CreateServer() {
+int CMapObjectServer::Create() {
     owner = nullptr;
     vitals.Reset();
     return 1;
 }
-EI_REWRITTEN(0x005157C0, CMapObjectServer::CreateServer);
+EI_REWRITTEN(0x005157C0, CMapObjectServer::Create);
 
-void CMapObjectServer::DestroyServer() {
+void CMapObjectServer::Destroy() {
     vitals.Reset();
     strings.SetSize(0, -1);
     owner = nullptr;
 }
-EI_REWRITTEN(0x005157E0, CMapObjectServer::DestroyServer);
+EI_REWRITTEN(0x005157E0, CMapObjectServer::Destroy);
 
 int CMapObject::CompanionQuery(int first, int second, int) {
     return companion->Query(first, second);

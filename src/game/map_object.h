@@ -401,41 +401,42 @@ constexpr int kResetScale = 30;           // 0x78
 // vtable 0073EA8C, derives from CMapObject).
 using CMapObjectVirtuals = CMapObject;
 
-// A map object's companion (CMapObjectServer / CMapObjectClientSpecific, unit.h, derive from it) as
-// the base class calls it. CompanionSlots takes an object handed over as a companion.
-class __declspec(novtable) CMapObjectCompanion : public CEngineObject {
+// A map object's companion (CMapObjectServer / CMapObjectClientSpecific, unit.h, derive from it; this
+// abstract base had game.exe's vtable 0073DC54). CompanionSlots takes an object handed over as a
+// companion.
+class CMapObjectCompanion : public CEngineObject {
 public:
-    void HitNothing(int, int);
-    int QueryNothing(int, int);
-    void IgnoreArgument(int);
-    // The base's compiled table (CompanionBaseClass, map_object_companion_slots.cpp; game.exe's 0073DC54): the
-    // companions' constructors store it first, their destructor bodies last.
-    static void* BaseVtable();
+    // The base constructor both companions inline: the engine object's fields, no map object.
+    CMapObjectCompanion() {
+        ClearFields();
+        owner = nullptr;
+    }
+    // map_object_companion_slots.cpp. 00510730 (deleting: 00510710): no map object.
+    ~CMapObjectCompanion() override;
+    int Create() override;    // 2: 00510750, no map object; 1
+    void Destroy() override;  // 3: 00510760, no map object
+    int RunTick() override { return UpdateCompanion(); }   // 6: 005106E0 (0)
 
-    virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
-    virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
+    // The base's empty bodies the companions' tables pointed at (registered at their addresses).
+    void HitNothing(int, int);
+    void IgnoreArgument(int);
+    int UpdateCompanion();
+
+    // 13: the object's effect list changed (`first`: it arrived with the object). Client 005117D0;
+    // server 005106D0 (empty, RET 4).
+    virtual void EffectsChanged(bool) {}
+    virtual void Unused14() {}       // 14: empty in both (client 005104B0, server 00515810)
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
     // 16: a hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server 005106F0 (empty, RET 8);
     // client 005117F0: for a living, visible-flag (0x400000) object, 0056CE40 with the object's id.
-    virtual void Hit(int damage, int kind);
+    virtual void Hit(int, int) {}
     // 17 (0x44): whether the object is dead (server 005156A0: hit points rounded to 16 bits <= 0;
     // client 005104D0: the unit's hit points <= 0).
-    virtual int IsDead();
-    virtual int IsOverkilled();      // 18: server 005156C0, client 005104F0 (unit.h)
-    // 19 (0x4C, RET 4): client 00511A00 (CMapObjectClientSpecific::SetLightMode), server 00510700
-    // (empty). Neither sets a result; the objects' slot 47 (004467C0) passes EAX on as it is.
-    virtual std::uintptr_t SetLightMode(int mode);
-
-    // map_object_companion_slots.cpp: the base's own bodies of CEngineObject's slots (other names,
-    // so they are no overrides). 00510730: the destructor body (BaseVtable(), no map object,
-    // the engine object's). 00510710 (slot 0, RET 4): that, then operator delete with flags bit 0;
-    // returns this. 00510750 / 00510760 (slots 2 / 3): no map object (Create returns 1). 005106E0
-    // (slot 6, the per-tick update): 0.
-    void DestructCompanion();
-    CMapObjectCompanion* DeletingDestruct(unsigned flags);
-    int CreateCompanion();
-    void DestroyCompanion();
-    int UpdateCompanion();
+    virtual int IsDead() = 0;
+    virtual int IsOverkilled() = 0;  // 18: server 005156C0, client 005104F0 (unit.h)
+    // 19 (0x4C, RET 4): client 00511A00, server 00510700 (empty). Neither sets a result; the objects'
+    // slot 47 (004467C0) passes EAX on, which nothing reads, so it is void.
+    virtual void SetLightMode(int) {}
 
     CMapObject* owner;              // +0x1C the map object (CMapObject::AttachCompanion sets it)
 };

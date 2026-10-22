@@ -70,11 +70,6 @@ void InitEngineObject(CEngineObject* object) {
     object->owner_ = nullptr;
 }
 
-// A CString member (some layouts keep it as its data pointer): constructed empty (afxEmptyString's
-// data), or destroyed.
-void ConstructString(void* string) { new (string) mfc::CString(); }
-void DestroyString(void* string) { static_cast<mfc::CString*>(string)->~CString(); }
-
 // A plain CArray member: its vtable, then its data freed.
 template <typename Array>
 void DestroyArray(Array& array, std::uintptr_t vtable) {
@@ -350,37 +345,22 @@ EI_REWRITTEN(0x0052E2A0, CUnit::DeletingDestructor);
 
 // --- Companions -------------------------------------------------------------------------------
 
-CMapObjectServer* CMapObjectServer::Construct() {
-    InitEngineObject(this);
-    SetVtable(this, CMapObjectCompanion::BaseVtable());
-    owner = nullptr;
-    ConstructString(&name78);
-    ConstructString(&name7C);
+CMapObjectServer::CMapObjectServer() {
     strings.Construct();
-    SetVtable(this, CMapObjectServer::Vtable());
-    owner = nullptr;
     vitals.Reset();
-    return this;
 }
-EI_REWRITTEN(0x00515610, CMapObjectServer::Construct);
+EI_REWRITTEN_SPECIAL(0x00515610, CMapObjectServer::CMapObjectServer);
 
-void CMapObjectServer::DestructBody() {
-    SetVtable(this, CMapObjectServer::Vtable());
+CMapObjectServer::~CMapObjectServer() {
     vitals.Reset();
     strings.SetSize(0, -1);
     owner = nullptr;
     strings.Destruct();
-    name7C.~CString();
-    name78.~CString();
-    SetVtable(this, CMapObjectCompanion::BaseVtable());
-    owner = nullptr;
-    CEngineObject::DestructBase();
 }
-EI_REWRITTEN(0x00515720, CMapObjectServer::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00515720, CMapObjectServer::~CMapObjectServer);
+EI_REWRITTEN_SPECIAL(0x00515700, CMapObjectServer::~CMapObjectServer);
 
-CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
-    InitEngineObject(this);
-    owner = nullptr;
+CMapObjectClientSpecific::CMapObjectClientSpecific() {
     // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
     SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
     particles.data = nullptr;
@@ -393,15 +373,12 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     sounds.maxSize = 0;
     sounds.size = 0;
     light = nullptr;
-    SetVtable(this, CMapObjectClientSpecific::Vtable());
     lightStateA = 0;
     lightStateB = 0;
-    return this;
 }
-EI_REWRITTEN(0x00510450, CMapObjectClientSpecific::Construct);
+EI_REWRITTEN_SPECIAL(0x00510450, CMapObjectClientSpecific::CMapObjectClientSpecific);
 
-void CMapObjectClientSpecific::DestructBody() {
-    SetVtable(this, CMapObjectClientSpecific::Vtable());
+CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
     mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
@@ -427,11 +404,9 @@ void CMapObjectClientSpecific::DestructBody() {
             if (data[i].source) data[i].source->Release();
         gamecrt::operator_delete(particles.data);
     }
-    SetVtable(this, CMapObjectCompanion::BaseVtable());
-    owner = nullptr;
-    CEngineObject::DestructBase();
 }
-EI_REWRITTEN(0x00510560, CMapObjectClientSpecific::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00510560, CMapObjectClientSpecific::~CMapObjectClientSpecific);
+EI_REWRITTEN_SPECIAL(0x00510540, CMapObjectClientSpecific::~CMapObjectClientSpecific);
 
 // --- The server unit controller ---------------------------------------------------------------
 

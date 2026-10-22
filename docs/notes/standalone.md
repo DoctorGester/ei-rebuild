@@ -1182,10 +1182,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     of 23 / 44 / 49 / 53 on; nothing was seen to use it, so CUnit's wrappers return 0). The bodies registered at
     their addresses (the server's MotionSlot / EmptySlot17, the client's ClientControllerPath and the shared empty
     ones) stay beside the overrides.
-  - **Map object companions** (map_object_companion_slots.cpp): `CompanionClass<Self, T>` (slots 13-19);
-    CompanionBaseClass (0073DC54, `CMapObjectCompanion::BaseVtable()`), CMapObjectClientSpecificClass (0073DBEC) and
-    CMapObjectServerClass (0073DD6C, slot 20 TakeHit). Slot 13 takes a bool (the client's OnEffectsChanged reads
-    the low byte).
+  - **Map object companions** (real classes since C28h): CMapObjectCompanion (map_object.h, 0073DC54) declares
+    slots 13-19 (17 and 18 pure); CMapObjectClientSpecific (0073DBEC) and CMapObjectServer (0073DD6C, slot 20
+    TakeHit) derive from it (unit.h). Slot 13 takes a bool (the client's body reads the low byte); slot 19 is void
+    (the objects' slot 47 passes EAX on, which nothing reads).
   - **check_fp_fold**: once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
     server's (0058EEE0); its 1/15 is 0055FB50's own double (tools/check_fp_fold_allow.txt).
   - **Left in world* / unit***: the tamed mode 0073F0C4 is PlayerMode's table (an AI mode: the harness digest names

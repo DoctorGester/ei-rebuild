@@ -1152,15 +1152,17 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 
 // The server-side state object of map objects (GetClassName "CMapObjectServer", class id 0x39,
 // game.exe's vtable 0073DD6C). Only the hit points.
-class __declspec(novtable) CMapObjectServer : public CMapObjectCompanion {
+class CMapObjectServer : public CMapObjectCompanion {
 public:
-    // The compiled table (CMapObjectServerClass, map_object_companion_slots.cpp; game.exe's 0073DD6C).
-    static void* Vtable();
-
-    // map_object_lifetime.cpp. 00515610 / 00515720: constructor (the engine object fields, two
-    // names, a string array, Vtable(), vitals reset; returns this) and destructor body.
-    CMapObjectServer* Construct();
-    void DestructBody();
+    // map_object_lifetime.cpp. 00515610: the two names, the string array, the vitals reset. The
+    // factory allocates it zeroed (CServerSpecificManager).
+    CMapObjectServer();
+    // 00515720 (deleting: 00515700): the vitals reset, the string array emptied and freed, no map
+    // object.
+    ~CMapObjectServer() override;
+    // map_object_companion_slots.cpp. 005156E0 / 005156F0 (slots 11 / 12): "CMapObjectServer", 0x39.
+    const char* GetClassName() override;
+    int GetClassId() override;
 
     // 005156A0. Virtual slot 17: hit points rounded (FISTP) to a 16-bit value are <= 0.
     BOOL IsDead() override;
@@ -1170,26 +1172,23 @@ public:
     // map_object_companion.cpp (+0x1C is the map object it belongs to, map_object.h):
     // 00515820. Virtual slot 6, the per-tick update: counts down the owner's effects and removes
     // the expired ones. Returns 0.
-    int Update();
+    int RunTick() override;
     // 00515950. Copies 0x58 bytes of `data` to +0x20 and marks the owner's part 0 changed.
     std::uintptr_t SetData(const void* data);
-    // 00515980. Virtual slot 20: applies a hit to +0x20 (00524FE0); a dead object loses its
-    // effects and gets flags_ bit 1. Returns 1 (0 if 00524FE0 refuses).
-    BOOL TakeHit(const void* hit);
+    // 00515980. Virtual slot 20 (the server's own): applies a hit to +0x20 (00524FE0); a dead object
+    // loses its effects and gets flags_ bit 1. Returns 1 (0 if 00524FE0 refuses).
+    virtual BOOL TakeHit(const void* hit);
 
     // map_object_save.cpp (A-U2). 005159D0 / 00515AC0, virtual slots 9 / 10 (Load / Save): the
     // vitals block (+0x20, 0x58 bytes), the two names and the string array (a count, then each
     // string with its terminator; Load appends to the array).
-    void LoadServer(CStream* stream);
-    void SaveServer(CStream* stream);
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
     // object_small_slots.cpp (A-U2). 005157C0, virtual slot 2 (Create): no map object, the vitals
     // reset (00523370). Returns 1. 005157E0, slot 3 (Destroy): the vitals reset, the string array
     // emptied, no map object.
-    int CreateServer();
-    void DestroyServer();
-    // map_object_companion_slots.cpp (A-U12). 00515700, virtual slot 0 (RET 4): DestructBody, then
-    // operator delete with flags bit 0. Returns this.
-    CMapObjectServer* DeletingDestruct(unsigned flags);
+    int Create() override;
+    void Destroy() override;
 
     // +0x1C owner (CMapObjectCompanion)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
@@ -1245,42 +1244,39 @@ using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", game.exe's
 // vtable 0073DBEC); +0x1C is the object it belongs to (a unit for IsDead / IsOverkilled).
-class __declspec(novtable) CMapObjectClientSpecific : public CMapObjectCompanion {
+class CMapObjectClientSpecific : public CMapObjectCompanion {
 public:
-    // The compiled table (CMapObjectClientSpecificClass, map_object_companion_slots.cpp; game.exe's 0073DBEC).
-    static void* Vtable();
-
-    // map_object_lifetime.cpp. 00510450: constructor (the engine object fields, the particle and
-    // sound arrays, no light, Vtable(); returns this). 00510560: destructor body (the
-    // particles and the light removed, the arrays freed).
-    CMapObjectClientSpecific* Construct();
-    void DestructBody();
+    // map_object_lifetime.cpp. 00510450: the particle and sound arrays, no light.
+    CMapObjectClientSpecific();
+    // 00510560 (deleting: 00510540): the particles and the light removed, the arrays freed.
+    ~CMapObjectClientSpecific() override;
+    // map_object_companion_slots.cpp. 00510520 / 00510530 (slots 11 / 12): "CMapObjectClientSpecific",
+    // 0x3A.
+    const char* GetClassName() override;
+    int GetClassId() override;
 
     // 005104D0. Virtual slot 17: the unit's hit points <= 0.
     BOOL IsDead() override;
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
     BOOL IsOverkilled() override;
-    // map_object_companion_slots.cpp (A-U12). 00510540, virtual slot 0 (RET 4): DestructBody, then
-    // operator delete with flags bit 0. Returns this.
-    CMapObjectClientSpecific* DeletingDestruct(unsigned flags);
     // 005117F0, virtual slot 16 (RET 8): a hit of `damage` with the hit-kind bits `kind` on a
     // living object flagged 0x400000 shows its number over it (the client world's 0056CE40).
-    void ShowHit(int damage, int kind);
+    void Hit(int damage, int kind) override;
 
     // object_small_slots.cpp (A-U2). 00510770, virtual slot 2 (Create): no light state (+0x20 /
     // +0x24), the particle array emptied (005121B0), no end sound (+0x54 = -1), no map object.
     // Returns 1.
-    int CreateClientCompanion();
+    int Create() override;
 
     // 00510890 (map_object_companion.cpp). Virtual slot 6, the client's per-tick update: effect
     // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
-    int Update();
+    int RunTick() override;
 
     // map_object_client_effects.cpp (A-U3). 005117D0, virtual slot 13: the object's effect list
     // changed; the particles (00510B80) and the looping sounds (005112A0) follow it. `first` is
     // set when the list arrives with the object (no sounds; particles run 30 ticks ahead, the
     // scale effects' one-shot rings are left out).
-    void OnEffectsChanged(bool first);   // not the override: `first` is a bool here
+    void EffectsChanged(bool first) override;
     // 00510B80. One particle record per effect (types 9-0x0E, 0x10, 0x13, 0x19, 0x1A, 0x1D-0x22 merged
     // to the highest power); records still matching are kept (a power change rescales the
     // source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
@@ -1304,11 +1300,10 @@ public:
     // 00511A00 (RET 4), virtual slot 19. Mode 1: the light (a new default one, 0079BEB0 / 0079BEBC,
     // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
     // list (+0xD4); mode 2: a light is hidden, its id removed from the list and the light released.
-    // Not declared as the override: the original sets no result (the slot's return is EAX as left).
-    void ApplyLightMode(int mode);
+    void SetLightMode(int mode) override;
     // 005107B0, virtual slot 3 (Destroy): +0x20 / +0x24 cleared, no particles, the light hidden,
     // its id removed and released, no object.
-    void DestroyClientCompanion();
+    void Destroy() override;
 
     // The owner (+0x1C) as the unit it is where the client reads hit points.
     CUnit* Unit() const { return static_cast<CUnit*>(owner); }

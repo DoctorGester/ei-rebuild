@@ -51,7 +51,7 @@ bool IsScaleEffect(int type) {
 
 // --- CMapObjectServer ------------------------------------------------------------------------
 
-int CMapObjectServer::Update() {
+int CMapObjectServer::RunTick() {
     if (owner->effectCount <= 0) return 0;
     int i = 0;
     do {
@@ -73,7 +73,7 @@ int CMapObjectServer::Update() {
     } while (i < owner->effectCount);
     return 0;
 }
-EI_REWRITTEN(0x00515820, CMapObjectServer::Update);
+EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
 
 std::uintptr_t CMapObjectServer::SetData(const void* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
@@ -84,7 +84,7 @@ EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 BOOL CMapObjectServer::TakeHit(const void* hit) {
     if (!vitals.TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
     owner->MarkChanged(0);
-    if (CompanionSlots(this)->IsDead()) {
+    if (IsDead()) {
         owner->ClearEffects();
         owner->flags_ |= kFlagDestroyed;
     }
@@ -94,7 +94,7 @@ EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
 
 // --- CMapObjectClientSpecific ----------------------------------------------------------------
 
-int CMapObjectClientSpecific::Update() {
+int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
     // to end plays the end sound for text-key objects, unless it is still playing.
     if (OwnerOf(this)->effectCount > 0) {
@@ -160,4 +160,4 @@ int CMapObjectClientSpecific::Update() {
     }
     return 1;
 }
-EI_REWRITTEN(0x00510890, CMapObjectClientSpecific::Update);
+EI_REWRITTEN(0x00510890, CMapObjectClientSpecific::RunTick);

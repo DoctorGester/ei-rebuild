@@ -55,7 +55,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
         if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(static_cast<CObject3DSpecific*>(p));
         return nullptr;
     case kMapObjectServer:
-        if (auto* p = gamecrt::operator_new_zeroed_as<CMapObjectServer>()) return p->Construct();
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer))) return new (p) CMapObjectServer();
         return nullptr;
     case kUnitServer:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CUnitServer))) return new (p) CUnitServer();

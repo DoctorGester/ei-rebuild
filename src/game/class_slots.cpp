@@ -104,7 +104,8 @@ EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 // vtables): the visibility mode is handed to the companion's slot 19 (the client's shows or hides
 // the object's light); what that leaves in EAX is passed on.
 std::uintptr_t CMapObject::SetVisibilityModeImpl(int mode) {
-    return companion->SetLightMode(mode);
+    companion->SetLightMode(mode);
+    return 0;
 }
 EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityModeImpl);
 
