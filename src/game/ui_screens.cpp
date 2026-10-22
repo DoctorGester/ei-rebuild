@@ -576,6 +576,15 @@ EI_REPLACE_METHOD(0x006177D0, InputForward<&CMpHeroScreen::OnLButtonUp>::Call);
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
+CUiWindow* CEscMenu::New(CInterface3D* ui) {
+    CEscMenu* menu = gamecrt::operator_new_as<CEscMenu>();
+    if (!menu) return nullptr;
+    menu->window.Construct(ui);
+    menu->window.vtable_ = Vtable();
+    menu->window.inputVtable_ = InputVtable();
+    return &menu->window;
+}
+
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
     CUiModel* model = window.models_.data[0];
     int region = window.RegionAt(x, y);

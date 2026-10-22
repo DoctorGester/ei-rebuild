@@ -9,6 +9,7 @@
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
 #include "options.h"
+#include "ui.h"
 #include "script.h"
 
 #include "../lib/crt.h"
@@ -235,11 +236,9 @@ void RegisterAddonCommands() {
         Register(r.cheat ? CheatCommands() : PublicCommands(), r.name, r.handler);
 }
 
-void ApplyAddonGuiVisibility(void* screen) {
+void ApplyAddonGuiVisibility(CUiContainer* screen) {
     if (!g_applyGui) return;
-    auto* bytes = static_cast<std::uint8_t*>(screen);
-    for (int i = 0; i < *reinterpret_cast<int*>(bytes + 0x14C); ++i)
-        static_cast<CUiWindow*>((*reinterpret_cast<void***>(bytes + 0x148))[i])->SetEnabled(g_guiShown ? 1 : 0, 0);
+    for (int i = 0; i < screen->children_.size; ++i) screen->children_.data[i]->SetEnabled(g_guiShown ? 1 : 0, 0);
     g_applyGui = !g_guiShown;
 }
 

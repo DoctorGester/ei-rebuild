@@ -811,10 +811,15 @@ public:
     // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007412A4 / 00741270.
     static void** Vtable();
     static void** InputVtable();
+    // The menu as the screens' Escape keys make it inline (the battle screen, the briefing, the
+    // global map): the container base and the menu's vtables, hovered_ left; returned as the window
+    // to push (null when the allocation fails; ui_screens.cpp).
+    static CUiWindow* New(CInterface3D* ui);
 
     CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
+static_assert(sizeof(CEscMenu) == 0x168);
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 
 // --- Credits ------------------------------------------------------------------------------------

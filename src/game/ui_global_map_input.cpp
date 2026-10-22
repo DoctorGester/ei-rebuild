@@ -24,8 +24,6 @@
 namespace {
 
 // The escape menu the map opens on Esc (0x168 bytes, built inline as the battle screen's key
-// handler does).
-constexpr std::size_t kEscMenuSize = 0x168;
 const char* QuickSaveName() { return "saveq"; }
 
 constexpr int kActionQuickSave = '5';
@@ -178,15 +176,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
 void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
-        void* memory = gamecrt::operator_new(kEscMenuSize);
-        CUiWindow* menu = nullptr;
-        if (memory) {
-            static_cast<CUiContainer*>(memory)->Construct(interface_);
-            menu = static_cast<CUiWindow*>(memory);
-            menu->vtable_ = CEscMenu::Vtable();
-            menu->inputVtable_ = CEscMenu::InputVtable();
-        }
-        interface_->PushWindow(menu, 1, 1);
+        interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
         inputHandled_ = true;
     }
     if (inputHandled_) return;

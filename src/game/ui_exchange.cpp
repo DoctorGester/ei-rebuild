@@ -138,12 +138,11 @@ void SetVtables(CUiWindow* window, VtablePair vtables) {
 // A window of `size` bytes built on the window base with the vtable pair, or null.
 template <typename T>
 T* NewChild(std::size_t size, CInterface3D* ui, VtablePair vtables) {
-    void* memory = gamecrt::operator_new(size);
-    if (!memory) return nullptr;
-    auto* window = static_cast<CUiWindow*>(memory);
+    T* window = gamecrt::operator_new_bytes_as<T>(size);
+    if (!window) return nullptr;
     window->Construct(ui);
     SetVtables(window, vtables);
-    return static_cast<T*>(memory);
+    return window;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {

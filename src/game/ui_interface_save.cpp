@@ -76,7 +76,7 @@ const char* const kMessageKeys[13] = {
 };
 } // namespace
 
-void* CInterface3D::MessageText(void* out, int id, const char* value) {
+mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     CTextManager* table = TheTextManager();
@@ -85,8 +85,7 @@ void* CInterface3D::MessageText(void* out, int id, const char* value) {
         text.Format(key, value);
     else
         text = key;
-    new (out) mfc::CString(text);
-    return out;
+    return new (out) mfc::CString(text);
 }
 
 EI_REWRITTEN(0x005F8C90, CInterface3D::MessageText);
