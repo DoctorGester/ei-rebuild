@@ -475,10 +475,10 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
     sectorsX = header.sectorsX;
     sectorsY = header.sectorsY;
-    sectorGrid = static_cast<SectorCache::Node***>(gamecrt::operator_new(static_cast<std::size_t>(sectorsX * 4)));
+    sectorGrid = gamecrt::operator_new_array<SectorCache::Node**>(static_cast<std::size_t>(sectorsX));
     for (int i = 0; i < sectorsX; ++i) {
         const std::size_t bytes = static_cast<std::size_t>(sectorsY * 4);
-        sectorGrid[i] = static_cast<SectorCache::Node**>(gamecrt::operator_new(bytes));
+        sectorGrid[i] = gamecrt::operator_new_array<SectorCache::Node*>(static_cast<std::size_t>(sectorsY));
         std::memset(sectorGrid[i], 0, bytes);
     }
     width = static_cast<float>(sectorsX * kSectorCells);

@@ -107,9 +107,9 @@ int CMapObjectClientSpecific::Update() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
             int handle = endSound;
-            void* soundSystem = TheSoundManager();
+            CSoundManager* soundSystem = TheSoundManager();
             if (handle != -1 &&
-                (static_cast<CSoundManager*>(soundSystem)->FindPlaying(handle) || static_cast<CSoundManager*>(soundSystem)->FindDeferred(handle)))
+                (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
             endSound = TheSoundManager()->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);

@@ -50,7 +50,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         for (int i = 0; i < set->cells.size; ++i) {
             FootprintCell& c = set->cells[i];
             int x = c.x, y = c.y;
-            if (x < 0 || y < 0 || x >= width || y >= height || c.low >= c.high) continue;
+            if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
             c.kind = 4;
             if (!ClearOccluderRecord(&c)) continue;
             AIMapCell* cell = &cells[y][x];
@@ -71,7 +71,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     for (int i = 0; i < set->cells.size; ++i) {
         FootprintCell& c = set->cells[i];
         int x = c.x, y = c.y;
-        if (x < 0 || y < 0 || x >= width || y >= height || c.low >= c.high) continue;
+        if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
         c.kind = 4;
         AIMapCell* cell = &cells[y][x];
         if (!(cell->flags & kCellBridge)) {

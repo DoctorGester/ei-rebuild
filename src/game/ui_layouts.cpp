@@ -468,9 +468,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);
             SetVtables(&w->window, CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());   // the item screens' base
-            w->defaults_ = nullptr;   // vector<CString>() (0053F4F0)
-            w->defaultsEnd_ = nullptr;
-            w->defaultsCapacity_ = nullptr;
+            w->defaults_.ConstructEmpty();   // vector<CString>() (0053F4F0)
             w->names_.ConstructEmpty();
             ::new (&w->text_) mfc::CString;
             w->voiceLists_[0].ConstructEmpty();   // 006342A0

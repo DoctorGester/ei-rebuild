@@ -109,7 +109,7 @@ void CUnit::AddCarried(CItem* item) {
         carriedCapacity = 0;
         carriedCount = 0;
     } else if (!carried) {
-        carried = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(size) * 4));
+        carried = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(size));
         std::memset(carried, 0, static_cast<std::size_t>(size) * 4);
         carriedCapacity = size;
         carriedCount = size;
@@ -128,7 +128,7 @@ void CUnit::AddCarried(CItem* item) {
         }
         int capacity = carriedCapacity + grow;
         if (!(size < capacity)) capacity = size;
-        auto* grown = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
+        auto* grown = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(capacity));
         std::memcpy(grown, carried, static_cast<std::size_t>(carriedCount) * 4);
         std::memset(grown + carriedCount, 0, static_cast<std::size_t>(size - carriedCount) * 4);
         gamecrt::operator_delete(carried);

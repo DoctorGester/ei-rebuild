@@ -28,7 +28,7 @@ constexpr std::uint32_t kDelay = 500;   // ms
 } // namespace
 
 CFlyingHitPoints* CFlyingHitPoints::Construct() {
-    auto* sentinel = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    auto* sentinel = stlp::allocate_as<Node>();
     points_.head = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
@@ -48,7 +48,7 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     if (!target || amount < 0) return;
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
     // list::insert(end(), value) (005E24E0, the node made by 005E2520).
-    auto* node = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    auto* node = stlp::allocate_as<Node>();
     node->data = FlyingHitPoint{target, amount, flags, time};
     Node* head = points_.head;
     node->next = head;

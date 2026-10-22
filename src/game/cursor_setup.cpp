@@ -12,8 +12,6 @@
 namespace {
 // The cursor object (007C7BD8) and its methods (thiscall).
 // The device the cursor is drawn on (007AF080).
-// 005E62E0: stops the drawing thread and releases the shapes.
-void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
 void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
     SetUpCursors(modeTwo, context, smallCursors, flags);
@@ -67,7 +65,7 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
 
 // 005DAE70 (fastcall, RET 8). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
-    CursorShutdown(TheCursor());
+    TheCursor()->Shutdown();   // 005E62E0: the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }
 

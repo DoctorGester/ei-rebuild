@@ -303,9 +303,9 @@ EI_REPLACE_METHOD(0x004E1AB0, CVisibilityFog::UpdateCells);
 // the ground) and clears the mark on all others.
 void CVisibilityFog::Reveal(const FogGrid* grid) {
     cells.ForEach([](CellMap::Node* n) { n->value.visible = 0; });
-    for (int row = 0; row < grid->height; ++row) {
-        for (int col = 0; col < grid->width; ++col) {
-            if (grid->rows[row][col] == 0) continue;
+    for (int row = 0; row < grid->cells.height; ++row) {
+        for (int col = 0; col < grid->cells.width; ++col) {
+            if (grid->cells.rows[row][col] == 0) continue;
             std::uint32_t key = ((grid->y0 + row) << 16) + grid->x0 + col;
             if (CellMap::Node* found = cells.Find(key)) {
                 found->value.visible = 1;

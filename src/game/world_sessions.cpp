@@ -32,7 +32,7 @@ void InsertRange(DriverNode* position, DriverNode* first, DriverNode* last) {
 
 // An empty list's sentinel from the node pool (the lists' constructors, inlined).
 DriverNode* NewSentinel() {
-    auto* node = static_cast<DriverNode*>(stlp::allocate(sizeof(DriverNode)));
+    auto* node = stlp::allocate_as<DriverNode>();
     node->next = node;
     node->prev = node;
     return node;

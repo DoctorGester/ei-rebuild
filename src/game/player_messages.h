@@ -462,7 +462,7 @@ public:
     int maxTimedId_;                            // +0x6C
     PartyStorage party_;                        // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)
-    std::uint32_t partyId_;                     // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
+    int partyId_;                               // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)
     std::uint32_t lastScreen_;                  // +0x104 the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode_;                      // +0x108 the script's GodMode(player, on); the combat code tests it

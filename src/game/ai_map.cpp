@@ -55,7 +55,7 @@ EI_REWRITTEN(0x005B3160, BridgeHeights::HeightAt);
 // --- Cell queries --------------------------------------------------------------------------------
 
 bool CAIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     if (unit->GetClassId() == kClassUnit) {
         int level = x87::fistp((2.0f - unit->standingHeight) * 16.0f);
         if (level < 0) level = 0;
@@ -70,7 +70,7 @@ bool CAIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
 EI_REWRITTEN(0x005B80F0, CAIMap::CanStandAt);
 
 bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
-    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
     int level = PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
     *reason = 1;
     // The unit's own cell is not bounds-checked, as in the original.
@@ -115,14 +115,14 @@ EI_REWRITTEN(0x005B7A40, CAIMap::IsPassableWithoutSelf);
 
 bool CAIMap::IsUnitCellPassable(CUnit* unit) {
     int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
 }
 EI_REWRITTEN(0x005BA6E0, CAIMap::IsUnitCellPassable);
 
 bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return ((cells[y][x].passable >> ((sizeClass & 7) * 4)) & 0xF) != 0;
 }
 EI_REWRITTEN(0x005BA790, CAIMap::IsPassableForClass);
@@ -130,14 +130,14 @@ EI_REWRITTEN(0x005BA790, CAIMap::IsPassableForClass);
 bool CAIMap::CanLeaveCell(CUnit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     int sizeClass = unit->sizeClass;
     const ClimbTable& table = sizeClass == 0 ? climbSmall : climbLarge;
     const int* climbCost = table.data + table.size / 2;
     int here = cells[y][x].groundLevel;
     for (const auto& o : kOffsets) {
         int nx = o[0] + x, ny = y + o[1];
-        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+        if (nx < 0 || ny < 0 || nx >= cells.width || ny >= cells.height) continue;
         const AIMapCell& cell = cells[ny][nx];
         if (!((cell.passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
         if (climbCost[cell.groundLevel - here] > 0) return true;
@@ -155,14 +155,14 @@ EI_REWRITTEN(0x005B77F0, CAIMap::GroundHeight);
 
 float CAIMap::GroundHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return 0.0f;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
     return static_cast<float>(static_cast<int>(cells[y][x].groundLevel)) / heightScale;
 }
 EI_REWRITTEN(0x005BB960, CAIMap::GroundHeightAt);
 
 float CAIMap::SurfaceHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return 0.0f;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
     const AIMapCell& cell = cells[y][x];
     if (!(cell.flags & kCellBridge)) return static_cast<float>(static_cast<int>(cell.groundLevel)) / heightScale;
     const auto* node = FindBridgeHeight(Bridges(this), static_cast<short>(x), static_cast<short>(y));
@@ -172,7 +172,7 @@ EI_REWRITTEN(0x005BBA10, CAIMap::SurfaceHeightAt);
 
 float CAIMap::TopHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return 0.0f;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
     const AIMapCell& cell = cells[y][x];
     return static_cast<float>((cell.flags & 0x3F) + cell.groundLevel) / heightScale;
 }
@@ -180,7 +180,7 @@ EI_REWRITTEN(0x005BBB20, CAIMap::TopHeightAt);
 
 float CAIMap::SlopeAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 1 || y < 1 || x > width - 2 || y > height - 2) return 0.0f;
+    if (x < 1 || y < 1 || x > cells.width - 2 || y > cells.height - 2) return 0.0f;
     int here = cells[y][x].groundLevel;
     auto step = [here](int level) {
         int d = level - here;
@@ -201,14 +201,14 @@ EI_REWRITTEN(0x005BC2A0, CAIMap::SlopeAt);
 
 bool CAIMap::IsBridgeAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return (cells[y][x].flags >> 6) & 1;
 }
 EI_REWRITTEN(0x005BBBD0, CAIMap::IsBridgeAt);
 
 bool CAIMap::CellFlag80At(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return (cells[y][x].flags >> 7) & 1;
 }
 EI_REWRITTEN(0x005BBC70, CAIMap::CellFlag80At);
@@ -240,21 +240,21 @@ EI_REWRITTEN(0x005BBD10, CAIMap::HasKind3Occluder);
 
 bool CAIMap::HasKind3OccluderAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return HasKind3Occluder(x, y);
 }
 EI_REWRITTEN(0x005BBDB0, CAIMap::HasKind3OccluderAt);
 
 int CAIMap::MaterialAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return -1;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return -1;
     return occluders[y][x] & 0x1F;
 }
 EI_REWRITTEN(0x005BBE40, CAIMap::MaterialAt);
 
 void* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return materials.data;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data;
     return materials.data + (occluders[y][x] & 0x1F);
 }
 EI_REWRITTEN(0x005BC1F0, CAIMap::MaterialRecordAt);
@@ -318,7 +318,7 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
 
     auto outside = [this](int fx, int fy) {
         int cx = fx >> 16, cy = fy >> 16;
-        return cx < 0 || cy < 0 || cx >= width || cy >= height;
+        return cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height;
     };
     if (outside(x, y) || outside(stepX * steps + x, stepY * steps + y)) return 0.0f;
 
@@ -411,7 +411,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
 
     int sizeClass = unit->sizeClass;
     int x = WorldToCell(from->x), y = WorldToCell(from->y);
-    if (x < 1 || y < 1 || x >= width - 1 || y >= height - 1) return false;
+    if (x < 1 || y < 1 || x >= cells.width - 1 || y >= cells.height - 1) return false;
     short region = static_cast<short>(Regions()->DominantRegion(sizeClass, x, y));
 
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);

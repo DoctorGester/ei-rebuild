@@ -62,9 +62,9 @@ CCloudNoise* CCloudNoise::Construct(int size) {
     size_ = size;
     const auto layerBytes = static_cast<std::size_t>((size >> 3) * (size >> 3) * 4);
     noise_ = static_cast<std::int32_t*>(gamecrt::operator_new(layerBytes));
-    layers_ = static_cast<std::uint8_t*>(gamecrt::operator_new(layerBytes));
+    layers_ = gamecrt::operator_new_array<std::uint8_t>(layerBytes);
     const auto frameBytes = static_cast<std::size_t>(size * size);
-    for (std::uint8_t*& frame : frames_) frame = static_cast<std::uint8_t*>(gamecrt::operator_new(frameBytes));
+    for (std::uint8_t*& frame : frames_) frame = gamecrt::operator_new_array<std::uint8_t>(frameBytes);
     ramp_ = static_cast<std::uint16_t*>(gamecrt::operator_new(0x200));
     phase_ = 0.0f;
     step_ = 0;

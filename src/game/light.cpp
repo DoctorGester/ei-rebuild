@@ -188,8 +188,8 @@ CEngineObject* CLightFactory::NewObjectImpl(int type) {
     // Allocated zeroed (SV7b6a): the constructor leaves the transform's positions, and nothing sets a
     // directional light's localPosition_; the terrain's sun lighting reads its z (ShadeSun, under water), so
     // heap leftovers there (a NaN) darkened the shallow water's sun light by the heap's history.
-    void* memory = gamecrt::operator_new_zeroed(sizeof(CLight));
-    CLight* light = memory ? static_cast<CLight*>(memory)->Construct() : nullptr;
+    CLight* memory = gamecrt::operator_new_zeroed_as<CLight>();
+    CLight* light = memory ? memory->Construct() : nullptr;
     if (!light) return nullptr;
     light->type_ = type;
     return light;

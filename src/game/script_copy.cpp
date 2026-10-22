@@ -212,7 +212,7 @@ ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
         maxSize = 0;
         size = 0;
     } else {
-        data = static_cast<mfc::CString*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 4));
+        data = gamecrt::operator_new_array<mfc::CString>(static_cast<std::size_t>(n));
         ConstructStrings(data, n);
         maxSize = n;
         size = n;

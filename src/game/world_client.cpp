@@ -449,9 +449,9 @@ int CWorldClient::Segment() {
             int done = object->RunTick();
             if (done != 0) continue;
             int key = object->id_;
-            void* position = nullptr;
+            mfc::CList<CEngineObject*>::Node* position = nullptr;
             if (dynamicNodes_.Lookup(reinterpret_cast<const std::uint32_t*>(&key), &position)) {
-                dynamicObjects_.RemoveAt(static_cast<mfc::CList<CEngineObject*>::Node*>(position));   // 005704A0
+                dynamicObjects_.RemoveAt(position);   // 005704A0
                 hash400::PositionsRemoveKey(dynamicNodes_, key);
             }
         }

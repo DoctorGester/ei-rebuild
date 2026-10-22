@@ -88,7 +88,7 @@ void SetSize(Array& a, int size, ElementFn construct, ElementFn destruct) {
         a.maxSize = 0;
         a.size = 0;
     } else if (!a.data) {
-        a.data = static_cast<T*>(gamecrt::operator_new(size * sizeof(T)));
+        a.data = gamecrt::operator_new_array<T>(size);
         construct(a.data, size);
         a.maxSize = size;
         a.size = size;
@@ -105,7 +105,7 @@ void SetSize(Array& a, int size, ElementFn construct, ElementFn destruct) {
         }
         int capacity = a.maxSize + grow;
         if (size >= capacity) capacity = size;
-        T* data = static_cast<T*>(gamecrt::operator_new(capacity * sizeof(T)));
+        T* data = gamecrt::operator_new_array<T>(capacity);
         std::memcpy(static_cast<void*>(data), a.data, a.size * sizeof(T));
         construct(data + a.size, size - a.size);
         gamecrt::operator_delete(a.data);

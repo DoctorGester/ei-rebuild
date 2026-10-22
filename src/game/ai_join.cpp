@@ -87,7 +87,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     path->head = nullptr;
     mfc::PlexFreeDataChain(path->blocks);
     path->blocks = nullptr;
-    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
     // The original gives each cell's speed word and terrain bits a stack slot it never writes (the
     // planner's last call left a search's row offset there); ours get the plain words.
     auto cellAt = [](int cx, int cy) {

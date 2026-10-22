@@ -34,9 +34,9 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     int stepY = toFixed(static_cast<double>(dy) * inverse);
 
     int cx = fx >> 16, cy = fy >> 16;
-    if (cx < 0 || cy < 0 || cx >= width || cy >= height) return worlddata::OutsideDistance();
+    if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) return worlddata::OutsideDistance();
     int ex = (stepX * count + fx) >> 16, ey = (stepY * count + fy) >> 16;
-    if (ex < 0 || ey < 0 || ex >= width || ey >= height) return worlddata::OutsideDistance();
+    if (ex < 0 || ey < 0 || ex >= cells.width || ey >= cells.height) return worlddata::OutsideDistance();
 
     int previous = cells[cy][cx].groundLevel;
     int largest = 0;

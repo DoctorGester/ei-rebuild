@@ -60,7 +60,7 @@ int CDib::Read(mfc::CFile* source) {
             input->Read(header, headerBytes);
             imageSize = DibImageSize(header);
             colours = reinterpret_cast<RGBQUAD*>(header + 1);
-            bits = static_cast<std::uint8_t*>(gamecrt::operator_new(imageSize));
+            bits = gamecrt::operator_new_array<std::uint8_t>(imageSize);
             input->Read(bits, imageSize);
         } catch (CException* caught) {
             link.exception = caught;

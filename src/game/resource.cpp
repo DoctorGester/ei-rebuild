@@ -99,8 +99,8 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
             return 0;
         }
         unsigned tableSize = header_.count * sizeof(ResEntry);
-        entries_ = static_cast<ResEntry*>(gamecrt::operator_new(tableSize));
-        names_ = static_cast<char*>(gamecrt::operator_new(header_.namesSize));
+        entries_ = gamecrt::operator_new_array<ResEntry>(header_.count);
+        names_ = gamecrt::operator_new_array<char>(header_.namesSize);
         if (libcrt::Lseek(fd_, static_cast<long>(header_.tableOffset), 0) != -1 &&
             static_cast<unsigned>(libcrt::Read(fd_, entries_, tableSize)) == tableSize &&
             static_cast<std::uint32_t>(libcrt::Read(fd_, names_, header_.namesSize)) == header_.namesSize)
@@ -112,16 +112,17 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
 
 BOOL CMappedResource::OpenFromMemoryImpl(const void* image) {
     CloseResource();
-    image_ = image;
-    header_ = *static_cast<const ResHeader*>(image);
+    // GetFile hands out pointers into the image (writable through them).
+    char* base = const_cast<char*>(static_cast<const char*>(image));
+    image_ = base;
+    std::memcpy(&header_, base, sizeof(header_));
     if (header_.magic != kResMagic) {
         game::FatalError("Wrong format resource");
         CloseResource();
         return false;
     }
-    const char* base = static_cast<const char*>(image);
-    entries_ = reinterpret_cast<ResEntry*>(const_cast<char*>(base) + header_.tableOffset);
-    names_ = const_cast<char*>(base) + header_.tableOffset + header_.count * sizeof(ResEntry);
+    entries_ = reinterpret_cast<ResEntry*>(base + header_.tableOffset);
+    names_ = base + header_.tableOffset + header_.count * sizeof(ResEntry);
     return true;
 }
 
@@ -167,7 +168,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     const ResEntry& entry = entries_[index];
 
     // An archive image in memory hands out pointers into the image (size is not reported).
-    if (image_) return const_cast<char*>(static_cast<const char*>(image_)) + entry.offset;
+    if (image_) return image_ + entry.offset;
 
     auto* file = gamecrt::operator_new_as<LoadedFile>();
     new (&file->name) stlp::string();
@@ -359,14 +360,14 @@ BOOL CMMIOResource::OpenResourceImpl(const char* path, BOOL writable) {
 }
 
 BOOL CMMIOResource::OpenFromMemoryImpl(const void* image) {
-    mappedImage_ = image;
-    header_ = *static_cast<const ResHeader*>(image);
+    char* base = const_cast<char*>(static_cast<const char*>(image));
+    mappedImage_ = base;
+    std::memcpy(&header_, base, sizeof(header_));
     if (header_.magic != kResMagic) {
         game::FatalError("Wrong format resource");
         CloseResource();
         return false;
     }
-    char* base = const_cast<char*>(static_cast<const char*>(image));
     entries_ = reinterpret_cast<ResEntry*>(base + header_.tableOffset);
     names_ = base + header_.tableOffset + header_.count * sizeof(ResEntry);
     return true;
@@ -392,7 +393,7 @@ void* CMMIOResource::GetFileImpl(const char* name, std::uint32_t* size) {
     int index = FindEntry(name);
     if (index == -1) return nullptr;
     if (size) *size = entries_[index].size;
-    return const_cast<char*>(static_cast<const char*>(mappedImage_)) + entries_[index].offset;
+    return mappedImage_ + entries_[index].offset;
 }
 
 bool CMMIOResource::CloseFileImpl(void*) { return true; }

@@ -45,12 +45,12 @@ struct list {
     // push_back (insert(end(), value), 00404A40: one node from the pool) and the destructor
     // (clear, then the sentinel back to the pool), allocating in the original's order.
     void Construct() {
-        head = static_cast<Node*>(allocate(sizeof(Node)));
+        head = allocate_as<Node>();
         head->next = head;
         head->prev = head;
     }
     void PushBack(const T& value) {
-        Node* node = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* node = allocate_as<Node>();
         new (&node->data) T(value);
         node->next = head;
         node->prev = head->prev;
@@ -80,7 +80,7 @@ struct list {
     // _M_create_node(x) (e.g. 00425710): a node from the pool, then the element copied into it.
     template <typename E = Element<T>>
     static Node* CreateNode(const T& x) {
-        Node* node = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* node = allocate_as<Node>();
         E::Copy(&node->data, x);
         return node;
     }

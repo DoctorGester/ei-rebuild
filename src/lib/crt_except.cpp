@@ -55,7 +55,7 @@ Exception* Exception::CopyConstruct(const Exception& source) {
         return this;
     }
     const std::size_t size = std::strlen(source.text) + 1;
-    char* copy = static_cast<char*>(gamecrt::operator_new(size));
+    char* copy = gamecrt::operator_new_array<char>(size);
     text = copy;
     if (copy) std::memcpy(copy, source.text, size);
     return this;

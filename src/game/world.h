@@ -25,6 +25,7 @@
 #include "lib/stlp.h"
 #include "maths.h"
 #include "originals_core.h"
+#include "party_storage.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -63,6 +64,7 @@ class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CUnit;     // unit.h
 class CMapObject;   // map_object.h
+class CObject3D;    // map_object_figures.h
 class CSpell;   // spell.h
 struct CSpellEffect;   // spell.h
 class CParticleManager;   // effects.h
@@ -531,7 +533,7 @@ public:
     // 0058DAF0 (RET 4; world_game.cpp). While a game runs (+0x138), every new connection the
     // lobby hands over (its slot 6) becomes a player (0066C180 / 00665990) of this game's kind,
     // fully dirty, starting at startPosition_; "Accepted player <id>" goes to the network log.
-    void AcceptNewPlayers(void* lobby);
+    void AcceptNewPlayers(CPlayerSource* lobby);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
@@ -1029,10 +1031,11 @@ struct ReleaseIdentified {
     bool Test(CEngineObject* object);
     std::uint8_t unused;
 };
-// hash_map<unsigned, T*> (the client's pending map).
-struct PendingIndex : stlp::hash_map<std::uint32_t, void*, stlp::IntHash> {
+// hash_map<unsigned, node*> (the client's pending map: an object id to its node in the client's
+// CList<CEngineObject*> +0xBC).
+struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CEngineObject*>::Node*, stlp::IntHash> {
     // 0056FC60 (RET 8). *value = the entry's value and 1, or 0.
-    int Lookup(const std::uint32_t* key, void** value) const;
+    int Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const;
 };
 using PendingMap = PendingIndex;
 // A list element whose layout is not needed here (only its size, for the node's).
@@ -1401,15 +1404,15 @@ public:
     // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
     // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
-    CEngineObject* PickAt(const long* point);
-    CEngineObject* PickAt2(const long* point);
+    CEngineObject* PickAt(const struct tagPOINT* point);
+    CEngineObject* PickAt2(const struct tagPOINT* point);
     // 00565E40 (RET 4; the battle screen's clicks and hover). The unit at screen point `point`:
     // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
     // the others and those whose object is gone); failing that the same from PickAt's. Null if
     // none.
-    CUnit* UnitAt(const long* point);
+    CUnit* UnitAt(const struct tagPOINT* point);
     // 00565D00 (RET 4). The same from PickAt2's object only (no second pick).
-    CUnit* UnitAt2(const long* point);
+    CUnit* UnitAt2(const struct tagPOINT* point);
     // 005656A0 (RET 8; the battle screen's selection box). Every object of the frame's window list
     // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
     // `rect` (slot 23) is appended to `out`.
@@ -1471,7 +1474,7 @@ public:
     // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
     // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
     // The original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const float* point, float radius, void* out);
+    void ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out);
     // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
     // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
     // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
@@ -1888,7 +1891,39 @@ static_assert(sizeof(GameFlow) == 0x84);
 // destroyed by the exit function it registers (005784C0).
 extern lib::StaticObject<GameFlow> g_gameFlow;
 
-struct MpHeroRecord;   // ui_screens.h: a party (0x70 bytes) and its file name
+constexpr int kMpHeroSize = 0x74;
+// A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
+// (CParty, 0x70 bytes) and file name.
+struct MpHeroRecord {
+    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
+    // name. Returns this.
+    MpHeroRecord* Assign(const MpHeroRecord* other);
+    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
+    MpHeroRecord* Construct();
+    // 00619560. Destructor: the file name, then the party (006611D0).
+    void Destruct();
+    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
+    // destructor with flag 0). Returns this.
+    MpHeroRecord* DeletingDestruct(unsigned flags);
+    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
+    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
+    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
+    // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
+    // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
+    // stream and that written as a save file (magic 0x114, the save version), then the temporary
+    // file deleted.
+    void WriteFile(const char* folder);
+    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
+    // the versions 00790260..00790268): false when the file does not read, else the party loaded
+    // (with its variables) and the memory stream's ok flag.
+    bool ReadFile(const char* folder);
+    CParty* Party() { return party.Party(); }
+
+    PartyStorage party;              // +0x00 CParty (party_storage.h)
+    mfc::CString file;               // +0x70
+};
+static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
 // The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
@@ -1907,19 +1942,18 @@ struct SavedParties {
     // the party outside a game as an MpHeroRecord (the party 00661050, an empty file name). Returns
     // this.
     SavedParties* Construct();
+    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the party outside a game
+    // (MpHeroRecord's assignment, inlined in the original).
+    void Select(const MpHeroRecord* hero);
 
-    mfc::CString folder_;        // +0x00
-    MpHeroRecord* entries_;         // +0x04 vector<MpHeroRecord>: start, finish, end of storage
-    MpHeroRecord* finish_;          // +0x08
-    MpHeroRecord* eos_;             // +0x0C
-    // +0x10 the party outside a game (CParty, 0x70 bytes; 007C82B0) and a file name: an MpHeroRecord
-    // (ui_screens.h).
-    std::uint8_t outsideGame_[0x74];
-    MpHeroRecord* OutsideGame() { return reinterpret_cast<MpHeroRecord*>(outsideGame_); }
+    mfc::CString folder_;                   // +0x00
+    stlp::vector<MpHeroRecord> entries_;    // +0x04
+    // +0x10 the party outside a game (007C82B0; the hero screens' current hero) and a file name.
+    MpHeroRecord outsideGame_;
+    MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };
 static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);
-static_assert(offsetof(SavedParties, eos_) == 0x0C);
 static_assert(sizeof(SavedParties) == 0x84);
 // The saved parties (007C82A0; world_game.cpp), built empty by the static initialiser 0065F2A0.
 extern lib::StaticObject<SavedParties> g_savedParties;
@@ -1955,7 +1989,7 @@ void __fastcall ClearSaveFolder(const char* path);
 // their second name in order of first appearance: one random entry per group (never the one
 // whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
 // first name appended to `out` (an STLport vector of strings).
-void __stdcall PickZones(void* out, int id, const char* exclude);
+void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude);
 
 // 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
 // restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input

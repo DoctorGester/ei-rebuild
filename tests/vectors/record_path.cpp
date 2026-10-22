@@ -108,8 +108,8 @@ std::vector<std::uint8_t> RegionBytes(const CAIMap* map) {
     return bytes;
 }
 
-std::uint32_t CellBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->width * m->height * sizeof(AIMapCell)); }
-std::uint32_t WaterBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->waterWidth * m->waterHeight); }
+std::uint32_t CellBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->cells.width * m->cells.height * sizeof(AIMapCell)); }
+std::uint32_t WaterBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->waterDepth.width * m->waterDepth.height); }
 std::uint32_t MarkBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->marks.width * m->marks.height); }
 
 // The map as saved: what identifies it in the game, and its content.
@@ -125,8 +125,8 @@ SRWLOCK g_mapLock = SRWLOCK_INIT;
 
 void Identify(const CAIMap* map, const void* (&identity)[5], int (&sizes)[6]) {
     const CRegionMap& r = map->regionMap;
-    const void* ids[5] = {map, map->cellBlock, map->waterBlock, map->marks.data, r.edges[0].data};
-    const int s[6] = {map->width, map->height, map->waterWidth, map->waterHeight, r.edges[0].width, r.edges[0].height};
+    const void* ids[5] = {map, map->cells.data, map->waterDepth.data, map->marks.data, r.edges[0].data};
+    const int s[6] = {map->cells.width, map->cells.height, map->waterDepth.width, map->waterDepth.height, r.edges[0].width, r.edges[0].height};
     std::memcpy(identity, ids, sizeof(ids));
     std::memcpy(sizes, s, sizeof(s));
 }
@@ -146,16 +146,16 @@ void EnsureSaved(const CAIMap* map) {
         std::memcmp(sizes, g_saved.sizes, sizeof(sizes)) == 0)
         return;
     Writer body;
-    body.Put(map->width);
-    body.Put(map->height);
+    body.Put(map->cells.width);
+    body.Put(map->cells.height);
     body.Put(map->passCosts);
     body.Put(map->passCostsAlt);
     body.Put(map->stepCosts);
     PutArray(body, map->climbLarge.data, map->climbLarge.size, 4);
     PutArray(body, map->climbSmall.data, map->climbSmall.size, 4);
     body.Put(map->heightScale);
-    PutGrid(body, map->width, map->height, map->cellBlock, 1, sizeof(AIMapCell));
-    PutGrid(body, map->waterWidth, map->waterHeight, map->waterBlock, 1, 1);
+    PutGrid(body, map->cells.width, map->cells.height, map->cells.data, 1, sizeof(AIMapCell));
+    PutGrid(body, map->waterDepth.width, map->waterDepth.height, map->waterDepth.data, 1, 1);
     PutGrid(body, map->marks.width, map->marks.height, map->marks.data, 1, 1);
     const CRegionMap& r = map->regionMap;
     for (int c = 0; c < 8; ++c) {
@@ -177,12 +177,12 @@ void EnsureSaved(const CAIMap* map) {
         const auto* p = static_cast<const std::uint8_t*>(from);
         to.assign(p, p + bytes);
     };
-    copy(g_saved.cells, map->cellBlock, CellBytes(map));
-    copy(g_saved.water, map->waterBlock, WaterBytes(map));
+    copy(g_saved.cells, map->cells.data, CellBytes(map));
+    copy(g_saved.water, map->waterDepth.data, WaterBytes(map));
     copy(g_saved.marks, map->marks.data, MarkBytes(map));
     g_saved.regions = RegionBytes(map);
-    ei::Log("vectors: path: AI map %016llX saved: %dx%d cells, %u bytes", static_cast<unsigned long long>(id), map->width,
-            map->height, w.size());
+    ei::Log("vectors: path: AI map %016llX saved: %dx%d cells, %u bytes", static_cast<unsigned long long>(id), map->cells.width,
+            map->cells.height, w.size());
 }
 
 // The map a search runs on: the saved map's id and the differences from it.
@@ -192,9 +192,9 @@ void PutCallMap(Writer& w, const CAIMap* map, std::uint8_t planes = kCallAll) {
     w.Put(g_saved.id);
     w.Put(planes);
     if (planes & kCallCells)
-        PutDiff(w, g_saved.cells.data(), reinterpret_cast<const std::uint8_t*>(map->cellBlock), CellBytes(map) / 9, 9);
+        PutDiff(w, g_saved.cells.data(), reinterpret_cast<const std::uint8_t*>(map->cells.data), CellBytes(map) / 9, 9);
     if (planes & kCallWater)
-        PutDiff(w, g_saved.water.data(), reinterpret_cast<const std::uint8_t*>(map->waterBlock), WaterBytes(map), 1);
+        PutDiff(w, g_saved.water.data(), reinterpret_cast<const std::uint8_t*>(map->waterDepth.data), WaterBytes(map), 1);
     if (planes & kCallMarks)
         PutDiff(w, g_saved.marks.data(), reinterpret_cast<const std::uint8_t*>(map->marks.data), MarkBytes(map), 1);
     if (planes & kCallRegions) {

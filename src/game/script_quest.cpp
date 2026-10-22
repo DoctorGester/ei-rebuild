@@ -49,7 +49,7 @@ EI_REWRITTEN(0x004BAA40, ScriptQuestStart);
 EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
 
 // 004C9C90: the key, then a {key, null} pair copied from it; the pair is destroyed before the key.
-void* QuestTable::Find(const char* name) {
+QuestRecord* QuestTable::Find(const char* name) {
     stlp::string key(name);
     Map::Pair pair{key, nullptr};
     return byName.FindOrInsert(pair)->value;   // 004CE110

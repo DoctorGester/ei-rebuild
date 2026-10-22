@@ -287,17 +287,17 @@ int __cdecl StartFirstMap() {
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
     if (cmdScript.GetLength() == 0) return 1;
-    void* script = TheMissionScript();
+    CScript* script = TheMissionScript();
     BOOL loaded;
     {
         mfc::CString root(TheDataFolder());
         mfc::CString dir = root + "Scripts\\";
         mfc::CString path = dir + cmdScript;
-        loaded = static_cast<CScript*>(script)->LoadFile(path);
+        loaded = script->LoadFile(path);
     }
     if (loaded) return 1;
     ScriptErrorInfo error;   // GetError constructs the text over the empty one
-    static_cast<CScript*>(script)->GetError(&error);
+    script->GetError(&error);
     return game::FatalError("%s, line %i", error.text.GetString(), error.line);
 }
 EI_REWRITTEN(0x00456140, StartFirstMap);

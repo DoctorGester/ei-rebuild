@@ -34,6 +34,7 @@
 #include "lib/compiled_vtable.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
+#include "lib/stlp_list.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -96,13 +97,10 @@ public:
 static_assert(offsetof(FileStream, file_) == 0xC);
 static_assert(sizeof(FileStream) == 0x1C);
 
-// A node of the loopback link's queue (0x30 bytes from the node pool): next, prev, the stream.
-struct QueueNode {
-    QueueNode* next;
-    QueueNode* prev;
-    CMemoryStream stream;
-};
-static_assert(sizeof(QueueNode) == 0x30);
+// The loopback link's queue: an STLport list of memory streams (0x30-byte nodes from the node
+// pool: next, prev, the stream).
+using StreamQueue = stlp::list<CMemoryStream>;
+using QueueNode = StreamQueue::Node;
 
 // The link base (vtable 0073C8A4, 0x28 bytes).
 class __declspec(novtable) NetLink : public CRefObject {
@@ -175,7 +173,7 @@ public:
     // 00478780 (slot 0).
     LoopbackLink* DeletingDestruct(unsigned flags);
 
-    QueueNode* queue_;           // +0x28 the queue's header node (STLport list<CMemoryStream>)
+    StreamQueue queue_;          // +0x28
     LoopbackLink* peer_;         // +0x2C counted
 
 private:

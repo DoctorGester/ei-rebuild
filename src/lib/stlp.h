@@ -217,7 +217,7 @@ public:
         std::size_t b = BucketOf(key);
         for (Node* n = buckets_[b]; n; n = n->next)
             if (n->key == key) return n->value;
-        Node* n = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* n = allocate_as<Node>();
         n->next = nullptr;
         new (&n->key) Key(key);
         n->value = Value();
@@ -282,7 +282,7 @@ public:
 
     // _M_new_node(obj) (e.g. 00407420): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Pair& obj) {
-        Node* n = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* n = allocate_as<Node>();
         n->next = nullptr;
         new (&n->key) Key(obj.key);
         new (&n->value) Value(obj.value);

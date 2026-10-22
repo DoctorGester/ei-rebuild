@@ -74,7 +74,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
         frame->visible_ = 0;
     }
     for (int i = 0; i < static_cast<int>(hero->spellCount); ++i) {
-        ItemCell cell{reinterpret_cast<CItem*>(hero->spells[i]), static_cast<float>(i * 100 + 50),
+        ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
                       static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
     }
@@ -187,7 +187,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             hasContainer = true;
         } else if (UiItemKinds::IsSpell(item)) {
             // A record out of range is read through null, as in the original.
-            const itemdb::SpellRecord* spell = itemdb::SpellAt(reinterpret_cast<const CItemLoot*>(item)->index_);
+            const itemdb::SpellRecord* spell = itemdb::SpellAt(static_cast<const CItemLoot*>(item)->index_);
             needed += spell->skill;
             manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
             lastMana = spell->mana;
@@ -197,7 +197,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
         } else if (UiItemKinds::IsModifier(item)) {
-            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(reinterpret_cast<const CItemLoot*>(item)->index_);
+            const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(static_cast<const CItemLoot*>(item)->index_);
             manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
             cell.x = static_cast<float>(column) + 450.0f;
@@ -304,7 +304,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
             hasPart = true;
             // Another record type keeps the part found before.
-            auto* loot = reinterpret_cast<const CItemLoot*>(item);
+            auto* loot = static_cast<const CItemLoot*>(item);
             if (loot->recordType_ <= 2) part = PartRecord(loot);
         } else if (IsSpellContainer(item)) {
             cell.x = 350.0f;

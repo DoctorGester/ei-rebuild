@@ -63,8 +63,8 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     int key = ((y + 0x800) << 16) + x;
     int x0 = x - 7 < 0 ? 0 : x - 7;
     int y0 = y - 7 < 0 ? 0 : y - 7;
-    int x1 = width - 1 >= x + 7 ? x + 7 : width - 1;
-    int y1 = height - 1 >= y + 7 ? y + 7 : height - 1;
+    int x1 = cells.width - 1 >= x + 7 ? x + 7 : cells.width - 1;
+    int y1 = cells.height - 1 >= y + 7 ? y + 7 : cells.height - 1;
     CUnitShape* shape = Patch();
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)

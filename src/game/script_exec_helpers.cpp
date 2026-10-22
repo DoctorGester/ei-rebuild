@@ -47,7 +47,7 @@ void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
         return;
     }
     if (!parts->data) {
-        parts->data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(newSize * kSize));
+        parts->data = gamecrt::operator_new_array<ScriptAreaPart>(newSize);
         std::memset(parts->data, 0, newSize * kSize);
         parts->maxSize = newSize;
         parts->size = newSize;
@@ -66,7 +66,7 @@ void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
     }
     int newMax = parts->maxSize + grow;
     if (newSize >= newMax) newMax = newSize;
-    auto* data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(newMax * kSize));
+    auto* data = gamecrt::operator_new_array<ScriptAreaPart>(newMax);
     std::memcpy(data, parts->data, parts->size * kSize);
     std::memset(&data[parts->size], 0, (newSize - parts->size) * kSize);
     gamecrt::operator_delete(parts->data);

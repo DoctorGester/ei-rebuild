@@ -671,7 +671,7 @@ FileMessage* FileMessage::Clone() {   // 00416220
     RefVector& to = p->chunks_;
     std::size_t n = static_cast<std::size_t>(from.size());
     ClearRefs(to);
-    auto* block = static_cast<RefPtr*>(stlp::allocate(n * sizeof(RefPtr)));
+    auto* block = stlp::allocate_as<RefPtr>(n);
     to.Start() = block;
     to.Finish() = block;
     to.EndOfStorage() = block + n;

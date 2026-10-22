@@ -129,8 +129,8 @@ struct UiItemKinds {
 };
 
 // The fields of an item prototype record (006A0110's result) the predicates read.
-// An STLport vector<CString> (the figure names), its elements as their data pointers.
-using MpStringVector = stlp::vector<const char*>;
+// An STLport vector<CString> (the figure names).
+using MpStringVector = stlp::vector<mfc::CString>;
 
 // --- Camp item strip ------------------------------------------------------------------------
 //
@@ -520,10 +520,8 @@ public:
     CHeroQuickStrip* spellPanel_;   // +0x1B8
     CUiItemStrip* figureStrips_[2]; // +0x1BC the figures of defaults_ (voices voiceLists_[0]), +0x1C0 of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;   // +0x1C4 (006255A0)
-    void** defaults_;           // +0x1C8 STLport vector<CString>; its first entry goes to slot 52 for a new hero
-    void** defaultsEnd_;        // +0x1CC
-    void** defaultsCapacity_;   // +0x1D0 (also its allocator proxy)
-    MpStringVector names_;      // +0x1D4 STLport vector<CString>
+    MpStringVector defaults_;   // +0x1C8 the men's figures; its first entry goes to slot 52 for a new hero
+    MpStringVector names_;      // +0x1D4 the women's figures
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
     CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
@@ -791,55 +789,10 @@ static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
 static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
 static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
-constexpr int kMpHeroSize = 0x74;
-// A multiplayer hero record: its party (CParty, 0x70 bytes) and file name.
-struct MpHeroRecord {
-    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
-    // name. Returns this.
-    MpHeroRecord* Assign(const MpHeroRecord* other);
-    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
-    MpHeroRecord* Construct();
-    // 00619560. Destructor: the file name, then the party (006611D0).
-    void Destruct();
-    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
-    // destructor with flag 0). Returns this.
-    MpHeroRecord* DeletingDestruct(unsigned flags);
-    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
-    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
-    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
-    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
-    // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
-    // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
-    // stream and that written as a save file (magic 0x114, the save version), then the temporary
-    // file deleted.
-    void WriteFile(const char* folder);
-    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
-    // the versions 00790260..00790268): false when the file does not read, else the party loaded
-    // (with its variables) and the memory stream's ok flag.
-    bool ReadFile(const char* folder);
-    CParty* Party() { return party.Party(); }
-
-    PartyStorage party;              // +0x00 CParty (party_storage.h)
-    mfc::CString file;               // +0x70
-};
-static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 // The multiplayer heroes: the vector of SavedParties (TheSavedParties(), world.h).
-inline MpHeroRecord* SavedHero(int index) { return TheSavedParties().entries_ + index; }
-inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().finish_ - TheSavedParties().entries_); }
+inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
+inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
 
-// The multiplayer heroes (007C82A0; constructed by the static initialiser 0065F580): their folder,
-// the records (SavedHero above) and the current hero.
-struct MpHeroRoster {
-    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the current one
-    // (MpHeroRecord's assignment, inlined in the original).
-    void Select(const MpHeroRecord* hero);
-
-    mfc::CString folder;                    // +0x00
-    stlp::vector<MpHeroRecord> records;     // +0x04
-    MpHeroRecord current;                   // +0x10
-};
-static_assert(offsetof(MpHeroRoster, records) == 0x04 && offsetof(MpHeroRoster, current) == 0x10 &&
-              sizeof(MpHeroRoster) == 0x84);
 
 // --- In-game escape menu ----------------------------------------------------------------------
 //

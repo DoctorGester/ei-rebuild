@@ -14,7 +14,7 @@ void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor)
         out->Empty();
         return;
     }
-    auto* text = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(length) + 2));
+    auto* text = gamecrt::operator_new_array<char>(static_cast<std::size_t>(length) + 2);
     std::memcpy(text, *cursor, static_cast<std::size_t>(length));
     text[length] = 0;
     *out = text;

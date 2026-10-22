@@ -11,57 +11,39 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <type_traits>
 
 // ---- ChunkArchive -------------------------------------------------------------------------------
 // The rest of the archive is in chunk_archive.cpp.
 
 namespace {
 
-// vector<T> as three pointers, for record types only original code constructs.
-using RawVector = stlp::vector<char>;
-
-using RecordFn = void (*)(void* record);                                       // destructor body
-using ResizeFn = void (*)(void* vector, unsigned count);        // vector::resize
-using SerializeFn = void (*)(void* record, ChunkArchive* ar);
-
-// Element destructors (release the records' strings); vector::resize of each record type is
-// recordvec::ResizeUntyped (006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20).
-void DestroyPrint(void* record) { static_cast<PrintRecord*>(record)->name.~string(); }      // 006D29A0
-void DestroyPrint2(void* record) { static_cast<PrintRecord2*>(record)->name.~string(); }    // 006D29E0
-void DestroyAck(void* record) { static_cast<acks::UnitAcks*>(record)->Destruct(); }         // 006DC390
-void DestroyAck2(void* record) { static_cast<acks::ModelAcks*>(record)->Destruct(); }       // 006DC920
-void DestroyAck3(void* record) { static_cast<acks::ExtraAcks*>(record)->Destruct(); }       // 006DCAF0
-
-// How each instantiation serialises a record: prints.db records through their vtable, acks.db
-// records by a direct call.
-void SerializePrint(void* record, ChunkArchive* ar) { static_cast<PrintRecord*>(record)->Serialize(ar); }
-void SerializePrint2(void* record, ChunkArchive* ar) { static_cast<PrintRecord2*>(record)->Serialize(ar); }
-void SerializeAckRecord(void* record, ChunkArchive* ar) { static_cast<acks::UnitAcks*>(record)->Serialize(ar); }
-void SerializeAck2Record(void* record, ChunkArchive* ar) { static_cast<acks::ModelAcks*>(record)->Serialize(ar); }
-void SerializeAck3Record(void* record, ChunkArchive* ar) { static_cast<acks::ExtraAcks*>(record)->Serialize(ar); }
-
-// The body shared by the vector serialisers (one template instantiation per record type in the
-// original). Loading destroys the old records, resizes to the number of record chunks and reads
-// each; saving writes the records in order.
-void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn destroy, ResizeFn resize,
-                    SerializeFn serialize) {
+// The body shared by the vector serialisers (one instantiation per record type in the original,
+// `Abi` the vector's instantiation: its element policy destroys a record, ResizeDefault is its
+// resize(n): 006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20). Loading destroys the old records
+// (006D29A0, 006D29E0, 006DC390, 006DC920, 006DCAF0), resizes to the number of record chunks and
+// reads each; saving writes the records in order. prints.db records serialise through their
+// vtable, acks.db records by a direct call.
+template <typename Abi>
+void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
+    using Record = std::remove_pointer_t<decltype(v->begin())>;
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         // erase(begin(), end()): the tail copy is empty; the old records are destroyed in order.
-        char* end = v->end();
-        for (char* p = v->begin(); p != end; p += size) destroy(p);
+        Record* end = v->end();
+        for (Record* p = v->begin(); p != end; ++p) Abi::Element::Destroy(p);
         v->Finish() = v->Start();
         count = ar->CountChunks(1);
-        resize(v, static_cast<unsigned>(count));
+        static_cast<Abi*>(v)->ResizeDefault(static_cast<unsigned>(count));
     } else {
-        count = static_cast<int>(v->size()) / size;
+        count = static_cast<int>(v->size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        char* record = v->begin() + i * size;
+        Record* record = v->begin() + i;
         if (ar->EnterChunk(1)) {
-            serialize(record, ar);
+            record->Serialize(ar);
             ar->LeaveChunk();
         }
     }
@@ -77,26 +59,22 @@ void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
     ar->LeaveChunk();
 }
 
-// The hooks of the records' slot 0 (a virtual: registered through these shims).
-
 } // namespace
 
-void ChunkArchive::SerializePrints(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord), DestroyPrint, recordvec::ResizeUntyped<recordvec::PrintVector>,
-                   SerializePrint);
+void ChunkArchive::SerializePrints(int id, stlp::vector<PrintRecord>* records, void*) {
+    SerializeArray<recordvec::PrintVector>(this, id, records);
 }
-void ChunkArchive::SerializePrints2(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord2), DestroyPrint2, recordvec::ResizeUntyped<recordvec::Print2Vector>,
-                   SerializePrint2);
+void ChunkArchive::SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void*) {
+    SerializeArray<recordvec::Print2Vector>(this, id, records);
 }
-void ChunkArchive::SerializeAcks(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, recordvec::ResizeUntyped<recordvec::UnitAcksVector>, SerializeAckRecord);
+void ChunkArchive::SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void*) {
+    SerializeArray<recordvec::UnitAcksVector>(this, id, records);
 }
-void ChunkArchive::SerializeAcks2(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, recordvec::ResizeUntyped<recordvec::ModelAcksVector>, SerializeAck2Record);
+void ChunkArchive::SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void*) {
+    SerializeArray<recordvec::ModelAcksVector>(this, id, records);
 }
-void ChunkArchive::SerializeAcks3(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, recordvec::ResizeUntyped<recordvec::ExtraAcksVector>, SerializeAck3Record);
+void ChunkArchive::SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void*) {
+    SerializeArray<recordvec::ExtraAcksVector>(this, id, records);
 }
 EI_REWRITTEN(0x006D23A0, ChunkArchive::SerializePrints);
 EI_REWRITTEN(0x006D25F0, ChunkArchive::SerializePrints2);
@@ -186,10 +164,10 @@ void WaterTweens::ReadEntries(CStream* stream, int unread) {
     for (int i = 0; i < size; ++i) stream->Read(&data[i], 16);
 }
 
-void WaterTweens::Load(CStream* stream, void* terrain) {
+void WaterTweens::Load(CStream* stream, Terrain* terrain) {
     // The original reads the count into its `stream` argument slot.
     ReadEntries(stream, reinterpret_cast<int>(stream));
-    for (int i = 0; i < size; ++i) static_cast<Terrain*>(terrain)->SetWaterLevel(data[i].key, data[i].value);
+    for (int i = 0; i < size; ++i) terrain->SetWaterLevel(data[i].key, data[i].value);
 }
 EI_REWRITTEN(0x006D45D0, WaterTweens::Load);
 

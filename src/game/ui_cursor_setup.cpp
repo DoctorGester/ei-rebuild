@@ -76,9 +76,9 @@ EI_REWRITTEN(0x005E60B0, CCursor::Init);
 
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
-    if (void* memory = gamecrt::operator_new(sizeof(CursorImage))) {
+    if (auto* memory = gamecrt::operator_new_as<CursorImage>()) {
         mfc::CString file = mfc::CString(name) + ".mmp";
-        image = static_cast<CursorImage*>(memory)->Construct(file.GetString(), hotX, hotY, flag);
+        image = memory->Construct(file.GetString(), hotX, hotY, flag);
     }
     images_.Add(image);
 }

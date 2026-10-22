@@ -465,7 +465,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through
   their addresses; O), `PartyUnitRecord::CarriedWeight` (CItem +0x34 is the weight; weapons, quick items, spells, armour in
   one running float sum; P with CheckNear), `CParty::ArchiveParty` (a memory stream as the archive's stream field 1; loading
-  takes the archive's version; O), `MpHeroRoster::Select` (ui_screens.h: the multiplayer heroes at 007C82A0; no scenario opens
+  takes the archive's version; O), `SavedParties::Select` (world.h: the multiplayer heroes at 007C82A0, a `stlp::vector<MpHeroRecord>` and the party outside a game; no scenario opens
   the hero screen; O), `CPlayerClient::AppendReceived` (appends a stream to the received one, read position kept; O).
 - Input and UI: `CDirectInputMouse::Setup / Shutdown / SetActive / Poll` (input_mouse.cpp; the game's own GUID copies and
   c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1; O, SetActive S: acquire twice is harmless);

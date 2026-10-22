@@ -31,7 +31,7 @@ namespace effect {
 
 // The light manager: ::LightManager (map_object.h).
 inline CLightFactory* LightFactory() { return ei::GameData<CLightFactory*>(0x007AF748); }   // CreateObject makes lights
-inline void* ParticleManager() { return ei::GameData<void*>(0x007AF754); }
+inline CParticleManager* ParticleManager() { return ei::GameData<CParticleManager*>(0x007AF754); }
 inline CLightningManager* BoltFactory() { return ei::GameData<CLightningManager*>(0x007AF758); }   // CreateObject makes bolts
 inline void* CameraObject() { return ei::GameData<void*>(0x007AF7C8); }
 inline int ChangeStamp() { return ei::GameData<const int>(0x007AFFC8); }

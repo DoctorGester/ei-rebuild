@@ -166,7 +166,7 @@ public:
     };
 
     IdList() {
-        head_ = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+        head_ = stlp::allocate_as<Node>();
         head_->next = head_->prev = head_;
     }
     ~IdList() {
@@ -183,7 +183,7 @@ public:
 
     // insert(end(), value): 004049D0 creates the node, 00404A40 links it.
     void PushBack(unsigned value) {
-        auto* node = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+        auto* node = stlp::allocate_as<Node>();
         node->value = value;
         node->next = head_;
         node->prev = head_->prev;

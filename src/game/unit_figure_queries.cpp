@@ -46,10 +46,8 @@ constexpr float kMosquitoExtentScale = 2.0f;    // 0073CDB8
 // the key's and whose variant bits include the key's, or exactly none for a key without them, and
 // which virtual slot 18 accepts; one picked with rand()), or of the key's kind only (00519380);
 // null when none (both RET 4).
-char* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return reinterpret_cast<char*>(unit->RandomAnimation(key)); }
-char* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) {
-    return reinterpret_cast<char*>(unit->RandomAnimationOfKind(key));
-}
+FigureAnimation* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return unit->RandomAnimation(key); }
+FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) { return unit->RandomAnimationOfKind(key); }
 
 // `v` turned by the rotation `q` as the original spells it out: 2 (u.v) u + (s^2 - u.u) v +
 // 2 s (u x v), with u the vector part and s the scalar part.
@@ -71,22 +69,22 @@ Vector3 RotateVector(const Quaternion& q, const Vector3& v) {
 }
 } // namespace
 
-char* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
+FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
     if (type_ < kUnitTypeHero || type_ > kTypeLastUnit) return nullptr;
-    if (char* entry = CallRandomAnimation(this, key)) return entry;
+    if (FigureAnimation* entry = CallRandomAnimation(this, key)) return entry;
     std::uint32_t kind = key & kKindBits;
-    if (char* entry = CallRandomAnimation(this, kind)) return entry;
+    if (FigureAnimation* entry = CallRandomAnimation(this, kind)) return entry;
     if ((kind & kMoveBits) == kMove4Bit) {
-        if (char* entry = CallRandomAnimation(this, kind & ~kMoveBits)) return entry;
-        if (char* entry = CallRandomAnimation(this, (kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit)) return entry;
+        if (FigureAnimation* entry = CallRandomAnimation(this, kind & ~kMoveBits)) return entry;
+        if (FigureAnimation* entry = CallRandomAnimation(this, (kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit)) return entry;
     }
     if (!anyOfKind) return nullptr;
     return CallRandomAnimationOfKind(this, kind);
 }
 EI_REPLACE_METHOD(0x005301B0, CUnit::FindAnimation);
 
-char* CUnit::AnimationEntry(std::uint32_t key) {
-    char* entry = reinterpret_cast<char*>(AnimationAt(key));
+FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
+    FigureAnimation* entry = AnimationAt(key);
     if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.GetString());
     return entry;
 }

@@ -141,7 +141,7 @@ void ScriptGroup::Resize(int newSize) {
         return;
     }
     if (!data) {
-        data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(newSize * 4));
+        data = gamecrt::operator_new_array<ScriptObjectRef>(newSize);
         for (int i = 0; i < newSize; ++i) data[i].object = nullptr;
         maxSize = newSize;
         size = newSize;
@@ -164,7 +164,7 @@ void ScriptGroup::Resize(int newSize) {
     }
     int newMax = maxSize + grow;
     if (newSize >= newMax) newMax = newSize;
-    auto* fresh = static_cast<ScriptObjectRef*>(gamecrt::operator_new(newMax * 4));
+    auto* fresh = gamecrt::operator_new_array<ScriptObjectRef>(newMax);
     for (int i = 0; i < size; ++i) fresh[i] = data[i];
     for (int i = size; i < newSize; ++i) fresh[i].object = nullptr;
     gamecrt::operator_delete(data);

@@ -220,7 +220,7 @@ std::uint8_t* CDib::AllocateBits() {
     if (header) {
         const std::uint32_t bytes = static_cast<std::uint32_t>(header->biBitCount >> 3) * header->biPlanes *
                                     header->biHeight * header->biWidth;
-        bits = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
+        bits = gamecrt::operator_new_array<std::uint8_t>(bytes);
         bitsOwner = kNew;
     }
     return bits;

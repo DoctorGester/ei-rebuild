@@ -106,7 +106,7 @@ void SetCarriedSize(CUnit* unit, int size) {
         return;
     }
     if (!unit->carried) {
-        unit->carried = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(size) << 2));
+        unit->carried = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(size));
         ZeroSlots(unit->carried, size);
         unit->carriedCapacity = size;
         unit->carriedCount = size;
@@ -125,7 +125,7 @@ void SetCarriedSize(CUnit* unit, int size) {
     }
     int capacity = grow + unit->carriedCapacity;
     if (size >= capacity) capacity = size;
-    auto* items = static_cast<CItem**>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 4));
+    auto* items = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(capacity));
     std::memcpy(items, unit->carried, static_cast<std::size_t>(unit->carriedCount) << 2);
     ZeroSlots(items + unit->carriedCount, size - unit->carriedCount);
     gamecrt::operator_delete(unit->carried);

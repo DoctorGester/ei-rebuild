@@ -2,6 +2,7 @@
 // nearby units (005CA1D0), seeing new ones (005CA5A0) and the eye's height and facing (005CA410).
 #include "ai_map.h"
 #include "combat.h"
+#include "effects.h"
 #include "unit_ai.h"
 
 #include "console.h"
@@ -75,7 +76,7 @@ void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
 } // namespace
 
 void AIViewer::Prepare(CUnit* self) {
-    if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
+    if (cellX >= 0 && cellY >= 0 && cellX < map->cells.width && cellY < map->cells.height)
         eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
     eye.z = static_cast<float>(static_cast<double>(self->above.z) * kEyeHeightFactor + self->eyeHeight + self->center.z + eye.z);
     Vector3 axis = RotatedAxisY(self->localRotation_);
@@ -241,16 +242,16 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
 
 EI_REWRITTEN(0x005CAA00, AIViewer::Update);
 
-void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
+void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     Vector3 axis;
     seer->localRotation_.AxisY(&axis);
     Vector3 look{-axis.x, -axis.y, -axis.z};
     Vector3 eye;
     seer->EyePoint(&eye);
-    grid->originX = kNoGridOrigin;
-    grid->originY = kNoGridOrigin;
-    reinterpret_cast<SearchGrid<std::uint8_t>*>(&grid->data)->Resize(1, 1);   // the cells (+8) as a SearchGrid
-    std::memset(grid->data, 0, static_cast<std::size_t>(grid->height * grid->width));
+    grid->x0 = kNoGridOrigin;
+    grid->y0 = kNoGridOrigin;
+    grid->cells.Resize(1, 1);   // 005CD3A0
+    std::memset(grid->cells.data, 0, static_cast<std::size_t>(grid->cells.height * grid->cells.width));
 
     CUnitServer* mine = seer->ServerController();
     CUnitServer* theirs = observer->ServerController();

@@ -50,7 +50,7 @@ EI_REWRITTEN(0x00408A50, LowerBoundDwords);
 
 void string::InitRange(const char* first, const char* last) {
     std::size_t n = static_cast<std::size_t>(last - first);
-    start_ = static_cast<char*>(allocate(n + 1));
+    start_ = allocate_as<char>(n + 1);
     eos_ = start_ + n + 1;
     std::memmove(start_, first, n);
     finish_ = start_ + n;
@@ -58,7 +58,7 @@ void string::InitRange(const char* first, const char* last) {
 }
 
 void string::Reserve(string& s, std::size_t capacity) {
-    s.start_ = s.finish_ = static_cast<char*>(allocate(capacity));
+    s.start_ = s.finish_ = allocate_as<char>(capacity);
     s.eos_ = s.start_ + capacity;
     *s.finish_ = kNul;
 }
@@ -81,7 +81,7 @@ void string::Append(const char* first, const char* last) {
     std::size_t n = static_cast<std::size_t>(last - first);
     if (static_cast<std::size_t>(eos_ - start_) - 1 < size + n) {
         std::size_t capacity = size + std::max(n, size) + 1;
-        char* fresh = static_cast<char*>(allocate(capacity));
+        char* fresh = allocate_as<char>(capacity);
         std::memcpy(fresh, start_, size);
         std::memcpy(fresh + size, first, n);
         fresh[size + n] = kNul;

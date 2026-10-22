@@ -5711,7 +5711,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 005C8B60,FogGrid::Clear,src/game/ai_fog_grid.cpp,139,golden,0,1,spells_hero,,
 005C8BF0,FogGrid::Read,src/game/ai_fog_grid.cpp,203,golden,0,1,spells_hero,,
 005C8CC0,FogGrid::Write,src/game/ai_fog_grid.cpp,117,golden,0,1,spells_hero,,
-005C8D40,VisibilityGrid::Grow,src/game/ai_movement.cpp,584,golden,0,1,spells_hero,,
+005C8D40,FogGrid::Grow,src/game/ai_movement.cpp,584,golden,0,1,spells_hero,,
 005C8FB0,ei::static_init::Exit005C8FB0,src/standalone/static_exit.cpp,10,golden,0,30,app_record boot levers_key magic_traps_victims +24,,net_second_master render_terrain_seams
 005C91F0,AIEventTable::Destroy,src/game/ai_grids.cpp,88,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 005C9250,AIEventTable::Clear,src/game/ai_grids.cpp,191,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10

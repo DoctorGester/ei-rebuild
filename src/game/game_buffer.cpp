@@ -36,7 +36,7 @@ std::uint32_t GrownCapacity(const GameBuffer* self, std::uint32_t size) {
 // Copies `from`'s block and positions (ConstructCopy and AssignFrom).
 void CopyContents(GameBuffer* self, const GameBuffer* from) {
     std::uint32_t capacity = Distance(from->begin, from->end);
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity));
+    auto* block = gamecrt::operator_new_array<std::uint8_t>(capacity);
     self->begin = block;
     self->end = block + capacity;
     std::memcpy(block, from->begin, capacity);
@@ -53,7 +53,7 @@ GameBuffer* GameBuffer::ConstructGrowing() {
     base = 0;
     SetVtable(this, GrowingVtable());
     flags = kGrowingFlags;
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(kInitialBytes));
+    auto* block = gamecrt::operator_new_array<std::uint8_t>(kInitialBytes);
     end = block + kInitialBytes;
     begin = block;
     high = block;
@@ -94,7 +94,7 @@ EI_REWRITTEN(0x004DA8F0, GameBuffer::DeleteGrowing);
 // --- Growing -------------------------------------------------------------------------------------
 
 void GameBuffer::Reallocate(std::uint32_t capacity) {
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity));
+    auto* block = gamecrt::operator_new_array<std::uint8_t>(capacity);
     std::memcpy(block, begin, Distance(begin, end));
     gamecrt::operator_delete(begin);
     std::uint8_t* old = begin;

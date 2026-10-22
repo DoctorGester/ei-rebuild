@@ -273,7 +273,7 @@ void LoadSystemMessages(console::CStringArray& messages) {
         return;
     }
     const std::size_t length = static_cast<std::size_t>(libcrt::Filelength(gamecrt::fileno(file)));
-    char* text = static_cast<char*>(gamecrt::operator_new(length));
+    char* text = gamecrt::operator_new_array<char>(length);
     std::memset(text, 0, length);
     libcrt::Fread(text, 1, length, file);
     libcrt::Fclose(file);

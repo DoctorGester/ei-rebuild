@@ -78,9 +78,9 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
         int dy = (ty - uy < 0 ? uy - ty : ty - uy) + 1;
         int y0 = ty - dy, y1 = ty + dy + 1;
         if (x0 < 0) x0 = 0;
-        if (width < x1) x1 = width;
+        if (cells.width < x1) x1 = cells.width;
         if (y0 < 0) y0 = 0;
-        if (height < y1) y1 = height;
+        if (cells.height < y1) y1 = cells.height;
         for (int y = y0; y < y1; ++y) {
             for (int x = x0; x < x1; ++x) markRows[y][x] = 0;
         }

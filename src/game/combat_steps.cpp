@@ -5,6 +5,7 @@
 #include "combat_plan.h"
 
 #include "item.h"
+#include "map_object_figures.h"
 #include "maths.h"
 #include "random.h"
 
@@ -135,16 +136,16 @@ namespace {
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
-// Ticks of entry `index`'s field at `offset` (+0x20 the whole animation, +0x40 the moment of the
+// Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the
 // action): the frame count (FILD of the zero-extended dword, stored as a float) divided by the
 // unit's speed factor for the entry, truncated. Inlined many times by the original.
-int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
-    char* entry = unit->AnimationEntry(index);
+int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
+    FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
-    volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
-    float frames = static_cast<float>(wide);
-    double speed = unit->ActionSpeed(reinterpret_cast<const FigureAnimation*>(entry));
-    return FtolQuotient(frames, speed);
+    volatile std::int64_t wide = entry->*frames;
+    float frameCount = static_cast<float>(wide);
+    double speed = unit->ActionSpeed(entry);
+    return FtolQuotient(frameCount, speed);
 }
 
 // Appends the first step of `steps` (as the original copies it) to `out`.
@@ -170,10 +171,10 @@ struct ScratchSteps {
 
 // --- Durations ---------------------------------------------------------------------------------
 
-int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, 0x20); }
+int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
 EI_REPLACE_METHOD(0x00551A40, CUnitServer::AnimationDuration);
 
-int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, 0x40); }
+int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
 EI_REPLACE_METHOD(0x00551A90, CUnitServer::AnimationMoment);
 
 // --- Movement mode transitions -------------------------------------------------------------
@@ -209,10 +210,10 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
 
     std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
     key |= EnterBits(to, unit);
-    char* animation = unit->FindAnimation(key, 1);
+    FigureAnimation* animation = unit->FindAnimation(key, 1);
     if (!animation) return false;
-    std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
-    int duration = EntryTicks(unit, index, 0x20);
+    std::uint8_t index = animation->index;
+    int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
     int last = steps->count;
     steps->SetSize(last + 1, -1);
     AnimationStep step = BlankStep();
@@ -276,8 +277,8 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
     bool frame;
     std::uint32_t key = OrderKey(this, kind, source, steps, &weaponBit, &frame);
 
-    char* animation = unit->FindAnimation(key, 0);
-    if ((!animation || (Get<std::uint32_t>(animation, 0x14) & weaponBit) != weaponBit) && kind == kOrderAttack) {
+    FigureAnimation* animation = unit->FindAnimation(key, 0);
+    if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == kOrderAttack) {
         animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {
             gameapi::OutputDebugStringA(kNoAnimationMessage);
@@ -297,14 +298,14 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
             *duration += out.steps.steps[0].duration;
         }
     }
-    std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
-    int length = EntryTicks(unit, index, 0x20);
+    std::uint8_t index = animation->index;
+    int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
     AnimationStep blank = BlankStep();
     steps->Add(blank);
     AnimationStep& added = steps->steps[steps->count - 1];
-    added.animation = Get<std::uint8_t>(animation, 0x10);
+    added.animation = animation->index;
     added.duration = length;
-    *duration += EntryTicks(unit, Get<std::uint8_t>(animation, 0x10), 0x40);
+    *duration += EntryTicks(unit, animation->index, &FigureAnimation::moment);
     if (frame) {
         // And back into the movement mode afterwards.
         ScratchSteps back;
@@ -333,12 +334,12 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     } else {
         key = kKeyNoUnitCast;
     }
-    char* animation = unit->FindAnimation(key, 1);
+    FigureAnimation* animation = unit->FindAnimation(key, 1);
     *duration = 0;
     if (!animation) return;
-    std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
+    std::uint8_t index = animation->index;
 
-    if (value <= EntryTicks(unit, index, 0x20)) {
+    if (value <= EntryTicks(unit, index, &FigureAnimation::frameCount)) {
         // The cast fits in the animation.
         steps->AddStep(index, AnimationDuration(index));
         *duration = AnimationMoment(index);
@@ -348,13 +349,13 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     AnimationStep blank = BlankStep();
     if (Combat().bodyKind == kNoSizeClasses) {
         // A pause for the extra time, then the animation; the action at its moment.
-        *duration = EntryTicks(unit, index, 0x40);
-        int pause = value - EntryTicks(unit, index, 0x20);
+        *duration = EntryTicks(unit, index, &FigureAnimation::moment);
+        int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
         steps->SetAtGrow(steps->count, blank);
         AnimationStep& first = steps->steps[steps->count - 1];
         first.animation = 0xFF;
         first.duration = pause;
-        int length = EntryTicks(unit, index, 0x20);
+        int length = EntryTicks(unit, index, &FigureAnimation::frameCount);
         blank = BlankStep();
         steps->Add(blank);
         AnimationStep& second = steps->steps[steps->count - 1];
@@ -365,9 +366,9 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     }
 
     // The animation up to its moment, a pause, then the rest of it.
-    int moment = EntryTicks(unit, index, 0x40);
+    int moment = EntryTicks(unit, index, &FigureAnimation::moment);
     *duration = moment;
-    int pause = value - EntryTicks(unit, index, 0x20);
+    int pause = value - EntryTicks(unit, index, &FigureAnimation::frameCount);
     steps->Add(blank);
     AnimationStep& first = steps->steps[steps->count - 1];
     first.animation = index;
@@ -377,7 +378,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     AnimationStep& second = steps->steps[steps->count - 1];
     second.animation = 0xFF;
     second.duration = pause;
-    int rest = EntryTicks(unit, index, 0x20) - *duration;
+    int rest = EntryTicks(unit, index, &FigureAnimation::frameCount) - *duration;
     blank = BlankStep();
     steps->Add(blank);
     AnimationStep& third = steps->steps[steps->count - 1];
@@ -616,7 +617,7 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     }
     key |= isDying ? kKeyDying : kKeyNotDying;
 
-    char* animation = unit->FindAnimation(key, 1);
+    FigureAnimation* animation = unit->FindAnimation(key, 1);
     bool add;
     if (isDying) {
         // (The original reads the dying argument here: after its PUSH ESI, [ESP+0x28] is it.)
@@ -626,15 +627,15 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
         add = moveMode.mode != 0 && animation;
     }
     if (add) {
-        std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
-        int duration = EntryTicks(unit, index, 0x20);
+        std::uint8_t index = animation->index;
+        int duration = EntryTicks(unit, index, &FigureAnimation::frameCount);
         int last = steps->count;
         steps->SetSize(last + 1, -1);
         AnimationStep step = BlankStep();
         step.kind = 0;
         steps->steps[last] = step;
         AnimationStep& added = steps->steps[steps->count - 1];
-        added.animation = Get<std::uint8_t>(animation, 0x10);
+        added.animation = animation->index;
         added.duration = duration;
     }
     if (isFall)

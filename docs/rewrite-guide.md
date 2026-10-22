@@ -153,7 +153,15 @@ does not need a second pass:
   file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
   and do not hand-inline SetSize / RemoveAt / Add: call the template's member, or forward to the
   original instantiation with the template as its parameter type. Which original addresses belong
-  to which template: `docs/notes/core.md`, "Shared containers".
+  to which template: `docs/notes/core.md`, "Shared containers". stlp::list's and vector's
+  members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`,
+  `v.InsertOverflow<Abi::Element>(...)`): call them on the typed container rather than casting it
+  to its `ListAbi` / `VectorAbi`;
+- parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
+  raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
+  `operator_new_array<T>(count)` and `stlp::allocate_as<T>(count)` (`src/lib/crt.h`,
+  `src/lib/stlp_alloc.h`), not a `static_cast` at each allocation (tools/progress.py counts the
+  pointer casts; check_cleanup does not).
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

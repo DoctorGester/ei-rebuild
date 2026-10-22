@@ -32,9 +32,9 @@ constexpr float kDefaultHeight = 0.7f;
 constexpr int kVoiceRows = 11;
 
 // The index of `name` in a vector of CStrings (case-insensitive), or -1.
-int IndexOf(const char* const* begin, const char* const* end, const char* name) {
+int IndexOf(const mfc::CString* begin, const mfc::CString* end, const char* name) {
     int index = 0;
-    for (const char* const* entry = begin; entry != end; ++entry, ++index) {
+    for (const mfc::CString* entry = begin; entry != end; ++entry, ++index) {
         if (gamecrt::mbsicmp(*entry, name) == 0)
             return index;
     }
@@ -85,8 +85,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     // Each strip selects the figure when its list has it; the second list decides the voices.
     figureStrips_[1]->selected_ = -1;
     figureStrips_[0]->selected_ = -1;
-    const auto* first = reinterpret_cast<const char* const*>(defaults_);
-    int index = IndexOf(first, reinterpret_cast<const char* const*>(defaultsEnd_), prototype);
+    int index = IndexOf(defaults_.begin(), defaults_.end(), prototype);
     if (index >= 0) figureStrips_[0]->selected_ = index;
     index = IndexOf(names_.begin(), names_.end(), prototype);
     bool firstVoices = index < 0;

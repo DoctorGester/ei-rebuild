@@ -40,7 +40,7 @@ namespace {
 // node pool, linked to itself (the list constructors 005F90E0 / 005F9300).
 template <typename Node>
 Node* EmptyList() {
-    auto* head = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    auto* head = stlp::allocate_as<Node>();
     head->next = head;
     head->prev = head;
     return head;

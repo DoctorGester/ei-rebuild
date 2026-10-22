@@ -89,8 +89,8 @@ std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::
 // 0056E8A0 / 00572B00).
 using HeldOps = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
 struct GridOpsA {
-    static void Erase(SectorList* list, SectorListNode** out, SectorListNode* node) {
-        static_cast<HeldOps*>(static_cast<stlp::list<CEngineObject*>*>(list))->Erase(out, node);
+    static void Erase(SectorList*, SectorListNode** out, SectorListNode* node) {
+        *out = SectorList::Erase<stlp::HeldObject>(node);
     }
 };
 using GridOpsB = GridOpsA;
@@ -221,7 +221,7 @@ EI_REWRITTEN(0x005718B0, HitCollector::CollectParts);
 
 // ---- Lookups -------------------------------------------------------------------------------------
 
-int PendingIndex::Lookup(const std::uint32_t* key, void** value) const {
+int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const {
     const Node* node = Find(*key);
     if (!node) return 0;
     *value = node->value;
@@ -238,15 +238,12 @@ namespace {
 // end [0056DFA0], insert [0056EA80], begin [0056DF90], erase [0056DFB0] (thiscall on the list;
 // plain values).
 using PlainList = SectorList;
-using PlainAbi = stlp::ListAbi<CEngineObject*>;
 using FiledNode = MapObjectList::Node;
 struct PlainOps {
-    static void Erase(SectorList* list, SectorListNode** out, SectorListNode* node) {
-        static_cast<PlainAbi*>(static_cast<stlp::list<CEngineObject*>*>(list))->Erase(out, node);
+    static void Erase(SectorList*, SectorListNode** out, SectorListNode* node) {
+        *out = SectorList::Erase(node);
     }
-    static void Erase(MapObjectList* list, FiledNode** out, FiledNode* node) {
-        static_cast<stlp::ListAbi<CMapObject*>*>(list)->Erase(out, node);
-    }
+    static void Erase(MapObjectList*, FiledNode** out, FiledNode* node) { *out = MapObjectList::Erase(node); }
 };
 
 // The sector grid's cell list (held objects): remove(counted value) [00570400], push_back
@@ -254,7 +251,7 @@ struct PlainOps {
 struct CellOps {
     static constexpr auto Remove = stlp::ListRemoveHeld;
     static void PushBack(SectorList* list, CEngineObject** value) {
-        static_cast<HeldOps*>(static_cast<stlp::list<CEngineObject*>*>(list))->PushBack(*value);
+        SectorList::Insert<stlp::HeldObject>(list->head, *value);
     }
     static constexpr auto Clear = HeldOps::Clear;
     static constexpr auto Clear2 = HeldOps::Clear;
@@ -473,7 +470,7 @@ void CWorldClient::RemoveObject(int id) {
     PendingMap& ids = dynamicNodes_;
     if (const PendingMap::Node* entry = ids.Find(static_cast<std::uint32_t>(id))) {
         DynamicList& kept = dynamicObjects_;
-        DynamicNode* node = static_cast<DynamicNode*>(entry->value);
+        DynamicNode* node = entry->value;
         if (node == kept.head)
             kept.head = node->next;
         else
@@ -586,13 +583,13 @@ namespace {
 
 using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNode*, ScreenHits*, long, long,
                                                 CBaseManager*);
-CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
+CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.Finish() = hits.Start();   // erase(begin, end): __copy of nothing
     CBaseManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
-    (functor.*collect)(screen.head->next, screen.head, &hits, point[0], point[1], manager);
+    (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
     if (hits.begin() == hits.end()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
@@ -623,8 +620,8 @@ CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
 
 } // namespace
 
-CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, &HitCollector::CollectParts); }
+CEngineObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CEngineObject* CWorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
 namespace {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
@@ -640,7 +637,7 @@ CUnit* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
 }
 } // namespace
 
-CUnit* CWorldClient::UnitAt(const long* point) {
+CUnit* CWorldClient::UnitAt(const POINT* point) {
     if (CEngineObject* picked = PickAt2(point)) {
         if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
@@ -648,7 +645,7 @@ CUnit* CWorldClient::UnitAt(const long* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CUnit* CWorldClient::UnitAt2(const long* point) {
+CUnit* CWorldClient::UnitAt2(const POINT* point) {
     CEngineObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
@@ -761,13 +758,13 @@ std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std:
 
 } // namespace
 
-void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
+void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
-    float y1 = MinOf(MaxZero(point[1] + radius), maxY);
-    float x1 = MinOf(MaxZero(point[0] + radius), maxX);
-    float y0 = MaxZero(MinOf(MaxZero(point[1] - radius), maxY));
-    float x0 = MaxZero(MinOf(MaxZero(point[0] - radius), maxX));
+    float y1 = MinOf(MaxZero(point->y + radius), maxY);
+    float x1 = MinOf(MaxZero(point->x + radius), maxX);
+    float y0 = MaxZero(MinOf(MaxZero(point->y - radius), maxY));
+    float x0 = MaxZero(MinOf(MaxZero(point->x - radius), maxX));
     std::uint32_t& firstX = rangeFirstX_;
     std::uint32_t& firstY = rangeFirstY_;
     std::uint32_t& lastX = rangeLastX_;
@@ -780,22 +777,21 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
     lastY = Ftol(y1) >> 4;
 
     SectorGrid& grid = objectGrid_;
-    PlainList* list = static_cast<PlainList*>(out);
     for (SectorList* cell = &grid.rows_[y][x]; cell;) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = ObjectSlots(node->data);
-            float pz = point[2];
+            float pz = point->z;
             float ox = object->localPosition_.x + object->center.x;
             float oy = object->localPosition_.y + object->center.y;
             double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
-            float dx = ox - point[0];
-            float dy = oy - point[1];
-            float dz = pz - point[2];
+            float dx = ox - point->x;
+            float dy = oy - point->y;
+            float dz = pz - point->z;
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
             if (limit >= distance) {
-                SectorList::Insert(list->End(), node->data);
+                stlp::list<CObject3D*>::Insert(out->End(), object);
             }
         }
         if (++x > lastX) {
@@ -919,11 +915,11 @@ void EmptyList(stlp::list<T>& list, F free) {
 // destroyed, its node returned to the pool.
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
-        static_cast<GroundPrint*>(&node->data)->Destruct();
+        node->data.Destruct();
         stlp::deallocate(node, 164);   // 0056FB80
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
-        static_cast<GroundPrint*>(&node->data)->DeletingDestruct(0);
+        node->data.DeletingDestruct(0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
     EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
@@ -935,8 +931,8 @@ void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& fee
 // An owned engine object deleted (its slot 0, the scalar deleting destructor, with 1) and cleared.
 template <typename T>
 void DeleteOwned(T*& slot) {
-    if (slot) {
-        delete static_cast<CEngineObject*>(slot);
+    if (CEngineObject* object = slot) {
+        delete object;
         slot = nullptr;
     }
 }
@@ -946,7 +942,8 @@ template <typename T>
 void DropAndDelete(T*& slot) {
     if (slot) {
         --slot->refCount_;
-        if (slot) delete static_cast<CEngineObject*>(slot);
+        CEngineObject* object = slot;
+        if (object) delete object;
         slot = nullptr;
     }
 }
@@ -1095,7 +1092,7 @@ __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGIN
 // Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
 
-std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
+std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
 // A heap object made by its constructor (null without memory), stored and referenced (the
 // original does not test the pointer before counting).
@@ -1167,7 +1164,7 @@ void SectorGrid::Allocate() {
         for (int i = 0; i < count; ++i) cells[i].Construct();
     }
     cells_ = cells;
-    rows_ = static_cast<SectorList**>(gamecrt::operator_new(static_cast<std::size_t>(unknown0C_) * sizeof(SectorList*)));
+    rows_ = gamecrt::operator_new_array<SectorList*>(static_cast<std::size_t>(unknown0C_));
     for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
 }
 EI_REWRITTEN(0x00572820, SectorGrid::Allocate);
@@ -1336,7 +1333,7 @@ int CWorldClient::Setup() {
             if (ScreenEntry* old = entries.begin())
                 stlp::deallocate(old, static_cast<std::size_t>(entries.EndOfStorage() - old) * sizeof(ScreenEntry));
         } else {
-            block = static_cast<ScreenEntry*>(gamecrt::operator_new(400 * sizeof(ScreenEntry)));
+            block = gamecrt::operator_new_array<ScreenEntry>(400);
         }
         entries.Start() = block;
         entries.Finish() = block + count;

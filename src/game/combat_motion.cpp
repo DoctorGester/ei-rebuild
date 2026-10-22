@@ -190,8 +190,7 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
         AddEmote(steps, kEmoteStand);
         return;
     }
-    const auto* entry = reinterpret_cast<const FigureAnimation*>(
-        self->unit->FindAnimation(WeaponAndModeBits(self) | kKeyIdle, 1));
+    const FigureAnimation* entry = self->unit->FindAnimation(WeaponAndModeBits(self) | kKeyIdle, 1);
     if (entry) AddEmote(steps, entry->index);
 }
 
@@ -348,7 +347,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
         }
     }
-    if (const auto* entry = reinterpret_cast<const FigureAnimation*>(self->FindAnimation(key, 1))) {
+    if (const FigureAnimation* entry = self->FindAnimation(key, 1)) {
         std::uint8_t index = entry->index;
         if (!once) {
             AddEmote(steps, index);
@@ -632,8 +631,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
 }
 EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 
-void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
-    auto* list = static_cast<UnitList*>(listIn);
+void CUnitServer::LiftNearby(UnitList* list, const float* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
     // RemoveAll.
@@ -654,12 +652,12 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
-        void* group = &player->Server()->partyUnits_;
+        const ScriptGroup* group = &player->Server()->partyUnits_;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;
             node = node->next;
             CUnit* other = current->data;
-            if (reinterpret_cast<const ScriptGroup*>(group)->Contains(other) == 0) {
+            if (group->Contains(other) == 0) {
                 SectorMapRemove(sectors, nullptr, other);
                 continue;
             }
