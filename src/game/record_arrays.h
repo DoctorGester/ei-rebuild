@@ -53,13 +53,7 @@ using SceneNodes = ArrayAbi<scene::SceneNode, EachElements<scene::SceneNode, Ini
 
 // A mesh's face groups: built by FaceGroup::ConstructElements (00454DB0), each destroyed by
 // FaceGroup::Destruct (00454C50; 00476F20 and 00474DB0 call it).
-struct FaceGroupElements {
-    static void Construct(scene::FaceGroup* p, int n) { scene::FaceGroup::ConstructElements(p, n); }
-    static void Destruct(scene::FaceGroup* p, int n) {
-        for (; n--; ++p) p->Destruct();
-    }
-};
-using FaceGroups = ArrayAbi<scene::FaceGroup, FaceGroupElements>;
+using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
 // CArray<FaceGroup> (a mesh's +0x148; constructor 00454A50), its vtable the compiler's (C19, mfc_slots.h).
 struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};

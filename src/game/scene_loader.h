@@ -134,9 +134,17 @@ struct FaceGroup {
     mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
 };
 static_assert(sizeof(FaceGroup) == 0x18);
+// CArray<FaceGroup>'s elements: constructed by 00454DB0, destroyed by FaceGroup::Destruct.
+struct FaceGroupElements {
+    static void Construct(FaceGroup* p, int n) { FaceGroup::ConstructElements(p, n); }
+    static void Destruct(FaceGroup* p, int n) {
+        for (; n--; ++p) p->Destruct();
+    }
+};
+using FaceGroupArray = mfc::CArray<FaceGroup, FaceGroupElements>;
 // 00454CE0 (S7a): CArray<FaceGroup>'s destructor (record_arrays.h's FaceGroupArrayClass): each group
 // destroyed, the storage freed.
-void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups);
+void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups);
 
 // Mesh (element of the caller's +0x544 array, 0x18C bytes, constructed by 004545C0).
 namespace mesh {
@@ -303,7 +311,7 @@ struct SceneMesh : CTransformObject {
     DwordBuffer pairs;
     lib::AlignedArray<std::uint16_t> cornerIndices;
     FaceBuffer faces;                   // +0x138
-    mfc::CArray<FaceGroup> groups;      // +0x148
+    FaceGroupArray groups;              // +0x148
     // +0x15C the bounds (0044E8A0; the figure copies them to its +0x160): the centre, the box
     // corners relative to it and the radius.
     Vector3 center;
