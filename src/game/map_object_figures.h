@@ -34,6 +34,7 @@ using AlignedPtrArray = lib::AlignedArray<void*>;
 using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
 class CFigureMesh;      // figure_mesh.h: a part of an object's figure
+struct FigureModel;     // model.h: a cached model
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 
 // One animation of a figure's animation database (0x58 bytes).
@@ -281,12 +282,12 @@ public:
     FigureBone* FindBone(const char* boneName);
     // 0050CC60 (RET 0xC). A new bone (the figure manager's class 0x300C) named `child` with parent
     // `parentName` joins through LinkBone. Returns 1.
-    int LinkPiece(void* model, const char* child, const char* parentName);
+    int LinkPiece(FigureModel* model, const char* child, const char* parentName);
     // 0050CD70 (RET 8). `bone` becomes a child of the first bone named as its parent (name2)
     // unless that one has a child of its name; it joins the list (referenced), takes the model
     // name (name3) and morph, and its manager loads its key frames from `model` (005ACB80).
     // `changed` set. Returns 1.
-    int LinkBone(void* model, FigureBone* bone);
+    int LinkBone(FigureModel* model, FigureBone* bone);
     // 0050D0E0 (RET 4). The bone named as `part` (its slot 7) carries it as its mesh (referenced,
     // the old one released): the part takes the bone's position and rotation. 0 when no bone has
     // the name, else 1. `changed` set.
@@ -503,7 +504,7 @@ public:
     // +0x188) and +0x158 / +0x15C. Name prefixes "BASE" / "CROWN" / "EMPTY" add box flags 0x400 /
     // 0x90 / 0x890. A new part joins the parts (referenced; owner, animation state and side half
     // told as AddPart does); the box pivot is the part's position and flag 4 is set. Returns it.
-    CFigureMesh* LoadPart(const char* partName, void* model, std::uint32_t arg);
+    CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
     // 00517110 (RET 0xC). The object's figure becomes `model` (+0xA4) and each name of the
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.

@@ -415,7 +415,7 @@ EI_REWRITTEN(0x005FFF40, CUiWindow::ClearModels);
 namespace {
 // 005AC1A0: a new object of the model manager by name, or null.
 CEngineObject* NewModelObject(const char* name) {
-    return reinterpret_cast<CEngineObject*>(static_cast<CFigureManager*>(UiModelManager())->NewFigure(name));
+    return UiModelManager()->NewFigure(name);
 }
 
 } // namespace

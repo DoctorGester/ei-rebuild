@@ -63,7 +63,7 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
 // The figure manager (global 007AF5F4) and the texture manager (007AF744).
-void* FigureManager() { return ei::GameData<void* const>(0x007AF5F4); }
+CFigureManager* FigureManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
@@ -84,14 +84,14 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
-    void* manager = FigureManager();
+    CFigureManager* manager = FigureManager();
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return true;
 
-    void* model;
+    FigureModel* model;
     {
         stlp::string name(unit->name);
-        model = static_cast<CFigureManager*>(manager)->FindModel(&name);
+        model = manager->FindModel(&name);
     }
     if (!model) return false;
     const itemdb::ArmorRecord* armour = ArmourRecord(type);
@@ -109,7 +109,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         }
         CFigureMesh* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
         armourPart.Format("%s.armor%.2d", static_cast<const char*>(part), armour->number);
-        if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
+        if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
@@ -147,10 +147,10 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return true;
 
-    void* model;
+    FigureModel* model;
     {
         stlp::string name(unit->name);
-        model = static_cast<CFigureManager*>(FigureManager())->FindModel(&name);
+        model = FigureManager()->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
@@ -196,10 +196,10 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
     std::uint32_t next = WeaponIdOf(this, slot);
     console::CStringArray names;
-    void* model;
+    FigureModel* model;
     {
         stlp::string name(unit->name);
-        model = static_cast<CFigureManager*>(FigureManager())->FindModel(&name);
+        model = FigureManager()->FindModel(&name);
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);

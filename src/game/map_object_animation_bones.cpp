@@ -32,10 +32,6 @@ int CompareNames(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
-    return state->WorldContext()->FigureManager();
-}
-
 // A bone's mesh is a counted figure part (CFigureMesh, an engine object).
 CFigureMesh* AsMesh(CEngineObject* part) { return static_cast<CFigureMesh*>(part); }
 
@@ -159,8 +155,8 @@ FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
 }
 EI_REPLACE_METHOD(0x0050CC20, CFigureAnimationState::FindBone);
 
-int CFigureAnimationState::LinkPiece(void* model, const char* child, const char* parentName) {
-    auto* manager = static_cast<CBaseManager*>(FigureManagerOf(this));
+int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, const char* parentName) {
+    CBaseManager* manager = FigureManagerOf(this);
     auto* bone = static_cast<FigureBone*>(manager->CreateObject(kBoneClass, -1));
     bone->name = child;
     bone->name2 = parentName;
@@ -168,7 +164,7 @@ int CFigureAnimationState::LinkPiece(void* model, const char* child, const char*
 }
 EI_REWRITTEN(0x0050CC60, CFigureAnimationState::LinkPiece);
 
-int CFigureAnimationState::LinkBone(void* model, FigureBone* bone) {
+int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     const char* parentName = bone->name2;
     FigureBone* parent = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
@@ -192,7 +188,7 @@ int CFigureAnimationState::LinkBone(void* model, FigureBone* bone) {
     bone->morphS = morphS;
     bone->morphT = morphT;
     bone->morphU = morphU;
-    static_cast<CFigureManager*>(bone->owner_)->LoadFigureBones(static_cast<FigureModel*>(model), bone);
+    OwningFigureManager(bone)->LoadFigureBones(model, bone);
     changed = 1;
     return 1;
 }
@@ -234,7 +230,7 @@ EI_REPLACE_METHOD(0x0050D2E0, CFigureAnimationState::FindRoot);
 
 int CFigureAnimationState::SetModel(const char* model) {
     changed = 1;
-    return static_cast<CFigureManager*>(FigureManagerOf(this))->LoadSkeletonLinks(this, model);
+    return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
 EI_REWRITTEN(0x0050D320, CFigureAnimationState::SetModel);
 
@@ -292,11 +288,11 @@ void CFigureAnimationState::Stop() {
 EI_REWRITTEN(0x0050D5A0, CFigureAnimationState::Stop);
 
 void CFigureAnimationState::Rescale(float s, float t, float u) {
-    void* model;
+    FigureModel* model;
     {
         const char* name = owner->name;
         stlp::string key(name, name + std::strlen(name));
-        model = static_cast<CFigureManager*>(FigureManagerOf(this))->FindModel(&key);
+        model = FigureManagerOf(this)->FindModel(&key);
     }
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
@@ -304,7 +300,7 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
         bone->morphS = s;
         bone->morphT = t;
         bone->morphU = u;
-        static_cast<CFigureManager*>(bone->owner_)->LoadFigureBones(static_cast<FigureModel*>(model), bone);
+        OwningFigureManager(bone)->LoadFigureBones(model, bone);
     }
     morphS = s;
     morphT = t;

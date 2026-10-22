@@ -6,6 +6,7 @@
 
 #include "figure_mesh.h"   // CFigureMesh
 #include "resource_manager.h"
+#include "world.h"   // CWorld::FigureManager (slot 15)
 
 #include "lib/stlp.h"
 
@@ -85,8 +86,8 @@ public:
     // (CreateObject with id -1: class 0x42 when `attached`, else 0x41) named `partName` (+0x120)
     // of the model `modelName` (+0x124). The cached model, the scale (three float bit patterns)
     // and `arg` are not read. Returns the part (a null part faults, as in the original).
-    CEngineObject* NewPart(const char* modelName, const char* partName, FigureModel* model, std::uint32_t scaleX,
-                           std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
+    CFigureMesh* NewPart(const char* modelName, const char* partName, FigureModel* model, std::uint32_t scaleX,
+                         std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
     // 005ACA60 (RET 0xC). The bone's animation `animation` from "<bone's model name (+0x24)><bone's
     // name (slot 7)><animation>.ast" (slot 19) into `animator` (LoadKeyFrames); 0 without an
     // animation or the file. The path is built in a 0x200-byte buffer without a bounds check; the
@@ -96,3 +97,12 @@ public:
     stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> models_;   // +0xBC the cached models by name
 };
 static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);
+
+// The figure manager of `object`'s world (CWorld slot 15; every world's is a CFigureManager).
+inline CFigureManager* FigureManagerOf(const CEngineObject* object) {
+    return static_cast<CFigureManager*>(object->WorldContext()->FigureManager());
+}
+// The figure manager that made `object` (a bone or an animation track, CEngineObject::owner_).
+inline CFigureManager* OwningFigureManager(const CEngineObject* object) {
+    return static_cast<CFigureManager*>(object->owner_);
+}

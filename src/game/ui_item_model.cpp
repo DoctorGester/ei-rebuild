@@ -20,10 +20,10 @@ constexpr int kTexels = 0x80;
 // 005EBFB0 (__fastcall). The model manager's object `name`, else a new interface sprite standing in
 // for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
 CEngineObject* __fastcall ItemModel(const char* name) {
-    void* manager = UiModelManager();
-    CEngineObject* model = static_cast<CFigureManager*>(manager)->NewFigure(name);
+    CFigureManager* manager = UiModelManager();
+    CEngineObject* model = manager->NewFigure(name);
     if (!model) {
-        model = static_cast<CFigureManager*>(manager)->NewFigure(nullptr);
+        model = manager->NewFigure(nullptr);
         AsUiMesh(model)->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
         static_cast<CFigureMesh*>(model)->FitVertexBounds();
     }

@@ -95,7 +95,7 @@ static void SetBoxCount(CObject3D* object, int count) {
 }
 
 void CObject3D::SetUpAnimatedFigure(const char* model) {
-    CEngineObject* manager = WorldContext()->FigureManager();
+    CFigureManager* manager = FigureManagerOf(this);
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
     if (animation) {
@@ -107,17 +107,17 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         SetBoxCount(this, count);
         partNames.SetSize(animation->bones.count, -1);
 
-        void* figureModel;
+        FigureModel* figureModel;
         {
             stlp::string modelName(model, model + std::strlen(model));
-            figureModel = static_cast<CFigureManager*>(manager)->FindModel(&modelName);
+            figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
         for (auto* node = animation->bones.head; node; ++index) {
             FigureBone* bone = node->data;
             node = node->next;
             FootprintPart* box = &partBoxes[index];
-            static_cast<CFigureManager*>(manager)->LoadFigureBounds(reinterpret_cast<ClipBounds*>(box), static_cast<FigureModel*>(figureModel), model, bone->GetName(),
+            manager->LoadFigureBounds(reinterpret_cast<ClipBounds*>(box), figureModel, model, bone->GetName(),
                                             std::bit_cast<std::uint32_t>(scale.x),
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
@@ -224,19 +224,15 @@ constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create 
 
 // An MFC CStringArray as 00517110 reads it.
 using PartNameArray = mfc::CStringArray;
-
-CEngineObject* FigureManagerOf(const CObject3D* object) {
-    return object->WorldContext()->FigureManager();
-}
 } // namespace
 
 // 00519A10: Add (SetAtGrow at the size; RET 4).
 EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 
-CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
-    CEngineObject* manager = FigureManagerOf(this);
-    auto* part = static_cast<CFigureMesh*>(static_cast<CFigureManager*>(manager)->NewPart(name, partName, static_cast<FigureModel*>(model), std::bit_cast<std::uint32_t>(scale.x),
-        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
+CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
+    CFigureManager* manager = FigureManagerOf(this);
+    CFigureMesh* part = manager->NewPart(name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
+        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached);
     if (!part) {
         game::DebugLog(kCantLoadPart, partName, static_cast<const char*>(name));
         return nullptr;
@@ -286,11 +282,11 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
 EI_REWRITTEN(0x00517240, CObject3D::LoadPart);
 
 int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t arg) {
-    CEngineObject* manager = FigureManagerOf(this);
-    void* cached;
+    CFigureManager* manager = FigureManagerOf(this);
+    FigureModel* cached;
     {
         stlp::string key(model, model + std::strlen(model));
-        cached = static_cast<CFigureManager*>(manager)->FindModel(&key);
+        cached = manager->FindModel(&key);
     }
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);

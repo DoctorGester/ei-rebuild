@@ -196,15 +196,14 @@ EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
 
 int CObject3D::LoadFiguresImpl() {
     if (flags_ & kFlagFiguresLoaded) return 1;
-    void* manager = WorldContext()->FigureManager();
-    void* model;
+    CFigureManager* manager = FigureManagerOf(this);
+    FigureModel* model;
     {
         stlp::string key(name);
-        model = static_cast<CFigureManager*>(manager)->FindModel(&key);
+        model = manager->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        static_cast<CFigureManager*>(manager)->LoadPart(pendingParts.data[i],   // 005AC2F0
-                                                        static_cast<FigureModel*>(model), scale.x, scale.y, scale.z);
+        manager->LoadPart(pendingParts.data[i], model, scale.x, scale.y, scale.z);   // 005AC2F0
         --pendingParts.data[i]->refCount_;   // no release at 0
         auto* part = pendingParts.data[i];
         bool known = false;

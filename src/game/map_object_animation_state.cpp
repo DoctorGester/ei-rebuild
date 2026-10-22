@@ -31,10 +31,6 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
 // The model name of the figure the state animates.
 const char* ModelName(const CFigureAnimationState* state) { return state->owner->name; }
 
-CFigureManager* FigureManagerOf(const CFigureAnimationState* state) {
-    return static_cast<CFigureManager*>(state->WorldContext()->FigureManager());
-}
-
 // The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation ? animation->name : nullptr)) return;
@@ -60,7 +56,7 @@ FigureAnimation* PopQueued(CFigureAnimationState* state) {
 void CFigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
     AnimationTrack* animator = AnimatorOf(bone);
     animator->animation = animation;
-    static_cast<CFigureManager*>(animator->owner_)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
+    OwningFigureManager(animator)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
     animator->time = 0.0f;
 }
 

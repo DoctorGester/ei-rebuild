@@ -29,6 +29,7 @@
 #include <windows.h>
 
 namespace console { class ConsoleWindow; }
+class CFigureManager;   // figure_manager.h
 class CItem;
 namespace ui_gdi { struct GameFont; struct GameDC; }
 
@@ -1076,7 +1077,7 @@ inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CD
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 // The model manager (007AF5F4) the windows take their sprites and item models from.
-inline void* UiModelManager() { return ei::GameData<void* const>(0x007AF5F4); }
+inline CFigureManager* UiModelManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
