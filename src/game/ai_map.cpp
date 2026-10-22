@@ -19,8 +19,8 @@ int WorldToCell(float world) {
 }
 
 namespace {
-// Standing heights of the 8 size classes (00791 69C).
-const float* SizeClassHeights() { return ei::GameData<const float[8]>(0x0079169C); }
+// Standing heights of the 8 size classes.
+constexpr float kSizeClassHeights[8] = /*0079169C*/ {0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.7f, 0.7f, 1.5f};
 
 // Cell centre to world coordinate, as FindFreeCellNear computes it.
 float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
@@ -37,7 +37,7 @@ const BridgeMap* Bridges(const CAIMap* map) { return &map->bridgeHeights; }
 
 int __stdcall LevelForSizeClass(int sizeClass) {
     if (sizeClass < 0 || sizeClass >= 8) return sizeClass & ~0xFF;   // XOR AL,AL
-    return PositiveOrZero(x87::fistp((2.0f - SizeClassHeights()[sizeClass]) * 16.0f));
+    return PositiveOrZero(x87::fistp((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
 }
 EI_REWRITTEN(0x005B7B20, LevelForSizeClass);
 

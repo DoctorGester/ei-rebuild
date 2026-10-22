@@ -204,9 +204,8 @@ inline float DampScale() { return ExeFloat(std::uintptr_t(0x007C2F8C)); }   // t
 // By reference, where the original copies the bits or passes the address on.
 inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f /*0073BB20*/>; }   // seconds between announcements to the master
 inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090*/>; }   // squared distance a blocking ally may be away
-// Tables of the AI (ai_refresh.cpp): the height of each of 8 levels; per occluder type the cost added by full
-// cover and the damping exponent; 5 rows x 16 dwords of cell marks.
-inline const float* LevelHeights() { return ei::GamePointer<const float>(0x007912BC); }
+// Tables of the AI (ai_refresh.cpp; the height of each of 8 levels is ai_map.h's kLevelHeights): per occluder type
+// the cost added by full cover and the damping exponent; 5 rows x 16 dwords of cell marks.
 inline constexpr int kOccluderCosts[3] = /*007912A4*/ {290, 20};
 inline constexpr int kOccluderDamping[3] = /*007912B0*/ {7, 2};
 inline constexpr std::uint32_t kMarkTable[80] = /*00791164*/ {

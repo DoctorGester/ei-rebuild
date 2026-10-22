@@ -55,7 +55,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
     alignas(4) std::uint8_t scratch[0x34];
     for (int level = 0; level < kLevels; ++level) {
-        float h = static_cast<float>(static_cast<double>(worlddata::LevelHeights()[level]) *
+        float h = static_cast<float>(static_cast<double>(kLevelHeights[level]) *
                                                 heightScale);
         int levelHeight = x87::fistp(h);
         for (int y = oy0; y <= oy1; ++y)

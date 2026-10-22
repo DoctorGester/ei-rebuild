@@ -28,8 +28,6 @@ using ShapeHandle = ShapeCacheHandle;
 
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
-// Standing height of each size class (007912BC).
-const float* ClassHeights() { return ei::GamePointer<const float>(0x007912BC); }
 
 // LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
 
@@ -151,7 +149,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (HasKind3Occluder(x, y)) {
         int sizeClass = unit->sizeClass;
-        int level = x87::fistp(static_cast<float>(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
+        int level = x87::fistp(static_cast<float>(static_cast<double>(kLevelHeights[sizeClass]) * heightScale));
         std::uint32_t passability[6];
         CellMark(passability, sizeClass, level, x, y);
         return static_cast<int>(passability[3]) < kExpensive;
