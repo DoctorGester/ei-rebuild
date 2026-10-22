@@ -578,16 +578,16 @@ int CWorldClient::DrawPass() {
 
     // Selection markers (list +0x7BC of object ids) in single-player mode 1 with units drawn: a
     // marker at each living object (at its named part when it has one); dead ones leave the list.
-    stlp::list<void*>& selected = list7BC_;
+    stlp::list<int>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTextureImpl(0, nullptr);
         CEngineObject* manager = manager40_;
-        using Node = stlp::list<void*>::Node;
+        using Node = stlp::list<int>::Node;
         Node* head = selected.head;
         for (Node* node = head->next; node != head;) {
             Node* next = node->next;
-            int id = static_cast<int>(reinterpret_cast<std::intptr_t>(node->data));
+            int id = node->data;
             auto* object = static_cast<CMapObject*>(ManagerFindObject(manager, nullptr, id));
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
@@ -611,7 +611,7 @@ int CWorldClient::DrawPass() {
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);
                     }
-                    stlp::list<void*>::Erase(node);   // 00512030
+                    stlp::list<int>::Erase(node);   // 00512030
                 }
             }
             node = next;

@@ -1062,25 +1062,12 @@ static_assert(offsetof(SectorGrid, width_) == 0x10);
 // The functor of the for_each over the footprints (world_client_maps.cpp): {x, y, scale}, handed back by
 // value.
 struct RadiusFunctor {
-    // 00571D50 (RET 0x14). for_each over list nodes [first, last): sets the byte at node +0xD when
-    // hypot(node +0x10 - x, node +0x14 - y) <= node +0x94 * scale. Writes {x, y, scale} to this and
-    // returns it.
-    RadiusFunctor* Mark(std::uint8_t* first, std::uint8_t* last, float x, float y, float scale);
+    // 00571D50 (RET 0x14). for_each over the footprint list's nodes [first, last): a footprint is
+    // made visible when hypot(position - (x, y)) <= its scale_ * scale. Writes {x, y, scale} to
+    // this and returns it.
+    RadiusFunctor* Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float x, float y,
+                        float scale);
     float x, y, scale;
-};
-// The functor of the for_each over the screen entries: the hits vector it fills, handed back by value.
-// for_each over list nodes [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose
-// rectangle holds (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22
-// (CollectBounds) or slot 24 (CollectParts) for the point is pushed to the vector `hits`. this->hits =
-// hits; returns this.
-struct HitCollector {
-    // 00571800 (RET 0x18).
-    HitCollector* CollectBounds(std::uint8_t* first, std::uint8_t* last, void* hits, long x, long y,
-                                CBaseManager* manager);
-    // 005718B0 (RET 0x18).
-    HitCollector* CollectParts(std::uint8_t* first, std::uint8_t* last, void* hits, long x, long y,
-                               CBaseManager* manager);
-    void* hits;
 };
 // The predicate of CWorldClient::ClearMaps' remove_if (an empty functor).
 struct ReleaseIdentified {
@@ -1163,13 +1150,12 @@ int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* 
 // The STLport vector<ScreenEntry> the pickers fill (CWorldClient + 0xF4). Its _M_insert_overflow
 // (00573350) is the instantiation's own (world_client_maps.cpp); push_back as the collectors inline
 // it.
-struct ScreenHits {
-    ScreenEntry* start;
-    ScreenEntry* finish;
-    ScreenEntry* eos;
+struct ScreenHits : stlp::vector<ScreenEntry> {
+    // 00573350: _M_insert_overflow (plain elements).
     void InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count);
     void PushBack(const ScreenEntry* entry) {
-        if (finish != eos) {
+        ScreenEntry*& finish = Finish();
+        if (finish != EndOfStorage()) {
             if (finish) *finish = *entry;
             ++finish;
         } else {
@@ -1178,17 +1164,20 @@ struct ScreenHits {
     }
 };
 static_assert(sizeof(ScreenHits) == 12);
-
-// A marker entry MarkWithinRadius walks (an STLport list's element: node + 8).
-struct RadiusMarker {
-    std::uint8_t unused_00[5];
-    std::uint8_t marked;                  // +0x05 set when within the radius
-    std::uint8_t unused_06[2];
-    float x, y;                           // +0x08
-    std::uint8_t unused_10[0x8C - 0x10];
-    float radius;                         // +0x8C scaled by the functor's scale
+// The functor of the for_each over the screen entries: the hits vector it fills, handed back by value.
+// for_each over list nodes [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose
+// rectangle holds (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22
+// (CollectBounds) or slot 24 (CollectParts) for the point is pushed to the vector `hits`. this->hits =
+// hits; returns this.
+struct HitCollector {
+    // 00571800 (RET 0x18).
+    HitCollector* CollectBounds(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
+                                CBaseManager* manager);
+    // 005718B0 (RET 0x18).
+    HitCollector* CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
+                               CBaseManager* manager);
+    ScreenHits* hits;
 };
-static_assert(offsetof(RadiusMarker, radius) == 0x8C);
 
 // The client's rain / snow layer (CWorldClient + 0x6F4, 0xC8 bytes; constructor 004E3C20, drawn by
 // 004E5680): an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
@@ -1702,7 +1691,7 @@ public:
     alignas(4) std::uint8_t rainSnow_[0xC8];
     CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
     const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
-    stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
+    stlp::list<int> list7BC_;             // +0x7BC the selected objects' ids (nodes of 0xC bytes; pool free 00498C40)
     int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     int constants7C4_[3];                 // +0x7C4 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
