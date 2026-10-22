@@ -217,6 +217,7 @@ address,size,name,file
 007A9CE0,16,g_lineVertices,src/game/renderer_lines.cpp
 007A9D40,2068,g_random,src/game/random.cpp
 007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
+007AA608,20,g_scriptQuestObjectives,src/game/script_exec_helpers.cpp
 007AA61C,4,g_scriptQuestName,src/game/script_exec_helpers.cpp
 007AA890,16,kSkyDrawA,src/game/sky_object.cpp
 007AA8A0,12,kSkyDrawB,src/game/sky_object.cpp

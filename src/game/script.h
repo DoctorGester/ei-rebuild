@@ -1093,9 +1093,10 @@ struct ScriptQuestObjective {
     float value;            // its float argument
 };
 static_assert(sizeof(ScriptQuestObjective) == 12);
-inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() {
-    return ei::GameData<mfc::CArray<ScriptQuestObjective>>(0x007AA608);
-}
+// Built empty by its static initialiser in the list's order, destroyed by the exit function that registers
+// (script_exec_helpers.cpp).
+extern lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives;
+inline mfc::CArray<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_scriptQuestObjectives; }
 // The quest's name (script_exec_helpers.cpp): built by its static initialiser in the list's order, destroyed by the
 // exit function that registers.
 extern lib::StaticObject<mfc::CString> g_scriptQuestName;

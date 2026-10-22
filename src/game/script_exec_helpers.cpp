@@ -214,17 +214,12 @@ EI_REWRITTEN(0x004BD920, CScript::DeletePointLight);
 
 namespace {
 
-// One objective added by the QObj* commands (004BAE10; CArray at 007AA608, data 007AA60C,
-// count 007AA610): the command id (0xD7-0xDD), its string argument, its float argument.
-struct QuestObjective {
-    int type;
-    mfc::CString text;
-    float value;
-};
-static_assert(sizeof(QuestObjective) == 12);
+// One objective added by the QObj* commands (004BAE10; script.h ScriptQuestObjectives): the command id (0xD7-0xDD),
+// its string argument, its float argument.
+using QuestObjective = ScriptQuestObjective;
 
-QuestObjective* QuestObjectives() { return ei::GameData<QuestObjective*>(0x007AA60C); }
-int QuestObjectiveCount() { return ei::GameData<int>(0x007AA610); }
+QuestObjective* QuestObjectives() { return ScriptQuestObjectives().data; }
+int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
 mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
@@ -317,13 +312,23 @@ void __fastcall ScriptQuestFinish(CScript* script) {
 }
 EI_REWRITTEN(0x004BAAB0, ScriptQuestFinish);
 
-// ---- The quest's name (script.h) -----------------------------------------------------------------------------------
+// ---- The quest's objectives and name (script.h) --------------------------------------------------------------------
 
-// Built empty by the static initialiser 004B1790 in the list's order, which registers the exit function 004B17B0 that
-// destroys it (docs/notes/standalone.md, "The static initialisers' objects").
+// Each built empty by its static initialiser in the list's order (004B17C0 the objectives, 004B1790 the name), which
+// registers the exit function that destroys it (004B17E0, 004B17B0; docs/notes/standalone.md, "The static
+// initialisers' objects").
+constinit lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
 constinit lib::StaticObject<mfc::CString> g_scriptQuestName = /*007AA61C*/ {};
 
 namespace {
+void __cdecl DestroyScriptQuestObjectives() {   // 004B17E0 (the destructor 004C9DB0)
+    gamearrays::Objectives::Destruct<gamearrays::ObjectiveArrayClass>(
+        reinterpret_cast<gamearrays::Objectives::Array*>(&*g_scriptQuestObjectives));
+}
+void __cdecl ConstructScriptQuestObjectives() {   // 004B17C0 (the constructor 004C9D90)
+    mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
+    GameAtExit(DestroyScriptQuestObjectives);
+}
 void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }   // 004B17B0
 void __cdecl ConstructScriptQuestName() {                               // 004B1790
     g_scriptQuestName.Construct();
@@ -333,3 +338,5 @@ void __cdecl ConstructScriptQuestName() {                               // 004B1
 
 EI_REPLACE(0x004B1790, ConstructScriptQuestName);
 EI_REPLACE(0x004B17B0, DestroyScriptQuestName);
+EI_REPLACE(0x004B17C0, ConstructScriptQuestObjectives);
+EI_REPLACE(0x004B17E0, DestroyScriptQuestObjectives);

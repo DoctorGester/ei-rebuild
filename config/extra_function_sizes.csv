@@ -868,6 +868,7 @@ address,size,note
 00455D70,22,static initialiser of the application's command line globals (no Ghidra function)
 00455DA0,27,static initialiser of the application's command line globals (no Ghidra function)
 004B1790,22,static initialiser of the script's quest name (no Ghidra function)
+004B17C0,22,static initialiser of the script's quest objectives (no Ghidra function)
 0055E760,22,static initialiser of the game's folder strings (no Ghidra function)
 0055E7A0,22,static initialiser of the game's folder strings (no Ghidra function)
 0055E7E0,22,static initialiser of the game's folder strings (no Ghidra function)
