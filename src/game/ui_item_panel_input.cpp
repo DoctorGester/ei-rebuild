@@ -2,6 +2,7 @@
 // the hero equipment, the quick strip, the trade and repair grids, both constructor pages and the
 // blank panel), and the blank panel's constructor (0060E210). See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "ui_item_info.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -10,7 +11,7 @@
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
     // The original hands the address of its x argument as the topic out-parameter.
     int topic = x;
-    if (void* item = VirtualItemAt(x, y, &topic)) {
+    if (CItem* item = VirtualItemAt(x, y, &topic)) {
         OwnerTakeItem(item);
         return;
     }
@@ -21,7 +22,7 @@ namespace {
 EI_REPLACE_METHOD(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
 
 // 0060E210: the blank panel's constructor.
-CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CUiWindow* owner) {
+CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CItemScreen* owner) {
     Construct(ui);
     vtable_ = ei::GamePointer<void*>(0x00741B58);
     owner_ = owner;

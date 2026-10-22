@@ -41,7 +41,7 @@ static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
 // A panel T of the camp or the hero screen (an item panel) built on the window base, owned by
 // `owner`, with the vtable pair; null when the allocation fails (their Creates).
 template <class T>
-T* NewItemPanel(CInterface3D* ui, CUiWindow* owner, VtablePair vtables) {
+T* NewItemPanel(CInterface3D* ui, CItemScreen* owner, VtablePair vtables) {
     T* memory = gamecrt::operator_new_as<T>();
     if (!memory) return nullptr;
     CUiItemPanel* panel = memory;

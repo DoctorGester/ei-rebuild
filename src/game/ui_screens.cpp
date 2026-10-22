@@ -32,12 +32,9 @@ const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
 const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 const char* const kSoundMessageOk = "buttons\\messbox\\ok.wav";
 
-// The strips' items (their slots hold CItem pointers).
-const CItem* AsItem(const char* item) { return reinterpret_cast<const CItem*>(item); }
-// Item fields read by the strips: the kind, a loot item's record type and record index.
-int ItemType(const char* item) { return AsItem(item)->type_; }
-int ItemSubKind(const char* item) { return static_cast<int>(AsLoot(AsItem(item))->recordType_); }
-std::uint32_t ItemRecord(const char* item) { return AsLoot(AsItem(item))->index_; }
+// Item fields read by the strips: a loot item's record type and record index.
+int ItemSubKind(const CItem* item) { return static_cast<int>(AsLoot(item)->recordType_); }
+std::uint32_t ItemRecord(const CItem* item) { return AsLoot(item)->index_; }
 
 constexpr int kTypeWeapon = 0x3004;
 constexpr int kTypeArmor = 0x3006;
@@ -139,7 +136,7 @@ void CUiItemStrip::SetTab(int tab) {
     tab_ = tab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == tab ? 1.0f : 0.5f;
-        float* color = window.SceneMesh(i + 2)->tint_;
+        float* color = SceneMesh(i + 2)->tint_;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
@@ -166,8 +163,8 @@ void CUiItemStrip::SetFilter(int filter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        std::memcpy(&window.SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
-        window.regions_.data[i]->SetTip(tipBase + i, 1, 0);
+        std::memcpy(&SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
+        regions_.data[i]->SetTip(tipBase + i, 1, 0);
     }
 }
 EI_REWRITTEN(0x00621420, CUiItemStrip::SetFilter);
@@ -188,18 +185,18 @@ void CUiItemStrip::CycleTab(int first, int count) {
 }
 EI_REWRITTEN(0x00621530, CUiItemStrip::CycleTab);
 
-int CUiItemStrip::ItemTab(const char* item) {
-    if (UiItemKinds::IsPart(AsItem(item)) || UiItemKinds::IsKindOne(AsItem(item))) return 0;
-    if (UiItemKinds::IsSpell(AsItem(item)) || UiItemKinds::IsModifier(AsItem(item))) return 1;
-    int type = ItemType(item);
+int CUiItemStrip::ItemTab(const CItem* item) {
+    if (UiItemKinds::IsPart(item) || UiItemKinds::IsKindOne(item)) return 0;
+    if (UiItemKinds::IsSpell(item) || UiItemKinds::IsModifier(item)) return 1;
+    int type = item->type_;
     if (type == kTypeWeapon || type == 0x3005 || type == kTypeArmor || type == kTypeSpellContainer) return 2;
     if (type == kTypeQuick) return 3;
     return (type != 0x3009) + 4;
 }
 EI_REWRITTEN(0x006218F0, CUiItemStrip::ItemTab);
 
-int CUiItemStrip::SpellTab(const char* item) {
-    if (UiItemKinds::IsSpell(AsItem(item))) {
+int CUiItemStrip::SpellTab(const CItem* item) {
+    if (UiItemKinds::IsSpell(item)) {
         // A record out of range is read through null, as in the original.
         const itemdb::SpellRecord* spell = itemdb::SpellAt(ItemRecord(item));
         switch (spell->castType) {
@@ -209,7 +206,7 @@ int CUiItemStrip::SpellTab(const char* item) {
         default: return 5;
         }
     }
-    if (UiItemKinds::IsModifier(AsItem(item))) {
+    if (UiItemKinds::IsModifier(item)) {
         const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(ItemRecord(item));
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
@@ -217,8 +214,8 @@ int CUiItemStrip::SpellTab(const char* item) {
 }
 EI_REWRITTEN(0x006219A0, CUiItemStrip::SpellTab);
 
-int CUiItemStrip::ArmorTab(const char* item) {
-    if (UiItemKinds::IsPart(AsItem(item))) {
+int CUiItemStrip::ArmorTab(const CItem* item) {
+    if (UiItemKinds::IsPart(item)) {
         switch (ItemSubKind(item)) {
         case 0: return 0;
         case 1: {
@@ -229,8 +226,8 @@ int CUiItemStrip::ArmorTab(const char* item) {
         default: return 5;
         }
     }
-    if (ItemType(item) == kTypeArmor) return 3;
-    return UiItemKinds::IsKindOne(AsItem(item)) ? 4 : 5;
+    if (item->type_ == kTypeArmor) return 3;
+    return UiItemKinds::IsKindOne(item) ? 4 : 5;
 }
 EI_REWRITTEN(0x00621A80, CUiItemStrip::ArmorTab);
 
@@ -239,13 +236,13 @@ void CUiItemStrip::RebuildList() {
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) {
             int index = list_.size;
-            char* item = source_->data[i];
+            CItem* item = source_->data[i];
             list_.SetSize(index + 1, -1);
             list_.data[index] = item;
         }
     } else {
         for (int i = 0; i < source_->size; ++i) {
-            char* item = source_->data[i];
+            CItem* item = source_->data[i];
             if (TabOf(item) == tab_) {
                 int index = list_.size;
                 list_.SetSize(index + 1, -1);
@@ -257,7 +254,7 @@ void CUiItemStrip::RebuildList() {
 }
 EI_REPLACE_METHOD(0x006212F0, CUiItemStrip::RebuildList);
 
-int CUiItemStrip::TabOf(const char* item) {
+int CUiItemStrip::TabOf(const CItem* item) {
     switch (filter_) {
     case 0: return ItemTab(item);
     case 1: return SpellTab(item);
@@ -272,8 +269,8 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
     list_.SetSize(0, -1);
     // The original inlines the array's SetSize (0062A390) in the second loop.
-    auto append = [&](char* entry) {
-        if (wanted->IsSameAsSlot(reinterpret_cast<CItem*>(entry))) found = static_cast<float>(list_.size);
+    auto append = [&](CItem* entry) {
+        if (wanted->IsSameAsSlot(entry)) found = static_cast<float>(list_.size);
         int index = list_.size;
         list_.SetSize(index + 1, -1);
         list_.data[index] = entry;
@@ -281,7 +278,7 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
-        int tab = TabOf(reinterpret_cast<const char*>(item));
+        int tab = TabOf(item);
         if (TabKeysEnabled()) SetTab(tab);
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
@@ -301,22 +298,22 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
 }
 EI_REWRITTEN(0x00621570, CUiItemStrip::ScrollToItem);
 
-char* CUiItemStrip::CallItemAt(int x, int y, int* cursor) {
-    return Virtual<char*(__thiscall*)(CUiItemStrip*, int, int, int*)>(this, 25)(this, x, y, cursor);
+CItem* CUiItemStrip::CallItemAt(int x, int y, int* cursor) {
+    return Virtual<CItem*(__thiscall*)(CUiItemStrip*, int, int, int*)>(this, 25)(this, x, y, cursor);
 }
 
 void CUiItemStrip::CallRebuildList() { Virtual<void(__thiscall*)(CUiItemStrip*)>(this, 26)(this); }
 
-char* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
-    if (!window.enabled_) return nullptr;
-    if (window.RegionAt(x, y) != 8) return nullptr;
-    switch (actionMode_) {
+CItem* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
+    if (!enabled_) return nullptr;
+    if (RegionAt(x, y) != 8) return nullptr;
+    switch (mode_) {
     case 1: *cursor = 0x16; break;
     case 2: *cursor = 0x18; break;
     case 3: *cursor = 0x17; break;
     }
     POINT point{x, y};
-    window.interface_->CallScalePointFromScreen(&point);
+    interface_->CallScalePointFromScreen(&point);
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
     int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
@@ -342,12 +339,12 @@ void CUiItemStrip::SettleScroll() {
     }
     scrollDirection_ = 0;
     scrollTimer_ = 0.0f;
-    UiCapture(window.interface_) = nullptr;
+    UiCapture(interface_) = nullptr;
 }
 
 void CUiItemStrip::OnLButtonDown(int, int x, int y) {
-    CInterface3D* ui = window.interface_;
-    int region = window.RegionAt(x, y);
+    CInterface3D* ui = interface_;
+    int region = RegionAt(x, y);
     if (region == 0 || region == 1) {
         if (!UiShiftDown(ui)) {
             uiorig::PlayUiSound(ui, kSoundCampScroll, 0);
@@ -355,9 +352,9 @@ void CUiItemStrip::OnLButtonDown(int, int x, int y) {
             scrollDirection_ = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
-            *reinterpret_cast<std::uint32_t*>(&position_[tab_]) = region == 0 ? 0 : 0x49742400;   // 1e6
-            *reinterpret_cast<std::uint32_t*>(&pending_) = 0;
-            *reinterpret_cast<std::uint32_t*>(&velocity_) = 0;
+            position_[tab_] = region == 0 ? 0.0f : 1e6f;
+            pending_ = 0.0f;
+            velocity_ = 0.0f;
         }
     }
     if (tabsEnabled_ && region >= 2 && region < 8) {
@@ -372,15 +369,15 @@ void CUiItemStrip::OnLButtonUp(int, int, int) {
 }
 
 void CUiItemStrip::OnMouseMove(int, int x, int y) {
-    int region = window.RegionAt(x, y);
+    int region = RegionAt(x, y);
     // Leaving the held arrow stops scrolling.
     if ((scrollDirection_ == 1 && region != 0) || (scrollDirection_ == 2 && region != 1)) SettleScroll();
 }
 
 BOOL CUiItemStrip::OnWheel(int, short delta, int x, int y) {
-    if (window.RegionAt(x, y) == 8) {
+    if (RegionAt(x, y) == 8) {
         pending_ = static_cast<float>(static_cast<double>(delta / 120) + pending_);
-        uiorig::PlayUiSound(window.interface_, kSoundCampScroll, 0);
+        uiorig::PlayUiSound(interface_, kSoundCampScroll, 0);
     }
     return 1;
 }
@@ -388,8 +385,8 @@ BOOL CUiItemStrip::OnWheel(int, short delta, int x, int y) {
 void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
     OnLButtonDown(flags, x, y);
     // The original passes its own first argument's stack slot as the cursor output.
-    char* item = CallItemAt(x, y, &flags);
-    if (item) Virtual<void(__thiscall*)(CUiWindow*, char*, int)>(owner_, 42)(owner_, item, actionMode_);
+    CItem* item = CallItemAt(x, y, &flags);
+    if (item) OwnerTakeItem(item);
 }
 
 // Entry points on the input sub-object.
@@ -549,7 +546,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
             equipped = false;
             break;
         }
-        if (equipped) uiorig::PlayUiSound(window.interface_, kSoundMessageOk, 0);
+        if (equipped) uiorig::PlayUiSound(interface_, kSoundMessageOk, 0);
     }
     Refresh();
 }
@@ -570,7 +567,7 @@ EI_REPLACE_METHOD(0x00616900, CMpHeroScreen::GetHero);
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     InputOf(this)->OnLeftUp(flags, x, y);
     // Releasing a rotate arrow.
-    void*& capture = UiCapture(window.interface_);
+    void*& capture = UiCapture(interface_);
     if (capture == CaptureValue(InputOf(this))) capture = nullptr;
     rotating_ = 0;
 }

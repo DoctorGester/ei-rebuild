@@ -378,7 +378,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
         cell.size = 120.0f;
         cell.mode = 9;
         cell.y = static_cast<float>(static_cast<double>(y_) + D(200.0f /*0073CF58*/));   // + 200
-        static_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // through its address, so the wrapper sees the call
+        owner_->DrawItem(pass, &cell);   // through its address, so the wrapper sees the call
     }
     return 1;
 }

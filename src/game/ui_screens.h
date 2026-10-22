@@ -111,7 +111,7 @@ static_assert(sizeof(CUiWindow) == 0x148);
 
 // An MFC CArray of item pointers with zeroed new slots. Its SetSize is the instantiation's
 // (0062A390, the template's; `growBy` -1 keeps the step).
-using UiItemArray = mfc::CArray<char*>;
+using UiItemArray = mfc::CArray<CItem*>;
 
 // The item predicates of the camp screens (005EE050-005EE130, thiscall on the owning screen,
 // which they do not read; RET 4; ui_screens.cpp). Loot items (type 0x3007, CItemLoot) are sorted
@@ -140,14 +140,16 @@ using MpStringVector = stlp::vector<mfc::CString>;
 // item clicks to its owner); created by the camp screen (0060C870) and the exchange window
 // (0062C250). Regions: 0/1 left/right arrows, 2-7 tabs, 8 the strip.
 
-class CUiItemStrip {
+// An item panel (CUiItemPanel: mode_ +0x148 is what clicking an item does, 1 equip, 2, 3, cursor
+// 0x16-0x18; owner_ +0x14C the screen that owns the strip: item clicks, predicates).
+class CUiItemStrip : public CUiItemPanel {
 public:
     // 00621160 (RET 8; ui_item_strip_setup.cpp; the camp's three strips and the exchange window's,
     // built inline by their Creates). The background texture "Inventory02" (`top`) or
     // "Inventory01", the strip built (Build through its address), the arrows' tips 0x4FB0 /
     // 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine slots and the
     // source list.
-    void Setup(UiPtrArray<char>* source, char top);
+    void Setup(UiPtrArray<CItem>* source, char top);
     // 00629A40 (RET 0xC; ui_item_strip_setup.cpp). The figure strips (vtable 00741BF4: the hero
     // screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs and the six tab buttons' sprites
@@ -184,9 +186,9 @@ public:
     void SelectTab(int tab);
     void CycleTab(int first, int count);
     // 006218F0, 006219A0, 00621A80. The tab (0-5) an item belongs to under each filter.
-    int ItemTab(const char* item);
-    int SpellTab(const char* item);
-    int ArmorTab(const char* item);
+    int ItemTab(const CItem* item);
+    int SpellTab(const CItem* item);
+    int ArmorTab(const CItem* item);
     // 006212F0. Virtual slot 26: rebuilds the visible list from the source list for the current
     // filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList();
@@ -198,10 +200,10 @@ public:
     void ScrollToItem(CItem* item);
     // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
     // choose it.
-    int TabOf(const char* item);
+    int TabOf(const CItem* item);
     // 00621F30. Virtual slot 25: the item under the screen point (x, y), or null; sets the cursor
     // for the strip's action mode.
-    char* ItemAt(int x, int y, int* cursor);
+    CItem* ItemAt(int x, int y, int* cursor);
     // 00621B50 (slot 20 of the forwarding strip's vtable 0074197C; ui_item_strip.cpp). Draws the
     // strip: the end faces dimmed (sprite +0xCC 0.195) where it can scroll on, the background cells
     // shifted by the current tab's fractional position, the window's sprites, eight item cells
@@ -234,12 +236,9 @@ public:
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
     // Not rewritten: virtual slots 25 and 26 called through the vtable.
-    char* CallItemAt(int x, int y, int* cursor);
+    CItem* CallItemAt(int x, int y, int* cursor);
     void CallRebuildList();
 
-    CUiWindow window;           // the strip's own fields start right after it, at +0x148
-    int actionMode_;           // +0x148 what clicking an item does (1 equip, 2, 3; cursor 0x16-0x18)
-    CUiWindow* owner_;          // +0x14C the screen that owns the strip (item clicks, predicates)
     int tab_;                   // +0x150 0-5
     int scrollDirection_;       // +0x154 0 none, 1 left arrow held, 2 right arrow held
     float scrollTimer_;         // +0x158
@@ -258,10 +257,9 @@ public:
         MpStringVector* figures_;   // +0x194 the figure strips (vtable 00741BF4): the figure names
     };
     UiItemArray list_;          // +0x198 the visible items
-    UiPtrArray<char>* source_;  // +0x1AC all the items (data, size)
+    UiPtrArray<CItem>* source_; // +0x1AC all the items (a party's item list, PartyItemArray)
     int slots_;                 // +0x1B0 9
 };
-static_assert(offsetof(CUiItemStrip, actionMode_) == 0x148);
 static_assert(offsetof(CUiItemStrip, tab_) == 0x150);
 static_assert(offsetof(CUiItemStrip, position_) == 0x15C);
 static_assert(offsetof(CUiItemStrip, pending_) == 0x174);
@@ -318,7 +316,7 @@ using MpVoiceVector = stlp::vector<MpVoiceEntry>;
 // Opened by the main menu's Multiplayer button (region 5 of 00632D70; vtables 00742118/0074214C,
 // 0x220 bytes). Modes (+0x190, set by 00615D30): 9 hero list, 10 new hero (portrait, name and
 // voice), 11 new hero's statistics. The heroes are records of 0x74 bytes in the vector at 007C82A4.
-class CMpHeroScreen {
+class CMpHeroScreen : public CItemScreen {
 public:
     // 00618FF0. Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
@@ -501,12 +499,9 @@ public:
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
 
-    CUiContainer window;
-    CItemInfoPanel* descPanel_; // +0x164 the description panel
-    CItem* hoveredItem_;        // +0x168 the item under the mouse (set by Draw)
-    CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
-    ItemObjectCache models_;    // +0x170 the item screens' model cache (00633F50 constructs it)
-    ItemObjectCache textures_;  // +0x180 and the texture cache (00633FF0)
+    // (CItemScreen: descPanel_ +0x164, hoveredItem_ +0x168 set by Draw, iconWindow_ +0x16C with its
+    // two bars (PlaceBars), the caches models_ +0x170 and textures_ +0x180, which 00633F50 / 00633FF0
+    // construct.)
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     CUiScrollbar* heroScroll_;  // +0x198 scroll bar of the hero list

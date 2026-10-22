@@ -134,10 +134,9 @@ void** IconWindowInputVtable() { return static_cast<void**>(UiWindowInputClass::
 void** CItemIconWindow::Vtable() { return IconWindowVtable(); }
 
 void CItemScreen::CreateBase() {
-    void* memory = gamecrt::operator_new(0x148);
-    CUiWindow* icons = nullptr;
-    if (memory) {
-        icons = static_cast<CUiWindow*>(memory)->Construct(interface_);
+    CItemIconWindow* icons = gamecrt::operator_new_as<CItemIconWindow>();
+    if (icons) {
+        icons->Construct(interface_);
         icons->vtable_ = IconWindowVtable();
         icons->inputVtable_ = IconWindowInputVtable();
     }

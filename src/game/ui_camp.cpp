@@ -109,13 +109,13 @@ void CCampPages::ShowPage(int page) {
     if (spellConstructor_) {
         spellConstructor1_->SetEnabled(0, 1);
         spellConstructor2_->SetEnabled(0, 1);
-        spellStrip_->window.SetEnabled(0, 1);
+        spellStrip_->SetEnabled(0, 1);
     }
     if (itemConstructor_) {
         itemConstructor1_->SetEnabled(0, 1);
         itemConstructor3_->SetEnabled(0, 1);
         itemConstructor2_->SetEnabled(0, 1);
-        partStrip_->window.SetEnabled(0, 1);
+        partStrip_->SetEnabled(0, 1);
     }
     itemStrip_->slots_ = 9;   // 00621F20
 
@@ -135,35 +135,35 @@ void CCampPages::ShowPage(int page) {
         helpPanel_->SetEnabled(1, 1);
         helpPanel_->ShowHelp(0x65);
         spellConstructor1_->SetEnabled(1, 1);
-        spellStrip_->window.SetEnabled(1, 1);
+        spellStrip_->SetEnabled(1, 1);
         itemStrip_->slots_ = 1;
         break;
     case 3:
         if (!spellConstructor_ || noConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
         spellConstructor2_->SetEnabled(1, 1);
-        spellStrip_->window.SetEnabled(1, 1);
+        spellStrip_->SetEnabled(1, 1);
         break;
     case 4:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
         helpPanel_->ShowHelp(0x64);
         itemConstructor1_->SetEnabled(1, 1);
-        partStrip_->window.SetEnabled(1, 1);
+        partStrip_->SetEnabled(1, 1);
         itemStrip_->slots_ = 5;
         break;
     case 5:
         if (!itemConstructor_ || noConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
         itemConstructor2_->SetEnabled(1, 1);
-        partStrip_->window.SetEnabled(1, 1);
+        partStrip_->SetEnabled(1, 1);
         break;
     case 6:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
         helpPanel_->ShowHelp(0x68);
         itemConstructor3_->SetEnabled(1, 1);
-        partStrip_->window.SetEnabled(1, 1);
+        partStrip_->SetEnabled(1, 1);
         break;
     case 7: {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
@@ -619,17 +619,17 @@ BOOL CCampPages::Draw(int pass) {
     };
     probe(equipment_);
     probe(equipment2_);
-    probe(&itemStrip_->window);
+    probe(itemStrip_);
     if (spellConstructor_) {
         probe(spellConstructor1_);
         probe(spellConstructor2_);
-        probe(&spellStrip_->window);
+        probe(spellStrip_);
     }
     if (itemConstructor_) {
         probe(itemConstructor1_);
         probe(itemConstructor2_);
         probe(itemConstructor3_);
-        probe(&partStrip_->window);
+        probe(partStrip_);
     }
 
     if (hoveredItem_) {

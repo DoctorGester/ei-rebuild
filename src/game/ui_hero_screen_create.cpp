@@ -84,7 +84,7 @@ SavedParties* Heroes() { return &TheSavedParties(); }
 using NameList = MpStringVector;
 using VoiceList = MpVoiceVector;
 
-CUiContainer* AsContainer(CMpHeroScreen* screen) { return &screen->window; }
+CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
     window->vtable_ = vtables.main;
@@ -144,8 +144,8 @@ bool ModelNameIsFemale(const mfc::CString& model) {
 
 void CMpHeroScreen::Create() {
     TheGameFlow()->UseResources(true);
-    window.LoadTexture("campinfo", kTextureKind, nullptr);
-    CUiModel* model = window.AddModel();
+    LoadTexture("campinfo", kTextureKind, nullptr);
+    CUiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");   // "unmoco2", "MainMenu00", "MainMenu00labels"
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
@@ -159,7 +159,7 @@ void CMpHeroScreen::Create() {
 
     // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
-        window.AddRegion()->CallSetRect(left, top, right, bottom);
+        AddRegion()->CallSetRect(left, top, right, bottom);
     };
     region(600, 400, 680, 500);
     region(720, 400, 800, 500);
@@ -171,11 +171,11 @@ void CMpHeroScreen::Create() {
     region(180, 160, 310, 184);
     region(180, 184, 310, 208);
 
-    reinterpret_cast<CItemScreen*>(this)->CreateBase();
-    window.LoadTexture("saveload", kTextureKind, nullptr);
+    CreateBase();
+    LoadTexture("saveload", kTextureKind, nullptr);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* added = window.AddSprite(nullptr);
+        CUiMesh* added = AddSprite(nullptr);
         added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
@@ -184,7 +184,7 @@ void CMpHeroScreen::Create() {
         mesh->flags_ |= kPlainSprite;
         mesh->flatColour_ = colour;
     };
-    auto texture = [this](int index) { return window.objects_.data[index]; };
+    auto texture = [this](int index) { return objects_.data[index]; };
     // 0, 1: the two buttons under the list; 2: the selection frame.
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture_ = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture_ = texture(kSaveLoadTexture);
@@ -194,10 +194,10 @@ void CMpHeroScreen::Create() {
         frame->visible_ = 0;
     }
     // 3-6: the quarters of the frame around the figure.
-    window.LoadTexture("campm1", kTextureKind, nullptr);
-    window.LoadTexture("campm2", kTextureKind, nullptr);
-    window.LoadTexture("campm3", kTextureKind, nullptr);
-    window.LoadTexture("campm4", kTextureKind, nullptr);
+    LoadTexture("campm1", kTextureKind, nullptr);
+    LoadTexture("campm2", kTextureKind, nullptr);
+    LoadTexture("campm3", kTextureKind, nullptr);
+    LoadTexture("campm4", kTextureKind, nullptr);
     sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture);
     sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 1);
     sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 2);
@@ -208,7 +208,7 @@ void CMpHeroScreen::Create() {
     sprite(3.0f, 740.0f, 430.0f, 780.0f, 470.0f, 0x2B, 0x98, 0x53, 0xC0);
     // 10-12: the frames; 13, 14: the backgrounds of the commands and of the list.
     auto frame = [this, &texture](float left, float top, float right, float bottom) {
-        CUiMesh* added = window.AddSprite(nullptr);
+        CUiMesh* added = AddSprite(nullptr);
         added->SetFrame(2.0f, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         added->texture_ = texture(kSaveLoadTexture);
     };
@@ -225,7 +225,7 @@ void CMpHeroScreen::Create() {
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    auto* info = NewItemPanel<CItemInfoPanel>(window.interface_, &window, ItemPanelVtables());
+    auto* info = NewItemPanel<CItemInfoPanel>(interface_, this, ItemPanelVtables());
     if (info) {
         info->ItemParty()->Construct();
         info->itemTexts_.Construct();
@@ -237,7 +237,7 @@ void CMpHeroScreen::Create() {
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = NewItemPanel<CHeroStatsPanel>(window.interface_, &window, ItemPanelVtables());
+    auto* stats = NewItemPanel<CHeroStatsPanel>(interface_, this, ItemPanelVtables());
     if (stats) {
         new (&stats->title_) mfc::CString;
         stats->texts_.Construct();
@@ -249,20 +249,20 @@ void CMpHeroScreen::Create() {
     BuildPanel(stats);
 
     // The equipment (without the body) and the quick items.
-    auto* equipment = NewItemPanel<CHeroEquipPanel>(window.interface_, &window, EquipPanelVtables());
+    auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
     weaponPanel_ = equipment;
     AsContainer(this)->AddChild(equipment);
     equipment->AddObject(texture(kItemTexture));
     equipment->Build(false);
 
-    auto* quick = NewItemPanel<CHeroQuickStrip>(window.interface_, &window, QuickStripVtables());
+    auto* quick = NewItemPanel<CHeroQuickStrip>(interface_, this, QuickStripVtables());
     spellPanel_ = quick;
     AsContainer(this)->AddChild(quick);
     quick->AddObject(texture(kItemTexture));
     quick->Build(false);
 
     // The skills for experience.
-    auto* trade = NewItemPanel<CTradePanel>(window.interface_, &window, ItemPanelVtables());
+    auto* trade = NewItemPanel<CTradePanel>(interface_, this, ItemPanelVtables());
     if (trade) {
         trade->learnable_ = {};
         trade->perks_ = {};
@@ -278,7 +278,7 @@ void CMpHeroScreen::Create() {
     BuildPanel(trade);
 
     {
-        CUiScrollbar* bar = NewScrollbar(window.interface_, RECT{110, 250, 384, 490});
+        CUiScrollbar* bar = NewScrollbar(interface_, RECT{110, 250, 384, 490});
         heroScroll_ = bar;
         AsContainer(this)->AddChild(bar);
     }
@@ -353,16 +353,14 @@ void CMpHeroScreen::Create() {
 
     // The two figure strips: the men on top, the women below.
     auto figureStrip = [this](int index, NameList& names, char top) {
-        void* memory = gamecrt::operator_new(kFigureStripSize);
-        CUiItemStrip* strip = nullptr;
-        if (memory) {
-            strip = static_cast<CUiItemStrip*>(memory);
-            strip->window.Construct(window.interface_);
-            strip->owner_ = &window;
-            SetVtables(&strip->window, FigureStripVtables());
+        CUiItemStrip* strip = gamecrt::operator_new_bytes_as<CUiItemStrip>(kFigureStripSize);
+        if (strip) {
+            strip->Construct(interface_);
+            strip->owner_ = this;
+            SetVtables(strip, FigureStripVtables());
         }
         figureStrips_[index] = strip;
-        AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
+        AsContainer(this)->AddChild(strip);
         figureStrips_[index]->SetupFigures(&names, top, 0);
     };
     figureStrip(0, men, 1);
@@ -370,7 +368,7 @@ void CMpHeroScreen::Create() {
 
     // The edit windows: a listed hero's new name, and the new hero's name.
     {
-        CUiEditField* edit = NewEditField(window.interface_, RECT{558, 110, 695, 126});
+        CUiEditField* edit = NewEditField(interface_, RECT{558, 110, 695, 126});
         renameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
@@ -378,7 +376,7 @@ void CMpHeroScreen::Create() {
         edit->SetFocused(false);
     }
     {
-        CUiEditField* edit = NewEditField(window.interface_, RECT{0, 127, 200, 143});
+        CUiEditField* edit = NewEditField(interface_, RECT{0, 127, 200, 143});
         nameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
@@ -386,7 +384,7 @@ void CMpHeroScreen::Create() {
         edit->SetFocused(false);
     }
     {
-        CUiScrollbar* bar = NewScrollbar(window.interface_, RECT{10, 325, 190, 490});
+        CUiScrollbar* bar = NewScrollbar(interface_, RECT{10, 325, 190, 490});
         voiceScroll_ = bar;
         AsContainer(this)->AddChild(bar);
         bar->SetEnabled(0, 1);
@@ -398,15 +396,15 @@ void CMpHeroScreen::Create() {
     turn_ = 0.0f;
     rotating_ = 0;
 
-    window.AddSurface(NewSurface(window.interface_, 100, 240, 390, 500));
-    window.AddSurface(NewSurface(window.interface_, 100, 100, 390, 220));
-    window.AddSurface(NewSurface(window.interface_, 0, 300, 200, 500));
-    window.AddSurface(NewSurface(window.interface_, 425, 110, 555, 126));
-    window.surfaces_.data[kSurfaceRename]->Freeze(0, 0);
+    AddSurface(NewSurface(interface_, 100, 240, 390, 500));
+    AddSurface(NewSurface(interface_, 100, 100, 390, 220));
+    AddSurface(NewSurface(interface_, 0, 300, 200, 500));
+    AddSurface(NewSurface(interface_, 425, 110, 555, 126));
+    surfaces_.data[kSurfaceRename]->Freeze(0, 0);
 
     // The list's four commands.
     mfc::CString text;
-    CUiSurface* commands = window.surfaces_.data[kSurfaceCommands];
+    CUiSurface* commands = surfaces_.data[kSurfaceCommands];
     UiSurfaceGetDC(commands);
     SurfaceClearOriginal(commands);
     const char* const commandKeys[] = {
@@ -433,7 +431,7 @@ void CMpHeroScreen::Create() {
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
     HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
-    widescreen::AddCurtains(&window, 0);
+    widescreen::AddCurtains(this, 0);
 }
 EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
 // In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the

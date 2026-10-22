@@ -206,11 +206,21 @@ public:
 
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
-    CUiWindow* iconWindow_;          // +0x16C (005EDD80)
+    CItemIconWindow* iconWindow_;    // +0x16C (005EDD80)
     ItemObjectCache models_;         // +0x170
     ItemObjectCache textures_;       // +0x180
 };
 static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
+static_assert(sizeof(CItemIconWindow) == 0x148);
+
+inline void CUiItemPanel::OwnerTakeItem(CItem* item) {
+    using Fn = void(__thiscall*)(CItemScreen*, CItem*, int);
+    ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
+}
+inline void CUiItemPanel::OwnerTopicClicked(int topic) {
+    using Fn = void(__thiscall*)(CItemScreen*, int, int);
+    ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
+}
 static_assert(offsetof(CItemScreen, models_) == 0x170);
 static_assert(offsetof(CItemScreen, textures_) == 0x180);
 

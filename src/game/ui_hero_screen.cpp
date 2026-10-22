@@ -87,7 +87,7 @@ EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 // --- 006159E0: Draw (slot 20) ------------------------------------------------------------------
 
 void CMpHeroScreen::DrawExperience() {
-    CUiSurface* surface = window.surfaces_.data[2];
+    CUiSurface* surface = surfaces_.data[2];
     mfc::CString text;
     mfc::CString line;
     UiSurfaceGetDC(surface);
@@ -125,7 +125,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
         if (!tradePanel_->enabled_ || (tradePanel_->HoverInfo(x, y, &info), info.kind < 0)) {
             if (statsPanel_->enabled_) statsPanel_->HoverInfo(x, y, &info);
             if (info.kind < 0 && mode_ == kModeNewHero) {
-                int region = window.RegionAt(x, y);
+                int region = RegionAt(x, y);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
                     info.kind = kVoiceHintKind;
                     info.text = kSelectVoiceKey;
@@ -135,11 +135,11 @@ BOOL CMpHeroScreen::Draw(int pass) {
         if (descPanel_) descPanel_->DescribeStats(&info);
     }
 
-    window.DrawContainer(pass);
+    DrawContainer(pass);
     if (mode_ == kModeList && heroIndex_ >= 0)
-        window.DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kListDepth, 0);
+        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kListDepth, 0);
     else if (mode_ == kModeNewHero)
-        window.DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kNewHeroDepth, 0);
+        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
 EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
@@ -147,9 +147,9 @@ EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
 // --- 00617820: Update (slot 24) ----------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
-    UiUpdateChildrenOriginal(&window);
+    UiUpdateChildrenOriginal(this);
     if (rotating_ == 1 || rotating_ == 2) {
-        double step = WindowFrameTimeOriginal(&window);
+        double step = WindowFrameTimeOriginal(this);
         step += step;
         double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(FullTurn())));
@@ -175,7 +175,7 @@ void CMpHeroScreen::Update() {
     bool equal = points == target;
     bool ready = equal && name.GetLength() != 0;
     float shade = ready ? 1.0f : 0.5f;
-    auto* button = window.SceneMesh(kCreateButton);
+    auto* button = SceneMesh(kCreateButton);
     button->tint_[0] = shade;
     button->tint_[1] = shade;
     button->tint_[2] = shade;
@@ -234,7 +234,6 @@ void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
 } // namespace
 
 void CMpHeroScreen::Destroy() {
-    auto* screen = reinterpret_cast<CItemScreen*>(this);
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
     CStringDestroy(&text_);
@@ -243,10 +242,10 @@ void CMpHeroScreen::Destroy() {
     DestroyStrings(defaults_.begin(), defaults_.end());
     stlp::deallocate(defaults_.begin(),   // 00520F20
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
-    ReleaseCachedObjects(&screen->textures_);
-    screen->textures_.map.Destroy();   // 00634200
-    ReleaseCachedObjects(&screen->models_);
-    screen->models_.map.Destroy();     // 00634160
+    ReleaseCachedObjects(&textures_);
+    textures_.map.Destroy();   // 00634200
+    ReleaseCachedObjects(&models_);
+    models_.map.Destroy();     // 00634160
     DestroyContainerBody(this);
 }
 namespace {
@@ -265,8 +264,8 @@ constexpr std::uint32_t kListColour = 0xA7D7E4;
 constexpr int kListFormat = 0x800;
 constexpr float kFrameDepth = 3.0f;
 
-CUiMesh* SelectionFrame(CUiWindow& window) {
-    return window.SceneMesh(kSelectionFrame);
+CUiMesh* SelectionFrame(CUiWindow& w) {
+    return w.SceneMesh(kSelectionFrame);
 }
 // A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
 CParty* MpHero(std::uint32_t index) { return SavedHero(static_cast<int>(index))->Party(); }
@@ -276,17 +275,17 @@ std::uint32_t MpHeroCount() {
 } // namespace
 
 void CMpHeroScreen::DrawHeroList() {
-    CUiSurface* surface = window.surfaces_.data[0];
+    CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
-    SelectionFrame(window)->visible_ = 0;
+    SelectionFrame(*this)->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
     for (int y = 262; y < 502; y += 24, ++index) {
         if (index >= MpHeroCount()) break;
         if (static_cast<int>(index) == heroIndex_) {
-            SelectionFrame(window)->visible_ = 1;
-            SelectionFrame(window)->Place(240.0f, static_cast<float>(y), kFrameDepth);
+            SelectionFrame(*this)->visible_ = 1;
+            SelectionFrame(*this)->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         const char* name = MpHero(index)->members_.data[0].texts[0];
         SurfaceDrawText(surface, nullptr, name, &rect, 1, kListColour, kListFormat, 1);
@@ -300,10 +299,10 @@ void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList
 EI_REWRITTEN(0x006167C0, HeroScreenDrawHeroList);
 
 void CMpHeroScreen::DrawVoices() {
-    CUiSurface* surface = window.surfaces_.data[2];
+    CUiSurface* surface = surfaces_.data[2];
     UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
-    SelectionFrame(window)->visible_ = 0;
+    SelectionFrame(*this)->visible_ = 0;
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};
     TextsGetString(TheTextManager(), nullptr, kVoicesKey, &title);
@@ -315,9 +314,9 @@ void CMpHeroScreen::DrawVoices() {
         int bytes = static_cast<int>(reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin()));
         if (index >= static_cast<std::uint32_t>(bytes >> 3)) break;
         if (static_cast<int>(index) == voiceIndex_) {
-            SelectionFrame(window)->visible_ = 1;
+            SelectionFrame(*this)->visible_ = 1;
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
-            SelectionFrame(window)->Place(97.5f, y, kFrameDepth);
+            SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
         SurfaceDrawText(surface, nullptr, voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);

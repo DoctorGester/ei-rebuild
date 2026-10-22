@@ -50,6 +50,7 @@ class CTextureDevice;   // texture.h
 class CPixelConverter;  // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
+class CItemScreen;   // ui_item_info.h
 
 // The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
 // interface's draw (005F5220). Only the fields its draw uses.
@@ -1053,22 +1054,16 @@ public:
     void OnLeftDown(int buttons, int x, int y);
     // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor (the camp's): the
     // window base, vtables 00741B58 / 00741B24, owner_ = `owner` (mode_ left). Returns this.
-    CUiItemPanel* ConstructBlank(CInterface3D* ui, CUiWindow* owner);
+    CUiItemPanel* ConstructBlank(CInterface3D* ui, CItemScreen* owner);
 
-    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C).
+    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C; ui_item_info.h).
     // Slot 42 (+0xA8): take `item` with the panel's action mode.
-    void OwnerTakeItem(void* item) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*, int);
-        ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
-    }
+    void OwnerTakeItem(CItem* item);
     // Slot 44 (+0xB0): help topic `topic` clicked.
-    void OwnerTopicClicked(int topic) {
-        using Fn = void(__thiscall*)(CUiWindow*, int, int);
-        ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
-    }
+    void OwnerTopicClicked(int topic);
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
-    CUiWindow* owner_;               // +0x14C the item screen
+    CItemScreen* owner_;             // +0x14C the item screen
 };
 static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
 static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);

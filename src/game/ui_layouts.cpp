@@ -463,19 +463,19 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         auto* w = gamecrt::operator_new_as<CMpHeroScreen>();
         if (w) {
-            w->window.Construct(ui);
+            w->Construct(ui);
             w->hoveredItem_ = nullptr;
             lib_trees::ConstructHeroItemCache(&w->models_);
             lib_trees::ConstructHeroItemCache(&w->textures_);
-            SetVtables(&w->window, CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());   // the item screens' base
+            SetVtables(w, CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());   // the item screens' base
             w->defaults_.ConstructEmpty();   // vector<CString>() (0053F4F0)
             w->names_.ConstructEmpty();
             ::new (&w->text_) mfc::CString;
             w->voiceLists_[0].ConstructEmpty();   // 006342A0
             w->voiceLists_[1].ConstructEmpty();
-            SetVtables(&w->window, CMpHeroScreen::Vtable(), CMpHeroScreen::InputVtable());
+            SetVtables(w, CMpHeroScreen::Vtable(), CMpHeroScreen::InputVtable());
         }
-        ui->PushWindow(&w->window, 1, 1);
+        ui->PushWindow(w, 1, 1);
         break;
     }
     default:
