@@ -42,9 +42,11 @@ gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler);   /
 // AfxCriticalNewHandler (0070AB1A): what a handle map's allocations run under. Image only: with no
 // CWinThread there is no safety pool to release, so it throws a CMemoryException.
 int __cdecl CriticalNewHandler(std::size_t size);
-// AfxNewHandler (0070058F): _afxNewHandler's initial value (00796E14), which MFC's operator new calls
+// AfxNewHandler (0070058F): _afxNewHandler's initial value, which MFC's operator new calls
 // when an allocation fails: throws a CMemoryException. Image only (the hook build keeps the exe's).
 int __cdecl DefaultNewHandler(std::size_t size);
+// _afxNewHandler: the handler MFC's operator new (libcrt::OperatorNew) calls when an allocation fails.
+extern gamecrt::NewHandler g_afxNewHandler;
 // The handler's address as the exe has it (our CriticalNewHandler in the image).
 inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::NewHandler>(0x0070AB1A); }
 

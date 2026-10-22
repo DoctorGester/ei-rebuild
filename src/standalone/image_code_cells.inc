@@ -806,8 +806,6 @@
 {DataId(0x00783BC8), 0x006F02F9},
 {DataId(0x00783BD4), 0x006F2442},
 {DataId(0x00783BE0), 0x006F030A},
-// MFC's _afxNewHandler: AfxNewHandler (operator new's handler loop calls it)
-{DataId(0x00796E14), 0x0070058F},
 // the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and __pInconsistency
 {DataId(0x007975A0), 0x006E72BC},
 {DataId(0x007975A4), 0x006E72D3},

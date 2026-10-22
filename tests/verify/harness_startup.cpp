@@ -28,11 +28,17 @@ int g_discPromptsShown = 0;    // the second disc's boxes the game showed
 bool g_wrongLabelAnswered = false;   // the last GetVolumeInformationA answered kNoDiscLabel
 
 // In game.exe's runs our MFC code (the harness's, the vector recorders') handles game.exe's strings: its empty string
-// is game.exe's _afxDataNil there (mfc_string.h's g_dataNil). Set at static initialisation, before any CString is made
-// (none is a global the CRT constructs).
+// is game.exe's _afxDataNil there (mfc_string.h's g_dataNil), and its buffers come from our string allocators, which
+// game.exe's static initialisers do not build (theirs build game.exe's own). Set at static initialisation, before any
+// CString is made (none is a global the CRT constructs).
 struct GameEmptyString {
     GameEmptyString() {
-        if (!ei::Standalone()) mfc::impl::g_dataNil = ei::OriginalGameData<mfc::impl::CStringData*>(0x00796E4C);
+        if (ei::Standalone()) return;
+        mfc::impl::g_dataNil = ei::OriginalGameData<mfc::impl::CStringData*>(0x00796E4C);
+        mfc::impl::g_stringAlloc64->Construct(0x50, 64);
+        mfc::impl::g_stringAlloc128->Construct(0x90, 64);
+        mfc::impl::g_stringAlloc256->Construct(0x110, 64);
+        mfc::impl::g_stringAlloc512->Construct(0x210, 64);
     }
 } g_gameEmptyString;
 

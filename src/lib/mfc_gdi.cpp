@@ -16,11 +16,14 @@
 
 namespace mfc::impl {
 
+constinit lib::StaticObject<CFixedAlloc> g_tempGdiObjectAlloc = /*007C8CF0*/ {};
+constinit lib::StaticObject<CFixedAlloc> g_tempDCAlloc = /*007C8D18*/ {};
+
 namespace {
 
-// The fixed allocators of the temporary objects.
-CFixedAlloc& TempDCAlloc() { return ei::GameData<CFixedAlloc>(0x007C8D18); }
-CFixedAlloc& TempGdiObjectAlloc() { return ei::GameData<CFixedAlloc>(0x007C8CF0); }
+// The fixed allocators of the temporary objects (mfc_gdi.h).
+CFixedAlloc& TempDCAlloc() { return *g_tempDCAlloc; }
+CFixedAlloc& TempGdiObjectAlloc() { return *g_tempGdiObjectAlloc; }
 
 // ---- The compiled tables (C19) --------------------------------------------------------------------
 

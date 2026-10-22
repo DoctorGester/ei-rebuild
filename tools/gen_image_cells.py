@@ -186,7 +186,6 @@ CODE_REVIEWED = [
     (0x00746E64, 0x00747064, 5, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
     (0x00783BBC, 0x00783BE4, 6, "the CRT's C initialisers and terminators (__xi_a..__xi_z 00783BB4-00783BCC, __xp, "
                                    "__xt): __initmbctable and the CRT's own"),
-    (0x00796E14, 0x00796E14, 1, "MFC's _afxNewHandler: AfxNewHandler (operator new's handler loop calls it)"),
     (0x007975A0, 0x007975C8, 4, "the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and "
                                    "__pInconsistency"),
     (0x00797640, 0x0079768C, 16, "the CRT's math error handling: fmod's dispatch table (into its code)"),

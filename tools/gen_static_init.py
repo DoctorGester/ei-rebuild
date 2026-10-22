@@ -566,6 +566,15 @@ GENERATED_NAMES = {
     0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
     0x007CAAA0: ('mfc::impl::g_tempMenuAllocExitGuard', 'lib/mfc_static_objects.h'),
+    # C18r: MFC's fixed allocators and static windows, which hand code reads too (mfc_gdi.cpp, mfc_window.cpp).
+    0x007C8CF0: ('mfc::impl::g_tempGdiObjectAlloc', 'lib/mfc_gdi.h'),
+    0x007C8D18: ('mfc::impl::g_tempDCAlloc', 'lib/mfc_gdi.h'),
+    0x007CA940: ('mfc::impl::g_tempWndAlloc', 'lib/mfc_window.h'),
+    0x007CAAA8: ('mfc::impl::g_tempMenuAlloc', 'lib/mfc_window.h'),
+    0x007CA968: ('mfc::impl::g_wndNoTopMost', 'lib/mfc_window.h'),
+    0x007CA9A8: ('mfc::impl::g_wndTopMost', 'lib/mfc_window.h'),
+    0x007CA9E8: ('mfc::impl::g_wndBottom', 'lib/mfc_window.h'),
+    0x007CAA28: ('mfc::impl::g_wndTop', 'lib/mfc_window.h'),
 }
 NAMED_ONCE = re.compile(r'\bd\.Once\((0x[0-9A-F]{8}),')
 NAMED_THIS = re.compile(r'(\bd\.Thiscall\(0x[0-9A-F]{8}, )(0x[0-9A-F]{8})\b')

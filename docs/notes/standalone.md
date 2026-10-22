@@ -342,7 +342,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows, 53 -> 41 after C18u's generated names). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows, 53 -> 41 after C18u's generated names, 41 -> 6 after C18r's MFC and CRT objects). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -573,10 +573,7 @@ kinds given.
     CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
-    007AFF60), and of the CRT the allocator state (`_pnhHeap` 007CAAD8, `_afxNewHandler`
-    00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
-    --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
-    game.exe's; name them together with a game.exe path for those calls.
+    007AFF60). The CRT's allocator state is named since C18r (below).
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
     static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
@@ -778,12 +775,30 @@ kinds given.
       fixed allocators and of the four static windows (007C8BB8, 007C9138, 007CAAA0, 007CAA24), _simpleUserException
       007C8BC0 (`lib::StaticObject<CSimpleException>`), the thread / process locals 007C90BC, 007C90C0, 007CAA84,
       007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
-      _AfxCbtFilterHook 00704BE6, is not ported). This is the form for an object only generated code reaches; an object
-      a hand port also reads keeps the hand-ported initialiser (above).
-    - **Left**: MFC's module / thread state and window classes (C18r: the objects mfc_*.cpp read, among them the fixed
-      allocators and static windows the generated exits destroy), the CRT's (C26), EmptyText 0079B298 (15 pointer
-      cells of game.exe's data point at it and code compares its address), STLport's free lists 0079B224-0079B22C (the
-      harness calls our allocator in game.exe), and the section bounds in game_data.h (0073B000,
+      _AfxCbtFilterHook 00704BE6, is not ported). C18r added the objects hand code reads too, whose initialisers are
+      plain library calls: the temporary objects' fixed allocators (mfc_gdi.h: g_tempDCAlloc 007C8D18,
+      g_tempGdiObjectAlloc 007C8CF0; mfc_window.h: g_tempWndAlloc 007CA940, g_tempMenuAlloc 007CAAA8) and the four
+      static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
+    - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
+      allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
+      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate) and `_pnhHeap`
+      (`g_heapNewHandler` 007CAAD8); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
+      `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). In game.exe's runs the harness's
+      containers take nodes from our pool, whose chunks come from game.exe's operator new there, so a block may go
+      back to either pool. MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
+      function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the four string allocators
+      (mfc_string.h `g_stringAlloc64` .. `512`, 007C8B80 .. 007C8B08; in game.exe's runs harness_startup.cpp builds
+      them, beside pointing g_dataNil at game.exe's, because our CString code there allocates from them), the
+      resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
+      (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
+      (`g_afxLockInit` 007C8E80, `g_afxLockInitLock` 007C8EC8, `g_afxResourceLocks` 007C8EE0, `g_afxCriticalWin32s` /
+      `g_afxCriticalInit` 007C9078 / 7C), `g_afxThreadData` 007C9084 and the halftone brush 007C8D40 (_afxWingdixTerm
+      007C8D44 kept only atexit's answer, which nothing reads: dropped). The DragList message id `g_dragListMessage`
+      007CAA64 is pointed at by CWnd's message map entry 00746C80, which nothing in the image reads
+      (config/standalone_unreachable.csv): named_data.py's UNREACHABLE_CELLS lets that one cell point into a range.
+      printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_x87.cpp).
+    - **Left**: EmptyText 0079B298 (15 pointer
+      cells of game.exe's data point at it and code compares its address), and the section bounds in game_data.h (0073B000,
       0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 

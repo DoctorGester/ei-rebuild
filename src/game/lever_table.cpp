@@ -72,9 +72,7 @@ void __fastcall LeverTableDestruct(Table* self) {
         gamecrt::operator_delete(storage);
         return;
     }
-    void** freeList = ei::GamePointer<void*>(0x0079B224) + ((bytes - 1) >> 3);
-    *reinterpret_cast<void**>(storage) = *freeList;
-    *freeList = storage;
+    libcrt::NodeDeallocate(storage, bytes);
 }
 EI_REWRITTEN(0x00463120, LeverTableDestruct);
 
