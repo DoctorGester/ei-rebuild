@@ -65,7 +65,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFileImpl("spells.sdb", &size);
+    void* data = resource.Get()->CMappedResource::GetFile("spells.sdb", &size);
     if (!data) return game::FatalError("Can't open spells database\n");
 
     CMemoryStream local;
@@ -84,7 +84,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     ar.Open(stream, 1, 1);
     for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i], unused);
     ar.Close(stream);
-    resource.Get()->CMappedResource::CloseFileImpl(data);
+    resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
@@ -98,7 +98,7 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFileImpl("items.idb", &size);
+    void* data = resource.Get()->CMappedResource::GetFile("items.idb", &size);
     if (!data) return game::FatalError("Can't open items database\n");
 
     CMemoryStream local;
@@ -116,7 +116,7 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     questItems.Load(stream, kQuestItemsChunk);
     loot.Load(stream, kLootChunk);
 
-    resource.Get()->CMappedResource::CloseFileImpl(data);
+    resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }

@@ -29,7 +29,7 @@ int QuestDatabase::Load(const char* folder) {
     LocalResource resource;
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFileImpl("quests.qdb", &size);
+    void* data = resource.Get()->CMappedResource::GetFile("quests.qdb", &size);
     if (!data) return game::FatalError("Can't open quests database\n");
 
     CMemoryStream local;
@@ -46,7 +46,7 @@ int QuestDatabase::Load(const char* folder) {
             briefings.index[record->name] = record;
     });
 
-    resource.Get()->CMappedResource::CloseFileImpl(data);
+    resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }

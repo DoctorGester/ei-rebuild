@@ -108,18 +108,14 @@ public:
     // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
     ~CMappedResource() override;
     virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
-    BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)
     virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
-    BOOL OpenFromMemoryImpl(const void* image);   // body of the slot above (registered by member pointer)
     virtual void CloseResource();                                     // 3: 00671AC0
     virtual void Flush();                                             // 4: 00671390 (empty)
     virtual void* GetFile(const char* name, std::uint32_t* size);     // 5: 00671B40
-    void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
-    // GetFileImpl without Rebirth's ResOverride (in the standalone image GetFileImpl goes through
+    // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
     // mod_folders.h, which calls this one on the game's and the mod's archives).
     void* GetFilePlain(const char* name, std::uint32_t* size);
     virtual bool CloseFile(void* data);                               // 6: 00671E00
-    bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     virtual void FreeAllFiles();                                      // 7: 00672040
 
     // 006714A0, the destructor's body, called qualified where the original reaches it by address (Rebirth patches
@@ -152,15 +148,11 @@ public:
     ~CMMIOResource() override;
 
     BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
-    BOOL OpenResourceImpl(const char* path, BOOL writable);   // body of the slot above (registered by member pointer)
     BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520
-    BOOL OpenFromMemoryImpl(const void* image);   // body of the slot above (registered by member pointer)
     void CloseResource() override;                                    // 3: 006725A0
     void Flush() override;                                            // 4: 006725D0 (flushes file_)
     void* GetFile(const char* name, std::uint32_t* size) override;    // 5: 006725E0
-    void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
     bool CloseFile(void* data) override;                              // 6: 00672640 (nothing to free)
-    bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     void FreeAllFiles() override;                                     // 7: 00672650 (empty)
 
     CMappedFile file_;           // +0x58

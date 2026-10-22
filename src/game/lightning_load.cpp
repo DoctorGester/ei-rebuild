@@ -30,7 +30,7 @@ int __cdecl LoadLightningNoise() {
     if (!opened) return 0;
 
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFileImpl("lightning.dat", &size);
+    void* data = resource.Get()->CMappedResource::GetFile("lightning.dat", &size);
     if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
 
     FillStream(local, data, size);
@@ -38,7 +38,7 @@ int __cdecl LoadLightningNoise() {
     float* row = LightningNoiseTable();
     for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
         stream->Read(row, kLightningNoiseRowLength * sizeof(float));
-    resource.Get()->CMappedResource::CloseFileImpl(data);
+    resource.Get()->CMappedResource::CloseFile(data);
     return 1;
 }
 EI_REWRITTEN(0x00468A00, LoadLightningNoise);

@@ -29,7 +29,7 @@ int LeverRecordTable::Load(const char* folder) {
         return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
     }
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFileImpl("Levers.ldb", &size);
+    void* data = resource.Get()->CMappedResource::GetFile("Levers.ldb", &size);
     if (!data) return game::FatalError("Can't open Levers database\n");
 
     CMemoryStream local;
@@ -47,7 +47,7 @@ int LeverRecordTable::Load(const char* folder) {
         byName[key] = record;
     }
 
-    resource.Get()->CMappedResource::CloseFileImpl(data);
+    resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }

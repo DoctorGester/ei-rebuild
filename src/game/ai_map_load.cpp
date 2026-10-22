@@ -123,9 +123,9 @@ struct Archive {
     ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }
-    bool Open(const char* path) { return Get()->CMappedResource::OpenResourceImpl(path, 0) != 0; }
-    void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFileImpl(name, size); }
-    void Close(void* file) { Get()->CMappedResource::CloseFileImpl(file); }
+    bool Open(const char* path) { return Get()->CMappedResource::OpenResource(path, 0) != 0; }
+    void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFile(name, size); }
+    void Close(void* file) { Get()->CMappedResource::CloseFile(file); }
 
     lib::InPlace<CMappedResource> storage;
 };

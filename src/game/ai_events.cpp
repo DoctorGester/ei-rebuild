@@ -210,12 +210,12 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     {
         mfc::CString folder(TheTextFolder());
         mfc::CString path = folder + kAiInfoArchive;
-        failed = archive->CMappedResource::OpenResourceImpl(path, 0) == 0;
+        failed = archive->CMappedResource::OpenResource(path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;
     if (!failed) {
-        data = archive->CMappedResource::GetFileImpl(kNormalFile, nullptr);
+        data = archive->CMappedResource::GetFile(kNormalFile, nullptr);
         error = kCantOpenNormal;
     }
     if (!data) {
@@ -224,7 +224,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
         return result;
     }
     std::memcpy(g_normalTable, data, kNormalTableSize);
-    archive->CMappedResource::CloseFileImpl(data);
+    archive->CMappedResource::CloseFile(data);
     archive->CMappedResource::Destroy();
     return 1;
 }

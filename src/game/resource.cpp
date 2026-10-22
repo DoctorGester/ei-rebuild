@@ -66,14 +66,9 @@ CMappedResource::~CMappedResource() {
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
-// The slots whose bodies are registered by member pointer (the Impl members), and slot 4.
-BOOL CMappedResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
-BOOL CMappedResource::OpenFromMemory(const void* image) { return OpenFromMemoryImpl(image); }
-void CMappedResource::Flush() {}   // 00671390 (short_functions.cpp)
-void* CMappedResource::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
-bool CMappedResource::CloseFile(void* data) { return CloseFileImpl(data); }
+void CMappedResource::Flush() {}   // 4: 00671390 (short_functions.cpp)
 
-BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
+BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
     // Rebirth's ResOverride (00671738): addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
@@ -81,7 +76,7 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
     writable_ = writable;
     fd_ = libcrt::Open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
     if (fd_ == -1)
-        return game::FatalError("CMappedResource::OpenResourceImpl()\nUnable to open file \"" + mfc::CString(path) + "\"");
+        return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + mfc::CString(path) + "\"");
 
     if (libcrt::Lseek(fd_, 0, 0) != -1 && libcrt::Read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
         if (header_.magic != kResMagic) {
@@ -98,10 +93,10 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
             return 1;
     }
     CloseResource();
-    return game::FatalError("CMappedResource::OpenResourceImpl()\nUnable to read file \"" + mfc::CString(path) + "\"");
+    return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + mfc::CString(path) + "\"");
 }
 
-BOOL CMappedResource::OpenFromMemoryImpl(const void* image) {
+BOOL CMappedResource::OpenFromMemory(const void* image) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
     char* base = const_cast<char*>(static_cast<const char*>(image));
@@ -135,7 +130,7 @@ void CMappedResource::CloseResource() {
 }
 
 // Rebirth's ResOverride sends every call of 00671B40 and the vtable slot 007432F4 to addon.
-void* CMappedResource::GetFileImpl(const char* name, std::uint32_t* size) {
+void* CMappedResource::GetFile(const char* name, std::uint32_t* size) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);
 }
@@ -192,13 +187,13 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     return nullptr;
 }
 
-bool CMappedResource::CloseFileImpl(void* data) {
+bool CMappedResource::CloseFile(void* data) {
     if (image_) return true;
     if (!data) return false;
 
     auto* byData = filesByData_.Find(data);
     if (!byData) {
-        game::DebugLog("CMappedResource::CloseFileImpl()\nFile already closed\n");
+        game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
     LoadedFile* file = byData->value;
@@ -210,7 +205,7 @@ bool CMappedResource::CloseFileImpl(void* data) {
             // The original formats the data pointer as the file name.
             mfc::CString name;
             name = static_cast<const char*>(data);
-            game::FatalError("CMappedResource::CloseFileImpl()\nUnable to write file \"" + name + "\"\n");
+            game::FatalError("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n");
         }
     }
 
@@ -247,11 +242,11 @@ EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
 EI_REWRITTEN_SPECIAL(0x00671280, CMappedResource::CMappedResource);
 EI_REWRITTEN(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
 EI_REWRITTEN_SPECIAL(0x006713A0, CMappedResource::~CMappedResource);   // deleting
-EI_REWRITTEN(0x00671730, CMappedResource::OpenResourceImpl);   // patched by Rebirth: installs in the vanilla launch only
-EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemoryImpl);
+EI_REWRITTEN(0x00671730, CMappedResource::OpenResource);   // patched by Rebirth: installs in the vanilla launch only
+EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemory);
 EI_REWRITTEN(0x00671AC0, CloseResourceHook);
-EI_REWRITTEN(0x00671B40, CMappedResource::GetFileImpl);
-EI_REWRITTEN(0x00671E00, CMappedResource::CloseFileImpl);
+EI_REWRITTEN(0x00671B40, CMappedResource::GetFile);
+EI_REWRITTEN(0x00671E00, CMappedResource::CloseFile);
 EI_REWRITTEN(0x00672040, FreeAllFilesHook);
 
 // --- CMappedFile -------------------------------------------------------------------------------
@@ -343,14 +338,14 @@ void CMappedFile::Flush() {
 
 // --- CMMIOResource -----------------------------------------------------------------------------
 
-BOOL CMMIOResource::OpenResourceImpl(const char* path, BOOL writable) {
+BOOL CMMIOResource::OpenResource(const char* path, BOOL writable) {
     if (!file_.Open(path, writable)) return false;
     if (OpenFromMemory(file_.view_)) return true;
     CloseResource();
     return false;
 }
 
-BOOL CMMIOResource::OpenFromMemoryImpl(const void* image) {
+BOOL CMMIOResource::OpenFromMemory(const void* image) {
     char* base = const_cast<char*>(static_cast<const char*>(image));
     mappedImage_ = base;
     std::memcpy(&header_, base, sizeof(header_));
@@ -364,10 +359,6 @@ BOOL CMMIOResource::OpenFromMemoryImpl(const void* image) {
     return true;
 }
 
-BOOL CMMIOResource::OpenResource(const char* path, BOOL writable) { return OpenResourceImpl(path, writable); }
-BOOL CMMIOResource::OpenFromMemory(const void* image) { return OpenFromMemoryImpl(image); }
-void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
-bool CMMIOResource::CloseFile(void* data) { return CloseFileImpl(data); }
 
 void CMMIOResource::CloseResource() {
     file_.Close();
@@ -379,7 +370,7 @@ void CMMIOResource::CloseResource() {
 
 void CMMIOResource::Flush() { file_.Flush(); }
 
-void* CMMIOResource::GetFileImpl(const char* name, std::uint32_t* size) {
+void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) {
     if (!entries_ || !names_) return nullptr;
     int index = FindEntry(name);
     if (index == -1) return nullptr;
@@ -387,7 +378,7 @@ void* CMMIOResource::GetFileImpl(const char* name, std::uint32_t* size) {
     return mappedImage_ + entries_[index].offset;
 }
 
-bool CMMIOResource::CloseFileImpl(void*) { return true; }
+bool CMMIOResource::CloseFile(void*) { return true; }
 
 void CMMIOResource::FreeAllFiles() {}
 
@@ -396,7 +387,7 @@ EI_REWRITTEN(0x006756D0, CMappedFile::Close);
 EI_REWRITTEN(0x00675720, CMappedFile::Close);
 EI_REWRITTEN(0x00675770, CMappedFile::Open);
 EI_REWRITTEN(0x00675A50, CMappedFile::Flush);
-EI_REWRITTEN(0x006724E0, CMMIOResource::OpenResourceImpl);
-EI_REWRITTEN(0x00672520, CMMIOResource::OpenFromMemoryImpl);
-EI_REWRITTEN(0x006725E0, CMMIOResource::GetFileImpl);
-EI_REWRITTEN(0x00672640, CMMIOResource::CloseFileImpl);
+EI_REWRITTEN(0x006724E0, CMMIOResource::OpenResource);
+EI_REWRITTEN(0x00672520, CMMIOResource::OpenFromMemory);
+EI_REWRITTEN(0x006725E0, CMMIOResource::GetFile);
+EI_REWRITTEN(0x00672640, CMMIOResource::CloseFile);
