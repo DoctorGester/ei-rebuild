@@ -20,8 +20,6 @@ struct QuestBriefingRecord;   // quest_records.h
 
 namespace worlddata {
 
-inline float ExeFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
-
 // ---- CreateUnits (0058EF20) --------------------------------------------------------------------
 
 inline const char* StartZoneText() { return "zone1"; }
@@ -205,7 +203,6 @@ inline float LayoutX() { return 0.00125f /*00740164*/; }   // 2 / 1600
 inline float LayoutY() { return 0.0025f /*0074015C*/; }   // 1 / 400
 inline float ThreeQuarters() { return 0.75f /*0073C524*/; }   // 0.75
 inline float InterfaceView() { return 0.48157462f /*00740158*/; }   // 0.48157 (the interface camera's half view)
-inline float DampScale() { return ExeFloat(std::uintptr_t(0x007C2F8C)); }   // the occluders' damping scale (ai_refresh.cpp)
 // By reference, where the original copies the bits or passes the address on.
 inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f /*0073BB20*/>; }   // seconds between announcements to the master
 inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090*/>; }   // squared distance a blocking ally may be away

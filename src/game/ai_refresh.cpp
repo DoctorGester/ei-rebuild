@@ -20,6 +20,11 @@ namespace {
 
 constexpr int kLevels = 8;
 
+// The occluders' damping scale, ln 0.6: zero at the start, set by its static initialiser (005B2FB0, the
+// x87 FLDLN2 / FYL2X of 0.6 stored as a float), ported on the name and registered at its address.
+float g_dampScale = /*007C2F8C*/ {};
+void __cdecl InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }   // 005B2FB0
+
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
 // others the first.
 int AreaList(int level) {
@@ -175,7 +180,7 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
     float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
     float added = static_cast<float>(static_cast<double>(TableInt(worlddata::kOccluderCosts, type)) * frac);
     s->cost += x87::fistp(added);
-    float scale = worlddata::DampScale();
+    float scale = g_dampScale;
     s->passage = sectorOrder ? Damp(TableInt(worlddata::kOccluderDamping, type), scale, frac, s->passage)
                              : Damp(TableInt(worlddata::kOccluderDamping, type), frac, scale, s->passage);
 }
@@ -326,3 +331,4 @@ EI_REWRITTEN(0x005B8FA0, CAIMap::RefreshArea);
 EI_REWRITTEN(0x005B89F0, CAIMap::ClearUnmarkedArea);
 EI_REWRITTEN(0x005B8BA0, CAIMap::CellMark);
 EI_REWRITTEN(0x005B8710, CAIMap::LimitSteepCells);
+EI_REPLACE(0x005B2FB0, InitDampScale);

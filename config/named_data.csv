@@ -484,6 +484,7 @@ address,size,name,file
 007C2F64,4,g_patch,src/game/ai_water_patch.cpp
 007C2F68,1,g_guard,src/game/ai_water_patch.cpp
 007C2F70,28,g_unitShapes,src/game/ai_movement.cpp
+007C2F8C,4,g_dampScale,src/game/ai_refresh.cpp
 007C2FC0,20,g_spiralLengths,src/game/sector_spiral.cpp
 007C2FD8,28,g_spiralRadii,src/game/sector_spiral.cpp
 007C2FF8,20,g_spiralOffsets,src/game/sector_spiral.cpp
