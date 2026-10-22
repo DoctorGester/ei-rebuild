@@ -63,6 +63,7 @@ class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CUnit;     // unit.h
 class CMapObject;   // map_object.h
+class CObject3D;    // map_object_figures.h
 class CSpell;   // spell.h
 struct CSpellEffect;   // spell.h
 class CParticleManager;   // effects.h
@@ -531,7 +532,7 @@ public:
     // 0058DAF0 (RET 4; world_game.cpp). While a game runs (+0x138), every new connection the
     // lobby hands over (its slot 6) becomes a player (0066C180 / 00665990) of this game's kind,
     // fully dirty, starting at startPosition_; "Accepted player <id>" goes to the network log.
-    void AcceptNewPlayers(void* lobby);
+    void AcceptNewPlayers(CPlayerSource* lobby);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
@@ -1029,10 +1030,11 @@ struct ReleaseIdentified {
     bool Test(CEngineObject* object);
     std::uint8_t unused;
 };
-// hash_map<unsigned, T*> (the client's pending map).
-struct PendingIndex : stlp::hash_map<std::uint32_t, void*, stlp::IntHash> {
+// hash_map<unsigned, node*> (the client's pending map: an object id to its node in the client's
+// CList<CEngineObject*> +0xBC).
+struct PendingIndex : stlp::hash_map<std::uint32_t, mfc::CList<CEngineObject*>::Node*, stlp::IntHash> {
     // 0056FC60 (RET 8). *value = the entry's value and 1, or 0.
-    int Lookup(const std::uint32_t* key, void** value) const;
+    int Lookup(const std::uint32_t* key, mfc::CList<CEngineObject*>::Node** value) const;
 };
 using PendingMap = PendingIndex;
 // A list element whose layout is not needed here (only its size, for the node's).
@@ -1471,7 +1473,7 @@ public:
     // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
     // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
     // The original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const float* point, float radius, void* out);
+    void ObjectsInRange(const float* point, float radius, stlp::list<CObject3D*>* out);
     // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
     // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
     // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
@@ -1955,7 +1957,7 @@ void __fastcall ClearSaveFolder(const char* path);
 // their second name in order of first appearance: one random entry per group (never the one
 // whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
 // first name appended to `out` (an STLport vector of strings).
-void __stdcall PickZones(void* out, int id, const char* exclude);
+void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude);
 
 // 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
 // restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
