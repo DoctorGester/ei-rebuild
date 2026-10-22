@@ -73,9 +73,6 @@ SCANNED = [('rdata', IMPORTS[1], 0x00783000), ('data', 0x00783000, 0x0079C000)]
 # that takes it. "Strings" are string literals, which MSVC 6 put in .data.
 REVIEWED_DATA = [
     # .rdata
-    (0x0073B000, 0x00783000, 73, '".SEC": per-file copies of a const char* const from a header, some read by code '
-                                 '(005B5042 reads 0073FD20)', 0x00783CDC),
-    (0x0073FD1C, 0x0073FD1C, 1, '".MP": a const char* const'),
     (0x00746900, 0x00746930, 3, "MFC CCmdTarget's dispatch and event sink maps: their entry counts and stock "
                                 "property mask (-1 in .data)"),
     (0x00746C80, 0x00746C80, 1, 'MFC message map entry (ON_REGISTERED_MESSAGE, handler 00706CF4): the message\'s '
