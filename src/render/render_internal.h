@@ -20,6 +20,7 @@ struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11RenderTargetView;
 struct IDXGISwapChain1;
+struct IDXGIFactory2;
 
 namespace render::detail {
 
@@ -276,8 +277,8 @@ void PresentWindow();
 // What the last DrawToWindow drew with, for the cursor thread's presents (render_cursor.cpp): the
 // swap chain and its back buffer's view, the present pipeline (the frame and the cursor through the
 // gamma ramp), the frame's and the ramp's views and the ramp as uploaded (256 RGBA8 entries), the
-// client area, the frame's size and its place in the client area, whether Present waits for the
-// vertical blank. Raw pointers, no references taken; false when there is no swap chain.
+// client area, the frame's size and its place in the client area, Present's sync interval and flags
+// (R23: the vertical blank switch). Raw pointers, no references taken; false when there is no swap chain.
 struct WindowParts {
     IDXGISwapChain1* chain;
     ID3D11RenderTargetView* view;
@@ -289,9 +290,17 @@ struct WindowParts {
     int clientWidth, clientHeight;
     int frameWidth, frameHeight;
     Rect placed;
-    bool vsync;
+    std::uint32_t syncInterval;
+    std::uint32_t presentFlags;
 };
 bool CurrentWindowParts(WindowParts* parts);
+// The vertical blank switch's rules (render_window.cpp, R23): whether the factory's system allows tearing
+// presents, the flags of a swap chain made when tearing is wanted (SetVsync(false)), Present's sync interval and flags for it on a chain
+// made with `chainFlags` (tools/perf_check checks them).
+bool TearingSupported(IDXGIFactory2* factory);
+std::uint32_t ChainFlagsFor(bool allowTearing, bool tearingSupported);
+std::uint32_t SyncIntervalFor(bool vsync);
+std::uint32_t PresentFlagsFor(bool vsync, std::uint32_t chainFlags);
 // The game window's swap chain and everything the window module made on the device, released
 // (before sg_shutdown: the device is lost); the next DrawToWindow makes them on the new device.
 void DropWindow();

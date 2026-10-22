@@ -6,10 +6,14 @@
 //           colour at 40%; outside the box: untouched).
 //   time    frames with the timestamps the renderer takes: the GPU times come back, the passes within the total,
 //           the frame counts kept.
+//   vsync   (R23, the vertical blank switch) the rules for the chain's flags and Present's interval and flags
+//           (tearing wanted or not, supported or not), and on a hidden window's flip-model chain made as the renderer
+//           makes it: the flags it reports, ResizeBuffers with them, a Present with the switch's interval and flags.
 // Any sokol error or warning and any ei::Log line but the switch's fails the check. Exit code 0 when all pass.
 #define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
+#include <dxgi1_5.h>
 
 #include "render/render_internal.h"
 #include "render/render_perf.h"
@@ -284,6 +288,66 @@ bool StartDevice(bool hardware) {
     return sg_isvalid();
 }
 
+// The vertical blank switch (src/render/render_window.cpp, R23): the pure rules, then real chains on a hidden window.
+void CheckVsync() {
+    const UINT tearing = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    namespace d = render::detail;
+    Check(d::SyncIntervalFor(true) == 1 && d::SyncIntervalFor(false) == 0, "the sync interval: 1 with the wait, 0 without");
+    Check(d::ChainFlagsFor(false, true) == 0 && d::ChainFlagsFor(false, false) == 0 && d::ChainFlagsFor(true, false) == 0 &&
+              d::ChainFlagsFor(true, true) == tearing,
+          "the chain's tearing flag only when wanted and supported");
+    Check(d::PresentFlagsFor(true, 0) == 0 && d::PresentFlagsFor(true, tearing) == 0 && d::PresentFlagsFor(false, 0) == 0 &&
+              d::PresentFlagsFor(false, tearing) == DXGI_PRESENT_ALLOW_TEARING,
+          "Present's tearing flag only without the wait and on a chain made with the flag");
+
+    IDXGIDevice* dxgiDevice = nullptr;
+    IDXGIAdapter* adapter = nullptr;
+    IDXGIFactory2* factory = nullptr;
+    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
+              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
+              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
+    Check(ok, "the device's DXGI factory");
+    HWND window = CreateWindowExW(0, L"STATIC", L"ei_perf_check", WS_POPUP, 0, 0, 320, 240, nullptr, nullptr, nullptr, nullptr);
+    Check(window != nullptr, "a hidden window");
+    if (ok && window) {
+        const bool supported = d::TearingSupported(factory);
+        std::printf("  tearing presents %s on this device\n", supported ? "supported" : "not supported");
+        for (int wanted = 0; wanted < 2; ++wanted) {
+            const bool allowTearing = wanted != 0;
+            const bool vsync = !allowTearing;
+            DXGI_SWAP_CHAIN_DESC1 sd{};
+            sd.Width = 320;
+            sd.Height = 240;
+            sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            sd.SampleDesc.Count = 1;
+            sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            sd.BufferCount = 2;
+            sd.Scaling = DXGI_SCALING_STRETCH;
+            sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+            sd.Flags = d::ChainFlagsFor(allowTearing, supported);
+            IDXGISwapChain1* chain = nullptr;
+            const std::string name = allowTearing ? "the VSync=0 chain" : "the VSync=1 chain";
+            HRESULT hr = factory->CreateSwapChainForHwnd(g_device, window, &sd, nullptr, nullptr, &chain);
+            Check(SUCCEEDED(hr) && chain, name + " made");
+            if (!chain) continue;
+            DXGI_SWAP_CHAIN_DESC1 got{};
+            chain->GetDesc1(&got);
+            Check(((got.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) != 0) == (allowTearing && supported),
+                  name + " reports the tearing flag as asked");
+            Check(SUCCEEDED(chain->ResizeBuffers(0, 400, 300, DXGI_FORMAT_UNKNOWN, sd.Flags)), name + " resized with the same flags");
+            hr = chain->Present(d::SyncIntervalFor(vsync), d::PresentFlagsFor(vsync, sd.Flags));
+            Check(SUCCEEDED(hr), name + " presents with the switch's interval and flags");
+            if (FAILED(hr)) std::printf("  Present returned %08lX\n", static_cast<unsigned long>(hr));
+            chain->Release();
+        }
+    }
+    if (window) DestroyWindow(window);
+    if (factory) factory->Release();
+    if (adapter) adapter->Release();
+    if (dxgiDevice) dxgiDevice->Release();
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -301,6 +365,7 @@ int main(int argc, char** argv) {
     CheckDraw(1280, 720);
     CheckDraw(3840, 2160);
     CheckTime();
+    CheckVsync();
     perf::SetOn(false);
     perf::Release();
     sg_shutdown();

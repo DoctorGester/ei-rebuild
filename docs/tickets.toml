@@ -634,7 +634,7 @@ title = "Vsync switch in the settings file"
 group = "renderer"
 size = 1
 model = "sonnet"
-note = "User 2026-10-22 asked for a way to disable vsync. The renderer always presents with sync interval 1 (render_window.cpp g_waitForVsync, SetWaitForVsync has no caller; render_cursor.cpp's chain copies it). Add \"VSync\"=dword under the settings file's Standalone key (as R21's PerfOverlay; default 1, never read in the harness), and when off present with interval 0 plus DXGI_PRESENT_ALLOW_TEARING where the flip-model chain was created with DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING and the system supports it (CheckFeatureSupport), so windowed runs really unlock. Game timing is per-frame world updates (renderer.md: vsync only changes grouping), so check nothing else depends on it. Document next to PerfOverlay (renderer.md section 15, play.cmd header)."
+note = "Implemented: settings file Standalone key VSync (dword, 0 = off, default on). Off: sync interval 0, and where IDXGIFactory5 supports it the flip chain is made with ALLOW_TEARING (ResizeBuffers same flags) and presents carry ALLOW_TEARING; both present paths (render_window.cpp, render_cursor.cpp). Rules in render_present_mode.cpp, checked by ei_perf_check (vsync part, hidden-window chains on WARP). Harness never reads it (VsyncSwitchSupported false); harness SetWaitForVsync(false) unchanged, no tearing flags. Docs: renderer.md 15a, play.cmd."
 
 # ---------------------------------------------------------------- native interface drawing
 

@@ -86,6 +86,14 @@ bool PerfOverlaySetting() {
            type == 4 /* REG_DWORD */ && value != 0;
 }
 
+// The vertical blank's switch (R23; docs/notes/renderer.md section 15): "VSync" (a DWORD, 0: off, anything else or
+// absent: on) of the same key. Read only in the product, as above.
+bool VsyncSetting() {
+    unsigned long type = 0, value = 0, size = sizeof(value);
+    return !(settings_file::ReadValue("Software\\Nival Interactive\\EvilIslands\\Standalone", "VSync", &type, &value, &size) == 0 &&
+             type == 4 /* REG_DWORD */ && value == 0);
+}
+
 } // namespace
 
 // ---- The DirectDraw base ------------------------------------------------------------------------
@@ -178,6 +186,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     // fallback): the error ends it in WinMain.
     if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
     render::SetPerfOverlay(PerfOverlaySetting());
+    if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
     ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
     driver_ = driver;
     modes_.ClearWith([](DDSURFACEDESC2*) {});

@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi1_2.h>
+#include <dxgi1_5.h>
 
 #include <cstdint>
 #include <cstdlib>
@@ -35,9 +36,12 @@ ID3D11RenderTargetView* g_view = nullptr;
 int g_chainWidth = 0, g_chainHeight = 0;
 bool g_failed = false;        // no swap chain could be made, or the device is gone: nothing is shown
 int g_presentFailures = 0;
-// Present waits for the vertical blank (sync interval 1) unless the harness's virtual clock runs
-// the game, where a frame's length no longer depends on the display.
+// Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (R23; render::
+// SetWaitForVsync, set before the first present) or the harness's virtual clock runs the game, where a frame's length
+// no longer depends on the display.
 bool g_waitForVsync = true;
+bool g_allowTearing = false;  // the product's "VSync"=0 (render::SetVsync): the chain may tear (the harness's off does not)
+UINT g_chainFlags = 0;        // the flags the swap chain was made with (ResizeBuffers takes the same, Present's follow)
 bool g_recreated = false;     // the swap chain was made again once after a failed resize
 
 sg_shader g_shader{};
@@ -143,6 +147,7 @@ void ReleaseChain() {
     if (g_chain) g_chain->Release();
     g_chain = nullptr;
     g_chainWidth = g_chainHeight = 0;
+    g_chainFlags = 0;
 }
 
 bool CreateView() {
@@ -171,11 +176,14 @@ bool CreateChain(HWND window, int width, int height) {
         sd.Scaling = DXGI_SCALING_STRETCH;
         sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        sd.Flags = ChainFlagsFor(g_allowTearing, TearingSupported(factory));
         HRESULT hr = factory->CreateSwapChainForHwnd(D3DDevice(), window, &sd, nullptr, nullptr, &g_chain);
         if (FAILED(hr)) {
             ei::Log("render: CreateSwapChainForHwnd failed (%08lX)", static_cast<unsigned long>(hr));
             g_chain = nullptr;
             ok = false;
+        } else {
+            g_chainFlags = sd.Flags;
         }
         // The game handles Alt+Enter and its window itself.
         if (ok) factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
@@ -191,7 +199,10 @@ bool CreateChain(HWND window, int width, int height) {
     if (!g_pipeline.id && !CreatePipeline()) return false;
     g_chainWidth = width;
     g_chainHeight = height;
-    ei::Log("render: presenting on the game window through a flip-model swap chain (%dx%d)", width, height);
+    ei::Log("render: presenting on the game window through a flip-model swap chain (%dx%d), %s", width, height,
+            !g_waitForVsync ? ((g_chainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) ? "no vertical blank wait, tearing allowed"
+                                                                                  : "no vertical blank wait (no tearing support)")
+                            : "waiting for the vertical blank");
     return true;
 }
 
@@ -222,7 +233,7 @@ bool EnsureChain(HWND window, int width, int height) {
     if (width == g_chainWidth && height == g_chainHeight) return true;
     ReleaseView();
     sg_reset_state_cache();
-    HRESULT hr = g_chain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), DXGI_FORMAT_UNKNOWN, 0);
+    HRESULT hr = g_chain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), DXGI_FORMAT_UNKNOWN, g_chainFlags);
     if (SUCCEEDED(hr) && CreateView()) {
         g_chainWidth = width;
         g_chainHeight = height;
@@ -402,6 +413,7 @@ void CheckCursorDrawn(int width, int height) {
 
 namespace detail {
 
+
 bool DrawToWindow(const BlitBatch* cursor) {
     if (g_failed || DeviceIsLost()) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
@@ -478,7 +490,7 @@ void PresentWindow() {
         // working device: this Present reports it.
         RemoveIfAsked();
 #endif
-        hr = g_chain->Present(g_waitForVsync ? 1 : 0, 0);
+        hr = g_chain->Present(SyncIntervalFor(g_waitForVsync), PresentFlagsFor(g_waitForVsync, g_chainFlags));
     }
     if (IsDeviceLost(hr)) {
         DeviceLost("Present", hr);
@@ -497,7 +509,7 @@ bool CurrentWindowParts(WindowParts* parts) {
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
     *parts = WindowParts{g_chain,       g_view,       g_shader,      g_pipeline, FrameTexture(), g_rampView,
                          g_uploaded,    g_chainWidth, g_chainHeight, frameWidth, frameHeight,    placed,
-                         g_waitForVsync};
+                         SyncIntervalFor(g_waitForVsync), PresentFlagsFor(g_waitForVsync, g_chainFlags)};
     return true;
 }
 
@@ -520,6 +532,21 @@ void DropWindow() {
 } // namespace detail
 
 void SetWaitForVsync(bool on) { g_waitForVsync = on; }
+
+void SetVsync(bool on) {
+    if (!VsyncSwitchSupported()) return;
+    if (on != g_waitForVsync) ei::Log("render: vertical blank wait %s (settings file)", on ? "on" : "off");
+    g_waitForVsync = on;
+    g_allowTearing = !on;
+}
+
+bool VsyncSwitchSupported() {
+#if defined(EI_RENDER_VALIDATION)
+    return false;   // the harness build: its presents are the virtual clock's (SetWaitForVsync), the pinned settings lack the value
+#else
+    return true;
+#endif
+}
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256: 00504A60 multiplies by it); entries are
