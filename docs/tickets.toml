@@ -278,14 +278,14 @@ id = "R14"
 title = "Option: stay on screen when focus is lost in borderless full screen"
 group = "renderer"
 size = 1
-note = "User 2026-10-16: on Alt+Tab the game's own OnActivate (app.cpp) pauses and minimises the window, which suits exclusive full screen but not our borderless window (a borderless game normally stays on the primary display). New option, default off (original behaviour); decide with the user whether the pause stays."
+note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
 
 [[ticket]]
 id = "R15"
 title = "Options: confine the cursor to the window; no edge pan with the cursor outside"
 group = "renderer"
 size = 1
-note = "User 2026-10-16: camera edge pan works but the cursor is not confined to the window (ClipCursor), and the camera pans while the cursor is outside the window. New options, default off (original behaviour)."
+note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
 
 [[ticket]]
 id = "R12a"
@@ -593,7 +593,7 @@ title = "Option: smooth world at high refresh rates (draw moving objects interpo
 group = "renderer"
 model = "opus"
 depends = ["R18"]
-note = "User 2026-10-21 (with R18): units, missiles and effects move in 55 ms world ticks (about 18 a second); only animation time uses tick + tickFraction_. Keep each moving object's previous-tick transform and blend it with the current one at draw time by the client's tickFraction_ (the matrices handed to render:: in device_mesh / the transform pipeline), without touching game state, behind an option off by default. Estimated 3-4 batches: transforms store, figures and units, missiles and particles, picking rectangles (they come from the drawn positions) and the camera follow from R18."
+note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
 
 [[ticket]]
 id = "UB1"
