@@ -187,7 +187,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     struct Message {
         lib::InPlace<UnitSpec> bytes;
         UnitSpec* Get() { return bytes.Get(); }
-        Message() { mapspec::UnitSpecConstruct(Get()); }   // 0046C010
+        Message() { Get()->UnitSpecConstruct(); }   // 0046C010
         ~Message() { DestroyMessage(Get()); }
     } holder;
     UnitSpec* message = holder.Get();
