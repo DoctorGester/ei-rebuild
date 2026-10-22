@@ -50,8 +50,8 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = offer->player_.Get()->name_.data();
     std::uint32_t line = 0;   // CString
-    void* formatted = TheInterface()->MessageText(&line, text, name);
-    self->Announce(*static_cast<const char**>(formatted), partner);
+    mfc::CString* formatted = TheInterface()->MessageText(&line, text, name);
+    self->Announce(formatted->GetString(), partner);
     CStringDestroy(&line);
 }
 

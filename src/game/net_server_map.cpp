@@ -74,7 +74,7 @@ void ServerSession::SetMap(const stlp::string* name) {
     {
         mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
         const char* mapTitle = *SessionMapNameInto(&title);
-        Announce(*static_cast<mfc::CString*>(TheInterface()->MessageText(&text, 5, mapTitle)), nullptr);
+        Announce(*TheInterface()->MessageText(&text, 5, mapTitle), nullptr);
     }
 
     std::uint8_t* entry;
