@@ -29,9 +29,9 @@ namespace {
 // The game server object of a multiplayer session (null or flagged inactive otherwise); its
 // FindPlayer (0041A2E0) is the player record with +0x2C == id, or null.
 net::ServerSession* ActiveGameServer() {
-    auto* server = reinterpret_cast<std::uint8_t*>(net::GameServer());
-    if (!server || (*reinterpret_cast<std::uint32_t*>(server + 4) & 0x80000000u)) return nullptr;
-    return reinterpret_cast<net::ServerSession*>(server);
+    net::ServerSession* server = net::GameServer();
+    if (!server || (server->flags7_ & CRefCounted::kDetached)) return nullptr;
+    return server;
 }
 
 // Player index used by the shared-object list: -1 when not in a multiplayer game or unknown.
