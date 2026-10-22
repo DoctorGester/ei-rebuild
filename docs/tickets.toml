@@ -652,7 +652,7 @@ group = "renderer"
 size = 1
 model = "opus"
 depends = ["R22"]
-note = "User screenshot: build/R25/user_shimmer.png (the shadow triangle below the hide-on-frame sign, whose tip reaches the character)."
+note = "User 2026-10-22: the save holds the exact camera distance; no zoom needed. Zooming in removes it, zooming back out brings it back. Reproduce with a still camera over consecutive frames and diff them inside the triangle."
 
 # ---------------------------------------------------------------- native interface drawing
 
